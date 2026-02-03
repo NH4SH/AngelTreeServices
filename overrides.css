@@ -119,3 +119,63 @@
   transform-origin: left;
   animation: ats-underline-draw 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0s forwards;
 }
+
+/* Hero badges: keep native grid placement, show both images inline */
+#top .fe-block-yui_3_17_2_1_1696576397695_1658 {
+  position: relative;
+  z-index: 6;
+  text-align: center;
+  grid-column: 1 / -1 !important;
+  justify-self: center;
+  margin-bottom: 48px;
+}
+
+#top .fe-block-yui_3_17_2_1_1696576397695_1658 .sqs-block {
+  width: 100%;
+}
+
+#top .fe-block-yui_3_17_2_1_1696576397695_1658 .sqs-block-content,
+#top .fe-block-yui_3_17_2_1_1696576397695_1658 .sqs-block-alignment-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+#top .ats-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+#top .ats-badge-row .ats-isa-badge {
+  height: 220px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* Move the divider down to sit below the badges */
+#top .section-divider-display {
+  transform: translateY(85px);
+}
+
+@media (max-width: 640px) {
+  #top .ats-badge-row {
+    gap: 12px;
+  }
+
+  #top .ats-badge-row .ats-isa-badge {
+    height: 180px;
+  }
+}
+
+/* Keep divider stroke behind badges */
+#top .section-divider-display,
+#top .section-divider-svg-clip,
+#top .section-divider-svg-stroke {
+  z-index: 4 !important;
+}

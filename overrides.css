@@ -1,0 +1,121 @@
+/* Angel Tree Services overrides */
+
+/* Hero background: use static image to avoid resize flicker */
+#top .section-background {
+  background-image: url("angeltreeservices_backup_files/LightroomGrassPictureSquooshed_013.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#top .section-background-content,
+#top .background-image-fx {
+  display: none !important;
+}
+
+/* Hero headline: single underline + sizing */
+#top h1,
+#top h1 * {
+  text-decoration: none !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+#top h1::before,
+#top h1::after,
+#top .sqsrte-text-highlight::before,
+#top .sqsrte-text-highlight::after {
+  content: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+#top .sqsrte-text-highlight {
+  background-image: none !important;
+}
+
+#top .TextShape-node {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+#top .sqsrte-scaled-text-container,
+#top h1 {
+  text-align: center;
+}
+
+#top .sqsrte-scaled-text {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.15em;
+  font-size: clamp(56px, 8.6vw, 112px) !important;
+}
+
+#top .sqsrte-scaled-text::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em;
+  border-bottom: 0.1em solid #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: ats-underline-draw 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0s forwards;
+}
+
+@keyframes ats-underline-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Contact: single underline for heading */
+#contact .TextShape-node[data-text-attribute-id="ff476eda-ccb1-4978-ae55-8be7a835ef1b"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+#contact .sqsrte-scaled-text {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.15em;
+}
+
+#contact .sqsrte-scaled-text::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em;
+  border-bottom: 0.1em solid #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: ats-underline-draw 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0s forwards;
+}
+
+/* Contact: single underline for phone number */
+#contact .TextShape-node[data-text-attribute-id="6d57e739-535e-4dd5-8af3-1c6110ef3e5a"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+#contact a[href^="tel:"] {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.08em;
+}
+
+#contact a[href^="tel:"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  border-bottom: 0.08em solid #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: ats-underline-draw 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0s forwards;
+}

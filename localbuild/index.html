@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Angel Tree Services | Tree Service, Landscaping & Lawn Care in Fredericksburg, VA</title>
+    <meta
+      name="description"
+      content="Certified-arborist-led tree service, green landscaping, and lawn care in Fredericksburg, Spotsylvania, Stafford, King George, and Caroline, VA. Request a free estimate."
+    />
+    <link rel="canonical" href="https://angeltreeservices.org/" />
+
+    <!-- Social -->
+    <meta property="og:site_name" content="Angel Tree Services" />
+    <meta property="og:title" content="Angel Tree Services" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://angeltreeservices.org" />
+    <meta
+      property="og:description"
+      content="Certified-arborist-led tree service, green landscaping, and lawn care in the Fredericksburg region. Request a free estimate."
+    />
+
+    <link rel="icon" type="image/x-icon" href="/angeltreeservices_backup_files/favicon.ico" />
+    <link rel="stylesheet" href="/angeltreeservices_backup_files/css2.css" />
+
+    <!-- Your shared styles -->
+    <link rel="stylesheet" href="/overrides.css?v=localbuild3" />
+
+    <!-- Localbuild minimal base -->
+    <style>
+      :root {
+        --bg: #071c0c;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.78);
+
+        --card: rgba(255, 255, 255, 0.10);
+        --card-strong: rgba(0, 0, 0, 0.22);
+        --card-border: rgba(255, 255, 255, 0.18);
+
+        --brand: #2f8e2f;
+        --brand-dark: #1f5a22;
+
+        --max: 1120px;
+        --radius: 24px;
+        --shadow: 0 22px 70px rgba(0, 0, 0, 0.30);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--bg);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+        overflow-x: hidden;
+      }
+
+      a { color: inherit; text-decoration: none; }
+      img { max-width: 100%; height: auto; display: block; }
+
+      .container { width: min(var(--max), 92vw); margin: 0 auto; }
+
+      /* Header */
+      .header {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+        background: rgba(16, 88, 22, 0.58);
+        border-bottom: 1px solid rgba(255,255,255,0.22);
+      }
+      .header-inner {
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+      }
+      .brand img { height: 34px; width: auto; }
+
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 18px;
+        margin: 0;
+        padding: 0;
+        font-weight: 550;
+        color: rgba(255,255,255,0.90);
+      }
+      nav a { padding: 10px 8px; border-radius: 999px; }
+      nav a:hover { background: rgba(255,255,255,0.10); }
+
+      .header-right { display: flex; align-items: center; gap: 12px; }
+      .header-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 16px;
+        border-radius: 999px;
+        border: 2px solid rgba(255,255,255,0.60);
+        background: rgba(255,255,255,0.10);
+        font-weight: 650;
+      }
+      .header-cta:hover { background: rgba(255,255,255,0.16); }
+
+      /* HERO */
+      .hero {
+        position: relative;
+        min-height: 92vh;
+        display: grid;
+        align-items: center;
+        padding: 110px 0 70px;
+        background:
+          /* gentle readability without killing brightness */
+          linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.52)),
+          /* centered spotlight */
+          radial-gradient(900px 520px at 50% 40%, rgba(0,0,0,0.10), rgba(0,0,0,0.45) 70%, rgba(0,0,0,0.62) 100%),
+          url("/assets/LightroomGrassPictureSquooshed_013.jpg") center / cover no-repeat;
+      }
+
+      .hero-grid {
+        position: relative;
+        display: grid;
+        gap: 16px;
+        align-items: center;
+
+        /* centered layout */
+        text-align: center;
+        justify-items: center;
+
+        /* glass */
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 28px;
+        border-radius: 28px;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.14);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 28px 90px rgba(0,0,0,0.25);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(44px, 6.6vw, 92px);
+        line-height: 1.03;
+        letter-spacing: -0.02em;
+      }
+
+      /* single underline animation */
+      .underline {
+        position: relative;
+        display: inline-block;
+        padding-bottom: 0.14em;
+      }
+      .underline::after {
+        content: "";
+        position: absolute;
+        left: 0; right: 0;
+        bottom: 0.04em;
+        border-bottom: 0.10em solid #fff;
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: underline-draw 0.8s cubic-bezier(0.19, 1, 0.22, 1) 0.05s forwards;
+      }
+      @keyframes underline-draw { to { transform: scaleX(1); } }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(16px, 2.0vw, 20px);
+        line-height: 1.45;
+        max-width: 60ch;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+        justify-content: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 18px;
+        border-radius: 999px;
+        font-weight: 650;
+        border: 2px solid rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.12);
+        white-space: nowrap;
+      }
+      .btn.primary {
+        background: #fff;
+        color: var(--brand);
+        border-color: #fff;
+        padding: 17px 24px;
+        font-size: 16px;
+      }
+      .btn.primary:hover { filter: brightness(0.97); }
+      .btn:hover { background: rgba(255,255,255,0.16); }
+
+      /* trust strip (quiet, not salesy) */
+      .trust {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 10px;
+      }
+      .pill {
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(0,0,0,0.16);
+        color: rgba(255,255,255,0.86);
+        font-size: 13px;
+        line-height: 1;
+      }
+
+      .badges {
+        display: flex;
+        gap: 14px;
+        align-items: flex-end;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .badges img {
+        height: 170px;
+        width: auto;
+        object-fit: contain;
+        border-radius: 12px;
+      }
+
+      /* Sections */
+      section { padding: 78px 0; background: var(--bg); }
+      section.alt { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)); }
+
+      .section-title {
+        margin: 0 0 18px;
+        font-size: clamp(28px, 3.2vw, 44px);
+        letter-spacing: -0.01em;
+      }
+
+      .grid-3 {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .card {
+        border-radius: var(--radius);
+        border: 1px solid var(--card-border);
+        background: var(--card);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+      .card h3 { margin: 0 0 8px; font-size: 18px; }
+      .card p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+      /* FAQ */
+      .faq { display: grid; gap: 12px; }
+      details {
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(0,0,0,0.16);
+        padding: 14px 16px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 650;
+        color: rgba(255,255,255,0.90);
+      }
+      details p {
+        margin: 10px 0 0;
+        color: rgba(255,255,255,0.78);
+        line-height: 1.6;
+      }
+
+      /* Contact form */
+      form { display: grid; gap: 12px; }
+      .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      label { font-weight: 600; font-size: 14px; color: rgba(255,255,255,0.90); }
+      input, select, textarea {
+        width: 100%;
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.22);
+        background: rgba(0,0,0,0.22);
+        color: rgba(255,255,255,0.95);
+        outline: none;
+      }
+      textarea { min-height: 140px; resize: vertical; }
+
+      .form-footer {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .fineprint { color: rgba(255,255,255,0.72); font-size: 13px; line-height: 1.45; }
+
+      footer {
+        padding: 34px 0;
+        border-top: 1px solid rgba(255,255,255,0.12);
+        background: #06170a;
+        color: rgba(255,255,255,0.76);
+      }
+
+      /* Responsive */
+      @media (max-width: 880px) {
+        nav ul { display: none; }
+        .grid-3 { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        .hero { padding: 96px 0 54px; }
+        .hero-grid { padding: 20px 16px; border-radius: 22px; }
+        .row { grid-template-columns: 1fr; }
+        .badges img { height: 145px; }
+        .pill { font-size: 12px; }
+      }
+    </style>
+
+    <!-- LocalBusiness schema (helps SEO) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "Angel Tree Services",
+        "url": "https://angeltreeservices.org",
+        "telephone": "+1-540-388-8715",
+        "areaServed": ["Fredericksburg, VA","Spotsylvania County, VA","Stafford County, VA","King George County, VA","Caroline County, VA"],
+        "description": "Certified-arborist-led tree service, green landscaping, and lawn care in the Fredericksburg region."
+      }
+    </script>
+  </head>
+
+  <body>
+    <header class="header" role="banner">
+      <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="Angel Tree Services home">
+          <img src="/assets/SquooshedAngelTreeTransparent.png" alt="Angel Tree Services logo" />
+          <span>Angel Tree Services</span>
+        </a>
+
+        <nav aria-label="Primary navigation">
+          <ul>
+            <li><a href="#about">About</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#why">Why us</a></li>
+            <li><a href="#contact">Estimate</a></li>
+          </ul>
+        </nav>
+
+        <div class="header-right">
+          <a class="header-cta" href="tel:+15403888715">Call Us</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top" class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <h1><span class="underline">Your yard’s best friends.</span></h1>
+
+          <p class="sub">
+            Certified-arborist-led <strong>tree care</strong>, green <strong>landscaping</strong>, and <strong>lawn care</strong>
+            for the Fredericksburg region (Spotsylvania, Stafford, King George, and Caroline) — backed by <strong>30+ years</strong> of experience.
+          </p>
+
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="btn primary" href="#contact">Request a Free Estimate</a>
+            <a class="btn" href="tel:+15403888715">Call (540) 388-8715</a>
+          </div>
+
+          <div class="trust" aria-label="Trust highlights">
+            <span class="pill">Certified arborist leadership</span>
+            <span class="pill">Fast quotes • clean work</span>
+            <span class="pill">Fredericksburg & surrounding counties</span>
+          </div>
+
+          <div class="badges" aria-label="Certifications">
+            <img src="/assets/isamember1_004.jpg" alt="ISA Member badge" />
+            <img src="/assets/certified-arborist.png" alt="ISA Certified Arborist badge" />
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <section id="services" class="alt">
+      <div class="container">
+        <h2 class="section-title">Services</h2>
+
+        <div class="grid-3">
+          <div class="card">
+            <h3>Tree Services</h3>
+            <p>Pruning, removals, storm cleanup, and tree health guidance led by certified expertise.</p>
+          </div>
+
+          <div class="card">
+            <h3>Green Landscaping</h3>
+            <p>Planting, beds, mulch, cleanups, and sustainable upgrades that make your property feel alive.</p>
+          </div>
+
+          <div class="card">
+            <h3>Lawn Care</h3>
+            <p>Mowing, edging, seasonal maintenance, and keeping your yard sharp all year.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="container">
+        <h2 class="section-title">About Angel Tree Services</h2>
+        <div class="card">
+          <p style="margin:0; color: rgba(255,255,255,0.84); line-height: 1.65;">
+            We’re a Fredericksburg-area team focused on clean work, honest communication, and results you can see immediately.
+            Our crew brings <strong>30+ years</strong> of hands-on experience — now with <strong>certified-arborist-led</strong> tree care in-house.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" class="alt">
+      <div class="container">
+        <h2 class="section-title">Why people call us</h2>
+
+        <div class="grid-3">
+          <div class="card">
+            <h3>Certified arborist leadership</h3>
+            <p>Not guesswork — real tree knowledge when it matters.</p>
+          </div>
+
+          <div class="card">
+            <h3>Fast quotes, clean jobs</h3>
+            <p>We show up, communicate, and leave your property better than we found it.</p>
+          </div>
+
+          <div class="card">
+            <h3>Local to the region</h3>
+            <p>Fredericksburg + Spotsylvania, Stafford, King George, and Caroline.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="container">
+        <h2 class="section-title">Quick questions</h2>
+
+        <div class="faq">
+          <details>
+            <summary>Do you offer free estimates?</summary>
+            <p>Yes — tell us what you need and we’ll follow up quickly to schedule a visit and provide a clear estimate.</p>
+          </details>
+
+          <details>
+            <summary>What areas do you serve?</summary>
+            <p>We work throughout the Fredericksburg region: Spotsylvania, Stafford, King George, and Caroline.</p>
+          </details>
+
+          <details>
+            <summary>Can you help with storm damage?</summary>
+            <p>Yes. If it’s urgent, call us. For downed limbs or risky situations, we’ll prioritize safety and rapid cleanup.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="alt">
+      <div class="container">
+        <h2 class="section-title">Request a Free Estimate</h2>
+
+        <div class="ats-form-success" role="status" aria-live="polite">
+          Thank you! We look forward to helping your property look its best!
+        </div>
+
+        <div class="card">
+          <form
+            name="contact"
+            method="POST"
+            data-netlify="true"
+            data-netlify-honeypot="bot-field"
+            action="/?contact=success#contact"
+            class="ats-contact-form"
+          >
+            <input type="hidden" name="form-name" value="contact" />
+
+            <p class="ats-honeypot">
+              <label>Don’t fill this out if you’re human: <input name="bot-field" type="text" /></label>
+            </p>
+
+            <div class="row">
+              <div>
+                <label for="name">Name</label>
+                <input id="name" name="name" autocomplete="name" required />
+              </div>
+
+              <div>
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" autocomplete="tel" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="email">Email (optional)</label>
+                <input id="email" name="email" type="email" autocomplete="email" />
+              </div>
+
+              <div>
+                <label for="service">Service</label>
+                <select id="service" name="service" required>
+                  <option value="" disabled selected>Select</option>
+                  <option>Tree Services</option>
+                  <option>Landscaping (Green only)</option>
+                  <option>Lawn Care</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="address">Job address</label>
+              <input id="address" name="address" autocomplete="street-address" required />
+            </div>
+
+            <div>
+              <label for="details">Details</label>
+              <textarea id="details" name="details" required></textarea>
+            </div>
+
+            <div class="form-footer">
+              <button class="btn primary" type="submit">Send Request</button>
+              <a class="btn" href="tel:+15403888715">Or call: (540) 388-8715</a>
+            </div>
+
+            <p class="fineprint">
+              By submitting, you agree to be contacted about your request. If it’s urgent (storm damage), call us.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="container">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+          <span>© <span id="y"></span> Angel Tree Services</span>
+          <span>Fredericksburg, VA • Spotsylvania • Stafford • King George • Caroline</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("y").textContent = new Date().getFullYear();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("contact") === "success") document.body.classList.add("ats-form-submitted");
+    </script>
+  </body>
+</html>

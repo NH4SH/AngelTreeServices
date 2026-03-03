@@ -1,0 +1,68 @@
+/* landing-clean brightness pass on top of localbuild */
+
+:root {
+  --bg: #225228;
+  --muted: rgba(255, 255, 255, 0.94);
+  --card: rgba(255, 255, 255, 0.22);
+  --card-border: rgba(255, 255, 255, 0.31);
+  --brand: #5dc364;
+  --brand-dark: #3f9b47;
+}
+
+.header {
+  background: rgba(39, 138, 47, 0.5);
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.hero {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.24)),
+    radial-gradient(
+      900px 520px at 50% 40%,
+      rgba(0, 0, 0, 0.02),
+      rgba(0, 0, 0, 0.2) 70%,
+      rgba(0, 0, 0, 0.29) 100%
+    ),
+    url("/assets/LightroomGrassPictureSquooshed_013.jpg") center / cover no-repeat;
+}
+
+.hero-grid {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.15);
+}
+
+.pill,
+details {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+input,
+select,
+textarea {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ats-form-success {
+  margin-bottom: 28px;
+}
+
+.ats-marketing-optin {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ats-marketing-optin input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+  accent-color: #45ad4e;
+}

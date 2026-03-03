@@ -141,6 +141,32 @@ body.ats-form-submitted .ats-form-success {
   display: block;
 }
 
+/* Contact form opt-in checkbox */
+#contact #ats-updates-opt-in {
+  margin-top: 14px;
+}
+
+#contact .ats-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  margin: 0;
+}
+
+#contact .ats-checkbox-input {
+  margin-top: 0.2em;
+  width: 18px;
+  height: 18px;
+  accent-color: #2f8e2f;
+  flex: 0 0 auto;
+}
+
+#contact .ats-checkbox-label span {
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
 /* Hero badges: keep native grid placement, show both images inline */
 #top .fe-block-yui_3_17_2_1_1696576397695_1658 {
   position: relative;

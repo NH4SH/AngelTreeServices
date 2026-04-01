@@ -27,7 +27,7 @@
     <!-- Localbuild minimal base -->
     <style>
       :root {
-        --bg: #071c0c;
+        --bg: #102418;
         --text: rgba(255, 255, 255, 0.92);
         --muted: rgba(255, 255, 255, 0.78);
 
@@ -35,8 +35,8 @@
         --card-strong: rgba(0, 0, 0, 0.22);
         --card-border: rgba(255, 255, 255, 0.18);
 
-        --brand: #2f8e2f;
-        --brand-dark: #1f5a22;
+        --brand: #5a8b60;
+        --brand-dark: #26462b;
 
         --max: 1120px;
         --radius: 24px;
@@ -64,7 +64,7 @@
         top: 0; left: 0; right: 0;
         z-index: 50;
         backdrop-filter: blur(12px);
-        background: rgba(16, 88, 22, 0.58);
+        background: rgba(31, 68, 37, 0.62);
         border-bottom: 1px solid rgba(255,255,255,0.22);
       }
       .header-inner {
@@ -118,9 +118,9 @@
         padding: 110px 0 70px;
         background:
           /* gentle readability without killing brightness */
-          linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.52)),
+          linear-gradient(180deg, rgba(7, 18, 9, 0.08), rgba(7, 18, 9, 0.4)),
           /* centered spotlight */
-          radial-gradient(900px 520px at 50% 40%, rgba(0,0,0,0.10), rgba(0,0,0,0.45) 70%, rgba(0,0,0,0.62) 100%),
+          radial-gradient(900px 520px at 50% 40%, rgba(8, 21, 10, 0.08), rgba(8, 21, 10, 0.34) 70%, rgba(8, 21, 10, 0.5) 100%),
           url("/assets/LightroomGrassPictureSquooshed_013.jpg") center / cover no-repeat;
       }
 
@@ -139,8 +139,8 @@
         margin: 0 auto;
         padding: 28px 28px;
         border-radius: 28px;
-        background: rgba(0,0,0,0.18);
-        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(15, 31, 18, 0.18);
+        border: 1px solid rgba(255,255,255,0.2);
         backdrop-filter: blur(10px);
         box-shadow: 0 28px 90px rgba(0,0,0,0.25);
       }
@@ -327,7 +327,7 @@
         .pill { font-size: 12px; }
       }
     </style>
-    <link rel="stylesheet" href="landing-clean.css?v=bright3" />
+    <link rel="stylesheet" href="landing-clean.css?v=fullpass1" />
 
     <!-- LocalBusiness schema (helps SEO) -->
     <script type="application/ld+json">
@@ -478,10 +478,23 @@
 
     <section id="contact" class="alt">
       <div class="container">
-        <h2 class="section-title">Request a Free Estimate</h2>
+        <h2 class="section-title">Tell us about the job</h2>
 
         <div class="ats-form-success" role="status" aria-live="polite">
-          Thank you! We look forward to helping your property look its best!
+          Thanks — we’ve got your request. We’ll review it and follow up soon about your free estimate.
+        </div>
+
+        <div class="ats-form-intro" id="ats-form-guidance">
+          <p class="ats-form-eyebrow">Homeowner-first quote request</p>
+          <p class="ats-form-lede">
+            Tell us a little about your property and the work you have in mind. We’ll use the details below to route your request and reach out about next steps.
+          </p>
+          <div class="ats-form-meta">
+            <span>Free estimates</span>
+            <span>About a minute to fill out</span>
+            <span>We’ll follow up by phone or email with next steps</span>
+          </div>
+          <p class="ats-form-urgent">Storm damage or something urgent? <a href="tel:+15403888715">(540) 388-8715</a></p>
         </div>
 
         <div class="card">
@@ -492,6 +505,8 @@
             data-netlify-honeypot="bot-field"
             action="/?contact=success#contact"
             class="ats-contact-form"
+            aria-describedby="ats-form-guidance"
+            novalidate
           >
             <input type="hidden" name="form-name" value="contact" />
 
@@ -499,56 +514,99 @@
               <label>Don’t fill this out if you’re human: <input name="bot-field" type="text" /></label>
             </p>
 
+            <div class="ats-form-error-summary" role="alert" aria-live="assertive" hidden>
+              Please check the highlighted fields and try again.
+            </div>
+
             <div class="row">
               <div>
-                <label for="name">Name</label>
-                <input id="name" name="name" autocomplete="name" required />
+                <label for="name">Full name</label>
+                <input id="name" name="name" autocomplete="name" placeholder="John Doe" required />
               </div>
 
               <div>
                 <label for="phone">Phone</label>
-                <input id="phone" name="phone" autocomplete="tel" required />
+                <input id="phone" name="phone" autocomplete="tel" placeholder="(540) 555-1234" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="email">Email (optional)</label>
-                <input id="email" name="email" type="email" autocomplete="email" />
-                <label class="ats-marketing-optin">
-                  <input id="updates-opt-in" name="updates_opt_in" type="checkbox" value="yes" />
-                  <span>Send me occasional seasonal tips, service reminders, and scheduling updates!</span>
-                </label>
+                <input id="email" name="email" type="email" autocomplete="email" placeholder="john.doe@gmail.com" />
               </div>
 
               <div>
-                <label for="service">Service</label>
+                <label for="service">Service needed</label>
                 <select id="service" name="service" required>
-                  <option value="" disabled selected>Select</option>
-                  <option>Tree Services</option>
-                  <option>Landscaping (Green only)</option>
-                  <option>Lawn Care</option>
+                  <option value="" disabled selected>Select a service</option>
+                  <option>Tree care</option>
+                  <option>Landscaping</option>
+                  <option>Lawn care</option>
+                  <option>Storm cleanup</option>
+                  <option>Multiple services / not sure yet</option>
+                </select>
+              </div>
+            </div>
+
+            <fieldset class="ats-segmented-field">
+              <legend>This request is for</legend>
+              <div class="ats-segmented-options" role="radiogroup" aria-label="This request is for">
+                <label class="ats-segmented-option">
+                  <input checked name="customer_type" type="radio" value="Homeowner" />
+                  <span>Homeowner</span>
+                </label>
+                <label class="ats-segmented-option">
+                  <input name="customer_type" type="radio" value="Commercial / Property Management" />
+                  <span>Commercial / property management</span>
+                </label>
+              </div>
+              <p class="ats-field-help">
+                Homeowners are the default path. If you manage commercial work, rentals, HOAs, or multiple properties, choose the second option so we can route your request correctly.
+              </p>
+            </fieldset>
+
+            <div class="row ats-commercial-fields" data-commercial-fields hidden aria-hidden="true">
+              <div>
+                <label for="commercial-name">Company / HOA / property name</label>
+                <input id="commercial-name" name="commercial_name" autocomplete="organization" placeholder="Oak Hollow HOA" />
+              </div>
+
+              <div>
+                <label for="property-scope">Properties involved</label>
+                <select id="property-scope" name="property_scope">
+                  <option value="" selected>Choose if helpful</option>
+                  <option value="1 property">1 property</option>
+                  <option value="2 to 5 properties">2 to 5 properties</option>
+                  <option value="6+ properties">6+ properties</option>
+                  <option value="Recurring service">Recurring service</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label for="address">Job address</label>
-              <input id="address" name="address" autocomplete="street-address" required />
+              <input id="address" name="address" autocomplete="street-address" placeholder="123 Main St, Fredericksburg, VA" required />
             </div>
 
+            <label class="ats-marketing-optin">
+              <input id="updates-opt-in" name="updates_opt_in" type="checkbox" value="yes" />
+              <span>Send me occasional seasonal tips, service reminders, and scheduling updates!</span>
+            </label>
+
             <div>
-              <label for="details">Details</label>
-              <textarea id="details" name="details" required></textarea>
+              <label for="details">What should we know about the job?</label>
+              <p class="ats-field-help">A short note is plenty — tell us what you need, anything urgent, and anything that will help us prepare for the estimate.</p>
+              <textarea id="details" name="details" placeholder="For example: We have two large trees near the driveway that need to come down, and we’d love an estimate this week if possible." required></textarea>
             </div>
 
             <div class="form-footer">
-              <button class="btn primary" type="submit">Send Request</button>
+              <button class="btn primary" type="submit">Send My Request</button>
               <a class="btn" href="tel:+15403888715">Or call: (540) 388-8715</a>
             </div>
 
             <p class="fineprint">
-              By submitting, you agree to be contacted about your request. If it’s urgent (storm damage), call us.
+              We’ll only use your information to follow up about your request.
             </p>
           </form>
         </div>
@@ -569,5 +627,6 @@
       const params = new URLSearchParams(window.location.search);
       if (params.get("contact") === "success") document.body.classList.add("ats-form-submitted");
     </script>
+    <script defer src="../ats-form-enhancements.js?v=1"></script>
   </body>
 </html>

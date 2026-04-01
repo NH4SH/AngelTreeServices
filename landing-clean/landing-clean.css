@@ -1,68 +1,244 @@
 /* landing-clean brightness pass on top of localbuild */
 
 :root {
-  --bg: #225228;
+  --bg: #21452a;
   --muted: rgba(255, 255, 255, 0.94);
-  --card: rgba(255, 255, 255, 0.22);
-  --card-border: rgba(255, 255, 255, 0.31);
-  --brand: #5dc364;
-  --brand-dark: #3f9b47;
+  --card: rgba(255, 255, 255, 0.2);
+  --card-border: rgba(255, 255, 255, 0.28);
+  --brand: #6f9d74;
+  --brand-dark: #27492d;
 }
 
 .header {
-  background: rgba(39, 138, 47, 0.5);
-  border-bottom-color: rgba(255, 255, 255, 0.3);
+  background: rgba(38, 80, 46, 0.52);
+  border-bottom-color: rgba(255, 255, 255, 0.28);
 }
 
 .hero {
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.24)),
+    linear-gradient(180deg, rgba(8, 20, 9, 0.02), rgba(8, 20, 9, 0.18)),
     radial-gradient(
       900px 520px at 50% 40%,
-      rgba(0, 0, 0, 0.02),
-      rgba(0, 0, 0, 0.2) 70%,
-      rgba(0, 0, 0, 0.29) 100%
+      rgba(8, 20, 9, 0.02),
+      rgba(8, 20, 9, 0.16) 70%,
+      rgba(8, 20, 9, 0.24) 100%
     ),
     url("/assets/LightroomGrassPictureSquooshed_013.jpg") center / cover no-repeat;
 }
 
 .hero-grid {
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.15);
+  background: rgba(20, 42, 25, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 20px 64px rgba(9, 24, 12, 0.12);
 }
 
 .pill,
 details {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 input,
 select,
 textarea {
-  background: rgba(0, 0, 0, 0.08);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(17, 38, 21, 0.08);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.ats-form-error-summary {
+  margin-bottom: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 176, 176, 0.62);
+  background: rgba(112, 17, 17, 0.34);
+  color: rgba(255, 236, 236, 0.98);
+  font-weight: 700;
+}
+
+.ats-form-error-summary[hidden] {
+  display: none;
 }
 
 .ats-form-success {
   margin-bottom: 28px;
 }
 
+.ats-form-intro {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.ats-form-eyebrow {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ats-form-lede {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 1.03rem;
+  line-height: 1.65;
+}
+
+.ats-form-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ats-form-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.ats-form-urgent {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.ats-form-urgent a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
 .ats-marketing-optin {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
-  margin-top: 10px;
+  margin-top: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
   font-size: 13px;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .ats-marketing-optin input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin-top: 2px;
   flex: 0 0 auto;
-  accent-color: #45ad4e;
+  accent-color: #5f8f65;
+}
+
+.ats-field-help {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.ats-field-error {
+  margin: 8px 0 0;
+  color: rgba(255, 222, 222, 0.96);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.ats-segmented-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ats-segmented-field legend {
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ats-segmented-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ats-segmented-option {
+  position: relative;
+  flex: 1 1 240px;
+}
+
+.ats-segmented-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ats-segmented-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 700;
+  text-align: center;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.ats-segmented-option input:checked + span {
+  background: rgba(111, 157, 116, 0.94);
+  border-color: rgba(111, 157, 116, 0.98);
+  color: #143118;
+  box-shadow: 0 12px 28px rgba(15, 37, 20, 0.14);
+}
+
+.ats-segmented-option input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+.ats-commercial-fields[hidden] {
+  display: none !important;
+}
+
+.ats-contact-form.is-submitting .btn.primary,
+.ats-contact-form .btn.primary[disabled] {
+  opacity: 0.78;
+  cursor: progress;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: rgba(255, 176, 176, 0.86);
+  box-shadow: 0 0 0 3px rgba(255, 176, 176, 0.14);
+}
+
+.fineprint {
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .ats-form-meta span {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ats-segmented-option {
+    flex-basis: 100%;
+  }
 }

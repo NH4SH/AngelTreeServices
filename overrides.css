@@ -721,6 +721,19 @@ body.ats-form-submitted .ats-form-success {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html,
+  html:focus-within {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   #top .sqs-button-element--primary,
   #contact .form-submit-button,
   #contact .ats-form-secondary-action,

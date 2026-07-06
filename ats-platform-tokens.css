@@ -1,0 +1,34 @@
+/* Shared Angel Tree platform tokens for future static and TypeScript surfaces. */
+:root {
+  color-scheme: light;
+
+  --ats-color-ivory: oklch(0.975 0.018 92);
+  --ats-color-paper: oklch(0.992 0.01 93);
+  --ats-color-paper-warm: oklch(0.977 0.03 86);
+  --ats-color-forest: oklch(0.31 0.075 155);
+  --ats-color-green: oklch(0.43 0.08 154);
+  --ats-color-green-soft: oklch(0.94 0.035 145);
+  --ats-color-gold: oklch(0.74 0.13 83);
+  --ats-color-charcoal: oklch(0.24 0.012 142);
+  --ats-color-muted: oklch(0.49 0.025 140);
+  --ats-color-warning-text: oklch(0.38 0.075 78);
+  --ats-color-border: oklch(0.31 0.075 155 / 0.14);
+  --ats-color-border-strong: oklch(0.31 0.075 155 / 0.22);
+  --ats-color-focus: oklch(0.43 0.08 154 / 0.18);
+  --ats-shadow-soft: 0 18px 50px oklch(0.24 0.012 142 / 0.08);
+  --ats-shadow-lifted: 0 8px 24px oklch(0.31 0.075 155 / 0.08);
+
+  /* Compatibility aliases for the current static admin route. */
+  --ats-ivory: var(--ats-color-ivory);
+  --ats-paper: var(--ats-color-paper);
+  --ats-paper-warm: var(--ats-color-paper-warm);
+  --ats-forest: var(--ats-color-forest);
+  --ats-green: var(--ats-color-green);
+  --ats-green-soft: var(--ats-color-green-soft);
+  --ats-gold: var(--ats-color-gold);
+  --ats-charcoal: var(--ats-color-charcoal);
+  --ats-muted: var(--ats-color-muted);
+  --ats-border: var(--ats-color-border);
+  --ats-border-strong: var(--ats-color-border-strong);
+  --ats-shadow: var(--ats-shadow-soft);
+}

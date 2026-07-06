@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "start:lan": "next start --hostname 0.0.0.0 --port 3000",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

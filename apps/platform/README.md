@@ -34,6 +34,7 @@ npm run dev:lan
 LAN production-style verification:
 
 ```powershell
+npm run typecheck
 npm run build
 npm run start:lan
 ```
@@ -48,6 +49,12 @@ http://192.168.1.161:3000
 Replace `192.168.1.161` with the current LAN IP of the machine running the app when needed.
 
 Production mode is the better final check for LAN styling and asset loading because it uses the optimized build output instead of the live development pipeline.
+
+For a staging/private deployment pass, use:
+
+```text
+DEPLOYMENT_CHECKLIST.md
+```
 
 Create a Supabase project at `https://supabase.com`, then copy `.env.example` from the repo root to:
 

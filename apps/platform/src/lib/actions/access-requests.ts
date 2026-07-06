@@ -1,17 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  employeeRequestedRoleOptions,
+  type EmployeeRequestedRoleValue,
+} from "@/lib/access-request-options";
 import { hasAllowedRole, platformRoleGroups, type PlatformRoleName } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { AccessApprovalRole } from "@/lib/data/access-requests";
-
-export const employeeRequestedRoleOptions = [
-  { label: "Crew", value: "crew" },
-  { label: "Estimator", value: "estimator" },
-  { label: "Admin assistant", value: "admin_assistant" },
-  { label: "Payroll / time clock only", value: "payroll_time_clock_only" },
-  { label: "Other", value: "other" },
-] as const;
 
 const allowedRequestedRoles = new Set(employeeRequestedRoleOptions.map((option) => option.value));
 const allowedApprovalRoles = new Set<AccessApprovalRole>(["admin", "estimator", "crew", "payroll_admin"]);
@@ -55,7 +51,7 @@ export async function requestEmployeeAccess(
     return { status: "error", message: "The password confirmation does not match." };
   }
 
-  if (!allowedRequestedRoles.has(requestedRole as (typeof employeeRequestedRoleOptions)[number]["value"])) {
+  if (!allowedRequestedRoles.has(requestedRole as EmployeeRequestedRoleValue)) {
     return { status: "error", message: "Choose the kind of access you need." };
   }
 

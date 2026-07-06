@@ -6,8 +6,8 @@ import { LockKeyhole, UserRoundPlus } from "lucide-react";
 import {
   requestEmployeeAccess,
   type AccessRequestActionState,
-  employeeRequestedRoleOptions,
 } from "@/lib/actions/access-requests";
+import { employeeRequestedRoleOptions } from "@/lib/access-request-options";
 
 type SignupFormProps = {
   configured: boolean;

@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { AlertTriangle, Clock3, PlayCircle, ShieldCheck, TimerReset } from "lucide-react";
-import { CrewClockInForm, CrewClockOutForm, LiveTimerCard } from "@/components/time-clock";
+import { CrewViewResetWatcher } from "@/components/crew-view-reset-watcher";
+import {
+  CrewClockInForm,
+  CrewClockOutForm,
+  LiveTimerCard,
+  QuickClockInEventForm,
+} from "@/components/time-clock";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { canUseTimeClock, getTimeClockPermissionForUser } from "@/lib/auth/time-clock";
 import { getCrewJobs } from "@/lib/data/crew-jobs";
+import { getCurrentCrewViewResetTimestamp } from "@/lib/data/profiles";
 import {
   getActiveTimeEntryForUser,
   getAssignedScheduleEventsForUser,
@@ -21,7 +28,7 @@ export default async function CrewTimePage() {
     return <SetupRequired title="Configure Supabase before opening the time clock" />;
   }
 
-  const [permission, activeEntry, recentEntries, jobs, scheduleEvents] = await Promise.all([
+  const [permission, activeEntry, recentEntries, jobs, scheduleEvents, resetRequestedAt] = await Promise.all([
     getTimeClockPermissionForUser(context.user.id, context.supabase),
     getActiveTimeEntryForUser(context.user.id),
     getTimeEntries({
@@ -34,15 +41,18 @@ export default async function CrewTimePage() {
       userId: context.user.id,
     }),
     getAssignedScheduleEventsForUser(context.user.id, context.roles),
+    getCurrentCrewViewResetTimestamp(),
   ]);
   const timerEnabled = canUseTimeClock({
     permission: permission.data,
     roles: context.roles,
   });
+  const todaysScheduleEvents = scheduleEvents.data.filter((event) => isToday(event.starts_at));
   const recentCompletedEntries = recentEntries.data.filter((entry) => !activeEntry.data || entry.id !== activeEntry.data.id).slice(0, 8);
 
   return (
     <PlatformFrame active="crew-time" roles={context.roles} userEmail={context.user.email}>
+      <CrewViewResetWatcher resetRequestedAt={resetRequestedAt} />
       <div className="crew-shell app-content">
         <section className="crew-hero time-clock-hero">
           <p className="surface-label">
@@ -81,19 +91,35 @@ export default async function CrewTimePage() {
         </section>
 
         {!timerEnabled ? (
-          <section className="crew-panel time-access-panel">
-            <div className="crew-panel-heading">
-              <span className="crew-panel-icon" aria-hidden="true">
-                <ShieldCheck size={19} />
-              </span>
-              <div>
-                <h2>Time clock not enabled</h2>
-                <p>This account can sign in to the platform, but the timer has not been turned on yet.</p>
-              </div>
+          <section className="time-clock-layout">
+            <div className="time-clock-main">
+              <section className="time-clock-live-card time-clock-disabled-card">
+                <p className="surface-label">
+                  <ShieldCheck aria-hidden="true" size={18} />
+                  Current status
+                </p>
+                <span className="time-live-status">Disabled</span>
+                <strong>Clock off</strong>
+                <span>Your account can open the app, but timer access has not been turned on.</span>
+                <small>Ask an owner, admin, or payroll admin to enable time clock access.</small>
+              </section>
             </div>
-            <p className="field-note">
-              An owner, admin, or payroll admin can enable time clock access from the internal time page.
-            </p>
+            <aside className="time-clock-side">
+              <section className="crew-panel time-access-panel">
+                <div className="crew-panel-heading">
+                  <span className="crew-panel-icon" aria-hidden="true">
+                    <ShieldCheck size={19} />
+                  </span>
+                  <div>
+                    <h2>Why this is disabled</h2>
+                    <p>Timer access is separate from your employee login and role.</p>
+                  </div>
+                </div>
+                <p className="field-note">
+                  You can still review jobs and schedule details if your role allows it. Clock in/out stays locked until timer access is enabled.
+                </p>
+              </section>
+            </aside>
           </section>
         ) : activeEntry.data ? (
           <section className="time-clock-layout">
@@ -109,6 +135,9 @@ export default async function CrewTimePage() {
                     <p>Finish the current timer before starting another one.</p>
                   </div>
                 </div>
+                <p className="field-note">
+                  When you are done with this work, add any break minutes or notes, then press the Clock Out button.
+                </p>
                 {getOpenTimeEntryHours(activeEntry.data) > 12 ? (
                   <p className="time-clock-alert" role="status">
                     <AlertTriangle aria-hidden="true" size={16} />
@@ -182,14 +211,30 @@ export default async function CrewTimePage() {
                 </div>
                 <div className="time-clock-helper-grid">
                   <div>
-                    <strong>Use Job time</strong>
-                    <p>Best when you are on site and the work should tie back to a customer job.</p>
+                    <strong>Customer work</strong>
+                    <p>Pick Job time and link the job or schedule event when you are working at a customer stop.</p>
                   </div>
                   <div>
-                    <strong>Use Drive or Shop</strong>
-                    <p>Keep non-job time separate so payroll review stays clear later.</p>
+                    <strong>Non-job work</strong>
+                    <p>Use Drive, Shop, Maintenance, Admin, Training, or Other even if no job is assigned.</p>
                   </div>
                 </div>
+                {todaysScheduleEvents.length ? (
+                  <section className="quick-clock-event-list" aria-label="Today schedule clock-in shortcuts">
+                    <div>
+                      <strong>Scheduled for today</strong>
+                      <p>One tap starts job time for the event dispatch assigned to you.</p>
+                    </div>
+                    {todaysScheduleEvents.slice(0, 4).map((event) => (
+                      <QuickClockInEventForm event={event} key={event.id} />
+                    ))}
+                  </section>
+                ) : (
+                  <div className="time-clock-selection-card">
+                    <strong>No assigned calendar event today</strong>
+                    <p>You can still clock into shop, maintenance, drive, admin, training, other, or link a job manually.</p>
+                  </div>
+                )}
                 <CrewClockInForm jobs={jobs.data} scheduleEvents={scheduleEvents.data} />
               </section>
             </div>
@@ -249,6 +294,16 @@ function formatDate(value: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function isToday(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 }
 
 function DataWarning({ message }: { message: string }) {

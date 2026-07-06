@@ -7434,6 +7434,11 @@ body {
   padding: 22px;
 }
 
+.time-clock-disabled-card {
+  border-color: color-mix(in oklab, oklch(0.66 0.035 240) 36%, var(--color-border));
+  background: linear-gradient(180deg, var(--color-surface), oklch(0.972 0.008 240));
+}
+
 .time-clock-live-card strong {
   color: var(--color-charcoal);
   font-size: clamp(2.4rem, 6vw, 4.2rem);
@@ -7488,6 +7493,11 @@ body {
   margin-top: 0;
 }
 
+.time-clock-form label,
+.time-filter-form label {
+  font-size: 0.96rem;
+}
+
 .time-type-fieldset {
   margin: 0;
   padding: 0;
@@ -7531,7 +7541,7 @@ body {
 .time-type-copy {
   display: grid;
   gap: 4px;
-  min-height: 96px;
+  min-height: 104px;
   border: 1px solid var(--color-border);
   border-radius: 18px;
   background: var(--color-surface);
@@ -7657,6 +7667,63 @@ body {
   line-height: 1.5;
 }
 
+.quick-clock-event-list {
+  display: grid;
+  gap: 10px;
+  border: 1px solid color-mix(in oklab, var(--color-forest) 22%, var(--color-border));
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--color-surface) 82%, oklch(0.97 0.024 151));
+  padding: 14px;
+}
+
+.quick-clock-event-list > div {
+  display: grid;
+  gap: 4px;
+}
+
+.quick-clock-event-list strong {
+  color: var(--color-charcoal);
+}
+
+.quick-clock-event-list p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.quick-clock-event-form {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-clock-event-form button {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid var(--color-forest);
+  border-radius: 16px;
+  background: var(--color-forest);
+  color: var(--color-surface);
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.quick-clock-event-form button span {
+  display: grid;
+  gap: 3px;
+}
+
+.quick-clock-event-form button strong,
+.quick-clock-event-form button small {
+  color: inherit;
+}
+
+.quick-clock-event-form button small {
+  opacity: 0.86;
+}
+
 .time-review-button-row {
   display: flex;
   flex-wrap: wrap;
@@ -7711,6 +7778,11 @@ body {
   padding: 12px 14px;
 }
 
+.time-user-row.needs-access {
+  border-color: color-mix(in oklab, oklch(0.72 0.12 82) 24%, var(--color-border));
+  background: color-mix(in oklab, var(--color-surface) 86%, oklch(0.97 0.03 98));
+}
+
 .time-entry-row.link-row {
   color: inherit;
   text-decoration: none;
@@ -7757,6 +7829,40 @@ body {
 
 .time-row-warning {
   color: oklch(0.43 0.08 82);
+}
+
+.time-access-copy {
+  max-width: 72ch;
+  margin: 0 0 14px;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.time-pending-access-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.time-pending-access-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-subtle);
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.time-pending-access-card strong {
+  color: var(--color-charcoal);
+}
+
+.time-pending-access-card span,
+.time-pending-access-card small {
+  color: var(--color-muted);
 }
 
 .time-user-actions,
@@ -7833,6 +7939,19 @@ body {
   padding: 12px;
 }
 
+.time-entry-table-row strong,
+.time-entry-table-row b {
+  display: block;
+  color: var(--color-charcoal);
+}
+
+.time-entry-table-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
 .time-detail-card {
   padding: 14px;
 }
@@ -7846,6 +7965,22 @@ body {
 
 .time-detail-card > .field-note {
   margin: 10px 0 0;
+}
+
+.adjustment-history-list li {
+  align-items: flex-start;
+}
+
+.adjustment-history-list span,
+.mini-list li span {
+  display: grid;
+  gap: 3px;
+}
+
+.adjustment-history-list small,
+.mini-list li small {
+  color: var(--color-muted);
+  line-height: 1.4;
 }
 
 .time-access-panel {
@@ -8011,7 +8146,8 @@ body {
 
   .payroll-top-grid,
   .payroll-summary-grid,
-  .payroll-employee-grid {
+  .payroll-employee-grid,
+  .time-pending-access-list {
     grid-template-columns: 1fr;
   }
 
@@ -8361,6 +8497,351 @@ body {
   width: 100%;
 }
 
+.access-reset-panel {
+  background: linear-gradient(180deg, var(--color-surface), oklch(0.985 0.006 151));
+}
+
+.crew-view-reset-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 320px) auto;
+  align-items: end;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.crew-view-reset-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.crew-view-reset-copy strong {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.crew-view-reset-copy p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.crew-view-reset-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.crew-view-reset-form select,
+.crew-view-reset-form button {
+  min-height: 46px;
+  border-radius: 11px;
+}
+
+.crew-view-reset-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-surface);
+  padding: 0 16px;
+  font-weight: 750;
+}
+
+.crew-view-reset-form .field-note,
+.crew-view-reset-form .form-status {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.crew-view-reset-form .form-status.success {
+  color: var(--color-forest);
+}
+
+.crew-view-reset-form .form-status.error {
+  color: oklch(0.45 0.13 27);
+}
+
+.company-calendar-toolbar {
+  align-items: stretch;
+  padding: 16px;
+}
+
+.company-calendar-toolbar .calendar-toolbar-primary,
+.company-calendar-toolbar .calendar-toolbar-actions {
+  flex-wrap: wrap;
+}
+
+.company-calendar-toolbar .calendar-nav-button,
+.company-calendar-toolbar .calendar-icon-button,
+.company-calendar-toolbar .calendar-add-button,
+.company-calendar-toolbar .schedule-filters summary {
+  min-height: 46px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 0.92rem;
+}
+
+.company-calendar-toolbar .calendar-icon-button {
+  width: auto;
+  min-width: 86px;
+}
+
+.company-calendar-toolbar .segmented-control {
+  padding: 3px;
+}
+
+.company-calendar-toolbar .segmented-control a {
+  min-height: 38px;
+  min-width: 72px;
+  padding: 9px 14px;
+  text-align: center;
+}
+
+.calendar-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar-active-filters span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid oklch(0.82 0.035 151);
+  border-radius: 999px;
+  background: oklch(0.975 0.018 151);
+  color: oklch(0.28 0.05 151);
+  padding: 0 12px;
+  font-size: 0.84rem;
+  font-weight: 720;
+}
+
+.schedule-filter-heading {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.schedule-filter-heading strong {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.schedule-filter-heading span {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.company-calendar-toolbar .schedule-filters .schedule-filter-form {
+  width: 360px;
+  gap: 13px;
+  padding: 16px;
+}
+
+.company-calendar-toolbar .schedule-filters .schedule-filter-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.9rem;
+}
+
+.company-calendar-toolbar .schedule-filters .schedule-filter-form input,
+.company-calendar-toolbar .schedule-filters .schedule-filter-form select,
+.company-calendar-toolbar .schedule-filters .schedule-filter-form button {
+  min-height: 46px;
+  border-radius: 11px;
+  font-size: 0.94rem;
+}
+
+.calendar-week-grid {
+  grid-template-columns: repeat(7, minmax(148px, 1fr));
+  overflow-x: auto;
+}
+
+.calendar-day-column {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.calendar-day-stack {
+  min-width: 0;
+}
+
+.calendar-appointment {
+  overflow: hidden;
+  border-width: 1.5px;
+}
+
+.calendar-appointment.is-compact {
+  gap: 9px;
+}
+
+.calendar-appointment-topline,
+.calendar-appointment-header,
+.calendar-appointment-meta {
+  min-width: 0;
+}
+
+.calendar-appointment.is-compact .calendar-appointment-topline,
+.calendar-appointment.is-compact .calendar-appointment-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 7px;
+}
+
+.calendar-appointment strong {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.calendar-status-chip,
+.calendar-type-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-appointment-context,
+.calendar-appointment-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-appointment-context {
+  white-space: nowrap;
+}
+
+.calendar-appointment.field {
+  --appointment-bg: oklch(0.948 0.035 151);
+  --appointment-border: oklch(0.68 0.075 151);
+}
+
+.calendar-appointment.estimate {
+  --appointment-bg: oklch(0.962 0.03 132);
+  --appointment-border: oklch(0.68 0.065 132);
+}
+
+.calendar-appointment.follow-up {
+  --appointment-bg: oklch(0.96 0.04 96);
+  --appointment-border: oklch(0.68 0.078 96);
+}
+
+.calendar-appointment.maintenance {
+  --appointment-bg: oklch(0.952 0.018 174);
+  --appointment-border: oklch(0.68 0.04 174);
+}
+
+.calendar-appointment.pto {
+  --appointment-bg: oklch(0.962 0.026 296);
+  --appointment-border: oklch(0.68 0.062 296);
+}
+
+.calendar-appointment.blocked {
+  --appointment-bg: oklch(0.958 0.014 240);
+  --appointment-border: oklch(0.66 0.034 240);
+}
+
+.calendar-appointment.internal {
+  --appointment-bg: oklch(0.958 0.02 213);
+  --appointment-border: oklch(0.66 0.046 213);
+}
+
+.calendar-appointment.emergency {
+  --appointment-bg: oklch(0.948 0.046 28);
+  --appointment-border: oklch(0.62 0.105 28);
+}
+
+.appointment-popover {
+  width: min(560px, calc(100vw - 20px));
+}
+
+.appointment-drawer-header {
+  gap: 16px;
+}
+
+.appointment-drawer-header h2 {
+  overflow-wrap: anywhere;
+  font-size: 1.4rem;
+  line-height: 1.15;
+}
+
+.appointment-drawer-header p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.schedule-detail-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.appointment-detail-list {
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.appointment-detail-list div {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px;
+}
+
+.appointment-detail-list div:last-child {
+  border-bottom: 0;
+}
+
+.appointment-detail-list dt {
+  font-size: 0.82rem;
+}
+
+.appointment-detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.96rem;
+}
+
+.appointment-detail-actions {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.appointment-detail-actions a,
+.appointment-detail-actions button {
+  min-height: 44px;
+  border-radius: 11px;
+  padding: 0 14px;
+  font-size: 0.92rem;
+}
+
+.appointment-detail-actions a:first-child {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.drawer-cancel-link {
+  min-height: 44px;
+  border-radius: 11px;
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
@@ -8393,8 +8874,13 @@ body {
   .app-loading-crew-grid,
   .access-summary-grid,
   .access-review-forms,
-  .access-request-meta {
+  .access-request-meta,
+  .crew-view-reset-form {
     grid-template-columns: 1fr;
+  }
+
+  .crew-view-reset-form {
+    align-items: stretch;
   }
 }
 
@@ -8416,5 +8902,27 @@ body {
 
   .app-loading-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .company-calendar-toolbar .calendar-toolbar-primary,
+  .company-calendar-toolbar .calendar-toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .company-calendar-toolbar .calendar-icon-button,
+  .company-calendar-toolbar .calendar-nav-button,
+  .company-calendar-toolbar .calendar-add-button,
+  .company-calendar-toolbar .schedule-filters summary {
+    width: 100%;
+  }
+
+  .company-calendar-toolbar .schedule-filters .schedule-filter-form {
+    width: 100%;
+  }
+
+  .appointment-detail-list div {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }

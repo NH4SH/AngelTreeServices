@@ -336,6 +336,7 @@ function ScheduleToolbar({
           href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, -1)) })}
         >
           <ChevronLeft aria-hidden="true" size={17} />
+          <span>Back</span>
         </Link>
         <strong>{formatRangeTitle(date, range, view)}</strong>
         <Link
@@ -343,6 +344,7 @@ function ScheduleToolbar({
           className="calendar-icon-button"
           href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, 1)) })}
         >
+          <span>Next</span>
           <ChevronRight aria-hidden="true" size={17} />
         </Link>
       </div>
@@ -363,9 +365,13 @@ function ScheduleToolbar({
         <details className="schedule-filters">
           <summary>
             <Filter aria-hidden="true" size={15} />
-            Filters
+            Filters and menus
           </summary>
           <form className="schedule-filter-form">
+            <div className="schedule-filter-heading">
+              <strong>Schedule filters</strong>
+              <span>Pick a date, employee, event type, or status.</span>
+            </div>
             <input name="view" type="hidden" value={view} />
             <label>
               <span>Date</span>
@@ -423,6 +429,12 @@ function ScheduleToolbar({
           <Clock3 aria-hidden="true" size={14} />
           {summary.totalEvents} total visible events
         </span>
+      </div>
+
+      <div className="calendar-active-filters" aria-label="Active filters">
+        <span>Employee: {formatAssignedUserFilter(assignedUserId, users)}</span>
+        <span>Type: {getEventTypeLabel(eventType)}</span>
+        <span>Status: {status === "all" ? "All statuses" : getStatusLabel(status)}</span>
       </div>
     </header>
   );
@@ -1134,6 +1146,23 @@ function getAssignedUserFilter(value?: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)
     ? trimmed
     : "all";
+}
+
+function formatAssignedUserFilter(value: string, users: ScheduleUser[]) {
+  if (value === "all") {
+    return "All employees";
+  }
+
+  if (value === "crew") {
+    return "Crew role users";
+  }
+
+  if (value === "unassigned") {
+    return "Unassigned events";
+  }
+
+  const user = users.find((item) => item.id === value);
+  return user?.full_name || user?.email || "Selected employee";
 }
 
 function toDrawerDateTime(date: Date) {

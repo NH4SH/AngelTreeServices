@@ -3,10 +3,13 @@ import { AlertTriangle, Clock3, Filter, ShieldCheck, TimerReset, UsersRound } fr
 import { PermissionToggleForm } from "@/components/time-clock";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { canReviewTimeClock } from "@/lib/auth/time-clock";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getEmployeeAccessRequests } from "@/lib/data/access-requests";
 import { getJobOptions } from "@/lib/data/jobs";
 import {
+  getLatestTimeEntryReviewStatus,
   getOpenTimeEntryHours,
   getTimeClockOverview,
   getTimeEntryHours,
@@ -16,6 +19,7 @@ type AdminTimePageProps = {
   searchParams: Promise<{
     from?: string;
     job_id?: string;
+    status?: string;
     to?: string;
     user_id?: string;
   }>;
@@ -47,15 +51,19 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
     );
   }
 
-  const [overview, jobs] = await Promise.all([
+  const canReviewAccess = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const [overview, jobs, accessRequests] = await Promise.all([
     getTimeClockOverview({
       from: getDateFilterStart(params.from),
       jobId: params.job_id,
+      status: getStatusFilter(params.status),
       to: getDateFilterEnd(params.to),
       userId: params.user_id,
     }),
     getJobOptions(),
+    canReviewAccess ? getEmployeeAccessRequests() : Promise.resolve({ data: [], error: null }),
   ]);
+  const pendingAccessRequests = accessRequests.data.filter((request) => request.status === "pending");
   const accessUsers = [...overview.data.users].sort((left, right) => {
     const leftRank = left.active_timer_entry_id ? 0 : left.time_clock_permission?.is_enabled ? 1 : 2;
     const rightRank = right.active_timer_entry_id ? 0 : right.time_clock_permission?.is_enabled ? 1 : 2;
@@ -68,7 +76,9 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
   });
   const enabledCount = overview.data.users.filter((user) => user.time_clock_permission?.is_enabled).length;
   const disabledCount = Math.max(overview.data.users.length - enabledCount, 0);
-  const activePermissionCount = overview.data.users.filter((user) => user.active_timer_entry_id).length;
+  const crewRoleDisabledCount = overview.data.users.filter(
+    (user) => user.role_names.includes("crew") && !user.time_clock_permission?.is_enabled,
+  ).length;
 
   return (
     <PlatformFrame active="admin-time" roles={context.roles} userEmail={context.user.email}>
@@ -88,14 +98,14 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
           </div>
         </section>
 
-        {[overview.error, jobs.error].filter(Boolean).map((message) => (
+        {[overview.error, jobs.error, accessRequests.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
         <section className="commerce-summary-strip" aria-label="Time summary">
           <SummaryChip label="Active timers" value={overview.data.activeEntries.length} />
           <SummaryChip label="Need review" value={overview.data.entriesNeedingReview.length} />
-          <SummaryChip label="Enabled users" value={overview.data.users.filter((user) => user.time_clock_permission?.is_enabled).length} />
+          <SummaryChip label="Missing clock-out" value={overview.data.warnings.filter((warning) => warning.kind === "missing_clock_out").length} />
           <SummaryChip emphasis label="Hours in view" value={`${overview.data.totalHours.toFixed(2)}h`} />
         </section>
 
@@ -107,13 +117,13 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
           {overview.data.warnings.length ? (
             <div className="payroll-warning-list">
               {overview.data.warnings.slice(0, 8).map((warning) => (
-                <article className="payroll-warning-card" key={warning.id}>
+                <Link className="payroll-warning-card" href={warning.user_id ? `/admin/time/${warning.user_id}` : "/admin/time"} key={warning.id}>
                   <AlertTriangle aria-hidden="true" size={16} />
                   <div>
                     <strong>{warning.title}</strong>
                     <p>{warning.detail}</p>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           ) : (
@@ -144,6 +154,16 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                     {user.full_name || user.email || "Unnamed employee"}
                   </option>
                 ))}
+              </select>
+            </label>
+            <label>
+              <span>Status</span>
+              <select defaultValue={params.status ?? ""} name="status">
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="adjusted">Adjusted</option>
+                <option value="void">Void</option>
               </select>
             </label>
             <label>
@@ -227,19 +247,39 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
             <h2>Time clock access</h2>
             <span>Enable or disable the timer per eligible employee</span>
           </div>
+          <p className="time-access-copy">
+            Timer access controls whether this employee can clock in/out. It does not change their pay rate or payroll status.
+          </p>
           <div className="commerce-summary-strip time-access-strip" aria-label="Time clock access summary">
             <SummaryChip label="Eligible employees" value={overview.data.users.length} />
             <SummaryChip label="Enabled" value={enabledCount} />
             <SummaryChip label="Disabled" value={disabledCount} />
-            <SummaryChip emphasis label="Clocked in now" value={activePermissionCount} />
+            <SummaryChip label="Crew disabled" value={crewRoleDisabledCount} />
+            <SummaryChip emphasis label="Pending access" value={pendingAccessRequests.length} />
           </div>
+          {pendingAccessRequests.length ? (
+            <div className="time-pending-access-list" aria-label="Pending employee access requests">
+              {pendingAccessRequests.slice(0, 4).map((request) => (
+                <Link className="time-pending-access-card" href="/admin/access" key={request.id}>
+                  <strong>{request.full_name}</strong>
+                  <span>{request.email}</span>
+                  <small>
+                    Pending {request.requested_role?.replace("_", " ") || "access"} request. Time clock access can be enabled during approval.
+                  </small>
+                </Link>
+              ))}
+            </div>
+          ) : null}
           {accessUsers.length ? (
             <div className="time-user-list">
               {accessUsers.map((user) => (
-              <article className="time-user-row" key={user.id}>
+              <article className={user.role_names.includes("crew") && !user.time_clock_permission?.is_enabled ? "time-user-row needs-access" : "time-user-row"} key={user.id}>
                 <div>
                   <strong>{user.full_name || user.email || "Unnamed employee"}</strong>
                   <span>{user.role_names.join(", ") || "No role assigned"}</span>
+                  {user.role_names.includes("crew") && !user.time_clock_permission?.is_enabled ? (
+                    <small className="time-row-warning">Crew role but timer disabled.</small>
+                  ) : null}
                   {user.active_timer_entry_id ? (
                     <small className="time-row-warning">
                       Clocked in on {user.active_timer_entry_type?.replace("_", " ") || "active time"} since {formatDateTime(user.active_timer_started_at || "")}
@@ -285,17 +325,22 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                 <span>Linked work</span>
                 <span>Clock</span>
                 <span>Hours</span>
-                <span>Review</span>
+                <span>Status</span>
               </div>
               <div className="time-entry-table-body">
                 {overview.data.entries.slice(0, 30).map((entry) => (
                   <article className="time-entry-table-row" key={entry.id}>
-                    <span>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</span>
+                    <span>
+                      <strong>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</strong>
+                      {entry.notes ? <small>{entry.notes}</small> : null}
+                    </span>
                     <span>{entry.entry_type.replace("_", " ")}</span>
                     <span>{entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
                     <span>{formatTimeRange(entry.clock_in_at, entry.clock_out_at)}</span>
                     <span>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</span>
                     <span>
+                      <b>{entry.status.replace("_", " ")}</b>
+                      <small>{formatReviewStatus(getLatestTimeEntryReviewStatus(entry))}</small>
                       <Link href={`/admin/time/${entry.user_id}`}>Open</Link>
                     </span>
                   </article>
@@ -335,6 +380,16 @@ function getDateFilterStart(value?: string) {
 
 function getDateFilterEnd(value?: string) {
   return value ? `${value}T23:59:59.999Z` : undefined;
+}
+
+function getStatusFilter(value?: string) {
+  return value === "active" || value === "completed" || value === "adjusted" || value === "void"
+    ? value
+    : undefined;
+}
+
+function formatReviewStatus(value: ReturnType<typeof getLatestTimeEntryReviewStatus>) {
+  return value === "pending" ? "Pending review" : value.replace("_", " ");
 }
 
 function formatTime(value: string) {

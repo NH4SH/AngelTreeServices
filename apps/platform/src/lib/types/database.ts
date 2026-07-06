@@ -258,6 +258,7 @@ export type AssignableUser = {
 };
 
 export type ScheduleUser = AssignableUser & {
+  crew_view_reset_requested_at?: string | null;
   role_names: string[];
 };
 
@@ -518,6 +519,7 @@ export type PayrollWarningKind =
   | "missing_clock_out"
   | "missing_linked_work"
   | "overlap"
+  | "short_duration"
   | "invalid_duration";
 
 export type PayrollWarning = {

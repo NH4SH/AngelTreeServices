@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
+  CalendarCheck2,
   Link2,
   PauseCircle,
   PlayCircle,
@@ -81,7 +82,7 @@ export function CrewClockInForm({
       </fieldset>
       <div className="time-link-grid">
         <label>
-          Assigned job
+          Job
           <select defaultValue="" name="job_id" onChange={(event) => setSelectedJobId(event.target.value)}>
             <option value="">No linked job</option>
             {jobs.map((job) => (
@@ -90,7 +91,9 @@ export function CrewClockInForm({
               </option>
             ))}
           </select>
-          <small className="form-help">Use this when you are on a specific customer job.</small>
+          <small className="form-help">
+            Pick a job when your time belongs to a customer stop. Leave blank for shop, admin, training, or other work.
+          </small>
         </label>
         <label>
           Scheduled event
@@ -102,7 +105,7 @@ export function CrewClockInForm({
               </option>
             ))}
           </select>
-          <small className="form-help">Helpful when dispatch scheduled the work from the calendar first.</small>
+          <small className="form-help">Pick this when dispatch already put the work on the calendar.</small>
         </label>
       </div>
       <div className="time-clock-selection-card" role="status">
@@ -134,6 +137,35 @@ export function CrewClockInForm({
   );
 }
 
+export function QuickClockInEventForm({ event }: { event: ScheduleEventWithRelations }) {
+  const [state, formAction, pending] = useActionState(clockIn, initialState);
+  const customer = event.jobs?.customers?.display_name;
+
+  return (
+    <form action={formAction} className="quick-clock-event-form">
+      <input name="entry_type" type="hidden" value="job" />
+      <input name="schedule_event_id" type="hidden" value={event.id} />
+      {event.job_id ? <input name="job_id" type="hidden" value={event.job_id} /> : null}
+      <input
+        name="notes"
+        type="hidden"
+        value={`Clocked in from today's schedule event: ${event.title}`}
+      />
+      <button disabled={pending} type="submit">
+        <CalendarCheck2 aria-hidden="true" size={20} />
+        <span>
+          <strong>{pending ? "Clocking in..." : "Clock into this event"}</strong>
+          <small>
+            {event.title}
+            {customer ? `, ${customer}` : ""}
+          </small>
+        </span>
+      </button>
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
 export function CrewClockOutForm({ activeEntry }: { activeEntry: TimeEntryWithRelations }) {
   const [state, formAction, pending] = useActionState(clockOut, initialState);
 
@@ -144,7 +176,7 @@ export function CrewClockOutForm({ activeEntry }: { activeEntry: TimeEntryWithRe
       <label>
         Break minutes
         <input defaultValue={activeEntry.break_minutes} min={0} name="break_minutes" step={1} type="number" />
-        <small className="form-help">Add unpaid break time before you stop the timer.</small>
+        <small className="form-help">Add unpaid break time before you stop the timer. Leave this at 0 if you did not take a break.</small>
       </label>
       <label>
         Notes

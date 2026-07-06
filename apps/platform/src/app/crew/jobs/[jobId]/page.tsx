@@ -11,6 +11,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { CompletionChecklist } from "@/components/completion-checklist";
+import { CrewViewResetWatcher } from "@/components/crew-view-reset-watcher";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -19,6 +20,7 @@ import { CrewStatusActions } from "./CrewStatusActions";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
+import { getCurrentCrewViewResetTimestamp } from "@/lib/data/profiles";
 import type { CrewJob, SignedJobPhoto } from "@/lib/types/database";
 
 type CrewJobDetailPageProps = {
@@ -35,14 +37,18 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
     return <SetupRequired title="Configure Supabase before opening crew job details" />;
   }
 
-  const job = await getCrewJobById(jobId, {
-    roles: context.roles,
-    userId: context.user.id,
-  });
+  const [job, resetRequestedAt] = await Promise.all([
+    getCrewJobById(jobId, {
+      roles: context.roles,
+      userId: context.user.id,
+    }),
+    getCurrentCrewViewResetTimestamp(),
+  ]);
   const photos = job.data ? await getJobPhotos(jobId) : { data: [], error: null };
 
   return (
     <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
+      <CrewViewResetWatcher resetRequestedAt={resetRequestedAt} />
       <div className="crew-shell app-content">
         <Link className="crew-back-link" href="/crew/jobs">
           Back to jobs

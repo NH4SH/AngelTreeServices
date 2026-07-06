@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Camera, CheckCircle2, MapPin, MessageCircle, Phone, Truck } from "lucide-react";
+import { CrewViewResetWatcher } from "@/components/crew-view-reset-watcher";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewJobs } from "@/lib/data/crew-jobs";
+import { getCurrentCrewViewResetTimestamp } from "@/lib/data/profiles";
 import type { CrewJob } from "@/lib/types/database";
 
 export default async function CrewJobsPage() {
@@ -13,13 +15,17 @@ export default async function CrewJobsPage() {
     return <SetupRequired title="Configure Supabase before opening crew jobs" />;
   }
 
-  const jobs = await getCrewJobs({
-    roles: context.roles,
-    userId: context.user.id,
-  });
+  const [jobs, resetRequestedAt] = await Promise.all([
+    getCrewJobs({
+      roles: context.roles,
+      userId: context.user.id,
+    }),
+    getCurrentCrewViewResetTimestamp(),
+  ]);
 
   return (
     <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
+      <CrewViewResetWatcher resetRequestedAt={resetRequestedAt} />
       <div className="crew-shell app-content">
         <section className="crew-hero">
           <p className="surface-label">

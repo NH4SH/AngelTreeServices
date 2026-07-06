@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { CalendarDays, Camera, CheckCircle2, Clock3, MapPin, TimerReset, Truck } from "lucide-react";
+import { CrewViewResetWatcher } from "@/components/crew-view-reset-watcher";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewDashboardSummaries } from "@/lib/data/crew-jobs";
+import { getCurrentCrewViewResetTimestamp } from "@/lib/data/profiles";
 import type { CrewJob } from "@/lib/types/database";
 
 export default async function CrewPage() {
@@ -13,10 +15,13 @@ export default async function CrewPage() {
     return <SetupRequired title="Configure Supabase before opening the crew app" />;
   }
 
-  const summaries = await getCrewDashboardSummaries({
-    roles: context.roles,
-    userId: context.user.id,
-  });
+  const [summaries, resetRequestedAt] = await Promise.all([
+    getCrewDashboardSummaries({
+      roles: context.roles,
+      userId: context.user.id,
+    }),
+    getCurrentCrewViewResetTimestamp(),
+  ]);
   const summariesList = [
     {
       title: "Today's jobs",
@@ -46,6 +51,7 @@ export default async function CrewPage() {
 
   return (
     <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
+      <CrewViewResetWatcher resetRequestedAt={resetRequestedAt} />
       <div className="crew-shell app-content">
         <section className="crew-hero">
           <p className="surface-label">

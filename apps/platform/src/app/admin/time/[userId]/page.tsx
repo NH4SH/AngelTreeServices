@@ -196,7 +196,13 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
                           {entry.time_entry_approvals?.map((approval) => (
                             <li key={approval.id}>
                               <CheckCircle2 aria-hidden="true" size={14} />
-                              {formatReviewStatus(approval.approval_status)} - {formatDateTime(approval.approved_at)}
+                              <span>
+                                <strong>{formatReviewStatus(approval.approval_status)}</strong>
+                                <small>
+                                  {formatDateTime(approval.approved_at)}
+                                  {approval.approval_note ? `, ${approval.approval_note}` : ""}
+                                </small>
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -210,11 +216,20 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
                       </div>
                       <TimeEntryAdjustmentForm timeEntry={entry} userId={userId} />
                       {(entry.time_entry_adjustments?.length ?? 0) > 0 ? (
-                        <ul className="mini-list">
+                        <ul className="mini-list adjustment-history-list">
                           {entry.time_entry_adjustments?.map((adjustment) => (
                             <li key={adjustment.id}>
                               <TimerReset aria-hidden="true" size={14} />
-                              {formatDateTime(adjustment.created_at)}
+                              <span>
+                                <strong>{formatDateTime(adjustment.created_at)}</strong>
+                                <small>
+                                  Original: {formatRange(adjustment.original_clock_in_at, adjustment.original_clock_out_at)}, {adjustment.original_break_minutes} min break
+                                </small>
+                                <small>
+                                  New: {formatRange(adjustment.new_clock_in_at, adjustment.new_clock_out_at)}, {adjustment.new_break_minutes} min break
+                                </small>
+                                {adjustment.reason ? <small>Reason: {adjustment.reason}</small> : null}
+                              </span>
                             </li>
                           ))}
                         </ul>

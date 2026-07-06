@@ -37,6 +37,7 @@ export const timeEntrySelect = `
 export type TimeEntryFilters = {
   from?: string;
   jobId?: string;
+  status?: string;
   to?: string;
   userId?: string;
 };
@@ -169,6 +170,10 @@ export async function getTimeEntries(filters: TimeEntryFilters = {}): Promise<Da
 
   if (filters.jobId) {
     query = query.eq("job_id", filters.jobId);
+  }
+
+  if (filters.status) {
+    query = query.eq("status", filters.status);
   }
 
   if (filters.from) {
@@ -339,6 +344,9 @@ export function buildTimeEntryWarnings(entries: TimeEntryWithRelations[]) {
     const employeeLabel = entry.profiles?.full_name || entry.profiles?.email || "Employee";
     const startedAt = new Date(entry.clock_in_at).getTime();
     const endedAt = entry.clock_out_at ? new Date(entry.clock_out_at).getTime() : null;
+    const rawElapsedMilliseconds = endedAt && Number.isFinite(startedAt) && Number.isFinite(endedAt)
+      ? endedAt - startedAt
+      : null;
     const hours = getTimeEntryHours(entry);
     const openHours = entry.clock_out_at ? hours : getOpenTimeEntryHours(entry);
 
@@ -399,6 +407,17 @@ export function buildTimeEntryWarnings(entries: TimeEntryWithRelations[]) {
         kind: "invalid_duration",
         title: `${employeeLabel} has an invalid duration`,
         detail: "Clock-out must be after clock-in and produce a positive duration.",
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    if (entry.clock_out_at && rawElapsedMilliseconds !== null && rawElapsedMilliseconds > 0 && rawElapsedMilliseconds < 60_000) {
+      warnings.push({
+        id: `${entry.id}-short_duration`,
+        kind: "short_duration",
+        title: `${employeeLabel} has a very short entry`,
+        detail: "This entry is under 1 minute. It may be valid, but it should be checked before review.",
         user_id: entry.user_id,
         time_entry_id: entry.id,
       });

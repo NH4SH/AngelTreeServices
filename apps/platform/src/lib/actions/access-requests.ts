@@ -291,6 +291,55 @@ export async function rejectEmployeeAccessRequest(
   return { status: "success", message: "Access request rejected." };
 }
 
+export async function resetCrewViewPreferences(
+  _previousState: AccessRequestActionState,
+  formData: FormData,
+): Promise<AccessRequestActionState> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured yet." };
+  }
+
+  const reviewer = await requireAccessApprovalUser();
+
+  if (reviewer.error) {
+    return reviewer.error;
+  }
+
+  const userId = String(formData.get("user_id") ?? "").trim();
+
+  if (!userId) {
+    return { status: "error", message: "Choose an employee before resetting the crew view." };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return { status: "error", message: profileError?.message ?? "Employee profile was not found." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ crew_view_reset_requested_at: new Date().toISOString() })
+    .eq("id", userId);
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  revalidateAccessPaths(userId);
+  revalidatePath("/crew/jobs");
+  return {
+    status: "success",
+    message: "Crew view reset requested. The employee will see the default crew layout the next time they open crew tools.",
+  };
+}
+
 async function requireAccessApprovalUser() {
   const supabase = await createClient();
 

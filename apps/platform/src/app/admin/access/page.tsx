@@ -1,10 +1,12 @@
 import { Clock3, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { AccessRequestReviewForm } from "@/components/access-request-review-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { ResetCrewViewForm } from "@/components/reset-crew-view-form";
 import { SetupRequired } from "@/components/SetupRequired";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getEmployeeAccessRequests } from "@/lib/data/access-requests";
+import { getScheduleUsers } from "@/lib/data/schedule";
 
 export default async function AdminAccessPage() {
   const context = await getAuthenticatedPlatformContext("/admin/access");
@@ -30,7 +32,10 @@ export default async function AdminAccessPage() {
     );
   }
 
-  const requests = await getEmployeeAccessRequests();
+  const [requests, users] = await Promise.all([
+    getEmployeeAccessRequests(),
+    getScheduleUsers(),
+  ]);
   const pending = requests.data.filter((request) => request.status === "pending");
   const reviewed = requests.data.filter((request) => request.status !== "pending");
 
@@ -46,18 +51,26 @@ export default async function AdminAccessPage() {
           <p>Approve new staff accounts, assign the right role, and enable time clock access only when needed.</p>
         </section>
 
-        {requests.error ? (
-          <section className="data-warning" role="status">
+        {[requests.error, users.error].filter(Boolean).map((message) => (
+          <section className="data-warning" key={message} role="status">
             <strong>Database notice</strong>
-            <p>{requests.error}</p>
+            <p>{message}</p>
           </section>
-        ) : null}
+        ))}
 
         <section className="commerce-summary-strip" aria-label="Access request summary">
           <SummaryChip label="Pending" value={pending.length} />
           <SummaryChip label="Approved" value={reviewed.filter((request) => request.status === "approved").length} />
           <SummaryChip label="Rejected" value={reviewed.filter((request) => request.status === "rejected").length} />
           <SummaryChip emphasis label="Total requests" value={requests.data.length} />
+        </section>
+
+        <section className="panel access-reset-panel">
+          <div className="panel-header">
+            <h2>Crew view reset</h2>
+            <span>Owner and admin tool for clearing saved crew display settings.</span>
+          </div>
+          <ResetCrewViewForm users={users.data} />
         </section>
 
         <section className="panel">

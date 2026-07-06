@@ -1,17 +1,44 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { HardHat, Leaf, LogOut, ShieldCheck, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  Files,
+  FileText,
+  HardHat,
+  LayoutDashboard,
+  Leaf,
+  LogOut,
+  ReceiptText,
+  ShieldCheck,
+  UsersRound,
+  Workflow,
+} from "lucide-react";
 import { signOut } from "@/app/login/actions";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 
 const navItems = [
-  { href: "/admin", label: "Admin", Icon: ShieldCheck },
-  { href: "/crew", label: "Crew", Icon: HardHat },
-  { href: "/portal", label: "Portal", Icon: UsersRound },
+  { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, match: "admin" },
+  { href: "/admin/customers", label: "Customers", Icon: UsersRound, match: "customers" },
+  { href: "/admin/jobs", label: "Jobs", Icon: Workflow, match: "jobs" },
+  { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
+  { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
+  { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
+  { href: "/admin/documents", label: "Documents", Icon: Files, match: "documents" },
+  { href: "/crew", label: "Crew View", Icon: HardHat, match: "crew" },
+  { href: "/portal", label: "Customer Portal", Icon: ShieldCheck, match: "portal" },
 ];
 
 type PlatformFrameProps = {
-  active: "admin" | "crew" | "portal";
+  active:
+    | "admin"
+    | "customers"
+    | "jobs"
+    | "quotes"
+    | "invoices"
+    | "schedule"
+    | "documents"
+    | "crew"
+    | "portal";
   children: ReactNode;
   roles?: PlatformRoleName[];
   userEmail?: string | null;
@@ -23,6 +50,8 @@ export function PlatformFrame({
   roles = [],
   userEmail,
 }: PlatformFrameProps) {
+  const activeItem = navItems.find((item) => item.match === active);
+
   return (
     <main className="app-shell">
       <header className="app-topbar">
@@ -36,10 +65,32 @@ export function PlatformFrame({
           </span>
         </Link>
 
+        <details className="mobile-nav">
+          <summary>{activeItem?.label ?? "Menu"}</summary>
+          <nav aria-label="Mobile platform navigation">
+            {navItems.map((item) => (
+              <Link
+                aria-current={active === item.match ? "page" : undefined}
+                href={item.href}
+                key={item.href}
+              >
+                <item.Icon aria-hidden="true" size={18} />
+                {item.label}
+              </Link>
+            ))}
+            <form action={signOut}>
+              <button type="submit">
+                <LogOut aria-hidden="true" size={18} />
+                Sign out
+              </button>
+            </form>
+          </nav>
+        </details>
+
         <nav className="app-nav" aria-label="Platform navigation">
           {navItems.map((item) => (
             <Link
-              aria-current={active === item.label.toLowerCase() ? "page" : undefined}
+              aria-current={active === item.match ? "page" : undefined}
               href={item.href}
               key={item.href}
             >

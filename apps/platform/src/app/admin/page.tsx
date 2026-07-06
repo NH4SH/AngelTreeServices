@@ -8,105 +8,193 @@ import {
   PhoneCall,
   Truck,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
-import { redirect } from "next/navigation";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { getCurrentUserRoles } from "@/lib/auth/roles";
-import { createClient } from "@/lib/supabase/server";
-
-const lanes = [
-  {
-    title: "New leads",
-    description: "Website requests, phone calls, referrals, and local search leads awaiting first contact.",
-    Icon: PhoneCall,
-  },
-  {
-    title: "Estimates to schedule",
-    description: "Qualified requests that need an on-site visit, calendar slot, and estimator assignment.",
-    Icon: CalendarDays,
-  },
-  {
-    title: "Quotes awaiting response",
-    description: "Sent quotes that need approval, edits, reminders, or a careful follow-up.",
-    Icon: MessageSquareMore,
-  },
-  {
-    title: "Today's jobs",
-    description: "Crew-ready work with address, scope, notes, directions, and photo needs.",
-    Icon: Truck,
-  },
-  {
-    title: "Follow-ups due",
-    description: "Promised callbacks, post-job check-ins, review requests, and dormant leads to revisit.",
-    Icon: Clock3,
-  },
-  {
-    title: "Unpaid invoices",
-    description: "Completed work that has been billed and still needs payment tracking.",
-    Icon: CircleDollarSign,
-  },
-];
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getFollowUpsDue } from "@/lib/data/appointments";
+import { getUnpaidInvoices } from "@/lib/data/invoices";
+import { getDashboardJobSummaries } from "@/lib/data/jobs";
+import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
+  const context = await getAuthenticatedPlatformContext("/admin");
 
-  if (!supabase) {
+  if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [jobSummaries, awaitingQuotes, followUps] = await Promise.all([
+    getDashboardJobSummaries(),
+    getQuotesAwaitingResponse(),
+    getFollowUpsDue(),
+  ]);
+  const unpaidInvoices = await getUnpaidInvoices();
 
-  if (!user) {
-    redirect("/login?next=/admin");
-  }
-
-  const roles = await getCurrentUserRoles();
+  const lanes: {
+    title: string;
+    description: string;
+    Icon: LucideIcon;
+    href: string;
+    items: { title: string; meta: string }[];
+    placeholder?: string;
+  }[] = [
+    {
+      title: "New leads",
+      description: "Requests that need first contact, qualification, or a quick call back.",
+      Icon: PhoneCall,
+      href: "/admin/jobs",
+      items: jobSummaries.lanes.newLeads.map((job) => ({
+        title: job.customers?.display_name ?? "Unknown customer",
+        meta: job.requested_scope ?? "No scope entered yet",
+      })),
+    },
+    {
+      title: "Estimates to schedule",
+      description: "Qualified work that needs an on-site estimate window.",
+      Icon: CalendarDays,
+      href: "/admin/jobs",
+      items: jobSummaries.lanes.estimatesToSchedule.map((job) => ({
+        title: job.customers?.display_name ?? "Unknown customer",
+        meta: job.service_locations
+          ? `${job.service_locations.street}, ${job.service_locations.city}`
+          : "No service location",
+      })),
+    },
+    {
+      title: "Quotes awaiting response",
+      description: "Sent quotes that need approval, edits, or a thoughtful reminder.",
+      Icon: MessageSquareMore,
+      href: "/admin/quotes",
+      items: awaitingQuotes.data.map((quote) => ({
+        title: quote.quote_number ?? "Sent quote",
+        meta: quote.customers?.display_name ?? "Unknown customer",
+      })),
+    },
+    {
+      title: "Today's jobs",
+      description: "Crew-ready work scheduled for today.",
+      Icon: Truck,
+      href: "/admin/schedule",
+      items: jobSummaries.lanes.todaysJobs.map((job) => ({
+        title: job.service_type?.replace("_", " ") ?? "Service job",
+        meta: job.customers?.display_name ?? "Unknown customer",
+      })),
+    },
+    {
+      title: "Follow-ups due",
+      description: "Callbacks, post-job check-ins, and lead reminders due now.",
+      Icon: Clock3,
+      href: "/admin/schedule",
+      items: followUps.data.map((appointment) => ({
+        title: appointment.jobs?.service_type?.replace("_", " ") ?? "Follow-up",
+        meta: appointment.calendar_notes ?? formatDate(appointment.starts_at),
+      })),
+    },
+    {
+      title: "Unpaid invoices",
+      description: "Sent, partially paid, or overdue invoices needing office follow-up.",
+      Icon: CircleDollarSign,
+      href: "/admin/invoices",
+      items: unpaidInvoices.data.map((invoice) => ({
+        title: invoice.invoice_number ?? "Open invoice",
+        meta: `${invoice.customers?.display_name ?? "Unknown customer"} - ${formatCurrency(invoice.balance_due_cents)}`,
+      })),
+    },
+  ];
 
   return (
-    <PlatformFrame active="admin" roles={roles} userEmail={user.email}>
+    <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content">
-      <section className="page-heading">
-        <p className="surface-label">
-          <Leaf aria-hidden="true" size={18} />
-          Internal CRM Shell
-        </p>
-        <h1>Keep the whole day in view without turning the office into a spreadsheet.</h1>
-        <p>
-          This is a protected-route placeholder. It contains workflow lanes only, not real CRM data.
-        </p>
-      </section>
+        <section className="page-heading">
+          <p className="surface-label">
+            <Leaf aria-hidden="true" size={18} />
+            Internal CRM
+          </p>
+          <h1>Keep leads, estimates, quotes, jobs, and follow-ups moving.</h1>
+          <p>
+            This dashboard reads from the protected CRM tables and stays empty until real staff users
+            add records through the new admin pages.
+          </p>
+        </section>
 
-      <section className="admin-board" aria-label="Future CRM lanes">
-        {lanes.map((lane) => (
-          <article className="work-card" key={lane.title}>
-            <lane.Icon aria-hidden="true" className="card-icon" size={22} />
-            <h2>{lane.title}</h2>
-            <p>{lane.description}</p>
-          </article>
+        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error]
+          .filter(Boolean)
+          .map((message) => (
+          <DataWarning key={message} message={message ?? ""} />
         ))}
-      </section>
 
-      <section className="notice-panel">
-        <strong>
-          <Zap aria-hidden="true" size={18} />
-          Security gate pending
-        </strong>
-        <p>
-          Connect Supabase Auth and role-based policies before adding customers, jobs, photos, quotes,
-          invoices, or payments.
-        </p>
-      </section>
+        <section className="admin-board workflow-board" aria-label="CRM workflow lanes">
+          {lanes.map((lane) => (
+            <article className="work-card workflow-card" key={lane.title}>
+              <div className="workflow-card-top">
+                <span className="workflow-icon" aria-hidden="true">
+                  <lane.Icon size={20} />
+                </span>
+                <span className="workflow-count">{lane.items.length}</span>
+              </div>
+              <h2>{lane.title}</h2>
+              <p>{lane.description}</p>
+              {lane.items.length > 0 ? (
+                <ul className="workflow-items">
+                  {lane.items.slice(0, 3).map((item) => (
+                    <li key={`${lane.title}-${item.title}-${item.meta}`}>
+                      <strong>{item.title}</strong>
+                      <span>{item.meta}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="workflow-empty">{lane.placeholder ?? "Nothing waiting here right now."}</p>
+              )}
+            </article>
+          ))}
+        </section>
 
-      <section className="workflow-strip" aria-label="First workflow">
-        <span>
-          <ClipboardCheck aria-hidden="true" size={18} />
-          First workflow: lead intake to scheduled estimate
-        </span>
-      </section>
+        <section className="notice-panel">
+          <strong>
+            <Zap aria-hidden="true" size={18} />
+            Protected but still early
+          </strong>
+          <p>
+            These pages use Supabase Auth and RLS-aware queries. Before real operation, assign staff
+            roles in Supabase and keep customer portal policies separate from internal CRM access.
+          </p>
+        </section>
+
+        <section className="workflow-strip" aria-label="First workflow">
+          <span>
+            <ClipboardCheck aria-hidden="true" size={18} />
+            First usable workflow: customer to service location to job to quote
+          </span>
+        </section>
       </div>
     </PlatformFrame>
+  );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function DataWarning({ message }: { message: string }) {
+  return (
+    <section className="data-warning" role="status">
+      <strong>Database notice</strong>
+      <p>{message}</p>
+    </section>
   );
 }

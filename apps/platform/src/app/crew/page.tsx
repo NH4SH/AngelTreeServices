@@ -1,90 +1,100 @@
-import { Camera, CheckCircle2, MapPin, Phone, Truck, Wrench } from "lucide-react";
-import { redirect } from "next/navigation";
+import Link from "next/link";
+import { CalendarDays, Camera, CheckCircle2, Clock3, Truck } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { getCurrentUserRoles } from "@/lib/auth/roles";
-import { createClient } from "@/lib/supabase/server";
-
-const actions = [
-  {
-    label: "Directions",
-    description: "Open the next service location.",
-    Icon: MapPin,
-  },
-  {
-    label: "Call",
-    description: "Contact the customer from the job.",
-    Icon: Phone,
-  },
-  {
-    label: "Photos",
-    description: "Capture before and after photos.",
-    Icon: Camera,
-  },
-  {
-    label: "Complete",
-    description: "Finish the checklist and mark done.",
-    Icon: CheckCircle2,
-  },
-];
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getCrewDashboardSummaries } from "@/lib/data/crew-jobs";
 
 export default async function CrewPage() {
-  const supabase = await createClient();
+  const context = await getAuthenticatedPlatformContext("/crew");
 
-  if (!supabase) {
+  if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening the crew app" />;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?next=/crew");
-  }
-
-  const roles = await getCurrentUserRoles();
+  const summaries = await getCrewDashboardSummaries({
+    roles: context.roles,
+    userId: context.user.id,
+  });
+  const lanes = [
+    {
+      title: "Today's jobs",
+      count: summaries.lanes.todaysJobs.length,
+      description: "Scheduled for today.",
+      Icon: Truck,
+    },
+    {
+      title: "Upcoming jobs",
+      count: summaries.lanes.upcomingJobs.length,
+      description: "Scheduled after today.",
+      Icon: CalendarDays,
+    },
+    {
+      title: "Needs photos",
+      count: summaries.lanes.needsPhotos.length,
+      description: "Missing before or after photos.",
+      Icon: Camera,
+    },
+    {
+      title: "Ready to complete",
+      count: summaries.lanes.readyToComplete.length,
+      description: "In progress and waiting for wrap-up.",
+      Icon: CheckCircle2,
+    },
+  ];
 
   return (
-    <PlatformFrame active="crew" roles={roles} userEmail={user.email}>
+    <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
       <div className="crew-shell app-content">
-      <section className="crew-hero">
-        <p className="surface-label">
-          <Truck aria-hidden="true" size={18} />
-          Crew Field App Shell
-        </p>
-        <h1>Today, clearly.</h1>
-        <p>
-          A mobile-first view for the field: jobs, directions, customer contact, scope, notes, photos,
-          and completion.
-        </p>
-      </section>
+        <section className="crew-hero">
+          <p className="surface-label">
+            <Truck aria-hidden="true" size={18} />
+            Crew Field App
+          </p>
+          <h1>Today, clearly.</h1>
+          <p>Jobs, directions, contact, photos, and completion in a field-friendly view.</p>
+          <div className="action-row">
+            <Link className="primary-action" href="/crew/jobs">
+              <Truck aria-hidden="true" size={18} />
+              Open jobs
+            </Link>
+          </div>
+        </section>
 
-      <section className="job-card" aria-label="Future job card placeholder">
-        <div>
-          <p className="job-kicker">Next job placeholder</p>
-          <h2>Tree service work order</h2>
-          <p>Address, scope, crew notes, and customer contact will appear here after auth is connected.</p>
-        </div>
-        <Wrench aria-hidden="true" className="job-card-icon" size={28} />
-      </section>
+        {summaries.error ? <DataWarning message={summaries.error} /> : null}
 
-      <section className="crew-actions" aria-label="Future crew actions">
-        {actions.map((action) => (
-          <button disabled key={action.label} type="button">
-            <action.Icon aria-hidden="true" size={24} />
-            <span>
-              <strong>{action.label}</strong>
-              <small>{action.description}</small>
+        <section className="crew-dashboard-grid" aria-label="Crew job summary">
+          {lanes.map((lane) => (
+            <article className="crew-summary-card" key={lane.title}>
+              <lane.Icon aria-hidden="true" size={22} />
+              <strong>{lane.count}</strong>
+              <span>{lane.title}</span>
+              <p>{lane.description}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="crew-panel">
+          <div className="crew-panel-heading">
+            <span className="crew-panel-icon" aria-hidden="true">
+              <Clock3 size={19} />
             </span>
-          </button>
-        ))}
-      </section>
-
-      <p className="field-note">
-        Buttons are disabled until auth, assigned jobs, and photo storage are connected.
-      </p>
+            <div>
+              <h2>Field workflow</h2>
+              <p>Start with the jobs list, open a job, upload photos, then mark the work complete.</p>
+            </div>
+          </div>
+        </section>
       </div>
     </PlatformFrame>
+  );
+}
+
+function DataWarning({ message }: { message: string }) {
+  return (
+    <section className="data-warning" role="status">
+      <strong>Database notice</strong>
+      <p>{message}</p>
+    </section>
   );
 }

@@ -577,3 +577,134 @@ Current intended role names:
 - `property_manager`
 
 For now, logged-in access is sufficient. Full role enforcement should be added only after roles are created and assigned in Supabase.
+
+## First CRM Data Layer
+
+The platform now has the first internal CRM pages under the protected Next.js app:
+
+- `/admin/customers`
+- `/admin/jobs`
+- `/admin/quotes`
+- `/admin/invoices`
+- `/admin/schedule`
+- `/admin/documents`
+- `/crew`
+- `/crew/jobs`
+- `/crew/jobs/[jobId]`
+
+These pages use server-side Supabase helpers and normal authenticated requests. They do not use the service role key and do not add fake customer data.
+
+Current data helpers live under `apps/platform/src/lib/data/`:
+
+- `customers.ts`
+- `jobs.ts`
+- `quotes.ts`
+- `invoices.ts`
+- `payments.ts`
+- `appointments.ts`
+- `crew-jobs.ts`
+- `job-photos.ts`
+
+Manual table types live in `apps/platform/src/lib/types/database.ts`. Replace those with generated Supabase types after the Supabase CLI workflow is stable.
+
+Apply migrations in order before testing real reads and writes:
+
+```text
+supabase/migrations/0001_initial_platform_schema.sql
+supabase/migrations/0002_add_job_priority.sql
+```
+
+The initial RLS policies require a signed-in user with one of the staff roles: `owner`, `admin`, or `estimator`. If forms return RLS or permission errors, create roles and assign the current user in Supabase instead of disabling RLS or exposing the service role key.
+
+If the Supabase Data API is configured to avoid automatically exposing new tables, explicitly grant the needed table privileges to `authenticated` while keeping RLS enabled.
+
+What is still intentionally not implemented:
+
+- Invoice detail/edit routes.
+- PDF generation, production email delivery, or payment processing.
+- Public customer quote links.
+- Customer-specific portal policies.
+- Crew assigned-job policies.
+- Photo upload storage buckets.
+- Detail pages and edit flows.
+
+## Invoice And Document Workflow Foundation
+
+The invoice foundation uses the existing `invoices`, `invoice_line_items`, and `payments` tables from `0001_initial_platform_schema.sql`. The app now reads invoices and payments through RLS-aware server helpers and provides an invoice create scaffold at `/admin/invoices`.
+
+Invoice notes are currently stored as internal `notes` records connected to the job/customer because the `invoices` table does not yet include a dedicated notes column. Avoid adding another column until invoice detail/edit workflows are clearer.
+
+The document workflow hub at `/admin/documents` is a protected preview surface only. It includes:
+
+- Quote preview.
+- Invoice preview.
+- Crew work order preview.
+- Quote email draft.
+- Invoice email draft.
+- Follow-up email draft.
+- Completed job review request draft.
+
+Document templates are local constants and helper functions in `apps/platform/src/lib/documents/templates.ts`. Do not add a `document_templates` table until templates need versioning, staff editing, or audit history.
+
+Still not implemented in this phase:
+
+- Actual PDF generation.
+- Production email sending.
+- Stripe or other payment provider integration.
+- Public document URLs.
+- Secure quote approval links.
+- Customer portal token handling.
+
+## Job Photos And Crew Field Workflow
+
+The crew field workflow is now scaffolded as protected routes:
+
+- `/crew`: field dashboard for today's jobs, upcoming jobs, photo needs, and ready-to-complete work.
+- `/crew/jobs`: large mobile-friendly job cards with directions, call, message, photos, and complete actions.
+- `/crew/jobs/[jobId]`: focused job detail with status, customer contact, service location, scope, crew notes, access notes, equipment placeholder, photo upload scaffold, completion checklist, and status update scaffold.
+
+The crew data helper intentionally selects only job-level field information. Crew views should not expose full customer history, billing history, or unrelated CRM records.
+
+Recommended private Supabase Storage bucket:
+
+```text
+job-photos
+```
+
+Recommended storage paths:
+
+```text
+job-photos/{job_id}/before/{timestamp}-{filename}
+job-photos/{job_id}/after/{timestamp}-{filename}
+job-photos/{job_id}/issue/{timestamp}-{filename}
+job-photos/{job_id}/completion/{timestamp}-{filename}
+```
+
+Bucket policies must restrict access by role and job assignment. Job photos should stay private by default. Signed URLs or customer-visible photo access should wait until customer portal token rules are designed.
+
+The app layer now scopes crew job lists and job details by assignment for regular crew users. `owner`, `admin`, and `estimator` roles can still inspect the broader crew workflow. Database RLS must enforce the same boundary before production use.
+
+Photo uploads must pass server-side image type and file size checks. If Storage upload succeeds but metadata insert fails, the app attempts to delete the uploaded object to avoid orphaned private files.
+
+Current database caveat: `job_photos.photo_type` supports `before`, `after`, `customer_upload`, `estimate`, `job`, and `issue`. A dedicated `completion` type needs a future migration before completion-photo metadata can persist cleanly. The UI surfaces this as setup work rather than faking success.
+
+The completion checklist is local UI state for now. Persist checklist items later with a table such as:
+
+```text
+job_checklist_items
+- id
+- job_id
+- key
+- label
+- completed_by_user_id
+- completed_at
+- created_at
+- updated_at
+```
+
+Status update scaffolding supports only:
+
+- `scheduled -> in_progress`
+- `in_progress -> completed`
+
+Do not broaden this into arbitrary client-side status changes. Updates must stay server-side and RLS-protected.

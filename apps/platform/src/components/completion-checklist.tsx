@@ -2,17 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-
-export const completionChecklistItems = [
-  "Before photos uploaded",
-  "Agreed scope reviewed",
-  "Debris cleaned",
-  "Work area blown/raked",
-  "After photos uploaded",
-  "Customer notified if needed",
-  "Notes added",
-  "Ready for invoice",
-];
+import { completionChecklistItems } from "@/lib/crew/completion-checklist";
 
 export function CompletionChecklist() {
   const [checkedItems, setCheckedItems] = useState<string[]>([]);

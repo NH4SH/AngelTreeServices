@@ -12,13 +12,14 @@ import {
 } from "lucide-react";
 import { CompletionChecklist } from "@/components/completion-checklist";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
+import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { CrewStatusActions } from "./CrewStatusActions";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
-import type { CrewJob, JobPhoto } from "@/lib/types/database";
+import type { CrewJob, SignedJobPhoto } from "@/lib/types/database";
 
 type CrewJobDetailPageProps = {
   params: Promise<{
@@ -63,12 +64,9 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
   );
 }
 
-function CrewJobDetail({ job, photos }: { job: CrewJob; photos: JobPhoto[] }) {
+function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[] }) {
   const phone = job.customers?.phone;
   const directionsUrl = getDirectionsUrl(job);
-  const beforePhotos = photos.filter((photo) => photo.photo_type === "before");
-  const afterPhotos = photos.filter((photo) => photo.photo_type === "after");
-  const issuePhotos = photos.filter((photo) => photo.photo_type === "issue");
   const crewNotes = (job.notes ?? []).filter((note) => note.visibility === "crew_visible");
 
   return (
@@ -181,10 +179,8 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: JobPhoto[] }) {
       </section>
 
       <section className="crew-panel" id="photos">
-        <PanelHeading icon={<Camera size={19} />} title="Job photos" subtitle="Private bucket scaffold." />
-        <PhotoGroup title="Before photos" photos={beforePhotos} />
-        <PhotoGroup title="After photos" photos={afterPhotos} />
-        <PhotoGroup title="Issue or hazard photos" photos={issuePhotos} />
+        <PanelHeading icon={<Camera size={19} />} title="Job photos" subtitle="Private job photos with temporary previews." />
+        <JobPhotoGallery photos={photos} />
         <div className="photo-uploader-grid">
           <JobPhotoUploader
             description="Capture the work area before starting."
@@ -205,14 +201,14 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: JobPhoto[] }) {
             title="Issue photo"
           />
           <JobPhotoUploader
-            description="Scaffolded until completion photo type is added to the database."
+            description="Capture the final condition for the office record."
             jobId={job.id}
             photoCategory="completion"
             title="Completion photo"
           />
         </div>
         <p className="field-note">
-          Uploads require a private Supabase Storage bucket named `job-photos` with role and job-assignment policies.
+          Uploads stay private in Supabase Storage. Preview links expire automatically.
         </p>
       </section>
 
@@ -235,26 +231,6 @@ function PanelHeading({ icon, subtitle, title }: { icon: ReactNode; subtitle: st
         <p>{subtitle}</p>
       </div>
     </div>
-  );
-}
-
-function PhotoGroup({ photos, title }: { photos: JobPhoto[]; title: string }) {
-  return (
-    <section className="photo-group">
-      <h3>{title}</h3>
-      {photos.length === 0 ? (
-        <p>No photos yet.</p>
-      ) : (
-        <ul>
-          {photos.map((photo) => (
-            <li key={photo.id}>
-              <Camera aria-hidden="true" size={16} />
-              <span>{photo.caption || photo.storage_path}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 

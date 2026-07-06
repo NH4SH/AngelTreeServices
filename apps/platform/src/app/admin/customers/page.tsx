@@ -1,4 +1,5 @@
 import { MapPin, UsersRound } from "lucide-react";
+import Link from "next/link";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddCustomerForm, AddServiceLocationForm } from "./CustomerForms";
@@ -73,6 +74,9 @@ export default async function CustomersPage() {
                         </div>
                       ) : null}
                       {customerNotes[0] ? <p className="record-note">{customerNotes[0].body}</p> : null}
+                      <div className="record-actions">
+                        <Link href={`/admin/customers/${customer.id}`}>Open customer file</Link>
+                      </div>
                     </article>
                   );
                 })}

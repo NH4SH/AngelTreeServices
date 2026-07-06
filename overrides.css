@@ -313,6 +313,28 @@ body.ats-form-submitted .ats-form-success {
   display: none;
 }
 
+#contact .ats-form-server-status {
+  margin: 12px 0 0;
+  border: 1px solid rgba(85, 126, 89, 0.3);
+  border-radius: 14px;
+  padding: 11px 13px;
+  background: rgba(238, 247, 237, 0.95);
+  color: var(--ats-green-deep);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+#contact .ats-form-server-status[hidden] {
+  display: none;
+}
+
+#contact .ats-form-server-status.error {
+  border-color: rgba(185, 69, 69, 0.48);
+  background: rgba(255, 244, 244, 0.96);
+  color: #8e2323;
+}
+
 #contact .ats-contact-form .field-list > * {
   min-width: 0;
 }

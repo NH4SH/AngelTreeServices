@@ -41,8 +41,35 @@ export type AppointmentType = "estimate" | "job" | "follow_up" | "maintenance" |
 export type AppointmentStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
 export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "void" | "overdue";
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded" | "cancelled";
-export type JobPhotoType = "before" | "after" | "customer_upload" | "estimate" | "job" | "issue";
+export type JobPhotoType = "before" | "after" | "customer_upload" | "estimate" | "job" | "issue" | "completion";
 export type JobPhotoUploadCategory = "before" | "after" | "issue" | "completion";
+export type OrganizationType = "property_manager" | "hoa" | "commercial" | "other";
+
+export type Organization = {
+  id: string;
+  name: string;
+  organization_type: OrganizationType;
+  billing_email: string | null;
+  billing_phone: string | null;
+  billing_address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrganizationContact = {
+  id: string;
+  organization_id: string;
+  user_id: string | null;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  role_title: string | null;
+  receives_invoices: boolean;
+  receives_job_updates: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 export type LeadSource = {
   id: string;
@@ -134,6 +161,20 @@ export type QuoteLineItem = {
   updated_at: string;
 };
 
+export type QuotePortalToken = {
+  id: string;
+  quote_id: string;
+  customer_id: string;
+  token_hash: string;
+  token_hint: string | null;
+  expires_at: string | null;
+  used_at: string | null;
+  revoked_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Invoice = {
   id: string;
   job_id: string;
@@ -193,6 +234,12 @@ export type Appointment = {
   updated_at: string;
 };
 
+export type AssignableUser = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
 export type Note = {
   id: string;
   customer_id: string | null;
@@ -216,20 +263,39 @@ export type JobPhoto = {
   updated_at: string;
 };
 
+export type SignedJobPhoto = JobPhoto & {
+  signed_url: string | null;
+};
+
 export type CustomerWithLocations = Customer & {
   service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code">[];
 };
 
 export type JobWithRelations = Job & {
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
-  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
-};
-
-export type CrewJob = Job & {
-  customers?: Pick<Customer, "id" | "display_name" | "phone"> | null;
   service_locations?: Pick<
     ServiceLocation,
-    | "id"
+    "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
+  > | null;
+};
+
+export type CrewJob = Pick<
+  Job,
+  | "id"
+  | "assigned_crew_user_id"
+  | "status"
+  | "service_type"
+  | "priority"
+  | "requested_scope"
+  | "scheduled_start_at"
+  | "scheduled_end_at"
+  | "completed_at"
+  | "created_at"
+  | "updated_at"
+> & {
+  customers?: Pick<Customer, "display_name" | "phone"> | null;
+  service_locations?: Pick<
+    ServiceLocation,
     | "label"
     | "street"
     | "city"
@@ -239,7 +305,7 @@ export type CrewJob = Job & {
     | "gate_code"
     | "service_notes"
   > | null;
-  job_photos?: Pick<JobPhoto, "id" | "photo_type" | "storage_path" | "caption" | "created_at">[];
+  job_photos?: Pick<JobPhoto, "photo_type">[];
   notes?: Pick<Note, "id" | "visibility" | "body" | "created_at">[];
 };
 
@@ -259,6 +325,7 @@ export type InvoiceWithRelations = Invoice & {
 export type AppointmentWithRelations = Appointment & {
   jobs?: Pick<Job, "id" | "status" | "service_type" | "requested_scope"> | null;
   service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
+  profiles?: AssignableUser | null;
 };
 
 export type DocumentTemplate = {
@@ -297,6 +364,43 @@ export type InvoiceDocumentPreview = {
   totalDueCents: number;
   paymentStatusLabel: string;
   dueDateLabel: string;
+};
+
+export type CustomerDetail = {
+  customer: Customer;
+  serviceLocations: ServiceLocation[];
+  notes: Note[];
+  jobs: JobWithRelations[];
+  quotes: QuoteWithRelations[];
+  invoices: InvoiceWithRelations[];
+};
+
+export type JobDetail = JobWithRelations & {
+  notes?: Note[];
+  job_photos?: JobPhoto[];
+  quotes?: QuoteWithRelations[];
+  invoices?: InvoiceWithRelations[];
+  appointments?: AppointmentWithRelations[];
+};
+
+export type QuoteDetail = QuoteWithRelations & {
+  jobs?: JobWithRelations | null;
+  notes?: Note[];
+};
+
+export type InvoiceDetail = InvoiceWithRelations & {
+  jobs?: JobWithRelations | null;
+  notes?: Note[];
+};
+
+export type OrganizationDetail = {
+  organization: Organization;
+  contacts: OrganizationContact[];
+  customers: Customer[];
+  serviceLocations: ServiceLocation[];
+  jobs: JobWithRelations[];
+  quotes: QuoteWithRelations[];
+  invoices: InvoiceWithRelations[];
 };
 
 export type DataResult<T> = {

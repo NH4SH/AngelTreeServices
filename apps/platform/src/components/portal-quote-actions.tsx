@@ -1,0 +1,91 @@
+"use client";
+
+import { useActionState } from "react";
+import { CheckCircle2, MessageSquareText } from "lucide-react";
+import {
+  approveQuoteByPortalToken,
+  requestQuoteChangesByPortalToken,
+  type PortalTokenActionState,
+} from "@/lib/actions/portal-tokens";
+
+const initialState: PortalTokenActionState = {
+  status: "idle",
+  message: "",
+};
+
+export function PortalQuoteActions({ rawToken }: { rawToken: string }) {
+  const [approvalState, approvalAction, approvalPending] = useActionState(approveQuoteByPortalToken, initialState);
+  const [changeState, changeAction, changePending] = useActionState(requestQuoteChangesByPortalToken, initialState);
+
+  if (approvalState.status === "success") {
+    return <PortalConfirmation message={approvalState.message} />;
+  }
+
+  if (changeState.status === "success") {
+    return <PortalConfirmation message={changeState.message} />;
+  }
+
+  return (
+    <section className="customer-quote-actions" aria-label="Quote response actions">
+      <div>
+        <p className="surface-label">
+          <CheckCircle2 aria-hidden="true" size={18} />
+          Your Decision
+        </p>
+        <h2>Ready to move forward?</h2>
+        <p>Approve the quote below, or send a short note if you would like us to adjust the scope.</p>
+      </div>
+
+      <form action={approvalAction}>
+        <input name="token" type="hidden" value={rawToken} />
+        <button className="customer-approve-button" disabled={approvalPending || changePending} type="submit">
+          <CheckCircle2 aria-hidden="true" size={20} />
+          {approvalPending ? "Approving..." : "Approve Quote"}
+        </button>
+      </form>
+
+      <form action={changeAction} className="customer-change-form">
+        <input name="token" type="hidden" value={rawToken} />
+        <label>
+          Request changes
+          <textarea
+            maxLength={1000}
+            minLength={3}
+            name="message"
+            placeholder="Tell us what you would like to adjust."
+            required
+            rows={4}
+          />
+        </label>
+        <button className="customer-secondary-button" disabled={approvalPending || changePending} type="submit">
+          <MessageSquareText aria-hidden="true" size={18} />
+          {changePending ? "Sending..." : "Send change request"}
+        </button>
+      </form>
+
+      {approvalState.message ? <ActionMessage state={approvalState} /> : null}
+      {changeState.message ? <ActionMessage state={changeState} /> : null}
+    </section>
+  );
+}
+
+function PortalConfirmation({ message }: { message: string }) {
+  return (
+    <section className="customer-quote-confirmation" role="status">
+      <CheckCircle2 aria-hidden="true" size={24} />
+      <div>
+        <h2>Response received</h2>
+        <p>{message}</p>
+      </div>
+    </section>
+  );
+}
+
+function ActionMessage({ state }: { state: PortalTokenActionState }) {
+  return (
+    <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
+      {state.message}
+    </p>
+  );
+}
+

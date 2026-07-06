@@ -143,6 +143,32 @@ Until the admin surface is protected by real authentication, `/admin/` must rema
 - Upload photos for estimates or follow-up.
 - Leave review link after completion.
 
+## Secure Quote Portal Foundation
+
+The first customer-facing portal flow uses `supabase/migrations/0003_quote_portal_tokens.sql`.
+
+- Staff generate a random 32-byte quote token from the protected quote detail page.
+- The database stores only a SHA-256 hash and a short token hint.
+- Links expire after 30 days by default and can be revoked by staff.
+- `/portal/quote/[token]` validates the token server-side and renders only the linked quote.
+- Customer approval updates the quote to `approved` and advances a related `quoted` job to `accepted`.
+- Customer change requests are saved as internal notes for office follow-up.
+- No customer login, payment collection, public invoice link, PDF storage, or email sending is added yet.
+
+Before production, add public-action rate limiting, choose a canonical deployment URL for generated links, and review service-role deployment secrets carefully.
+
+## Public Website Lead Intake Foundation
+
+The existing public contact form now submits valid requests to `POST /api/leads` in the platform app without redesigning the static homepage. The endpoint accepts only the public form allowlist, validates input server-side, rejects disallowed origins, silently filters honeypot submissions, and applies a best-effort in-memory request limit.
+
+The intake workflow creates:
+
+`Website lead_source -> customer -> service_location -> new_lead job -> internal note`
+
+The service role key is used only by the server route so CRM tables remain closed to anonymous Data API access. The browser receives no CRM IDs and cannot set arbitrary roles, prices, statuses, or permissions.
+
+Before production traffic, route the public site `/api/leads` path to the platform deployment, replace the in-memory limiter with a durable distributed limiter, and connect the office lead notification scaffold to an email/text provider with retries.
+
 ## Future Native iOS App Plan
 
 The crew experience should begin as a mobile-friendly web app so workflows can be tested quickly with the real team. After the core data model, auth, scheduling, job detail, photo upload, and completion checklist are proven, a native iOS app can be built on top of the same backend.
@@ -165,6 +191,8 @@ The native app should focus on field reliability: today's jobs, directions, call
 - Use row-level security or equivalent server-side authorization so customers can only access their own quotes, invoices, payments, and photos.
 - Store uploaded photos in private buckets until access rules are defined.
 - Log meaningful activity in `activity_log` for quote approvals, invoice sends, payment status changes, note creation, and job status changes.
+- Store only hashes of customer portal tokens. Raw quote-link tokens should be shown once at generation time and validated through a narrow server-side workflow.
+- Keep `quote_portal_tokens` unavailable to anonymous Data API users. The public quote route should expose only the quote tied to a valid, unexpired, non-revoked token.
 
 ## Suggested Database / Backend Direction
 
@@ -612,6 +640,8 @@ Apply migrations in order before testing real reads and writes:
 ```text
 supabase/migrations/0001_initial_platform_schema.sql
 supabase/migrations/0002_add_job_priority.sql
+supabase/migrations/0003_quote_portal_tokens.sql
+supabase/migrations/0004_job_photo_storage.sql
 ```
 
 The initial RLS policies require a signed-in user with one of the staff roles: `owner`, `admin`, or `estimator`. If forms return RLS or permission errors, create roles and assign the current user in Supabase instead of disabling RLS or exposing the service role key.
@@ -620,13 +650,11 @@ If the Supabase Data API is configured to avoid automatically exposing new table
 
 What is still intentionally not implemented:
 
-- Invoice detail/edit routes.
 - PDF generation, production email delivery, or payment processing.
-- Public customer quote links.
-- Customer-specific portal policies.
-- Crew assigned-job policies.
-- Photo upload storage buckets.
-- Detail pages and edit flows.
+- Public invoice links.
+- Customer-specific photo portal policies.
+- Job-photo delete UI with activity logging.
+- Persisted crew checklist state.
 
 ## Invoice And Document Workflow Foundation
 
@@ -661,7 +689,7 @@ The crew field workflow is now scaffolded as protected routes:
 
 - `/crew`: field dashboard for today's jobs, upcoming jobs, photo needs, and ready-to-complete work.
 - `/crew/jobs`: large mobile-friendly job cards with directions, call, message, photos, and complete actions.
-- `/crew/jobs/[jobId]`: focused job detail with status, customer contact, service location, scope, crew notes, access notes, equipment placeholder, photo upload scaffold, completion checklist, and status update scaffold.
+- `/crew/jobs/[jobId]`: focused job detail with status, customer contact, service location, scope, crew notes, access notes, equipment placeholder, private photo uploads, signed thumbnail previews, completion checklist, and status updates.
 
 The crew data helper intentionally selects only job-level field information. Crew views should not expose full customer history, billing history, or unrelated CRM records.
 
@@ -680,13 +708,21 @@ job-photos/{job_id}/issue/{timestamp}-{filename}
 job-photos/{job_id}/completion/{timestamp}-{filename}
 ```
 
-Bucket policies must restrict access by role and job assignment. Job photos should stay private by default. Signed URLs or customer-visible photo access should wait until customer portal token rules are designed.
+Bucket policies restrict access by role and job assignment. Job photos stay private by default. Authenticated server helpers create short-lived signed URLs for staff and assigned crew thumbnail previews. Customer-visible photo access should wait until customer portal token rules are designed.
 
 The app layer now scopes crew job lists and job details by assignment for regular crew users. `owner`, `admin`, and `estimator` roles can still inspect the broader crew workflow. Database RLS must enforce the same boundary before production use.
 
-Photo uploads must pass server-side image type and file size checks. If Storage upload succeeds but metadata insert fails, the app attempts to delete the uploaded object to avoid orphaned private files.
+Apply `supabase/migrations/0004_job_photo_storage.sql`, then create the private `job-photos` bucket in the Supabase dashboard with a `6 MB` file-size limit and image MIME allowlist. The migration adds:
 
-Current database caveat: `job_photos.photo_type` supports `before`, `after`, `customer_upload`, `estimate`, `job`, and `issue`. A dedicated `completion` type needs a future migration before completion-photo metadata can persist cleanly. The UI surfaces this as setup work rather than faking success.
+- Dedicated `completion` photo persistence.
+- Assigned-crew read policies for field-visible job records.
+- `job_photos` read and insert policies for assigned crew.
+- Private Storage object policies for `before`, `after`, `issue`, and `completion` paths.
+- Storage cleanup permission for the assigned uploader or broad staff roles.
+
+Photo uploads pass server-side UUID, category, image MIME type, file size, and caption-length checks. If Storage upload succeeds but metadata insertion fails, the app attempts to delete the uploaded object to avoid orphaned private files.
+
+Delete UI is intentionally deferred. Add a staff-only delete action with an `activity_log` entry before exposing deletion in the interface.
 
 The completion checklist is local UI state for now. Persist checklist items later with a table such as:
 
@@ -708,3 +744,226 @@ Status update scaffolding supports only:
 - `in_progress -> completed`
 
 Do not broaden this into arbitrary client-side status changes. Updates must stay server-side and RLS-protected.
+
+## Connected CRM Workflow Detail Pages
+
+The platform now connects the primary operating chain:
+
+```text
+Customer -> Service Location -> Job -> Quote -> Invoice
+```
+
+Protected admin detail routes:
+
+- `/admin/customers/[customerId]`
+- `/admin/jobs/[jobId]`
+- `/admin/quotes/[quoteId]`
+- `/admin/invoices/[invoiceId]`
+
+Implemented workflow actions:
+
+- Validated job status transitions:
+  - `new_lead -> estimate_scheduled`
+  - `estimate_scheduled -> quoted`
+  - `accepted -> scheduled`
+  - `scheduled -> in_progress`
+  - `in_progress -> completed`
+- Quote status updates:
+  - Mark sent.
+  - Mark accepted.
+  - Request changes.
+- Create invoice from quote:
+  - Copies quote line items into invoice line items.
+  - Links invoice to customer, job, and quote.
+  - Leaves payment status unpaid/draft.
+- Invoice status updates:
+  - Mark sent.
+  - Mark void.
+
+Still intentionally not implemented:
+
+- Stripe or online payment collection.
+- Manual payment recording.
+- Production PDF generation.
+- Production email sending.
+- Public document links.
+
+## Printable Document Preview And Email Draft Phase
+
+Quote, invoice, and work-order previews now use reusable protected components:
+
+```text
+apps/platform/src/components/documents/document-shell.tsx
+apps/platform/src/components/documents/quote-document.tsx
+apps/platform/src/components/documents/invoice-document.tsx
+apps/platform/src/components/documents/work-order-document.tsx
+apps/platform/src/components/documents/print-button.tsx
+```
+
+The detail pages now provide:
+
+- Professional printable quote preview.
+- Professional printable invoice preview.
+- Printable crew work-order preview.
+- Browser print-to-PDF through `window.print()`.
+- Print CSS that hides app navigation, controls, shadows, and non-document content.
+- Quote email draft.
+- Invoice email draft.
+- Quote follow-up draft.
+- Completed-job review draft.
+- Crew work-order message draft.
+- Clipboard buttons for subject, body, and full email text.
+
+Email draft helpers live in:
+
+```text
+apps/platform/src/lib/documents/email-drafts.ts
+```
+
+The clipboard UI lives in:
+
+```text
+apps/platform/src/components/email-draft-card.tsx
+```
+
+This remains a private office workflow. No emails are sent, no PDF files are stored, no documents are public, no approval links are generated, and no payment provider is connected.
+
+## Scheduling And Follow-Up Workflow
+
+The CRM uses the existing protected `appointments` table for office scheduling. The first operational scheduling layer supports:
+
+- Estimate appointments.
+- Job appointments.
+- Follow-up reminders.
+- Maintenance visits.
+- Day and week list views.
+- Appointment status filters.
+- Optional staff assignment.
+- Calendar notes.
+- External directions links from service locations.
+
+Job files can create estimate, job, and follow-up appointments. Quote files can create follow-up reminders. The admin dashboard lists follow-ups that are due today or overdue.
+
+Appointment creation performs only the approved automatic job transitions:
+
+```text
+new_lead -> estimate_scheduled
+accepted -> scheduled
+```
+
+Copyable message drafts are prepared for estimate scheduling, job scheduling, quote follow-up, and post-job follow-up. No message delivery or third-party calendar integration exists yet.
+
+## Completed Job Review And Marketing Workflow
+
+The protected platform now turns completed work into an office-reviewed marketing queue without publishing or sending anything automatically.
+
+Configuration placeholder:
+
+```text
+NEXT_PUBLIC_GOOGLE_REVIEW_URL=
+```
+
+This is a public Google Business review destination used only inside copyable review-request drafts.
+
+Completed job files show a workflow workspace when `jobs.status = 'completed'`:
+
+- Review-request email draft.
+- Review-request text-message draft.
+- Before/after photo selection scaffold.
+- Customer-permission confirmation scaffold.
+- Future public-gallery eligibility toggle.
+- Customer follow-up note scaffold.
+- Public completion-notes scaffold.
+- Google Business post draft.
+- Facebook post draft.
+- Website-gallery caption draft.
+
+The protected `/admin/marketing` route collects completed, invoiced, and paid jobs into:
+
+- Review requests.
+- Completed-job post drafts.
+- Private before/after gallery candidates.
+- Service-area content ideas.
+
+Privacy rules:
+
+- Photos remain private and internal by default.
+- Obtain customer permission before any public photo use.
+- Use city or neighborhood context only unless explicit approval exists.
+- Redact emails, phone numbers, and street-address-like text from public-facing drafts.
+- Do not scrape reviews, claim that a review was posted, send messages, or publish social content automatically.
+
+Permission, photo selection, gallery eligibility, and follow-up-note state are local scaffolds only. Add durable fields or tables plus `activity_log` entries before using them as approval records.
+
+## Property Manager And HOA Foundation
+
+The protected admin CRM now includes:
+
+- `/admin/organizations`
+- `/admin/organizations/[organizationId]`
+
+Organization files use the existing `organizations` and `organization_contacts` tables to group:
+
+- Billing details.
+- Organization contacts.
+- Linked customers.
+- Multiple service locations / properties.
+- Jobs.
+- Quotes.
+- Invoices.
+- Future portal work-request scaffolding.
+
+Staff can add organizations, contacts, and properties linked to an existing organization customer. Customer-to-organization linking still needs an organization-aware customer editing UI or an admin SQL update.
+
+The future public route `/portal/organization/[token]` is intentionally inert and exposes no records. Before activation, create a dedicated token table using the secure quote-link model:
+
+- Generate long random raw tokens server-side.
+- Store only a SHA-256 hash and short token hint.
+- Include expiry and revocation timestamps.
+- Resolve tokens through narrow server-only helpers.
+- Scope every response to one organization.
+- Keep direct anonymous Data API access closed.
+- Add organization-specific RLS before account login access is introduced.
+
+Future work-request submissions should accept a scoped property, issue description, urgency, requested service, and private photos. They must create validated CRM records through a narrow server-side action or route, never broad anonymous table writes.
+
+## Native Crew App API Boundary
+
+The future iOS or React Native crew app now has a versioned contract:
+
+```text
+apps/platform/docs/CREW_APP_API.md
+```
+
+The first API boundary uses Supabase Auth bearer access tokens and the caller's RLS-scoped Supabase client. It exposes only assigned field-work essentials:
+
+- Today's, upcoming, or active jobs.
+- Job detail.
+- One job contact.
+- Service address and directions URL.
+- Requested scope.
+- Crew-visible notes only.
+- Private signed photo previews.
+- Validated private photo upload.
+- Local-only completion-checklist shape.
+
+The boundary intentionally excludes customer history, billing data, invoice values, payments, quotes, internal notes, marketing analytics, storage paths, and service-role credentials.
+
+Implemented routes:
+
+```text
+GET  /api/crew/jobs
+GET  /api/crew/jobs/{jobId}
+GET  /api/crew/jobs/{jobId}/photos
+POST /api/crew/jobs/{jobId}/photos
+```
+
+Documented but deferred routes:
+
+```text
+POST /api/crew/jobs/{jobId}/status
+PUT  /api/crew/jobs/{jobId}/checklist
+POST /api/crew/jobs/{jobId}/notes
+```
+
+Before enabling deferred mutations, add assignment-scoped RLS, validated status-transition enforcement, durable checklist persistence, offline idempotency keys, and activity logging.

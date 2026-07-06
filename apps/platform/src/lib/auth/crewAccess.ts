@@ -1,9 +1,11 @@
-import type { PlatformRoleName } from "@/lib/auth/roles";
-
-const crewBypassRoles: PlatformRoleName[] = ["owner", "admin", "estimator"];
+import {
+  hasAllowedRole,
+  platformRoleGroups,
+  type PlatformRoleName,
+} from "@/lib/auth/roles";
 
 export function canViewAllCrewJobs(roles: PlatformRoleName[]) {
-  return roles.some((role) => crewBypassRoles.includes(role));
+  return hasAllowedRole(roles, platformRoleGroups.internalStaff);
 }
 
 export function canAccessAssignedCrewJob({

@@ -93,7 +93,7 @@ export default async function JobsPage() {
                       </div>
                     </dl>
                     <div className="record-actions">
-                      <Link href={`/admin/jobs/${job.id}`}>Admin detail scaffold</Link>
+                      <Link href={`/admin/jobs/${job.id}`}>Open job</Link>
                       <Link href={`/crew/jobs/${job.id}`}>Crew view</Link>
                     </div>
                   </article>

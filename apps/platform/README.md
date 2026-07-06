@@ -30,6 +30,8 @@ SUPABASE_DB_URL=
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only, bypasses Row Level Security, and must never be imported into client components, exposed in browser JavaScript, committed with real values, or printed to public logs.
 
+`LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. The endpoint already allows `https://angeltreeservices.org`, `https://www.angeltreeservices.org`, `http://localhost:8000`, and `http://127.0.0.1:8000`.
+
 ## Database
 
 Apply the schema migrations in order:
@@ -37,6 +39,8 @@ Apply the schema migrations in order:
 ```text
 supabase/migrations/0001_initial_platform_schema.sql
 supabase/migrations/0002_add_job_priority.sql
+supabase/migrations/0003_quote_portal_tokens.sql
+supabase/migrations/0004_job_photo_storage.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -52,15 +56,22 @@ If your Supabase Data API settings do not automatically expose SQL-created table
 The first admin CRM surface now includes:
 
 - `/admin/customers`: customer records, first notes, and service locations.
+- `/admin/customers/[customerId]`: customer file with contact info, notes, service locations, jobs, quotes, invoices, and quick actions.
 - `/admin/jobs`: job records, status flow, priority, service type, and estimated date.
+- `/admin/jobs/[jobId]`: job file with customer/location summary, scope, schedule, quote/invoice links, photos, crew work order link, and validated status transitions.
 - `/admin/quotes`: quote records and one starter line item.
+- `/admin/quotes/[quoteId]`: quote file with line items, document preview, status actions, and create-invoice-from-quote.
 - `/admin/invoices`: invoice records and one starter line item, without payment collection.
+- `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment placeholder, document preview, and safe invoice status actions.
 - `/admin/schedule`: estimate, job, and follow-up appointment records.
 - `/admin/documents`: quote, invoice, email, and work-order preview scaffolds.
+- `/admin/marketing`: protected review-request queue, completed-job post drafts, private gallery candidates, and service-area content ideas.
+- `/admin/organizations`: property-manager, HOA, and commercial account records.
+- `/admin/organizations/[organizationId]`: organization file with contacts, properties, linked customers, jobs, quotes, invoices, and an internal work-request scaffold.
 - `/admin`: workflow summaries for new leads, estimates to schedule, quotes awaiting response, today's jobs, follow-ups due, and unpaid invoices.
 - `/crew`: field dashboard for today's jobs, upcoming work, photo needs, and completion queue.
 - `/crew/jobs`: large crew job cards with directions, call, message, photos, and complete actions.
-- `/crew/jobs/[jobId]`: focused job detail with location, scope, crew notes, photo upload scaffolds, checklist, and status update scaffold.
+- `/crew/jobs/[jobId]`: focused job detail with location, scope, crew notes, private photo uploads, signed thumbnail previews, checklist, and status updates.
 
 Manual TypeScript table types live in `src/lib/types/database.ts`. Replace them later with generated Supabase types once the project has a stable Supabase CLI workflow.
 
@@ -83,15 +94,204 @@ job-photos/{job_id}/issue/{timestamp}-{filename}
 job-photos/{job_id}/completion/{timestamp}-{filename}
 ```
 
-The current `job_photos.photo_type` database check supports `before`, `after`, and `issue`, but not a dedicated `completion` type yet. The completion uploader is scaffolded and will show a clear setup message instead of pretending to upload. Add a small future migration before persisting completion photo metadata.
+Apply `supabase/migrations/0004_job_photo_storage.sql`, then configure the bucket in the Supabase dashboard:
 
-Storage bucket policies must keep objects private and restrict access by role and job assignment. Do not make job photos public by default.
+- Keep the bucket private.
+- Set the maximum file size to `6 MB`.
+- Allow `image/jpeg`, `image/png`, `image/webp`, `image/heic`, and `image/heif`.
+
+The migration adds the dedicated `completion` photo type and Storage policies for short-lived signed previews. `owner`, `admin`, and `estimator` roles can access job photos broadly. Crew users can access only photos whose first path segment belongs to their assigned job. Anonymous users receive no Storage access.
 
 Crew checklist state is local UI only right now. Persist it later with a table such as `job_checklist_items` after checklist ownership and audit requirements are clear.
 
 Crew app-layer access now mirrors the intended policy shape: `owner`, `admin`, and `estimator` can view crew jobs broadly, while regular crew access is scoped to `jobs.assigned_crew_user_id`. Production RLS should enforce the same rule in the database.
 
-Photo uploads validate image type and size server-side before hitting Storage. If file upload succeeds but metadata insert fails, the app attempts to remove the uploaded object so private storage does not accumulate unattached files.
+Photo uploads validate UUID job IDs, allowed categories, image MIME type, caption length, and file size server-side before hitting Storage. If file upload succeeds but metadata insert fails, the app attempts to remove the uploaded object so private storage does not accumulate unattached files. Photo display uses authenticated server-side signed URLs with a 15-minute lifetime.
+
+There is no delete button yet. The migration permits assigned uploaders to remove their own object and staff to remove accessible objects so failed metadata writes can clean up safely. Add a deliberate staff delete action with an audit-log entry before exposing deletion in the UI.
+
+## Connected CRM Workflow
+
+The internal workflow now connects:
+
+```text
+Customer -> Service Location -> Job -> Quote -> Invoice
+```
+
+Implemented actions:
+
+- Job status transitions: `new_lead -> estimate_scheduled`, `estimate_scheduled -> quoted`, `accepted -> scheduled`, `scheduled -> in_progress`, `in_progress -> completed`.
+- Quote status actions: mark sent, mark accepted, request changes.
+- Create invoice from quote: copies quote line items into invoice line items and links invoice to quote, job, and customer.
+- Invoice status actions: mark sent, mark void.
+
+Scaffolded only:
+
+- Record manual payment later.
+- Production PDF generation.
+- Production email sending.
+- Stripe/payment collection.
+
+## Printable Documents And Email Drafts
+
+Protected detail pages now render reusable printable business documents:
+
+- `/admin/quotes/[quoteId]`: professional quote preview with customer, service location, scope, line items, totals, expiration date, notes, approval placeholder, print button, quote email draft, and quote follow-up draft.
+- `/admin/invoices/[invoiceId]`: professional invoice preview with customer, location, line items, total, balance due, due date, payment-status placeholder, print button, and invoice email draft.
+- `/admin/jobs/[jobId]`: printable crew work order with contact, address, scope, access notes, crew notes, equipment placeholder, completion checklist, print button, crew message draft, and completed-job review draft.
+
+Reusable document components live in:
+
+```text
+src/components/documents/document-shell.tsx
+src/components/documents/quote-document.tsx
+src/components/documents/invoice-document.tsx
+src/components/documents/work-order-document.tsx
+src/components/documents/print-button.tsx
+```
+
+Email draft generation lives in `src/lib/documents/email-drafts.ts`. The reusable clipboard UI is `src/components/email-draft-card.tsx`.
+
+The print buttons call `window.print()`. Browser print-to-PDF is available for office use, but the app does not generate or store production PDF files yet. Email cards copy draft text to the clipboard only. They do not send messages.
+
+## Secure Customer Quote Portal Links
+
+Apply `supabase/migrations/0003_quote_portal_tokens.sql` before testing customer quote links. The migration creates `public.quote_portal_tokens`, enables RLS, grants access only to authenticated users, and adds a staff-only management policy. It deliberately grants nothing to `anon`.
+
+From `/admin/quotes/[quoteId]`, use **Generate secure quote link** to create a 30-day link. Copy the URL immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Existing links can be revoked from the same quote page.
+
+The customer opens:
+
+```text
+http://localhost:3000/portal/quote/{token}
+```
+
+The public route performs a narrow server-side lookup and exposes only the linked quote, customer summary, service location, and line items. It does not provide direct anonymous access to CRM tables or the token table. Customers can approve the quote or request changes without creating an account. Approval marks the quote `approved` and moves a related `quoted` job to `accepted`. Change requests are stored as internal job/customer notes.
+
+`SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
+
+## Public Website Lead Intake
+
+The existing static public contact form keeps its visual design, labels, validation, honeypot, and submit-state behavior. Its enhancement script now posts valid requests to:
+
+```text
+POST /api/leads
+```
+
+The endpoint validates a fixed allowlist of public fields and uses the server-only service role client to create:
+
+```text
+Website lead_source -> customer -> service_location -> new_lead job -> internal note
+```
+
+It does not grant anonymous Data API access to CRM tables and never returns CRM record IDs to the browser.
+
+For production, serve the public website and platform API behind the same domain or configure a hosting rewrite from `/api/leads` to the platform app. If the website is intentionally hosted on a separate origin, set `window.ATS_LEAD_INTAKE_URL` before `ats-form-enhancements.js` loads and add that website origin to `LEAD_INTAKE_ALLOWED_ORIGINS`.
+
+For local testing, run the static site on port `8000` and the platform app on port `3000`. The public enhancement script automatically posts local static submissions to `http://localhost:3000/api/leads`.
+
+The endpoint includes a best-effort in-memory limit of five submissions per IP per ten minutes. Replace this with a durable distributed limiter before production traffic. Office email/text notification delivery remains a local TODO scaffold in `src/lib/leads/notifications.ts`.
+
+## Scheduling And Follow-Ups
+
+The protected CRM schedule now supports estimate, job, follow-up, and maintenance appointments without a calendar dependency.
+
+Use:
+
+```text
+/admin/schedule
+/admin/jobs/{jobId}
+/admin/quotes/{quoteId}
+```
+
+The schedule page provides:
+
+- Day and week list views.
+- Appointment-type and status filters.
+- Appointment creation with job, location, start, end, assignee, and office notes.
+- Inline appointment time, assignee, notes, and status editing.
+- Directions links when a service location has an address.
+- Follow-ups due today or overdue on the admin dashboard.
+
+Job files can add estimate visits, job visits, and follow-up reminders. Quote files can add a quote follow-up reminder. Scheduling an estimate advances `new_lead -> estimate_scheduled`; scheduling field work advances `accepted -> scheduled`. Other job status changes remain explicit and validated.
+
+Copyable local draft helpers are available for estimate scheduling, job scheduling, quote follow-up, and post-job follow-up messages. They do not send email or SMS.
+
+To test in a development Supabase project:
+
+1. Open a test job under `/admin/jobs/{jobId}`.
+2. Schedule an estimate and confirm a `new_lead` job advances to `estimate_scheduled`.
+3. Add a follow-up with a time earlier today and confirm it appears under **Follow-ups due** on `/admin`.
+4. Open `/admin/schedule`, switch between day and week, then filter by `follow_up`.
+5. Edit the appointment status, time, assignee, or notes from the schedule card.
+
+External calendar sync, automated reminders, and production SMS/email delivery are intentionally not implemented yet.
+
+## Completed Job Review And Marketing Workflow
+
+Add the public Google Business review destination to `apps/platform/.env.local`:
+
+```text
+NEXT_PUBLIC_GOOGLE_REVIEW_URL=
+```
+
+This URL is safe to expose because it is a public review destination. The platform only inserts it into copy-only drafts. It does not send messages, submit reviews, scrape review content, or publish posts.
+
+Completed job files now show a marketing workspace when `jobs.status = 'completed'`. The workspace provides:
+
+- Review-request email draft.
+- Review-request text-message draft.
+- Before/after photo selection scaffold.
+- Customer-permission checkbox.
+- Future public-gallery eligibility toggle.
+- Unsaved customer follow-up note scaffold.
+- Unsaved public completion-notes field.
+- Google Business, Facebook, and website-gallery caption drafts.
+
+The protected `/admin/marketing` route includes completed, invoiced, and paid jobs so marketing review remains available after billing advances. Public-facing copy uses city-level location context only and redacts emails, phone numbers, and street-address-like text. Photos remain private signed previews and are internal by default.
+
+Permission, photo-selection, follow-up-note, and gallery-eligibility controls intentionally remain local UI state. Add persistence and audit logging before treating them as durable approval records or publishing anything.
+
+## Property Manager And HOA Foundation
+
+The protected CRM now supports organization records using the existing `organizations` and `organization_contacts` tables:
+
+- Add property-manager, HOA, commercial, and other organization records.
+- Add billing contacts and job-update recipients.
+- Add properties linked to an existing organization customer.
+- Review linked customers, properties, jobs, quotes, and invoices.
+- View an internal work-request form scaffold for future portal submissions.
+
+The public route `/portal/organization/{token}` is intentionally inert. It displays a setup message and exposes no organization records. Before activating it, add a dedicated organization-portal token migration that follows the quote-link pattern:
+
+- Generate a long random token server-side.
+- Store only a SHA-256 hash and short token hint.
+- Add expiry and revocation timestamps.
+- Scope every server-side lookup to exactly one organization.
+- Keep anonymous users away from direct organization, customer, property, job, quote, invoice, and photo table access.
+
+Current limitation: linked customers must already have `customers.organization_id` set. Add organization-aware customer editing before using this workflow broadly.
+
+## Native Crew App API Boundary
+
+The future native crew app has a versioned contract in:
+
+```text
+docs/CREW_APP_API.md
+```
+
+Implemented bearer-authenticated routes:
+
+```text
+GET  /api/crew/jobs
+GET  /api/crew/jobs/{jobId}
+GET  /api/crew/jobs/{jobId}/photos
+POST /api/crew/jobs/{jobId}/photos
+```
+
+These routes validate a Supabase access token server-side, load centralized role assignments, use the caller's token for RLS-protected queries, and return a deliberately small crew DTO. They do not use the service-role client.
+
+Status updates, persisted checklists, and offline field-note sync are documented contracts only. Add narrow assigned-crew policies and durable schema support before activating those mutations.
 
 ## Run Locally
 
@@ -115,6 +315,8 @@ http://localhost:3000/crew
 http://localhost:3000/crew/jobs
 http://localhost:3000/crew/jobs/{jobId}
 http://localhost:3000/portal
+http://localhost:3000/portal/quote/{token}
+http://localhost:3000/api/leads
 ```
 
 ## Test Login
@@ -149,20 +351,24 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 
 ## Current Limitations
 
-- No customer detail, job detail, quote detail, or schedule detail routes yet.
-- No invoice detail/edit routes yet.
 - No payment handling.
 - No email delivery.
+- No external calendar sync or automated reminder delivery.
 - No PDF generation.
-- No public document links or secure quote approval URLs.
-- No Supabase Storage buckets yet.
+- No public invoice links.
 - No persisted completion checklist yet.
-- No dedicated `completion` job photo database type yet.
-- No customer secure quote-link flow yet.
-- No crew assigned-job policies yet.
+- No job-photo delete UI or deletion activity-log entry yet.
+- No persisted marketing permission, photo selection, gallery eligibility, or follow-up note state yet.
+- No real review-request delivery, social posting, review scraping, or public gallery publishing.
+- No active organization portal tokens, public organization records, or portal work-request writes.
+- No organization-aware customer-link editing UI yet.
+- No production rate limiting for public quote-link actions yet.
+- Website lead intake uses a best-effort in-memory rate limiter; production still needs a durable distributed limiter.
 - No generated Supabase TypeScript types yet.
+- No native app code yet. The crew API boundary is prepared for a later iOS or React Native client.
+- No native status-update, persisted-checklist, or offline-note mutation endpoints yet.
 - No public website migration yet.
 
 ## Next Step
 
-Create and assign initial staff roles in Supabase, then test the first CRM writes. After that, add customer/job/detail pages, quote-to-invoice copying, and secure token design for customer portal quote approval links.
+Add production rate limiting and canonical deployment URL configuration for customer quote-link actions, then prepare secure invoice portal links and real email delivery.

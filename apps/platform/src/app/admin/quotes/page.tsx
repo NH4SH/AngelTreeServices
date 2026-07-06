@@ -1,4 +1,5 @@
 import { FileSignature } from "lucide-react";
+import Link from "next/link";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
@@ -62,6 +63,10 @@ export default async function QuotesPage() {
                         <dd>{quote.quote_line_items?.length ?? 0}</dd>
                       </div>
                     </dl>
+                    <div className="record-actions">
+                      <Link href={`/admin/quotes/${quote.id}`}>Open quote</Link>
+                      <Link href={`/admin/jobs/${quote.job_id}`}>Open job</Link>
+                    </div>
                   </article>
                 ))}
               </div>

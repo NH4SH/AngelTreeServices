@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Customer, CustomerWithLocations, DataResult, Note, ServiceLocation } from "@/lib/types/database";
+import { getInvoicesByCustomerId } from "@/lib/data/invoices";
+import { getJobsByCustomerId } from "@/lib/data/jobs";
+import { getQuotesByCustomerId } from "@/lib/data/quotes";
+import type { Customer, CustomerDetail, CustomerWithLocations, DataResult, Note, ServiceLocation } from "@/lib/types/database";
 
 export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]>> {
   const supabase = await createClient();
@@ -80,4 +83,58 @@ export async function getCustomerNotes(customerIds: string[]): Promise<DataResul
   }
 
   return { data: (data ?? []) as Note[], error: null };
+}
+
+export async function getCustomerDetail(customerId: string): Promise<DataResult<CustomerDetail | null>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { data: null, error: "Supabase is not configured." };
+  }
+
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("id", customerId)
+    .single();
+
+  if (customerError || !customer) {
+    return { data: null, error: customerError?.message ?? "Customer not found or no access." };
+  }
+
+  const [locations, notes, jobs, quotes, invoices] = await Promise.all([
+    supabase
+      .from("service_locations")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("notes")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false }),
+    getJobsByCustomerId(customerId),
+    getQuotesByCustomerId(customerId),
+    getInvoicesByCustomerId(customerId),
+  ]);
+
+  const firstError =
+    locations.error?.message ??
+    notes.error?.message ??
+    jobs.error ??
+    quotes.error ??
+    invoices.error ??
+    null;
+
+  return {
+    data: {
+      customer: customer as Customer,
+      serviceLocations: (locations.data ?? []) as ServiceLocation[],
+      notes: (notes.data ?? []) as Note[],
+      jobs: jobs.data,
+      quotes: quotes.data,
+      invoices: invoices.data,
+    },
+    error: firstError,
+  };
 }

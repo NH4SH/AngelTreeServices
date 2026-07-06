@@ -40,7 +40,7 @@ export function JobPhotoUploader({
       </div>
       <label>
         Photo
-        <input accept="image/*" name="photo" type="file" />
+        <input accept="image/*" capture="environment" name="photo" required type="file" />
       </label>
       <label>
         Caption

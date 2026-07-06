@@ -1,4 +1,5 @@
 import { CircleDollarSign, ReceiptText } from "lucide-react";
+import Link from "next/link";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddInvoiceForm } from "./InvoiceForm";
@@ -82,6 +83,10 @@ export default async function InvoicesPage() {
                         <dd>{invoice.invoice_line_items?.length ?? 0}</dd>
                       </div>
                     </dl>
+                    <div className="record-actions">
+                      <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link>
+                      <Link href={`/admin/jobs/${invoice.job_id}`}>Open job</Link>
+                    </div>
                   </article>
                 ))}
               </div>

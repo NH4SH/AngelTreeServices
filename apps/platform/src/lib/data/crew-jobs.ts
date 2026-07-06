@@ -1,23 +1,35 @@
 import { canViewAllCrewJobs } from "@/lib/auth/crewAccess";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import type { CrewJob, DataResult } from "@/lib/types/database";
 
 const crewJobSelect = `
-  *,
-  customers(id, display_name, phone),
-  service_locations(id, label, street, city, state, postal_code, access_notes, gate_code, service_notes),
-  job_photos(id, photo_type, storage_path, caption, created_at),
+  id,
+  assigned_crew_user_id,
+  status,
+  service_type,
+  priority,
+  requested_scope,
+  scheduled_start_at,
+  scheduled_end_at,
+  completed_at,
+  created_at,
+  updated_at,
+  customers(display_name, phone),
+  service_locations(label, street, city, state, postal_code, access_notes, gate_code, service_notes),
+  job_photos(photo_type),
   notes(id, visibility, body, created_at)
 `;
 
 type CrewAccessContext = {
   roles: PlatformRoleName[];
+  supabase?: SupabaseClient<any, "public", any>;
   userId: string;
 };
 
 export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResult<CrewJob[]>> {
-  const supabase = await createClient();
+  const supabase = access?.supabase ?? await createClient();
 
   if (!supabase) {
     return { data: [], error: "Supabase is not configured." };
@@ -27,6 +39,7 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
     .from("jobs")
     .select(crewJobSelect)
     .in("status", ["scheduled", "in_progress", "completed"])
+    .eq("notes.visibility", "crew_visible")
     .order("scheduled_start_at", { ascending: true, nullsFirst: false });
 
   if (access && !canViewAllCrewJobs(access.roles)) {
@@ -39,14 +52,14 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
     return { data: [], error: error.message };
   }
 
-  return { data: (data ?? []) as CrewJob[], error: null };
+  return { data: (data ?? []) as unknown as CrewJob[], error: null };
 }
 
 export async function getCrewJobById(
   jobId: string,
   access?: CrewAccessContext,
 ): Promise<DataResult<CrewJob | null>> {
-  const supabase = await createClient();
+  const supabase = access?.supabase ?? await createClient();
 
   if (!supabase) {
     return { data: null, error: "Supabase is not configured." };
@@ -55,7 +68,8 @@ export async function getCrewJobById(
   let query = supabase
     .from("jobs")
     .select(crewJobSelect)
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("notes.visibility", "crew_visible");
 
   if (access && !canViewAllCrewJobs(access.roles)) {
     query = query.eq("assigned_crew_user_id", access.userId);
@@ -67,7 +81,7 @@ export async function getCrewJobById(
     return { data: null, error: error.message };
   }
 
-  return { data: data as CrewJob, error: null };
+  return { data: data as unknown as CrewJob, error: null };
 }
 
 export async function getCrewDashboardSummaries(access?: CrewAccessContext) {

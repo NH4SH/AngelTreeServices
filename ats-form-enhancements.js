@@ -231,6 +231,77 @@
     summary.hidden = !show;
   }
 
+  function getServerStatus(form) {
+    var existing = form.querySelector(".ats-form-server-status");
+    if (existing) {
+      return existing;
+    }
+
+    var status = document.createElement("p");
+    status.className = "ats-form-server-status";
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("role", "status");
+    status.setAttribute("tabindex", "-1");
+    status.hidden = true;
+    form.appendChild(status);
+    return status;
+  }
+
+  function setServerStatus(form, message, state) {
+    var status = getServerStatus(form);
+    status.textContent = message || "";
+    status.classList.toggle("success", state === "success");
+    status.classList.toggle("error", state === "error");
+    status.hidden = !message;
+
+    if (message) {
+      status.focus();
+    }
+  }
+
+  function getLeadIntakeEndpoint(form) {
+    if (window.ATS_LEAD_INTAKE_URL) {
+      return window.ATS_LEAD_INTAKE_URL;
+    }
+
+    if (form.dataset.leadIntakeUrl) {
+      return form.dataset.leadIntakeUrl;
+    }
+
+    if (
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+      window.location.port !== "3000"
+    ) {
+      return "http://localhost:3000/api/leads";
+    }
+
+    return "/api/leads";
+  }
+
+  function submitLead(form) {
+    return fetch(getLeadIntakeEndpoint(form), {
+      method: "POST",
+      body: new FormData(form),
+      credentials: "omit",
+      headers: {
+        Accept: "application/json",
+      },
+    }).then(function (response) {
+      return response
+        .json()
+        .catch(function () {
+          return {};
+        })
+        .then(function (body) {
+          if (!response.ok || !body.ok) {
+            throw new Error(body.message || "We could not send your request right now. Please call our office.");
+          }
+
+          return body;
+        });
+    });
+  }
+
   function validateForm(form) {
     syncCommercialFields(form);
 
@@ -262,6 +333,7 @@
     syncCommercialFields(form);
     setSubmitting(form, false);
     setSummaryState(form, false);
+    setServerStatus(form, "", "");
 
     Array.prototype.forEach.call(
       form.querySelectorAll('input[name="customer_type"]'),
@@ -312,7 +384,34 @@
         return;
       }
 
+      if (!window.fetch || !window.FormData) {
+        setSubmitting(form, true);
+        return;
+      }
+
+      event.preventDefault();
+      document.body.classList.remove("ats-form-submitted");
+      setServerStatus(form, "", "");
       setSubmitting(form, true);
+
+      submitLead(form)
+        .then(function (response) {
+          form.reset();
+          syncCommercialFields(form);
+          document.body.classList.add("ats-form-submitted");
+          setSummaryState(form, false);
+          setServerStatus(form, response.message || "Thanks. We received your request.", "success");
+        })
+        .catch(function (error) {
+          setServerStatus(
+            form,
+            error.message || "We could not send your request right now. Please call our office.",
+            "error"
+          );
+        })
+        .finally(function () {
+          setSubmitting(form, false);
+        });
     });
   }
 

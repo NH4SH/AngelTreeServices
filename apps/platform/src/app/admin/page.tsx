@@ -2,6 +2,7 @@ import {
   CalendarDays,
   CircleDollarSign,
   ClipboardCheck,
+  Building2,
   Clock3,
   Leaf,
   MessageSquareMore,
@@ -16,7 +17,9 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getFollowUpsDue } from "@/lib/data/appointments";
 import { getUnpaidInvoices } from "@/lib/data/invoices";
 import { getDashboardJobSummaries } from "@/lib/data/jobs";
+import { getOrganizationDashboardSummary } from "@/lib/data/organizations";
 import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
+import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
   const context = await getAuthenticatedPlatformContext("/admin");
@@ -25,10 +28,11 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, awaitingQuotes, followUps] = await Promise.all([
+  const [jobSummaries, awaitingQuotes, followUps, organizationSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuotesAwaitingResponse(),
     getFollowUpsDue(),
+    getOrganizationDashboardSummary(),
   ]);
   const unpaidInvoices = await getUnpaidInvoices();
 
@@ -89,7 +93,7 @@ export default async function AdminPage() {
       href: "/admin/schedule",
       items: followUps.data.map((appointment) => ({
         title: appointment.jobs?.service_type?.replace("_", " ") ?? "Follow-up",
-        meta: appointment.calendar_notes ?? formatDate(appointment.starts_at),
+        meta: formatFollowUpMeta(appointment),
       })),
     },
     {
@@ -119,7 +123,7 @@ export default async function AdminPage() {
           </p>
         </section>
 
-        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error]
+        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error, organizationSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
@@ -150,6 +154,18 @@ export default async function AdminPage() {
               )}
             </article>
           ))}
+        </section>
+
+        <section className="notice-panel">
+          <strong><Building2 aria-hidden="true" size={18} /> Property manager and HOA workflow</strong>
+          <p>
+            {organizationSummary.data.length} organization account{organizationSummary.data.length === 1 ? "" : "s"} tracked.
+            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => !["completed", "paid", "lost", "cancelled"].includes(job.status)).length, 0)} open organization jobs,
+            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.quotes.filter((quote) => quote.status === "sent" || quote.status === "change_requested").length, 0)} quotes awaiting response,
+            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.invoices.filter((invoice) => ["sent", "partially_paid", "overdue"].includes(invoice.status)).length, 0)} unpaid invoices, and
+            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => ["completed", "invoiced", "paid"].includes(job.status)).length, 0)} recently completed jobs.
+          </p>
+          <div className="record-actions"><a href="/admin/organizations">Open organizations</a></div>
         </section>
 
         <section className="notice-panel">
@@ -188,6 +204,15 @@ function formatCurrency(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function formatFollowUpMeta(appointment: AppointmentWithRelations) {
+  const dueAt = new Date(appointment.starts_at);
+  const today = new Date();
+  const timing = dueAt.toDateString() === today.toDateString() ? "Due today" : "Overdue";
+  const detail = appointment.calendar_notes ?? formatDate(appointment.starts_at);
+
+  return `${timing}: ${detail}`;
 }
 
 function DataWarning({ message }: { message: string }) {

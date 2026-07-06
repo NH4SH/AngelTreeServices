@@ -2,12 +2,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
+  Building2,
   Files,
   FileText,
   HardHat,
   LayoutDashboard,
   Leaf,
   LogOut,
+  Megaphone,
   ReceiptText,
   ShieldCheck,
   UsersRound,
@@ -19,11 +21,13 @@ import type { PlatformRoleName } from "@/lib/auth/roles";
 const navItems = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, match: "admin" },
   { href: "/admin/customers", label: "Customers", Icon: UsersRound, match: "customers" },
+  { href: "/admin/organizations", label: "Organizations", Icon: Building2, match: "organizations" },
   { href: "/admin/jobs", label: "Jobs", Icon: Workflow, match: "jobs" },
   { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
   { href: "/admin/documents", label: "Documents", Icon: Files, match: "documents" },
+  { href: "/admin/marketing", label: "Marketing", Icon: Megaphone, match: "marketing" },
   { href: "/crew", label: "Crew View", Icon: HardHat, match: "crew" },
   { href: "/portal", label: "Customer Portal", Icon: ShieldCheck, match: "portal" },
 ];
@@ -32,11 +36,13 @@ type PlatformFrameProps = {
   active:
     | "admin"
     | "customers"
+    | "organizations"
     | "jobs"
     | "quotes"
     | "invoices"
     | "schedule"
     | "documents"
+    | "marketing"
     | "crew"
     | "portal";
   children: ReactNode;

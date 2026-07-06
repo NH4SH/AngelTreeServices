@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { CalendarDays, Camera, CheckCircle2, Clock3, Truck } from "lucide-react";
+import { CalendarDays, Camera, CheckCircle2, Clock3, MapPin, Truck } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewDashboardSummaries } from "@/lib/data/crew-jobs";
+import type { CrewJob } from "@/lib/types/database";
 
 export default async function CrewPage() {
   const context = await getAuthenticatedPlatformContext("/crew");
@@ -16,29 +17,29 @@ export default async function CrewPage() {
     roles: context.roles,
     userId: context.user.id,
   });
-  const lanes = [
+  const summariesList = [
     {
       title: "Today's jobs",
       count: summaries.lanes.todaysJobs.length,
-      description: "Scheduled for today.",
+      description: "On the board for today.",
       Icon: Truck,
     },
     {
       title: "Upcoming jobs",
       count: summaries.lanes.upcomingJobs.length,
-      description: "Scheduled after today.",
+      description: "Next on deck.",
       Icon: CalendarDays,
     },
     {
       title: "Needs photos",
       count: summaries.lanes.needsPhotos.length,
-      description: "Missing before or after photos.",
+      description: "Before or after still missing.",
       Icon: Camera,
     },
     {
       title: "Ready to complete",
       count: summaries.lanes.readyToComplete.length,
-      description: "In progress and waiting for wrap-up.",
+      description: "Wrap-up steps still pending.",
       Icon: CheckCircle2,
     },
   ];
@@ -49,45 +50,98 @@ export default async function CrewPage() {
         <section className="crew-hero">
           <p className="surface-label">
             <Truck aria-hidden="true" size={18} />
-            Crew Field App
+            Crew
           </p>
-          <h1>Today, clearly.</h1>
-          <p>Jobs, directions, contact, photos, and completion in a field-friendly view.</p>
-          <div className="action-row">
+          <h1>Today</h1>
+          <p>Open the next job, get directions, call the customer, add photos, and wrap up the checklist.</p>
+          <div className="crew-hero-actions">
             <Link className="primary-action" href="/crew/jobs">
               <Truck aria-hidden="true" size={18} />
-              Open jobs
+              Open all jobs
             </Link>
           </div>
         </section>
 
         {summaries.error ? <DataWarning message={summaries.error} /> : null}
 
-        <section className="crew-dashboard-grid" aria-label="Crew job summary">
-          {lanes.map((lane) => (
-            <article className="crew-summary-card" key={lane.title}>
-              <lane.Icon aria-hidden="true" size={22} />
-              <strong>{lane.count}</strong>
-              <span>{lane.title}</span>
-              <p>{lane.description}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="crew-panel">
+        <section className="crew-panel crew-today-panel" aria-label="Today's jobs">
           <div className="crew-panel-heading">
             <span className="crew-panel-icon" aria-hidden="true">
               <Clock3 size={19} />
             </span>
             <div>
-              <h2>Field workflow</h2>
-              <p>Start with the jobs list, open a job, upload photos, then mark the work complete.</p>
+              <h2>Today's jobs</h2>
+              <p>Start here. Open the next stop and work straight down the list.</p>
             </div>
           </div>
+          {summaries.lanes.todaysJobs.length > 0 ? (
+            <div className="crew-today-list">
+              {summaries.lanes.todaysJobs.map((job) => (
+                <CrewTodayJobRow job={job} key={job.id} />
+              ))}
+            </div>
+          ) : (
+            <div className="crew-empty-inline">
+              <strong>No jobs scheduled for today.</strong>
+              <p>Upcoming assigned work will appear here when the schedule is ready.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="crew-quick-stats" aria-label="Crew job summary">
+          {summariesList.slice(1).map((lane) => (
+            <article className="crew-quick-stat" key={lane.title}>
+              <lane.Icon aria-hidden="true" size={20} />
+              <div>
+                <strong>{lane.count}</strong>
+                <span>{lane.title}</span>
+                <p>{lane.description}</p>
+              </div>
+            </article>
+          ))}
         </section>
       </div>
     </PlatformFrame>
   );
+}
+
+function CrewTodayJobRow({ job }: { job: CrewJob }) {
+  return (
+    <article className="crew-today-row">
+      <div className="crew-today-row-copy">
+        <p className="job-kicker">{formatDateTime(job.scheduled_start_at)}</p>
+        <h3>{job.service_type?.replace("_", " ") ?? "Service job"}</h3>
+        <p>{formatLocation(job)}</p>
+      </div>
+      <Link className="primary-action crew-today-open" href={`/crew/jobs/${job.id}`}>
+        Open job
+      </Link>
+    </article>
+  );
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "No time set";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatLocation(job: CrewJob) {
+  const location = job.service_locations;
+
+  if (!location) {
+    return "No service location";
+  }
+
+  return `${location.street}, ${location.city}`;
 }
 
 function DataWarning({ message }: { message: string }) {

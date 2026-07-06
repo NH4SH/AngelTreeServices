@@ -130,6 +130,10 @@ export async function updateAppointmentStatus(
   return { status: "success", message: `Appointment marked ${nextStatus.replace("_", " ")}.` };
 }
 
+export async function updateAppointmentStatusFromForm(formData: FormData) {
+  await updateAppointmentStatus({ status: "idle", message: "" }, formData);
+}
+
 export async function updateAppointmentDetails(
   _previousState: AppointmentActionState,
   formData: FormData,

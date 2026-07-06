@@ -1,31 +1,35 @@
-import { Camera, CheckCircle2, FileSignature, Leaf, ReceiptText, Star } from "lucide-react";
+import { Camera, CheckCircle2, FileSignature, Leaf, ReceiptText, ShieldCheck, Star } from "lucide-react";
 import { redirect } from "next/navigation";
-import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { getCurrentUserRoles } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
 const portalCards = [
   {
     title: "Quote approval",
-    description: "View line items, approve the work, or request changes before scheduling.",
+    description: "Review line items, confirm the scope, and approve work when you are ready.",
     Icon: FileSignature,
   },
   {
-    title: "Invoice and payment",
-    description: "Review invoice status and payment details later, once billing is connected.",
+    title: "Billing follow-up",
+    description: "See invoice status and payment details later, once billing is connected.",
     Icon: ReceiptText,
   },
   {
-    title: "Upload photos",
-    description: "Share property photos before estimates or after follow-up requests.",
+    title: "Photo sharing",
+    description: "Upload property photos before visits or send follow-up images after service.",
     Icon: Camera,
   },
   {
-    title: "Review and feedback",
-    description: "Leave a review or send a private note after work is complete.",
+    title: "Feedback and review",
+    description: "Send a private note or leave a review after the work is complete.",
     Icon: Star,
   },
+];
+
+const trustPoints = [
+  "Secure quote review",
+  "Clear scope and pricing",
+  "Local Angel Tree team follow-up",
 ];
 
 export default async function PortalPage() {
@@ -43,41 +47,70 @@ export default async function PortalPage() {
     redirect("/login?next=/portal");
   }
 
-  const roles = await getCurrentUserRoles();
-
   return (
-    <PlatformFrame active="portal" roles={roles} userEmail={user.email}>
-      <div className="shell narrow-shell app-content">
-      <section className="page-heading">
-        <p className="surface-label">
-          <Leaf aria-hidden="true" size={18} />
-          Customer Portal Shell
-        </p>
-        <h1>A calm place for customers to review work and keep decisions moving.</h1>
-        <p>
-          Future customers will securely view quotes, approve work, request changes, view invoices,
-          upload photos, and pay online from this area.
-        </p>
+    <main className="customer-portal-page customer-portal-home">
+      <header className="customer-portal-header">
+        <div className="customer-portal-brand">
+          <span><Leaf aria-hidden="true" size={22} /></span>
+          <div>
+            <strong>Angel Tree Services</strong>
+            <small>Customer Portal</small>
+          </div>
+        </div>
+        <p><ShieldCheck aria-hidden="true" size={17} /> Private customer access</p>
+      </header>
+
+      <section className="customer-portal-hero">
+        <div className="customer-portal-intro">
+          <p className="surface-label">
+            <Leaf aria-hidden="true" size={18} />
+            Customer Portal
+          </p>
+          <h1>Review quotes, stay aligned, and keep the job moving.</h1>
+          <p>
+            This portal keeps your quote details, service communication, and next steps in one clean place without
+            exposing any internal office tools.
+          </p>
+        </div>
+
+        <aside className="customer-portal-summary-card">
+          <strong>Signed in as</strong>
+          <span>{user.email ?? "Customer account"}</span>
+          <div className="customer-portal-trust-list" aria-label="Portal trust cues">
+            {trustPoints.map((point) => (
+              <p key={point}>
+                <CheckCircle2 aria-hidden="true" size={16} />
+                {point}
+              </p>
+            ))}
+          </div>
+        </aside>
       </section>
 
-      <section className="stack-list" aria-label="Future customer portal actions">
+      <section className="customer-portal-card-grid" aria-label="Customer portal features">
         {portalCards.map((card) => (
-          <div key={card.title}>
-            <card.Icon aria-hidden="true" className="card-icon" size={22} />
-            <span>{card.title}</span>
+          <article className="customer-portal-card" key={card.title}>
+            <div className="customer-portal-card-icon">
+              <card.Icon aria-hidden="true" size={20} />
+            </div>
+            <h2>{card.title}</h2>
             <p>{card.description}</p>
-          </div>
+          </article>
         ))}
       </section>
 
-      <section className="notice-panel trust-note">
+      <section className="customer-portal-note">
         <strong>
           <CheckCircle2 aria-hidden="true" size={18} />
-          Trust boundary
+          Portal access stays scoped
         </strong>
-        <p>Portal records stay placeholders until secure customer-specific access is implemented.</p>
+        <p>Each customer view is limited to the records and quote links intended for that customer only.</p>
       </section>
-      </div>
-    </PlatformFrame>
+
+      <footer className="customer-portal-footer">
+        <strong>Angel Tree Services</strong>
+        <span>Questions? Reply to your quote email or call our office.</span>
+      </footer>
+    </main>
   );
 }

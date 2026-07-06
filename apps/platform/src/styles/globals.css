@@ -2477,6 +2477,1221 @@ h1 {
   background: var(--color-surface-subtle);
 }
 
+/* Operations product UI pass */
+:root {
+  --color-page: oklch(0.986 0.004 150);
+  --color-surface: oklch(0.997 0.002 150);
+  --color-surface-subtle: oklch(0.965 0.006 150);
+  --color-surface-green: oklch(0.958 0.012 152);
+  --color-forest: oklch(0.27 0.06 154);
+  --color-green: oklch(0.42 0.095 151);
+  --color-green-bright: oklch(0.57 0.12 147);
+  --color-yellow-green: oklch(0.72 0.09 118);
+  --color-charcoal: oklch(0.21 0.008 150);
+  --color-muted: oklch(0.49 0.01 150);
+  --color-border: oklch(0.78 0.008 150 / 0.72);
+  --color-border-strong: oklch(0.68 0.012 150 / 0.78);
+  --shadow-soft: 0 10px 24px oklch(0.22 0.01 150 / 0.055);
+  --shadow-small: 0 2px 8px oklch(0.22 0.01 150 / 0.045);
+}
+
+body {
+  background:
+    linear-gradient(180deg, oklch(0.993 0.003 150), var(--color-page) 240px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.42;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 0;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  background: oklch(0.976 0.004 150);
+  padding: 14px 12px;
+}
+
+.app-sidebar-header {
+  padding: 4px 4px 14px;
+}
+
+.app-brand {
+  gap: 9px;
+}
+
+.app-brand-mark {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-forest);
+}
+
+.app-brand strong {
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.app-brand small {
+  max-width: 176px;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.app-shell .app-nav {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  justify-content: stretch;
+}
+
+.app-shell .app-nav a,
+.app-signout,
+.mobile-nav a,
+.mobile-nav button {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: oklch(0.38 0.011 150);
+  padding: 0 9px;
+  font-size: 0.88rem;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.app-shell .app-nav a:hover,
+.app-signout:hover,
+.mobile-nav a:hover,
+.mobile-nav button:hover {
+  background: oklch(0.945 0.006 150);
+  color: var(--color-charcoal);
+}
+
+.app-shell .app-nav a[aria-current="page"],
+.mobile-nav a[aria-current="page"] {
+  background: oklch(0.925 0.024 151);
+  color: var(--color-forest);
+  font-weight: 720;
+}
+
+.app-shell .app-nav svg,
+.app-signout svg {
+  color: oklch(0.52 0.018 150);
+}
+
+.app-shell .app-nav a[aria-current="page"] svg {
+  color: var(--color-green);
+}
+
+.app-sidebar-footer {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: 12px 4px 2px;
+}
+
+.app-user {
+  min-width: 0;
+  color: var(--color-muted);
+}
+
+.app-user small,
+.app-user strong,
+.app-user span {
+  display: block;
+}
+
+.app-user small {
+  font-size: 0.72rem;
+}
+
+.app-user strong {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-user span {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.app-signout {
+  width: 100%;
+  cursor: pointer;
+  justify-content: flex-start;
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.app-mobilebar {
+  display: none;
+}
+
+.role-strip {
+  width: min(1040px, calc(100% - 48px));
+  margin: 14px auto 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.app-shell .shell,
+.app-shell .crew-shell {
+  width: min(1040px, calc(100% - 48px));
+  padding: 26px 0 44px;
+}
+
+.app-content {
+  padding-top: 0;
+}
+
+.page-heading,
+.crew-hero,
+.login-panel,
+.setup-panel,
+.hero-panel {
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.app-shell .page-heading,
+.app-shell .crew-hero {
+  display: block;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 18px;
+}
+
+.app-shell .page-heading > div,
+.app-shell .crew-hero > div {
+  min-width: 0;
+}
+
+.surface-label {
+  gap: 6px;
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.surface-label svg {
+  color: var(--color-green);
+}
+
+h1,
+.shell h1,
+.app-shell h1,
+.crew-shell h1,
+.narrow-shell h1,
+.customer-portal-intro h1,
+.customer-portal-unavailable h1 {
+  max-width: 720px;
+  color: var(--color-charcoal);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 1.95rem;
+  font-weight: 720;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.app-shell h1 {
+  font-size: 1.9rem;
+}
+
+.page-heading p,
+.page-heading > p,
+.crew-hero p,
+.login-panel p,
+.setup-panel p,
+.hero-copy {
+  max-width: 680px;
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.dashboard-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.dashboard-date {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.panel,
+.work-card,
+.area-card,
+.notice-panel,
+.form-panel,
+.detail-panel,
+.record-card,
+.crew-panel,
+.crew-summary-card,
+.crew-job-card,
+.marketing-workspace,
+.marketing-page-section,
+.portal-link-panel,
+.customer-quote-actions,
+.customer-quote-confirmation {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.panel {
+  min-width: 0;
+  padding: 14px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.dashboard-panel:first-child,
+.dashboard-panel:nth-child(2) {
+  grid-row: span 2;
+}
+
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.96rem;
+  font-weight: 720;
+}
+
+.panel-header span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.workflow-list,
+.pipeline-list,
+.quick-actions {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.workflow-row,
+.pipeline-row,
+.quick-actions a {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border-radius: 9px;
+  padding: 8px;
+}
+
+.workflow-row {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+}
+
+.workflow-row:hover,
+.quick-actions a:hover {
+  background: var(--color-surface-subtle);
+}
+
+.workflow-row-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 7px;
+  background: oklch(0.95 0.006 150);
+  color: var(--color-muted);
+}
+
+.workflow-row strong,
+.workflow-row small,
+.pipeline-row span,
+.quick-actions a {
+  display: block;
+}
+
+.workflow-row strong,
+.pipeline-row strong,
+.quick-actions a {
+  color: var(--color-charcoal);
+  font-size: 0.88rem;
+  font-weight: 680;
+}
+
+.workflow-row small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-row b {
+  min-width: 24px;
+  border-radius: 999px;
+  background: oklch(0.94 0.008 150);
+  color: var(--color-muted);
+  padding: 4px 7px;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.pipeline-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 9px 0;
+}
+
+.pipeline-row:last-child {
+  border-bottom: 0;
+}
+
+.pipeline-row span {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+}
+
+.subtle-empty {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.notice-panel {
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.notice-panel strong {
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+}
+
+.notice-panel p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.area-grid,
+.admin-board,
+.work-board,
+.crew-dashboard-grid,
+.stack-list {
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.area-card,
+.work-card,
+.stack-list > div,
+.crew-summary-card {
+  padding: 14px;
+}
+
+.area-card span,
+.work-card h2,
+.stack-list span,
+.crew-summary-card span {
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+}
+
+.card-icon,
+.workflow-icon,
+.job-card-icon,
+.crew-panel-icon {
+  color: var(--color-muted);
+}
+
+.empty-state {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.empty-state h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+}
+
+.empty-state p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+}
+
+.primary-action,
+.secondary-action,
+.record-actions a,
+.record-actions button,
+.email-draft-actions button,
+.portal-primary-button,
+.portal-secondary-button,
+.portal-text-button,
+.customer-approve-button,
+.customer-secondary-button {
+  min-height: 36px;
+  border-radius: 9px;
+  padding: 0 12px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.primary-action,
+.portal-primary-button,
+.customer-approve-button {
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.secondary-action,
+.record-actions a,
+.record-actions button,
+.email-draft-actions button,
+.portal-secondary-button,
+.portal-text-button,
+.customer-secondary-button {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+}
+
+.filter-pills {
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.filter-pills span,
+.status-pill {
+  border: 1px solid var(--color-border);
+  background: oklch(0.965 0.004 150);
+  color: oklch(0.38 0.012 150);
+  font-size: 0.76rem;
+  font-weight: 620;
+}
+
+.crm-layout {
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.record-list {
+  gap: 10px;
+}
+
+.record-card {
+  padding: 14px;
+}
+
+.record-card h2,
+.form-panel h2,
+.detail-panel h2,
+.crew-panel h2 {
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.record-card p,
+.record-note,
+.inline-icon-line,
+.mini-list p,
+.detail-panel p,
+.crew-panel p {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.form-panel {
+  padding: 14px;
+}
+
+.form-panel input,
+.form-panel select,
+.form-panel textarea,
+.crm-form input,
+.crm-form select,
+.crm-form textarea {
+  min-height: 38px;
+  border-radius: 9px;
+  background: var(--color-surface);
+}
+
+.login-panel,
+.hero-panel {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+}
+
+.hero-panel h1,
+.login-panel h1 {
+  font-size: 2rem;
+}
+
+.crew-shell {
+  width: min(920px, calc(100% - 48px));
+}
+
+.crew-hero .action-row {
+  margin-top: 14px;
+}
+
+.crew-dashboard-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.crew-summary-card strong {
+  color: var(--color-charcoal);
+  font-size: 1.35rem;
+}
+
+.crew-action-row a,
+.crew-unavailable-action {
+  min-height: 48px;
+  border-radius: 12px;
+}
+
+/* Premium schedule redesign */
+.calendar-page {
+  width: min(1180px, calc(100% - 48px));
+}
+
+.calendar-page-heading {
+  margin-bottom: 16px;
+}
+
+.calendar-shell {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-small);
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px;
+  background: oklch(0.992 0.002 150);
+}
+
+.calendar-toolbar-primary,
+.calendar-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.calendar-toolbar-primary strong {
+  min-width: 210px;
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  font-weight: 720;
+  text-align: center;
+}
+
+.calendar-nav-button,
+.calendar-icon-button,
+.calendar-add-button,
+.schedule-filters summary {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 0 11px;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.calendar-icon-button {
+  width: 36px;
+  padding: 0;
+}
+
+.calendar-add-button {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.segmented-control {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: oklch(0.965 0.004 150);
+  padding: 2px;
+}
+
+.segmented-control a {
+  min-height: 30px;
+  border-radius: 8px;
+  color: var(--color-muted);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.segmented-control a[aria-current="page"] {
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  box-shadow: 0 1px 4px oklch(0.2 0.01 150 / 0.08);
+}
+
+.schedule-filters {
+  position: relative;
+}
+
+.schedule-filters summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.schedule-filters summary::-webkit-details-marker {
+  display: none;
+}
+
+.schedule-filters[open] summary {
+  background: var(--color-surface-subtle);
+}
+
+.schedule-filters .schedule-filter-form {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 8;
+  display: grid;
+  width: 280px;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.schedule-filters .schedule-filter-form label {
+  color: var(--color-charcoal);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.schedule-filters .schedule-filter-form input,
+.schedule-filters .schedule-filter-form select {
+  min-height: 38px;
+  border-radius: 9px;
+}
+
+.schedule-filters .schedule-filter-form button {
+  min-height: 38px;
+  border-radius: 9px;
+}
+
+.calendar-grid {
+  display: grid;
+}
+
+.calendar-week-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-height: 580px;
+}
+
+.calendar-day-column {
+  min-width: 0;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.calendar-day-column:last-child {
+  border-right: 0;
+}
+
+.calendar-day-column.is-today {
+  background: oklch(0.985 0.009 151);
+}
+
+.calendar-day-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 11px 11px 10px;
+}
+
+.calendar-day-heading span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.calendar-day-heading strong {
+  display: grid;
+  min-width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-charcoal);
+  font-size: 0.95rem;
+}
+
+.calendar-day-column.is-today .calendar-day-heading strong {
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.calendar-day-stack {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 10px;
+}
+
+.calendar-quiet-empty {
+  margin: 4px 0 0;
+  color: oklch(0.62 0.008 150);
+  font-size: 0.78rem;
+}
+
+.calendar-appointment {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--appointment-border, var(--color-border));
+  border-radius: 10px;
+  background: var(--appointment-bg, var(--color-surface-subtle));
+  padding: 10px 11px;
+  color: var(--color-charcoal);
+  box-shadow: 0 1px 3px oklch(0.2 0.01 150 / 0.04);
+}
+
+.calendar-appointment:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-small);
+}
+
+.calendar-appointment.is-compact {
+  padding: 8px;
+}
+
+.calendar-appointment.field {
+  --appointment-bg: oklch(0.955 0.026 151);
+  --appointment-border: oklch(0.76 0.054 151);
+}
+
+.calendar-appointment.estimate {
+  --appointment-bg: oklch(0.968 0.019 132);
+  --appointment-border: oklch(0.78 0.047 132);
+}
+
+.calendar-appointment.follow-up {
+  --appointment-bg: oklch(0.966 0.03 96);
+  --appointment-border: oklch(0.78 0.062 96);
+}
+
+.calendar-appointment.maintenance {
+  --appointment-bg: oklch(0.962 0.008 174);
+  --appointment-border: oklch(0.78 0.023 174);
+}
+
+.calendar-appointment.muted {
+  --appointment-bg: oklch(0.955 0.004 25);
+  --appointment-border: oklch(0.78 0.02 25);
+  opacity: 0.72;
+}
+
+.appointment-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: oklch(0.42 0.012 150);
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+
+.calendar-appointment strong {
+  overflow: hidden;
+  color: var(--color-charcoal);
+  font-size: 0.86rem;
+  font-weight: 740;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.calendar-appointment span:not(.appointment-time),
+.calendar-appointment small {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-day-view {
+  padding: 14px;
+}
+
+.calendar-agenda-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+}
+
+.calendar-agenda-heading span {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.calendar-agenda-heading strong {
+  color: var(--color-charcoal);
+  font-size: 1.25rem;
+}
+
+.calendar-agenda-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.calendar-agenda-list .calendar-appointment {
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 14px;
+  min-height: 72px;
+}
+
+.calendar-agenda-list .calendar-appointment small {
+  grid-column: 2 / -1;
+}
+
+.calendar-empty-agenda {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  padding: 28px;
+  text-align: center;
+}
+
+.calendar-empty-agenda h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1.05rem;
+}
+
+.calendar-empty-agenda p {
+  max-width: 420px;
+  margin: 6px 0 0;
+  color: var(--color-muted);
+}
+
+.calendar-mobile-agenda {
+  display: none;
+}
+
+.calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-month-weekday {
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.calendar-month-cell {
+  display: grid;
+  min-height: 118px;
+  align-content: start;
+  gap: 7px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px;
+  background: var(--color-surface);
+}
+
+.calendar-month-cell:nth-child(7n + 7),
+.calendar-month-weekday:nth-child(7) {
+  border-right: 0;
+}
+
+.calendar-month-cell.is-outside-month {
+  background: oklch(0.975 0.003 150);
+  color: oklch(0.62 0.008 150);
+}
+
+.calendar-month-cell > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-charcoal);
+  font-weight: 700;
+}
+
+.calendar-month-cell.is-today > span {
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.calendar-month-cell small {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}
+
+.calendar-month-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.appointment-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+
+.appointment-dot.field { background: oklch(0.48 0.11 151); }
+.appointment-dot.estimate { background: oklch(0.52 0.09 132); }
+.appointment-dot.follow-up { background: oklch(0.65 0.105 96); }
+.appointment-dot.maintenance { background: oklch(0.55 0.04 174); }
+.appointment-dot.muted { background: oklch(0.58 0.015 25); }
+
+.appointment-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+}
+
+.appointment-backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(0.22 0.008 150 / 0.24);
+}
+
+.appointment-drawer,
+.appointment-popover {
+  position: relative;
+  z-index: 1;
+  width: min(440px, calc(100vw - 20px));
+  height: calc(100vh - 20px);
+  margin: 10px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: 0 24px 70px oklch(0.2 0.01 150 / 0.22);
+  padding: 16px;
+}
+
+.appointment-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 14px;
+}
+
+.appointment-drawer-header span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.appointment-drawer-header h2 {
+  margin: 4px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.25rem;
+}
+
+.appointment-drawer-header a {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  color: var(--color-muted);
+}
+
+.appointment-drawer .crm-form {
+  margin-top: 14px;
+}
+
+.drawer-cancel-link {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  color: var(--color-charcoal);
+  font-weight: 650;
+}
+
+.appointment-detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.appointment-detail-list div {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.appointment-detail-list dt {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.appointment-detail-list dd {
+  margin: 4px 0 0;
+  color: var(--color-charcoal);
+  line-height: 1.45;
+}
+
+.appointment-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.appointment-detail-actions a,
+.appointment-detail-actions button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.appointment-detail-actions form:last-child button {
+  color: oklch(0.44 0.11 27);
+}
+
+.appointment-detail-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.appointment-edit-details {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.appointment-edit-details summary {
+  color: var(--color-charcoal);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .portal-link-panel {
   display: grid;
   gap: 14px;
@@ -2894,6 +4109,203 @@ h1 {
   }
 }
 
+@media (max-width: 980px) {
+  .app-shell {
+    display: block;
+  }
+
+  .app-sidebar {
+    display: none;
+  }
+
+  .app-mobilebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--color-border);
+    background: oklch(0.99 0.003 150 / 0.96);
+    padding: 10px 14px;
+  }
+
+  .mobile-nav {
+    display: block;
+    width: auto;
+    margin-left: auto;
+  }
+
+  .mobile-nav summary {
+    min-height: 38px;
+    border-radius: 9px;
+    background: var(--color-surface);
+    color: var(--color-charcoal);
+    padding: 10px 12px;
+    font-size: 0.86rem;
+    font-weight: 650;
+  }
+
+  .mobile-nav nav {
+    position: absolute;
+    right: 14px;
+    width: min(280px, calc(100vw - 28px));
+    gap: 2px;
+    border-radius: 14px;
+    padding: 8px;
+  }
+
+  .app-shell .shell,
+  .app-shell .crew-shell,
+  .role-strip {
+    width: min(100% - 28px, 960px);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-panel:first-child,
+  .dashboard-panel:nth-child(2) {
+    grid-row: auto;
+  }
+
+  .app-shell .page-heading,
+  .app-shell .crew-hero,
+  .dashboard-heading {
+    display: block;
+  }
+
+  .dashboard-date {
+    margin-top: 8px;
+  }
+
+  .crew-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-page {
+    width: min(100% - 28px, 960px);
+  }
+
+  .calendar-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-toolbar-primary,
+  .calendar-toolbar-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .calendar-toolbar-primary strong {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .calendar-nav-button,
+  .calendar-icon-button,
+  .calendar-add-button,
+  .schedule-filters summary {
+    min-height: 44px;
+  }
+
+  .calendar-icon-button {
+    width: 44px;
+  }
+
+  .schedule-filters .schedule-filter-form {
+    right: auto;
+    left: 0;
+    width: min(340px, calc(100vw - 48px));
+  }
+}
+
+@media (max-width: 760px) {
+  .calendar-page-heading {
+    display: block;
+  }
+
+  .calendar-toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .segmented-control,
+  .calendar-add-button,
+  .schedule-filters,
+  .schedule-filters summary {
+    width: 100%;
+  }
+
+  .segmented-control a,
+  .calendar-add-button,
+  .schedule-filters summary {
+    justify-content: center;
+  }
+
+  .schedule-filters .schedule-filter-form {
+    position: static;
+    width: 100%;
+    margin-top: 8px;
+    box-shadow: var(--shadow-small);
+  }
+
+  .calendar-week-grid {
+    display: none;
+  }
+
+  .calendar-mobile-agenda {
+    display: block;
+  }
+
+  .calendar-day-view {
+    padding: 12px;
+  }
+
+  .calendar-agenda-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calendar-agenda-list .calendar-appointment {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .calendar-agenda-list .calendar-appointment small {
+    grid-column: auto;
+  }
+
+  .calendar-month-grid {
+    grid-template-columns: repeat(7, minmax(38px, 1fr));
+    overflow-x: auto;
+  }
+
+  .calendar-month-cell {
+    min-height: 84px;
+    padding: 7px;
+  }
+
+  .calendar-month-cell small {
+    display: none;
+  }
+
+  .appointment-overlay {
+    justify-items: stretch;
+  }
+
+  .appointment-drawer,
+  .appointment-popover {
+    width: auto;
+    height: calc(100vh - 16px);
+    margin: 8px;
+    border-radius: 16px;
+  }
+}
+
 @media print {
   @page {
     margin: 0.55in;
@@ -2945,5 +4357,2278 @@ h1 {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Cohesive platform polish pass */
+:root {
+  --color-page: oklch(0.987 0.004 154);
+  --color-surface: oklch(0.998 0.002 154);
+  --color-surface-subtle: oklch(0.968 0.006 154);
+  --color-surface-green: oklch(0.958 0.018 154);
+  --color-forest: oklch(0.285 0.068 154);
+  --color-green: oklch(0.44 0.092 153);
+  --color-green-bright: oklch(0.61 0.12 145);
+  --color-yellow-green: oklch(0.74 0.105 116);
+  --color-charcoal: oklch(0.215 0.008 154);
+  --color-muted: oklch(0.47 0.012 154);
+  --color-border: oklch(0.77 0.012 154 / 0.58);
+  --color-border-strong: oklch(0.64 0.018 154 / 0.62);
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --shadow-soft: 0 12px 28px oklch(0.22 0.008 154 / 0.055);
+  --shadow-small: 0 4px 14px oklch(0.22 0.008 154 / 0.045);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.app-shell {
+  width: min(1440px, 100%);
+  background: var(--color-page);
+}
+
+.app-sidebar {
+  border-right-color: var(--color-border);
+  background: oklch(0.979 0.005 154);
+}
+
+.app-brand-mark {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-forest);
+}
+
+.app-brand strong {
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+  font-weight: 720;
+}
+
+.app-brand small,
+.app-user small,
+.app-user span,
+.role-strip {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.app-shell .app-nav a,
+.app-signout,
+.mobile-nav a,
+.mobile-nav button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: oklch(0.34 0.012 154);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.app-shell .app-nav a:hover,
+.app-signout:hover,
+.mobile-nav a:hover,
+.mobile-nav button:hover {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+}
+
+.app-shell .app-nav a[aria-current="page"],
+.mobile-nav a[aria-current="page"] {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-forest);
+  box-shadow: var(--shadow-small);
+}
+
+.app-shell .shell,
+.app-shell .crew-shell {
+  width: min(1120px, calc(100% - 48px));
+  padding: 24px 0 44px;
+}
+
+.dashboard-page,
+.calendar-page {
+  width: min(1220px, calc(100% - 48px)) !important;
+}
+
+.app-content {
+  display: grid;
+  gap: 16px;
+  padding-top: 0;
+}
+
+.page-heading,
+.app-shell .page-heading,
+.crew-hero,
+.app-shell .crew-hero,
+.login-panel,
+.setup-panel,
+.hero-panel {
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 0 0 16px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-heading.dashboard-heading,
+.calendar-page-heading {
+  margin-bottom: 0;
+}
+
+.page-heading h1,
+.app-shell h1,
+.crew-shell h1,
+.narrow-shell h1,
+.login-panel h1,
+.hero-panel h1,
+.customer-portal-intro h1,
+.customer-portal-unavailable h1 {
+  max-width: 760px;
+  margin: 4px 0 0;
+  color: var(--color-charcoal);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 1.85rem;
+  font-weight: 730;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-transform: none;
+}
+
+.page-heading p,
+.page-heading > p,
+.crew-hero p,
+.login-panel p,
+.setup-panel p,
+.hero-copy {
+  max-width: 68ch;
+  margin: 7px 0 0;
+  color: var(--color-muted);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.surface-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: oklch(0.41 0.018 154);
+  font-size: 0.76rem;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.surface-label svg,
+.panel-title svg,
+.document-label svg,
+.marketing-page-section h2 svg {
+  color: oklch(0.45 0.045 154);
+}
+
+.panel,
+.work-card,
+.area-card,
+.notice-panel,
+.form-panel,
+.detail-panel,
+.record-card,
+.paper-preview,
+.marketing-workspace,
+.marketing-page-section,
+.portal-link-panel,
+.customer-quote-actions,
+.customer-quote-confirmation,
+.customer-portal-unavailable section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.panel,
+.form-panel,
+.detail-panel,
+.record-card,
+.marketing-page-section,
+.notice-panel {
+  padding: 14px;
+}
+
+.dashboard-grid {
+  gap: 12px;
+  margin-top: 0;
+}
+
+.dashboard-panel:first-child,
+.dashboard-panel:nth-child(2) {
+  grid-row: auto;
+}
+
+.panel-header,
+.record-card-header,
+.marketing-section-heading,
+.document-workspace-heading {
+  gap: 10px;
+}
+
+.panel-header h2,
+.form-panel h2,
+.detail-panel h2,
+.record-card h2,
+.marketing-page-section h2,
+.crew-panel h2,
+.paper-preview h2,
+.template-card h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.panel-header span,
+.record-card-header p,
+.record-card > p,
+.detail-panel p,
+.marketing-page-section p,
+.notice-panel p,
+.paper-preview p,
+.template-card p,
+.mini-list p,
+.record-note,
+.inline-empty,
+.subtle-empty {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.notice-panel {
+  background: oklch(0.982 0.004 154);
+}
+
+.notice-panel strong,
+.data-warning strong {
+  color: var(--color-charcoal);
+  font-weight: 720;
+}
+
+.data-warning {
+  border: 1px solid oklch(0.79 0.05 88 / 0.7);
+  border-radius: var(--radius-panel);
+  background: oklch(0.985 0.015 92);
+  padding: 12px 14px;
+}
+
+.crm-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 14px;
+  margin-top: 0;
+}
+
+.crm-main,
+.crm-side,
+.record-list,
+.linked-record-list,
+.workflow-list,
+.pipeline-list,
+.stack-list,
+.marketing-post-list,
+.marketing-gallery-list {
+  display: grid;
+  gap: 10px;
+}
+
+.record-card {
+  display: grid;
+  gap: 10px;
+}
+
+.record-card h2 {
+  text-transform: none;
+}
+
+.record-details {
+  gap: 8px;
+}
+
+.record-details div,
+.crew-detail-list div {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: oklch(0.985 0.003 154);
+  padding: 9px 10px;
+}
+
+.record-details dt,
+.crew-detail-list dt,
+.document-meta dt,
+.appointment-detail-list dt {
+  color: oklch(0.43 0.012 154);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.record-details dd,
+.crew-detail-list dd,
+.document-meta dd,
+.appointment-detail-list dd {
+  color: var(--color-charcoal);
+  font-size: 0.88rem;
+}
+
+.linked-record,
+.quick-action-list a,
+.workflow-row,
+.pipeline-row,
+.marketing-queue-item,
+.template-card,
+.portal-token-row,
+.stack-list > div {
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  background: var(--color-surface);
+  padding: 10px 11px;
+  box-shadow: none;
+}
+
+.linked-record:hover,
+.record-card:hover,
+.workflow-row:hover,
+.quick-action-list a:hover,
+.stack-list > div:hover {
+  border-color: var(--color-border-strong);
+  background: oklch(0.991 0.002 154);
+}
+
+.linked-record strong,
+.quick-action-list a,
+.workflow-row strong,
+.stack-list span,
+.portal-token-row strong {
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.linked-record span,
+.workflow-row small,
+.portal-token-row span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.empty-state {
+  min-height: 0;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-panel);
+  background: oklch(0.99 0.002 154);
+  padding: 16px;
+  text-align: left;
+}
+
+.empty-state h2 {
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.empty-state p {
+  max-width: 52ch;
+  margin-top: 5px;
+  font-size: 0.86rem;
+}
+
+.filter-pills {
+  gap: 6px;
+  margin-top: 0;
+}
+
+.filter-pills span,
+.status-pill {
+  min-height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: oklch(0.973 0.004 154);
+  color: oklch(0.36 0.014 154);
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-transform: capitalize;
+}
+
+.primary-action,
+.secondary-action,
+.record-actions a,
+.record-actions button,
+.email-draft-actions button,
+.portal-primary-button,
+.portal-secondary-button,
+.portal-text-button,
+.customer-approve-button,
+.customer-secondary-button,
+.crm-form button,
+.appointment-detail-actions a,
+.appointment-detail-actions button {
+  min-height: 38px;
+  border-radius: var(--radius-control);
+  padding: 0 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.primary-action,
+.portal-primary-button,
+.customer-approve-button,
+.crm-form button {
+  border: 1px solid var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.secondary-action,
+.record-actions a,
+.record-actions button,
+.email-draft-actions button,
+.portal-secondary-button,
+.portal-text-button,
+.customer-secondary-button,
+.appointment-detail-actions a,
+.appointment-detail-actions button {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+}
+
+.primary-action:hover,
+.portal-primary-button:hover,
+.customer-approve-button:hover,
+.crm-form button:hover {
+  background: oklch(0.25 0.07 154);
+}
+
+.secondary-action:hover,
+.record-actions a:hover,
+.record-actions button:hover,
+.email-draft-actions button:hover,
+.portal-secondary-button:hover,
+.portal-text-button:hover,
+.customer-secondary-button:hover {
+  border-color: var(--color-border-strong);
+  background: oklch(0.975 0.004 154);
+}
+
+.crm-form {
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.crm-form label,
+.nested-fieldset,
+.schedule-filter-form label,
+.appointment-edit-form label {
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.crm-form input,
+.crm-form select,
+.crm-form textarea,
+.form-panel input,
+.form-panel select,
+.form-panel textarea,
+.schedule-filter-form input,
+.schedule-filter-form select,
+.appointment-edit-form input,
+.appointment-edit-form select,
+.appointment-edit-form textarea {
+  min-height: 38px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 8px 10px;
+}
+
+.crm-form textarea,
+.appointment-edit-form textarea {
+  min-height: 86px;
+}
+
+.crm-form input:focus,
+.crm-form select:focus,
+.crm-form textarea:focus,
+.schedule-filter-form input:focus,
+.schedule-filter-form select:focus,
+.appointment-edit-form input:focus,
+.appointment-edit-form select:focus,
+.appointment-edit-form textarea:focus {
+  outline: 0;
+  border-color: oklch(0.48 0.08 154);
+  box-shadow: 0 0 0 3px oklch(0.61 0.09 145 / 0.17);
+}
+
+.detail-grid {
+  gap: 12px;
+}
+
+.wide-detail-panel {
+  grid-column: 1 / -1;
+}
+
+.line-items-preview,
+.business-document-lines,
+.email-draft-card,
+.copy-draft-card {
+  border-radius: var(--radius-panel);
+}
+
+.paper-preview,
+.business-document {
+  color: var(--color-charcoal);
+}
+
+.document-label,
+.business-document-brand strong {
+  color: var(--color-charcoal);
+}
+
+.login-panel {
+  width: min(440px, 100%);
+  margin: 10vh auto 0;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 22px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-small);
+}
+
+.login-panel h1 {
+  font-size: 1.55rem;
+}
+
+.signed-in-panel {
+  border-radius: var(--radius-panel);
+}
+
+.crew-shell {
+  max-width: 960px;
+}
+
+.crew-hero {
+  padding-bottom: 14px;
+}
+
+.crew-hero h1,
+.crew-job-card h2 {
+  font-size: 1.8rem;
+}
+
+.crew-panel,
+.crew-job-card,
+.photo-uploader {
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.crew-panel-icon {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-forest);
+}
+
+.crew-action-row a,
+.crew-unavailable-action,
+.primary-crew-actions a,
+.primary-crew-actions .crew-unavailable-action {
+  min-height: 52px;
+  border-radius: 13px;
+  font-size: 0.98rem;
+  font-weight: 760;
+}
+
+.primary-crew-actions a {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-surface);
+}
+
+.calendar-shell {
+  border-radius: var(--radius-panel);
+  box-shadow: none;
+}
+
+.calendar-toolbar {
+  background: oklch(0.984 0.004 154);
+}
+
+.calendar-appointment {
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.calendar-appointment:hover {
+  box-shadow: var(--shadow-small);
+}
+
+.customer-portal-page {
+  width: min(920px, calc(100% - 32px));
+}
+
+.customer-portal-header,
+.customer-portal-footer {
+  color: var(--color-muted);
+}
+
+.customer-portal-intro h1 {
+  font-size: 2rem;
+}
+
+.customer-portal-intro > p:last-child {
+  max-width: 65ch;
+  color: var(--color-muted);
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    width: 100%;
+  }
+
+  .app-shell .shell,
+  .app-shell .crew-shell,
+  .dashboard-page,
+  .calendar-page,
+  .role-strip {
+    width: min(100% - 28px, 960px) !important;
+  }
+
+  .app-mobilebar {
+    background: oklch(0.989 0.003 154 / 0.98);
+  }
+
+  .mobile-nav summary {
+    min-height: 44px;
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-charcoal);
+  }
+
+  .dashboard-grid,
+  .crm-layout,
+  .detail-grid,
+  .document-grid,
+  .email-draft-grid,
+  .marketing-draft-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-heading h1,
+  .app-shell h1,
+  .crew-shell h1,
+  .narrow-shell h1,
+  .crew-hero h1,
+  .customer-portal-intro h1 {
+    font-size: 1.55rem;
+    line-height: 1.16;
+  }
+
+  .page-heading p,
+  .crew-hero p,
+  .login-panel p {
+    font-size: 0.9rem;
+  }
+
+  .login-panel {
+    width: min(100% - 28px, 440px);
+    margin-top: 6vh;
+  }
+
+  .record-card-header,
+  .panel-header,
+  .marketing-section-heading,
+  .document-workspace-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .record-details {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-action,
+  .secondary-action,
+  .record-actions a,
+  .record-actions button,
+  .crm-form button {
+    width: 100%;
+  }
+
+  .crew-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Quote and invoice operating workspaces */
+.commerce-page {
+  display: grid;
+  gap: 18px;
+}
+
+.commerce-heading {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.commerce-heading > div,
+.commerce-detail-header > div:first-child {
+  min-width: 0;
+}
+
+.commerce-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.commerce-summary-chip {
+  display: grid;
+  gap: 4px;
+  min-height: 68px;
+  align-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 10px 12px;
+  box-shadow: 0 10px 22px oklch(0.24 0.03 154 / 0.045);
+}
+
+.commerce-summary-chip span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.commerce-summary-chip strong {
+  color: var(--color-charcoal);
+  font-size: 1.18rem;
+  font-weight: 820;
+}
+
+.commerce-summary-chip.emphasis {
+  background: oklch(0.972 0.018 148);
+}
+
+.commerce-table-shell {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-small);
+}
+
+.commerce-table-header,
+.commerce-row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+}
+
+.quote-grid {
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.35fr) minmax(116px, 0.8fr) minmax(96px, 0.65fr) minmax(140px, 0.85fr) minmax(220px, 1.2fr);
+}
+
+.invoice-grid {
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.35fr) minmax(116px, 0.78fr) minmax(104px, 0.72fr) minmax(140px, 0.9fr) minmax(250px, 1.45fr);
+}
+
+.commerce-table-header {
+  border-bottom: 1px solid var(--color-border);
+  background: oklch(0.982 0.005 154);
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  padding: 10px 14px;
+  text-transform: uppercase;
+}
+
+.commerce-row-list {
+  display: grid;
+}
+
+.commerce-row {
+  min-height: 82px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 13px 14px;
+}
+
+.commerce-row:last-child {
+  border-bottom: 0;
+}
+
+.commerce-row:hover {
+  background: oklch(0.986 0.006 154);
+}
+
+.commerce-record-title,
+.commerce-cell,
+.commerce-money {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.commerce-record-title a {
+  overflow: hidden;
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commerce-record-title span,
+.commerce-cell span,
+.commerce-money span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commerce-cell strong,
+.commerce-money strong {
+  overflow: hidden;
+  color: var(--color-charcoal);
+  font-size: 0.88rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commerce-money {
+  justify-items: start;
+  color: var(--color-charcoal);
+  font-weight: 820;
+}
+
+.commerce-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.commerce-actions .secondary-action,
+.commerce-actions .inline-action-form button {
+  min-height: 34px;
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+
+.commerce-actions .workflow-action-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.commerce-actions .workflow-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.commerce-actions .form-message {
+  max-width: 180px;
+  margin: 0;
+  font-size: 0.74rem;
+}
+
+.commerce-empty-state {
+  align-items: start;
+  justify-items: start;
+  min-height: 180px;
+}
+
+.commerce-boundary-note {
+  margin-top: 0;
+}
+
+.commerce-drawer-overlay {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.commerce-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(0.18 0.02 154 / 0.36);
+}
+
+.commerce-drawer {
+  position: relative;
+  z-index: 1;
+  overflow: auto;
+  width: min(520px, 100%);
+  height: 100%;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 22px;
+  box-shadow: -24px 0 60px oklch(0.24 0.03 154 / 0.18);
+}
+
+.commerce-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.commerce-drawer-header h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1.22rem;
+}
+
+.commerce-drawer-header p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.icon-action {
+  width: 38px;
+  min-width: 38px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.commerce-cancel-link {
+  width: 100%;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.quote-status.draft,
+.invoice-status.draft {
+  background: oklch(0.976 0.004 154);
+  color: oklch(0.39 0.012 154);
+}
+
+.quote-status.sent,
+.invoice-status.sent,
+.quote-status.change_requested,
+.invoice-status.partially_paid {
+  border-color: oklch(0.82 0.08 118);
+  background: oklch(0.968 0.026 118);
+  color: oklch(0.36 0.075 132);
+}
+
+.quote-status.approved,
+.invoice-status.paid {
+  border-color: oklch(0.78 0.09 148);
+  background: oklch(0.955 0.038 148);
+  color: oklch(0.3 0.08 148);
+}
+
+.quote-status.expired,
+.quote-status.declined,
+.quote-status.cancelled,
+.invoice-status.overdue,
+.invoice-status.void {
+  border-color: oklch(0.82 0.05 42);
+  background: oklch(0.972 0.016 42);
+  color: oklch(0.38 0.045 42);
+}
+
+.commerce-detail-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 0 18px;
+}
+
+.commerce-detail-header h1 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1.85rem;
+  line-height: 1.14;
+}
+
+.commerce-detail-header p {
+  margin: 8px 0 0;
+  max-width: 68ch;
+  color: var(--color-muted);
+}
+
+.commerce-header-aside {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.commerce-header-aside strong {
+  color: var(--color-charcoal);
+  font-size: 1.35rem;
+  font-weight: 850;
+}
+
+.commerce-header-aside > span:last-child {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.commerce-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+
+.commerce-document-column,
+.commerce-detail-sidebar {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.commerce-detail-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.commerce-document-panel,
+.commerce-side-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  padding: 16px;
+  box-shadow: var(--shadow-small);
+}
+
+.commerce-document-panel {
+  padding: 18px;
+}
+
+.commerce-side-panel .portal-link-panel {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.commerce-side-panel .crm-form {
+  margin-top: 10px;
+}
+
+/* CRM form polish */
+
+.crm-side {
+  align-content: start;
+  gap: 12px;
+}
+
+.form-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+}
+
+.form-panel-copy,
+.commerce-drawer-header p,
+.appointment-drawer-header p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.crm-form,
+.appointment-edit-form {
+  gap: 12px;
+  margin-top: 0;
+}
+
+.crm-form.compact-form {
+  gap: 10px;
+}
+
+.crm-form label,
+.nested-fieldset,
+.schedule-filter-form label,
+.appointment-edit-form label {
+  gap: 6px;
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.crm-form input,
+.crm-form select,
+.crm-form textarea,
+.schedule-filter-form input,
+.schedule-filter-form select,
+.appointment-edit-form input,
+.appointment-edit-form select,
+.appointment-edit-form textarea {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.4;
+  box-shadow: 0 1px 0 oklch(0.17 0.01 154 / 0.03);
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.crm-form textarea,
+.appointment-edit-form textarea {
+  min-height: 104px;
+}
+
+.crm-form input::placeholder,
+.crm-form textarea::placeholder,
+.appointment-edit-form input::placeholder,
+.appointment-edit-form textarea::placeholder {
+  color: var(--color-muted);
+}
+
+.crm-form input:focus,
+.crm-form select:focus,
+.crm-form textarea:focus,
+.schedule-filter-form input:focus,
+.schedule-filter-form select:focus,
+.appointment-edit-form input:focus,
+.appointment-edit-form select:focus,
+.appointment-edit-form textarea:focus {
+  border-color: oklch(0.45 0.08 154);
+  box-shadow: 0 0 0 3px oklch(0.61 0.09 145 / 0.14);
+}
+
+.crm-form button,
+.appointment-edit-form button,
+.schedule-filter-form button,
+.drawer-cancel-link,
+.commerce-cancel-link {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.nested-fieldset {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: oklch(0.985 0.002 154);
+}
+
+.nested-fieldset legend {
+  padding: 0 4px;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.checkbox-field {
+  min-height: 44px;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--color-surface-subtle);
+  color: var(--color-charcoal) !important;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.checkbox-field input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-forest);
+}
+
+.form-message {
+  display: grid;
+  gap: 2px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  .crm-side {
+    gap: 10px;
+  }
+
+  .form-panel {
+    padding: 14px;
+  }
+}
+
+.commerce-line-items {
+  margin-top: 12px;
+  border-radius: 12px;
+}
+
+.commerce-email-grid {
+  margin-top: 0;
+}
+
+@media (max-width: 1180px) {
+  .commerce-summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .quote-grid,
+  .invoice-grid {
+    grid-template-columns: minmax(160px, 1fr) minmax(180px, 1.2fr) minmax(110px, 0.8fr) minmax(96px, 0.7fr);
+  }
+
+  .commerce-table-header span:nth-child(5),
+  .commerce-table-header span:nth-child(6),
+  .commerce-row > div:nth-child(5),
+  .commerce-row > div:nth-child(6) {
+    grid-column: auto;
+  }
+
+  .commerce-table-header {
+    display: none;
+  }
+
+  .commerce-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .commerce-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 980px) {
+  .commerce-heading,
+  .commerce-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .commerce-header-aside {
+    justify-items: start;
+  }
+
+  .commerce-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .commerce-detail-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .commerce-summary-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .commerce-heading .primary-action,
+  .commerce-actions .secondary-action,
+  .commerce-actions .inline-action-form button {
+    width: auto;
+  }
+
+  .commerce-actions .workflow-action-panel,
+  .commerce-actions .workflow-button-row {
+    width: 100%;
+  }
+
+  .commerce-drawer {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .commerce-detail-header h1 {
+    font-size: 1.55rem;
+  }
+}
+
+/* Customer portal polish */
+.customer-portal-page {
+  width: min(1080px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.customer-portal-home,
+.customer-quote-page,
+.customer-portal-unavailable {
+  min-height: 100vh;
+}
+
+.customer-portal-header {
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+}
+
+.customer-portal-header > p {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--color-green);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.customer-portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.customer-portal-brand > span {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid oklch(0.8 0.02 152);
+  border-radius: 14px;
+  background: oklch(0.985 0.01 150);
+  color: var(--color-forest);
+}
+
+.customer-portal-brand strong {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.customer-portal-brand small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.customer-portal-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 360px);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.customer-portal-intro {
+  margin-bottom: 0;
+}
+
+.customer-portal-intro h1,
+.customer-portal-unavailable h1 {
+  max-width: 18ch;
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 2.45rem;
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.customer-portal-intro > p:last-child,
+.customer-portal-unavailable section p {
+  max-width: 62ch;
+  color: var(--color-muted);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.customer-portal-summary-card,
+.customer-portal-note,
+.customer-portal-card,
+.customer-quote-overview-card,
+.customer-quote-actions,
+.customer-quote-confirmation,
+.customer-portal-unavailable section {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-small);
+}
+
+.customer-portal-summary-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.customer-portal-summary-card > strong {
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.customer-portal-summary-card > span {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.customer-portal-trust-list {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-portal-trust-list p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+}
+
+.customer-portal-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-portal-card {
+  padding: 18px;
+}
+
+.customer-portal-card-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: oklch(0.973 0.014 150);
+  color: var(--color-forest);
+}
+
+.customer-portal-card h2 {
+  margin: 14px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.02rem;
+}
+
+.customer-portal-card p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.customer-portal-note {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.customer-portal-note strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-charcoal);
+}
+
+.customer-portal-note p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.customer-quote-summary-card {
+  gap: 16px;
+}
+
+.customer-quote-summary-total {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.customer-quote-summary-total span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.customer-quote-summary-total strong {
+  color: var(--color-charcoal);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.customer-quote-summary-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.customer-quote-summary-list div {
+  display: grid;
+  gap: 4px;
+}
+
+.customer-quote-summary-list dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.customer-quote-summary-list dd {
+  margin: 0;
+  color: var(--color-charcoal);
+  line-height: 1.5;
+}
+
+.customer-quote-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.customer-quote-document-column,
+.customer-quote-action-column {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.customer-quote-action-column {
+  position: sticky;
+  top: 24px;
+}
+
+.customer-quote-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-quote-overview-card {
+  padding: 16px;
+}
+
+.customer-quote-overview-card strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+}
+
+.customer-quote-overview-card p {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.customer-quote-page .business-document {
+  width: 100%;
+  margin: 0;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: var(--shadow-small);
+}
+
+.customer-quote-page .business-document-header {
+  padding-bottom: 20px;
+}
+
+.customer-quote-page .business-document-identity strong {
+  font-size: 1.2rem;
+}
+
+.customer-quote-page .business-document-meta,
+.customer-quote-page .business-document-line-items,
+.customer-quote-page .business-document-approval {
+  margin-top: 22px;
+}
+
+.customer-quote-actions {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  margin: 0;
+  padding: 20px;
+}
+
+.customer-quote-actions-intro h2,
+.customer-quote-confirmation h2 {
+  margin: 6px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.28rem;
+}
+
+.customer-quote-actions-intro p:last-child,
+.customer-quote-confirmation p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.customer-quote-action-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-approve-button {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.customer-quote-action-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.customer-change-form {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.customer-change-form-copy h3 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.customer-change-form-copy p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.customer-change-form label {
+  gap: 8px;
+  color: var(--color-charcoal);
+  font-weight: 700;
+}
+
+.customer-change-form textarea {
+  min-height: 116px;
+  border-radius: 14px;
+  resize: vertical;
+}
+
+.customer-secondary-button {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 14px;
+  font-weight: 720;
+}
+
+.customer-quote-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 22px;
+  background: oklch(0.98 0.018 148);
+}
+
+.customer-quote-confirmation.approved {
+  background: oklch(0.977 0.022 148);
+  color: oklch(0.32 0.07 148);
+}
+
+.customer-quote-confirmation.change_requested {
+  background: oklch(0.983 0.018 118);
+  color: oklch(0.35 0.055 118);
+}
+
+.customer-quote-confirmation h2 {
+  color: inherit;
+}
+
+.customer-quote-confirmation p {
+  color: inherit;
+}
+
+.customer-portal-footer {
+  margin-top: 26px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+}
+
+.customer-portal-footer strong {
+  color: var(--color-charcoal);
+}
+
+.customer-portal-unavailable {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  width: min(640px, calc(100% - 28px));
+}
+
+.customer-portal-unavailable section {
+  padding: 24px;
+}
+
+.customer-portal-unavailable section svg {
+  color: var(--color-forest);
+}
+
+@media (max-width: 960px) {
+  .customer-portal-hero,
+  .customer-quote-workspace,
+  .customer-portal-card-grid,
+  .customer-quote-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-quote-action-column {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .customer-portal-page {
+    width: min(100% - 20px, 1080px);
+    padding: 18px 0 28px;
+  }
+
+  .customer-portal-header,
+  .customer-portal-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-portal-intro h1,
+  .customer-portal-unavailable h1 {
+    font-size: 1.75rem;
+    line-height: 1.08;
+  }
+
+  .customer-quote-page .business-document {
+    padding: 20px;
+  }
+}
+
+/* Crew usability polish */
+.crew-shell {
+  width: min(980px, calc(100% - 24px));
+  padding: 18px 0 34px;
+}
+
+.crew-hero {
+  padding: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.crew-shell h1,
+.crew-hero h1,
+.crew-job-card h2 {
+  max-width: 18ch;
+  color: var(--color-charcoal);
+  font-size: 2rem;
+  line-height: 1.04;
+}
+
+.crew-hero p {
+  max-width: 46ch;
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.crew-hero-actions {
+  margin-top: 16px;
+}
+
+.crew-hero-actions .primary-action {
+  min-height: 54px;
+  border-radius: 14px;
+  padding-inline: 18px;
+  font-size: 0.98rem;
+  font-weight: 760;
+}
+
+.crew-panel,
+.crew-job-card {
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.crew-today-panel {
+  margin-top: 16px;
+}
+
+.crew-today-list {
+  display: grid;
+  gap: 12px;
+}
+
+.crew-today-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: oklch(0.986 0.004 150);
+  padding: 14px;
+}
+
+.crew-today-row h3 {
+  margin: 4px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.08rem;
+}
+
+.crew-today-row p:last-child {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+}
+
+.crew-today-open {
+  min-height: 50px;
+  border-radius: 13px;
+  padding-inline: 18px;
+  font-size: 0.94rem;
+}
+
+.crew-empty-inline {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 14px;
+  background: oklch(0.988 0.003 150);
+  padding: 16px;
+}
+
+.crew-empty-inline strong {
+  color: var(--color-charcoal);
+}
+
+.crew-empty-inline p {
+  margin: 6px 0 0;
+}
+
+.crew-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.crew-quick-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.crew-quick-stat svg {
+  color: var(--color-forest);
+}
+
+.crew-quick-stat strong {
+  display: block;
+  color: var(--color-charcoal);
+  font-size: 1.15rem;
+}
+
+.crew-quick-stat span {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.crew-quick-stat p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.crew-job-list {
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.crew-job-card-top {
+  margin-bottom: 8px;
+}
+
+.crew-job-card > p {
+  margin: 12px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.crew-job-status-strip {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.crew-photo-summary {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.crew-job-open-link {
+  width: 100%;
+  margin-top: 16px;
+  min-height: 58px;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.crew-action-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.primary-crew-actions {
+  margin: 16px 0;
+}
+
+.crew-action-row a,
+.crew-unavailable-action,
+.photo-uploader button,
+.crew-status-form button {
+  min-height: 60px;
+  border-radius: 16px;
+  justify-content: flex-start;
+  padding: 0 16px;
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.primary-crew-actions a,
+.primary-crew-actions .crew-unavailable-action {
+  min-height: 66px;
+}
+
+.crew-action-row a span,
+.crew-unavailable-action span {
+  gap: 2px;
+}
+
+.crew-unavailable-action small {
+  font-size: 0.78rem;
+}
+
+.crew-detail-list {
+  gap: 12px;
+}
+
+.crew-detail-list div {
+  border-radius: 14px;
+  padding: 12px 13px;
+}
+
+.crew-detail-list dt {
+  font-size: 0.76rem;
+}
+
+.crew-detail-list dd {
+  margin-top: 6px;
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.crew-scope-copy {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.crew-note-list p {
+  border-radius: 14px;
+  padding: 12px 13px;
+  color: var(--color-charcoal);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.crew-photo-help {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.crew-photo-help div {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: oklch(0.986 0.004 150);
+  padding: 12px;
+}
+
+.crew-photo-help strong {
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+}
+
+.crew-photo-help p {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+
+.photo-group {
+  padding: 0 0 14px;
+}
+
+.photo-group + .photo-group {
+  padding-top: 14px;
+}
+
+.photo-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.photo-group-heading span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.photo-group-empty {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.photo-thumbnail-grid {
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 10px;
+}
+
+.photo-thumbnail-grid li {
+  border-radius: 14px;
+  padding: 8px;
+}
+
+.photo-thumbnail-caption {
+  font-size: 0.82rem;
+}
+
+.photo-uploader-grid {
+  gap: 12px;
+}
+
+.photo-uploader {
+  display: grid;
+  gap: 12px;
+  border-top: 0;
+  border-radius: 16px;
+  background: oklch(0.987 0.004 150);
+  padding: 14px;
+}
+
+.photo-uploader-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.photo-uploader h3 {
+  font-size: 1rem;
+}
+
+.photo-uploader p {
+  margin-top: 6px;
+  font-size: 0.88rem;
+}
+
+.photo-uploader-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  padding: 6px 10px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 760;
+  text-transform: capitalize;
+}
+
+.photo-uploader label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.photo-uploader input {
+  min-height: 48px;
+  border-radius: 13px;
+  padding: 10px 11px;
+  font-size: 0.95rem;
+}
+
+.checklist-progress {
+  overflow: hidden;
+  height: 10px;
+  margin: 0 0 14px;
+  border-radius: 999px;
+  background: oklch(0.948 0.006 150);
+}
+
+.checklist-progress div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-forest);
+  transition: width 180ms ease-out;
+}
+
+.checklist-controls {
+  gap: 10px;
+}
+
+.checklist-controls label {
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.checklist-controls input {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+}
+
+.checklist-item-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.checklist-item-copy strong {
+  color: var(--color-charcoal);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.checklist-item-copy small {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.crew-status-form {
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .crew-quick-stats,
+  .crew-photo-help {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .crew-shell {
+    width: min(100% - 18px, 980px);
+    padding: 14px 0 28px;
+  }
+
+  .crew-shell h1,
+  .crew-hero h1,
+  .crew-job-card h2 {
+    font-size: 1.7rem;
+  }
+
+  .crew-today-row {
+    grid-template-columns: 1fr;
+  }
+
+  .crew-today-open,
+  .crew-job-open-link,
+  .crew-action-row a,
+  .crew-unavailable-action,
+  .photo-uploader button,
+  .crew-status-form button,
+  .crew-hero-actions .primary-action {
+    width: 100%;
+  }
+
+  .crew-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-uploader-header,
+  .photo-group-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

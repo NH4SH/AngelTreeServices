@@ -7,6 +7,7 @@ import { completionChecklistItems } from "@/lib/crew/completion-checklist";
 export function CompletionChecklist() {
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   const completeCount = checkedItems.length;
+  const progress = Math.round((completeCount / completionChecklistItems.length) * 100);
   const summary = useMemo(
     () => `${completeCount} of ${completionChecklistItems.length} complete`,
     [completeCount],
@@ -22,6 +23,9 @@ export function CompletionChecklist() {
           <h2>Completion checklist</h2>
           <p>{summary}</p>
         </div>
+      </div>
+      <div aria-hidden="true" className="checklist-progress">
+        <div style={{ width: `${progress}%` }} />
       </div>
       <div className="checklist-controls">
         {completionChecklistItems.map((item) => {
@@ -40,7 +44,10 @@ export function CompletionChecklist() {
                 }
                 type="checkbox"
               />
-              <span>{item}</span>
+              <span className="checklist-item-copy">
+                <strong>{item}</strong>
+                <small>{checked ? "Complete" : "Tap when finished"}</small>
+              </span>
             </label>
           );
         })}

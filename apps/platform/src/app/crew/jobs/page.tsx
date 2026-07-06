@@ -24,10 +24,10 @@ export default async function CrewJobsPage() {
         <section className="crew-hero">
           <p className="surface-label">
             <Truck aria-hidden="true" size={18} />
-            Crew Jobs
+            Crew
           </p>
-          <h1>Jobs list.</h1>
-          <p>Large cards for field work. Open a job for scope, photos, checklist, and completion.</p>
+          <h1>Jobs</h1>
+          <p>Open the next job, use the big action buttons, then move to the next stop.</p>
         </section>
 
         {jobs.error ? <DataWarning message={jobs.error} /> : null}
@@ -53,6 +53,9 @@ function CrewJobCard({ job }: { job: CrewJob }) {
   const phone = job.customers?.phone;
   const directionsUrl = getDirectionsUrl(job);
   const photoTypes = new Set((job.job_photos ?? []).map((photo) => photo.photo_type));
+  const missingPhotos = [!photoTypes.has("before") ? "Before" : null, !photoTypes.has("after") ? "After" : null]
+    .filter(Boolean)
+    .join(" and ");
 
   return (
     <article className="crew-job-card">
@@ -60,15 +63,23 @@ function CrewJobCard({ job }: { job: CrewJob }) {
         <div>
           <p className="job-kicker">{formatDateTime(job.scheduled_start_at)}</p>
           <h2>{job.service_type?.replace("_", " ") ?? "Service job"}</h2>
+          <p>{job.customers?.display_name ?? "Customer not available"}</p>
           <p>{formatLocation(job)}</p>
         </div>
         <span className="status-pill">{job.status.replace("_", " ")}</span>
       </div>
       <p>{job.requested_scope || "No scope entered yet."}</p>
-      <div className="crew-photo-flags" aria-label="Photo needs">
-        <span className={photoTypes.has("before") ? "complete" : ""}>Before</span>
-        <span className={photoTypes.has("after") ? "complete" : ""}>After</span>
+      <div className="crew-job-status-strip">
+        <div className="crew-photo-flags" aria-label="Photo needs">
+          <span className={photoTypes.has("before") ? "complete" : ""}>Before</span>
+          <span className={photoTypes.has("after") ? "complete" : ""}>After</span>
+        </div>
+        <p className="crew-photo-summary">{missingPhotos ? `Need ${missingPhotos.toLowerCase()} photos` : "Photo set looks complete"}</p>
       </div>
+      <Link className="primary-action crew-job-open-link" href={`/crew/jobs/${job.id}`}>
+        <Truck aria-hidden="true" size={20} />
+        Open job
+      </Link>
       <div className="crew-action-row">
         {directionsUrl ? (
           <a href={directionsUrl} rel="noreferrer" target="_blank">

@@ -24,11 +24,8 @@ export default async function CustomersPage() {
             <UsersRound aria-hidden="true" size={18} />
             Customers
           </p>
-          <h1>Customer records, properties, and first notes in one clean place.</h1>
-          <p>
-            Start with simple customer and service-location records. RLS decides whether the signed-in
-            staff account can read or write these tables.
-          </p>
+          <h1>Customers</h1>
+          <p>Contact details, service locations, and first notes for every account.</p>
         </section>
 
         {customers.error ? <DataWarning message={customers.error} /> : null}
@@ -37,7 +34,7 @@ export default async function CustomersPage() {
         <section className="crm-layout">
           <div className="crm-main">
             {customers.data.length === 0 ? (
-              <EmptyState title="No customers yet" body="Add the first customer when the database policies are ready." />
+              <EmptyState title="No customers yet" body="Add a customer when the first request is ready to enter." />
             ) : (
               <div className="record-list">
                 {customers.data.map((customer) => {
@@ -87,10 +84,12 @@ export default async function CustomersPage() {
           <aside className="crm-side">
             <section className="form-panel">
               <h2>Add customer</h2>
+              <p className="form-panel-copy">Start the account record with the main contact, then add the first property if it is ready.</p>
               <AddCustomerForm />
             </section>
             <section className="form-panel">
               <h2>Add service location</h2>
+              <p className="form-panel-copy">Keep addresses and access notes separate so jobs, quotes, and crew directions stay tidy later.</p>
               <AddServiceLocationForm customers={customers.data} />
             </section>
           </aside>

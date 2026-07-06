@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AppointmentStatus, AppointmentType, AppointmentWithRelations, AssignableUser, DataResult } from "@/lib/types/database";
 
 export type AppointmentFilters = {
+  assignedUserId?: string | "all" | "unassigned";
   appointmentType?: AppointmentType | "all";
   status?: AppointmentStatus | "all";
   startsAtOrAfter?: string;
@@ -28,6 +29,12 @@ export async function getAppointments(filters: AppointmentFilters = {}): Promise
 
   if (filters.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
+  }
+
+  if (filters.assignedUserId === "unassigned") {
+    query = query.is("assigned_user_id", null);
+  } else if (filters.assignedUserId && filters.assignedUserId !== "all") {
+    query = query.eq("assigned_user_id", filters.assignedUserId);
   }
 
   if (filters.startsAtOrAfter) {

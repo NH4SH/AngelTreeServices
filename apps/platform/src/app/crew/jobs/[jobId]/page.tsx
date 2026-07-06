@@ -74,10 +74,10 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
       <section className="crew-hero">
         <p className="surface-label">
           <Truck aria-hidden="true" size={18} />
-          Job Detail
+          Crew job
         </p>
         <h1>{job.service_type?.replace("_", " ") ?? "Service job"}</h1>
-        <p>{job.requested_scope || "No scope entered yet."}</p>
+        <p>{formatLocation(job)}</p>
         <div className="crew-job-meta-row">
           <span>{formatDateTime(job.scheduled_start_at)}</span>
           <span>{job.status.replace("_", " ")}</span>
@@ -127,6 +127,19 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
             </span>
           </span>
         )}
+        <Link href="#photos">
+          <Camera aria-hidden="true" size={20} />
+          Photos
+        </Link>
+        <Link href="#complete">
+          <CheckCircle2 aria-hidden="true" size={20} />
+          Complete
+        </Link>
+      </section>
+
+      <section className="crew-panel">
+        <PanelHeading icon={<ClipboardCheck size={19} />} title="Scope of work" subtitle="Read this first before starting." />
+        <p className="crew-scope-copy">{job.requested_scope || "No scope entered yet."}</p>
       </section>
 
       <section className="crew-panel">
@@ -162,8 +175,7 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
       </section>
 
       <section className="crew-panel">
-        <PanelHeading icon={<ClipboardCheck size={19} />} title="Scope and crew notes" subtitle="Field-only essentials." />
-        <p>{job.requested_scope || "No scope entered yet."}</p>
+        <PanelHeading icon={<Truck size={19} />} title="Crew notes" subtitle="Field-only essentials." />
         <div className="crew-note-list">
           {crewNotes.length > 0 ? (
             crewNotes.map((note) => <p key={note.id}>{note.body}</p>)
@@ -179,7 +191,17 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
       </section>
 
       <section className="crew-panel" id="photos">
-        <PanelHeading icon={<Camera size={19} />} title="Job photos" subtitle="Private job photos with temporary previews." />
+        <PanelHeading icon={<Camera size={19} />} title="Job photos" subtitle="Take clear before and after photos for the office record." />
+        <div className="crew-photo-help">
+          <div>
+            <strong>Before</strong>
+            <p>Capture the work area before starting.</p>
+          </div>
+          <div>
+            <strong>After</strong>
+            <p>Capture the final condition before leaving.</p>
+          </div>
+        </div>
         <JobPhotoGallery photos={photos} />
         <div className="photo-uploader-grid">
           <JobPhotoUploader

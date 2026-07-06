@@ -43,11 +43,8 @@ export default async function JobsPage() {
             <ClipboardCheck aria-hidden="true" size={18} />
             Jobs
           </p>
-          <h1>Move work from new lead to scheduled crew-ready job.</h1>
-          <p>
-            Jobs connect a customer, a service location, status, priority, and requested scope. No crew
-            assignment or completion workflow is implemented yet.
-          </p>
+          <h1>Jobs</h1>
+          <p>Track leads, estimates, scheduled work, crew progress, and completion.</p>
         </section>
 
         {[jobs.error, customers.error, serviceLocations.error].filter(Boolean).map((message) => (
@@ -105,6 +102,7 @@ export default async function JobsPage() {
           <aside className="crm-side">
             <section className="form-panel">
               <h2>Add job</h2>
+              <p className="form-panel-copy">Link the customer and property first, then capture the requested work in plain language.</p>
               <AddJobForm customers={customers.data} serviceLocations={serviceLocations.data} />
             </section>
           </aside>

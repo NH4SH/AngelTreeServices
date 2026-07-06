@@ -44,11 +44,8 @@ export default async function MarketingPage() {
             <Megaphone aria-hidden="true" size={18} />
             Marketing drafts
           </p>
-          <h1>Turn finished work into thoughtful follow-up and reusable local content.</h1>
-          <p>
-            This protected workspace prepares review requests and public-safe drafts. It does not send
-            messages, publish posts, expose photos, or claim that a customer left a review.
-          </p>
+          <h1>Marketing</h1>
+          <p>Prepare review requests, completed-job drafts, and public-safe gallery candidates.</p>
         </section>
 
         <section className="notice-panel">
@@ -63,7 +60,7 @@ export default async function MarketingPage() {
         {photoErrors.map((message) => <DataWarning key={message} message={message} />)}
 
         {jobs.data.length === 0 ? (
-          <EmptyState title="No completed jobs ready for marketing review" body="Completed, invoiced, and paid jobs will appear here for an office review." />
+          <EmptyState title="No completed jobs yet" body="Finished work will appear here for review requests and draft content." />
         ) : (
           <>
             <MarketingSection

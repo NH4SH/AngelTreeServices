@@ -178,24 +178,29 @@ export async function requestQuoteChangesByPortalToken(
   }
 
   const requestedAt = new Date().toISOString();
+  const { data: note, error: noteError } = await supabase
+    .from("notes")
+    .insert({
+      customer_id: lookup.quote.customer_id,
+      job_id: lookup.quote.job_id,
+      visibility: "internal",
+      body: `Customer portal change request: ${message}`,
+    })
+    .select("id")
+    .single();
+
+  if (noteError || !note) {
+    return { status: "error", message: noteError?.message ?? "We could not save your message right now. Please try again." };
+  }
+
   const { error: quoteError } = await supabase
     .from("quotes")
     .update({ status: "change_requested", approved_at: null })
     .eq("id", lookup.quote.id);
 
   if (quoteError) {
+    await supabase.from("notes").delete().eq("id", note.id);
     return { status: "error", message: quoteError.message };
-  }
-
-  const { error: noteError } = await supabase.from("notes").insert({
-    customer_id: lookup.quote.customer_id,
-    job_id: lookup.quote.job_id,
-    visibility: "internal",
-    body: `Customer portal change request: ${message}`,
-  });
-
-  if (noteError) {
-    return { status: "error", message: `The quote was flagged, but the message could not be saved: ${noteError.message}` };
   }
 
   await supabase.from("quote_portal_tokens").update({ used_at: requestedAt }).eq("id", lookup.tokenId);
@@ -235,4 +240,3 @@ async function logPortalActivity(
     metadata_json: { source: "customer_quote_portal" },
   });
 }
-

@@ -1,31 +1,53 @@
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Navigation, UserRound } from "lucide-react";
-import { AppointmentStatusActions } from "@/components/appointment-status-actions";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Filter,
+  Navigation,
+  Plus,
+  X,
+} from "lucide-react";
 import { AppointmentEditForm } from "@/components/appointment-edit-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddAppointmentForm } from "./AppointmentForm";
+import { updateAppointmentStatusFromForm } from "./actions";
+import {
+  appointmentStatuses,
+  appointmentTypes,
+  buildScheduleHref,
+  formatDateInput,
+  formatDayLabel,
+  formatDayNumber,
+  formatRangeTitle,
+  formatShortLocation,
+  formatTime,
+  getAppointmentSummary,
+  getAppointmentTone,
+  getDateAnchor,
+  getScheduleRange,
+  getVisibleDays,
+  groupAppointmentsByDate,
+  isSameDay,
+  isSameMonth,
+  shiftDate,
+  type ScheduleView,
+} from "./schedule-utils";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getAppointments, getAssignableUsers } from "@/lib/data/appointments";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getDirectionsUrl } from "@/lib/maps";
-import type { AppointmentStatus, AppointmentType, AppointmentWithRelations } from "@/lib/types/database";
-
-const appointmentTypes: (AppointmentType | "all")[] = ["all", "estimate", "job", "follow_up", "maintenance"];
-const appointmentStatuses: (AppointmentStatus | "all")[] = [
-  "all",
-  "scheduled",
-  "confirmed",
-  "in_progress",
-  "completed",
-  "cancelled",
-  "no_show",
-];
+import type { AppointmentStatus, AppointmentType, AppointmentWithRelations, AssignableUser, Job } from "@/lib/types/database";
 
 type SchedulePageProps = {
   searchParams: Promise<{
+    appointment?: string;
     appointment_type?: string;
+    assigned_user_id?: string;
     date?: string;
+    new?: string;
     status?: string;
     view?: string;
   }>;
@@ -39,14 +61,16 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   }
 
   const params = await searchParams;
-  const view = params.view === "day" ? "day" : "week";
+  const view = getScheduleView(params.view);
   const date = getDateAnchor(params.date);
-  const type = appointmentTypes.includes(params.appointment_type as AppointmentType) ? params.appointment_type as AppointmentType : "all";
-  const status = appointmentStatuses.includes(params.status as AppointmentStatus) ? params.status as AppointmentStatus : "all";
+  const appointmentType = getAppointmentTypeFilter(params.appointment_type);
+  const assignedUserId = getAssignedUserFilter(params.assigned_user_id);
+  const status = getStatusFilter(params.status);
   const range = getScheduleRange(date, view);
   const [appointments, jobs, assignedUsers] = await Promise.all([
     getAppointments({
-      appointmentType: type,
+      assignedUserId,
+      appointmentType,
       status,
       startsAtOrAfter: range.start.toISOString(),
       startsBefore: range.end.toISOString(),
@@ -54,49 +78,152 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     getJobOptions(),
     getAssignableUsers(),
   ]);
-  const groupedAppointments = groupAppointmentsByDay(appointments.data);
+  const days = getVisibleDays(date, view);
+  const groupedAppointments = groupAppointmentsByDate(appointments.data);
+  const selectedAppointment = appointments.data.find((appointment) => appointment.id === params.appointment) ?? null;
+  const query = {
+    appointment_type: appointmentType,
+    assigned_user_id: assignedUserId,
+    date: formatDateInput(date),
+    status,
+    view,
+  };
 
   return (
     <PlatformFrame active="schedule" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content">
-        <section className="page-heading">
+      <div className="shell app-content calendar-page">
+        <section className="page-heading calendar-page-heading">
           <p className="surface-label">
-            <CalendarDays aria-hidden="true" size={18} />
+            <CalendarDays aria-hidden="true" size={15} />
             Schedule
           </p>
-          <h1>Plan estimates, field work, and follow-ups without calendar clutter.</h1>
-          <p>Use the day or week list to keep the office moving. External calendar sync can wait until the workflow is proven.</p>
+          <h1>Schedule</h1>
+          <p>Estimates, field work, and follow-ups.</p>
         </section>
 
         {[appointments.error, jobs.error, assignedUsers.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
-        <section className="schedule-toolbar" aria-label="Schedule filters">
-          <div className="schedule-view-toggle" aria-label="Schedule view">
-            <Link aria-current={view === "day" ? "page" : undefined} href={buildScheduleHref(params, { view: "day" })}>Day</Link>
-            <Link aria-current={view === "week" ? "page" : undefined} href={buildScheduleHref(params, { view: "week" })}>Week</Link>
-          </div>
-          <div className="schedule-date-nav">
-            <Link aria-label={`Previous ${view}`} href={buildScheduleHref(params, { date: formatDateInput(shiftDate(date, view === "day" ? -1 : -7)) })}>
-              <ChevronLeft aria-hidden="true" size={18} />
+        <section className="calendar-shell">
+          <ScheduleToolbar
+            appointmentType={appointmentType}
+            assignedUserId={assignedUserId}
+            assignedUsers={assignedUsers.data}
+            current={query}
+            date={date}
+            range={range}
+            status={status}
+            view={view}
+          />
+
+          {view === "day" ? (
+            <CalendarDayView appointments={groupedAppointments[formatDateInput(date)] ?? []} current={query} date={date} />
+          ) : view === "month" ? (
+            <CalendarMonthView anchor={date} appointmentsByDate={groupedAppointments} current={query} days={days} />
+          ) : (
+            <>
+              <CalendarWeekView appointmentsByDate={groupedAppointments} current={query} days={days} />
+              <CalendarMobileAgenda appointments={groupedAppointments[formatDateInput(date)] ?? []} current={query} date={date} />
+            </>
+          )}
+        </section>
+
+        {params.new === "1" ? (
+          <AppointmentFormDrawer
+            assignedUsers={assignedUsers.data}
+            current={query}
+            jobs={jobs.data}
+          />
+        ) : null}
+
+        {selectedAppointment ? (
+          <AppointmentDetailPanel
+            appointment={selectedAppointment}
+            assignedUsers={assignedUsers.data}
+            current={query}
+          />
+        ) : null}
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function ScheduleToolbar({
+  appointmentType,
+  assignedUserId,
+  assignedUsers,
+  current,
+  date,
+  range,
+  status,
+  view,
+}: {
+  appointmentType: AppointmentType | "all";
+  assignedUserId: string;
+  assignedUsers: AssignableUser[];
+  current: Record<string, string>;
+  date: Date;
+  range: { start: Date; end: Date };
+  status: AppointmentStatus | "all";
+  view: ScheduleView;
+}) {
+  const today = new Date();
+
+  return (
+    <header className="calendar-toolbar">
+      <div className="calendar-toolbar-primary">
+        <Link className="calendar-nav-button" href={buildScheduleHref(current, { date: formatDateInput(today) })}>Today</Link>
+        <Link className="calendar-icon-button" aria-label={`Previous ${view}`} href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, -1)) })}>
+          <ChevronLeft aria-hidden="true" size={17} />
+        </Link>
+        <strong>{formatRangeTitle(date, range, view)}</strong>
+        <Link className="calendar-icon-button" aria-label={`Next ${view}`} href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, 1)) })}>
+          <ChevronRight aria-hidden="true" size={17} />
+        </Link>
+      </div>
+
+      <div className="calendar-toolbar-actions">
+        <nav className="segmented-control" aria-label="Calendar view">
+          {(["day", "week", "month"] as const).map((calendarView) => (
+            <Link
+              aria-current={view === calendarView ? "page" : undefined}
+              href={buildScheduleHref(current, { view: calendarView })}
+              key={calendarView}
+            >
+              {calendarView}
             </Link>
-            <strong>{formatRange(range.start, range.end, view)}</strong>
-            <Link aria-label={`Next ${view}`} href={buildScheduleHref(params, { date: formatDateInput(shiftDate(date, view === "day" ? 1 : 7)) })}>
-              <ChevronRight aria-hidden="true" size={18} />
-            </Link>
-          </div>
+          ))}
+        </nav>
+
+        <details className="schedule-filters">
+          <summary>
+            <Filter aria-hidden="true" size={15} />
+            Filters
+          </summary>
           <form className="schedule-filter-form">
             <input name="view" type="hidden" value={view} />
             <label>
-              <span>Anchor date</span>
+              <span>Date</span>
               <input defaultValue={formatDateInput(date)} name="date" type="date" />
             </label>
             <label>
+              <span>Assigned staff</span>
+              <select defaultValue={assignedUserId} name="assigned_user_id">
+                <option value="all">All staff</option>
+                <option value="unassigned">Unassigned</option>
+                {assignedUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.full_name || user.email || "Unnamed staff user"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               <span>Type</span>
-              <select defaultValue={type} name="appointment_type">
-                {appointmentTypes.map((appointmentType) => (
-                  <option key={appointmentType} value={appointmentType}>{appointmentType.replace("_", " ")}</option>
+              <select defaultValue={appointmentType} name="appointment_type">
+                {appointmentTypes.map((type) => (
+                  <option key={type} value={type}>{type.replace("_", " ")}</option>
                 ))}
               </select>
             </label>
@@ -108,162 +235,318 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
                 ))}
               </select>
             </label>
-            <button type="submit">Apply filters</button>
+            <button type="submit">Apply</button>
           </form>
-        </section>
+        </details>
 
-        <section className="crm-layout">
-          <div className="crm-main">
-            {groupedAppointments.length === 0 ? (
-              <EmptyState title="No scheduled work in this view" body="Try another date or add an estimate, job, maintenance visit, or follow-up." />
-            ) : (
-              <div className="schedule-day-list">
-                {groupedAppointments.map(([day, dayAppointments]) => (
-                  <section className="schedule-day-group" key={day}>
-                    <h2>{formatDayHeading(day)}</h2>
-                    <div className="record-list">
-                      {dayAppointments.map((appointment) => (
-                        <AppointmentCard appointment={appointment} assignedUsers={assignedUsers.data} key={appointment.id} />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <aside className="crm-side">
-            <section className="form-panel">
-              <h2>Add appointment</h2>
-              <AddAppointmentForm assignedUsers={assignedUsers.data} jobs={jobs.data} />
-            </section>
-            <section className="notice-panel">
-              <strong>Lightweight by design</strong>
-              <p>Estimate, job, maintenance, and follow-up records stay simple until external calendar sync is justified.</p>
-            </section>
-          </aside>
-        </section>
+        <Link className="calendar-add-button" href={buildScheduleHref(current, { new: "1" })}>
+          <Plus aria-hidden="true" size={16} />
+          Add appointment
+        </Link>
       </div>
-    </PlatformFrame>
+    </header>
   );
 }
 
-function AppointmentCard({ appointment, assignedUsers }: { appointment: AppointmentWithRelations; assignedUsers: Awaited<ReturnType<typeof getAssignableUsers>>["data"] }) {
+function CalendarWeekView({
+  appointmentsByDate,
+  current,
+  days,
+}: {
+  appointmentsByDate: Record<string, AppointmentWithRelations[]>;
+  current: Record<string, string>;
+  days: Date[];
+}) {
+  const today = new Date();
+
+  return (
+    <section className="calendar-grid calendar-week-grid" aria-label="Week calendar">
+      {days.map((day) => {
+        const key = formatDateInput(day);
+        const appointments = appointmentsByDate[key] ?? [];
+
+        return (
+          <article className={`calendar-day-column ${isSameDay(day, today) ? "is-today" : ""}`} key={key}>
+            <Link className="calendar-day-heading" href={buildScheduleHref(current, { date: key, view: "day" })}>
+              <span>{formatDayLabel(day)}</span>
+              <strong>{formatDayNumber(day)}</strong>
+            </Link>
+            <div className="calendar-day-stack">
+              {appointments.length > 0 ? (
+                appointments.map((appointment) => (
+                  <AppointmentCard appointment={appointment} compact current={current} key={appointment.id} />
+                ))
+              ) : (
+                <p className="calendar-quiet-empty">No appointments</p>
+              )}
+            </div>
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+function CalendarDayView({
+  appointments,
+  current,
+  date,
+}: {
+  appointments: AppointmentWithRelations[];
+  current: Record<string, string>;
+  date: Date;
+}) {
+  return (
+    <section className="calendar-day-view" aria-label="Day agenda">
+      <div className="calendar-agenda-heading">
+        <span>{new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(date)}</span>
+        <strong>{new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(date)}</strong>
+      </div>
+      {appointments.length > 0 ? (
+        <div className="calendar-agenda-list">
+          {appointments.map((appointment) => (
+            <AppointmentCard appointment={appointment} current={current} key={appointment.id} />
+          ))}
+        </div>
+      ) : (
+        <section className="calendar-empty-agenda">
+          <h2>No appointments today</h2>
+          <p>This day is clear. Add an appointment when an estimate, field visit, or follow-up is ready.</p>
+        </section>
+      )}
+    </section>
+  );
+}
+
+function CalendarMobileAgenda({
+  appointments,
+  current,
+  date,
+}: {
+  appointments: AppointmentWithRelations[];
+  current: Record<string, string>;
+  date: Date;
+}) {
+  return (
+    <section className="calendar-mobile-agenda" aria-label="Mobile agenda">
+      <CalendarDayView appointments={appointments} current={current} date={date} />
+    </section>
+  );
+}
+
+function CalendarMonthView({
+  anchor,
+  appointmentsByDate,
+  current,
+  days,
+}: {
+  anchor: Date;
+  appointmentsByDate: Record<string, AppointmentWithRelations[]>;
+  current: Record<string, string>;
+  days: Date[];
+}) {
+  const today = new Date();
+
+  return (
+    <section className="calendar-month-grid" aria-label="Month calendar">
+      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((weekday) => (
+        <span className="calendar-month-weekday" key={weekday}>{weekday}</span>
+      ))}
+      {days.map((day) => {
+        const key = formatDateInput(day);
+        const appointments = appointmentsByDate[key] ?? [];
+
+        return (
+          <Link
+            className={`calendar-month-cell ${isSameDay(day, today) ? "is-today" : ""} ${!isSameMonth(day, anchor) ? "is-outside-month" : ""}`}
+            href={buildScheduleHref(current, { date: key, view: "day" })}
+            key={key}
+          >
+            <span>{formatDayNumber(day)}</span>
+            {appointments.length > 0 ? (
+              <small>{appointments.length} appointment{appointments.length === 1 ? "" : "s"}</small>
+            ) : null}
+            <div className="calendar-month-dots" aria-hidden="true">
+              {appointments.slice(0, 4).map((appointment) => (
+                <i className={`appointment-dot ${getAppointmentTone(appointment)}`} key={appointment.id} />
+              ))}
+            </div>
+          </Link>
+        );
+      })}
+    </section>
+  );
+}
+
+function AppointmentCard({
+  appointment,
+  compact = false,
+  current,
+}: {
+  appointment: AppointmentWithRelations;
+  compact?: boolean;
+  current: Record<string, string>;
+}) {
+  const tone = getAppointmentTone(appointment);
+  const location = formatShortLocation(appointment);
+
+  return (
+    <Link
+      className={`calendar-appointment ${tone} ${compact ? "is-compact" : ""}`}
+      href={buildScheduleHref(current, { appointment: appointment.id })}
+    >
+      <span className="appointment-time">
+        <Clock3 aria-hidden="true" size={compact ? 12 : 14} />
+        {formatTime(appointment.starts_at)}
+        {appointment.ends_at ? ` to ${formatTime(appointment.ends_at)}` : ""}
+      </span>
+      <strong>{appointment.appointment_type.replace("_", " ")}</strong>
+      <span>{getAppointmentSummary(appointment)}</span>
+      <small>{appointment.status.replace("_", " ")} - {location}</small>
+    </Link>
+  );
+}
+
+function AppointmentFormDrawer({
+  assignedUsers,
+  current,
+  jobs,
+}: {
+  assignedUsers: AssignableUser[];
+  current: Record<string, string>;
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+}) {
+  return (
+    <div className="appointment-overlay" role="dialog" aria-modal="true" aria-labelledby="add-appointment-title">
+      <div className="appointment-backdrop" />
+      <aside className="appointment-drawer">
+        <div className="appointment-drawer-header">
+          <div>
+            <span>New appointment</span>
+            <h2 id="add-appointment-title">Add appointment</h2>
+            <p>Choose the job, timing, and staff assignment for this estimate, visit, or follow-up.</p>
+          </div>
+          <Link aria-label="Close add appointment" href={buildScheduleHref(current, { new: undefined })}>
+            <X aria-hidden="true" size={17} />
+          </Link>
+        </div>
+        <AddAppointmentForm assignedUsers={assignedUsers} jobs={jobs} />
+        <Link className="drawer-cancel-link" href={buildScheduleHref(current, { new: undefined })}>Cancel</Link>
+      </aside>
+    </div>
+  );
+}
+
+function AppointmentDetailPanel({
+  appointment,
+  assignedUsers,
+  current,
+}: {
+  appointment: AppointmentWithRelations;
+  assignedUsers: AssignableUser[];
+  current: Record<string, string>;
+}) {
   const directionsUrl = getDirectionsUrl(appointment.service_locations);
 
   return (
-    <article className="record-card appointment-card">
-      <div className="record-card-header">
-        <div>
-          <h3>{appointment.appointment_type.replace("_", " ")}</h3>
-          <p>{formatDateTime(appointment.starts_at)}{appointment.ends_at ? ` to ${formatTime(appointment.ends_at)}` : ""}</p>
+    <div className="appointment-overlay" role="dialog" aria-modal="true" aria-labelledby="appointment-detail-title">
+      <div className="appointment-backdrop" />
+      <aside className="appointment-popover">
+        <div className="appointment-drawer-header">
+          <div>
+            <span>{appointment.appointment_type.replace("_", " ")}</span>
+            <h2 id="appointment-detail-title">{getAppointmentSummary(appointment)}</h2>
+          </div>
+          <Link aria-label="Close appointment details" href={buildScheduleHref(current, { appointment: undefined })}>
+            <X aria-hidden="true" size={17} />
+          </Link>
         </div>
-        <span className="status-pill">{appointment.status.replace("_", " ")}</span>
-      </div>
-      {appointment.service_locations ? (
-        <p className="inline-icon-line">
-          <MapPin aria-hidden="true" size={15} />
-          {appointment.service_locations.street}, {appointment.service_locations.city}
-        </p>
-      ) : null}
-      <p className="inline-icon-line">
-        <UserRound aria-hidden="true" size={15} />
-        {appointment.profiles?.full_name || appointment.profiles?.email || "Unassigned"}
-      </p>
-      <p>{appointment.calendar_notes || appointment.jobs?.requested_scope || "No notes yet."}</p>
-      <div className="record-actions">
-        <Link href={`/admin/jobs/${appointment.job_id}`}>Open job</Link>
-        {directionsUrl ? (
-          <a href={directionsUrl} rel="noreferrer" target="_blank">
-            <Navigation aria-hidden="true" size={15} />
-            Directions
-          </a>
-        ) : null}
-      </div>
-      <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={appointment.job_id} />
-      <details className="appointment-edit-details">
-        <summary>Edit appointment</summary>
-        <AppointmentEditForm appointment={appointment} assignedUsers={assignedUsers} />
-      </details>
-    </article>
+
+        <dl className="appointment-detail-list">
+          <div>
+            <dt>Time</dt>
+            <dd>{formatTime(appointment.starts_at)}{appointment.ends_at ? ` to ${formatTime(appointment.ends_at)}` : ""}</dd>
+          </div>
+          <div>
+            <dt>Type and status</dt>
+            <dd>{appointment.appointment_type.replace("_", " ")} - {appointment.status.replace("_", " ")}</dd>
+          </div>
+          <div>
+            <dt>Staff</dt>
+            <dd>{appointment.profiles?.full_name || appointment.profiles?.email || "Unassigned"}</dd>
+          </div>
+          <div>
+            <dt>Address</dt>
+            <dd>{formatShortLocation(appointment)}</dd>
+          </div>
+          <div>
+            <dt>Notes</dt>
+            <dd>{appointment.calendar_notes || appointment.jobs?.requested_scope || "No notes yet."}</dd>
+          </div>
+        </dl>
+
+        <div className="appointment-detail-actions">
+          <Link href={`/admin/jobs/${appointment.job_id}`}>Open job</Link>
+          {directionsUrl ? <a href={directionsUrl} rel="noreferrer" target="_blank"><Navigation aria-hidden="true" size={15} />Directions</a> : null}
+          <QuickStatusButton appointment={appointment} label="Mark confirmed" nextStatus="confirmed" />
+          <QuickStatusButton appointment={appointment} label="Mark complete" nextStatus="completed" />
+          <QuickStatusButton appointment={appointment} label="Cancel" nextStatus="cancelled" />
+        </div>
+
+        <details className="appointment-edit-details">
+          <summary>Edit time, staff, or notes</summary>
+          <AppointmentEditForm appointment={appointment} assignedUsers={assignedUsers} />
+        </details>
+      </aside>
+    </div>
   );
 }
 
-function getDateAnchor(value?: string) {
-  const date = value ? new Date(`${value}T12:00:00`) : new Date();
-  return Number.isNaN(date.getTime()) ? new Date() : date;
-}
-
-function getScheduleRange(anchor: Date, view: "day" | "week") {
-  const start = new Date(anchor);
-  start.setHours(0, 0, 0, 0);
-
-  if (view === "week") {
-    start.setDate(start.getDate() - start.getDay());
-  }
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + (view === "day" ? 1 : 7));
-  return { start, end };
-}
-
-function shiftDate(date: Date, days: number) {
-  const shifted = new Date(date);
-  shifted.setDate(shifted.getDate() + days);
-  return shifted;
-}
-
-function buildScheduleHref(
-  current: SchedulePageProps["searchParams"] extends Promise<infer T> ? T : never,
-  updates: Record<string, string>,
-) {
-  const params = new URLSearchParams();
-  Object.entries({ ...current, ...updates }).forEach(([key, value]) => {
-    if (value) {
-      params.set(key, value);
-    }
-  });
-  return `/admin/schedule?${params.toString()}`;
-}
-
-function groupAppointmentsByDay(appointments: AppointmentWithRelations[]) {
-  return Object.entries(
-    appointments.reduce<Record<string, AppointmentWithRelations[]>>((groups, appointment) => {
-      const key = formatDateInput(new Date(appointment.starts_at));
-      groups[key] = [...(groups[key] ?? []), appointment];
-      return groups;
-    }, {}),
+function QuickStatusButton({
+  appointment,
+  label,
+  nextStatus,
+}: {
+  appointment: AppointmentWithRelations;
+  label: string;
+  nextStatus: AppointmentStatus;
+}) {
+  return (
+    <form action={updateAppointmentStatusFromForm}>
+      <input name="appointment_id" type="hidden" value={appointment.id} />
+      <input name="job_id" type="hidden" value={appointment.job_id} />
+      <input name="next_status" type="hidden" value={nextStatus} />
+      <button disabled={appointment.status === nextStatus} type="submit">{label}</button>
+    </form>
   );
 }
 
-function formatDateInput(date: Date) {
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+function getScheduleView(value?: string): ScheduleView {
+  return value === "day" || value === "month" ? value : "week";
 }
 
-function formatRange(start: Date, end: Date, view: "day" | "week") {
-  if (view === "day") {
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(start);
+function getAppointmentTypeFilter(value?: string) {
+  return appointmentTypes.includes(value as (typeof appointmentTypes)[number])
+    ? value as AppointmentType | "all"
+    : "all";
+}
+
+function getStatusFilter(value?: string) {
+  return appointmentStatuses.includes(value as (typeof appointmentStatuses)[number])
+    ? value as AppointmentStatus | "all"
+    : "all";
+}
+
+function getAssignedUserFilter(value?: string) {
+  const trimmed = value?.trim();
+
+  if (!trimmed || trimmed === "all" || trimmed === "unassigned") {
+    return trimmed || "all";
   }
 
-  const inclusiveEnd = new Date(end);
-  inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
-  return `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(start)} - ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(inclusiveEnd)}`;
-}
-
-function formatDayHeading(day: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date(`${day}T12:00:00`));
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
-}
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return <section className="empty-state"><h2>{title}</h2><p>{body}</p></section>;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)
+    ? trimmed
+    : "all";
 }
 
 function DataWarning({ message }: { message: string }) {

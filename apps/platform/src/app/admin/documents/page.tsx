@@ -39,11 +39,8 @@ export default async function DocumentsPage() {
             <Files aria-hidden="true" size={18} />
             Documents
           </p>
-          <h1>Quote, invoice, email, and work-order previews before generation.</h1>
-          <p>
-            This protected hub prepares the document workflow without creating PDFs, sending email,
-            exposing share links, or opening customer approval URLs.
-          </p>
+          <h1>Documents</h1>
+          <p>Preview quote, invoice, email, and work-order templates before sending or printing.</p>
         </section>
 
         <section className="document-grid" aria-label="Document workflow previews">

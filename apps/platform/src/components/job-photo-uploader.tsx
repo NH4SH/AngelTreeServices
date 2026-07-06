@@ -29,22 +29,26 @@ export function JobPhotoUploader({
   title,
 }: JobPhotoUploaderProps) {
   const [state, formAction, pending] = useActionState(uploadJobPhoto, initialState);
+  const actionLabel = pending ? "Uploading..." : `Add ${title.toLowerCase()}`;
 
   return (
     <form action={formAction} className="photo-uploader">
+      <div className="photo-uploader-header">
+        <div>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+        <span className="photo-uploader-badge">{photoCategory.replace("_", " ")}</span>
+      </div>
       <input name="job_id" type="hidden" value={jobId} />
       <input name="photo_category" type="hidden" value={photoCategory} />
-      <div>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
       <label>
-        Photo
+        Take or choose photo
         <input accept="image/*" capture="environment" name="photo" required type="file" />
       </label>
       <label>
         Caption
-        <input name="caption" placeholder="Optional field note" />
+        <input name="caption" placeholder="Optional short field note" />
       </label>
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
@@ -53,7 +57,7 @@ export function JobPhotoUploader({
       ) : null}
       <button disabled={pending} type="submit">
         <Camera aria-hidden="true" size={18} />
-        {pending ? "Uploading..." : "Upload photo"}
+        {actionLabel}
       </button>
     </form>
   );

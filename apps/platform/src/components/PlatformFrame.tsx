@@ -57,41 +57,22 @@ export function PlatformFrame({
   userEmail,
 }: PlatformFrameProps) {
   const activeItem = navItems.find((item) => item.match === active);
+  const roleSummary = roles.length > 0 ? roles.join(", ") : "No role assigned";
 
   return (
     <main className="app-shell">
-      <header className="app-topbar">
-        <Link className="app-brand" href="/admin">
-          <span className="app-brand-mark" aria-hidden="true">
-            <Leaf size={18} />
-          </span>
-          <span>
-            <strong>Angel Tree Platform</strong>
-            <small>{userEmail ?? "Signed in"}</small>
-          </span>
-        </Link>
-
-        <details className="mobile-nav">
-          <summary>{activeItem?.label ?? "Menu"}</summary>
-          <nav aria-label="Mobile platform navigation">
-            {navItems.map((item) => (
-              <Link
-                aria-current={active === item.match ? "page" : undefined}
-                href={item.href}
-                key={item.href}
-              >
-                <item.Icon aria-hidden="true" size={18} />
-                {item.label}
-              </Link>
-            ))}
-            <form action={signOut}>
-              <button type="submit">
-                <LogOut aria-hidden="true" size={18} />
-                Sign out
-              </button>
-            </form>
-          </nav>
-        </details>
+      <aside className="app-sidebar">
+        <div className="app-sidebar-header">
+          <Link className="app-brand" href="/admin">
+            <span className="app-brand-mark" aria-hidden="true">
+              <Leaf size={17} />
+            </span>
+            <span>
+              <strong>Angel Tree</strong>
+              <small>Operations</small>
+            </span>
+          </Link>
+        </div>
 
         <nav className="app-nav" aria-label="Platform navigation">
           {navItems.map((item) => (
@@ -100,28 +81,70 @@ export function PlatformFrame({
               href={item.href}
               key={item.href}
             >
-              <item.Icon aria-hidden="true" size={17} />
+              <item.Icon aria-hidden="true" size={16} />
               {item.label}
             </Link>
           ))}
+        </nav>
+
+        <div className="app-sidebar-footer">
+          <div className="app-user">
+            <small>Signed in</small>
+            <strong>{userEmail ?? "Platform user"}</strong>
+            <span>{roleSummary}</span>
+          </div>
           <form action={signOut}>
-            <button type="submit">
-              <LogOut aria-hidden="true" size={17} />
+            <button className="app-signout" type="submit">
+              <LogOut aria-hidden="true" size={16} />
               Sign out
             </button>
           </form>
-        </nav>
-      </header>
+        </div>
+      </aside>
 
-      {roles.length > 0 ? (
-        <p className="role-strip">Roles: {roles.join(", ")}</p>
-      ) : (
-        <p className="role-strip">
-          Role checks are prepared, but this session has no assigned platform roles yet.
-        </p>
-      )}
+      <section className="app-main">
+        <header className="app-mobilebar">
+          <Link className="app-brand" href="/admin">
+            <span className="app-brand-mark" aria-hidden="true">
+              <Leaf size={17} />
+            </span>
+            <span>
+              <strong>Angel Tree</strong>
+              <small>{userEmail ?? "Operations"}</small>
+            </span>
+          </Link>
 
-      {children}
+          <details className="mobile-nav">
+            <summary>{activeItem?.label ?? "Menu"}</summary>
+            <nav aria-label="Mobile platform navigation">
+              {navItems.map((item) => (
+                <Link
+                  aria-current={active === item.match ? "page" : undefined}
+                  href={item.href}
+                  key={item.href}
+                >
+                  <item.Icon aria-hidden="true" size={17} />
+                  {item.label}
+                </Link>
+              ))}
+              <form action={signOut}>
+                <button type="submit">
+                  <LogOut aria-hidden="true" size={17} />
+                  Sign out
+                </button>
+              </form>
+            </nav>
+          </details>
+        </header>
+
+        {roles.length === 0 ? (
+          <p className="role-strip">
+            Role checks are prepared, but this session has no assigned platform roles yet.
+          </p>
+        ) : null}
+
+        {children}
+      </section>
     </main>
   );
 }

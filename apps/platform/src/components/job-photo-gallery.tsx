@@ -25,9 +25,12 @@ export function JobPhotoGallery({ photos }: { photos: SignedJobPhoto[] }) {
 function PhotoGroup({ photos, title }: { photos: SignedJobPhoto[]; title: string }) {
   return (
     <section className="photo-group">
-      <h3>{title}</h3>
+      <div className="photo-group-heading">
+        <h3>{title}</h3>
+        <span>{photos.length} {photos.length === 1 ? "photo" : "photos"}</span>
+      </div>
       {photos.length === 0 ? (
-        <p>No photos yet.</p>
+        <p className="photo-group-empty">No photos yet.</p>
       ) : (
         <ul className="photo-thumbnail-grid">
           {photos.map((photo) => (

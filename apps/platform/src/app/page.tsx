@@ -30,19 +30,18 @@ export default function PlatformHome() {
           <Sprout aria-hidden="true" size={18} />
           Angel Tree Services Platform
         </p>
-        <h1>One quiet operating system for leads, jobs, quotes, invoices, and field work.</h1>
+        <h1>Angel Tree platform</h1>
         <p className="hero-copy">
-          This TypeScript app is the protected platform foundation. The existing public website remains
-          untouched while CRM, customer portal, and crew workflows are built here.
+          Protected operations workspace for CRM, scheduling, crew work, quote review, and customer portal workflows.
         </p>
         <div className="action-row">
           <Link className="primary-action" href="/admin">
             <Leaf aria-hidden="true" size={18} />
-            Open admin shell
+            Open admin
           </Link>
           <Link className="secondary-action" href="/login">
             <LogIn aria-hidden="true" size={18} />
-            View login shell
+            Sign in
           </Link>
         </div>
       </section>
@@ -58,7 +57,7 @@ export default function PlatformHome() {
       </section>
 
       <section className="notice-panel">
-        <strong>Phase 2 boundary</strong>
+        <strong>Platform boundary</strong>
         <p>
           No real customer records, quotes, invoices, payments, or job photos should be stored until
           Supabase Auth, database policies, and private storage rules are configured.

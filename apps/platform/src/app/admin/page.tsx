@@ -107,20 +107,28 @@ export default async function AdminPage() {
       })),
     },
   ];
+  const todayLanes = [lanes[3], lanes[4]];
+  const attentionLanes = [lanes[0], lanes[1], lanes[2], lanes[5]];
+  const pipelineSummary = [
+    { label: "New leads", value: jobSummaries.lanes.newLeads.length },
+    { label: "Estimates", value: jobSummaries.lanes.estimatesToSchedule.length },
+    { label: "Quotes waiting", value: awaitingQuotes.data.length },
+    { label: "Open invoices", value: unpaidInvoices.data.length },
+  ];
 
   return (
     <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content">
-        <section className="page-heading">
-          <p className="surface-label">
-            <Leaf aria-hidden="true" size={18} />
-            Internal CRM
-          </p>
-          <h1>Keep leads, estimates, quotes, jobs, and follow-ups moving.</h1>
-          <p>
-            This dashboard reads from the protected CRM tables and stays empty until real staff users
-            add records through the new admin pages.
-          </p>
+      <div className="shell app-content dashboard-page">
+        <section className="page-heading dashboard-heading">
+          <div>
+            <p className="surface-label">
+              <Leaf aria-hidden="true" size={15} />
+              Internal CRM
+            </p>
+            <h1>Dashboard</h1>
+            <p>Today's operational overview.</p>
+          </div>
+          <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
         {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error, organizationSummary.error]
@@ -129,43 +137,60 @@ export default async function AdminPage() {
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
-        <section className="admin-board workflow-board" aria-label="CRM workflow lanes">
-          {lanes.map((lane) => (
-            <article className="work-card workflow-card" key={lane.title}>
-              <div className="workflow-card-top">
-                <span className="workflow-icon" aria-hidden="true">
-                  <lane.Icon size={20} />
-                </span>
-                <span className="workflow-count">{lane.items.length}</span>
-              </div>
-              <h2>{lane.title}</h2>
-              <p>{lane.description}</p>
-              {lane.items.length > 0 ? (
-                <ul className="workflow-items">
-                  {lane.items.slice(0, 3).map((item) => (
-                    <li key={`${lane.title}-${item.title}-${item.meta}`}>
-                      <strong>{item.title}</strong>
-                      <span>{item.meta}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="workflow-empty">{lane.placeholder ?? "Nothing waiting here right now."}</p>
-              )}
-            </article>
-          ))}
-        </section>
+        <section className="dashboard-grid" aria-label="CRM operational overview">
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Today" detail="Scheduled work and reminders" />
+            <div className="workflow-list">
+              {todayLanes.map((lane) => <WorkflowLane lane={lane} key={lane.title} />)}
+            </div>
+          </section>
 
-        <section className="notice-panel">
-          <strong><Building2 aria-hidden="true" size={18} /> Property manager and HOA workflow</strong>
-          <p>
-            {organizationSummary.data.length} organization account{organizationSummary.data.length === 1 ? "" : "s"} tracked.
-            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => !["completed", "paid", "lost", "cancelled"].includes(job.status)).length, 0)} open organization jobs,
-            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.quotes.filter((quote) => quote.status === "sent" || quote.status === "change_requested").length, 0)} quotes awaiting response,
-            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.invoices.filter((invoice) => ["sent", "partially_paid", "overdue"].includes(invoice.status)).length, 0)} unpaid invoices, and
-            {" "}{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => ["completed", "invoiced", "paid"].includes(job.status)).length, 0)} recently completed jobs.
-          </p>
-          <div className="record-actions"><a href="/admin/organizations">Open organizations</a></div>
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Needs attention" detail="Items most likely to stall" />
+            <div className="workflow-list">
+              {attentionLanes.map((lane) => <WorkflowLane lane={lane} key={lane.title} />)}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Pipeline" detail="Current office load" />
+            <div className="pipeline-list">
+              {pipelineSummary.map((item) => (
+                <div className="pipeline-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Quick actions" detail="Most common next steps" />
+            <div className="quick-actions">
+              <a href="/admin/customers">Add customer</a>
+              <a href="/admin/jobs">Create job</a>
+              <a href="/admin/quotes">Prepare quote</a>
+              <a href="/admin/schedule">Open schedule</a>
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Recent activity" detail="Audit trail placeholder" />
+            <p className="subtle-empty">
+              Activity log entries will appear here after timeline events are wired into the CRM.
+            </p>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Property managers and HOAs" detail="Repeat-account overview" />
+            <div className="pipeline-list">
+              <div className="pipeline-row"><span>Accounts</span><strong>{organizationSummary.data.length}</strong></div>
+              <div className="pipeline-row"><span>Open jobs</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => !["completed", "paid", "lost", "cancelled"].includes(job.status)).length, 0)}</strong></div>
+              <div className="pipeline-row"><span>Quotes waiting</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.quotes.filter((quote) => quote.status === "sent" || quote.status === "change_requested").length, 0)}</strong></div>
+              <div className="pipeline-row"><span>Unpaid invoices</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.invoices.filter((invoice) => ["sent", "partially_paid", "overdue"].includes(invoice.status)).length, 0)}</strong></div>
+            </div>
+            <div className="record-actions"><a href="/admin/organizations">Open organizations</a></div>
+          </section>
         </section>
 
         <section className="notice-panel">
@@ -188,6 +213,47 @@ export default async function AdminPage() {
       </div>
     </PlatformFrame>
   );
+}
+
+function PanelHeader({ detail, title }: { detail: string; title: string }) {
+  return (
+    <div className="panel-header">
+      <h2>{title}</h2>
+      <span>{detail}</span>
+    </div>
+  );
+}
+
+function WorkflowLane({
+  lane,
+}: {
+  lane: {
+    title: string;
+    Icon: LucideIcon;
+    href: string;
+    items: { title: string; meta: string }[];
+  };
+}) {
+  return (
+    <a className="workflow-row" href={lane.href}>
+      <span className="workflow-row-icon" aria-hidden="true">
+        <lane.Icon size={15} />
+      </span>
+      <span>
+        <strong>{lane.title}</strong>
+        {lane.items[0] ? <small>{lane.items[0].title}: {lane.items[0].meta}</small> : <small>Clear for now</small>}
+      </span>
+      <b>{lane.items.length}</b>
+    </a>
+  );
+}
+
+function formatDashboardDate() {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(new Date());
 }
 
 function formatDate(value: string) {

@@ -25,13 +25,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="login-panel">
         <p className="surface-label">
           <Leaf aria-hidden="true" size={18} />
-          Login Shell
+          Angel Tree Platform
         </p>
-        <h1>Sign in to Angel Tree Services</h1>
-        <p>
-          Use Supabase Auth to access protected platform areas. Staff, crew, customers, and
-          organization contacts will share this entry point as role checks mature.
-        </p>
+        <h1>Sign in</h1>
+        <p>Use your Angel Tree operations account to open the protected workspace.</p>
 
         {user ? (
           <div className="signed-in-panel">

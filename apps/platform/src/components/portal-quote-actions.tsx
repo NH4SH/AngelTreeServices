@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { CheckCircle2, MessageSquareText } from "lucide-react";
+import { CheckCircle2, MessageSquareText, ShieldCheck } from "lucide-react";
 import {
   approveQuoteByPortalToken,
   requestQuoteChangesByPortalToken,
@@ -18,16 +18,16 @@ export function PortalQuoteActions({ rawToken }: { rawToken: string }) {
   const [changeState, changeAction, changePending] = useActionState(requestQuoteChangesByPortalToken, initialState);
 
   if (approvalState.status === "success") {
-    return <PortalConfirmation message={approvalState.message} />;
+    return <PortalConfirmation message={approvalState.message} title="Quote approved" variant="approved" />;
   }
 
   if (changeState.status === "success") {
-    return <PortalConfirmation message={changeState.message} />;
+    return <PortalConfirmation message={changeState.message} title="Change request sent" variant="change_requested" />;
   }
 
   return (
     <section className="customer-quote-actions" aria-label="Quote response actions">
-      <div>
+      <div className="customer-quote-actions-intro">
         <p className="surface-label">
           <CheckCircle2 aria-hidden="true" size={18} />
           Your Decision
@@ -36,16 +36,27 @@ export function PortalQuoteActions({ rawToken }: { rawToken: string }) {
         <p>Approve the quote below, or send a short note if you would like us to adjust the scope.</p>
       </div>
 
-      <form action={approvalAction}>
-        <input name="token" type="hidden" value={rawToken} />
-        <button className="customer-approve-button" disabled={approvalPending || changePending} type="submit">
-          <CheckCircle2 aria-hidden="true" size={20} />
-          {approvalPending ? "Approving..." : "Approve Quote"}
-        </button>
-      </form>
+      <div className="customer-quote-action-stack">
+        <form action={approvalAction}>
+          <input name="token" type="hidden" value={rawToken} />
+          <button className="customer-approve-button" disabled={approvalPending || changePending} type="submit">
+            <CheckCircle2 aria-hidden="true" size={20} />
+            {approvalPending ? "Approving..." : "Approve Quote"}
+          </button>
+        </form>
+
+        <p className="customer-quote-action-note">
+          <ShieldCheck aria-hidden="true" size={16} />
+          Approval keeps this quote tied to this secure link only.
+        </p>
+      </div>
 
       <form action={changeAction} className="customer-change-form">
         <input name="token" type="hidden" value={rawToken} />
+        <div className="customer-change-form-copy">
+          <h3>Need an adjustment first?</h3>
+          <p>Send a short note and the Angel Tree team can review the scope with you.</p>
+        </div>
         <label>
           Request changes
           <textarea
@@ -69,12 +80,20 @@ export function PortalQuoteActions({ rawToken }: { rawToken: string }) {
   );
 }
 
-function PortalConfirmation({ message }: { message: string }) {
+function PortalConfirmation({
+  message,
+  title,
+  variant,
+}: {
+  message: string;
+  title: string;
+  variant: "approved" | "change_requested";
+}) {
   return (
-    <section className="customer-quote-confirmation" role="status">
+    <section className={`customer-quote-confirmation ${variant}`} role="status">
       <CheckCircle2 aria-hidden="true" size={24} />
       <div>
-        <h2>Response received</h2>
+        <h2>{title}</h2>
         <p>{message}</p>
       </div>
     </section>
@@ -88,4 +107,3 @@ function ActionMessage({ state }: { state: PortalTokenActionState }) {
     </p>
   );
 }
-

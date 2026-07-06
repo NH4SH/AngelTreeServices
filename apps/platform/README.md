@@ -11,6 +11,44 @@ cd apps/platform
 npm install
 ```
 
+## Run Commands
+
+From the repo root:
+
+```powershell
+cd apps/platform
+```
+
+Localhost development:
+
+```powershell
+npm run dev
+```
+
+LAN development, bound to all interfaces:
+
+```powershell
+npm run dev:lan
+```
+
+LAN production-style verification:
+
+```powershell
+npm run build
+npm run start:lan
+```
+
+Open:
+
+```text
+http://localhost:3000
+http://192.168.1.161:3000
+```
+
+Replace `192.168.1.161` with the current LAN IP of the machine running the app when needed.
+
+Production mode is the better final check for LAN styling and asset loading because it uses the optimized build output instead of the live development pipeline.
+
 Create a Supabase project at `https://supabase.com`, then copy `.env.example` from the repo root to:
 
 ```text

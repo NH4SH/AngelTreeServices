@@ -14,14 +14,11 @@ type RoleNameRow = {
   roles: { name: string } | { name: string }[] | null;
 };
 
-type PermissionRow = TimeClockPermission | TimeClockPermission[] | null | undefined;
-
 type UserRow = {
   id: string;
   full_name: string | null;
   email: string | null;
   user_roles?: RoleNameRow[] | null;
-  time_clock_permissions?: PermissionRow;
 };
 
 export const timeEntrySelect = `
@@ -47,25 +44,37 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
     return { data: [], error: "Supabase is not configured." };
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, user_roles(roles(name)), time_clock_permissions(*)")
-    .eq("status", "active")
-    .order("full_name", { ascending: true });
+  const [profilesResult, permissionsResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, user_roles(roles(name))")
+      .eq("status", "active")
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("time_clock_permissions")
+      .select("*"),
+  ]);
 
-  if (error) {
-    return { data: [], error: error.message };
+  if (profilesResult.error || permissionsResult.error) {
+    return {
+      data: [],
+      error: profilesResult.error?.message ?? permissionsResult.error?.message ?? "Unable to load time clock users.",
+    };
   }
 
+  const permissionsByUserId = new Map(
+    ((permissionsResult.data ?? []) as TimeClockPermission[]).map((permission) => [permission.user_id, permission]),
+  );
+
   return {
-    data: ((data ?? []) as UserRow[]).map((user) => ({
+    data: ((profilesResult.data ?? []) as UserRow[]).map((user) => ({
       id: user.id,
       full_name: user.full_name,
       email: user.email,
       role_names: (user.user_roles ?? [])
         .flatMap((row) => row.roles ?? [])
         .map((role) => role.name),
-      time_clock_permission: normalizePermission(user.time_clock_permissions),
+      time_clock_permission: permissionsByUserId.get(user.id) ?? null,
     })),
     error: null,
   };
@@ -228,12 +237,4 @@ export function getLatestTimeEntryReview(entry: Pick<TimeEntryWithRelations, "ti
 
 export function getLatestTimeEntryReviewStatus(entry: Pick<TimeEntryWithRelations, "time_entry_approvals">) {
   return (getLatestTimeEntryReview(entry)?.approval_status ?? "pending") as TimeEntryReviewStatus | "pending";
-}
-
-function normalizePermission(permission: PermissionRow) {
-  if (Array.isArray(permission)) {
-    return (permission[0] ?? null) as TimeClockPermission | null;
-  }
-
-  return (permission ?? null) as TimeClockPermission | null;
 }

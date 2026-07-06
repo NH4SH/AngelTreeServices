@@ -13,6 +13,10 @@ function isProtectedRoute(pathname: string) {
 }
 
 export async function updateSession(request: NextRequest) {
+  if (!isProtectedRoute(request.nextUrl.pathname)) {
+    return NextResponse.next({ request });
+  }
+
   const config = getSupabasePublicConfig();
 
   if (!config) {

@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server";
 import { apiError, apiSuccess } from "@/lib/api/responses";
 import { toCrewApiJobDetail } from "@/lib/api/crew-contract";
 import { getCrewApiContext } from "@/lib/auth/apiContext";
@@ -11,7 +12,7 @@ type CrewJobApiRouteProps = {
   }>;
 };
 
-export async function GET(request: Request, { params }: CrewJobApiRouteProps) {
+export async function GET(request: NextRequest, { params }: CrewJobApiRouteProps) {
   const auth = await getCrewApiContext(request);
 
   if (!auth.context) {

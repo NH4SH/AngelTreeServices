@@ -77,21 +77,25 @@ export async function getAssignableUsers(): Promise<DataResult<AssignableUser[]>
 export async function getFollowUpsDue() {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
-  const appointments = await getAppointments({
-    appointmentType: "follow_up",
-    startsBefore: todayEnd.toISOString(),
-  });
+  const supabase = await createClient();
 
-  if (appointments.error) {
-    return { data: [], error: appointments.error };
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
   }
 
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(
+      "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles(id, full_name, email)",
+    )
+    .eq("appointment_type", "follow_up")
+    .in("status", ["scheduled", "confirmed", "in_progress", "no_show"])
+    .lt("starts_at", todayEnd.toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(12);
+
   return {
-    data: appointments.data.filter(
-      (appointment) =>
-        appointment.status !== "completed" &&
-        appointment.status !== "cancelled",
-    ),
-    error: null,
+    data: (data ?? []) as AppointmentWithRelations[],
+    error: error?.message ?? null,
   };
 }

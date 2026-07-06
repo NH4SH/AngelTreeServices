@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export const platformRoleNames = [
   "owner",
   "admin",
+  "payroll_admin",
   "estimator",
   "crew",
   "customer",
@@ -13,10 +14,12 @@ export const platformRoleNames = [
 export type PlatformRoleName = (typeof platformRoleNames)[number];
 
 export const platformRoleGroups = {
-  internalStaff: ["owner", "admin", "estimator"],
-  crewApp: ["owner", "admin", "estimator", "crew"],
+  internalStaff: ["owner", "admin", "payroll_admin", "estimator"],
+  crewApp: ["owner", "admin", "payroll_admin", "estimator", "crew"],
   customerPortal: ["owner", "admin", "customer"],
   organizationPortal: ["owner", "admin", "property_manager"],
+  timeClockReview: ["owner", "admin", "payroll_admin"],
+  timeClockEligible: ["owner", "admin", "payroll_admin", "estimator", "crew"],
 } as const satisfies Record<string, readonly PlatformRoleName[]>;
 
 type RoleRow = {
@@ -60,6 +63,13 @@ export async function getCurrentUserRoles(): Promise<PlatformRoleName[]> {
   }
 
   return getUserRoles(supabase, user.id);
+}
+
+export async function getCurrentUserRolesFromClient(
+  supabase: SupabaseClient<any, "public", any>,
+  userId: string,
+) {
+  return getUserRoles(supabase, userId);
 }
 
 export function hasAllowedRole(

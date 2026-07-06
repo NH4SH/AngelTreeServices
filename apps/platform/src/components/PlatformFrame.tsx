@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   CalendarDays,
   Building2,
+  Clock3,
   Files,
   FileText,
   HardHat,
@@ -16,7 +17,11 @@ import {
   Workflow,
 } from "lucide-react";
 import { signOut } from "@/app/login/actions";
-import type { PlatformRoleName } from "@/lib/auth/roles";
+import {
+  hasAllowedRole,
+  platformRoleGroups,
+  type PlatformRoleName,
+} from "@/lib/auth/roles";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, match: "admin" },
@@ -26,9 +31,12 @@ const navItems = [
   { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
+  { href: "/admin/time", label: "Time", Icon: Clock3, match: "admin-time", visibility: "review" },
+  { href: "/admin/payroll", label: "Payroll", Icon: ReceiptText, match: "payroll", visibility: "review" },
   { href: "/admin/documents", label: "Documents", Icon: Files, match: "documents" },
   { href: "/admin/marketing", label: "Marketing", Icon: Megaphone, match: "marketing" },
   { href: "/crew", label: "Crew View", Icon: HardHat, match: "crew" },
+  { href: "/crew/time", label: "Time Clock", Icon: Clock3, match: "crew-time", visibility: "eligible" },
   { href: "/portal", label: "Customer Portal", Icon: ShieldCheck, match: "portal" },
 ];
 
@@ -41,9 +49,12 @@ type PlatformFrameProps = {
     | "quotes"
     | "invoices"
     | "schedule"
+    | "admin-time"
+    | "payroll"
     | "documents"
     | "marketing"
     | "crew"
+    | "crew-time"
     | "portal";
   children: ReactNode;
   roles?: PlatformRoleName[];
@@ -56,7 +67,18 @@ export function PlatformFrame({
   roles = [],
   userEmail,
 }: PlatformFrameProps) {
-  const activeItem = navItems.find((item) => item.match === active);
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.visibility === "review") {
+      return hasAllowedRole(roles, platformRoleGroups.timeClockReview);
+    }
+
+    if (item.visibility === "eligible") {
+      return hasAllowedRole(roles, platformRoleGroups.timeClockEligible);
+    }
+
+    return true;
+  });
+  const activeItem = visibleNavItems.find((item) => item.match === active) ?? navItems.find((item) => item.match === active);
   const roleSummary = roles.length > 0 ? roles.join(", ") : "No role assigned";
 
   return (
@@ -75,7 +97,7 @@ export function PlatformFrame({
         </div>
 
         <nav className="app-nav" aria-label="Platform navigation">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               aria-current={active === item.match ? "page" : undefined}
               href={item.href}
@@ -117,7 +139,7 @@ export function PlatformFrame({
           <details className="mobile-nav">
             <summary>{activeItem?.label ?? "Menu"}</summary>
             <nav aria-label="Mobile platform navigation">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <Link
                   aria-current={active === item.match ? "page" : undefined}
                   href={item.href}

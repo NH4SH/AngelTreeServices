@@ -1,56 +1,82 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Filter,
+  MapPinned,
   Navigation,
   Plus,
+  UsersRound,
   X,
 } from "lucide-react";
 import { AppointmentEditForm } from "@/components/appointment-edit-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { AddAppointmentForm } from "./AppointmentForm";
-import { updateAppointmentStatusFromForm } from "./actions";
+import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
+import { AddScheduleEventForm, ScheduleEventEditForm } from "./ScheduleEventForm";
+import {
+  updateAppointmentStatusFromForm,
+  updateScheduleEventStatusFromForm,
+} from "./actions";
 import {
   appointmentStatuses,
-  appointmentTypes,
   buildScheduleHref,
   formatDateInput,
   formatDayLabel,
   formatDayNumber,
   formatRangeTitle,
-  formatShortLocation,
   formatTime,
-  getAppointmentSummary,
-  getAppointmentTone,
   getDateAnchor,
+  getEntrySummary,
+  getEntryTone,
+  getEventTypeLabel,
   getScheduleRange,
   getVisibleDays,
-  groupAppointmentsByDate,
+  groupEntriesByDate,
   isSameDay,
   isSameMonth,
+  scheduleEventTypes,
   shiftDate,
   type ScheduleView,
 } from "./schedule-utils";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getAppointments, getAssignableUsers } from "@/lib/data/appointments";
 import { getJobOptions } from "@/lib/data/jobs";
+import { getScheduleCalendarData } from "@/lib/data/schedule";
 import { getDirectionsUrl } from "@/lib/maps";
-import type { AppointmentStatus, AppointmentType, AppointmentWithRelations, AssignableUser, Job } from "@/lib/types/database";
+import type {
+  AppointmentStatus,
+  AppointmentWithRelations,
+  AssignableUser,
+  CalendarEntry,
+  Job,
+  ScheduleConflict,
+  ScheduleEventStatus,
+  ScheduleEventWithRelations,
+  ScheduleUser,
+} from "@/lib/types/database";
 
 type SchedulePageProps = {
   searchParams: Promise<{
     appointment?: string;
-    appointment_type?: string;
     assigned_user_id?: string;
     date?: string;
+    event?: string;
+    event_type?: string;
     new?: string;
     status?: string;
     view?: string;
   }>;
+};
+
+type ScheduleQuery = {
+  assigned_user_id: string;
+  date: string;
+  event_type: (typeof scheduleEventTypes)[number];
+  status: (typeof appointmentStatuses)[number];
+  view: ScheduleView;
 };
 
 export default async function SchedulePage({ searchParams }: SchedulePageProps) {
@@ -63,85 +89,200 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const params = await searchParams;
   const view = getScheduleView(params.view);
   const date = getDateAnchor(params.date);
-  const appointmentType = getAppointmentTypeFilter(params.appointment_type);
+  const eventType = getEventTypeFilter(params.event_type);
   const assignedUserId = getAssignedUserFilter(params.assigned_user_id);
   const status = getStatusFilter(params.status);
   const range = getScheduleRange(date, view);
-  const [appointments, jobs, assignedUsers] = await Promise.all([
-    getAppointments({
+  const [schedule, jobs] = await Promise.all([
+    getScheduleCalendarData({
       assignedUserId,
-      appointmentType,
+      eventType,
       status,
       startsAtOrAfter: range.start.toISOString(),
       startsBefore: range.end.toISOString(),
     }),
     getJobOptions(),
-    getAssignableUsers(),
   ]);
   const days = getVisibleDays(date, view);
-  const groupedAppointments = groupAppointmentsByDate(appointments.data);
-  const selectedAppointment = appointments.data.find((appointment) => appointment.id === params.appointment) ?? null;
-  const query = {
-    appointment_type: appointmentType,
+  const groupedEntries = groupEntriesByDate(schedule.data.entries);
+  const selectedAppointment =
+    schedule.data.appointments.find((appointment) => appointment.id === params.appointment) ?? null;
+  const selectedEvent =
+    schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
+  const query: ScheduleQuery = {
     assigned_user_id: assignedUserId,
     date: formatDateInput(date),
+    event_type: eventType,
     status,
     view,
   };
+  const summary = buildScheduleSummary(schedule.data.entries, schedule.data.users);
+  const dayEntries = groupedEntries[formatDateInput(date)] ?? [];
+  const crewDayGroups = buildCrewAssignmentsForDay(dayEntries, schedule.data.users);
+  const dayShareText = buildCrewShareText(date, crewDayGroups);
 
   return (
     <PlatformFrame active="schedule" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content calendar-page">
+      <div className="shell app-content calendar-page company-calendar-page">
         <section className="page-heading calendar-page-heading">
           <p className="surface-label">
             <CalendarDays aria-hidden="true" size={15} />
-            Schedule
+            Employee calendar
           </p>
           <h1>Schedule</h1>
-          <p>Estimates, field work, and follow-ups.</p>
+          <p>Jobs, estimates, follow-ups, PTO, internal events, and crew assignments in one place.</p>
         </section>
 
-        {[appointments.error, jobs.error, assignedUsers.error].filter(Boolean).map((message) => (
+        {[schedule.error, jobs.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
-        <section className="calendar-shell">
+        <section className="calendar-shell company-calendar-shell">
           <ScheduleToolbar
-            appointmentType={appointmentType}
             assignedUserId={assignedUserId}
-            assignedUsers={assignedUsers.data}
             current={query}
             date={date}
             range={range}
             status={status}
+            summary={summary}
+            users={schedule.data.users}
+            eventType={eventType}
             view={view}
           />
 
+          <section className="calendar-summary-strip" aria-label="Visible calendar summary">
+            <SummaryChip label="Visible events" value={summary.totalEvents} />
+            <SummaryChip label="Assigned staff" value={summary.visibleStaffCount} />
+            <SummaryChip label="Unassigned" value={summary.unassignedCount} />
+            <SummaryChip label="Open jobs" value={summary.jobEventCount} />
+          </section>
+
+          {schedule.data.conflicts.length ? (
+            <section className="schedule-conflicts-panel" aria-label="Schedule conflicts">
+              <div className="schedule-conflicts-header">
+                <div>
+                  <h2>Schedule warnings</h2>
+                  <p>These items need attention before dispatch gets messy.</p>
+                </div>
+                <span>{schedule.data.conflicts.length} visible</span>
+              </div>
+              <div className="schedule-conflict-list">
+                {schedule.data.conflicts.slice(0, 6).map((conflict) => (
+                  <ConflictCard conflict={conflict} key={conflict.id} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {view === "day" ? (
-            <CalendarDayView appointments={groupedAppointments[formatDateInput(date)] ?? []} current={query} date={date} />
+            <CalendarDayView current={query} date={date} entries={dayEntries} />
           ) : view === "month" ? (
-            <CalendarMonthView anchor={date} appointmentsByDate={groupedAppointments} current={query} days={days} />
+            <CalendarMonthView
+              anchor={date}
+              current={query}
+              days={days}
+              entriesByDate={groupedEntries}
+            />
           ) : (
             <>
-              <CalendarWeekView appointmentsByDate={groupedAppointments} current={query} days={days} />
-              <CalendarMobileAgenda appointments={groupedAppointments[formatDateInput(date)] ?? []} current={query} date={date} />
+              <CalendarWeekView current={query} days={days} entriesByDate={groupedEntries} />
+              <CalendarMobileAgenda current={query} date={date} entries={groupedEntries[formatDateInput(date)] ?? []} />
             </>
           )}
         </section>
 
+        <section className="crew-day-sheet" aria-label="Daily crew schedule">
+          <div className="crew-day-sheet-header">
+            <div>
+              <h2>Daily crew schedule</h2>
+              <p>
+                A simple day sheet for dispatch, printing, or copying into a text thread later.
+              </p>
+            </div>
+            <DailyCrewScheduleActions shareText={dayShareText} />
+          </div>
+          {crewDayGroups.length ? (
+            <div className="crew-day-sheet-grid">
+              {crewDayGroups.map((group) => (
+                <article className="crew-day-sheet-card" key={group.user.id}>
+                  <header>
+                    <strong>{group.user.full_name || group.user.email || "Crew member"}</strong>
+                    <span>{group.entries.length} assigned</span>
+                  </header>
+                  <div className="crew-day-sheet-list">
+                    {group.entries.map((entry) => (
+                      <Link
+                        className="crew-day-sheet-row"
+                        href={entry.source === "schedule_event" ? `/admin/schedule?event=${entry.id}` : `/admin/schedule?appointment=${entry.id}`}
+                        key={`${entry.source}-${entry.id}`}
+                      >
+                        <b>{entry.all_day ? "All day" : formatTime(entry.starts_at)}</b>
+                        <span>{entry.title}</span>
+                        <small>{entry.location_label || "No location"}</small>
+                      </Link>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <section className="calendar-empty-agenda">
+              <h2>No crew work assigned for this day</h2>
+              <p>Use PTO or unavailable blocks for time off, or add job events when the day is ready to dispatch.</p>
+            </section>
+          )}
+        </section>
+
+        <section className="schedule-team-strip" aria-label="Employee workload">
+          <div className="schedule-team-strip-header">
+            <div>
+              <h2>Employee workload</h2>
+              <p>Filter the calendar to a person, spot unassigned work, or focus on crew coverage.</p>
+            </div>
+            <Link className="secondary-action" href={buildScheduleHref(query, { assigned_user_id: "crew" })}>
+              Crew assignments
+            </Link>
+          </div>
+          <div className="schedule-team-grid">
+            <EmployeeSummaryCard current={query} isActive={assignedUserId === "all"} label="All employees" value={summary.totalEvents} />
+            <EmployeeSummaryCard current={query} isActive={assignedUserId === "crew"} label="Crew role users" value={summary.crewEventCount} valueKey="crew" />
+            <EmployeeSummaryCard current={query} isActive={assignedUserId === "unassigned"} label="Unassigned events" value={summary.unassignedCount} valueKey="unassigned" />
+            {schedule.data.users.map((user) => (
+              <EmployeeSummaryCard
+                current={query}
+                isActive={assignedUserId === user.id}
+                key={user.id}
+                label={user.full_name || user.email || "Unnamed team member"}
+                subtitle={user.role_names.join(", ") || "No role assigned"}
+                value={summary.eventsByUser[user.id] ?? 0}
+                valueKey={user.id}
+              />
+            ))}
+          </div>
+        </section>
+
         {params.new === "1" ? (
-          <AppointmentFormDrawer
-            assignedUsers={assignedUsers.data}
+          <ScheduleEventFormDrawer
             current={query}
             jobs={jobs.data}
+            users={schedule.data.users}
+          />
+        ) : null}
+
+        {selectedEvent ? (
+          <ScheduleEventDetailPanel
+            current={query}
+            event={selectedEvent}
+            jobs={jobs.data}
+            users={schedule.data.users}
           />
         ) : null}
 
         {selectedAppointment ? (
           <AppointmentDetailPanel
             appointment={selectedAppointment}
-            assignedUsers={assignedUsers.data}
             current={query}
+            users={schedule.data.users}
           />
         ) : null}
       </div>
@@ -150,35 +291,47 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
 }
 
 function ScheduleToolbar({
-  appointmentType,
   assignedUserId,
-  assignedUsers,
   current,
   date,
+  eventType,
   range,
   status,
+  summary,
+  users,
   view,
 }: {
-  appointmentType: AppointmentType | "all";
   assignedUserId: string;
-  assignedUsers: AssignableUser[];
-  current: Record<string, string>;
+  current: ScheduleQuery;
   date: Date;
+  eventType: (typeof scheduleEventTypes)[number];
   range: { start: Date; end: Date };
-  status: AppointmentStatus | "all";
+  status: (typeof appointmentStatuses)[number];
+  summary: ReturnType<typeof buildScheduleSummary>;
+  users: ScheduleUser[];
   view: ScheduleView;
 }) {
   const today = new Date();
 
   return (
-    <header className="calendar-toolbar">
+    <header className="calendar-toolbar company-calendar-toolbar">
       <div className="calendar-toolbar-primary">
-        <Link className="calendar-nav-button" href={buildScheduleHref(current, { date: formatDateInput(today) })}>Today</Link>
-        <Link className="calendar-icon-button" aria-label={`Previous ${view}`} href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, -1)) })}>
+        <Link className="calendar-nav-button" href={buildScheduleHref(current, { date: formatDateInput(today) })}>
+          Today
+        </Link>
+        <Link
+          aria-label={`Previous ${view}`}
+          className="calendar-icon-button"
+          href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, -1)) })}
+        >
           <ChevronLeft aria-hidden="true" size={17} />
         </Link>
         <strong>{formatRangeTitle(date, range, view)}</strong>
-        <Link className="calendar-icon-button" aria-label={`Next ${view}`} href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, 1)) })}>
+        <Link
+          aria-label={`Next ${view}`}
+          className="calendar-icon-button"
+          href={buildScheduleHref(current, { date: formatDateInput(shiftDate(date, view, 1)) })}
+        >
           <ChevronRight aria-hidden="true" size={17} />
         </Link>
       </div>
@@ -208,30 +361,35 @@ function ScheduleToolbar({
               <input defaultValue={formatDateInput(date)} name="date" type="date" />
             </label>
             <label>
-              <span>Assigned staff</span>
+              <span>Employee</span>
               <select defaultValue={assignedUserId} name="assigned_user_id">
-                <option value="all">All staff</option>
-                <option value="unassigned">Unassigned</option>
-                {assignedUsers.map((user) => (
+                <option value="all">All employees</option>
+                <option value="crew">Crew role users</option>
+                <option value="unassigned">Unassigned events</option>
+                {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.full_name || user.email || "Unnamed staff user"}
+                    {user.full_name || user.email || "Unnamed team member"}
                   </option>
                 ))}
               </select>
             </label>
             <label>
-              <span>Type</span>
-              <select defaultValue={appointmentType} name="appointment_type">
-                {appointmentTypes.map((type) => (
-                  <option key={type} value={type}>{type.replace("_", " ")}</option>
+              <span>Event type</span>
+              <select defaultValue={eventType} name="event_type">
+                {scheduleEventTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {getEventTypeLabel(type)}
+                  </option>
                 ))}
               </select>
             </label>
             <label>
               <span>Status</span>
               <select defaultValue={status} name="status">
-                {appointmentStatuses.map((appointmentStatus) => (
-                  <option key={appointmentStatus} value={appointmentStatus}>{appointmentStatus.replace("_", " ")}</option>
+                {appointmentStatuses.map((eventStatus) => (
+                  <option key={eventStatus} value={eventStatus}>
+                    {eventStatus === "all" ? "All statuses" : eventStatus.replace("_", " ")}
+                  </option>
                 ))}
               </select>
             </label>
@@ -241,21 +399,32 @@ function ScheduleToolbar({
 
         <Link className="calendar-add-button" href={buildScheduleHref(current, { new: "1" })}>
           <Plus aria-hidden="true" size={16} />
-          Add appointment
+          Add event
         </Link>
+      </div>
+
+      <div className="calendar-toolbar-meta">
+        <span>
+          <UsersRound aria-hidden="true" size={14} />
+          {summary.visibleStaffCount} people assigned in this view
+        </span>
+        <span>
+          <Clock3 aria-hidden="true" size={14} />
+          {summary.totalEvents} total visible events
+        </span>
       </div>
     </header>
   );
 }
 
 function CalendarWeekView({
-  appointmentsByDate,
   current,
   days,
+  entriesByDate,
 }: {
-  appointmentsByDate: Record<string, AppointmentWithRelations[]>;
-  current: Record<string, string>;
+  current: ScheduleQuery;
   days: Date[];
+  entriesByDate: Record<string, CalendarEntry[]>;
 }) {
   const today = new Date();
 
@@ -263,7 +432,7 @@ function CalendarWeekView({
     <section className="calendar-grid calendar-week-grid" aria-label="Week calendar">
       {days.map((day) => {
         const key = formatDateInput(day);
-        const appointments = appointmentsByDate[key] ?? [];
+        const entries = entriesByDate[key] ?? [];
 
         return (
           <article className={`calendar-day-column ${isSameDay(day, today) ? "is-today" : ""}`} key={key}>
@@ -272,12 +441,12 @@ function CalendarWeekView({
               <strong>{formatDayNumber(day)}</strong>
             </Link>
             <div className="calendar-day-stack">
-              {appointments.length > 0 ? (
-                appointments.map((appointment) => (
-                  <AppointmentCard appointment={appointment} compact current={current} key={appointment.id} />
-                ))
+              {entries.length > 0 ? (
+                entries.map((entry) => <CalendarEntryCard current={current} entry={entry} key={`${entry.source}-${entry.id}`} compact />)
               ) : (
-                <p className="calendar-quiet-empty">No appointments</p>
+                <Link className="calendar-inline-create" href={buildScheduleHref(current, { date: key, new: "1" })}>
+                  Add event
+                </Link>
               )}
             </div>
           </article>
@@ -288,13 +457,13 @@ function CalendarWeekView({
 }
 
 function CalendarDayView({
-  appointments,
   current,
   date,
+  entries,
 }: {
-  appointments: AppointmentWithRelations[];
-  current: Record<string, string>;
+  current: ScheduleQuery;
   date: Date;
+  entries: CalendarEntry[];
 }) {
   return (
     <section className="calendar-day-view" aria-label="Day agenda">
@@ -302,16 +471,20 @@ function CalendarDayView({
         <span>{new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(date)}</span>
         <strong>{new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(date)}</strong>
       </div>
-      {appointments.length > 0 ? (
+      {entries.length > 0 ? (
         <div className="calendar-agenda-list">
-          {appointments.map((appointment) => (
-            <AppointmentCard appointment={appointment} current={current} key={appointment.id} />
+          {entries.map((entry) => (
+            <CalendarEntryCard current={current} entry={entry} key={`${entry.source}-${entry.id}`} />
           ))}
         </div>
       ) : (
         <section className="calendar-empty-agenda">
-          <h2>No appointments today</h2>
-          <p>This day is clear. Add an appointment when an estimate, field visit, or follow-up is ready.</p>
+          <h2>No events on this day</h2>
+          <p>This day is clear. Add a job visit, estimate, PTO block, or internal reminder when it is ready.</p>
+          <Link className="primary-action compact-action" href={buildScheduleHref(current, { new: "1", date: formatDateInput(date) })}>
+            <Plus aria-hidden="true" size={16} />
+            Add event
+          </Link>
         </section>
       )}
     </section>
@@ -319,42 +492,44 @@ function CalendarDayView({
 }
 
 function CalendarMobileAgenda({
-  appointments,
   current,
   date,
+  entries,
 }: {
-  appointments: AppointmentWithRelations[];
-  current: Record<string, string>;
+  current: ScheduleQuery;
   date: Date;
+  entries: CalendarEntry[];
 }) {
   return (
     <section className="calendar-mobile-agenda" aria-label="Mobile agenda">
-      <CalendarDayView appointments={appointments} current={current} date={date} />
+      <CalendarDayView current={current} date={date} entries={entries} />
     </section>
   );
 }
 
 function CalendarMonthView({
   anchor,
-  appointmentsByDate,
   current,
   days,
+  entriesByDate,
 }: {
   anchor: Date;
-  appointmentsByDate: Record<string, AppointmentWithRelations[]>;
-  current: Record<string, string>;
+  current: ScheduleQuery;
   days: Date[];
+  entriesByDate: Record<string, CalendarEntry[]>;
 }) {
   const today = new Date();
 
   return (
     <section className="calendar-month-grid" aria-label="Month calendar">
       {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((weekday) => (
-        <span className="calendar-month-weekday" key={weekday}>{weekday}</span>
+        <span className="calendar-month-weekday" key={weekday}>
+          {weekday}
+        </span>
       ))}
       {days.map((day) => {
         const key = formatDateInput(day);
-        const appointments = appointmentsByDate[key] ?? [];
+        const entries = entriesByDate[key] ?? [];
 
         return (
           <Link
@@ -363,12 +538,10 @@ function CalendarMonthView({
             key={key}
           >
             <span>{formatDayNumber(day)}</span>
-            {appointments.length > 0 ? (
-              <small>{appointments.length} appointment{appointments.length === 1 ? "" : "s"}</small>
-            ) : null}
+            {entries.length > 0 ? <small>{entries.length} event{entries.length === 1 ? "" : "s"}</small> : null}
             <div className="calendar-month-dots" aria-hidden="true">
-              {appointments.slice(0, 4).map((appointment) => (
-                <i className={`appointment-dot ${getAppointmentTone(appointment)}`} key={appointment.id} />
+              {entries.slice(0, 4).map((entry) => (
+                <i className={`appointment-dot ${getEntryTone(entry)}`} key={`${entry.source}-${entry.id}`} />
               ))}
             </div>
           </Link>
@@ -378,60 +551,187 @@ function CalendarMonthView({
   );
 }
 
-function AppointmentCard({
-  appointment,
+function CalendarEntryCard({
   compact = false,
   current,
+  entry,
 }: {
-  appointment: AppointmentWithRelations;
   compact?: boolean;
-  current: Record<string, string>;
+  current: ScheduleQuery;
+  entry: CalendarEntry;
 }) {
-  const tone = getAppointmentTone(appointment);
-  const location = formatShortLocation(appointment);
+  const tone = getEntryTone(entry);
+  const href = buildScheduleHref(
+    current,
+    entry.source === "schedule_event" ? { event: entry.id } : { appointment: entry.id },
+  );
 
   return (
-    <Link
-      className={`calendar-appointment ${tone} ${compact ? "is-compact" : ""}`}
-      href={buildScheduleHref(current, { appointment: appointment.id })}
-    >
+    <Link className={`calendar-appointment ${tone} ${compact ? "is-compact" : ""}`} href={href}>
       <span className="appointment-time">
         <Clock3 aria-hidden="true" size={compact ? 12 : 14} />
-        {formatTime(appointment.starts_at)}
-        {appointment.ends_at ? ` to ${formatTime(appointment.ends_at)}` : ""}
+        {entry.all_day ? "All day" : formatTime(entry.starts_at)}
+        {entry.ends_at && !entry.all_day ? ` to ${formatTime(entry.ends_at)}` : ""}
       </span>
-      <strong>{appointment.appointment_type.replace("_", " ")}</strong>
-      <span>{getAppointmentSummary(appointment)}</span>
-      <small>{appointment.status.replace("_", " ")} - {location}</small>
+      <strong>{entry.title}</strong>
+      <span>{getEntrySummary(entry)}</span>
+      <small>
+        {entry.status.replace("_", " ")} - {entry.location_label || "No location"}
+        {entry.assignees.length ? ` - ${entry.assignees.length} assigned` : ""}
+      </small>
     </Link>
   );
 }
 
-function AppointmentFormDrawer({
-  assignedUsers,
+function ScheduleEventFormDrawer({
   current,
   jobs,
+  users,
 }: {
-  assignedUsers: AssignableUser[];
-  current: Record<string, string>;
+  current: ScheduleQuery;
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  users: ScheduleUser[];
 }) {
+  const selectedDate = getDateAnchor(current.date);
+
   return (
-    <div className="appointment-overlay" role="dialog" aria-modal="true" aria-labelledby="add-appointment-title">
+    <div className="appointment-overlay" role="dialog" aria-labelledby="add-schedule-event-title" aria-modal="true">
       <div className="appointment-backdrop" />
       <aside className="appointment-drawer">
         <div className="appointment-drawer-header">
           <div>
-            <span>New appointment</span>
-            <h2 id="add-appointment-title">Add appointment</h2>
-            <p>Choose the job, timing, and staff assignment for this estimate, visit, or follow-up.</p>
+            <span>New schedule event</span>
+            <h2 id="add-schedule-event-title">Add event</h2>
+            <p>Schedule field work, estimates, PTO, unavailable time, or internal company events.</p>
           </div>
-          <Link aria-label="Close add appointment" href={buildScheduleHref(current, { new: undefined })}>
+          <Link aria-label="Close add event" href={buildScheduleHref(current, { new: undefined })}>
             <X aria-hidden="true" size={17} />
           </Link>
         </div>
-        <AddAppointmentForm assignedUsers={assignedUsers} jobs={jobs} />
-        <Link className="drawer-cancel-link" href={buildScheduleHref(current, { new: undefined })}>Cancel</Link>
+        <AddScheduleEventForm defaultStartsAt={toDrawerDateTime(selectedDate)} jobs={jobs} users={users} />
+        <Link className="drawer-cancel-link" href={buildScheduleHref(current, { new: undefined })}>
+          Cancel
+        </Link>
+      </aside>
+    </div>
+  );
+}
+
+function ScheduleEventDetailPanel({
+  current,
+  event,
+  jobs,
+  users,
+}: {
+  current: ScheduleQuery;
+  event: ScheduleEventWithRelations;
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  users: ScheduleUser[];
+}) {
+  const directionsUrl = getDirectionsUrl(event.service_locations);
+  const assignees = (event.schedule_event_assignments ?? [])
+    .map((assignment) => assignment.profiles?.full_name || assignment.profiles?.email || "Unnamed team member")
+    .filter(Boolean);
+  const detailWarnings = [
+    !event.ends_at && !event.all_day ? "This event needs an end time to improve conflict checks." : null,
+    (event.event_type === "job" || event.event_type === "emergency") && assignees.length === 0
+      ? "This work is scheduled without assigned crew."
+      : null,
+  ].filter(Boolean);
+  const locationSummary = event.service_locations
+    ? [
+        event.service_locations.label,
+        event.service_locations.street,
+        event.service_locations.city,
+        event.service_locations.state,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : (event.location_label || "No location yet.");
+  const customerSummary = event.jobs?.customers?.display_name || "No linked customer";
+
+  return (
+    <div className="appointment-overlay" role="dialog" aria-labelledby="schedule-event-detail-title" aria-modal="true">
+      <div className="appointment-backdrop" />
+      <aside className="appointment-popover">
+        <div className="appointment-drawer-header">
+          <div>
+            <span>{event.event_type.replace("_", " ")}</span>
+            <h2 id="schedule-event-detail-title">{event.title}</h2>
+            <p>{event.jobs?.service_type?.replace("_", " ") || "Internal schedule event"}</p>
+          </div>
+          <Link aria-label="Close event details" href={buildScheduleHref(current, { event: undefined })}>
+            <X aria-hidden="true" size={17} />
+          </Link>
+        </div>
+
+        {detailWarnings.length ? (
+          <div className="schedule-detail-warning-list">
+            {detailWarnings.map((warning) => (
+              <p className="schedule-detail-warning" key={warning}>
+                <AlertTriangle aria-hidden="true" size={15} />
+                {warning}
+              </p>
+            ))}
+          </div>
+        ) : null}
+
+        <dl className="appointment-detail-list">
+          <div>
+            <dt>Time</dt>
+            <dd>{event.all_day ? "All day" : `${formatTime(event.starts_at)}${event.ends_at ? ` to ${formatTime(event.ends_at)}` : ""}`}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{event.status.replace("_", " ")}</dd>
+          </div>
+          <div>
+            <dt>Assigned employees</dt>
+            <dd>{assignees.length ? assignees.join(", ") : "Unassigned"}</dd>
+          </div>
+          <div>
+            <dt>Linked job</dt>
+            <dd>{event.job_id ? `Job ${event.job_id.slice(0, 8)}` : "No linked job"}</dd>
+          </div>
+          <div>
+            <dt>Customer</dt>
+            <dd>{customerSummary}</dd>
+          </div>
+          <div>
+            <dt>Location</dt>
+            <dd>{locationSummary}</dd>
+          </div>
+          <div>
+            <dt>Scope</dt>
+            <dd>{event.jobs?.requested_scope || event.description || "No scope entered yet."}</dd>
+          </div>
+          <div>
+            <dt>Notes</dt>
+            <dd>{event.calendar_notes || "No notes yet."}</dd>
+          </div>
+          <div>
+            <dt>Access</dt>
+            <dd>{event.service_locations?.access_notes || event.service_locations?.service_notes || "No special access notes."}</dd>
+          </div>
+        </dl>
+
+        <div className="appointment-detail-actions">
+          {event.job_id ? <Link href={`/admin/jobs/${event.job_id}`}>Open job</Link> : null}
+          {directionsUrl ? (
+            <a href={directionsUrl} rel="noreferrer" target="_blank">
+              <Navigation aria-hidden="true" size={15} />
+              Directions
+            </a>
+          ) : null}
+          <QuickScheduleStatusButton event={event} label="Mark confirmed" nextStatus="confirmed" />
+          <QuickScheduleStatusButton event={event} label="Mark complete" nextStatus="completed" />
+          <QuickScheduleStatusButton event={event} label="Cancel" nextStatus="cancelled" />
+        </div>
+
+        <details className="appointment-edit-details">
+          <summary>Edit event details</summary>
+          <ScheduleEventEditForm event={event} jobs={jobs} users={users} />
+        </details>
       </aside>
     </div>
   );
@@ -439,23 +739,23 @@ function AppointmentFormDrawer({
 
 function AppointmentDetailPanel({
   appointment,
-  assignedUsers,
   current,
+  users,
 }: {
   appointment: AppointmentWithRelations;
-  assignedUsers: AssignableUser[];
-  current: Record<string, string>;
+  current: ScheduleQuery;
+  users: ScheduleUser[];
 }) {
   const directionsUrl = getDirectionsUrl(appointment.service_locations);
 
   return (
-    <div className="appointment-overlay" role="dialog" aria-modal="true" aria-labelledby="appointment-detail-title">
+    <div className="appointment-overlay" role="dialog" aria-labelledby="appointment-detail-title" aria-modal="true">
       <div className="appointment-backdrop" />
       <aside className="appointment-popover">
         <div className="appointment-drawer-header">
           <div>
-            <span>{appointment.appointment_type.replace("_", " ")}</span>
-            <h2 id="appointment-detail-title">{getAppointmentSummary(appointment)}</h2>
+            <span>Legacy appointment</span>
+            <h2 id="appointment-detail-title">{appointment.jobs?.service_type?.replace("_", " ") || appointment.appointment_type.replace("_", " ")}</h2>
           </div>
           <Link aria-label="Close appointment details" href={buildScheduleHref(current, { appointment: undefined })}>
             <X aria-hidden="true" size={17} />
@@ -477,7 +777,7 @@ function AppointmentDetailPanel({
           </div>
           <div>
             <dt>Address</dt>
-            <dd>{formatShortLocation(appointment)}</dd>
+            <dd>{formatAppointmentLocation(appointment)}</dd>
           </div>
           <div>
             <dt>Notes</dt>
@@ -487,22 +787,47 @@ function AppointmentDetailPanel({
 
         <div className="appointment-detail-actions">
           <Link href={`/admin/jobs/${appointment.job_id}`}>Open job</Link>
-          {directionsUrl ? <a href={directionsUrl} rel="noreferrer" target="_blank"><Navigation aria-hidden="true" size={15} />Directions</a> : null}
-          <QuickStatusButton appointment={appointment} label="Mark confirmed" nextStatus="confirmed" />
-          <QuickStatusButton appointment={appointment} label="Mark complete" nextStatus="completed" />
-          <QuickStatusButton appointment={appointment} label="Cancel" nextStatus="cancelled" />
+          {directionsUrl ? (
+            <a href={directionsUrl} rel="noreferrer" target="_blank">
+              <Navigation aria-hidden="true" size={15} />
+              Directions
+            </a>
+          ) : null}
+          <QuickAppointmentStatusButton appointment={appointment} label="Mark confirmed" nextStatus="confirmed" />
+          <QuickAppointmentStatusButton appointment={appointment} label="Mark complete" nextStatus="completed" />
+          <QuickAppointmentStatusButton appointment={appointment} label="Cancel" nextStatus="cancelled" />
         </div>
 
         <details className="appointment-edit-details">
-          <summary>Edit time, staff, or notes</summary>
-          <AppointmentEditForm appointment={appointment} assignedUsers={assignedUsers} />
+          <summary>Edit legacy appointment</summary>
+          <AppointmentEditForm appointment={appointment} assignedUsers={users} />
         </details>
       </aside>
     </div>
   );
 }
 
-function QuickStatusButton({
+function QuickScheduleStatusButton({
+  event,
+  label,
+  nextStatus,
+}: {
+  event: ScheduleEventWithRelations;
+  label: string;
+  nextStatus: ScheduleEventStatus;
+}) {
+  return (
+    <form action={updateScheduleEventStatusFromForm}>
+      <input name="event_id" type="hidden" value={event.id} />
+      <input name="next_status" type="hidden" value={nextStatus} />
+      <button disabled={event.status === nextStatus} type="submit">
+        {label}
+      </button>
+    </form>
+  );
+}
+
+function QuickAppointmentStatusButton({
   appointment,
   label,
   nextStatus,
@@ -516,31 +841,140 @@ function QuickStatusButton({
       <input name="appointment_id" type="hidden" value={appointment.id} />
       <input name="job_id" type="hidden" value={appointment.job_id} />
       <input name="next_status" type="hidden" value={nextStatus} />
-      <button disabled={appointment.status === nextStatus} type="submit">{label}</button>
+      <button disabled={appointment.status === nextStatus} type="submit">
+        {label}
+      </button>
     </form>
   );
+}
+
+function EmployeeSummaryCard({
+  current,
+  isActive,
+  label,
+  subtitle,
+  value,
+  valueKey,
+}: {
+  current: ScheduleQuery;
+  isActive: boolean;
+  label: string;
+  subtitle?: string;
+  value: number;
+  valueKey?: string;
+}) {
+  const href = buildScheduleHref(current, { assigned_user_id: valueKey ?? "all" });
+
+  return (
+    <Link className={isActive ? "schedule-team-card is-active" : "schedule-team-card"} href={href}>
+      <strong>{label}</strong>
+      {subtitle ? <span>{subtitle}</span> : null}
+      <b>{value}</b>
+    </Link>
+  );
+}
+
+function SummaryChip({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="calendar-summary-chip">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function ConflictCard({ conflict }: { conflict: ScheduleConflict }) {
+  return (
+    <Link className="schedule-conflict-card" href={conflict.href}>
+      <span aria-hidden="true">
+        <AlertTriangle size={16} />
+      </span>
+      <div>
+        <strong>{conflict.title}</strong>
+        <small>{conflict.detail}</small>
+      </div>
+    </Link>
+  );
+}
+
+function buildScheduleSummary(entries: CalendarEntry[], users: ScheduleUser[]) {
+  const eventsByUser = entries.reduce<Record<string, number>>((counts, entry) => {
+    entry.assignees.forEach((assignee) => {
+      counts[assignee.id] = (counts[assignee.id] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+
+  return {
+    totalEvents: entries.length,
+    visibleStaffCount: Object.keys(eventsByUser).length,
+    unassignedCount: entries.filter((entry) => entry.assignees.length === 0).length,
+    jobEventCount: entries.filter((entry) => entry.event_type === "job" || entry.event_type === "emergency").length,
+    crewEventCount: users
+      .filter((user) => user.role_names.includes("crew"))
+      .reduce((sum, user) => sum + (eventsByUser[user.id] ?? 0), 0),
+    eventsByUser,
+  };
+}
+
+function buildCrewAssignmentsForDay(entries: CalendarEntry[], users: ScheduleUser[]) {
+  return users
+    .filter((user) => user.role_names.includes("crew"))
+    .map((user) => ({
+      user,
+      entries: entries.filter((entry) => entry.assignees.some((assignee) => assignee.id === user.id)),
+    }))
+    .filter((group) => group.entries.length > 0);
+}
+
+function buildCrewShareText(
+  date: Date,
+  groups: { user: ScheduleUser; entries: CalendarEntry[] }[],
+) {
+  const heading = `Angel Tree crew schedule for ${new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(date)}`;
+
+  if (!groups.length) {
+    return `${heading}\n\nNo crew work is assigned yet.`;
+  }
+
+  return [
+    heading,
+    ...groups.map((group) => {
+      const name = group.user.full_name || group.user.email || "Crew member";
+      const lines = group.entries.map((entry) => {
+        const time = entry.all_day ? "All day" : formatTime(entry.starts_at);
+        return `- ${time}: ${entry.title} (${entry.location_label || "No location"})`;
+      });
+
+      return `${name}\n${lines.join("\n")}`;
+    }),
+  ].join("\n\n");
 }
 
 function getScheduleView(value?: string): ScheduleView {
   return value === "day" || value === "month" ? value : "week";
 }
 
-function getAppointmentTypeFilter(value?: string) {
-  return appointmentTypes.includes(value as (typeof appointmentTypes)[number])
-    ? value as AppointmentType | "all"
+function getEventTypeFilter(value?: string): (typeof scheduleEventTypes)[number] {
+  return scheduleEventTypes.includes(value as (typeof scheduleEventTypes)[number])
+    ? ((value ?? "all") as (typeof scheduleEventTypes)[number])
     : "all";
 }
 
-function getStatusFilter(value?: string) {
+function getStatusFilter(value?: string): (typeof appointmentStatuses)[number] {
   return appointmentStatuses.includes(value as (typeof appointmentStatuses)[number])
-    ? value as AppointmentStatus | "all"
+    ? ((value ?? "all") as (typeof appointmentStatuses)[number])
     : "all";
 }
 
 function getAssignedUserFilter(value?: string) {
   const trimmed = value?.trim();
 
-  if (!trimmed || trimmed === "all" || trimmed === "unassigned") {
+  if (!trimmed || trimmed === "all" || trimmed === "unassigned" || trimmed === "crew") {
     return trimmed || "all";
   }
 
@@ -549,6 +983,23 @@ function getAssignedUserFilter(value?: string) {
     : "all";
 }
 
+function toDrawerDateTime(date: Date) {
+  const seeded = new Date(date);
+  seeded.setHours(8, 0, 0, 0);
+  const offset = seeded.getTimezoneOffset();
+  return new Date(seeded.getTime() - offset * 60_000).toISOString().slice(0, 16);
+}
+
+function formatAppointmentLocation(appointment: AppointmentWithRelations) {
+  const location = appointment.service_locations;
+  return location ? `${location.street}, ${location.city}` : "No location";
+}
+
 function DataWarning({ message }: { message: string }) {
-  return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
+  return (
+    <section className="data-warning" role="status">
+      <strong>Database notice</strong>
+      <p>{message}</p>
+    </section>
+  );
 }

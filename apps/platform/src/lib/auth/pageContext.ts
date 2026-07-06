@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUserRoles } from "@/lib/auth/roles";
+import { getCurrentUserRolesFromClient } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getAuthenticatedPlatformContext(nextPath: string) {
@@ -22,7 +22,7 @@ export async function getAuthenticatedPlatformContext(nextPath: string) {
     redirect(`/login?next=${nextPath}`);
   }
 
-  const roles = await getCurrentUserRoles();
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
 
   return {
     configured: true as const,

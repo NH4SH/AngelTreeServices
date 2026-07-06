@@ -39,11 +39,26 @@ export type QuoteStatus =
 
 export type AppointmentType = "estimate" | "job" | "follow_up" | "maintenance" | "other";
 export type AppointmentStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
+export type ScheduleEventType =
+  | "estimate"
+  | "job"
+  | "follow_up"
+  | "maintenance"
+  | "pto"
+  | "unavailable"
+  | "internal"
+  | "emergency"
+  | "other";
+export type ScheduleEventStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
 export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "void" | "overdue";
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded" | "cancelled";
 export type JobPhotoType = "before" | "after" | "customer_upload" | "estimate" | "job" | "issue" | "completion";
 export type JobPhotoUploadCategory = "before" | "after" | "issue" | "completion";
 export type OrganizationType = "property_manager" | "hoa" | "commercial" | "other";
+export type TimeEntryType = "job" | "drive" | "shop" | "maintenance" | "admin" | "training" | "break" | "other";
+export type TimeEntryStatus = "active" | "completed" | "adjusted" | "void";
+export type TimeEntryReviewStatus = "approved" | "needs_correction" | "rejected";
+export type PayPeriodStatus = "open" | "review" | "approved" | "exported" | "locked";
 
 export type Organization = {
   id: string;
@@ -240,6 +255,94 @@ export type AssignableUser = {
   email: string | null;
 };
 
+export type ScheduleUser = AssignableUser & {
+  role_names: string[];
+};
+
+export type ScheduleEvent = {
+  id: string;
+  job_id: string | null;
+  service_location_id: string | null;
+  title: string;
+  description: string | null;
+  event_type: ScheduleEventType;
+  status: ScheduleEventStatus;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+  location_label: string | null;
+  calendar_notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduleEventAssignment = {
+  event_id: string;
+  user_id: string;
+  assignment_role: string;
+  created_at: string;
+};
+
+export type TimeClockPermission = {
+  user_id: string;
+  is_enabled: boolean;
+  notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimeEntry = {
+  id: string;
+  user_id: string;
+  job_id: string | null;
+  schedule_event_id: string | null;
+  entry_type: TimeEntryType;
+  status: TimeEntryStatus;
+  clock_in_at: string;
+  clock_out_at: string | null;
+  break_minutes: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimeEntryAdjustment = {
+  id: string;
+  time_entry_id: string;
+  adjusted_by_user_id: string;
+  original_clock_in_at: string;
+  original_clock_out_at: string | null;
+  original_break_minutes: number;
+  new_clock_in_at: string;
+  new_clock_out_at: string | null;
+  new_break_minutes: number;
+  reason: string | null;
+  created_at: string;
+};
+
+export type TimeEntryApproval = {
+  id: string;
+  time_entry_id: string;
+  approved_by_user_id: string;
+  approval_status: TimeEntryReviewStatus;
+  approval_note: string | null;
+  approved_at: string;
+  created_at: string;
+};
+
+export type PayPeriod = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  status: PayPeriodStatus;
+  notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Note = {
   id: string;
   customer_id: string | null;
@@ -322,10 +425,146 @@ export type InvoiceWithRelations = Invoice & {
   payments?: Payment[];
 };
 
+export type ScheduleLinkedJobSummary = Pick<Job, "id" | "customer_id" | "status" | "service_type" | "requested_scope"> & {
+  customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+};
+
+export type ScheduleLocationSummary = Pick<
+  ServiceLocation,
+  "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
+>;
+
 export type AppointmentWithRelations = Appointment & {
-  jobs?: Pick<Job, "id" | "status" | "service_type" | "requested_scope"> | null;
-  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
+  jobs?: ScheduleLinkedJobSummary | null;
+  service_locations?: ScheduleLocationSummary | null;
   profiles?: AssignableUser | null;
+};
+
+export type ScheduleEventAssignmentWithUser = ScheduleEventAssignment & {
+  profiles?: AssignableUser | null;
+};
+
+export type ScheduleEventWithRelations = ScheduleEvent & {
+  jobs?: ScheduleLinkedJobSummary | null;
+  service_locations?: ScheduleLocationSummary | null;
+  schedule_event_assignments?: ScheduleEventAssignmentWithUser[];
+};
+
+export type CalendarEntrySource = "appointment" | "schedule_event";
+
+export type CalendarEntry = {
+  id: string;
+  source: CalendarEntrySource;
+  title: string;
+  subtitle: string;
+  event_type: ScheduleEventType;
+  status: ScheduleEventStatus;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+  location_label: string | null;
+  calendar_notes: string | null;
+  job_id: string | null;
+  service_location_id: string | null;
+  assignees: AssignableUser[];
+  customer_label?: string | null;
+};
+
+export type TimeEntryWithRelations = TimeEntry & {
+  profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
+  jobs?: Pick<Job, "id" | "service_type" | "status"> & {
+    customers?: Pick<Customer, "display_name"> | null;
+  } | null;
+  schedule_events?: Pick<ScheduleEvent, "id" | "title" | "event_type" | "starts_at" | "ends_at"> | null;
+  time_entry_adjustments?: TimeEntryAdjustment[];
+  time_entry_approvals?: TimeEntryApproval[];
+};
+
+export type TimeClockUserSummary = AssignableUser & {
+  role_names: string[];
+  time_clock_permission?: TimeClockPermission | null;
+};
+
+export type PayrollWarningKind =
+  | "active_previous_day"
+  | "long_shift"
+  | "missing_linked_work"
+  | "overlap"
+  | "invalid_duration";
+
+export type PayrollWarning = {
+  id: string;
+  kind: PayrollWarningKind;
+  title: string;
+  detail: string;
+  user_id: string | null;
+  time_entry_id: string | null;
+};
+
+export type PayrollEmployeeSummary = {
+  user_id: string;
+  employee_label: string;
+  entry_count: number;
+  total_hours: number;
+  regular_hours: number;
+  job_hours: number;
+  drive_hours: number;
+  shop_hours: number;
+  maintenance_hours: number;
+  admin_hours: number;
+  missing_clock_out_count: number;
+  adjusted_count: number;
+  pending_review_count: number;
+  approved_count: number;
+  needs_correction_count: number;
+  rejected_count: number;
+  entries: TimeEntryWithRelations[];
+};
+
+export type PayrollReviewSummary = {
+  adjusted_count: number;
+  approved_count: number;
+  entries_missing_clock_out: number;
+  job_hours: number;
+  maintenance_hours: number;
+  pending_review_count: number;
+  regular_hours: number;
+  total_hours: number;
+  drive_hours: number;
+  shop_hours: number;
+  admin_hours: number;
+};
+
+export type PayrollReviewData = {
+  employee_summaries: PayrollEmployeeSummary[];
+  entries: TimeEntryWithRelations[];
+  pay_periods: PayPeriod[];
+  selected_pay_period: PayPeriod | null;
+  summary: PayrollReviewSummary;
+  warnings: PayrollWarning[];
+};
+
+export type ScheduleConflictKind = "overlap" | "unassigned_job" | "missing_end_time";
+
+export type ScheduleConflict = {
+  id: string;
+  kind: ScheduleConflictKind;
+  title: string;
+  detail: string;
+  href: string;
+  user_label?: string | null;
+};
+
+export type CrewDaySchedule = {
+  user: ScheduleUser;
+  entries: CalendarEntry[];
+};
+
+export type ScheduleDashboardSummary = {
+  conflicts: ScheduleConflict[];
+  todaysCrewSchedules: CrewDaySchedule[];
+  unassignedEntries: CalendarEntry[];
+  upcomingEstimates: CalendarEntry[];
 };
 
 export type DocumentTemplate = {

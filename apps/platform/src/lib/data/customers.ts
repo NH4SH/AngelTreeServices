@@ -13,8 +13,10 @@ export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]
 
   const { data, error } = await supabase
     .from("customers")
-    .select("*, service_locations(id, label, street, city, state, postal_code)")
-    .order("created_at", { ascending: false });
+    .select("*, service_locations(id, label, street, city, state, postal_code), notes(id, customer_id, body, created_at)")
+    .order("created_at", { ascending: false })
+    .order("created_at", { foreignTable: "notes", ascending: false })
+    .limit(1, { foreignTable: "notes" });
 
   if (error) {
     return { data: [], error: error.message };

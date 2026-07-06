@@ -23,15 +23,22 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
 }
 
 export async function getQuotesAwaitingResponse() {
-  const quotes = await getQuotes();
+  const supabase = await createClient();
 
-  if (quotes.error) {
-    return { data: [], error: quotes.error };
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
   }
 
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)")
+    .in("status", ["sent", "change_requested"])
+    .order("created_at", { ascending: false })
+    .limit(12);
+
   return {
-    data: quotes.data.filter((quote) => quote.status === "sent" || quote.status === "change_requested"),
-    error: null,
+    data: (data ?? []) as QuoteWithRelations[],
+    error: error?.message ?? null,
   };
 }
 

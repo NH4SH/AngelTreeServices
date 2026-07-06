@@ -1,0 +1,491 @@
+import { createClient } from "@/lib/supabase/server";
+import type {
+  AppointmentType,
+  AppointmentWithRelations,
+  AssignableUser,
+  CalendarEntry,
+  CrewDaySchedule,
+  DataResult,
+  ScheduleConflict,
+  ScheduleDashboardSummary,
+  ScheduleEventType,
+  ScheduleEventWithRelations,
+  ScheduleUser,
+} from "@/lib/types/database";
+
+type ScheduleAssignedFilter = string | "all" | "unassigned" | "crew";
+
+type RoleNameRow = {
+  roles: { name: string } | { name: string }[] | null;
+};
+
+type UserRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  user_roles?: RoleNameRow[] | null;
+};
+
+export type ScheduleFilters = {
+  assignedUserId?: ScheduleAssignedFilter;
+  eventType?: AppointmentType | ScheduleEventType | "all";
+  status?: string | "all";
+  startsAtOrAfter?: string;
+  startsBefore?: string;
+};
+
+export type ScheduleCalendarData = {
+  appointments: AppointmentWithRelations[];
+  conflicts: ScheduleConflict[];
+  entries: CalendarEntry[];
+  scheduleEvents: ScheduleEventWithRelations[];
+  users: ScheduleUser[];
+};
+
+const appointmentEventTypes = new Set<AppointmentType>(["estimate", "job", "follow_up", "maintenance", "other"]);
+
+export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, user_roles(roles(name))")
+    .eq("status", "active")
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return {
+    data: mapScheduleUsers((data ?? []) as UserRow[]),
+    error: null,
+  };
+}
+
+export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Promise<DataResult<ScheduleCalendarData>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return {
+      data: { appointments: [], conflicts: [], entries: [], scheduleEvents: [], users: [] },
+      error: "Supabase is not configured.",
+    };
+  }
+
+  const usersResult = await getScheduleUsers();
+  const users = usersResult.data;
+  const crewUserIds = new Set(
+    users.filter((user) => user.role_names.includes("crew")).map((user) => user.id),
+  );
+
+  let appointmentsQuery = supabase
+    .from("appointments")
+    .select(
+      "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+    )
+    .order("starts_at", { ascending: true });
+
+  if (filters.eventType && filters.eventType !== "all") {
+    if (appointmentEventTypes.has(filters.eventType as AppointmentType)) {
+      appointmentsQuery = appointmentsQuery.eq("appointment_type", filters.eventType);
+    } else {
+      appointmentsQuery = appointmentsQuery.eq("appointment_type", "___none___");
+    }
+  }
+
+  if (filters.status && filters.status !== "all") {
+    appointmentsQuery = appointmentsQuery.eq("status", filters.status);
+  }
+
+  if (filters.assignedUserId === "unassigned") {
+    appointmentsQuery = appointmentsQuery.is("assigned_user_id", null);
+  } else if (
+    filters.assignedUserId &&
+    filters.assignedUserId !== "all" &&
+    filters.assignedUserId !== "crew"
+  ) {
+    appointmentsQuery = appointmentsQuery.eq("assigned_user_id", filters.assignedUserId);
+  }
+
+  if (filters.startsAtOrAfter) {
+    appointmentsQuery = appointmentsQuery.gte("starts_at", filters.startsAtOrAfter);
+  }
+
+  if (filters.startsBefore) {
+    appointmentsQuery = appointmentsQuery.lt("starts_at", filters.startsBefore);
+  }
+
+  let eventsQuery = supabase
+    .from("schedule_events")
+    .select(
+      "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
+    )
+    .order("starts_at", { ascending: true });
+
+  if (filters.eventType && filters.eventType !== "all") {
+    eventsQuery = eventsQuery.eq("event_type", filters.eventType);
+  }
+
+  if (filters.status && filters.status !== "all") {
+    eventsQuery = eventsQuery.eq("status", filters.status);
+  }
+
+  if (filters.startsAtOrAfter) {
+    eventsQuery = eventsQuery.gte("starts_at", filters.startsAtOrAfter);
+  }
+
+  if (filters.startsBefore) {
+    eventsQuery = eventsQuery.lt("starts_at", filters.startsBefore);
+  }
+
+  const [appointmentsResult, eventsResult] = await Promise.all([appointmentsQuery, eventsQuery]);
+
+  const appointmentData = ((appointmentsResult.data ?? []) as AppointmentWithRelations[]).filter((appointment) => {
+    if (filters.assignedUserId !== "crew") {
+      return true;
+    }
+
+    return appointment.assigned_user_id ? crewUserIds.has(appointment.assigned_user_id) : false;
+  });
+
+  const scheduleEvents = ((eventsResult.data ?? []) as ScheduleEventWithRelations[]).filter((event) => {
+    const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.user_id);
+
+    if (filters.assignedUserId === "unassigned") {
+      return assignedUserIds.length === 0;
+    }
+
+    if (!filters.assignedUserId || filters.assignedUserId === "all") {
+      return true;
+    }
+
+    if (filters.assignedUserId === "crew") {
+      return assignedUserIds.some((userId) => crewUserIds.has(userId));
+    }
+
+    return assignedUserIds.includes(filters.assignedUserId);
+  });
+
+  const entries = [...scheduleEvents.map(toScheduleEventEntry), ...appointmentData.map(toAppointmentEntry)]
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+  const conflicts = detectScheduleConflicts(entries, users);
+
+  const error = [
+    usersResult.error,
+    appointmentsResult.error?.message ?? null,
+    eventsResult.error?.message ?? null,
+  ].filter(Boolean).join(" | ") || null;
+
+  return {
+    data: {
+      appointments: appointmentData,
+      conflicts,
+      entries,
+      scheduleEvents,
+      users,
+    },
+    error,
+  };
+}
+
+function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry {
+  const assignees = (event.schedule_event_assignments ?? [])
+    .map((assignment) => assignment.profiles)
+    .filter(Boolean) as AssignableUser[];
+  const locationLabel =
+    event.location_label ||
+    formatLocation(event.service_locations?.street, event.service_locations?.city, event.service_locations?.state);
+
+  return {
+    id: event.id,
+    source: "schedule_event",
+    title: event.title,
+    subtitle: event.description || event.jobs?.requested_scope || event.calendar_notes || "Calendar event",
+    event_type: event.event_type,
+    status: event.status,
+    starts_at: event.starts_at,
+    ends_at: event.ends_at,
+    all_day: event.all_day,
+    location_label: locationLabel,
+    calendar_notes: event.calendar_notes,
+    job_id: event.job_id,
+    service_location_id: event.service_location_id,
+    assignees,
+    customer_label: event.jobs?.customers?.display_name ?? null,
+  };
+}
+
+function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntry {
+  const assignees = appointment.profiles ? [appointment.profiles] : [];
+
+  return {
+    id: appointment.id,
+    source: "appointment",
+    title: getAppointmentTitle(appointment),
+    subtitle: appointment.jobs?.requested_scope || appointment.calendar_notes || "Legacy appointment",
+    event_type: appointment.appointment_type,
+    status: appointment.status,
+    starts_at: appointment.starts_at,
+    ends_at: appointment.ends_at,
+    all_day: false,
+    location_label: formatLocation(
+      appointment.service_locations?.street,
+      appointment.service_locations?.city,
+      appointment.service_locations?.state,
+    ),
+    calendar_notes: appointment.calendar_notes,
+    job_id: appointment.job_id,
+    service_location_id: appointment.service_location_id,
+    assignees,
+    customer_label: appointment.jobs?.customers?.display_name ?? null,
+  };
+}
+
+function getAppointmentTitle(appointment: AppointmentWithRelations) {
+  if (appointment.jobs?.service_type) {
+    return appointment.jobs.service_type.replaceAll("_", " ");
+  }
+
+  if (appointment.appointment_type === "follow_up") {
+    return "Follow-up";
+  }
+
+  return "Legacy appointment";
+}
+
+function formatLocation(street?: string | null, city?: string | null, state?: string | null) {
+  const label = [street, city, state].filter(Boolean).join(", ");
+  return label || null;
+}
+
+export async function getScheduleDashboardSummary(): Promise<DataResult<ScheduleDashboardSummary>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return {
+      data: {
+        conflicts: [],
+        todaysCrewSchedules: [],
+        unassignedEntries: [],
+        upcomingEstimates: [],
+      },
+      error: "Supabase is not configured.",
+    };
+  }
+
+  const today = new Date();
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const upcomingEnd = new Date(start);
+  upcomingEnd.setDate(upcomingEnd.getDate() + 7);
+
+  const [usersResult, todayAppointments, todayEvents, upcomingEstimateAppointments, upcomingEstimateEvents] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, user_roles(roles(name))")
+      .eq("status", "active")
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("appointments")
+      .select(
+        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+      )
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", end.toISOString())
+      .order("starts_at", { ascending: true }),
+    supabase
+      .from("schedule_events")
+      .select(
+        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
+      )
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", end.toISOString())
+      .order("starts_at", { ascending: true }),
+    supabase
+      .from("appointments")
+      .select(
+        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+      )
+      .eq("appointment_type", "estimate")
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", upcomingEnd.toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(8),
+    supabase
+      .from("schedule_events")
+      .select(
+        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
+      )
+      .eq("event_type", "estimate")
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", upcomingEnd.toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(8),
+  ]);
+
+  const users = mapScheduleUsers((usersResult.data ?? []) as UserRow[]);
+  const todaysEntries = [
+    ...((todayEvents.data ?? []) as ScheduleEventWithRelations[]).map(toScheduleEventEntry),
+    ...((todayAppointments.data ?? []) as AppointmentWithRelations[]).map(toAppointmentEntry),
+  ].sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+  const upcomingEstimates = [
+    ...((upcomingEstimateEvents.data ?? []) as ScheduleEventWithRelations[]).map(toScheduleEventEntry),
+    ...((upcomingEstimateAppointments.data ?? []) as AppointmentWithRelations[]).map(toAppointmentEntry),
+  ]
+    .filter((entry) => entry.event_type === "estimate")
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime())
+    .slice(0, 8);
+  const error = [
+    usersResult.error?.message ?? null,
+    todayAppointments.error?.message ?? null,
+    todayEvents.error?.message ?? null,
+    upcomingEstimateAppointments.error?.message ?? null,
+    upcomingEstimateEvents.error?.message ?? null,
+  ].filter(Boolean).join(" | ") || null;
+  const todaysCrewSchedules = buildCrewDaySchedules(todaysEntries, users);
+  const unassignedEntries = todaysEntries.filter((entry) => {
+    return isCrewWorkEntry(entry) && entry.assignees.length === 0;
+  });
+
+  return {
+    data: {
+      conflicts: detectScheduleConflicts(todaysEntries, users),
+      todaysCrewSchedules,
+      unassignedEntries,
+      upcomingEstimates,
+    },
+    error,
+  };
+}
+
+function mapScheduleUsers(data: UserRow[]) {
+  return data.map((user) => ({
+    id: user.id,
+    full_name: user.full_name,
+    email: user.email,
+    role_names: (user.user_roles ?? [])
+      .flatMap((row) => row.roles ?? [])
+      .map((role) => role.name),
+  }));
+}
+
+function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]) {
+  const conflicts: ScheduleConflict[] = [];
+
+  entries.forEach((entry) => {
+    if (!entry.ends_at && !entry.all_day) {
+      conflicts.push({
+        id: `missing-end-${entry.source}-${entry.id}`,
+        kind: "missing_end_time",
+        title: `${entry.title} needs an end time`,
+        detail: "This event is missing an end time, so availability and overlap checks stay fuzzy.",
+        href: buildEntryHref(entry),
+      });
+    }
+
+    if (isCrewWorkEntry(entry) && entry.assignees.length === 0) {
+      conflicts.push({
+        id: `unassigned-${entry.source}-${entry.id}`,
+        kind: "unassigned_job",
+        title: `${entry.title} has no assigned crew`,
+        detail: `${entry.location_label || "No location yet"} still needs a person or crew assignment.`,
+        href: buildEntryHref(entry),
+      });
+    }
+  });
+
+  users.forEach((user) => {
+    const assignedEntries = entries
+      .filter((entry) => entry.assignees.some((assignee) => assignee.id === user.id))
+      .filter((entry) => Boolean(entry.ends_at) || entry.all_day)
+      .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+
+    for (let index = 0; index < assignedEntries.length - 1; index += 1) {
+      const current = assignedEntries[index];
+      const next = assignedEntries[index + 1];
+
+      if (entriesOverlap(current, next)) {
+        conflicts.push({
+          id: `overlap-${user.id}-${current.id}-${next.id}`,
+          kind: "overlap",
+          title: `${user.full_name || user.email || "Team member"} is double-booked`,
+          detail: `${current.title} overlaps with ${next.title}.`,
+          href: buildEntryHref(next),
+          user_label: user.full_name || user.email || "Team member",
+        });
+      }
+    }
+  });
+
+  return dedupeConflicts(conflicts);
+}
+
+function buildCrewDaySchedules(entries: CalendarEntry[], users: ScheduleUser[]): CrewDaySchedule[] {
+  return users
+    .filter((user) => user.role_names.includes("crew"))
+    .map((user) => ({
+      user,
+      entries: entries
+        .filter((entry) => entry.assignees.some((assignee) => assignee.id === user.id))
+        .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()),
+    }))
+    .filter((group) => group.entries.length > 0);
+}
+
+function entriesOverlap(left: CalendarEntry, right: CalendarEntry) {
+  const leftStart = new Date(left.starts_at).getTime();
+  const leftEnd = resolveEntryEnd(left)?.getTime();
+  const rightStart = new Date(right.starts_at).getTime();
+  const rightEnd = resolveEntryEnd(right)?.getTime();
+
+  if (!leftEnd || !rightEnd) {
+    return false;
+  }
+
+  return leftStart < rightEnd && rightStart < leftEnd;
+}
+
+function resolveEntryEnd(entry: CalendarEntry) {
+  if (entry.ends_at) {
+    return new Date(entry.ends_at);
+  }
+
+  if (entry.all_day) {
+    const end = new Date(entry.starts_at);
+    end.setDate(end.getDate() + 1);
+    end.setHours(0, 0, 0, 0);
+    return end;
+  }
+
+  return null;
+}
+
+function isCrewWorkEntry(entry: CalendarEntry) {
+  return entry.event_type === "job" || entry.event_type === "emergency";
+}
+
+function buildEntryHref(entry: CalendarEntry) {
+  return entry.source === "schedule_event"
+    ? `/admin/schedule?event=${entry.id}`
+    : `/admin/schedule?appointment=${entry.id}`;
+}
+
+function dedupeConflicts(conflicts: ScheduleConflict[]) {
+  const seen = new Set<string>();
+
+  return conflicts.filter((conflict) => {
+    if (seen.has(conflict.id)) {
+      return false;
+    }
+
+    seen.add(conflict.id);
+    return true;
+  });
+}

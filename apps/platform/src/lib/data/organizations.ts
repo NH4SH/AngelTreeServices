@@ -59,9 +59,59 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
 export async function getOrganizationDashboardSummary() {
   const organizations = await getOrganizations();
   if (organizations.error) return { data: [], error: organizations.error };
-  const details = await Promise.all(organizations.data.map((organization) => getOrganizationDetail(organization.id)));
+  if (organizations.data.length === 0) return { data: [], error: null };
+
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+
+  const { data: customers, error: customersError } = await supabase
+    .from("customers")
+    .select("*")
+    .not("organization_id", "is", null);
+
+  if (customersError) {
+    return { data: [], error: customersError.message };
+  }
+
+  const customerIds = (customers ?? []).map((customer) => customer.id);
+  if (customerIds.length === 0) return { data: [], error: null };
+
+  const [jobs, quotes, invoices] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)")
+      .in("customer_id", customerIds),
+    supabase
+      .from("quotes")
+      .select("*, customers(id, display_name, phone, email), quote_line_items(*)")
+      .in("customer_id", customerIds),
+    supabase
+      .from("invoices")
+      .select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)")
+      .in("customer_id", customerIds),
+  ]);
+
+  const firstError = jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? null;
+  if (firstError) {
+    return { data: [], error: firstError };
+  }
+
+  const customerToOrganization = new Map(
+    ((customers ?? []) as Customer[]).map((customer) => [customer.id, customer.organization_id]),
+  );
+
+  const details = organizations.data.map((organization) => ({
+    organization,
+    contacts: [],
+    customers: ((customers ?? []) as Customer[]).filter((customer) => customer.organization_id === organization.id),
+    serviceLocations: [],
+    jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => customerToOrganization.get(job.customer_id) === organization.id),
+    quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => customerToOrganization.get(quote.customer_id) === organization.id),
+    invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => customerToOrganization.get(invoice.customer_id) === organization.id),
+  }));
+
   return {
-    data: details.flatMap((detail) => detail.data ? [detail.data] : []),
-    error: details.find((detail) => detail.error)?.error ?? null,
+    data: details,
+    error: null,
   };
 }

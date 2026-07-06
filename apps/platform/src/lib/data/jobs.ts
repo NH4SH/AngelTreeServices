@@ -162,27 +162,58 @@ export async function getJobOptions(): Promise<DataResult<Pick<Job, "id" | "stat
 }
 
 export async function getDashboardJobSummaries() {
-  const jobs = await getJobs();
+  const supabase = await createClient();
 
-  if (jobs.error) {
+  if (!supabase) {
     return {
       lanes: {
         newLeads: [],
         estimatesToSchedule: [],
         todaysJobs: [],
       },
-      error: jobs.error,
+      error: "Supabase is not configured.",
     };
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const commonSelect =
+    "*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
+
+  const [newLeads, estimatesToSchedule, todaysJobs] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select(commonSelect)
+      .eq("status", "new_lead")
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("jobs")
+      .select(commonSelect)
+      .eq("status", "estimate_scheduled")
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("jobs")
+      .select(commonSelect)
+      .gte("scheduled_start_at", start.toISOString())
+      .lt("scheduled_start_at", end.toISOString())
+      .order("scheduled_start_at", { ascending: true })
+      .limit(12),
+  ]);
 
   return {
     lanes: {
-      newLeads: jobs.data.filter((job) => job.status === "new_lead"),
-      estimatesToSchedule: jobs.data.filter((job) => job.status === "estimate_scheduled"),
-      todaysJobs: jobs.data.filter((job) => job.scheduled_start_at?.startsWith(today)),
+      newLeads: (newLeads.data ?? []) as JobWithRelations[],
+      estimatesToSchedule: (estimatesToSchedule.data ?? []) as JobWithRelations[],
+      todaysJobs: (todaysJobs.data ?? []) as JobWithRelations[],
     },
-    error: null,
+    error:
+      newLeads.error?.message ??
+      estimatesToSchedule.error?.message ??
+      todaysJobs.error?.message ??
+      null,
   };
 }

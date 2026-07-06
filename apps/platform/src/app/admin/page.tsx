@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   CalendarDays,
   CircleDollarSign,
   ClipboardCheck,
@@ -19,6 +20,7 @@ import { getUnpaidInvoices } from "@/lib/data/invoices";
 import { getDashboardJobSummaries } from "@/lib/data/jobs";
 import { getOrganizationDashboardSummary } from "@/lib/data/organizations";
 import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
+import { getScheduleDashboardSummary } from "@/lib/data/schedule";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -28,13 +30,14 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, awaitingQuotes, followUps, organizationSummary] = await Promise.all([
+  const [jobSummaries, awaitingQuotes, followUps, unpaidInvoices, organizationSummary, scheduleSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuotesAwaitingResponse(),
     getFollowUpsDue(),
+    getUnpaidInvoices(),
     getOrganizationDashboardSummary(),
+    getScheduleDashboardSummary(),
   ]);
-  const unpaidInvoices = await getUnpaidInvoices();
 
   const lanes: {
     title: string;
@@ -131,7 +134,7 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error, organizationSummary.error]
+        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
@@ -139,9 +142,28 @@ export default async function AdminPage() {
 
         <section className="dashboard-grid" aria-label="CRM operational overview">
           <section className="panel dashboard-panel">
-            <PanelHeader title="Today" detail="Scheduled work and reminders" />
-            <div className="workflow-list">
-              {todayLanes.map((lane) => <WorkflowLane lane={lane} key={lane.title} />)}
+            <PanelHeader title="Today's crew schedule" detail="Who is scheduled where today" />
+            <div className="workflow-list schedule-dashboard-list">
+              {scheduleSummary.data.todaysCrewSchedules.length ? (
+                scheduleSummary.data.todaysCrewSchedules.map((group) => (
+                  <a className="workflow-row" href={`/admin/schedule?assigned_user_id=${group.user.id}`} key={group.user.id}>
+                    <span className="workflow-row-icon" aria-hidden="true">
+                      <Truck size={15} />
+                    </span>
+                    <span>
+                      <strong>{group.user.full_name || group.user.email || "Crew member"}</strong>
+                      <small>
+                        {group.entries[0]
+                          ? `${group.entries[0].title} - ${group.entries[0].location_label || "No location"}`
+                          : "No assigned work today"}
+                      </small>
+                    </span>
+                    <b>{group.entries.length}</b>
+                  </a>
+                ))
+              ) : (
+                <p className="subtle-empty">No crew schedule assigned for today yet.</p>
+              )}
             </div>
           </section>
 
@@ -165,6 +187,72 @@ export default async function AdminPage() {
           </section>
 
           <section className="panel dashboard-panel">
+            <PanelHeader title="Unassigned work" detail="Scheduled visits still missing crew" />
+            <div className="workflow-list schedule-dashboard-list">
+              {scheduleSummary.data.unassignedEntries.length ? (
+                scheduleSummary.data.unassignedEntries.slice(0, 5).map((entry) => (
+                  <a className="workflow-row" href={entry.source === "schedule_event" ? `/admin/schedule?event=${entry.id}` : `/admin/schedule?appointment=${entry.id}`} key={`${entry.source}-${entry.id}`}>
+                    <span className="workflow-row-icon" aria-hidden="true">
+                      <AlertTriangle size={15} />
+                    </span>
+                    <span>
+                      <strong>{entry.title}</strong>
+                      <small>{entry.location_label || "No location yet"}</small>
+                    </span>
+                    <b>Open</b>
+                  </a>
+                ))
+              ) : (
+                <p className="subtle-empty">All visible job work has someone assigned.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Schedule conflicts" detail="Overlaps and missing schedule details" />
+            <div className="workflow-list schedule-dashboard-list">
+              {scheduleSummary.data.conflicts.length ? (
+                scheduleSummary.data.conflicts.slice(0, 5).map((conflict) => (
+                  <a className="workflow-row" href={conflict.href} key={conflict.id}>
+                    <span className="workflow-row-icon" aria-hidden="true">
+                      <AlertTriangle size={15} />
+                    </span>
+                    <span>
+                      <strong>{conflict.title}</strong>
+                      <small>{conflict.detail}</small>
+                    </span>
+                    <b>{conflict.kind === "overlap" ? "Conflict" : "Check"}</b>
+                  </a>
+                ))
+              ) : (
+                <p className="subtle-empty">No schedule conflicts are visible in today's window.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Upcoming estimates" detail="Estimate visits coming up next" />
+            <div className="workflow-list schedule-dashboard-list">
+              {scheduleSummary.data.upcomingEstimates.length ? (
+                scheduleSummary.data.upcomingEstimates.slice(0, 5).map((entry) => (
+                  <a className="workflow-row" href={entry.source === "schedule_event" ? `/admin/schedule?event=${entry.id}` : `/admin/schedule?appointment=${entry.id}`} key={`${entry.source}-${entry.id}`}>
+                    <span className="workflow-row-icon" aria-hidden="true">
+                      <CalendarDays size={15} />
+                    </span>
+                    <span>
+                      <strong>{entry.customer_label || entry.title}</strong>
+                      <small>{entry.location_label || entry.subtitle}</small>
+                    </span>
+                    <b>{formatShortDate(entry.starts_at)}</b>
+                  </a>
+                ))
+              ) : (
+                <p className="subtle-empty">No upcoming estimates are scheduled yet.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
             <PanelHeader title="Quick actions" detail="Most common next steps" />
             <div className="quick-actions">
               <a href="/admin/customers">Add customer</a>
@@ -172,13 +260,6 @@ export default async function AdminPage() {
               <a href="/admin/quotes">Prepare quote</a>
               <a href="/admin/schedule">Open schedule</a>
             </div>
-          </section>
-
-          <section className="panel dashboard-panel">
-            <PanelHeader title="Recent activity" detail="Audit trail placeholder" />
-            <p className="subtle-empty">
-              Activity log entries will appear here after timeline events are wired into the CRM.
-            </p>
           </section>
 
           <section className="panel dashboard-panel">
@@ -262,6 +343,13 @@ function formatDate(value: string) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
   }).format(new Date(value));
 }
 

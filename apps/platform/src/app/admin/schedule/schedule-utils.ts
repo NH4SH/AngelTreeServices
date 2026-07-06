@@ -1,8 +1,19 @@
-import type { AppointmentType, AppointmentWithRelations } from "@/lib/types/database";
+import type { AppointmentType, CalendarEntry, ScheduleEventType } from "@/lib/types/database";
 
 export type ScheduleView = "day" | "week" | "month";
 
-export const appointmentTypes = ["all", "estimate", "job", "follow_up", "maintenance"] as const;
+export const scheduleEventTypes = [
+  "all",
+  "estimate",
+  "job",
+  "follow_up",
+  "maintenance",
+  "pto",
+  "unavailable",
+  "internal",
+  "emergency",
+  "other",
+] as const;
 export const appointmentStatuses = [
   "all",
   "scheduled",
@@ -69,10 +80,10 @@ export function buildScheduleHref(
   return query ? `/admin/schedule?${query}` : "/admin/schedule";
 }
 
-export function groupAppointmentsByDate(appointments: AppointmentWithRelations[]) {
-  return appointments.reduce<Record<string, AppointmentWithRelations[]>>((groups, appointment) => {
-    const key = formatDateInput(new Date(appointment.starts_at));
-    groups[key] = [...(groups[key] ?? []), appointment];
+export function groupEntriesByDate(entries: CalendarEntry[]) {
+  return entries.reduce<Record<string, CalendarEntry[]>>((groups, entry) => {
+    const key = formatDateInput(new Date(entry.starts_at));
+    groups[key] = [...(groups[key] ?? []), entry];
     return groups;
   }, {});
 }
@@ -114,29 +125,52 @@ export function formatTime(value: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }
 
-export function formatShortLocation(appointment: AppointmentWithRelations) {
-  const location = appointment.service_locations;
-  return location ? `${location.street}, ${location.city}` : "No location";
+export function formatEntryLocation(entry: CalendarEntry) {
+  return entry.location_label || "No location";
 }
 
-export function getAppointmentSummary(appointment: AppointmentWithRelations) {
-  return appointment.jobs?.service_type?.replace("_", " ") || appointment.jobs?.requested_scope || "Scheduled work";
+export function getEntrySummary(entry: CalendarEntry) {
+  if (entry.event_type === "pto") {
+    return entry.subtitle || "Paid time off";
+  }
+
+  if (entry.event_type === "unavailable") {
+    return entry.subtitle || "Unavailable";
+  }
+
+  return entry.subtitle || "Scheduled work";
 }
 
-export function getAppointmentTone(appointment: Pick<AppointmentWithRelations, "appointment_type" | "status">) {
-  if (appointment.status === "cancelled" || appointment.status === "no_show") {
+export function getEntryTone(entry: Pick<CalendarEntry, "event_type" | "status">) {
+  if (entry.status === "cancelled" || entry.status === "no_show") {
     return "muted";
   }
 
-  const tones: Record<AppointmentType, string> = {
+  const tones: Record<ScheduleEventType, string> = {
     estimate: "estimate",
     follow_up: "follow-up",
     job: "field",
     maintenance: "maintenance",
+    pto: "pto",
+    unavailable: "blocked",
+    internal: "internal",
+    emergency: "emergency",
     other: "maintenance",
   };
 
-  return tones[appointment.appointment_type] ?? "maintenance";
+  return tones[entry.event_type] ?? "maintenance";
+}
+
+export function getEventTypeLabel(eventType: AppointmentType | ScheduleEventType | "all") {
+  if (eventType === "all") {
+    return "All event types";
+  }
+
+  if (eventType === "pto") {
+    return "PTO";
+  }
+
+  return eventType.replace("_", " ");
 }
 
 export function isSameDay(left: Date, right: Date) {

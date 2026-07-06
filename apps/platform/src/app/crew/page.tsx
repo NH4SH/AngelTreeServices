@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Camera, CheckCircle2, Clock3, MapPin, Truck } from "lucide-react";
+import { CalendarDays, Camera, CheckCircle2, Clock3, MapPin, TimerReset, Truck } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -58,6 +58,10 @@ export default async function CrewPage() {
             <Link className="primary-action" href="/crew/jobs">
               <Truck aria-hidden="true" size={18} />
               Open all jobs
+            </Link>
+            <Link className="secondary-action" href="/crew/time">
+              <TimerReset aria-hidden="true" size={18} />
+              Open time clock
             </Link>
           </div>
         </section>

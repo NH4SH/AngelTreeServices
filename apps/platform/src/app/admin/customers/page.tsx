@@ -4,7 +4,8 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddCustomerForm, AddServiceLocationForm } from "./CustomerForms";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCustomerNotes, getCustomers } from "@/lib/data/customers";
+import { getCustomers } from "@/lib/data/customers";
+import type { CustomerWithLocations, Note } from "@/lib/types/database";
 
 export default async function CustomersPage() {
   const context = await getAuthenticatedPlatformContext("/admin/customers");
@@ -14,7 +15,7 @@ export default async function CustomersPage() {
   }
 
   const customers = await getCustomers();
-  const notes = await getCustomerNotes(customers.data.map((customer) => customer.id));
+  const customerRecords = customers.data as Array<CustomerWithLocations & { notes?: Note[] }>;
 
   return (
     <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>
@@ -29,17 +30,14 @@ export default async function CustomersPage() {
         </section>
 
         {customers.error ? <DataWarning message={customers.error} /> : null}
-        {notes.error ? <DataWarning message={`Notes: ${notes.error}`} /> : null}
 
         <section className="crm-layout">
           <div className="crm-main">
-            {customers.data.length === 0 ? (
+            {customerRecords.length === 0 ? (
               <EmptyState title="No customers yet" body="Add a customer when the first request is ready to enter." />
             ) : (
               <div className="record-list">
-                {customers.data.map((customer) => {
-                  const customerNotes = notes.data.filter((note) => note.customer_id === customer.id);
-
+                {customerRecords.map((customer) => {
                   return (
                     <article className="record-card" key={customer.id}>
                       <div className="record-card-header">
@@ -70,7 +68,7 @@ export default async function CustomersPage() {
                           ))}
                         </div>
                       ) : null}
-                      {customerNotes[0] ? <p className="record-note">{customerNotes[0].body}</p> : null}
+                      {customer.notes?.[0] ? <p className="record-note">{customer.notes[0].body}</p> : null}
                       <div className="record-actions">
                         <Link href={`/admin/customers/${customer.id}`}>Open customer file</Link>
                       </div>
@@ -90,7 +88,7 @@ export default async function CustomersPage() {
             <section className="form-panel">
               <h2>Add service location</h2>
               <p className="form-panel-copy">Keep addresses and access notes separate so jobs, quotes, and crew directions stay tidy later.</p>
-              <AddServiceLocationForm customers={customers.data} />
+              <AddServiceLocationForm customers={customerRecords} />
             </section>
           </aside>
         </section>

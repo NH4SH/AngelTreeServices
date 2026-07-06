@@ -5603,6 +5603,220 @@ body {
   }
 }
 
+/* Employee calendar foundation */
+
+.company-calendar-page {
+  gap: 18px;
+}
+
+.company-calendar-shell {
+  overflow: hidden;
+}
+
+.company-calendar-toolbar {
+  display: grid;
+  gap: 12px;
+}
+
+.calendar-toolbar-meta,
+.calendar-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.calendar-toolbar-meta {
+  align-items: center;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.calendar-toolbar-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-summary-strip {
+  border-top: 1px solid var(--color-border);
+  padding: 0 14px 14px;
+}
+
+.calendar-summary-chip {
+  display: grid;
+  min-width: 120px;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 10px 12px;
+}
+
+.calendar-summary-chip span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.calendar-summary-chip strong {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.calendar-inline-create {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 10px;
+  background: oklch(0.985 0.003 154);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.calendar-inline-create:hover {
+  border-color: var(--color-forest);
+  color: var(--color-forest);
+}
+
+.calendar-appointment.pto {
+  --appointment-bg: oklch(0.965 0.018 296);
+  --appointment-border: oklch(0.77 0.05 296);
+}
+
+.calendar-appointment.blocked {
+  --appointment-bg: oklch(0.964 0.008 240);
+  --appointment-border: oklch(0.76 0.02 240);
+}
+
+.calendar-appointment.internal {
+  --appointment-bg: oklch(0.964 0.012 213);
+  --appointment-border: oklch(0.76 0.032 213);
+}
+
+.calendar-appointment.emergency {
+  --appointment-bg: oklch(0.957 0.032 28);
+  --appointment-border: oklch(0.74 0.08 28);
+}
+
+.appointment-dot.pto { background: oklch(0.56 0.09 296); }
+.appointment-dot.blocked { background: oklch(0.52 0.025 240); }
+.appointment-dot.internal { background: oklch(0.5 0.05 213); }
+.appointment-dot.emergency { background: oklch(0.58 0.12 28); }
+
+.schedule-team-strip {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  padding: 16px;
+}
+
+.schedule-team-strip-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.schedule-team-strip-header h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.schedule-team-strip-header p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.schedule-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.schedule-team-card {
+  display: grid;
+  gap: 6px;
+  min-height: 116px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: oklch(0.988 0.003 154);
+  padding: 12px;
+}
+
+.schedule-team-card:hover,
+.schedule-team-card.is-active {
+  border-color: oklch(0.67 0.05 154);
+  background: oklch(0.982 0.008 154);
+}
+
+.schedule-team-card strong {
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.schedule-team-card span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.schedule-team-card b {
+  margin-top: auto;
+  color: var(--color-forest);
+  font-size: 1.4rem;
+  font-weight: 760;
+}
+
+.schedule-event-form .multi-select-field,
+.schedule-event-edit-form .multi-select-field {
+  min-height: 132px;
+  padding-block: 8px;
+}
+
+.schedule-event-form .multi-select-field option,
+.schedule-event-edit-form .multi-select-field option {
+  padding: 6px 8px;
+}
+
+@media (max-width: 900px) {
+  .schedule-team-strip-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 760px) {
+  .calendar-summary-strip {
+    padding-inline: 12px;
+  }
+
+  .calendar-summary-chip {
+    flex: 1 1 120px;
+  }
+
+  .calendar-toolbar-meta {
+    display: grid;
+    gap: 6px;
+  }
+
+  .schedule-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-inline-create {
+    width: 100%;
+  }
+}
+
 .commerce-line-items {
   margin-top: 12px;
   border-radius: 12px;
@@ -6630,5 +6844,699 @@ body {
   .photo-group-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+/* Schedule dispatch improvements */
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.form-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.schedule-conflicts-panel,
+.crew-day-sheet {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--color-border);
+  padding: 0 14px 14px;
+}
+
+.schedule-conflicts-header,
+.crew-day-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.schedule-conflicts-header h2,
+.crew-day-sheet-header h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.schedule-conflicts-header p,
+.crew-day-sheet-header p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.schedule-conflicts-header span {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.schedule-conflict-list,
+.crew-day-sheet-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.schedule-conflict-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  border: 1px solid color-mix(in oklab, oklch(0.72 0.12 82) 22%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--color-surface) 90%, oklch(0.97 0.03 98));
+  padding: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.schedule-conflict-card > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: color-mix(in oklab, oklch(0.75 0.11 82) 18%, white);
+  color: oklch(0.53 0.12 82);
+}
+
+.schedule-conflict-card strong {
+  display: block;
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+}
+
+.schedule-conflict-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.daily-schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.daily-schedule-actions button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 0 14px;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.daily-schedule-actions p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.crew-day-sheet-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.crew-day-sheet-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.crew-day-sheet-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.crew-day-sheet-card header strong {
+  color: var(--color-charcoal);
+  font-size: 0.95rem;
+}
+
+.crew-day-sheet-card header span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.crew-day-sheet-list {
+  display: grid;
+  gap: 8px;
+}
+
+.crew-day-sheet-row {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.crew-day-sheet-row b {
+  color: var(--color-forest);
+  font-size: 0.8rem;
+}
+
+.crew-day-sheet-row span {
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.crew-day-sheet-row small {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.schedule-detail-warning-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.schedule-detail-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid color-mix(in oklab, oklch(0.72 0.12 82) 24%, var(--color-border));
+  border-radius: 12px;
+  background: color-mix(in oklab, oklch(0.97 0.03 98) 84%, white);
+  padding: 10px 12px;
+  color: oklch(0.43 0.08 82);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.schedule-dashboard-list {
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .schedule-conflicts-panel,
+  .crew-day-sheet {
+    padding-inline: 12px;
+  }
+
+  .schedule-conflicts-header,
+  .crew-day-sheet-header,
+  .daily-schedule-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-schedule-actions p {
+    text-align: left;
+  }
+}
+
+/* Time clock foundation */
+
+.time-clock-layout,
+.time-admin-grid,
+.time-review-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.time-clock-layout,
+.time-admin-grid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
+}
+
+.time-review-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.time-clock-main,
+.time-clock-side,
+.time-admin-page {
+  min-width: 0;
+}
+
+.time-clock-live-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid color-mix(in oklab, var(--color-forest) 24%, var(--color-border));
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--color-surface), color-mix(in oklab, var(--color-surface) 82%, oklch(0.97 0.026 151)));
+  padding: 22px;
+}
+
+.time-clock-live-card strong {
+  color: var(--color-charcoal);
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-weight: 760;
+  line-height: 1;
+}
+
+.time-clock-live-card span {
+  color: var(--color-forest);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.time-clock-live-card small,
+.time-clock-meta dd,
+.time-entry-row span,
+.time-user-row span,
+.time-entry-table-row span,
+.time-detail-card .field-note {
+  color: var(--color-muted);
+}
+
+.time-clock-meta {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.time-clock-meta div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.time-clock-meta dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.time-clock-meta dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.time-clock-form {
+  margin-top: 0;
+}
+
+.time-review-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.time-review-button-row button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
+.time-clock-primary-button,
+.time-clock-stop-button {
+  min-height: 58px !important;
+  justify-content: center;
+  font-size: 1.02rem;
+}
+
+.time-clock-stop-button {
+  border: 1px solid oklch(0.61 0.14 24) !important;
+  background: oklch(0.95 0.022 24) !important;
+  color: oklch(0.42 0.11 24) !important;
+}
+
+.time-entry-list,
+.time-user-list,
+.time-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.time-entry-row,
+.time-user-row,
+.time-detail-card {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.time-entry-row,
+.time-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.time-entry-row.link-row {
+  color: inherit;
+  text-decoration: none;
+}
+
+.time-entry-row strong,
+.time-user-row strong,
+.time-detail-card-header strong {
+  display: block;
+  color: var(--color-charcoal);
+  font-size: 0.95rem;
+}
+
+.time-entry-row span,
+.time-user-row span,
+.time-detail-card-header span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.84rem;
+}
+
+.time-entry-row b,
+.time-user-row small,
+.time-entry-table-row a,
+.time-detail-card-header b {
+  color: var(--color-forest);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.time-entry-row small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+}
+
+.time-user-actions,
+.detail-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.time-user-actions small {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 10px;
+}
+
+.time-permission-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.time-inline-feedback {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.time-inline-feedback.error {
+  color: oklch(0.43 0.11 24);
+}
+
+.destructive-soft {
+  border-color: oklch(0.7 0.05 24) !important;
+  color: oklch(0.43 0.11 24) !important;
+}
+
+.time-entry-table {
+  display: grid;
+  gap: 8px;
+}
+
+.time-entry-table-header,
+.time-entry-table-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.8fr 1fr 0.9fr 0.65fr 0.55fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.time-entry-table-header {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 4px;
+  text-transform: uppercase;
+}
+
+.time-entry-table-row {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  padding: 12px;
+}
+
+.time-detail-card {
+  padding: 14px;
+}
+
+.time-detail-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.time-detail-card > .field-note {
+  margin: 10px 0 0;
+}
+
+.time-access-panel {
+  margin-top: 16px;
+}
+
+.payroll-page {
+  display: grid;
+  gap: 16px;
+}
+
+.payroll-top-grid,
+.payroll-summary-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.payroll-top-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+}
+
+.payroll-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.payroll-period-stack,
+.payroll-warning-list,
+.payroll-employee-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.payroll-picker-form {
+  align-items: end;
+}
+
+.payroll-period-card,
+.payroll-summary-panel,
+.payroll-warning-card,
+.payroll-employee-card {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.payroll-period-card,
+.payroll-warning-card,
+.payroll-employee-card {
+  padding: 14px;
+}
+
+.payroll-period-card {
+  display: grid;
+  gap: 10px;
+}
+
+.payroll-period-card strong,
+.payroll-warning-card strong,
+.payroll-employee-card strong,
+.payroll-summary-panel strong {
+  color: var(--color-charcoal);
+}
+
+.payroll-period-card span,
+.payroll-employee-card span,
+.payroll-summary-panel small {
+  color: var(--color-muted);
+}
+
+.payroll-period-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.payroll-status-form {
+  display: grid;
+  gap: 10px;
+}
+
+.payroll-summary-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-small);
+}
+
+.payroll-summary-panel > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+}
+
+.payroll-summary-panel strong {
+  display: block;
+  font-size: 1.3rem;
+}
+
+.payroll-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.payroll-warning-card svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: oklch(0.57 0.12 82);
+}
+
+.payroll-warning-card p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.payroll-employee-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payroll-employee-card {
+  display: grid;
+  gap: 12px;
+}
+
+.payroll-employee-card-top,
+.payroll-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.payroll-entry-card {
+  display: grid;
+  gap: 12px;
+}
+
+.payroll-entry-actions .time-review-form {
+  flex: 1 1 320px;
+}
+
+@media (max-width: 980px) {
+  .time-clock-layout,
+  .time-admin-grid,
+  .time-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-top-grid,
+  .payroll-summary-grid,
+  .payroll-employee-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .time-entry-table-header {
+    display: none;
+  }
+
+  .time-entry-table-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .time-clock-live-card strong {
+    font-size: 2.5rem;
+  }
+
+  .time-entry-row,
+  .time-user-row,
+  .detail-user-actions,
+  .time-user-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .time-user-actions,
+  .detail-user-actions,
+  .time-permission-form {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .time-user-actions .secondary-action,
+  .time-permission-form button,
+  .time-permission-form .secondary-action,
+  .time-filter-form button,
+  .time-review-button-row button,
+  .payroll-period-meta .secondary-action {
+    width: 100%;
   }
 }

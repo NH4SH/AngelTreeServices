@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server";
 import { apiError, apiSuccess } from "@/lib/api/responses";
 import { toCrewApiJobPhoto } from "@/lib/api/crew-contract";
 import { getCrewApiContext } from "@/lib/auth/apiContext";
@@ -18,7 +19,7 @@ type CrewJobPhotosApiRouteProps = {
   }>;
 };
 
-export async function GET(request: Request, { params }: CrewJobPhotosApiRouteProps) {
+export async function GET(request: NextRequest, { params }: CrewJobPhotosApiRouteProps) {
   const auth = await getCrewApiContext(request);
 
   if (!auth.context) {
@@ -53,7 +54,7 @@ export async function GET(request: Request, { params }: CrewJobPhotosApiRoutePro
   });
 }
 
-export async function POST(request: Request, { params }: CrewJobPhotosApiRouteProps) {
+export async function POST(request: NextRequest, { params }: CrewJobPhotosApiRouteProps) {
   const auth = await getCrewApiContext(request);
 
   if (!auth.context) {

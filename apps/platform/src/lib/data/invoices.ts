@@ -23,17 +23,24 @@ export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>>
 }
 
 export async function getUnpaidInvoices(): Promise<DataResult<InvoiceWithRelations[]>> {
-  const invoices = await getInvoices();
+  const supabase = await createClient();
 
-  if (invoices.error) {
-    return { data: [], error: invoices.error };
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
   }
 
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(
+      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+    )
+    .in("status", ["sent", "partially_paid", "overdue"])
+    .order("created_at", { ascending: false })
+    .limit(12);
+
   return {
-    data: invoices.data.filter((invoice) =>
-      ["sent", "partially_paid", "overdue"].includes(invoice.status),
-    ),
-    error: null,
+    data: (data ?? []) as InvoiceWithRelations[],
+    error: error?.message ?? null,
   };
 }
 

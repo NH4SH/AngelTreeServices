@@ -59,6 +59,8 @@ export type TimeEntryType = "job" | "drive" | "shop" | "maintenance" | "admin" |
 export type TimeEntryStatus = "active" | "completed" | "adjusted" | "void";
 export type TimeEntryReviewStatus = "approved" | "needs_correction" | "rejected";
 export type PayPeriodStatus = "open" | "review" | "approved" | "exported" | "locked";
+export type EmployeeAccessRequestStatus = "pending" | "approved" | "rejected";
+export type EmployeeAccessAssignedRole = "admin" | "estimator" | "crew" | "payroll_admin";
 
 export type Organization = {
   id: string;
@@ -289,6 +291,24 @@ export type TimeClockPermission = {
   is_enabled: boolean;
   notes: string | null;
   created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmployeeAccessRequest = {
+  id: string;
+  auth_user_id: string | null;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  requested_role: string | null;
+  note: string | null;
+  status: EmployeeAccessRequestStatus;
+  assigned_role: EmployeeAccessAssignedRole | null;
+  time_clock_enabled: boolean;
+  reviewed_by_user_id: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
 };

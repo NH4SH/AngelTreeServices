@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
-import { PlatformFrame } from "@/components/PlatformFrame";
+import { AccessStatusShell } from "@/components/access-status-shell";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getCurrentEmployeeAccessRequestFromClient } from "@/lib/data/access-requests";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -23,27 +23,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const roles = await getCurrentUserRolesFromClient(supabase, user.id);
 
-  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+  if (roles.length === 0) {
+    const request = await getCurrentEmployeeAccessRequestFromClient(supabase, user.id, user.email ?? null);
+
     return (
-      <PlatformFrame active="portal" roles={roles} userEmail={user.email}>
-        <div className="shell app-content">
-          <section className="empty-state">
-            <h2>Admin access required</h2>
-            <p>This area is for internal Angel Tree staff accounts. Use a staff role such as owner, admin, estimator, or payroll admin.</p>
-            <p className="field-note">
-              If this account should have access, assign the role in Supabase first and then sign out and back in.
-            </p>
-          </section>
-          <section className="notice-panel">
-            <strong>
-              <ShieldCheck aria-hidden="true" size={18} />
-              Current account
-            </strong>
-            <p>{user.email ?? "Signed-in account"} does not currently have an internal staff role.</p>
-          </section>
-        </div>
-      </PlatformFrame>
+      <AccessStatusShell
+        request={request.data}
+        scope="admin"
+        userEmail={user.email}
+      />
     );
+  }
+
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return <AccessStatusShell currentRoleLabel={roles.join(", ")} scope="admin" userEmail={user.email} />;
   }
 
   return children;

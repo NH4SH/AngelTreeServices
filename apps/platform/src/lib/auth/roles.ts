@@ -14,6 +14,7 @@ export const platformRoleNames = [
 export type PlatformRoleName = (typeof platformRoleNames)[number];
 
 export const platformRoleGroups = {
+  accessApproval: ["owner", "admin"],
   internalStaff: ["owner", "admin", "payroll_admin", "estimator"],
   crewApp: ["owner", "admin", "payroll_admin", "estimator", "crew"],
   customerPortal: ["owner", "admin", "customer"],

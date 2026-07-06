@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole, UserRoundPlus } from "lucide-react";
 import { signInWithPassword, type LoginActionState } from "./actions";
 
 type LoginFormProps = {
@@ -70,6 +71,13 @@ export function LoginForm({ configured, nextPath, signedOut }: LoginFormProps) {
         <LockKeyhole aria-hidden="true" size={18} />
         {pending ? "Signing in..." : "Sign in"}
       </button>
+
+      <div className="signup-footer-links">
+        <Link className="secondary-action" href="/signup">
+          <UserRoundPlus aria-hidden="true" size={18} />
+          Request employee access
+        </Link>
+      </div>
     </form>
   );
 }

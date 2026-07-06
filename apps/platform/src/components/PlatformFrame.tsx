@@ -13,6 +13,7 @@ import {
   Megaphone,
   ReceiptText,
   ShieldCheck,
+  UserCheck,
   UsersRound,
   Workflow,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
   { href: "/admin/time", label: "Time", Icon: Clock3, match: "admin-time", visibility: "review" },
   { href: "/admin/payroll", label: "Payroll", Icon: ReceiptText, match: "payroll", visibility: "review" },
+  { href: "/admin/access", label: "Access", Icon: UserCheck, match: "access", visibility: "approval" },
   { href: "/admin/documents", label: "Documents", Icon: Files, match: "documents" },
   { href: "/admin/marketing", label: "Marketing", Icon: Megaphone, match: "marketing" },
   { href: "/crew", label: "Crew View", Icon: HardHat, match: "crew" },
@@ -51,6 +53,7 @@ type PlatformFrameProps = {
     | "schedule"
     | "admin-time"
     | "payroll"
+    | "access"
     | "documents"
     | "marketing"
     | "crew"
@@ -74,6 +77,10 @@ export function PlatformFrame({
 
     if (item.visibility === "eligible") {
       return hasAllowedRole(roles, platformRoleGroups.timeClockEligible);
+    }
+
+    if (item.visibility === "approval") {
+      return hasAllowedRole(roles, platformRoleGroups.accessApproval);
     }
 
     return true;

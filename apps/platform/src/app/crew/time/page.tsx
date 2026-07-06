@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, PlayCircle, ShieldCheck, TimerReset } from "lucide-react";
+import { AlertTriangle, Clock3, PlayCircle, ShieldCheck, TimerReset } from "lucide-react";
 import { CrewClockInForm, CrewClockOutForm, LiveTimerCard } from "@/components/time-clock";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -9,6 +9,7 @@ import { getCrewJobs } from "@/lib/data/crew-jobs";
 import {
   getActiveTimeEntryForUser,
   getAssignedScheduleEventsForUser,
+  getOpenTimeEntryHours,
   getTimeEntries,
   getTimeEntryHours,
 } from "@/lib/data/time-clock";
@@ -92,6 +93,12 @@ export default async function CrewTimePage() {
                     <p>Finish the current timer before starting another one.</p>
                   </div>
                 </div>
+                {getOpenTimeEntryHours(activeEntry.data) > 12 ? (
+                  <p className="time-clock-alert" role="status">
+                    <AlertTriangle aria-hidden="true" size={16} />
+                    This timer has been running more than 12 hours and should be reviewed soon.
+                  </p>
+                ) : null}
                 <dl className="time-clock-meta">
                   <div>
                     <dt>Type</dt>
@@ -104,6 +111,10 @@ export default async function CrewTimePage() {
                   <div>
                     <dt>Schedule</dt>
                     <dd>{activeEntry.data.schedule_events?.title || "No linked schedule event"}</dd>
+                  </div>
+                  <div>
+                    <dt>Elapsed</dt>
+                    <dd>{getOpenTimeEntryHours(activeEntry.data).toFixed(2)} hours</dd>
                   </div>
                 </dl>
                 <CrewClockOutForm activeEntry={activeEntry.data} />
@@ -134,7 +145,17 @@ export default async function CrewTimePage() {
                   </span>
                   <div>
                     <h2>Start a timer</h2>
-                    <p>Pick the job or scheduled event if you have one, then clock in.</p>
+                    <p>Pick the kind of work, link the job or schedule event if you have one, then clock in.</p>
+                  </div>
+                </div>
+                <div className="time-clock-helper-grid">
+                  <div>
+                    <strong>Use Job time</strong>
+                    <p>Best when you are on site and the work should tie back to a customer job.</p>
+                  </div>
+                  <div>
+                    <strong>Use Drive or Shop</strong>
+                    <p>Keep non-job time separate so payroll review stays clear later.</p>
                   </div>
                 </div>
                 <CrewClockInForm jobs={jobs.data} scheduleEvents={scheduleEvents.data} />

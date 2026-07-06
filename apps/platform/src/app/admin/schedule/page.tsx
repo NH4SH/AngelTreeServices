@@ -25,6 +25,7 @@ import {
   appointmentStatuses,
   buildScheduleHref,
   formatDateInput,
+  formatEntryLocation,
   formatDayLabel,
   formatDayNumber,
   formatRangeTitle,
@@ -33,6 +34,7 @@ import {
   getEntrySummary,
   getEntryTone,
   getEventTypeLabel,
+  getStatusLabel,
   getScheduleRange,
   getVisibleDays,
   groupEntriesByDate,
@@ -117,6 +119,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     view,
   };
   const summary = buildScheduleSummary(schedule.data.entries, schedule.data.users);
+  const attention = buildScheduleAttention(schedule.data.entries, schedule.data.conflicts);
   const dayEntries = groupedEntries[formatDateInput(date)] ?? [];
   const crewDayGroups = buildCrewAssignmentsForDay(dayEntries, schedule.data.users);
   const dayShareText = buildCrewShareText(date, crewDayGroups);
@@ -157,22 +160,29 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             <SummaryChip label="Open jobs" value={summary.jobEventCount} />
           </section>
 
-          {schedule.data.conflicts.length ? (
-            <section className="schedule-conflicts-panel" aria-label="Schedule conflicts">
-              <div className="schedule-conflicts-header">
-                <div>
-                  <h2>Schedule warnings</h2>
-                  <p>These items need attention before dispatch gets messy.</p>
-                </div>
-                <span>{schedule.data.conflicts.length} visible</span>
-              </div>
-              <div className="schedule-conflict-list">
-                {schedule.data.conflicts.slice(0, 6).map((conflict) => (
-                  <ConflictCard conflict={conflict} key={conflict.id} />
-                ))}
-              </div>
-            </section>
-          ) : null}
+          <section className="schedule-attention-lane" aria-label="Schedule attention lane">
+            <AttentionPanel
+              emptyCopy="No visible conflicts right now."
+              eyebrow="Dispatch check"
+              items={attention.conflicts}
+              title="Schedule conflicts"
+              tone="warning"
+            />
+            <AttentionPanel
+              emptyCopy="Every visible crew job has someone attached."
+              eyebrow="Assignment check"
+              items={attention.unassigned}
+              title="Unassigned events"
+              tone="neutral"
+            />
+            <AttentionPanel
+              emptyCopy="No visible follow-ups need attention in this range."
+              eyebrow="Customer check"
+              items={attention.followUps}
+              title="Needs follow-up"
+              tone="calm"
+            />
+          </section>
 
           {view === "day" ? (
             <CalendarDayView current={query} date={date} entries={dayEntries} />
@@ -565,19 +575,38 @@ function CalendarEntryCard({
     current,
     entry.source === "schedule_event" ? { event: entry.id } : { appointment: entry.id },
   );
+  const assigneeLabel = getAssigneeSummary(entry.assignees);
+  const locationLabel = formatEntryLocation(entry);
+  const typeLabel = getEventTypeLabel(entry.event_type);
+  const statusLabel = getStatusLabel(entry.status);
+  const titleLine = entry.title;
+  const contextLine = [entry.customer_label, locationLabel].filter(Boolean).join(" • ");
 
   return (
     <Link className={`calendar-appointment ${tone} ${compact ? "is-compact" : ""}`} href={href}>
-      <span className="appointment-time">
-        <Clock3 aria-hidden="true" size={compact ? 12 : 14} />
-        {entry.all_day ? "All day" : formatTime(entry.starts_at)}
-        {entry.ends_at && !entry.all_day ? ` to ${formatTime(entry.ends_at)}` : ""}
-      </span>
-      <strong>{entry.title}</strong>
-      <span>{getEntrySummary(entry)}</span>
-      <small>
-        {entry.status.replace("_", " ")} - {entry.location_label || "No location"}
-        {entry.assignees.length ? ` - ${entry.assignees.length} assigned` : ""}
+      <div className="calendar-appointment-topline">
+        <span className="appointment-time">
+          <Clock3 aria-hidden="true" size={compact ? 12 : 14} />
+          {entry.all_day ? "All day" : formatTime(entry.starts_at)}
+          {entry.ends_at && !entry.all_day ? ` to ${formatTime(entry.ends_at)}` : ""}
+        </span>
+        <span className={`calendar-status-chip ${tone}`}>{statusLabel}</span>
+      </div>
+      <div className="calendar-appointment-header">
+        <strong>{titleLine}</strong>
+        <span className={`calendar-type-chip ${tone}`}>{typeLabel}</span>
+      </div>
+      <span className="calendar-appointment-context">{contextLine || locationLabel}</span>
+      {!compact ? <span>{getEntrySummary(entry)}</span> : null}
+      <small className="calendar-appointment-meta">
+        <span>
+          <UsersRound aria-hidden="true" size={12} />
+          {assigneeLabel}
+        </span>
+        <span>
+          <MapPinned aria-hidden="true" size={12} />
+          {locationLabel}
+        </span>
       </small>
     </Link>
   );
@@ -637,6 +666,9 @@ function ScheduleEventDetailPanel({
     (event.event_type === "job" || event.event_type === "emergency") && assignees.length === 0
       ? "This work is scheduled without assigned crew."
       : null,
+    event.event_type === "job" && !event.job_id
+      ? "This job event is not linked to a CRM job yet."
+      : null,
   ].filter(Boolean);
   const locationSummary = event.service_locations
     ? [
@@ -675,6 +707,19 @@ function ScheduleEventDetailPanel({
             ))}
           </div>
         ) : null}
+
+        <div className="schedule-detail-chip-row" aria-label="Event summary">
+          <span className={`calendar-type-chip ${getEntryTone({ event_type: event.event_type, status: event.status })}`}>
+            {getEventTypeLabel(event.event_type)}
+          </span>
+          <span className={`calendar-status-chip ${getEntryTone({ event_type: event.event_type, status: event.status })}`}>
+            {getStatusLabel(event.status)}
+          </span>
+          <span className="schedule-detail-chip">
+            <UsersRound aria-hidden="true" size={14} />
+            {assignees.length ? `${assignees.length} assigned` : "Unassigned"}
+          </span>
+        </div>
 
         <dl className="appointment-detail-list">
           <div>
@@ -897,6 +942,44 @@ function ConflictCard({ conflict }: { conflict: ScheduleConflict }) {
   );
 }
 
+function AttentionPanel({
+  eyebrow,
+  emptyCopy,
+  items,
+  title,
+  tone,
+}: {
+  eyebrow: string;
+  emptyCopy: string;
+  items: AttentionItem[];
+  title: string;
+  tone: "warning" | "neutral" | "calm";
+}) {
+  return (
+    <section className={`schedule-attention-panel tone-${tone}`}>
+      <div className="schedule-attention-panel-header">
+        <div>
+          <span>{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
+        <b>{items.length}</b>
+      </div>
+      {items.length ? (
+        <div className="schedule-attention-list">
+          {items.slice(0, 5).map((item) => (
+            <Link className="schedule-attention-card" href={item.href} key={item.id}>
+              <strong>{item.title}</strong>
+              <small>{item.detail}</small>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="schedule-attention-empty">{emptyCopy}</p>
+      )}
+    </section>
+  );
+}
+
 function buildScheduleSummary(entries: CalendarEntry[], users: ScheduleUser[]) {
   const eventsByUser = entries.reduce<Record<string, number>>((counts, entry) => {
     entry.assignees.forEach((assignee) => {
@@ -914,6 +997,48 @@ function buildScheduleSummary(entries: CalendarEntry[], users: ScheduleUser[]) {
       .filter((user) => user.role_names.includes("crew"))
       .reduce((sum, user) => sum + (eventsByUser[user.id] ?? 0), 0),
     eventsByUser,
+  };
+}
+
+type AttentionItem = {
+  id: string;
+  title: string;
+  detail: string;
+  href: string;
+};
+
+function buildScheduleAttention(entries: CalendarEntry[], conflicts: ScheduleConflict[]) {
+  const activeEntries = entries.filter((entry) => !isClosedScheduleEntry(entry));
+
+  return {
+    conflicts: conflicts.map((conflict) => ({
+      id: conflict.id,
+      title: conflict.title,
+      detail: conflict.detail,
+      href: conflict.href,
+    })),
+    unassigned: activeEntries
+      .filter((entry) => isCrewWorkEntry(entry) && entry.assignees.length === 0)
+      .map((entry) => ({
+        id: `attention-unassigned-${entry.source}-${entry.id}`,
+        title: entry.title,
+        detail: `${getEventTypeLabel(entry.event_type)} at ${formatEntryLocation(entry)}`,
+        href:
+          entry.source === "schedule_event"
+            ? buildScheduleHref({}, { event: entry.id })
+            : buildScheduleHref({}, { appointment: entry.id }),
+      })),
+    followUps: activeEntries
+      .filter((entry) => entry.event_type === "follow_up")
+      .map((entry) => ({
+        id: `attention-follow-up-${entry.source}-${entry.id}`,
+        title: entry.customer_label || entry.title,
+        detail: `${entry.all_day ? "All day" : formatTime(entry.starts_at)} • ${formatEntryLocation(entry)}`,
+        href:
+          entry.source === "schedule_event"
+            ? buildScheduleHref({}, { event: entry.id })
+            : buildScheduleHref({}, { appointment: entry.id }),
+      })),
   };
 }
 
@@ -993,6 +1118,27 @@ function toDrawerDateTime(date: Date) {
 function formatAppointmentLocation(appointment: AppointmentWithRelations) {
   const location = appointment.service_locations;
   return location ? `${location.street}, ${location.city}` : "No location";
+}
+
+function getAssigneeSummary(assignees: AssignableUser[]) {
+  if (assignees.length === 0) {
+    return "Unassigned";
+  }
+
+  if (assignees.length === 1) {
+    return assignees[0].full_name || assignees[0].email || "1 assigned";
+  }
+
+  const leadName = assignees[0].full_name || assignees[0].email || "Assigned crew";
+  return `${leadName} +${assignees.length - 1}`;
+}
+
+function isCrewWorkEntry(entry: CalendarEntry) {
+  return entry.event_type === "job" || entry.event_type === "emergency";
+}
+
+function isClosedScheduleEntry(entry: CalendarEntry) {
+  return entry.status === "completed" || entry.status === "cancelled";
 }
 
 function DataWarning({ message }: { message: string }) {

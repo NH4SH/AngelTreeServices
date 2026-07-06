@@ -173,6 +173,10 @@ export function getEventTypeLabel(eventType: AppointmentType | ScheduleEventType
   return eventType.replace("_", " ");
 }
 
+export function getStatusLabel(status: string) {
+  return status.replaceAll("_", " ");
+}
+
 export function isSameDay(left: Date, right: Date) {
   return formatDateInput(left) === formatDateInput(right);
 }

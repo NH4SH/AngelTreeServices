@@ -483,11 +483,14 @@ export type TimeEntryWithRelations = TimeEntry & {
 export type TimeClockUserSummary = AssignableUser & {
   role_names: string[];
   time_clock_permission?: TimeClockPermission | null;
+  time_clock_permission_changed_at?: string | null;
+  time_clock_permission_set_by_label?: string | null;
 };
 
 export type PayrollWarningKind =
   | "active_previous_day"
   | "long_shift"
+  | "missing_clock_out"
   | "missing_linked_work"
   | "overlap"
   | "invalid_duration";
@@ -544,7 +547,11 @@ export type PayrollReviewData = {
   warnings: PayrollWarning[];
 };
 
-export type ScheduleConflictKind = "overlap" | "unassigned_job" | "missing_end_time";
+export type ScheduleConflictKind =
+  | "overlap"
+  | "unassigned_job"
+  | "missing_end_time"
+  | "missing_linked_job";
 
 export type ScheduleConflict = {
   id: string;

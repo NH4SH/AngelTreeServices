@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUserRoles } from "@/lib/auth/roles";
+import { getCurrentUserRoles, getUserRoles } from "@/lib/auth/roles";
 import {
   canReviewTimeClock,
   canUseTimeClock,
   getTimeClockPermissionForUser,
+  isTimeClockRoleEligible,
 } from "@/lib/auth/time-clock";
 import { createClient } from "@/lib/supabase/server";
 
@@ -104,13 +105,6 @@ export async function clockOut(
     return { status: "error", message: "Sign in before using the time clock." };
   }
 
-  const roles = await getCurrentUserRoles();
-  const permission = await getTimeClockPermissionForUser(user.id, supabase);
-
-  if (!canUseTimeClock({ permission: permission.data, roles })) {
-    return { status: "error", message: "Time clock access is not enabled for this account." };
-  }
-
   const timeEntryId = String(formData.get("time_entry_id") ?? "").trim();
   const breakMinutes = getBreakMinutes(formData.get("break_minutes"));
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 1000) || null;
@@ -177,6 +171,15 @@ export async function setTimeClockPermission(
 
   if (!targetUserId) {
     return { status: "error", message: "Select a user first." };
+  }
+
+  const targetRoles = await getUserRoles(supabase, targetUserId);
+
+  if (!isTimeClockRoleEligible(targetRoles)) {
+    return {
+      status: "error",
+      message: "Only owner, admin, payroll, estimator, or crew accounts can use the time clock.",
+    };
   }
 
   const { error } = await supabase.from("time_clock_permissions").upsert({

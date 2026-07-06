@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, Filter, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
+import { AlertTriangle, Clock3, Filter, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
 import { PermissionToggleForm } from "@/components/time-clock";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -7,6 +7,7 @@ import { canReviewTimeClock } from "@/lib/auth/time-clock";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getJobOptions } from "@/lib/data/jobs";
 import {
+  getOpenTimeEntryHours,
   getTimeClockOverview,
   getTimeEntryHours,
 } from "@/lib/data/time-clock";
@@ -85,6 +86,28 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
           <SummaryChip emphasis label="Hours in view" value={`${overview.data.totalHours.toFixed(2)}h`} />
         </section>
 
+        <section className="panel">
+          <div className="panel-header">
+            <h2>Warnings</h2>
+            <span>Catch issues before payroll review gets messy</span>
+          </div>
+          {overview.data.warnings.length ? (
+            <div className="payroll-warning-list">
+              {overview.data.warnings.slice(0, 8).map((warning) => (
+                <article className="payroll-warning-card" key={warning.id}>
+                  <AlertTriangle aria-hidden="true" size={16} />
+                  <div>
+                    <strong>{warning.title}</strong>
+                    <p>{warning.detail}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyInline title="No time warnings in this window." body="Active timers, overlaps, and missing links will surface here." />
+          )}
+        </section>
+
         <section className="panel time-filter-panel">
           <div className="panel-header">
             <h2>Filters</h2>
@@ -141,10 +164,16 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                     <div>
                       <strong>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</strong>
                       <span>{entry.entry_type.replace("_", " ")} - {entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+                      {entry.entry_type === "job" && !entry.job_id && !entry.schedule_event_id ? (
+                        <small className="time-row-warning">Missing linked job or schedule event.</small>
+                      ) : null}
                     </div>
                     <div>
-                      <b>Since {formatTime(entry.clock_in_at)}</b>
-                      <small>{formatDate(entry.clock_in_at)}</small>
+                      <b>{getOpenTimeEntryHours(entry).toFixed(2)}h live</b>
+                      <small>Since {formatTime(entry.clock_in_at)} · {formatDate(entry.clock_in_at)}</small>
+                      {getOpenTimeEntryHours(entry) > 12 ? (
+                        <small className="time-row-warning">Over 12 hours</small>
+                      ) : null}
                     </div>
                   </article>
                 ))}
@@ -183,14 +212,24 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
         <section className="panel">
           <div className="panel-header">
             <h2>Time clock access</h2>
-            <span>Enable or disable the timer per employee</span>
+            <span>Enable or disable the timer per eligible employee</span>
           </div>
-          <div className="time-user-list">
-            {overview.data.users.map((user) => (
+          {overview.data.users.length ? (
+            <div className="time-user-list">
+              {overview.data.users.map((user) => (
               <article className="time-user-row" key={user.id}>
                 <div>
                   <strong>{user.full_name || user.email || "Unnamed employee"}</strong>
                   <span>{user.role_names.join(", ") || "No role assigned"}</span>
+                  {user.time_clock_permission ? (
+                    <small className="time-permission-meta">
+                      {user.time_clock_permission.is_enabled ? "Enabled" : "Disabled"}{" "}
+                      {user.time_clock_permission_changed_at ? `· ${formatDateTime(user.time_clock_permission_changed_at)}` : ""}
+                      {user.time_clock_permission_set_by_label ? ` · ${user.time_clock_permission_set_by_label}` : ""}
+                    </small>
+                  ) : (
+                    <small className="time-permission-meta">No timer permission row yet.</small>
+                  )}
                 </div>
                 <div className="time-user-actions">
                   <small>{user.time_clock_permission?.is_enabled ? "Enabled" : "Disabled"}</small>
@@ -201,8 +240,11 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                   </Link>
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyInline title="No eligible employees found." body="Add owner, admin, estimator, payroll, or crew roles before enabling the timer." />
+          )}
         </section>
 
         <section className="panel">
@@ -281,6 +323,15 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
+  }).format(new Date(value));
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(value));
 }
 

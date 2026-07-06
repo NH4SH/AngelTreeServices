@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Clock3, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
 import {
   PermissionToggleForm,
   TimeEntryAdjustmentForm,
@@ -76,13 +76,22 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
               <span>Clock enablement for this account</span>
             </div>
             {detail.data.user ? (
-              <div className="time-user-actions detail-user-actions">
-                <small>{detail.data.user.time_clock_permission?.is_enabled ? "Enabled" : "Disabled"}</small>
-                <PermissionToggleForm permission={detail.data.user.time_clock_permission} user={detail.data.user} />
-                <Link className="secondary-action" href="/admin/time">
-                  <ShieldCheck aria-hidden="true" size={16} />
-                  Back to time
-                </Link>
+              <div className="time-user-access-card">
+                <div>
+                  <strong>{detail.data.user.time_clock_permission?.is_enabled ? "Timer enabled" : "Timer disabled"}</strong>
+                  <p className="field-note">
+                    {detail.data.user.time_clock_permission_changed_at ? `Last changed ${formatDateTime(detail.data.user.time_clock_permission_changed_at)}` : "No enablement history yet."}
+                    {detail.data.user.time_clock_permission_set_by_label ? ` by ${detail.data.user.time_clock_permission_set_by_label}.` : ""}
+                  </p>
+                </div>
+                <div className="time-user-actions detail-user-actions">
+                  <small>{detail.data.user.time_clock_permission?.is_enabled ? "Enabled" : "Disabled"}</small>
+                  <PermissionToggleForm permission={detail.data.user.time_clock_permission} user={detail.data.user} />
+                  <Link className="secondary-action" href="/admin/time">
+                    <ShieldCheck aria-hidden="true" size={16} />
+                    Back to time
+                  </Link>
+                </div>
               </div>
             ) : (
               <p className="field-note">User not found or no access.</p>
@@ -112,6 +121,31 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
               </div>
             )}
           </section>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <h2>Warnings</h2>
+            <span>Open timers, overlaps, and missing linked work</span>
+          </div>
+          {detail.data.warnings.length ? (
+            <div className="payroll-warning-list">
+              {detail.data.warnings.slice(0, 6).map((warning) => (
+                <article className="payroll-warning-card" key={warning.id}>
+                  <AlertTriangle aria-hidden="true" size={16} />
+                  <div>
+                    <strong>{warning.title}</strong>
+                    <p>{warning.detail}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="crew-empty-inline">
+              <strong>No warnings for this employee.</strong>
+              <p>Any open timers, overlaps, or missing linked work will appear here.</p>
+            </div>
+          )}
         </section>
 
         <section className="panel">

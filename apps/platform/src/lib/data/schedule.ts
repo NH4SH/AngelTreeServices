@@ -378,8 +378,9 @@ function mapScheduleUsers(data: UserRow[]) {
 
 function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]) {
   const conflicts: ScheduleConflict[] = [];
+  const actionableEntries = entries.filter((entry) => !isClosedScheduleEntry(entry));
 
-  entries.forEach((entry) => {
+  actionableEntries.forEach((entry) => {
     if (!entry.ends_at && !entry.all_day) {
       conflicts.push({
         id: `missing-end-${entry.source}-${entry.id}`,
@@ -399,10 +400,20 @@ function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]
         href: buildEntryHref(entry),
       });
     }
+
+    if (entry.event_type === "job" && !entry.job_id) {
+      conflicts.push({
+        id: `missing-job-${entry.source}-${entry.id}`,
+        kind: "missing_linked_job",
+        title: `${entry.title} is missing its linked job`,
+        detail: "This calendar event should point back to a job record before it is dispatched.",
+        href: buildEntryHref(entry),
+      });
+    }
   });
 
   users.forEach((user) => {
-    const assignedEntries = entries
+    const assignedEntries = actionableEntries
       .filter((entry) => entry.assignees.some((assignee) => assignee.id === user.id))
       .filter((entry) => Boolean(entry.ends_at) || entry.all_day)
       .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
@@ -469,6 +480,10 @@ function resolveEntryEnd(entry: CalendarEntry) {
 
 function isCrewWorkEntry(entry: CalendarEntry) {
   return entry.event_type === "job" || entry.event_type === "emergency";
+}
+
+function isClosedScheduleEntry(entry: CalendarEntry) {
+  return entry.status === "completed" || entry.status === "cancelled";
 }
 
 function buildEntryHref(entry: CalendarEntry) {

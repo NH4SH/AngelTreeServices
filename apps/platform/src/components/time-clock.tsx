@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
+  Link2,
   PauseCircle,
   PlayCircle,
   ShieldCheck,
@@ -30,15 +31,14 @@ const initialState: TimeClockActionState = {
   message: "",
 };
 
-const timeEntryTypes = [
-  "job",
-  "drive",
-  "shop",
-  "maintenance",
-  "admin",
-  "training",
-  "break",
-  "other",
+const crewTimeEntryTypes = [
+  { value: "job", label: "Job", description: "On-site work tied to a job or scheduled event." },
+  { value: "drive", label: "Drive", description: "Travel between yard, shop, and job sites." },
+  { value: "shop", label: "Shop", description: "Shop cleanup, sharpening, and loading." },
+  { value: "maintenance", label: "Maintenance", description: "Equipment service or yard upkeep." },
+  { value: "admin", label: "Admin", description: "Office, paperwork, or supply runs." },
+  { value: "training", label: "Training", description: "Safety meetings or supervised practice." },
+  { value: "other", label: "Other", description: "Anything valid that does not fit above." },
 ] as const;
 
 export function CrewClockInForm({
@@ -53,38 +53,51 @@ export function CrewClockInForm({
   return (
     <form action={formAction} className="crm-form time-clock-form">
       <FormMessage state={state} />
-      <label>
-        Time type
-        <select defaultValue="job" name="entry_type">
-          {timeEntryTypes.map((entryType) => (
-            <option key={entryType} value={entryType}>
-              {entryType.replace("_", " ")}
-            </option>
+      <fieldset className="time-type-fieldset">
+        <legend>Time type</legend>
+        <div className="time-type-grid">
+          {crewTimeEntryTypes.map((entryType) => (
+            <label className="time-type-option" key={entryType.value}>
+              <input
+                defaultChecked={entryType.value === "job"}
+                name="entry_type"
+                type="radio"
+                value={entryType.value}
+              />
+              <span className="time-type-copy">
+                <strong>{entryType.label}</strong>
+                <small>{entryType.description}</small>
+              </span>
+            </label>
           ))}
-        </select>
-      </label>
-      <label>
-        Assigned job
-        <select defaultValue="" name="job_id">
-          <option value="">No linked job</option>
-          {jobs.map((job) => (
-            <option key={job.id} value={job.id}>
-              {(job.customers?.display_name || "Customer")} - {job.service_type?.replace("_", " ") || "work"}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Scheduled event
-        <select defaultValue="" name="schedule_event_id">
-          <option value="">No linked schedule event</option>
-          {scheduleEvents.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.title} - {formatDateTime(event.starts_at)}
-            </option>
-          ))}
-        </select>
-      </label>
+        </div>
+      </fieldset>
+      <div className="time-link-grid">
+        <label>
+          Assigned job
+          <select defaultValue="" name="job_id">
+            <option value="">No linked job</option>
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {(job.customers?.display_name || "Customer")} - {job.service_type?.replace("_", " ") || "work"}
+              </option>
+            ))}
+          </select>
+          <small className="form-help">Use this when you are on a specific customer job.</small>
+        </label>
+        <label>
+          Scheduled event
+          <select defaultValue="" name="schedule_event_id">
+            <option value="">No linked schedule event</option>
+            {scheduleEvents.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title} - {formatDateTime(event.starts_at)}
+              </option>
+            ))}
+          </select>
+          <small className="form-help">Helpful when dispatch scheduled the work from the calendar first.</small>
+        </label>
+      </div>
       <label>
         Notes
         <textarea name="notes" placeholder="Optional note for the day, stop, or task." rows={3} />
@@ -107,6 +120,7 @@ export function CrewClockOutForm({ activeEntry }: { activeEntry: TimeEntryWithRe
       <label>
         Break minutes
         <input defaultValue={activeEntry.break_minutes} min={0} name="break_minutes" step={1} type="number" />
+        <small className="form-help">Add unpaid break time before you stop the timer.</small>
       </label>
       <label>
         Notes
@@ -150,6 +164,20 @@ export function LiveTimerCard({ entry }: { entry: TimeEntryWithRelations }) {
         {entry.entry_type.replace("_", " ")}
         {entry.jobs?.customers?.display_name ? ` - ${entry.jobs.customers.display_name}` : ""}
       </span>
+      <div className="time-live-context">
+        {entry.jobs?.service_type ? (
+          <p>
+            <Link2 aria-hidden="true" size={15} />
+            {entry.jobs.service_type.replace("_", " ")}
+          </p>
+        ) : null}
+        {entry.schedule_events?.title ? (
+          <p>
+            <Link2 aria-hidden="true" size={15} />
+            {entry.schedule_events.title}
+          </p>
+        ) : null}
+      </div>
       <small>
         Clocked in at {formatTime(entry.clock_in_at)}
         {entry.jobs?.service_type ? ` for ${entry.jobs.service_type.replace("_", " ")}` : ""}
@@ -159,9 +187,13 @@ export function LiveTimerCard({ entry }: { entry: TimeEntryWithRelations }) {
 }
 
 export function PermissionToggleForm({
+  disabled = false,
+  disabledReason,
   permission,
   user,
 }: {
+  disabled?: boolean;
+  disabledReason?: string;
   permission: TimeClockPermission | null | undefined;
   user: TimeClockUserSummary;
 }) {
@@ -172,7 +204,11 @@ export function PermissionToggleForm({
     <form action={formAction} className="time-permission-form">
       <input name="user_id" type="hidden" value={user.id} />
       <input name="enabled" type="hidden" value={String(nextEnabled)} />
-      <button className={nextEnabled ? "secondary-action button-reset" : "secondary-action button-reset destructive-soft"} disabled={pending} type="submit">
+      <button
+        className={nextEnabled ? "secondary-action button-reset" : "secondary-action button-reset destructive-soft"}
+        disabled={pending || disabled}
+        type="submit"
+      >
         <ShieldCheck aria-hidden="true" size={16} />
         {nextEnabled ? "Enable" : "Disable"}
       </button>
@@ -180,6 +216,8 @@ export function PermissionToggleForm({
         <small className={state.status === "error" ? "time-inline-feedback error" : "time-inline-feedback"}>
           {state.message}
         </small>
+      ) : disabledReason ? (
+        <small className="time-inline-feedback">{disabledReason}</small>
       ) : null}
     </form>
   );

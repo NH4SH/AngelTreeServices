@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import type {
+  AssignableUser,
   DataResult,
+  PayrollWarning,
   ScheduleEventWithRelations,
   TimeClockPermission,
   TimeClockUserSummary,
@@ -20,6 +22,8 @@ type UserRow = {
   email: string | null;
   user_roles?: RoleNameRow[] | null;
 };
+
+type ProfileLabelRow = Pick<AssignableUser, "id" | "full_name" | "email">;
 
 export const timeEntrySelect = `
   *,
@@ -65,17 +69,57 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
   const permissionsByUserId = new Map(
     ((permissionsResult.data ?? []) as TimeClockPermission[]).map((permission) => [permission.user_id, permission]),
   );
+  const creatorIds = [...new Set(
+    ((permissionsResult.data ?? []) as TimeClockPermission[])
+      .map((permission) => permission.created_by_user_id)
+      .filter(Boolean),
+  )] as string[];
+  const creatorProfiles = creatorIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", creatorIds)
+    : { data: [], error: null };
+
+  if (creatorProfiles.error) {
+    return {
+      data: [],
+      error: creatorProfiles.error.message,
+    };
+  }
+
+  const creatorsById = new Map(
+    ((creatorProfiles.data ?? []) as ProfileLabelRow[]).map((profile) => [
+      profile.id,
+      profile.full_name || profile.email || "Admin",
+    ]),
+  );
 
   return {
-    data: ((profilesResult.data ?? []) as UserRow[]).map((user) => ({
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      role_names: (user.user_roles ?? [])
-        .flatMap((row) => row.roles ?? [])
-        .map((role) => role.name),
-      time_clock_permission: permissionsByUserId.get(user.id) ?? null,
-    })),
+    data: ((profilesResult.data ?? []) as UserRow[])
+      .map((user) => {
+        const roleNames = (user.user_roles ?? [])
+          .flatMap((row) => row.roles ?? [])
+          .map((role) => role.name);
+        const permission = permissionsByUserId.get(user.id) ?? null;
+
+        return {
+          id: user.id,
+          full_name: user.full_name,
+          email: user.email,
+          role_names: roleNames,
+          time_clock_permission: permission,
+          time_clock_permission_changed_at: permission?.updated_at ?? permission?.created_at ?? null,
+          time_clock_permission_set_by_label: permission?.created_by_user_id
+            ? (creatorsById.get(permission.created_by_user_id) ?? "Unknown reviewer")
+            : null,
+        };
+      })
+      .filter((user) =>
+        user.role_names.some((role) =>
+          ["owner", "admin", "payroll_admin", "estimator", "crew"].includes(role),
+        ),
+      ),
     error: null,
   };
 }
@@ -178,6 +222,7 @@ export async function getTimeClockOverview(filters: TimeEntryFilters = {}) {
     (entry) => entry.status !== "active" && getLatestTimeEntryReviewStatus(entry) !== "approved",
   );
   const totalHours = entries.data.reduce((sum, entry) => sum + getTimeEntryHours(entry), 0);
+  const warnings = buildTimeEntryWarnings(entries.data);
 
   return {
     data: {
@@ -186,6 +231,7 @@ export async function getTimeClockOverview(filters: TimeEntryFilters = {}) {
       entriesNeedingReview,
       totalHours,
       users: users.data,
+      warnings,
     },
     error: [entries.error, users.error].filter(Boolean).join(" | ") || null,
   };
@@ -199,6 +245,7 @@ export async function getTimeClockUserDetail(userId: string, filters: TimeEntryF
   const user = users.data.find((entry) => entry.id === userId) ?? null;
   const activeEntry = entries.data.find((entry) => entry.status === "active" && !entry.clock_out_at) ?? null;
   const totalHours = entries.data.reduce((sum, entry) => sum + getTimeEntryHours(entry), 0);
+  const warnings = buildTimeEntryWarnings(entries.data);
 
   return {
     data: {
@@ -206,6 +253,7 @@ export async function getTimeClockUserDetail(userId: string, filters: TimeEntryF
       entries: entries.data,
       totalHours,
       user,
+      warnings,
     },
     error: [entries.error, users.error].filter(Boolean).join(" | ") || null,
   };
@@ -227,6 +275,20 @@ export function getTimeEntryHours(entry: Pick<TimeEntryWithRelations, "clock_in_
   return minutes / 60;
 }
 
+export function getOpenTimeEntryHours(
+  entry: Pick<TimeEntryWithRelations, "clock_in_at" | "clock_out_at" | "break_minutes">,
+) {
+  const started = new Date(entry.clock_in_at).getTime();
+  const ended = entry.clock_out_at ? new Date(entry.clock_out_at).getTime() : Date.now();
+
+  if (!Number.isFinite(started) || !Number.isFinite(ended) || ended <= started) {
+    return 0;
+  }
+
+  const minutes = Math.max(0, Math.round((ended - started) / 60000) - entry.break_minutes);
+  return minutes / 60;
+}
+
 export function getLatestTimeEntryReview(entry: Pick<TimeEntryWithRelations, "time_entry_approvals">) {
   const approvals = (entry.time_entry_approvals ?? [])
     .slice()
@@ -237,4 +299,110 @@ export function getLatestTimeEntryReview(entry: Pick<TimeEntryWithRelations, "ti
 
 export function getLatestTimeEntryReviewStatus(entry: Pick<TimeEntryWithRelations, "time_entry_approvals">) {
   return (getLatestTimeEntryReview(entry)?.approval_status ?? "pending") as TimeEntryReviewStatus | "pending";
+}
+
+export function buildTimeEntryWarnings(entries: TimeEntryWithRelations[]) {
+  const warnings: PayrollWarning[] = [];
+  const byUser = new Map<string, TimeEntryWithRelations[]>();
+
+  entries.forEach((entry) => {
+    const employeeLabel = entry.profiles?.full_name || entry.profiles?.email || "Employee";
+    const startedAt = new Date(entry.clock_in_at).getTime();
+    const endedAt = entry.clock_out_at ? new Date(entry.clock_out_at).getTime() : null;
+    const hours = getTimeEntryHours(entry);
+    const openHours = entry.clock_out_at ? hours : getOpenTimeEntryHours(entry);
+
+    if (entry.status === "active" && !entry.clock_out_at) {
+      warnings.push({
+        id: `${entry.id}-missing_clock_out`,
+        kind: "missing_clock_out",
+        title: `${employeeLabel} still has an open timer`,
+        detail: `Clocked in ${openHours.toFixed(2)} hours ago and has not clocked out yet.`,
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    if (entry.status === "active" && !entry.clock_out_at && openHours > 12) {
+      warnings.push({
+        id: `${entry.id}-active_previous_day`,
+        kind: "active_previous_day",
+        title: `${employeeLabel} has an active timer over 12 hours`,
+        detail: `${openHours.toFixed(2)} hours have elapsed on one active timer.`,
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    if (entry.clock_out_at && hours > 12) {
+      warnings.push({
+        id: `${entry.id}-long_shift`,
+        kind: "long_shift",
+        title: `${employeeLabel} has a shift longer than 12 hours`,
+        detail: `${hours.toFixed(2)} hours recorded on one completed entry.`,
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    if (entry.entry_type === "job" && !entry.job_id && !entry.schedule_event_id) {
+      warnings.push({
+        id: `${entry.id}-missing_linked_work`,
+        kind: "missing_linked_work",
+        title: `${employeeLabel} has job time without linked work`,
+        detail: "Job time should point to a job or a scheduled event before review.",
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    if (
+      entry.clock_out_at &&
+      (!Number.isFinite(startedAt) ||
+        endedAt === null ||
+        !Number.isFinite(endedAt) ||
+        endedAt <= startedAt ||
+        hours <= 0)
+    ) {
+      warnings.push({
+        id: `${entry.id}-invalid_duration`,
+        kind: "invalid_duration",
+        title: `${employeeLabel} has an invalid duration`,
+        detail: "Clock-out must be after clock-in and produce a positive duration.",
+        user_id: entry.user_id,
+        time_entry_id: entry.id,
+      });
+    }
+
+    const group = byUser.get(entry.user_id) ?? [];
+    group.push(entry);
+    byUser.set(entry.user_id, group);
+  });
+
+  byUser.forEach((userEntries) => {
+    const ordered = userEntries
+      .slice()
+      .sort((left, right) => new Date(left.clock_in_at).getTime() - new Date(right.clock_in_at).getTime());
+
+    for (let index = 1; index < ordered.length; index += 1) {
+      const previous = ordered[index - 1];
+      const current = ordered[index];
+      const previousEnd = previous.clock_out_at ? new Date(previous.clock_out_at).getTime() : null;
+      const currentStart = new Date(current.clock_in_at).getTime();
+
+      if (previousEnd && previousEnd > currentStart) {
+        const employeeLabel = current.profiles?.full_name || current.profiles?.email || "Employee";
+        warnings.push({
+          id: `${previous.id}-${current.id}-overlap`,
+          kind: "overlap",
+          title: `${employeeLabel} has overlapping entries`,
+          detail: "Two time entries overlap and need cleanup before payroll review.",
+          user_id: current.user_id,
+          time_entry_id: current.id,
+        });
+      }
+    }
+  });
+
+  return warnings;
 }

@@ -3323,6 +3323,98 @@ h1,
   padding: 10px;
 }
 
+.schedule-attention-lane {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.schedule-attention-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.schedule-attention-panel.tone-warning {
+  background: color-mix(in oklab, var(--color-surface) 92%, oklch(0.97 0.03 98));
+}
+
+.schedule-attention-panel.tone-neutral {
+  background: color-mix(in oklab, var(--color-surface) 94%, oklch(0.97 0.01 150));
+}
+
+.schedule-attention-panel.tone-calm {
+  background: color-mix(in oklab, var(--color-surface) 92%, oklch(0.97 0.02 132));
+}
+
+.schedule-attention-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.schedule-attention-panel-header span {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.schedule-attention-panel-header h2 {
+  margin: 4px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.schedule-attention-panel-header b {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-charcoal);
+  font-size: 0.88rem;
+}
+
+.schedule-attention-list {
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-attention-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  padding: 12px;
+}
+
+.schedule-attention-card strong {
+  color: var(--color-charcoal);
+  font-size: 0.92rem;
+}
+
+.schedule-attention-card small,
+.schedule-attention-empty {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.schedule-attention-empty {
+  margin: 0;
+}
+
 .calendar-quiet-empty {
   margin: 4px 0 0;
   color: oklch(0.62 0.008 150);
@@ -3331,12 +3423,12 @@ h1,
 
 .calendar-appointment {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
   border: 1px solid var(--appointment-border, var(--color-border));
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--appointment-bg, var(--color-surface-subtle));
-  padding: 10px 11px;
+  padding: 12px;
   color: var(--color-charcoal);
   box-shadow: 0 1px 3px oklch(0.2 0.01 150 / 0.04);
 }
@@ -3347,7 +3439,7 @@ h1,
 }
 
 .calendar-appointment.is-compact {
-  padding: 8px;
+  padding: 10px;
 }
 
 .calendar-appointment.field {
@@ -3370,10 +3462,43 @@ h1,
   --appointment-border: oklch(0.78 0.023 174);
 }
 
+.calendar-appointment.pto {
+  --appointment-bg: oklch(0.965 0.018 318);
+  --appointment-border: oklch(0.79 0.045 318);
+}
+
+.calendar-appointment.blocked {
+  --appointment-bg: oklch(0.956 0.01 246);
+  --appointment-border: oklch(0.77 0.028 246);
+}
+
+.calendar-appointment.internal {
+  --appointment-bg: oklch(0.966 0.012 210);
+  --appointment-border: oklch(0.79 0.03 210);
+}
+
+.calendar-appointment.emergency {
+  --appointment-bg: oklch(0.962 0.025 32);
+  --appointment-border: oklch(0.77 0.07 32);
+}
+
 .calendar-appointment.muted {
   --appointment-bg: oklch(0.955 0.004 25);
   --appointment-border: oklch(0.78 0.02 25);
   opacity: 0.72;
+}
+
+.calendar-appointment-topline,
+.calendar-appointment-header,
+.calendar-appointment-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-appointment-header {
+  align-items: center;
 }
 
 .appointment-time {
@@ -3385,23 +3510,113 @@ h1,
   font-weight: 720;
 }
 
-.calendar-appointment strong {
-  overflow: hidden;
-  color: var(--color-charcoal);
-  font-size: 0.86rem;
-  font-weight: 740;
-  text-overflow: ellipsis;
-  text-transform: capitalize;
+.calendar-status-chip,
+.calendar-type-chip,
+.schedule-detail-chip {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 10px;
   white-space: nowrap;
 }
 
-.calendar-appointment span:not(.appointment-time),
-.calendar-appointment small {
-  overflow: hidden;
+.calendar-status-chip,
+.calendar-type-chip {
+  color: var(--color-charcoal);
+  font-size: 0.73rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.calendar-status-chip.field,
+.calendar-type-chip.field {
+  border-color: oklch(0.76 0.054 151);
+  background: oklch(0.968 0.018 151);
+}
+
+.calendar-status-chip.estimate,
+.calendar-type-chip.estimate {
+  border-color: oklch(0.78 0.047 132);
+  background: oklch(0.974 0.016 132);
+}
+
+.calendar-status-chip.follow-up,
+.calendar-type-chip.follow-up {
+  border-color: oklch(0.78 0.062 96);
+  background: oklch(0.976 0.022 96);
+}
+
+.calendar-status-chip.maintenance,
+.calendar-type-chip.maintenance {
+  border-color: oklch(0.78 0.023 174);
+  background: oklch(0.974 0.008 174);
+}
+
+.calendar-status-chip.pto,
+.calendar-type-chip.pto {
+  border-color: oklch(0.79 0.045 318);
+  background: oklch(0.976 0.014 318);
+}
+
+.calendar-status-chip.blocked,
+.calendar-type-chip.blocked {
+  border-color: oklch(0.77 0.028 246);
+  background: oklch(0.974 0.008 246);
+}
+
+.calendar-status-chip.internal,
+.calendar-type-chip.internal {
+  border-color: oklch(0.79 0.03 210);
+  background: oklch(0.976 0.008 210);
+}
+
+.calendar-status-chip.emergency,
+.calendar-type-chip.emergency {
+  border-color: oklch(0.77 0.07 32);
+  background: oklch(0.974 0.016 32);
+}
+
+.calendar-status-chip.muted,
+.calendar-type-chip.muted {
+  border-color: oklch(0.78 0.02 25);
+  background: oklch(0.965 0.004 25);
   color: var(--color-muted);
-  font-size: 0.76rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.calendar-appointment strong {
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+  font-weight: 760;
+  text-transform: capitalize;
+}
+
+.calendar-appointment span:not(.appointment-time):not(.calendar-status-chip):not(.calendar-type-chip),
+.calendar-appointment small {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.calendar-appointment-context {
+  color: oklch(0.34 0.016 150) !important;
+  font-weight: 700;
+}
+
+.calendar-appointment-meta {
+  flex-wrap: wrap;
+}
+
+.calendar-appointment-meta span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.calendar-appointment-meta svg {
+  flex: 0 0 auto;
 }
 
 .calendar-day-view {
@@ -3435,14 +3650,7 @@ h1,
 }
 
 .calendar-agenda-list .calendar-appointment {
-  grid-template-columns: 150px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px 14px;
-  min-height: 72px;
-}
-
-.calendar-agenda-list .calendar-appointment small {
-  grid-column: 2 / -1;
+  min-height: 92px;
 }
 
 .calendar-empty-agenda {
@@ -3542,6 +3750,10 @@ h1,
 .appointment-dot.estimate { background: oklch(0.52 0.09 132); }
 .appointment-dot.follow-up { background: oklch(0.65 0.105 96); }
 .appointment-dot.maintenance { background: oklch(0.55 0.04 174); }
+.appointment-dot.pto { background: oklch(0.62 0.1 318); }
+.appointment-dot.blocked { background: oklch(0.56 0.045 246); }
+.appointment-dot.internal { background: oklch(0.54 0.04 210); }
+.appointment-dot.emergency { background: oklch(0.62 0.13 32); }
 .appointment-dot.muted { background: oklch(0.58 0.015 25); }
 
 .appointment-overlay {
@@ -7046,6 +7258,19 @@ body {
   margin-top: 14px;
 }
 
+.schedule-detail-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.schedule-detail-chip {
+  color: var(--color-charcoal);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .schedule-detail-warning {
   display: flex;
   align-items: flex-start;
@@ -7065,6 +7290,17 @@ body {
 }
 
 @media (max-width: 760px) {
+  .schedule-attention-lane {
+    grid-template-columns: 1fr;
+    padding-inline: 12px;
+  }
+
+  .calendar-appointment-topline,
+  .calendar-appointment-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .schedule-conflicts-panel,
   .crew-day-sheet {
     padding-inline: 12px;
@@ -7170,6 +7406,146 @@ body {
   margin-top: 0;
 }
 
+.time-type-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.time-type-fieldset legend {
+  margin-bottom: 10px;
+  color: var(--color-forest);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.time-type-grid,
+.time-link-grid,
+.time-clock-helper-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.time-type-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.time-link-grid,
+.time-clock-helper-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.time-type-option {
+  display: block;
+  cursor: pointer;
+}
+
+.time-type-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.time-type-copy {
+  display: grid;
+  gap: 4px;
+  min-height: 96px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  padding: 14px;
+  transition:
+    border-color 180ms ease-out,
+    background-color 180ms ease-out,
+    transform 180ms ease-out,
+    box-shadow 180ms ease-out;
+}
+
+.time-type-copy strong {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.time-type-copy small {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.time-type-option input:checked + .time-type-copy {
+  border-color: color-mix(in oklab, var(--color-forest) 38%, var(--color-border));
+  background: color-mix(in oklab, var(--color-surface) 80%, oklch(0.97 0.018 151));
+  box-shadow: var(--shadow-small);
+}
+
+.time-type-option input:focus-visible + .time-type-copy {
+  outline: 2px solid color-mix(in oklab, var(--color-forest) 42%, white);
+  outline-offset: 2px;
+}
+
+.form-help {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.time-live-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.time-live-context p,
+.time-clock-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.time-live-context p {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  padding: 6px 10px;
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.time-clock-alert {
+  margin: 0 0 12px;
+  border: 1px solid color-mix(in oklab, oklch(0.72 0.12 82) 24%, var(--color-border));
+  border-radius: 14px;
+  background: color-mix(in oklab, oklch(0.97 0.03 98) 82%, white);
+  padding: 10px 12px;
+  color: oklch(0.43 0.08 82);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.time-clock-helper-grid div,
+.time-user-access-card {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-subtle);
+  padding: 14px;
+}
+
+.time-clock-helper-grid strong,
+.time-user-access-card strong {
+  color: var(--color-charcoal);
+  font-size: 0.96rem;
+}
+
+.time-clock-helper-grid p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
 .time-review-button-row {
   display: flex;
   flex-wrap: wrap;
@@ -7188,9 +7564,10 @@ body {
 
 .time-clock-primary-button,
 .time-clock-stop-button {
-  min-height: 58px !important;
+  min-height: 64px !important;
   justify-content: center;
-  font-size: 1.02rem;
+  font-size: 1.04rem;
+  font-weight: 760;
 }
 
 .time-clock-stop-button {
@@ -7259,6 +7636,18 @@ body {
   font-size: 0.78rem;
 }
 
+.time-row-warning,
+.time-permission-meta {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.time-row-warning {
+  color: oklch(0.43 0.08 82);
+}
+
 .time-user-actions,
 .detail-user-actions {
   display: flex;
@@ -7282,6 +7671,13 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.time-user-access-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .time-inline-feedback {
@@ -7496,6 +7892,12 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .time-type-grid,
+  .time-link-grid,
+  .time-clock-helper-grid {
+    grid-template-columns: 1fr;
+  }
+
   .payroll-top-grid,
   .payroll-summary-grid,
   .payroll-employee-grid {
@@ -7521,6 +7923,10 @@ body {
   .detail-user-actions,
   .time-user-actions {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .time-user-access-card {
     flex-direction: column;
   }
 

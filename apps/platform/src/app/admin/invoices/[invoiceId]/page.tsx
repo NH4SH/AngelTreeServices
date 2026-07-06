@@ -130,6 +130,18 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 </section>
 
                 <section className="commerce-side-panel">
+                  <PanelTitle icon={<FileText size={18} />} title="Source quote" />
+                  {detail.data.quote_id ? (
+                    <Link className="linked-record" href={`/admin/quotes/${detail.data.quote_id}`}>
+                      <strong>Open quote</strong>
+                      <span>Return to the estimate that created this invoice.</span>
+                    </Link>
+                  ) : (
+                    <EmptyInline>No quote linked to this invoice.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
                   <PanelTitle icon={<ReceiptText size={18} />} title="Billing" />
                   <dl className="record-details">
                     <div><dt>Total due</dt><dd>{formatCurrency(detail.data.total_cents)}</dd></div>

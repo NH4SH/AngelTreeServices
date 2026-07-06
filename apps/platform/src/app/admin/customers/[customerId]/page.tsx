@@ -73,7 +73,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
                 <div className="quick-action-list">
                   <a href="#add-location">Add service location</a>
                   <a href="#add-job">Add job</a>
-                  <Link href="/admin/quotes">Create quote from job</Link>
+                  <Link href="/admin/quotes?new=1">Create quote from job</Link>
                 </div>
               </article>
             </section>

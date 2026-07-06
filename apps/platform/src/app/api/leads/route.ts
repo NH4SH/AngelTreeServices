@@ -62,7 +62,12 @@ export async function POST(request: Request) {
       console.error("Website lead intake completed with a note warning:", result.error);
     }
 
-    await notifyOfficeOfWebsiteLead(result.jobId);
+    try {
+      await notifyOfficeOfWebsiteLead(result.jobId);
+    } catch (notificationError) {
+      console.error("Website lead notification failed after lead creation:", notificationError);
+    }
+
     return json({ ok: true, message: "Thanks. We received your request and will follow up soon." }, 201, origin);
   } catch (error) {
     console.error("Website lead intake request failed:", error);

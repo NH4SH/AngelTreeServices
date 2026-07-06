@@ -150,6 +150,20 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 </section>
 
                 <section className="commerce-side-panel">
+                  <PanelTitle icon={<ReceiptText size={18} />} title="Invoices from this quote" />
+                  {detail.data.invoices?.length ? (
+                    detail.data.invoices.map((invoice) => (
+                      <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
+                        <strong>{invoice.invoice_number || "Invoice"}</strong>
+                        <span>{invoice.status.replace("_", " ")} - {formatCurrency(invoice.balance_due_cents)} due</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <EmptyInline>No invoices created from this quote yet.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
                   <PanelTitle icon={<ReceiptText size={18} />} title="Totals" />
                   <dl className="record-details">
                     <div><dt>Subtotal</dt><dd>{formatCurrency(detail.data.subtotal_cents)}</dd></div>

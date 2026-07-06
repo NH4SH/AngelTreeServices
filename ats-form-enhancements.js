@@ -288,16 +288,27 @@
       },
     }).then(function (response) {
       return response
-        .json()
-        .catch(function () {
-          return {};
-        })
-        .then(function (body) {
-          if (!response.ok || !body.ok) {
+        .text()
+        .then(function (text) {
+          var body = {};
+
+          if (text) {
+            try {
+              body = JSON.parse(text);
+            } catch (error) {
+              body = {};
+            }
+          }
+
+          if (!response.ok || body.ok === false) {
             throw new Error(body.message || "We could not send your request right now. Please call our office.");
           }
 
-          return body;
+          return {
+            ok: true,
+            message:
+              body.message || "Thanks. We received your request and will follow up soon.",
+          };
         });
     });
   }

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { DataResult, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
+import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
 
 export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
   const supabase = await createClient();
@@ -82,18 +82,30 @@ export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteD
   }
 
   const jobId = (quote as QuoteWithRelations).job_id;
-  const { data: notes, error: notesError } = await supabase
-    .from("notes")
-    .select("*")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: false });
+  const [notes, invoices] = await Promise.all([
+    supabase
+      .from("notes")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("invoices")
+      .select(
+        "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      )
+      .eq("quote_id", quoteId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const firstError = notes.error?.message ?? invoices.error?.message ?? null;
 
   return {
     data: {
       ...(quote as QuoteWithRelations),
       jobs: (quote as { jobs?: JobWithRelations | null }).jobs ?? null,
-      notes: (notes ?? []) as Note[],
+      invoices: (invoices.data ?? []) as InvoiceWithRelations[],
+      notes: (notes.data ?? []) as Note[],
     },
-    error: notesError?.message ?? null,
+    error: firstError,
   };
 }

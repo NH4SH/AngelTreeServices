@@ -631,6 +631,7 @@ export type JobDetail = JobWithRelations & {
 
 export type QuoteDetail = QuoteWithRelations & {
   jobs?: JobWithRelations | null;
+  invoices?: InvoiceWithRelations[];
   notes?: Note[];
 };
 

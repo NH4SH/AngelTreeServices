@@ -482,9 +482,14 @@ export type TimeEntryWithRelations = TimeEntry & {
 
 export type TimeClockUserSummary = AssignableUser & {
   role_names: string[];
+  is_time_clock_role_eligible?: boolean;
   time_clock_permission?: TimeClockPermission | null;
   time_clock_permission_changed_at?: string | null;
   time_clock_permission_set_by_label?: string | null;
+  active_timer_entry_id?: string | null;
+  active_timer_entry_type?: TimeEntryType | null;
+  active_timer_started_at?: string | null;
+  active_timer_work_label?: string | null;
 };
 
 export type PayrollWarningKind =

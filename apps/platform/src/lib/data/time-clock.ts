@@ -74,6 +74,11 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
       .map((permission) => permission.created_by_user_id)
       .filter(Boolean),
   )] as string[];
+  const activeEntriesResult = await supabase
+    .from("time_entries")
+    .select("id, user_id, entry_type, clock_in_at, jobs(customers(display_name)), schedule_events(title)")
+    .eq("status", "active")
+    .is("clock_out_at", null);
   const creatorProfiles = creatorIds.length
     ? await supabase
         .from("profiles")
@@ -81,10 +86,10 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
         .in("id", creatorIds)
     : { data: [], error: null };
 
-  if (creatorProfiles.error) {
+  if (creatorProfiles.error || activeEntriesResult.error) {
     return {
       data: [],
-      error: creatorProfiles.error.message,
+      error: creatorProfiles.error?.message ?? activeEntriesResult.error?.message ?? "Unable to load time clock users.",
     };
   }
 
@@ -92,6 +97,24 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
     ((creatorProfiles.data ?? []) as ProfileLabelRow[]).map((profile) => [
       profile.id,
       profile.full_name || profile.email || "Admin",
+    ]),
+  );
+  const activeEntriesByUserId = new Map(
+    ((activeEntriesResult.data ?? []) as {
+      id: string;
+      user_id: string;
+      entry_type: TimeClockUserSummary["active_timer_entry_type"];
+      clock_in_at: string;
+      jobs?: { customers?: { display_name?: string | null } | null } | null;
+      schedule_events?: { title?: string | null } | null;
+    }[]).map((entry) => [
+      entry.user_id,
+      {
+        id: entry.id,
+        entryType: entry.entry_type,
+        startedAt: entry.clock_in_at,
+        workLabel: entry.jobs?.customers?.display_name || entry.schedule_events?.title || null,
+      },
     ]),
   );
 
@@ -102,23 +125,30 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
           .flatMap((row) => row.roles ?? [])
           .map((role) => role.name);
         const permission = permissionsByUserId.get(user.id) ?? null;
+        const activeEntry = activeEntriesByUserId.get(user.id);
+        const eligible = roleNames.some((role) =>
+          ["owner", "admin", "payroll_admin", "estimator", "crew"].includes(role),
+        );
 
         return {
           id: user.id,
           full_name: user.full_name,
           email: user.email,
           role_names: roleNames,
+          is_time_clock_role_eligible: eligible,
           time_clock_permission: permission,
           time_clock_permission_changed_at: permission?.updated_at ?? permission?.created_at ?? null,
           time_clock_permission_set_by_label: permission?.created_by_user_id
             ? (creatorsById.get(permission.created_by_user_id) ?? "Unknown reviewer")
             : null,
+          active_timer_entry_id: activeEntry?.id ?? null,
+          active_timer_entry_type: activeEntry?.entryType ?? null,
+          active_timer_started_at: activeEntry?.startedAt ?? null,
+          active_timer_work_label: activeEntry?.workLabel ?? null,
         };
       })
       .filter((user) =>
-        user.role_names.some((role) =>
-          ["owner", "admin", "payroll_admin", "estimator", "crew"].includes(role),
-        ),
+        user.is_time_clock_role_eligible,
       ),
     error: null,
   };

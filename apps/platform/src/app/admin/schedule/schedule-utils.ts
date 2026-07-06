@@ -125,6 +125,13 @@ export function formatTime(value: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }
 
+export function formatDateTimeLabel(
+  value: string,
+  options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+) {
+  return new Intl.DateTimeFormat("en-US", options).format(new Date(value));
+}
+
 export function formatEntryLocation(entry: CalendarEntry) {
   return entry.location_label || "No location";
 }

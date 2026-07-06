@@ -39,6 +39,7 @@ export default async function CrewTimePage() {
     permission: permission.data,
     roles: context.roles,
   });
+  const recentCompletedEntries = recentEntries.data.filter((entry) => !activeEntry.data || entry.id !== activeEntry.data.id).slice(0, 8);
 
   return (
     <PlatformFrame active="crew-time" roles={context.roles} userEmail={context.user.email}>
@@ -63,6 +64,21 @@ export default async function CrewTimePage() {
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
           ))}
+
+        <section className="commerce-summary-strip" aria-label="Time clock summary">
+          <div className="commerce-summary-chip emphasis">
+            <span>Status</span>
+            <strong>{activeEntry.data ? "Clocked in" : timerEnabled ? "Clocked out" : "Disabled"}</strong>
+          </div>
+          <div className="commerce-summary-chip">
+            <span>Available jobs</span>
+            <strong>{jobs.data.length}</strong>
+          </div>
+          <div className="commerce-summary-chip">
+            <span>Scheduled events</span>
+            <strong>{scheduleEvents.data.length}</strong>
+          </div>
+        </section>
 
         {!timerEnabled ? (
           <section className="crew-panel time-access-panel">
@@ -117,6 +133,12 @@ export default async function CrewTimePage() {
                     <dd>{getOpenTimeEntryHours(activeEntry.data).toFixed(2)} hours</dd>
                   </div>
                 </dl>
+                {activeEntry.data.entry_type === "job" && !activeEntry.data.job_id && !activeEntry.data.schedule_event_id ? (
+                  <p className="time-clock-alert" role="status">
+                    <AlertTriangle aria-hidden="true" size={16} />
+                    This timer is marked as job time without a linked job or schedule event.
+                  </p>
+                ) : null}
                 <CrewClockOutForm activeEntry={activeEntry.data} />
               </section>
             </div>
@@ -131,13 +153,23 @@ export default async function CrewTimePage() {
                     <p>Your latest completed time for quick review.</p>
                   </div>
                 </div>
-                <RecentTimeEntries entries={recentEntries.data.filter((entry) => entry.id !== activeEntry.data?.id).slice(0, 6)} />
+                <RecentTimeEntries entries={recentCompletedEntries.slice(0, 6)} />
               </section>
             </aside>
           </section>
         ) : (
           <section className="time-clock-layout">
             <div className="time-clock-main">
+              <section className="time-clock-live-card time-clock-ready-card">
+                <p className="surface-label">
+                  <TimerReset aria-hidden="true" size={18} />
+                  Current status
+                </p>
+                <span className="time-live-status">Clocked out</span>
+                <strong>Ready</strong>
+                <span>Pick the work type, link the job or schedule event if you have one, and start the timer.</span>
+                <small>Your next clock-in becomes the active timer until you stop it.</small>
+              </section>
               <section className="crew-panel">
                 <div className="crew-panel-heading">
                   <span className="crew-panel-icon" aria-hidden="true">
@@ -172,7 +204,7 @@ export default async function CrewTimePage() {
                     <p>See the last two weeks of your time.</p>
                   </div>
                 </div>
-                <RecentTimeEntries entries={recentEntries.data.slice(0, 8)} />
+                <RecentTimeEntries entries={recentCompletedEntries} />
               </section>
             </aside>
           </section>

@@ -56,6 +56,19 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
     }),
     getJobOptions(),
   ]);
+  const accessUsers = [...overview.data.users].sort((left, right) => {
+    const leftRank = left.active_timer_entry_id ? 0 : left.time_clock_permission?.is_enabled ? 1 : 2;
+    const rightRank = right.active_timer_entry_id ? 0 : right.time_clock_permission?.is_enabled ? 1 : 2;
+
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+
+    return (left.full_name || left.email || "").localeCompare(right.full_name || right.email || "");
+  });
+  const enabledCount = overview.data.users.filter((user) => user.time_clock_permission?.is_enabled).length;
+  const disabledCount = Math.max(overview.data.users.length - enabledCount, 0);
+  const activePermissionCount = overview.data.users.filter((user) => user.active_timer_entry_id).length;
 
   return (
     <PlatformFrame active="admin-time" roles={context.roles} userEmail={context.user.email}>
@@ -214,13 +227,25 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
             <h2>Time clock access</h2>
             <span>Enable or disable the timer per eligible employee</span>
           </div>
-          {overview.data.users.length ? (
+          <div className="commerce-summary-strip time-access-strip" aria-label="Time clock access summary">
+            <SummaryChip label="Eligible employees" value={overview.data.users.length} />
+            <SummaryChip label="Enabled" value={enabledCount} />
+            <SummaryChip label="Disabled" value={disabledCount} />
+            <SummaryChip emphasis label="Clocked in now" value={activePermissionCount} />
+          </div>
+          {accessUsers.length ? (
             <div className="time-user-list">
-              {overview.data.users.map((user) => (
+              {accessUsers.map((user) => (
               <article className="time-user-row" key={user.id}>
                 <div>
                   <strong>{user.full_name || user.email || "Unnamed employee"}</strong>
                   <span>{user.role_names.join(", ") || "No role assigned"}</span>
+                  {user.active_timer_entry_id ? (
+                    <small className="time-row-warning">
+                      Clocked in on {user.active_timer_entry_type?.replace("_", " ") || "active time"} since {formatDateTime(user.active_timer_started_at || "")}
+                      {user.active_timer_work_label ? ` · ${user.active_timer_work_label}` : ""}
+                    </small>
+                  ) : null}
                   {user.time_clock_permission ? (
                     <small className="time-permission-meta">
                       {user.time_clock_permission.is_enabled ? "Enabled" : "Disabled"}{" "}

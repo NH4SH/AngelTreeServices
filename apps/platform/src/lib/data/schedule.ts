@@ -391,12 +391,12 @@ function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]
       });
     }
 
-    if (isCrewWorkEntry(entry) && entry.assignees.length === 0) {
+    if (requiresAssignedEmployee(entry) && entry.assignees.length === 0) {
       conflicts.push({
         id: `unassigned-${entry.source}-${entry.id}`,
         kind: "unassigned_job",
-        title: `${entry.title} has no assigned crew`,
-        detail: `${entry.location_label || "No location yet"} still needs a person or crew assignment.`,
+        title: `${entry.title} has no assigned employee`,
+        detail: `${entry.location_label || "No location yet"} still needs someone assigned before the day is locked in.`,
         href: buildEntryHref(entry),
       });
     }
@@ -420,17 +420,30 @@ function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]
 
     for (let index = 0; index < assignedEntries.length - 1; index += 1) {
       const current = assignedEntries[index];
-      const next = assignedEntries[index + 1];
+      const currentEnd = resolveEntryEnd(current)?.getTime();
 
-      if (entriesOverlap(current, next)) {
-        conflicts.push({
-          id: `overlap-${user.id}-${current.id}-${next.id}`,
-          kind: "overlap",
-          title: `${user.full_name || user.email || "Team member"} is double-booked`,
-          detail: `${current.title} overlaps with ${next.title}.`,
-          href: buildEntryHref(next),
-          user_label: user.full_name || user.email || "Team member",
-        });
+      if (!currentEnd) {
+        continue;
+      }
+
+      for (let nextIndex = index + 1; nextIndex < assignedEntries.length; nextIndex += 1) {
+        const next = assignedEntries[nextIndex];
+        const nextStart = new Date(next.starts_at).getTime();
+
+        if (nextStart >= currentEnd) {
+          break;
+        }
+
+        if (entriesOverlap(current, next)) {
+          conflicts.push({
+            id: `overlap-${user.id}-${current.id}-${next.id}`,
+            kind: "overlap",
+            title: `${user.full_name || user.email || "Team member"} is double-booked`,
+            detail: `${current.title} overlaps with ${next.title}.`,
+            href: buildEntryHref(next),
+            user_label: user.full_name || user.email || "Team member",
+          });
+        }
       }
     }
   });
@@ -480,6 +493,16 @@ function resolveEntryEnd(entry: CalendarEntry) {
 
 function isCrewWorkEntry(entry: CalendarEntry) {
   return entry.event_type === "job" || entry.event_type === "emergency";
+}
+
+function requiresAssignedEmployee(entry: CalendarEntry) {
+  return (
+    entry.event_type === "estimate" ||
+    entry.event_type === "job" ||
+    entry.event_type === "follow_up" ||
+    entry.event_type === "maintenance" ||
+    entry.event_type === "emergency"
+  );
 }
 
 function isClosedScheduleEntry(entry: CalendarEntry) {

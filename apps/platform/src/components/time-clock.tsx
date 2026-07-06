@@ -49,6 +49,12 @@ export function CrewClockInForm({
   scheduleEvents: ScheduleEventWithRelations[];
 }) {
   const [state, formAction, pending] = useActionState(clockIn, initialState);
+  const [selectedEntryType, setSelectedEntryType] = useState<string>("job");
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [selectedScheduleEventId, setSelectedScheduleEventId] = useState("");
+  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? null;
+  const selectedScheduleEvent = scheduleEvents.find((event) => event.id === selectedScheduleEventId) ?? null;
+  const needsLinkedWork = selectedEntryType === "job" && !selectedJobId && !selectedScheduleEventId;
 
   return (
     <form action={formAction} className="crm-form time-clock-form">
@@ -60,6 +66,7 @@ export function CrewClockInForm({
             <label className="time-type-option" key={entryType.value}>
               <input
                 defaultChecked={entryType.value === "job"}
+                onChange={() => setSelectedEntryType(entryType.value)}
                 name="entry_type"
                 type="radio"
                 value={entryType.value}
@@ -75,7 +82,7 @@ export function CrewClockInForm({
       <div className="time-link-grid">
         <label>
           Assigned job
-          <select defaultValue="" name="job_id">
+          <select defaultValue="" name="job_id" onChange={(event) => setSelectedJobId(event.target.value)}>
             <option value="">No linked job</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
@@ -87,7 +94,7 @@ export function CrewClockInForm({
         </label>
         <label>
           Scheduled event
-          <select defaultValue="" name="schedule_event_id">
+          <select defaultValue="" name="schedule_event_id" onChange={(event) => setSelectedScheduleEventId(event.target.value)}>
             <option value="">No linked schedule event</option>
             {scheduleEvents.map((event) => (
               <option key={event.id} value={event.id}>
@@ -97,6 +104,23 @@ export function CrewClockInForm({
           </select>
           <small className="form-help">Helpful when dispatch scheduled the work from the calendar first.</small>
         </label>
+      </div>
+      <div className="time-clock-selection-card" role="status">
+        <strong>Current timer setup</strong>
+        <p>
+          {selectedEntryType === "job"
+            ? selectedJob
+              ? `Job time linked to ${selectedJob.customers?.display_name || "a customer job"}.`
+              : selectedScheduleEvent
+                ? `Job time linked to the schedule event "${selectedScheduleEvent.title}".`
+                : "Job time works best when it is linked to a job or scheduled event."
+            : `${crewTimeEntryTypes.find((entryType) => entryType.value === selectedEntryType)?.label || "Time"} can stay unlinked if needed.`}
+        </p>
+        {needsLinkedWork ? (
+          <small className="time-inline-feedback">
+            This will still work, but payroll review is easier when job time points to a job or schedule event.
+          </small>
+        ) : null}
       </div>
       <label>
         Notes
@@ -159,6 +183,7 @@ export function LiveTimerCard({ entry }: { entry: TimeEntryWithRelations }) {
         <Clock3 aria-hidden="true" size={18} />
         Active timer
       </p>
+      <span className="time-live-status">Clocked in</span>
       <strong>{elapsed}</strong>
       <span>
         {entry.entry_type.replace("_", " ")}

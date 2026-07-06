@@ -25,6 +25,7 @@ import {
   appointmentStatuses,
   buildScheduleHref,
   formatDateInput,
+  formatDateTimeLabel,
   formatEntryLocation,
   formatDayLabel,
   formatDayNumber,
@@ -549,6 +550,15 @@ function CalendarMonthView({
           >
             <span>{formatDayNumber(day)}</span>
             {entries.length > 0 ? <small>{entries.length} event{entries.length === 1 ? "" : "s"}</small> : null}
+            <div className="calendar-month-snippets">
+              {entries.slice(0, 2).map((entry) => (
+                <i className={`calendar-month-snippet ${getEntryTone(entry)}`} key={`${entry.source}-${entry.id}`}>
+                  <strong>{entry.all_day ? "All day" : formatTime(entry.starts_at)}</strong>
+                  <span>{entry.customer_label || entry.title}</span>
+                </i>
+              ))}
+              {entries.length > 2 ? <b className="calendar-month-more">+{entries.length - 2} more</b> : null}
+            </div>
             <div className="calendar-month-dots" aria-hidden="true">
               {entries.slice(0, 4).map((entry) => (
                 <i className={`appointment-dot ${getEntryTone(entry)}`} key={`${entry.source}-${entry.id}`} />
@@ -580,6 +590,8 @@ function CalendarEntryCard({
   const typeLabel = getEventTypeLabel(entry.event_type);
   const statusLabel = getStatusLabel(entry.status);
   const titleLine = entry.title;
+  const linkedWorkLabel = entry.job_id ? "Linked to job record" : "No linked job record";
+  const contextSummary = [entry.customer_label, locationLabel].filter(Boolean).join(" • ");
   const contextLine = [entry.customer_label, locationLabel].filter(Boolean).join(" • ");
 
   return (
@@ -596,7 +608,7 @@ function CalendarEntryCard({
         <strong>{titleLine}</strong>
         <span className={`calendar-type-chip ${tone}`}>{typeLabel}</span>
       </div>
-      <span className="calendar-appointment-context">{contextLine || locationLabel}</span>
+      <span className="calendar-appointment-context">{contextSummary || contextLine || locationLabel}</span>
       {!compact ? <span>{getEntrySummary(entry)}</span> : null}
       <small className="calendar-appointment-meta">
         <span>
@@ -607,6 +619,7 @@ function CalendarEntryCard({
           <MapPinned aria-hidden="true" size={12} />
           {locationLabel}
         </span>
+        {!compact ? <span>{linkedWorkLabel}</span> : null}
       </small>
     </Link>
   );
@@ -663,8 +676,8 @@ function ScheduleEventDetailPanel({
     .filter(Boolean);
   const detailWarnings = [
     !event.ends_at && !event.all_day ? "This event needs an end time to improve conflict checks." : null,
-    (event.event_type === "job" || event.event_type === "emergency") && assignees.length === 0
-      ? "This work is scheduled without assigned crew."
+    requiresAssignedEmployee(event.event_type) && assignees.length === 0
+      ? "This event is scheduled without an assigned employee."
       : null,
     event.event_type === "job" && !event.job_id
       ? "This job event is not linked to a CRM job yet."
@@ -724,7 +737,11 @@ function ScheduleEventDetailPanel({
         <dl className="appointment-detail-list">
           <div>
             <dt>Time</dt>
-            <dd>{event.all_day ? "All day" : `${formatTime(event.starts_at)}${event.ends_at ? ` to ${formatTime(event.ends_at)}` : ""}`}</dd>
+            <dd>
+              {event.all_day
+                ? `${formatDateTimeLabel(event.starts_at, { dateStyle: "medium" })} • All day`
+                : `${formatDateTimeLabel(event.starts_at)}${event.ends_at ? ` to ${formatDateTimeLabel(event.ends_at)}` : ""}`}
+            </dd>
           </div>
           <div>
             <dt>Status</dt>
@@ -1009,6 +1026,7 @@ type AttentionItem = {
 
 function buildScheduleAttention(entries: CalendarEntry[], conflicts: ScheduleConflict[]) {
   const activeEntries = entries.filter((entry) => !isClosedScheduleEntry(entry));
+  const now = Date.now();
 
   return {
     conflicts: conflicts.map((conflict) => ({
@@ -1018,7 +1036,7 @@ function buildScheduleAttention(entries: CalendarEntry[], conflicts: ScheduleCon
       href: conflict.href,
     })),
     unassigned: activeEntries
-      .filter((entry) => isCrewWorkEntry(entry) && entry.assignees.length === 0)
+      .filter((entry) => requiresAssignment(entry) && entry.assignees.length === 0)
       .map((entry) => ({
         id: `attention-unassigned-${entry.source}-${entry.id}`,
         title: entry.title,
@@ -1029,7 +1047,17 @@ function buildScheduleAttention(entries: CalendarEntry[], conflicts: ScheduleCon
             : buildScheduleHref({}, { appointment: entry.id }),
       })),
     followUps: activeEntries
-      .filter((entry) => entry.event_type === "follow_up")
+      .filter((entry) => {
+        if (entry.event_type !== "follow_up") {
+          return false;
+        }
+
+        if (entry.status === "no_show") {
+          return true;
+        }
+
+        return new Date(entry.starts_at).getTime() <= now;
+      })
       .map((entry) => ({
         id: `attention-follow-up-${entry.source}-${entry.id}`,
         title: entry.customer_label || entry.title,
@@ -1135,6 +1163,26 @@ function getAssigneeSummary(assignees: AssignableUser[]) {
 
 function isCrewWorkEntry(entry: CalendarEntry) {
   return entry.event_type === "job" || entry.event_type === "emergency";
+}
+
+function requiresAssignment(entry: CalendarEntry) {
+  return (
+    entry.event_type === "estimate" ||
+    entry.event_type === "job" ||
+    entry.event_type === "follow_up" ||
+    entry.event_type === "maintenance" ||
+    entry.event_type === "emergency"
+  );
+}
+
+function requiresAssignedEmployee(eventType: CalendarEntry["event_type"]) {
+  return (
+    eventType === "estimate" ||
+    eventType === "job" ||
+    eventType === "follow_up" ||
+    eventType === "maintenance" ||
+    eventType === "emergency"
+  );
 }
 
 function isClosedScheduleEntry(entry: CalendarEntry) {

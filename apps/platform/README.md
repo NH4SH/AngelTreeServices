@@ -77,6 +77,19 @@ SUPABASE_DB_URL=
 
 `LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. The endpoint already allows `https://angeltreeservices.org`, `https://www.angeltreeservices.org`, `http://localhost:8000`, and `http://127.0.0.1:8000`.
 
+## Supabase Auth Redirect URLs
+
+Employee password reset emails send users back to `/update-password`, where they choose their own new password. Add these URLs to the Supabase Auth redirect allow-list before testing password resets:
+
+```text
+https://admin.angeltreeservices.org/update-password
+https://admin.angeltreeservices.org/**
+http://localhost:3000/update-password
+http://localhost:3000/**
+```
+
+Admins and owners can trigger the email from `/admin/access`, but the app never stores, displays, or manually emails passwords.
+
 ## Database
 
 Apply the schema migrations in order:

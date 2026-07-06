@@ -1,7 +1,7 @@
 import { Clock3, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { AccessRequestReviewForm } from "@/components/access-request-review-form";
+import { EmployeePasswordResetForm } from "@/components/employee-password-reset-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
-import { ResetCrewViewForm } from "@/components/reset-crew-view-form";
 import { SetupRequired } from "@/components/SetupRequired";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -65,12 +65,12 @@ export default async function AdminAccessPage() {
           <SummaryChip emphasis label="Total requests" value={requests.data.length} />
         </section>
 
-        <section className="panel access-reset-panel">
+        <section className="panel employee-password-reset-panel">
           <div className="panel-header">
-            <h2>Crew view reset</h2>
-            <span>Owner and admin tool for clearing saved crew display settings.</span>
+            <h2>Password reset</h2>
+            <span>Send an employee a secure link to choose a new password.</span>
           </div>
-          <ResetCrewViewForm users={users.data} />
+          <EmployeePasswordResetForm users={users.data} />
         </section>
 
         <section className="panel">

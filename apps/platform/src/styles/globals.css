@@ -8497,11 +8497,11 @@ body {
   width: 100%;
 }
 
-.access-reset-panel {
+.employee-password-reset-panel {
   background: linear-gradient(180deg, var(--color-surface), oklch(0.985 0.006 151));
 }
 
-.crew-view-reset-form {
+.employee-password-reset-form {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(220px, 320px) auto;
   align-items: end;
@@ -8509,23 +8509,23 @@ body {
   margin-top: 18px;
 }
 
-.crew-view-reset-copy {
+.employee-password-reset-copy {
   display: grid;
   gap: 6px;
 }
 
-.crew-view-reset-copy strong {
+.employee-password-reset-copy strong {
   color: var(--color-charcoal);
   font-size: 1rem;
 }
 
-.crew-view-reset-copy p {
+.employee-password-reset-copy p {
   margin: 0;
   color: var(--color-muted);
   line-height: 1.55;
 }
 
-.crew-view-reset-form label {
+.employee-password-reset-form label {
   display: grid;
   gap: 7px;
   color: var(--color-charcoal);
@@ -8533,13 +8533,13 @@ body {
   font-weight: 700;
 }
 
-.crew-view-reset-form select,
-.crew-view-reset-form button {
+.employee-password-reset-form select,
+.employee-password-reset-form button {
   min-height: 46px;
   border-radius: 11px;
 }
 
-.crew-view-reset-form button {
+.employee-password-reset-form button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8551,17 +8551,17 @@ body {
   font-weight: 750;
 }
 
-.crew-view-reset-form .field-note,
-.crew-view-reset-form .form-status {
+.employee-password-reset-form .field-note,
+.employee-password-reset-form .form-status {
   grid-column: 1 / -1;
   margin: 0;
 }
 
-.crew-view-reset-form .form-status.success {
+.employee-password-reset-form .form-status.success {
   color: var(--color-forest);
 }
 
-.crew-view-reset-form .form-status.error {
+.employee-password-reset-form .form-status.error {
   color: oklch(0.45 0.13 27);
 }
 
@@ -8875,11 +8875,11 @@ body {
   .access-summary-grid,
   .access-review-forms,
   .access-request-meta,
-  .crew-view-reset-form {
+  .employee-password-reset-form {
     grid-template-columns: 1fr;
   }
 
-  .crew-view-reset-form {
+  .employee-password-reset-form {
     align-items: stretch;
   }
 }

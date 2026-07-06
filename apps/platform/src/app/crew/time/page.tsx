@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AlertTriangle, Clock3, PlayCircle, ShieldCheck, TimerReset } from "lucide-react";
-import { CrewViewResetWatcher } from "@/components/crew-view-reset-watcher";
 import {
   CrewClockInForm,
   CrewClockOutForm,
@@ -12,7 +11,6 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { canUseTimeClock, getTimeClockPermissionForUser } from "@/lib/auth/time-clock";
 import { getCrewJobs } from "@/lib/data/crew-jobs";
-import { getCurrentCrewViewResetTimestamp } from "@/lib/data/profiles";
 import {
   getActiveTimeEntryForUser,
   getAssignedScheduleEventsForUser,
@@ -28,7 +26,7 @@ export default async function CrewTimePage() {
     return <SetupRequired title="Configure Supabase before opening the time clock" />;
   }
 
-  const [permission, activeEntry, recentEntries, jobs, scheduleEvents, resetRequestedAt] = await Promise.all([
+  const [permission, activeEntry, recentEntries, jobs, scheduleEvents] = await Promise.all([
     getTimeClockPermissionForUser(context.user.id, context.supabase),
     getActiveTimeEntryForUser(context.user.id),
     getTimeEntries({
@@ -41,7 +39,6 @@ export default async function CrewTimePage() {
       userId: context.user.id,
     }),
     getAssignedScheduleEventsForUser(context.user.id, context.roles),
-    getCurrentCrewViewResetTimestamp(),
   ]);
   const timerEnabled = canUseTimeClock({
     permission: permission.data,
@@ -52,7 +49,6 @@ export default async function CrewTimePage() {
 
   return (
     <PlatformFrame active="crew-time" roles={context.roles} userEmail={context.user.email}>
-      <CrewViewResetWatcher resetRequestedAt={resetRequestedAt} />
       <div className="crew-shell app-content">
         <section className="crew-hero time-clock-hero">
           <p className="surface-label">

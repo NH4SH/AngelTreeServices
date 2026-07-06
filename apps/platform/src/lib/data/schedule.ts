@@ -20,7 +20,6 @@ type RoleNameRow = {
 };
 
 type UserRow = {
-  crew_view_reset_requested_at?: string | null;
   id: string;
   full_name: string | null;
   email: string | null;
@@ -54,7 +53,7 @@ export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, crew_view_reset_requested_at, user_roles(roles(name))")
+    .select("id, full_name, email, user_roles(roles(name))")
     .eq("status", "active")
     .order("full_name", { ascending: true });
 
@@ -289,8 +288,8 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
 
   const [usersResult, todayAppointments, todayEvents, upcomingEstimateAppointments, upcomingEstimateEvents] = await Promise.all([
     supabase
-    .from("profiles")
-    .select("id, full_name, email, crew_view_reset_requested_at, user_roles(roles(name))")
+      .from("profiles")
+      .select("id, full_name, email, user_roles(roles(name))")
       .eq("status", "active")
       .order("full_name", { ascending: true }),
     supabase
@@ -368,7 +367,6 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
 
 function mapScheduleUsers(data: UserRow[]) {
   return data.map((user) => ({
-    crew_view_reset_requested_at: user.crew_view_reset_requested_at ?? null,
     id: user.id,
     full_name: user.full_name,
     email: user.email,

@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   employeeRequestedRoleOptions,
@@ -291,7 +292,7 @@ export async function rejectEmployeeAccessRequest(
   return { status: "success", message: "Access request rejected." };
 }
 
-export async function resetCrewViewPreferences(
+export async function sendEmployeePasswordReset(
   _previousState: AccessRequestActionState,
   formData: FormData,
 ): Promise<AccessRequestActionState> {
@@ -310,34 +311,39 @@ export async function resetCrewViewPreferences(
   const userId = String(formData.get("user_id") ?? "").trim();
 
   if (!userId) {
-    return { status: "error", message: "Choose an employee before resetting the crew view." };
+    return { status: "error", message: "Choose an employee before sending a password reset." };
   }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, email, full_name")
     .eq("id", userId)
+    .eq("status", "active")
     .maybeSingle();
 
   if (profileError || !profile) {
     return { status: "error", message: profileError?.message ?? "Employee profile was not found." };
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ crew_view_reset_requested_at: new Date().toISOString() })
-    .eq("id", userId);
+  const email = String(profile.email ?? "").trim().toLowerCase();
 
-  if (error) {
-    return { status: "error", message: error.message };
+  if (!email) {
+    return { status: "error", message: "This employee profile is missing an email address." };
   }
 
-  revalidateAccessPaths(userId);
-  revalidatePath("/crew/jobs");
-  return {
-    status: "success",
-    message: "Crew view reset requested. The employee will see the default crew layout the next time they open crew tools.",
-  };
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: await getPasswordResetRedirectTo(),
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: `Supabase could not send the password reset email: ${error.message}`,
+    };
+  }
+
+  revalidatePath("/admin/access");
+  return { status: "success", message: "Password reset email sent." };
 }
 
 async function requireAccessApprovalUser() {
@@ -433,4 +439,15 @@ function revalidateAccessPaths(userId?: string) {
   if (userId) {
     revalidatePath(`/admin/time/${userId}`);
   }
+}
+
+async function getPasswordResetRedirectTo() {
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "";
+
+  if (host.startsWith("localhost:") || host.startsWith("127.0.0.1:")) {
+    return `http://${host}/update-password`;
+  }
+
+  return "https://admin.angeltreeservices.org/update-password";
 }

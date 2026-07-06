@@ -258,7 +258,6 @@ export type AssignableUser = {
 };
 
 export type ScheduleUser = AssignableUser & {
-  crew_view_reset_requested_at?: string | null;
   role_names: string[];
 };
 

@@ -4,12 +4,16 @@ import { ClipboardCheck, FileText, MapPin, ReceiptText, Send, StickyNote, UsersR
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
+import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
+import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import { InvoiceStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getEmailEvents } from "@/lib/data/email-events";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
+import { getEmailSetupState } from "@/lib/email/config";
 import type { InvoiceStatus } from "@/lib/types/database";
 
 type InvoiceDetailPageProps = {
@@ -27,12 +31,15 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   }
 
   const detail = await getInvoiceDetail(invoiceId);
+  const emailEvents = detail.data ? await getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null };
+  const emailSetup = getEmailSetupState();
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page">
         <Link className="crew-back-link" href="/admin/invoices">Back to invoices</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {!detail.data ? (
           <EmptyState title="Invoice not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -95,6 +102,20 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
                 <section className="email-draft-grid commerce-email-grid">
                   <EmailDraftCard draft={generateInvoiceEmailDraft(detail.data)} label="Invoice email draft" />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Invoice email sending" />
+                  <EmailSetupNotice configured={emailSetup.configured} />
+                  <SendInvoiceEmailForm disabled={!emailSetup.configured || !detail.data.customers?.email} invoiceId={detail.data.id} />
+                  {!detail.data.customers?.email ? (
+                    <p className="inline-empty">Add a customer email address before sending from the platform.</p>
+                  ) : null}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Email history" />
+                  <EmailHistoryList events={emailEvents.data} />
                 </section>
               </main>
 
@@ -163,7 +184,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Email draft" />
-                  <p className="inline-empty">Draft copy is generated below. Nothing is sent from the platform yet.</p>
+                  <p className="inline-empty">Draft copy is still available below. Use the send button only when the invoice email is ready.</p>
                 </section>
               </aside>
             </section>

@@ -61,6 +61,15 @@ export type TimeEntryReviewStatus = "approved" | "needs_correction" | "rejected"
 export type PayPeriodStatus = "open" | "review" | "approved" | "exported" | "locked";
 export type EmployeeAccessRequestStatus = "pending" | "approved" | "rejected";
 export type EmployeeAccessAssignedRole = "admin" | "estimator" | "crew" | "payroll_admin";
+export type EmailEventType =
+  | "access_request_admin_notice"
+  | "access_approved"
+  | "access_rejected"
+  | "lead_internal_notice"
+  | "quote"
+  | "invoice"
+  | "password_reset_admin_triggered";
+export type EmailEventStatus = "sent" | "failed";
 
 export type Organization = {
   id: string;
@@ -311,6 +320,23 @@ export type EmployeeAccessRequest = {
   rejection_reason: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type EmailEvent = {
+  id: string;
+  related_customer_id: string | null;
+  related_job_id: string | null;
+  related_quote_id: string | null;
+  related_invoice_id: string | null;
+  recipient_email: string;
+  subject: string;
+  email_type: EmailEventType;
+  status: EmailEventStatus;
+  provider_message_id: string | null;
+  error_message: string | null;
+  sent_by_user_id: string | null;
+  created_at: string;
+  sent_at: string | null;
 };
 
 export type TimeEntry = {

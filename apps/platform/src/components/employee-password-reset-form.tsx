@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { KeyRound } from "lucide-react";
 import {
   sendEmployeePasswordReset,
@@ -18,11 +18,28 @@ const confirmationCopy =
 
 export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) {
   const [state, formAction, isPending] = useActionState(sendEmployeePasswordReset, initialState);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const usersWithEmail = useMemo(
     () => users.filter((user) => Boolean(user.email)),
     [users],
   );
   const [selectedUserId, setSelectedUserId] = useState(usersWithEmail[0]?.id ?? "");
+  const isCoolingDown = cooldownSeconds > 0;
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setCooldownSeconds(60);
+    }
+  }, [state.status, state.message]);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setCooldownSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldownSeconds]);
 
   return (
     <form
@@ -63,10 +80,14 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
         </select>
       </label>
 
-      <button disabled={!selectedUserId || isPending} type="submit">
+      <button disabled={!selectedUserId || isPending || isCoolingDown} type="submit">
         <KeyRound aria-hidden="true" size={17} />
-        {isPending ? "Sending..." : "Send reset email"}
+        {isPending ? "Sending..." : isCoolingDown ? `Wait ${cooldownSeconds}s` : "Send reset email"}
       </button>
+
+      {isCoolingDown ? (
+        <p className="field-note">A reset email was just sent. Wait {cooldownSeconds} seconds before sending another.</p>
+      ) : null}
 
       {state.message ? (
         <p className={state.status === "error" ? "form-status error" : "form-status success"} role="status">

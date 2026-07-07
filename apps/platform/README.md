@@ -77,6 +77,17 @@ SUPABASE_DB_URL=
 
 `LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. The endpoint already allows `https://angeltreeservices.org`, `https://www.angeltreeservices.org`, `http://localhost:8000`, and `http://127.0.0.1:8000`.
 
+Transactional email uses Resend from server-only code. Add these environment variables in Netlify and local `.env.local` when email sending should be active:
+
+```env
+RESEND_API_KEY=
+EMAIL_FROM="Angel Tree Services <no-reply@angeltreeservices.org>"
+EMAIL_REPLY_TO="office@angeltreeservices.org"
+INTERNAL_LEAD_NOTIFICATION_EMAIL="office@angeltreeservices.org"
+```
+
+Do not commit real Resend API keys or SMTP credentials.
+
 ## Supabase Auth Redirect URLs
 
 Employee password reset emails send users back to `/update-password`, where they choose their own new password. Add these URLs to the Supabase Auth redirect allow-list before testing password resets:
@@ -90,6 +101,19 @@ http://localhost:3000/**
 
 Admins and owners can trigger the email from `/admin/access`, but the app never stores, displays, or manually emails passwords.
 
+## Resend And Supabase SMTP
+
+Recommended sender setup:
+
+- Sender: `Angel Tree Services <no-reply@angeltreeservices.org>`
+- Reply-to: `office@angeltreeservices.org` or the value in `EMAIL_REPLY_TO`
+- Verify `angeltreeservices.org` or a dedicated mail subdomain in Resend.
+- Add the SPF, DKIM, and DMARC DNS records Resend provides for the verified domain.
+- In Supabase Auth, configure custom SMTP using Resend so Auth emails, including password reset, are not limited by Supabase built-in email quotas.
+- Keep Supabase SMTP credentials and `RESEND_API_KEY` only in Supabase/Netlify environment settings.
+
+The app's CRM transactional email helper uses Resend's Email API for employee access notices, lead notifications, and explicit quote/invoice sends. If `RESEND_API_KEY` is missing, admin pages show: `Email sending is not configured. Drafts are still available.`
+
 ## Database
 
 Apply the schema migrations in order:
@@ -99,6 +123,14 @@ supabase/migrations/0001_initial_platform_schema.sql
 supabase/migrations/0002_add_job_priority.sql
 supabase/migrations/0003_quote_portal_tokens.sql
 supabase/migrations/0004_job_photo_storage.sql
+supabase/migrations/0005_service_role_and_staff_grants.sql
+supabase/migrations/0006_schedule_events_foundation.sql
+supabase/migrations/0007_role_controlled_time_clock.sql
+supabase/migrations/0008_payroll_review_foundation.sql
+supabase/migrations/0009_align_internal_staff_role_helpers.sql
+supabase/migrations/0010_time_clock_clock_out_policy_fix.sql
+supabase/migrations/0011_employee_access_requests.sql
+supabase/migrations/20260707000822_email_events_log.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -210,7 +242,7 @@ src/components/documents/print-button.tsx
 
 Email draft generation lives in `src/lib/documents/email-drafts.ts`. The reusable clipboard UI is `src/components/email-draft-card.tsx`.
 
-The print buttons call `window.print()`. Browser print-to-PDF is available for office use, but the app does not generate or store production PDF files yet. Email cards copy draft text to the clipboard only. They do not send messages.
+The print buttons call `window.print()`. Browser print-to-PDF is available for office use, but the app does not generate or store production PDF files yet. Email draft cards copy text to the clipboard; quote and invoice detail pages also include explicit Resend-powered send buttons when email is configured.
 
 ## Secure Customer Quote Portal Links
 
@@ -248,7 +280,7 @@ For production, serve the public website and platform API behind the same domain
 
 For local testing, run the static site on port `8000` and the platform app on port `3000`. The public enhancement script automatically posts local static submissions to `http://localhost:3000/api/leads`.
 
-The endpoint includes a best-effort in-memory limit of five submissions per IP per ten minutes. Replace this with a durable distributed limiter before production traffic. Office email/text notification delivery remains a local TODO scaffold in `src/lib/leads/notifications.ts`.
+The endpoint includes a best-effort in-memory limit of five submissions per IP per ten minutes. Replace this with a durable distributed limiter before production traffic. Office email notification delivery is best-effort through Resend after CRM lead creation; notification failure is logged but does not fail a saved public lead.
 
 ## Scheduling And Follow-Ups
 
@@ -273,7 +305,7 @@ The schedule page provides:
 
 Job files can add estimate visits, job visits, and follow-up reminders. Quote files can add a quote follow-up reminder. Scheduling an estimate advances `new_lead -> estimate_scheduled`; scheduling field work advances `accepted -> scheduled`. Other job status changes remain explicit and validated.
 
-Copyable local draft helpers are available for estimate scheduling, job scheduling, quote follow-up, and post-job follow-up messages. They do not send email or SMS.
+Copyable local draft helpers are available for estimate scheduling, job scheduling, quote follow-up, and post-job follow-up messages. They do not send SMS; quote and invoice emails can be sent only from their explicit admin detail-page actions.
 
 To test in a development Supabase project:
 
@@ -410,7 +442,7 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 ## Current Limitations
 
 - No payment handling.
-- No email delivery.
+- Email delivery requires Resend/Supabase SMTP configuration.
 - No external calendar sync or automated reminder delivery.
 - No PDF generation.
 - No public invoice links.

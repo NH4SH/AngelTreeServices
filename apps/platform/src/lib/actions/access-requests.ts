@@ -9,6 +9,13 @@ import {
 import { hasAllowedRole, platformRoleGroups, type PlatformRoleName } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { AccessApprovalRole } from "@/lib/data/access-requests";
+import { getInternalLeadNotificationEmail } from "@/lib/email/config";
+import {
+  employeeAccessApprovedTemplate,
+  employeeAccessRejectedTemplate,
+  employeeAccessRequestAdminTemplate,
+} from "@/lib/email/templates";
+import { recordEmailEvent, sendTransactionalEmail } from "@/lib/email/send";
 
 const allowedRequestedRoles = new Set(employeeRequestedRoleOptions.map((option) => option.value));
 const allowedApprovalRoles = new Set<AccessApprovalRole>(["admin", "estimator", "crew", "payroll_admin"]);
@@ -109,6 +116,28 @@ export async function requestEmployeeAccess(
 
   revalidatePath("/login");
   revalidatePath("/signup");
+
+  if (!insert.error) {
+    const template = employeeAccessRequestAdminTemplate({
+      ...basePayload,
+      id: "",
+      auth_user_id: authUserId,
+      assigned_role: null,
+      time_clock_enabled: false,
+      reviewed_by_user_id: null,
+      reviewed_at: null,
+      rejection_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    await sendTransactionalEmail({
+      to: getInternalLeadNotificationEmail(),
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+      emailType: "access_request_admin_notice",
+    });
+  }
 
   return {
     status: "success",
@@ -232,7 +261,23 @@ export async function approveEmployeeAccessRequest(
   }
 
   revalidateAccessPaths(targetProfile.id);
-  return { status: "success", message: "Employee access approved." };
+  const emailResult = await sendTransactionalEmail({
+    to: request.email,
+    ...employeeAccessApprovedTemplate({
+      fullName: request.full_name,
+      assignedRole: approvedRole as AccessApprovalRole,
+    }),
+    emailType: "access_approved",
+    sentByUserId: reviewer.userId,
+    supabase,
+  });
+
+  return {
+    status: "success",
+    message: emailResult.ok
+      ? "Employee access approved and approval email sent."
+      : `Employee access approved. ${emailResult.message}`,
+  };
 }
 
 export async function rejectEmployeeAccessRequest(
@@ -260,7 +305,7 @@ export async function rejectEmployeeAccessRequest(
 
   const { data: request, error: requestError } = await supabase
     .from("employee_access_requests")
-    .select("id, status")
+    .select("id, email, full_name, status")
     .eq("id", requestId)
     .maybeSingle();
 
@@ -289,7 +334,23 @@ export async function rejectEmployeeAccessRequest(
   }
 
   revalidateAccessPaths();
-  return { status: "success", message: "Access request rejected." };
+  const emailResult = await sendTransactionalEmail({
+    to: request.email,
+    ...employeeAccessRejectedTemplate({
+      fullName: request.full_name,
+      reason: rejectionReason,
+    }),
+    emailType: "access_rejected",
+    sentByUserId: reviewer.userId,
+    supabase,
+  });
+
+  return {
+    status: "success",
+    message: emailResult.ok
+      ? "Access request rejected and email sent."
+      : `Access request rejected. ${emailResult.message}`,
+  };
 }
 
 export async function sendEmployeePasswordReset(
@@ -336,12 +397,30 @@ export async function sendEmployeePasswordReset(
   });
 
   if (error) {
+    const safeMessage = formatSupabaseEmailError(error.message);
+    await recordEmailEvent({
+      to: email,
+      subject: "Angel Tree Platform password reset",
+      emailType: "password_reset_admin_triggered",
+      status: "failed",
+      errorMessage: safeMessage,
+      sentByUserId: reviewer.userId,
+      supabase,
+    });
     return {
       status: "error",
-      message: `Supabase could not send the password reset email: ${error.message}`,
+      message: safeMessage,
     };
   }
 
+  await recordEmailEvent({
+    to: email,
+    subject: "Angel Tree Platform password reset",
+    emailType: "password_reset_admin_triggered",
+    status: "sent",
+    sentByUserId: reviewer.userId,
+    supabase,
+  });
   revalidatePath("/admin/access");
   return { status: "success", message: "Password reset email sent." };
 }
@@ -426,6 +505,16 @@ function normalizeOptionalText(value: FormDataEntryValue | null, maxLength: numb
 function isAuthLinkPolicyError(message: string) {
   const lowered = message.toLowerCase();
   return lowered.includes("row-level security") || lowered.includes("violates row-level security");
+}
+
+function formatSupabaseEmailError(message: string) {
+  const lowered = message.toLowerCase();
+
+  if (lowered.includes("rate") || lowered.includes("too many") || lowered.includes("over email send rate limit")) {
+    return "Password reset email was not sent because the email provider is rate-limited. Wait a few minutes and try again.";
+  }
+
+  return `Supabase could not send the password reset email: ${message}`;
 }
 
 function revalidateAccessPaths(userId?: string) {

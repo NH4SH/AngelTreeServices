@@ -1,12 +1,15 @@
 import { Clock3, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { AccessRequestReviewForm } from "@/components/access-request-review-form";
+import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { EmployeePasswordResetForm } from "@/components/employee-password-reset-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getEmployeeAccessRequests } from "@/lib/data/access-requests";
+import { getEmailEvents } from "@/lib/data/email-events";
 import { getScheduleUsers } from "@/lib/data/schedule";
+import { getEmailSetupState } from "@/lib/email/config";
 
 export default async function AdminAccessPage() {
   const context = await getAuthenticatedPlatformContext("/admin/access");
@@ -32,10 +35,15 @@ export default async function AdminAccessPage() {
     );
   }
 
-  const [requests, users] = await Promise.all([
+  const [requests, users, emailEvents] = await Promise.all([
     getEmployeeAccessRequests(),
     getScheduleUsers(),
+    getEmailEvents({
+      types: ["access_request_admin_notice", "access_approved", "access_rejected", "password_reset_admin_triggered"],
+      limit: 10,
+    }),
   ]);
+  const emailSetup = getEmailSetupState();
   const pending = requests.data.filter((request) => request.status === "pending");
   const reviewed = requests.data.filter((request) => request.status !== "pending");
 
@@ -51,7 +59,7 @@ export default async function AdminAccessPage() {
           <p>Approve new staff accounts, assign the right role, and enable time clock access only when needed.</p>
         </section>
 
-        {[requests.error, users.error].filter(Boolean).map((message) => (
+        {[requests.error, users.error, emailEvents.error].filter(Boolean).map((message) => (
           <section className="data-warning" key={message} role="status">
             <strong>Database notice</strong>
             <p>{message}</p>
@@ -71,6 +79,15 @@ export default async function AdminAccessPage() {
             <span>Send an employee a secure link to choose a new password.</span>
           </div>
           <EmployeePasswordResetForm users={users.data} />
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <h2>Email history</h2>
+            <span>Access, approval, rejection, and password reset email activity.</span>
+          </div>
+          <EmailSetupNotice configured={emailSetup.configured} />
+          <EmailHistoryList events={emailEvents.data} />
         </section>
 
         <section className="panel">

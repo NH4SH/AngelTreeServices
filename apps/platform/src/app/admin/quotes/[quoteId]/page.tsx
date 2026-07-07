@@ -14,16 +14,20 @@ import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
+import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
+import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import { CreateInvoiceFromQuoteAction, QuoteStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getAssignableUsers } from "@/lib/data/appointments";
+import { getEmailEvents } from "@/lib/data/email-events";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
 import { getQuoteDetail } from "@/lib/data/quotes";
 import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { generateQuoteFollowUpMessage } from "@/lib/documents/scheduling-drafts";
+import { getEmailSetupState } from "@/lib/email/config";
 import type { QuoteStatus } from "@/lib/types/database";
 
 type QuoteDetailPageProps = {
@@ -42,7 +46,9 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
 
   const detail = await getQuoteDetail(quoteId);
   const portalTokens = detail.data ? await getQuotePortalTokens(quoteId) : { data: [], error: null };
+  const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
   const assignedUsers = await getAssignableUsers();
+  const emailSetup = getEmailSetupState();
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -50,6 +56,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
         <Link className="crew-back-link" href="/admin/quotes">Back to quotes</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
+        {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {!detail.data ? (
           <EmptyState title="Quote not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -112,6 +119,20 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 <section className="email-draft-grid commerce-email-grid">
                   <EmailDraftCard draft={generateQuoteEmailDraft(detail.data)} label="Quote email draft" />
                   <EmailDraftCard draft={generateQuoteFollowUpMessage(detail.data)} label="Quote follow-up draft" />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Quote email sending" />
+                  <EmailSetupNotice configured={emailSetup.configured} />
+                  <SendQuoteEmailForm disabled={!emailSetup.configured || !detail.data.customers?.email} quoteId={detail.data.id} />
+                  {!detail.data.customers?.email ? (
+                    <p className="inline-empty">Add a customer email address before sending from the platform.</p>
+                  ) : null}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Email history" />
+                  <EmailHistoryList events={emailEvents.data} />
                 </section>
               </main>
 
@@ -208,7 +229,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Email drafts" />
-                  <p className="inline-empty">Draft copy is generated below. Nothing is sent from the platform yet.</p>
+                  <p className="inline-empty">Draft copy is still available below. Use the send button only when the customer email is ready.</p>
                 </section>
               </aside>
             </section>

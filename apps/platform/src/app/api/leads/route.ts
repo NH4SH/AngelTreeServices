@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      await notifyOfficeOfWebsiteLead(result.jobId);
+      await notifyOfficeOfWebsiteLead(result.jobId, parsed.data);
     } catch (notificationError) {
       console.error("Website lead notification failed after lead creation:", notificationError);
     }

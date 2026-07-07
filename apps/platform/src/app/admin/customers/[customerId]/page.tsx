@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BriefcaseBusiness, FileSignature, MapPin, ReceiptText, StickyNote, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, FileSignature, MailCheck, MapPin, ReceiptText, StickyNote, UsersRound } from "lucide-react";
 import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
+import { EmailHistoryList } from "@/components/email-history";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerDetail } from "@/lib/data/customers";
+import { getEmailEvents } from "@/lib/data/email-events";
 
 type CustomerDetailPageProps = {
   params: Promise<{
@@ -23,12 +25,14 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
   }
 
   const detail = await getCustomerDetail(customerId);
+  const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
 
   return (
     <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content">
         <Link className="crew-back-link" href="/admin/customers">Back to customers</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {!detail.data ? (
           <EmptyState title="Customer not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -142,6 +146,10 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
                     </Link>
                   ))
                 )}
+              </RecordSection>
+
+              <RecordSection icon={<MailCheck size={18} />} title="Email history">
+                <EmailHistoryList events={emailEvents.data} />
               </RecordSection>
             </section>
 

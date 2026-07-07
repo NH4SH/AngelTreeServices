@@ -2473,6 +2473,99 @@ h1 {
   font-weight: 800;
 }
 
+.email-setup-notice {
+  margin: 0 0 12px;
+  border: 1px solid color-mix(in oklab, oklch(0.72 0.12 82) 24%, var(--color-border));
+  border-radius: 12px;
+  background: color-mix(in oklab, oklch(0.97 0.03 98) 82%, var(--color-surface));
+  color: oklch(0.43 0.08 82);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.send-email-action-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.send-email-action-form button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-forest);
+  border-radius: 12px;
+  background: var(--color-forest);
+  color: var(--color-surface);
+  padding: 0 14px;
+  font-weight: 750;
+}
+
+.send-email-action-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.email-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.email-history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  padding: 12px;
+}
+
+.email-history-row.failed {
+  border-color: color-mix(in oklab, oklch(0.68 0.12 32) 28%, var(--color-border));
+  background: color-mix(in oklab, var(--color-surface) 88%, oklch(0.97 0.024 32));
+}
+
+.email-history-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+}
+
+.email-history-row.failed .email-history-icon {
+  background: oklch(0.96 0.024 32);
+  color: oklch(0.46 0.12 32);
+}
+
+.email-history-row strong {
+  display: block;
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+}
+
+.email-history-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.email-history-row p {
+  margin: 6px 0 0;
+  color: oklch(0.46 0.12 32);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .trust-note {
   background: var(--color-surface-subtle);
 }

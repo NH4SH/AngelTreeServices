@@ -99,7 +99,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .order("created_at", { ascending: false }),
     supabase
       .from("quotes")
-      .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)")
+      .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)")
       .eq("job_id", jobId)
       .order("created_at", { ascending: false }),
     supabase

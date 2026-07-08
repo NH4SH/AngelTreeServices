@@ -22,7 +22,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       </DocumentSection>
       <DocumentLineItems
         items={(invoice.invoice_line_items ?? []).map((item) => ({
-          description: item.description || item.name,
+          description: item.description,
+          name: item.name,
           quantity: item.quantity,
           totalCents: item.total_cents,
           unitPriceCents: item.unit_price_cents,

@@ -68,7 +68,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   Quote file
                 </p>
                 <h1>{detail.data.quote_number || "Draft quote"}</h1>
-                <p>{detail.data.customers?.display_name ?? "Unknown customer"} - {formatJobLabel(detail.data.jobs?.service_type)}</p>
+                <p>{detail.data.customers?.display_name ?? "Unknown customer"} - {formatProposalLabel(detail.data)}</p>
               </div>
               <div className="commerce-header-aside">
                 <span className={`status-pill quote-status ${detail.data.status}`}>
@@ -100,7 +100,10 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     <div className="line-items-preview commerce-line-items">
                       {detail.data.quote_line_items.map((item) => (
                         <div className="line-item-row" key={item.id}>
-                          <span>{item.description || item.name}</span>
+                          <span className="formatted-line-description">
+                            <strong>{item.name}</strong>
+                            {item.description ? <span>{item.description}</span> : null}
+                          </span>
                           <span>{item.quantity}</span>
                           <span>{formatCurrency(item.unit_price_cents)}</span>
                           <strong>{formatCurrency(item.total_cents)}</strong>
@@ -124,9 +127,15 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Quote email sending" />
                   <EmailSetupNotice configured={emailSetup.configured} />
-                  <SendQuoteEmailForm disabled={!emailSetup.configured || !detail.data.customers?.email} quoteId={detail.data.id} />
+                  <SendQuoteEmailForm
+                    disabled={!emailSetup.configured || !detail.data.customers?.email || isQuoteClosedForSending(detail.data.status)}
+                    quoteId={detail.data.id}
+                  />
                   {!detail.data.customers?.email ? (
                     <p className="inline-empty">Add a customer email address before sending from the platform.</p>
+                  ) : null}
+                  {isQuoteClosedForSending(detail.data.status) ? (
+                    <p className="inline-empty">This quote is closed, so it cannot be sent again from the main workflow.</p>
                   ) : null}
                 </section>
 
@@ -138,12 +147,13 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
 
               <aside className="commerce-detail-sidebar">
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<ClipboardCheck size={18} />} title="Status and actions" />
+                  <PanelTitle icon={<ClipboardCheck size={18} />} title="Workflow actions" />
                   <span className={`status-pill quote-status ${detail.data.status}`}>
                     {formatQuoteStatus(detail.data.status)}
                   </span>
-                  <QuoteStatusActions quoteId={detail.data.id} />
-                  <CreateInvoiceFromQuoteAction quoteId={detail.data.id} />
+                  <p className="inline-empty">Sending the quote marks it sent. Approval creates or links the work order.</p>
+                  <QuoteStatusActions quoteId={detail.data.id} status={detail.data.status} />
+                  {detail.data.status === "approved" ? <CreateInvoiceFromQuoteAction quoteId={detail.data.id} /> : null}
                 </section>
 
                 <section className="commerce-side-panel">
@@ -155,9 +165,23 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 </section>
 
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<MapPin size={18} />} title="Job and location" />
+                  <PanelTitle icon={<MapPin size={18} />} title="Service location" />
+                  {detail.data.service_locations ? (
+                    <article className="linked-record">
+                      <strong>{detail.data.service_locations.label || "Service location"}</strong>
+                      <span>
+                        {detail.data.service_locations.street}, {detail.data.service_locations.city}
+                      </span>
+                    </article>
+                  ) : (
+                    <EmptyInline>No service location attached.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<MapPin size={18} />} title="Linked work order" />
                   {detail.data.jobs ? (
-                    <Link className="linked-record" href={`/admin/jobs/${detail.data.job_id}`}>
+                    <Link className="linked-record" href={`/admin/jobs/${detail.data.jobs.id}`}>
                       <strong>{formatJobLabel(detail.data.jobs.service_type)}</strong>
                       <span>
                         {detail.data.jobs.service_locations
@@ -166,7 +190,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                       </span>
                     </Link>
                   ) : (
-                    <EmptyInline>No linked job available.</EmptyInline>
+                    <EmptyInline>A work order will be created when this quote is approved.</EmptyInline>
                   )}
                 </section>
 
@@ -211,7 +235,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   <AddAppointmentForm
                     assignedUsers={assignedUsers.data}
                     defaultAppointmentType="follow_up"
-                    jobId={detail.data.job_id}
+                    jobId={detail.data.job_id ?? undefined}
                     jobs={[]}
                     lockedAppointmentType="follow_up"
                   />
@@ -260,8 +284,24 @@ function formatQuoteStatus(status: QuoteStatus) {
   return status === "approved" ? "accepted" : status.replace("_", " ");
 }
 
+function isQuoteClosedForSending(status: QuoteStatus) {
+  return ["approved", "declined", "expired", "cancelled"].includes(status);
+}
+
 function formatJobLabel(serviceType?: string | null) {
   return serviceType ? serviceType.replace("_", " ") : "Linked job";
+}
+
+function formatProposalLabel(quote: { jobs?: { service_type?: string | null } | null; service_locations?: { street?: string | null; city?: string | null } | null }) {
+  if (quote.jobs?.service_type) {
+    return quote.jobs.service_type.replace("_", " ");
+  }
+
+  if (quote.service_locations) {
+    return [quote.service_locations.street, quote.service_locations.city].filter(Boolean).join(", ");
+  }
+
+  return "Draft proposal";
 }
 
 function formatDate(value?: string | null) {

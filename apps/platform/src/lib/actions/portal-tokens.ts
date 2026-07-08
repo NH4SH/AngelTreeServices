@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
+import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -135,20 +136,12 @@ export async function approveQuoteByPortalToken(
   }
 
   const approvedAt = new Date().toISOString();
-  const { error: quoteError } = await supabase
-    .from("quotes")
-    .update({ status: "approved", approved_at: approvedAt })
-    .eq("id", lookup.quote.id);
+  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, lookup.quote.id, approvedAt);
 
-  if (quoteError) {
-    return { status: "error", message: quoteError.message };
+  if (!approvalResult.ok) {
+    return { status: "error", message: approvalResult.message };
   }
 
-  await supabase
-    .from("jobs")
-    .update({ status: "accepted" })
-    .eq("id", lookup.quote.job_id)
-    .eq("status", "quoted");
   await supabase.from("quote_portal_tokens").update({ used_at: approvedAt }).eq("id", lookup.tokenId);
   await logPortalActivity(supabase, lookup.quote.id, "quote_portal_approved");
 
@@ -182,7 +175,8 @@ export async function requestQuoteChangesByPortalToken(
     .from("notes")
     .insert({
       customer_id: lookup.quote.customer_id,
-      job_id: lookup.quote.job_id,
+      service_location_id: lookup.quote.service_location_id,
+      job_id: lookup.quote.job_id ?? null,
       visibility: "internal",
       body: `Customer portal change request: ${message}`,
     })

@@ -42,6 +42,15 @@ export type ScheduleCalendarData = {
   users: ScheduleUser[];
 };
 
+export type EstimateScheduleEventOption = {
+  id: string;
+  title: string;
+  starts_at: string;
+  service_location_id: string | null;
+  customer_label: string | null;
+  location_label: string | null;
+};
+
 const appointmentEventTypes = new Set<AppointmentType>(["estimate", "job", "follow_up", "maintenance", "other"]);
 
 export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
@@ -63,6 +72,50 @@ export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
 
   return {
     data: mapScheduleUsers((data ?? []) as UserRow[]),
+    error: null,
+  };
+}
+
+export async function getEstimateScheduleEventOptions(): Promise<DataResult<EstimateScheduleEventOption[]>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
+  }
+
+  const { data, error } = await supabase
+    .from("schedule_events")
+    .select(
+      "id, title, starts_at, service_location_id, location_label, jobs(customers(display_name)), service_locations(label, street, city, state)",
+    )
+    .eq("event_type", "estimate")
+    .order("starts_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return {
+    data: ((data ?? []) as {
+      id: string;
+      title: string;
+      starts_at: string;
+      service_location_id: string | null;
+      location_label: string | null;
+      jobs?: { customers?: { display_name?: string | null } | null } | null;
+      service_locations?: { label?: string | null; street?: string | null; city?: string | null; state?: string | null } | null;
+    }[]).map((event) => ({
+      id: event.id,
+      title: event.title,
+      starts_at: event.starts_at,
+      service_location_id: event.service_location_id,
+      customer_label: event.jobs?.customers?.display_name ?? null,
+      location_label:
+        event.location_label ||
+        event.service_locations?.label ||
+        formatLocation(event.service_locations?.street, event.service_locations?.city, event.service_locations?.state),
+    })),
     error: null,
   };
 }

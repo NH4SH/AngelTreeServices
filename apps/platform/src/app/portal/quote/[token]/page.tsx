@@ -89,7 +89,12 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
                 <MapPin aria-hidden="true" size={16} />
                 Scope at a glance
               </strong>
-              <p>{lookup.quote.jobs?.requested_scope || "Scope details will appear here when attached to the quote."}</p>
+              <p>
+                {lookup.quote.jobs?.requested_scope ||
+                  lookup.quote.customer_message ||
+                  getLineItemScope(lookup.quote) ||
+                  "Scope details will appear here when attached to the quote."}
+              </p>
             </article>
             <article className="customer-quote-overview-card">
               <strong>
@@ -176,11 +181,15 @@ function formatStatus(status: string) {
 }
 
 function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]) {
-  const location = quote?.jobs?.service_locations;
+  const location = quote?.service_locations ?? quote?.jobs?.service_locations;
 
   if (!location) {
     return "No service location attached";
   }
 
   return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
+}
+
+function getLineItemScope(quote: NonNullable<Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]>) {
+  return (quote.quote_line_items ?? []).map((item) => item.description || item.name).filter(Boolean).join("; ");
 }

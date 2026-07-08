@@ -84,7 +84,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     <div className="line-items-preview commerce-line-items">
                       {detail.data.invoice_line_items.map((item) => (
                         <div className="line-item-row" key={item.id}>
-                          <span>{item.description || item.name}</span>
+                          <span className="formatted-line-description">
+                            <strong>{item.name}</strong>
+                            {item.description ? <span>{item.description}</span> : null}
+                          </span>
                           <span>{item.quantity}</span>
                           <span>{formatCurrency(item.unit_price_cents)}</span>
                           <strong>{formatCurrency(item.total_cents)}</strong>

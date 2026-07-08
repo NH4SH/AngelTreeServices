@@ -23,11 +23,12 @@ export function QuoteDocument({
         ]}
       />
       <DocumentSection title="Scope of work">
-        <p>{quote.jobs?.requested_scope || "No requested scope attached yet."}</p>
+        <p>{quote.jobs?.requested_scope || quote.customer_message || getLineItemScope(quote) || "No requested scope attached yet."}</p>
       </DocumentSection>
       <DocumentLineItems
         items={(quote.quote_line_items ?? []).map((item) => ({
-          description: item.description || item.name,
+          description: item.description,
+          name: item.name,
           quantity: item.quantity,
           totalCents: item.total_cents,
           unitPriceCents: item.unit_price_cents,
@@ -52,7 +53,7 @@ export function DocumentLineItems({
   totalCents,
   totalLabel = "Total",
 }: {
-  items: { description: string; quantity: number; totalCents: number; unitPriceCents: number }[];
+  items: { description: string | null; name: string; quantity: number; totalCents: number; unitPriceCents: number }[];
   subtotalCents: number;
   totalCents: number;
   totalLabel?: string;
@@ -67,8 +68,11 @@ export function DocumentLineItems({
       </div>
       {items.length ? (
         items.map((item, index) => (
-          <div className="business-document-line-row" key={`${item.description}-${index}`}>
-            <span>{item.description}</span>
+          <div className="business-document-line-row" key={`${item.name}-${index}`}>
+            <span className="business-document-line-description">
+              <strong>{item.name}</strong>
+              {item.description ? <span>{item.description}</span> : null}
+            </span>
             <span>{item.quantity}</span>
             <span>{formatCurrency(item.unitPriceCents)}</span>
             <strong>{formatCurrency(item.totalCents)}</strong>
@@ -92,12 +96,16 @@ export function DocumentLineItems({
 }
 
 function formatLocation(quote: QuoteDetail) {
-  const location = quote.jobs?.service_locations;
+  const location = quote.service_locations ?? quote.jobs?.service_locations;
   if (!location) {
     return "No service location attached yet.";
   }
 
   return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
+}
+
+function getLineItemScope(quote: QuoteDetail) {
+  return (quote.quote_line_items ?? []).map((item) => item.description || item.name).filter(Boolean).join("; ");
 }
 
 function formatDate(value: string) {

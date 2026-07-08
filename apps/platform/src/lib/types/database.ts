@@ -143,6 +143,7 @@ export type Job = {
   id: string;
   customer_id: string;
   service_location_id: string;
+  source_quote_id: string | null;
   lead_source_id: string | null;
   assigned_crew_user_id: string | null;
   status: JobStatus;
@@ -160,14 +161,17 @@ export type Job = {
 
 export type Quote = {
   id: string;
-  job_id: string;
+  job_id: string | null;
   customer_id: string;
+  service_location_id: string | null;
+  estimate_schedule_event_id: string | null;
   status: QuoteStatus;
   quote_number: string | null;
   subtotal_cents: number;
   tax_cents: number;
   total_cents: number;
   customer_message: string | null;
+  sent_at: string | null;
   approved_at: string | null;
   expires_at: string | null;
   created_at: string;
@@ -461,6 +465,11 @@ export type CrewJob = Pick<
 export type QuoteWithRelations = Quote & {
   jobs?: Pick<Job, "id" | "status" | "service_type"> | null;
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  service_locations?: Pick<
+    ServiceLocation,
+    "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
+  > | null;
+  schedule_events?: Pick<ScheduleEvent, "id" | "title" | "event_type" | "starts_at" | "ends_at"> | null;
   quote_line_items?: QuoteLineItem[];
 };
 

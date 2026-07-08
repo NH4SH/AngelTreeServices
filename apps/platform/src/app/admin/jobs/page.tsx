@@ -41,10 +41,10 @@ export default async function JobsPage() {
         <section className="page-heading">
           <p className="surface-label">
             <ClipboardCheck aria-hidden="true" size={18} />
-            Jobs
+            Jobs / work orders
           </p>
-          <h1>Jobs</h1>
-          <p>Track leads, estimates, scheduled work, crew progress, and completion.</p>
+          <h1>Jobs and work orders</h1>
+          <p>Track approved, scheduled, active, and completed field work. Early website requests can still appear here for compatibility.</p>
         </section>
 
         {[jobs.error, customers.error, serviceLocations.error].filter(Boolean).map((message) => (
@@ -60,7 +60,7 @@ export default async function JobsPage() {
         <section className="crm-layout">
           <div className="crm-main">
             {jobs.data.length === 0 ? (
-              <EmptyState title="No jobs yet" body="Create a customer and service location first, then add the first job." />
+              <EmptyState title="No work orders yet" body="Create and approve a quote first, or add a job for work that is already approved." />
             ) : (
               <div className="record-list">
                 {jobs.data.map((job) => (
@@ -101,8 +101,8 @@ export default async function JobsPage() {
 
           <aside className="crm-side">
             <section className="form-panel">
-              <h2>Add job</h2>
-              <p className="form-panel-copy">Link the customer and property first, then capture the requested work in plain language.</p>
+              <h2>Add job / work order</h2>
+              <p className="form-panel-copy">For new estimates, start with a quote. Use this for approved work or legacy lead records.</p>
               <AddJobForm customers={customers.data} serviceLocations={serviceLocations.data} />
             </section>
           </aside>

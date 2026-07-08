@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -86,28 +87,42 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
 
   const quoteId = getString(formData, "quote_id");
   const nextStatus = getString(formData, "next_status") as QuoteStatus;
-  const allowedTargets: QuoteStatus[] = ["sent", "approved", "change_requested"];
+  const allowedTargets: QuoteStatus[] = ["approved", "change_requested", "declined"];
 
   if (!allowedTargets.includes(nextStatus)) {
     return { status: "error", message: "That quote status action is not allowed here." };
   }
 
-  const { error } = await supabase
-    .from("quotes")
-    .update({
-      status: nextStatus,
-      approved_at: nextStatus === "approved" ? new Date().toISOString() : null,
-    })
-    .eq("id", quoteId);
+  let message = `Quote marked ${nextStatus.replace("_", " ")}.`;
 
-  if (error) {
-    return { status: "error", message: error.message };
+  if (nextStatus === "approved") {
+    const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId);
+
+    if (!result.ok) {
+      return { status: "error", message: result.message };
+    }
+
+    message = result.createdJob
+      ? "Quote approved and work order created."
+      : "Quote approved and linked to the existing work order.";
+  } else {
+    const { error } = await supabase
+      .from("quotes")
+      .update({
+        status: nextStatus,
+        approved_at: null,
+      })
+      .eq("id", quoteId);
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
   }
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
-  return { status: "success", message: `Quote marked ${nextStatus.replace("_", " ")}.` };
+  return { status: "success", message };
 }
 
 export async function updateInvoiceStatus(_previousState: WorkflowActionState, formData: FormData) {
@@ -190,23 +205,43 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
     return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
   }
 
-  const lineItems = ((quote as { quote_line_items?: QuoteLineItem[] }).quote_line_items ?? []) as QuoteLineItem[];
+  const typedQuote = quote as {
+    id: string;
+    job_id: string | null;
+    customer_id: string;
+    status: QuoteStatus;
+    subtotal_cents: number;
+    tax_cents: number;
+    total_cents: number;
+    quote_line_items?: QuoteLineItem[];
+  };
+  const lineItems = (typedQuote.quote_line_items ?? []) as QuoteLineItem[];
 
   if (lineItems.length === 0) {
     return { status: "error", message: "Add at least one quote line item before creating an invoice." };
   }
 
+  if (typedQuote.status !== "approved") {
+    return { status: "error", message: "Approve the quote before creating an invoice." };
+  }
+
+  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, quoteId);
+
+  if (!approvalResult.ok) {
+    return { status: "error", message: approvalResult.message };
+  }
+
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .insert({
-      job_id: quote.job_id,
-      quote_id: quote.id,
-      customer_id: quote.customer_id,
+      job_id: approvalResult.jobId,
+      quote_id: typedQuote.id,
+      customer_id: typedQuote.customer_id,
       status: "draft",
-      subtotal_cents: quote.subtotal_cents,
-      tax_cents: quote.tax_cents,
-      total_cents: quote.total_cents,
-      balance_due_cents: quote.total_cents,
+      subtotal_cents: typedQuote.subtotal_cents,
+      tax_cents: typedQuote.tax_cents,
+      total_cents: typedQuote.total_cents,
+      balance_due_cents: typedQuote.total_cents,
     })
     .select("id")
     .single();

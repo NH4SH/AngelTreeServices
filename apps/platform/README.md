@@ -131,6 +131,7 @@ supabase/migrations/0009_align_internal_staff_role_helpers.sql
 supabase/migrations/0010_time_clock_clock_out_policy_fix.sql
 supabase/migrations/0011_employee_access_requests.sql
 supabase/migrations/20260707000822_email_events_log.sql
+supabase/migrations/20260708004341_quote_first_workflow.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -147,10 +148,10 @@ The first admin CRM surface now includes:
 
 - `/admin/customers`: customer records, first notes, and service locations.
 - `/admin/customers/[customerId]`: customer file with contact info, notes, service locations, jobs, quotes, invoices, and quick actions.
-- `/admin/jobs`: job records, status flow, priority, service type, and estimated date.
+- `/admin/jobs`: approved, scheduled, active, and completed jobs/work orders, with legacy lead records still supported.
 - `/admin/jobs/[jobId]`: job file with customer/location summary, scope, schedule, quote/invoice links, photos, crew work order link, and validated status transitions.
-- `/admin/quotes`: quote records and one starter line item.
-- `/admin/quotes/[quoteId]`: quote file with line items, document preview, status actions, and create-invoice-from-quote.
+- `/admin/quotes`: quote-first proposal center for customer/location draft quotes and multi-line proposal line items.
+- `/admin/quotes/[quoteId]`: quote file with line items, document preview, send-quote action, approval/change/decline workflow actions, and create-invoice-from-quote after approval.
 - `/admin/invoices`: invoice records and one starter line item, without payment collection.
 - `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment placeholder, document preview, and safe invoice status actions.
 - `/admin/schedule`: estimate, job, and follow-up appointment records.
@@ -205,14 +206,17 @@ There is no delete button yet. The migration permits assigned uploaders to remov
 The internal workflow now connects:
 
 ```text
-Customer -> Service Location -> Job -> Quote -> Invoice
+Customer -> Service Location -> Quote -> Approval -> Job / Work Order -> Invoice
 ```
 
 Implemented actions:
 
 - Job status transitions: `new_lead -> estimate_scheduled`, `estimate_scheduled -> quoted`, `accepted -> scheduled`, `scheduled -> in_progress`, `in_progress -> completed`.
-- Quote status actions: mark sent, mark accepted, request changes.
-- Create invoice from quote: copies quote line items into invoice line items and links invoice to quote, job, and customer.
+- Quote creation: saves a `draft` quote from a customer, service location, optional estimate event, optional existing job/work order, and multiple proposal line items.
+- Quote line editor: supports add, remove, duplicate, reorder, multi-line scope descriptions, an Indent line helper, and visible subtotal/total calculation.
+- Send quote: generates a fresh secure portal link, sends the quote email, then automatically marks the quote `sent` and records `sent_at`.
+- Quote workflow actions: approve and create/link a work order, mark change requested, or mark declined.
+- Create invoice from quote: requires an approved quote, ensures the work order exists, copies quote line items into invoice line items, and links invoice to quote, job, and customer.
 - Invoice status actions: mark sent, mark void.
 
 Scaffolded only:
@@ -240,7 +244,7 @@ src/components/documents/work-order-document.tsx
 src/components/documents/print-button.tsx
 ```
 
-Email draft generation lives in `src/lib/documents/email-drafts.ts`. The reusable clipboard UI is `src/components/email-draft-card.tsx`.
+Email draft generation lives in `src/lib/documents/email-drafts.ts`. The reusable clipboard UI is `src/components/email-draft-card.tsx`. Quote and invoice line item descriptions preserve line breaks and simple indentation in previews, portal pages, and email draft copy.
 
 The print buttons call `window.print()`. Browser print-to-PDF is available for office use, but the app does not generate or store production PDF files yet. Email draft cards copy text to the clipboard; quote and invoice detail pages also include explicit Resend-powered send buttons when email is configured.
 
@@ -248,7 +252,7 @@ The print buttons call `window.print()`. Browser print-to-PDF is available for o
 
 Apply `supabase/migrations/0003_quote_portal_tokens.sql` before testing customer quote links. The migration creates `public.quote_portal_tokens`, enables RLS, grants access only to authenticated users, and adds a staff-only management policy. It deliberately grants nothing to `anon`.
 
-From `/admin/quotes/[quoteId]`, use **Generate secure quote link** to create a 30-day link. Copy the URL immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Existing links can be revoked from the same quote page.
+From `/admin/quotes/[quoteId]`, use **Send quote email** to generate a fresh 30-day secure quote link and send it to the customer, or use **Generate secure quote link** when the office needs to copy a link manually. Copy manual URLs immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Existing links can be revoked from the same quote page.
 
 The customer opens:
 
@@ -256,7 +260,7 @@ The customer opens:
 http://localhost:3000/portal/quote/{token}
 ```
 
-The public route performs a narrow server-side lookup and exposes only the linked quote, customer summary, service location, and line items. It does not provide direct anonymous access to CRM tables or the token table. Customers can approve the quote or request changes without creating an account. Approval marks the quote `approved` and moves a related `quoted` job to `accepted`. Change requests are stored as internal job/customer notes.
+The public route performs a narrow server-side lookup and exposes only the linked quote, customer summary, service location, and line items. It does not provide direct anonymous access to CRM tables or the token table. Customers can approve the quote or request changes without creating an account. Approval marks the quote `approved` and creates or links one job/work order. Duplicate approvals do not create duplicate jobs. Change requests are stored as internal customer/location/job notes where available.
 
 `SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
 
@@ -303,7 +307,7 @@ The schedule page provides:
 - Directions links when a service location has an address.
 - Follow-ups due today or overdue on the admin dashboard.
 
-Job files can add estimate visits, job visits, and follow-up reminders. Quote files can add a quote follow-up reminder. Scheduling an estimate advances `new_lead -> estimate_scheduled`; scheduling field work advances `accepted -> scheduled`. Other job status changes remain explicit and validated.
+Job files can add estimate visits, job visits, and follow-up reminders. Quote files can add a quote follow-up reminder after a work order exists. Scheduling an estimate advances `new_lead -> estimate_scheduled`; scheduling field work advances `accepted -> scheduled`. Other job status changes remain explicit and validated.
 
 Copyable local draft helpers are available for estimate scheduling, job scheduling, quote follow-up, and post-job follow-up messages. They do not send SMS; quote and invoice emails can be sent only from their explicit admin detail-page actions.
 

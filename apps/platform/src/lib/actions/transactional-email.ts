@@ -1,11 +1,19 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { getQuoteDetail } from "@/lib/data/quotes";
-import { invoiceEmailTemplate, quoteEmailTemplate } from "@/lib/email/templates";
+import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
+import { invoiceEmailTemplate } from "@/lib/email/templates";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import {
+  generatePortalToken,
+  getPortalTokenHint,
+  hashPortalToken,
+  QUOTE_PORTAL_LINK_LIFETIME_DAYS,
+} from "@/lib/portal/tokens";
 import { createClient } from "@/lib/supabase/server";
 
 export type TransactionalEmailActionState = {
@@ -41,24 +49,45 @@ export async function sendQuoteEmail(
     return { status: "error", message: "This customer does not have an email address." };
   }
 
-  const template = quoteEmailTemplate(detail.data);
+  if (["approved", "declined", "expired", "cancelled"].includes(detail.data.status)) {
+    return { status: "error", message: "This quote is no longer open for sending." };
+  }
+
+  const portalLink = await createQuotePortalLinkForEmail(auth, detail.data.id, detail.data.customer_id);
+
+  if (portalLink.error) {
+    return { status: "error", message: portalLink.error };
+  }
+
+  const template = generateQuoteEmailDraft(detail.data, { portalUrl: portalLink.url });
   const result = await sendTransactionalEmail({
     to: recipient,
     subject: template.subject,
-    text: template.text,
-    html: template.html,
+    text: template.body,
     emailType: "quote",
     relatedCustomerId: detail.data.customer_id,
-    relatedJobId: detail.data.job_id,
+    relatedJobId: detail.data.job_id ?? null,
     relatedQuoteId: detail.data.id,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
   });
 
+  if (result.ok) {
+    const sentAt = new Date().toISOString();
+    const { error: statusError } = await auth.supabase
+      .from("quotes")
+      .update({ status: "sent", sent_at: sentAt })
+      .eq("id", detail.data.id);
+
+    if (statusError) {
+      return { status: "error", message: `Quote email sent, but status update failed: ${statusError.message}` };
+    }
+  }
+
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath(`/admin/customers/${detail.data.customer_id}`);
   return result.ok
-    ? { status: "success", message: "Quote email sent." }
+    ? { status: "success", message: "Quote email sent and marked sent." }
     : { status: "error", message: result.message };
 }
 
@@ -134,4 +163,40 @@ async function requireInternalEmailSender() {
   }
 
   return { supabase, userId: user.id };
+}
+
+async function createQuotePortalLinkForEmail(
+  auth: { supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>; userId: string },
+  quoteId: string,
+  customerId: string,
+) {
+  const rawToken = generatePortalToken();
+  const tokenHash = hashPortalToken(rawToken);
+
+  if (!tokenHash) {
+    return { error: "Could not generate a secure quote portal link.", url: "" };
+  }
+
+  const expiresAt = new Date(Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await auth.supabase.from("quote_portal_tokens").insert({
+    quote_id: quoteId,
+    customer_id: customerId,
+    token_hash: tokenHash,
+    token_hint: getPortalTokenHint(rawToken),
+    expires_at: expiresAt,
+    created_by_user_id: auth.userId,
+  });
+
+  if (error) {
+    return { error: error.message, url: "" };
+  }
+
+  return { error: null, url: `${await getRequestOrigin()}/portal/quote/${rawToken}` };
+}
+
+async function getRequestOrigin() {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
 }

@@ -119,7 +119,7 @@ export default async function DocumentsPage() {
             <dl className="document-meta">
               <div>
                 <dt>Job address</dt>
-                <dd>Service location selected from job</dd>
+                <dd>Service location selected from work order</dd>
               </div>
               <div>
                 <dt>Equipment</dt>

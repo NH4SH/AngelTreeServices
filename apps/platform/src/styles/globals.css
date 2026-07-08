@@ -1852,6 +1852,29 @@ h1 {
   text-align: right;
 }
 
+.formatted-line-description,
+.business-document-line-description {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-charcoal);
+  white-space: pre-wrap;
+}
+
+.formatted-line-description strong,
+.business-document-line-description strong {
+  color: var(--color-forest);
+  text-align: left;
+}
+
+.formatted-line-description span,
+.business-document-line-description span {
+  color: var(--color-muted);
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
 .line-item-total {
   grid-template-columns: minmax(0, 1fr) 120px;
   background: var(--color-surface-green);
@@ -2076,6 +2099,12 @@ h1 {
 .business-document-line-row span:not(:first-child),
 .business-document-line-row strong {
   text-align: right;
+}
+
+.business-document-line-row .business-document-line-description,
+.business-document-line-row .business-document-line-description strong,
+.business-document-line-row .business-document-line-description span {
+  text-align: left;
 }
 
 .business-document-empty {
@@ -5845,6 +5874,155 @@ body {
   margin-top: 10px;
 }
 
+.quote-editor-form {
+  gap: 16px;
+}
+
+.quote-editor-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: oklch(0.98 0.01 145);
+}
+
+.quote-editor-section h3,
+.quote-editor-section p {
+  margin: 0;
+}
+
+.quote-editor-section h3 {
+  color: var(--color-charcoal);
+  font-size: 1.02rem;
+}
+
+.quote-editor-section-header,
+.quote-line-editor-top,
+.quote-line-money-grid,
+.quote-editor-totals div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-line-helper-button {
+  width: auto;
+}
+
+.quote-line-editor-list {
+  display: grid;
+  gap: 12px;
+}
+
+.quote-line-editor {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.quote-line-editor-top strong {
+  color: var(--color-forest);
+}
+
+.quote-description-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.quote-indent-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-height: 34px;
+  border-radius: 10px;
+  padding: 0 10px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+  font-size: 0.78rem;
+}
+
+.quote-line-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quote-line-controls button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 0;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+}
+
+.quote-line-controls button:disabled {
+  opacity: 0.42;
+}
+
+.quote-line-editor textarea {
+  min-height: 168px;
+  font-family: inherit;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.quote-line-money-grid {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) minmax(120px, 0.8fr) minmax(120px, auto);
+  align-items: end;
+}
+
+.quote-line-total,
+.quote-editor-totals {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-green);
+}
+
+.quote-line-total {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.quote-line-total span,
+.quote-editor-totals dt {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.quote-line-total strong,
+.quote-editor-totals dd {
+  margin: 0;
+  color: var(--color-forest);
+  font-weight: 850;
+}
+
+.quote-editor-totals {
+  display: grid;
+  gap: 8px;
+  width: min(320px, 100%);
+  margin: 2px 0 0 auto;
+  padding: 12px;
+}
+
 /* CRM form polish */
 
 .crm-side {
@@ -5935,6 +6113,16 @@ body {
 .commerce-cancel-link {
   min-height: 44px;
   border-radius: 12px;
+}
+
+.crm-form .quote-line-controls button {
+  width: 36px;
+  min-height: 36px;
+}
+
+.crm-form .quote-indent-button {
+  width: auto;
+  min-height: 34px;
 }
 
 .nested-fieldset {
@@ -9017,5 +9205,45 @@ body {
   .appointment-detail-list div {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .quote-editor-section {
+    padding: 12px;
+  }
+
+  .quote-editor-section-header,
+  .quote-line-editor-top {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quote-line-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .crm-form .quote-line-controls button {
+    width: 100%;
+  }
+
+  .quote-line-money-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .business-document-line-heading {
+    display: none;
+  }
+
+  .business-document-line-row,
+  .line-item-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .business-document-line-row span:not(:first-child),
+  .line-item-row span:not(:first-child),
+  .business-document-line-row strong,
+  .line-item-row strong {
+    text-align: left;
   }
 }

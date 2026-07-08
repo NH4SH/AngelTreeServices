@@ -11,7 +11,7 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "*, jobs(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)",
+      "*, jobs(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
     )
     .order("created_at", { ascending: false });
 
@@ -31,7 +31,7 @@ export async function getQuotesAwaitingResponse() {
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)")
+    .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
     .in("status", ["sent", "change_requested"])
     .order("created_at", { ascending: false })
     .limit(12);
@@ -51,7 +51,7 @@ export async function getQuotesByCustomerId(customerId: string): Promise<DataRes
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), quote_line_items(*)")
+    .select("*, jobs(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
 
@@ -72,7 +72,7 @@ export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteD
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
     .select(
-      "*, jobs(*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), quote_line_items(*)",
+      "*, jobs(*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
     )
     .eq("id", quoteId)
     .single();
@@ -81,13 +81,17 @@ export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteD
     return { data: null, error: quoteError?.message ?? "Quote not found or no access." };
   }
 
-  const jobId = (quote as QuoteWithRelations).job_id;
+  const typedQuote = quote as QuoteWithRelations;
+  const jobId = typedQuote.job_id;
+  const notesQuery = supabase
+    .from("notes")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const scopedNotesQuery = jobId
+    ? notesQuery.eq("job_id", jobId)
+    : notesQuery.eq("customer_id", typedQuote.customer_id);
   const [notes, invoices] = await Promise.all([
-    supabase
-      .from("notes")
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: false }),
+    scopedNotesQuery,
     supabase
       .from("invoices")
       .select(

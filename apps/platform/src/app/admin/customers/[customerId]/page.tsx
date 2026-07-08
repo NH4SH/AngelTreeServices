@@ -75,9 +75,10 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
               <article className="detail-panel">
                 <PanelTitle icon={<MapPin size={18} />} title="Quick actions" />
                 <div className="quick-action-list">
+                  <Link href={`/admin/quotes?new=1&customer_id=${detail.data.customer.id}`}>Create quote</Link>
+                  <Link href="/admin/schedule?event_type=estimate">Schedule estimate</Link>
                   <a href="#add-location">Add service location</a>
-                  <a href="#add-job">Add job</a>
-                  <Link href="/admin/quotes?new=1">Create quote from job</Link>
+                  <a href="#add-job">Create job / work order</a>
                 </div>
               </article>
             </section>
@@ -109,13 +110,13 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
                 )}
               </RecordSection>
 
-              <RecordSection icon={<BriefcaseBusiness size={18} />} title="Jobs">
+              <RecordSection icon={<BriefcaseBusiness size={18} />} title="Jobs / work orders">
                 {detail.data.jobs.length === 0 ? (
-                  <EmptyInline>No jobs yet.</EmptyInline>
+                  <EmptyInline>No approved work orders yet.</EmptyInline>
                 ) : (
                   detail.data.jobs.map((job) => (
                     <Link className="linked-record" href={`/admin/jobs/${job.id}`} key={job.id}>
-                      <strong>{job.service_type?.replace("_", " ") || "Job"}</strong>
+                      <strong>{job.service_type?.replace("_", " ") || "Work order"}</strong>
                       <span>{job.status.replace("_", " ")}</span>
                     </Link>
                   ))
@@ -162,7 +163,8 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
               </aside>
               <aside className="crm-side" id="add-job">
                 <section className="form-panel">
-                  <h2>Add job</h2>
+                  <h2>Add job / work order</h2>
+                  <p className="inline-empty">Use this after quote approval or for work that already has approval.</p>
                   <AddJobForm customers={[detail.data.customer]} serviceLocations={detail.data.serviceLocations} />
                 </section>
               </aside>

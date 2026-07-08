@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { ReactNode } from "react";
-import { CheckCircle2, FilePlus2, Send, XCircle } from "lucide-react";
+import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
 import {
   createInvoiceFromQuote,
   updateInvoiceStatus,
@@ -39,21 +39,22 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
   );
 }
 
-export function QuoteStatusActions({ quoteId }: { quoteId: string }) {
+export function QuoteStatusActions({ quoteId, status }: { quoteId: string; status: QuoteStatus }) {
   const [state, formAction, pending] = useActionState(updateQuoteStatus, initialState);
+  const isClosed = ["approved", "declined", "expired", "cancelled"].includes(status);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <div className="workflow-button-row">
-        <QuoteStatusButton disabled={pending} formAction={formAction} icon="send" quoteId={quoteId} status="sent" />
-        <QuoteStatusButton disabled={pending} formAction={formAction} icon="check" quoteId={quoteId} status="approved" />
+        <QuoteStatusButton disabled={pending || status === "approved"} formAction={formAction} icon="check" quoteId={quoteId} status="approved" />
         <QuoteStatusButton
-          disabled={pending}
+          disabled={pending || isClosed}
           formAction={formAction}
           icon="change"
           quoteId={quoteId}
           status="change_requested"
         />
+        <QuoteStatusButton disabled={pending || isClosed} formAction={formAction} icon="decline" quoteId={quoteId} status="declined" />
       </div>
     </WorkflowActionPanel>
   );
@@ -122,21 +123,37 @@ function QuoteStatusButton({
 }: {
   disabled: boolean;
   formAction: (payload: FormData) => void;
-  icon: "send" | "check" | "change";
+  icon: "check" | "change" | "decline";
   quoteId: string;
   status: QuoteStatus;
 }) {
-  const Icon = icon === "send" ? Send : icon === "check" ? CheckCircle2 : XCircle;
+  const Icon = icon === "check" ? CheckCircle2 : icon === "change" ? MessageSquareWarning : XCircle;
   return (
     <form action={formAction} className="inline-action-form">
       <input name="quote_id" type="hidden" value={quoteId} />
       <input name="next_status" type="hidden" value={status} />
       <button disabled={disabled} type="submit">
         <Icon aria-hidden="true" size={18} />
-        {status === "approved" ? "Mark accepted" : status.replace("_", " ")}
+        {getQuoteActionLabel(status)}
       </button>
     </form>
   );
+}
+
+function getQuoteActionLabel(status: QuoteStatus) {
+  if (status === "approved") {
+    return "Approve and create work order";
+  }
+
+  if (status === "change_requested") {
+    return "Mark change requested";
+  }
+
+  if (status === "declined") {
+    return "Mark declined";
+  }
+
+  return status.replace("_", " ");
 }
 
 function InvoiceStatusButton({

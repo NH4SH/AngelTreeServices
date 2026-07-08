@@ -36,7 +36,7 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
   const [jobs, quotes, invoices] = customerIds.length
     ? await Promise.all([
         supabase.from("jobs").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").in("customer_id", customerIds).order("created_at", { ascending: false }),
-        supabase.from("quotes").select("*, customers(id, display_name, phone, email), quote_line_items(*)").in("customer_id", customerIds).order("created_at", { ascending: false }),
+        supabase.from("quotes").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").in("customer_id", customerIds).order("created_at", { ascending: false }),
         supabase.from("invoices").select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)").in("customer_id", customerIds).order("created_at", { ascending: false }),
       ])
     : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
@@ -83,7 +83,7 @@ export async function getOrganizationDashboardSummary() {
       .in("customer_id", customerIds),
     supabase
       .from("quotes")
-      .select("*, customers(id, display_name, phone, email), quote_line_items(*)")
+      .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
       .in("customer_id", customerIds),
     supabase
       .from("invoices")

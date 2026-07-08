@@ -5,12 +5,15 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getQuotes } from "@/lib/data/quotes";
-import type { Job, QuoteStatus, QuoteWithRelations } from "@/lib/types/database";
+import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
+import type { Customer, Job, QuoteStatus, QuoteWithRelations, ServiceLocation } from "@/lib/types/database";
 
 type QuotesPageProps = {
   searchParams: Promise<{
+    customer_id?: string;
     new?: string;
   }>;
 };
@@ -31,7 +34,13 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     return <SetupRequired title="Configure Supabase before opening quotes" />;
   }
 
-  const [quotes, jobs] = await Promise.all([getQuotes(), getJobOptions()]);
+  const [quotes, customers, serviceLocations, jobs, estimateScheduleEvents] = await Promise.all([
+    getQuotes(),
+    getCustomerOptions(),
+    getServiceLocations(),
+    getJobOptions(),
+    getEstimateScheduleEventOptions(),
+  ]);
   const summary = getQuoteSummary(quotes.data);
 
   return (
@@ -52,9 +61,11 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, jobs.error].filter(Boolean).map((message) => (
-          <DataWarning key={message} message={message ?? ""} />
-        ))}
+        {[quotes.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error]
+          .filter(Boolean)
+          .map((message) => (
+            <DataWarning key={message} message={message ?? ""} />
+          ))}
 
         <section className="commerce-summary-strip" aria-label="Quote workflow summary">
           {summaryOrder.map((item) => (
@@ -63,7 +74,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
         </section>
 
         {quotes.data.length === 0 ? (
-          <EmptyState title="No quotes yet" body="Create the first estimate from a connected job." />
+          <EmptyState title="No quotes yet" body="Create the first draft quote from a customer and service location." />
         ) : (
           <section className="commerce-table-shell" aria-label="Quotes">
             <div className="commerce-table-header quote-grid" aria-hidden="true">
@@ -83,7 +94,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                   </div>
                   <div className="commerce-cell">
                     <strong>{quote.customers?.display_name ?? "Unknown customer"}</strong>
-                    <span>{formatServiceType(quote.jobs?.service_type) || quote.customer_message || "No job scope attached"}</span>
+                    <span>{formatServiceType(quote.jobs?.service_type) || formatLocation(quote.service_locations) || "Proposed work"}</span>
                   </div>
                   <div className="commerce-cell">
                     <span className={`status-pill quote-status ${quote.status}`}>
@@ -111,16 +122,32 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </section>
         )}
 
-        {params.new === "1" ? <QuoteCreateDrawer jobs={jobs.data} /> : null}
+        {params.new === "1" ? (
+          <QuoteCreateDrawer
+            customers={customers.data}
+            defaultCustomerId={params.customer_id}
+            estimateScheduleEvents={estimateScheduleEvents.data}
+            jobs={jobs.data}
+            serviceLocations={serviceLocations.data}
+          />
+        ) : null}
       </div>
     </PlatformFrame>
   );
 }
 
 function QuoteCreateDrawer({
+  customers,
+  defaultCustomerId,
+  estimateScheduleEvents,
   jobs,
+  serviceLocations,
 }: {
+  customers: Pick<Customer, "id" | "display_name">[];
+  defaultCustomerId?: string;
+  estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
   return (
     <div aria-labelledby="new-quote-title" className="commerce-drawer-overlay" role="dialog">
@@ -133,13 +160,19 @@ function QuoteCreateDrawer({
               Quote builder
             </p>
             <h2 id="new-quote-title">New quote</h2>
-            <p>Start with the job, add customer-facing notes, then line items.</p>
+            <p>Start a draft proposal from the customer, service location, and proposed work.</p>
           </div>
           <Link aria-label="Close new quote panel" className="secondary-action icon-action" href="/admin/quotes">
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddQuoteForm jobs={jobs} />
+        <AddQuoteForm
+          customers={customers}
+          defaultCustomerId={defaultCustomerId}
+          estimateScheduleEvents={estimateScheduleEvents}
+          jobs={jobs}
+          serviceLocations={serviceLocations}
+        />
         <Link className="secondary-action commerce-cancel-link" href="/admin/quotes">
           Cancel
         </Link>
@@ -188,6 +221,14 @@ function formatQuoteStatus(status: QuoteStatus) {
 
 function formatServiceType(serviceType?: string | null) {
   return serviceType ? serviceType.replace("_", " ") : "";
+}
+
+function formatLocation(location?: QuoteWithRelations["service_locations"]) {
+  if (!location) {
+    return "";
+  }
+
+  return [location.street, location.city, location.state].filter(Boolean).join(", ");
 }
 
 function formatDate(value?: string | null) {

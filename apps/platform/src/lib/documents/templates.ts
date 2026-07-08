@@ -24,8 +24,8 @@ export const documentTemplates: DocumentTemplate[] = [
 
 export const quotePreviewPlaceholder: QuoteDocumentPreview = {
   customerLabel: "Customer selected from CRM",
-  jobLocationLabel: "Service location selected from job",
-  scopeOfWork: "Scope of work will populate from the job and quote line items.",
+  jobLocationLabel: "Service location selected for the quote",
+  scopeOfWork: "Scope of work will populate from quote notes and line items.",
   lineItems: [
     {
       description: "Tree service line item",
@@ -42,7 +42,7 @@ export const quotePreviewPlaceholder: QuoteDocumentPreview = {
 export const invoicePreviewPlaceholder: InvoiceDocumentPreview = {
   customerLabel: "Customer selected from CRM",
   invoiceNumberLabel: "Invoice number pending",
-  jobLocationLabel: "Service location selected from job",
+  jobLocationLabel: "Service location selected from work order",
   lineItems: [
     {
       description: "Invoice line item",

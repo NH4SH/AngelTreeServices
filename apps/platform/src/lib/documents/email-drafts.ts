@@ -1,4 +1,4 @@
-import type { InvoiceDetail, JobDetail, QuoteDetail } from "@/lib/types/database";
+import type { InvoiceDetail, JobDetail, QuoteDetail, QuoteLineItem, InvoiceLineItem } from "@/lib/types/database";
 
 export type EmailDraft = {
   subject: string;
@@ -7,7 +7,9 @@ export type EmailDraft = {
 
 const companyName = "Angel Tree Services";
 
-export type QuoteEmailDraftInput = Pick<QuoteDetail, "quote_number" | "customer_message" | "customers">;
+export type QuoteEmailDraftInput = Pick<QuoteDetail, "quote_number" | "customer_message" | "customers"> & {
+  quote_line_items?: Pick<QuoteLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[];
+};
 
 export function generateQuoteEmailDraft(
   quote: QuoteEmailDraftInput,
@@ -23,6 +25,7 @@ export function generateQuoteEmailDraft(
       "",
       `Your ${companyName} quote is ready for review.`,
       quote.customer_message ? `Notes: ${quote.customer_message}` : "",
+      getLineItemSummary(quote.quote_line_items),
       "",
       options.portalUrl ? `Review and approve your quote securely: ${options.portalUrl}` : "",
       "",
@@ -48,6 +51,7 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
       `Your invoice from ${companyName} is ready.`,
       `Balance due: ${formatCurrency(invoice.balance_due_cents)}.`,
       invoice.due_at ? `Due date: ${formatDate(invoice.due_at)}.` : "",
+      getLineItemSummary(invoice.invoice_line_items),
       "",
       "Please reply to this email or call our office with any questions. Online payment links will be added in a future phase.",
       "",
@@ -57,6 +61,29 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
       .filter(Boolean)
       .join("\n"),
   };
+}
+
+function getLineItemSummary(
+  lineItems?: Pick<QuoteLineItem | InvoiceLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[],
+) {
+  if (!lineItems?.length) {
+    return "";
+  }
+
+  return [
+    "Scope and pricing:",
+    ...lineItems
+      .slice()
+      .sort((left, right) => left.sort_order - right.sort_order)
+      .map((item, index) => {
+        const description = item.description ? `\n${item.description}` : "";
+        return [
+          `${index + 1}. ${item.name}`,
+          description,
+          `Qty ${item.quantity} x ${formatCurrency(item.unit_price_cents)} = ${formatCurrency(item.total_cents)}`,
+        ].join("\n");
+      }),
+  ].join("\n\n");
 }
 
 export function generateQuoteFollowUpDraft(quote: QuoteDetail): EmailDraft {

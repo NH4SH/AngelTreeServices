@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   FileSignature,
   MapPin,
+  Pencil,
   ReceiptText,
   Send,
   StickyNote,
@@ -75,6 +76,12 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   {formatQuoteStatus(detail.data.status)}
                 </span>
                 <strong>{formatCurrency(detail.data.total_cents)}</strong>
+                {isQuoteEditable(detail.data.status) ? (
+                  <Link className="primary-action" href={`/admin/quotes/${detail.data.id}/edit`}>
+                    <Pencil aria-hidden="true" size={17} />
+                    Edit quote
+                  </Link>
+                ) : null}
               </div>
             </section>
 
@@ -286,6 +293,10 @@ function formatQuoteStatus(status: QuoteStatus) {
 
 function isQuoteClosedForSending(status: QuoteStatus) {
   return ["approved", "declined", "expired", "cancelled"].includes(status);
+}
+
+function isQuoteEditable(status: QuoteStatus) {
+  return ["draft", "sent", "change_requested"].includes(status);
 }
 
 function formatJobLabel(serviceType?: string | null) {

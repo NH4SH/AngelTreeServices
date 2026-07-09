@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { useActionState } from "react";
-import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Trash2 } from "lucide-react";
-import { createQuote, type QuoteActionState } from "./actions";
-import type { Customer, Job, ServiceLocation } from "@/lib/types/database";
+import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
+import { createQuote, updateQuote, type QuoteActionState } from "./actions";
+import type { Customer, Job, QuoteDetail, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 
 const initialState: QuoteActionState = {
@@ -14,6 +15,7 @@ const initialState: QuoteActionState = {
 
 type LineItemDraft = {
   id: string;
+  persistedId?: string;
   name: string;
   description: string;
   quantity: string;
@@ -33,17 +35,35 @@ export function AddQuoteForm({
   defaultCustomerId = "",
   estimateScheduleEvents,
   jobs,
+  quote,
   serviceLocations,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  quote?: QuoteDetail;
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
-  const [state, formAction, pending] = useActionState(createQuote, initialState);
-  const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId);
-  const [lineItems, setLineItems] = useState<LineItemDraft[]>([initialLineItem()]);
+  const isEditing = Boolean(quote);
+  const action = isEditing ? updateQuote : createQuote;
+  const [state, formAction, pending] = useActionState(action, initialState);
+  const [dirty, setDirty] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(quote?.customer_id ?? defaultCustomerId);
+  const [lineItems, setLineItems] = useState<LineItemDraft[]>(
+    quote?.quote_line_items?.length
+      ? [...quote.quote_line_items]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((item) => ({
+            id: item.id,
+            persistedId: item.id,
+            name: item.name,
+            description: item.description ?? "",
+            quantity: String(item.quantity),
+            unitPrice: (item.unit_price_cents / 100).toFixed(2),
+          }))
+      : [initialLineItem()],
+  );
   const matchingLocations = useMemo(
     () => serviceLocations.filter((location) => !selectedCustomerId || location.customer_id === selectedCustomerId),
     [selectedCustomerId, serviceLocations],
@@ -53,9 +73,33 @@ export function AddQuoteForm({
     [selectedCustomerId, jobs],
   );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
+  const closeHref = quote ? `/admin/quotes/${quote.id}` : "/admin/quotes";
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setDirty(false);
+    }
+  }, [state]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirty) {
+        return;
+      }
+      event.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [dirty]);
 
   return (
-    <form action={formAction} className="crm-form quote-editor-form">
+    <form
+      action={formAction}
+      className="crm-form quote-editor-form"
+      onChange={() => setDirty(true)}
+    >
+      {quote ? <input name="quote_id" type="hidden" value={quote.id} /> : null}
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}
@@ -64,15 +108,23 @@ export function AddQuoteForm({
 
       <section className="quote-editor-section">
         <div>
-          <p className="surface-label">Draft quote</p>
+          <p className="surface-label">{isEditing ? "Edit quote" : "Draft quote"}</p>
           <h3>Customer and proposed work</h3>
         </div>
+        {quote && ["sent", "change_requested"].includes(quote.status) ? (
+          <p className="form-guidance warning">
+            Saving changes returns this quote to draft so the revised version can be reviewed and sent again.
+          </p>
+        ) : null}
         <div className="form-grid-two">
           <label>
             Customer
             <select
               name="customer_id"
-              onChange={(event) => setSelectedCustomerId(event.target.value)}
+              onChange={(event) => {
+                setSelectedCustomerId(event.target.value);
+                setDirty(true);
+              }}
               required
               value={selectedCustomerId}
             >
@@ -86,7 +138,7 @@ export function AddQuoteForm({
           </label>
           <label>
             Service location
-            <select name="service_location_id" required>
+            <select defaultValue={quote?.service_location_id ?? ""} name="service_location_id" required>
               <option value="">Choose service location</option>
               {matchingLocations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -99,7 +151,7 @@ export function AddQuoteForm({
         <div className="form-grid-two">
           <label>
             Estimate event
-            <select name="estimate_schedule_event_id">
+            <select defaultValue={quote?.estimate_schedule_event_id ?? ""} name="estimate_schedule_event_id">
               <option value="">No linked estimate event</option>
               {estimateScheduleEvents.map((event) => (
                 <option key={event.id} value={event.id}>
@@ -110,7 +162,7 @@ export function AddQuoteForm({
           </label>
           <label>
             Existing job / work order
-            <select name="job_id">
+            <select defaultValue={quote?.job_id ?? ""} name="job_id">
               <option value="">No existing job yet</option>
               {matchingJobs.map((job) => (
                 <option key={job.id} value={job.id}>
@@ -122,7 +174,16 @@ export function AddQuoteForm({
         </div>
         <label>
           Customer notes
-          <textarea name="customer_message" placeholder="Customer-facing quote notes or proposal introduction" rows={3} />
+          <textarea
+            defaultValue={quote?.customer_message ?? ""}
+            name="customer_message"
+            placeholder="Customer-facing quote notes or proposal introduction"
+            rows={4}
+          />
+        </label>
+        <label>
+          Expiration date
+          <input defaultValue={toDateInputValue(quote?.expires_at)} name="expires_at" type="date" />
         </label>
       </section>
 
@@ -132,7 +193,14 @@ export function AddQuoteForm({
             <p className="surface-label">Proposal lines</p>
             <h3>Line items</h3>
           </div>
-          <button className="secondary-action quote-line-helper-button" onClick={() => setLineItems((items) => [...items, initialLineItem()])} type="button">
+          <button
+            className="secondary-action quote-line-helper-button"
+            onClick={() => {
+              setLineItems((items) => [...items, initialLineItem()]);
+              setDirty(true);
+            }}
+            type="button"
+          >
             <Plus aria-hidden="true" size={16} />
             Add line item
           </button>
@@ -147,24 +215,36 @@ export function AddQuoteForm({
                   <IconButton
                     disabled={index === 0}
                     label="Move line item up"
-                    onClick={() => moveLineItem(index, index - 1, setLineItems)}
+                    onClick={() => {
+                      moveLineItem(index, index - 1, setLineItems);
+                      setDirty(true);
+                    }}
                   >
                     <ArrowUp aria-hidden="true" size={15} />
                   </IconButton>
                   <IconButton
                     disabled={index === lineItems.length - 1}
                     label="Move line item down"
-                    onClick={() => moveLineItem(index, index + 1, setLineItems)}
+                    onClick={() => {
+                      moveLineItem(index, index + 1, setLineItems);
+                      setDirty(true);
+                    }}
                   >
                     <ArrowDown aria-hidden="true" size={15} />
                   </IconButton>
-                  <IconButton label="Duplicate line item" onClick={() => duplicateLineItem(index, setLineItems)}>
+                  <IconButton label="Duplicate line item" onClick={() => {
+                    duplicateLineItem(index, setLineItems);
+                    setDirty(true);
+                  }}>
                     <Copy aria-hidden="true" size={15} />
                   </IconButton>
                   <IconButton
                     disabled={lineItems.length === 1}
                     label="Remove line item"
-                    onClick={() => setLineItems((items) => items.filter((candidate) => candidate.id !== item.id))}
+                    onClick={() => {
+                      setLineItems((items) => items.filter((candidate) => candidate.id !== item.id));
+                      setDirty(true);
+                    }}
                   >
                     <Trash2 aria-hidden="true" size={15} />
                   </IconButton>
@@ -173,6 +253,7 @@ export function AddQuoteForm({
 
               <label>
                 Title
+                {item.persistedId ? <input name="line_item_id" type="hidden" value={item.persistedId} /> : <input name="line_item_id" type="hidden" value="" />}
                 <input
                   name="line_item_name"
                   onChange={(event) => updateLineItem(item.id, { name: event.target.value }, setLineItems)}
@@ -184,7 +265,10 @@ export function AddQuoteForm({
                 <label htmlFor={`line-item-description-${item.id}`}>Description / scope</label>
                 <button
                   className="quote-indent-button"
-                  onClick={() => indentLineItemDescription(item.id, setLineItems)}
+                  onClick={() => {
+                    indentLineItemDescription(item.id, setLineItems);
+                    setDirty(true);
+                  }}
                   type="button"
                 >
                   <IndentIncrease aria-hidden="true" size={15} />
@@ -240,11 +324,44 @@ export function AddQuoteForm({
         </dl>
       </section>
 
-      <button disabled={pending || customers.length === 0} type="submit">
-        {pending ? "Saving..." : "Save draft"}
-      </button>
+      <div className="quote-editor-action-bar">
+        <div>
+          <button
+            disabled={pending || customers.length === 0}
+            name="submit_intent"
+            type="submit"
+            value="save"
+          >
+            <Save aria-hidden="true" size={17} />
+            {pending ? "Saving..." : isEditing ? "Save changes" : "Save draft"}
+          </button>
+          <button
+            className="secondary-action"
+            disabled={pending || customers.length === 0}
+            name="submit_intent"
+            type="submit"
+            value="save_close"
+          >
+            {pending ? "Saving..." : isEditing ? "Save and close" : "Save draft and close"}
+          </button>
+        </div>
+        <Link
+          className="secondary-action"
+          href={closeHref}
+          onClick={(event) => confirmClose(event, dirty)}
+        >
+          <X aria-hidden="true" size={17} />
+          Close
+        </Link>
+      </div>
     </form>
   );
+}
+
+function confirmClose(event: MouseEvent<HTMLAnchorElement>, dirty: boolean) {
+  if (dirty && !window.confirm("Close without saving your changes?")) {
+    event.preventDefault();
+  }
 }
 
 function IconButton({
@@ -346,4 +463,8 @@ function formatCurrency(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function toDateInputValue(value?: string | null) {
+  return value ? value.slice(0, 10) : "";
 }

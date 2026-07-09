@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ClipboardCheck, FileText, MapPin, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
+import { ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
@@ -59,6 +59,12 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 </span>
                 <strong>{formatCurrency(detail.data.balance_due_cents)}</strong>
                 <span>balance due</span>
+                {isInvoiceEditable(detail.data.status) ? (
+                  <Link className="primary-action" href={`/admin/invoices/${detail.data.id}/edit`}>
+                    <Pencil aria-hidden="true" size={17} />
+                    Edit invoice
+                  </Link>
+                ) : null}
               </div>
             </section>
 
@@ -216,6 +222,10 @@ function DataWarning({ message }: { message: string }) {
 
 function formatInvoiceStatus(status: InvoiceStatus) {
   return status.replace("_", " ");
+}
+
+function isInvoiceEditable(status: InvoiceStatus) {
+  return !["paid", "void"].includes(status);
 }
 
 function formatJobLabel(serviceType?: string | null) {

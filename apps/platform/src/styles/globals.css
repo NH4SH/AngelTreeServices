@@ -5878,6 +5878,46 @@ body {
   gap: 16px;
 }
 
+.commerce-editor-page {
+  width: min(900px, calc(100% - 32px));
+}
+
+.quote-editor-action-bar {
+  position: sticky;
+  z-index: 4;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 -4px -4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px;
+  background: oklch(0.985 0.006 154 / 0.97);
+  padding: 10px;
+  box-shadow: 0 -8px 24px oklch(0.24 0.03 154 / 0.1);
+}
+
+.quote-editor-action-bar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quote-editor-action-bar button,
+.quote-editor-action-bar a {
+  width: auto;
+}
+
+.form-guidance.warning {
+  border: 1px solid oklch(0.82 0.08 80);
+  border-radius: 12px;
+  background: oklch(0.97 0.025 80);
+  padding: 10px 12px;
+  color: oklch(0.38 0.06 70);
+  line-height: 1.45;
+}
+
 .quote-editor-section {
   display: grid;
   gap: 12px;
@@ -5971,6 +6011,13 @@ body {
 
 .quote-line-controls button:disabled {
   opacity: 0.42;
+}
+
+.invoice-line-remove {
+  width: 40px;
+  min-width: 40px;
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .quote-line-editor textarea {
@@ -9228,6 +9275,18 @@ body {
 
   .quote-line-money-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quote-editor-action-bar,
+  .quote-editor-action-bar > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quote-editor-action-bar button,
+  .quote-editor-action-bar a {
+    width: 100%;
+    justify-content: center;
   }
 
   .business-document-line-heading {

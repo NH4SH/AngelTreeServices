@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CustomerType } from "@/lib/types/database";
 
@@ -68,7 +69,7 @@ export async function createCustomer(
     });
 
     if (error) {
-      return { status: "error", message: `Customer saved, but note failed: ${error.message}` };
+      console.error("Customer created, but initial note could not be saved.", error);
     }
   }
 
@@ -83,13 +84,14 @@ export async function createCustomer(
     });
 
     if (error) {
-      return { status: "error", message: `Customer saved, but service location failed: ${error.message}` };
+      console.error("Customer created, but initial service location could not be saved.", error);
     }
   }
 
   revalidatePath("/admin/customers");
+  revalidatePath(`/admin/customers/${customer.id}`);
   revalidatePath("/admin/jobs");
-  return { status: "success", message: "Customer saved." };
+  redirect(`/admin/customers/${customer.id}?created=1`);
 }
 
 export async function createServiceLocation(

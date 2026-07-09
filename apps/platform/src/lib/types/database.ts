@@ -37,6 +37,8 @@ export type QuoteStatus =
   | "declined"
   | "cancelled";
 
+export type QuoteSentMethod = "crm_email" | "manual" | "printed" | "text" | "other";
+
 export type AppointmentType = "estimate" | "job" | "follow_up" | "maintenance" | "other";
 export type AppointmentStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
 export type ScheduleEventType =
@@ -172,6 +174,8 @@ export type Quote = {
   total_cents: number;
   customer_message: string | null;
   sent_at: string | null;
+  sent_method: QuoteSentMethod | null;
+  sent_by_user_id: string | null;
   approved_at: string | null;
   expires_at: string | null;
   created_at: string;

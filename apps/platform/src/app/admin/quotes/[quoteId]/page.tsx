@@ -18,10 +18,11 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
-import { CreateInvoiceFromQuoteAction, QuoteStatusActions } from "@/components/workflow-actions";
+import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
@@ -50,6 +51,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
   const assignedUsers = await getAssignableUsers();
   const emailSetup = getEmailSetupState();
+  const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -159,7 +161,16 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     {formatQuoteStatus(detail.data.status)}
                   </span>
                   <p className="inline-empty">Sending the quote marks it sent. Approval creates or links the work order.</p>
+                  {detail.data.sent_at ? (
+                    <p className="quote-delivery-note">
+                      <Send aria-hidden="true" size={16} />
+                      {formatSentActivity(detail.data.sent_method, detail.data.sent_at)}
+                    </p>
+                  ) : null}
                   <QuoteStatusActions quoteId={detail.data.id} status={detail.data.status} />
+                  {canManuallyMarkSent ? (
+                    <ManualQuoteSentAction quoteId={detail.data.id} status={detail.data.status} />
+                  ) : null}
                   {detail.data.status === "approved" ? <CreateInvoiceFromQuoteAction quoteId={detail.data.id} /> : null}
                 </section>
 
@@ -289,6 +300,23 @@ function DataWarning({ message }: { message: string }) {
 
 function formatQuoteStatus(status: QuoteStatus) {
   return status === "approved" ? "accepted" : status.replace("_", " ");
+}
+
+function formatSentActivity(method: string | null, sentAt: string) {
+  const date = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(sentAt));
+
+  if (method === "manual") {
+    return `Marked as sent manually on ${date}`;
+  }
+
+  if (method === "crm_email") {
+    return `Sent via CRM email on ${date}`;
+  }
+
+  return `Sent status recorded on ${date}`;
 }
 
 function isQuoteClosedForSending(status: QuoteStatus) {

@@ -312,6 +312,8 @@ export async function updateQuote(
       customer_message: customerMessage,
       expires_at: expiresAt,
       sent_at: returnsToDraft ? null : undefined,
+      sent_method: returnsToDraft ? null : undefined,
+      sent_by_user_id: returnsToDraft ? null : undefined,
     })
     .eq("id", quoteId);
 

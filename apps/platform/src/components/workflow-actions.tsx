@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
 import {
   createInvoiceFromQuote,
+  markQuoteSentManually,
   updateInvoiceStatus,
   updateJobStatus,
   updateQuoteStatus,
@@ -55,6 +56,50 @@ export function QuoteStatusActions({ quoteId, status }: { quoteId: string; statu
           status="change_requested"
         />
         <QuoteStatusButton disabled={pending || isClosed} formAction={formAction} icon="decline" quoteId={quoteId} status="declined" />
+      </div>
+    </WorkflowActionPanel>
+  );
+}
+
+const manualSentConfirmation =
+  "Mark this quote as sent? Use this only if you already sent the quote outside the CRM. This will not email the customer.";
+
+export function ManualQuoteSentAction({
+  quoteId,
+  status,
+}: {
+  quoteId: string;
+  status: QuoteStatus;
+}) {
+  const [state, formAction, pending] = useActionState(markQuoteSentManually, initialState);
+  const canMarkSent = status === "draft" || status === "change_requested";
+
+  if (!canMarkSent) {
+    return null;
+  }
+
+  return (
+    <WorkflowActionPanel message={state.message} status={state.status}>
+      <div className="workflow-override">
+        <div>
+          <strong>Manual override</strong>
+          <p>Use this only when the quote was delivered outside the CRM.</p>
+        </div>
+        <form
+          action={formAction}
+          className="inline-action-form"
+          onSubmit={(event) => {
+            if (!window.confirm(manualSentConfirmation)) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input name="quote_id" type="hidden" value={quoteId} />
+          <button disabled={pending} type="submit">
+            <Send aria-hidden="true" size={18} />
+            {pending ? "Marking sent..." : "Mark as sent"}
+          </button>
+        </form>
       </div>
     </WorkflowActionPanel>
   );

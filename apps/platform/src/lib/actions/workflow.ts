@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
@@ -123,6 +124,62 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { status: "success", message };
+}
+
+export async function markQuoteSentManually(
+  _previousState: WorkflowActionState,
+  formData: FormData,
+) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before updating quotes." };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can manually mark a quote as sent." };
+  }
+
+  const quoteId = getString(formData, "quote_id");
+  if (!quoteId) {
+    return { status: "error", message: "Quote is required." };
+  }
+
+  const sentAt = new Date().toISOString();
+  const { data: quote, error } = await supabase
+    .from("quotes")
+    .update({
+      status: "sent",
+      sent_at: sentAt,
+      sent_method: "manual",
+      sent_by_user_id: user.id,
+    })
+    .eq("id", quoteId)
+    .in("status", ["draft", "change_requested"])
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  if (!quote) {
+    return { status: "error", message: "Only draft or change-requested quotes can be manually marked sent." };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${quoteId}`);
+  return { status: "success", message: "Marked as sent manually. No email was sent." };
 }
 
 export async function updateInvoiceStatus(_previousState: WorkflowActionState, formData: FormData) {

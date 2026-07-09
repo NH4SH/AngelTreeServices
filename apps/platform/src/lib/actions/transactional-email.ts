@@ -76,7 +76,12 @@ export async function sendQuoteEmail(
     const sentAt = new Date().toISOString();
     const { error: statusError } = await auth.supabase
       .from("quotes")
-      .update({ status: "sent", sent_at: sentAt })
+      .update({
+        status: "sent",
+        sent_at: sentAt,
+        sent_method: "crm_email",
+        sent_by_user_id: auth.userId,
+      })
       .eq("id", detail.data.id);
 
     if (statusError) {

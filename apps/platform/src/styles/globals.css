@@ -1690,6 +1690,56 @@ h1 {
   gap: 8px;
 }
 
+.workflow-override {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface-subtle);
+  padding: 12px;
+}
+
+.workflow-override > div {
+  display: grid;
+  gap: 3px;
+}
+
+.workflow-override strong {
+  color: var(--color-charcoal);
+  font-size: 0.82rem;
+}
+
+.workflow-override p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.workflow-action-panel .workflow-override button {
+  width: 100%;
+  border-color: var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-forest);
+}
+
+.quote-delivery-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  color: var(--color-forest);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.quote-delivery-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
 .inline-action-form {
   display: contents;
 }

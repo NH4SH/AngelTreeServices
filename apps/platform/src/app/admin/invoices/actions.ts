@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { InvoiceStatus } from "@/lib/types/database";
 
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
@@ -35,16 +34,17 @@ export async function createInvoice(
 
   const jobId = String(formData.get("job_id") ?? "");
   const customerId = String(formData.get("customer_id") ?? "");
-  const status = String(formData.get("status") ?? "draft") as InvoiceStatus;
   const dueDate = String(formData.get("due_date") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
-  const itemDescription = String(formData.get("line_item_description") ?? "").trim();
-  const quantity = Number.parseFloat(String(formData.get("line_item_quantity") ?? "1")) || 1;
-  const unitPriceCents = toCents(formData.get("line_item_unit_price"));
-  const totalCents = Math.max(0, Math.round(quantity * unitPriceCents));
+  const lineItems = getInvoiceLineItems(formData);
+  const totalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
   if (!jobId || !customerId) {
     return { status: "error", message: "Choose a customer and job before creating an invoice." };
+  }
+
+  if (lineItems.length === 0) {
+    return { status: "error", message: "Add at least one invoice line before saving." };
   }
 
   const { data: job, error: jobError } = await supabase
@@ -68,7 +68,7 @@ export async function createInvoice(
     .insert({
       job_id: jobId,
       customer_id: customerId,
-      status,
+      status: "draft",
       subtotal_cents: totalCents,
       tax_cents: 0,
       total_cents: totalCents,
@@ -82,23 +82,23 @@ export async function createInvoice(
     return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
   }
 
-  if (itemDescription) {
-    const { error: lineItemError } = await supabase.from("invoice_line_items").insert({
+  const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
+    lineItems.map((item) => ({
       invoice_id: invoice.id,
-      name: itemDescription.slice(0, 80),
-      description: itemDescription,
-      quantity,
-      unit_price_cents: unitPriceCents,
-      total_cents: totalCents,
-      sort_order: 0,
-    });
+      name: item.name,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_cents: item.unitPriceCents,
+      total_cents: item.totalCents,
+      sort_order: item.sortOrder,
+    })),
+  );
 
-    if (lineItemError) {
-      return {
-        status: "error",
-        message: `Invoice saved, but line item failed: ${lineItemError.message}`,
-      };
-    }
+  if (lineItemError) {
+    return {
+      status: "error",
+      message: `Invoice saved, but line items failed: ${lineItemError.message}`,
+    };
   }
 
   if (notes) {

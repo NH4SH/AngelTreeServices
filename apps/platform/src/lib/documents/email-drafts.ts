@@ -51,9 +51,12 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
       `Your invoice from ${companyName} is ready.`,
       `Balance due: ${formatCurrency(invoice.balance_due_cents)}.`,
       invoice.due_at ? `Due date: ${formatDate(invoice.due_at)}.` : "",
+      `Service location: ${formatInvoiceLocation(invoice)}`,
+      "",
       getLineItemSummary(invoice.invoice_line_items),
       "",
-      "Please reply to this email or call our office with any questions. Online payment links will be added in a future phase.",
+      `Please include ${invoiceLabel} with your payment.`,
+      "Reply to this email or call our office with any billing questions.",
       "",
       "Thank you,",
       companyName,
@@ -61,6 +64,15 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
       .filter(Boolean)
       .join("\n"),
   };
+}
+
+function formatInvoiceLocation(invoice: InvoiceDetail) {
+  const location = invoice.jobs?.service_locations;
+  if (!location) {
+    return "Not listed";
+  }
+
+  return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
 }
 
 function getLineItemSummary(

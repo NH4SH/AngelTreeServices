@@ -2427,6 +2427,22 @@ h1 {
   font-weight: 850;
 }
 
+.invoice-document-totals div:last-child {
+  border-top: 2px solid var(--color-forest);
+  background: color-mix(in oklch, var(--color-surface-green) 72%, white);
+}
+
+.invoice-document-totals div:last-child dt,
+.invoice-document-totals div:last-child dd {
+  font-size: 1.08rem;
+}
+
+.invoice-customer-document .business-document-payment-note {
+  border-color: oklch(0.78 0.07 154);
+  background: var(--color-surface-green);
+  break-inside: avoid;
+}
+
 .business-document-terms h3 {
   margin: 0;
 }

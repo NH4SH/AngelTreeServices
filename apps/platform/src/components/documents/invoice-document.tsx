@@ -2,6 +2,7 @@ import { DocumentMeta, DocumentShell } from "@/components/documents/document-she
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { invoiceTerms } from "@/lib/documents/terms";
 import { getEmailSetupState } from "@/lib/email/config";
+import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import type { InvoiceDetail } from "@/lib/types/database";
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
@@ -14,7 +15,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       brandLogoSrc="/angel-tree-services-logo.jpg"
       className="quote-proposal-document invoice-customer-document"
       documentLabel="Invoice"
-      documentNumber={invoice.invoice_number ?? "Draft invoice"}
+      documentNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
       footerDetails={
         <>
           <div>
@@ -28,7 +29,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
           </div>
         </>
       }
-      statusLabel={invoice.status.replace("_", " ")}
+      statusLabel={formatInvoiceStatus(invoice.status, "customer")}
     >
       <DocumentMeta
         items={[

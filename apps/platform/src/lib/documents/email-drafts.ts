@@ -11,6 +11,11 @@ export type QuoteEmailDraftInput = Pick<QuoteDetail, "quote_number" | "customer_
   quote_line_items?: Pick<QuoteLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[];
 };
 
+export type InvoiceEmailDraftInput = Pick<
+  InvoiceDetail,
+  "invoice_number" | "balance_due_cents" | "due_at" | "customers" | "jobs" | "invoice_line_items"
+>;
+
 export function generateQuoteEmailDraft(
   quote: QuoteEmailDraftInput,
   options: { portalUrl?: string } = {},
@@ -39,7 +44,10 @@ export function generateQuoteEmailDraft(
   };
 }
 
-export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
+export function generateInvoiceEmailDraft(
+  invoice: InvoiceEmailDraftInput,
+  options: { portalUrl?: string } = {},
+): EmailDraft {
   const customerName = invoice.customers?.display_name ?? "there";
   const invoiceLabel = invoice.invoice_number ?? "your invoice";
 
@@ -55,6 +63,8 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
       "",
       getLineItemSummary(invoice.invoice_line_items),
       "",
+      options.portalUrl ? `View and print your invoice securely: ${options.portalUrl}` : "",
+      "",
       `Please include ${invoiceLabel} with your payment.`,
       "Reply to this email or call our office with any billing questions.",
       "",
@@ -66,7 +76,7 @@ export function generateInvoiceEmailDraft(invoice: InvoiceDetail): EmailDraft {
   };
 }
 
-function formatInvoiceLocation(invoice: InvoiceDetail) {
+function formatInvoiceLocation(invoice: InvoiceEmailDraftInput) {
   const location = invoice.jobs?.service_locations;
   if (!location) {
     return "Not listed";

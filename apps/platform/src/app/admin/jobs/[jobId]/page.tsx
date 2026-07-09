@@ -19,6 +19,7 @@ import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
 import { generateEstimateScheduledMessage, generateJobScheduledMessage, generatePostJobFollowUpMessage } from "@/lib/documents/scheduling-drafts";
 import { getDirectionsUrl } from "@/lib/maps";
+import { formatInvoiceStatus } from "@/lib/invoices/status";
 
 type JobDetailPageProps = {
   params: Promise<{
@@ -134,7 +135,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                 icon={<ReceiptText size={18} />}
                 items={(job.invoices ?? []).map((invoice) => ({
                   href: `/admin/invoices/${invoice.id}`,
-                  meta: `${invoice.status.replace("_", " ")} - ${formatCurrency(invoice.balance_due_cents)} due`,
+                  meta: `${formatInvoiceStatus(invoice.status)} - ${formatCurrency(invoice.balance_due_cents)} due`,
                   title: invoice.invoice_number || "Invoice",
                 }))}
                 title="Related invoice"

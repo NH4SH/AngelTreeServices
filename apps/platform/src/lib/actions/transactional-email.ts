@@ -9,6 +9,10 @@ import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { invoiceEmailTemplate } from "@/lib/email/templates";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
+  createInvoicePortalTokenRecord,
+  revokeOtherInvoicePortalTokens,
+} from "@/lib/portal/invoice-links";
+import {
   generatePortalToken,
   getPortalTokenHint,
   hashPortalToken,
@@ -124,7 +128,24 @@ export async function sendInvoiceEmail(
     return { status: "error", message: "This customer does not have an email address." };
   }
 
-  const template = invoiceEmailTemplate(detail.data);
+  if (["paid", "void"].includes(detail.data.status)) {
+    return { status: "error", message: "Paid and void invoices are closed for regular sending." };
+  }
+
+  const portalLink = await createInvoicePortalTokenRecord({
+    customerId: detail.data.customer_id,
+    invoiceId: detail.data.id,
+    replaceExisting: false,
+    supabase: auth.supabase,
+    userId: auth.userId,
+  });
+
+  if (portalLink.error) {
+    return { status: "error", message: portalLink.error };
+  }
+
+  const portalUrl = `${await getRequestOrigin()}/portal/invoice/${portalLink.rawToken}`;
+  const template = invoiceEmailTemplate(detail.data, { portalUrl });
   const result = await sendTransactionalEmail({
     to: recipient,
     subject: template.subject,
@@ -139,10 +160,45 @@ export async function sendInvoiceEmail(
     supabase: auth.supabase,
   });
 
+  const followUpWarnings: string[] = [];
+
+  if (result.ok) {
+    const revokeError = await revokeOtherInvoicePortalTokens(
+      auth.supabase,
+      detail.data.id,
+      portalLink.tokenId,
+    );
+    if (revokeError) {
+      followUpWarnings.push(`older links could not be revoked: ${revokeError}`);
+    }
+
+    const { error: statusError } = await auth.supabase
+      .from("invoices")
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      })
+      .eq("id", detail.data.id);
+
+    if (statusError) {
+      followUpWarnings.push(`status could not be updated: ${statusError.message}`);
+    }
+  } else {
+    await auth.supabase
+      .from("invoice_portal_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", portalLink.tokenId);
+  }
+
   revalidatePath(`/admin/invoices/${invoiceId}`);
   revalidatePath(`/admin/customers/${detail.data.customer_id}`);
   return result.ok
-    ? { status: "success", message: "Invoice email sent." }
+    ? {
+        status: "success",
+        message: followUpWarnings.length
+          ? `Invoice email sent. Follow-up needed: ${followUpWarnings.join(" ")}`
+          : "Invoice email sent and marked sent.",
+      }
     : { status: "error", message: result.message };
 }
 

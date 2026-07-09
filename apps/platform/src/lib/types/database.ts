@@ -209,6 +209,20 @@ export type QuotePortalToken = {
   updated_at: string;
 };
 
+export type InvoicePortalToken = {
+  id: string;
+  invoice_id: string;
+  customer_id: string;
+  token_hash: string;
+  token_hint: string | null;
+  expires_at: string | null;
+  viewed_at: string | null;
+  revoked_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Invoice = {
   id: string;
   job_id: string;

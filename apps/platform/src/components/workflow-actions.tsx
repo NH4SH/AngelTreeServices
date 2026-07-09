@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
 import {
   createInvoiceFromQuote,
+  markInvoiceSentManually,
   markQuoteSentManually,
   updateInvoiceStatus,
   updateJobStatus,
@@ -121,18 +122,70 @@ export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
   );
 }
 
-export function InvoiceStatusActions({ invoiceId }: { invoiceId: string }) {
+export function InvoiceStatusActions({
+  invoiceId,
+  status,
+}: {
+  invoiceId: string;
+  status: InvoiceStatus;
+}) {
   const [state, formAction, pending] = useActionState(updateInvoiceStatus, initialState);
+
+  if (["paid", "void"].includes(status)) {
+    return null;
+  }
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <div className="workflow-button-row">
-        <InvoiceStatusButton disabled={pending} formAction={formAction} invoiceId={invoiceId} status="sent" />
         <InvoiceStatusButton disabled={pending} formAction={formAction} invoiceId={invoiceId} status="void" />
         <button disabled type="button">
           <FilePlus2 aria-hidden="true" size={18} />
           Record payment later
         </button>
+      </div>
+    </WorkflowActionPanel>
+  );
+}
+
+const manualInvoiceSentConfirmation =
+  "Mark this invoice as sent? Use this only if you already sent it outside the CRM. This will not email the customer.";
+
+export function ManualInvoiceSentAction({
+  invoiceId,
+  status,
+}: {
+  invoiceId: string;
+  status: InvoiceStatus;
+}) {
+  const [state, formAction, pending] = useActionState(markInvoiceSentManually, initialState);
+
+  if (status !== "draft") {
+    return null;
+  }
+
+  return (
+    <WorkflowActionPanel message={state.message} status={state.status}>
+      <div className="workflow-override">
+        <div>
+          <strong>Sent outside the CRM?</strong>
+          <p>Record delivery without sending another email.</p>
+        </div>
+        <form
+          action={formAction}
+          className="inline-action-form"
+          onSubmit={(event) => {
+            if (!window.confirm(manualInvoiceSentConfirmation)) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input name="invoice_id" type="hidden" value={invoiceId} />
+          <button disabled={pending} type="submit">
+            <Send aria-hidden="true" size={18} />
+            {pending ? "Marking sent..." : "Mark as sent"}
+          </button>
+        </form>
       </div>
     </WorkflowActionPanel>
   );
@@ -212,7 +265,7 @@ function InvoiceStatusButton({
   invoiceId: string;
   status: InvoiceStatus;
 }) {
-  const Icon = status === "sent" ? Send : XCircle;
+  const Icon = XCircle;
   return (
     <form action={formAction} className="inline-action-form">
       <input name="invoice_id" type="hidden" value={invoiceId} />

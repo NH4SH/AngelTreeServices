@@ -44,6 +44,7 @@ Expected behavior:
 - `/crew` and all `/crew/*` routes are protected
 - `/portal` is protected for signed-in portal users
 - `/portal/quote/[token]` is intentionally public and token-scoped
+- `/portal/invoice/[token]` is intentionally public and token-scoped
 
 Do a quick smoke test after deploy:
 
@@ -51,6 +52,7 @@ Do a quick smoke test after deploy:
 2. Open `/crew` signed out and confirm redirect to `/login`.
 3. Open `/portal` signed out and confirm redirect to `/login`.
 4. Open a valid `/portal/quote/[token]` link signed out and confirm the quote page still loads.
+5. Open a valid `/portal/invoice/[token]` link signed out and confirm only that invoice loads.
 
 ## 4. Public Lead Intake Origins
 
@@ -82,7 +84,17 @@ Before deploy, verify:
 2. The copied URL uses the deployed host.
 3. A revoked or expired token shows the unavailable state cleanly.
 
-## 6. Build And Start Commands
+## 6. Invoice Portal Assumptions
+
+Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and verify:
+
+1. An owner/admin can generate an invoice link without email configuration.
+2. The copied URL uses the deployed host.
+3. Signed-out customers can view and print only the linked invoice.
+4. Replaced, revoked, expired, and invalid links show the unavailable state.
+5. The browser never receives `SUPABASE_SERVICE_ROLE_KEY`.
+
+## 7. Build And Start Commands
 
 From `apps/platform`:
 
@@ -100,7 +112,7 @@ npm run dev:lan
 npm run start:lan
 ```
 
-## 7. Manual Staging Smoke Test
+## 8. Manual Staging Smoke Test
 
 After deployment, manually verify:
 
@@ -108,11 +120,12 @@ After deployment, manually verify:
 2. `/admin` loads.
 3. `/crew` loads for a crew-capable account.
 4. `/portal/quote/[token]` loads without requiring login.
-5. Public lead intake succeeds from the live public-site origin.
-6. Quote, invoice, customer, and job detail links navigate cleanly.
-7. Time clock pages load for enabled users and deny disabled users with a helpful message.
+5. `/portal/invoice/[token]` loads without requiring login.
+6. Public lead intake succeeds from the live public-site origin.
+7. Quote, invoice, customer, and job detail links navigate cleanly.
+8. Time clock pages load for enabled users and deny disabled users with a helpful message.
 
-## 8. Not In Scope Yet
+## 9. Not In Scope Yet
 
 These are still intentionally unfinished for first private deployment:
 

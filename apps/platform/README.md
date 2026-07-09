@@ -217,7 +217,7 @@ Implemented actions:
 - Send quote: generates a fresh secure portal link, sends the quote email, then automatically marks the quote `sent` and records `sent_at`.
 - Quote workflow actions: approve and create/link a work order, mark change requested, or mark declined.
 - Create invoice from quote: requires an approved quote, ensures the work order exists, copies quote line items into invoice line items, and links invoice to quote, job, and customer.
-- Invoice status actions: mark sent, mark void.
+- Invoice delivery actions: generate/revoke secure customer links, send by configured email, record manual sent delivery, and mark void.
 
 Scaffolded only:
 
@@ -231,7 +231,7 @@ Scaffolded only:
 Protected detail pages now render reusable printable business documents:
 
 - `/admin/quotes/[quoteId]`: professional quote preview with customer, service location, scope, line items, totals, expiration date, notes, approval placeholder, print button, quote email draft, and quote follow-up draft.
-- `/admin/invoices/[invoiceId]`: professional invoice preview with customer, location, line items, total, balance due, due date, payment-status placeholder, print button, and invoice email draft.
+- `/admin/invoices/[invoiceId]`: professional invoice preview with customer, location, formatted line items, totals, secure customer-link controls, print button, and invoice email delivery.
 - `/admin/jobs/[jobId]`: printable crew work order with contact, address, scope, access notes, crew notes, equipment placeholder, completion checklist, print button, crew message draft, and completed-job review draft.
 
 Reusable document components live in:
@@ -261,6 +261,20 @@ http://localhost:3000/portal/quote/{token}
 ```
 
 The public route performs a narrow server-side lookup and exposes only the linked quote, customer summary, service location, and line items. It does not provide direct anonymous access to CRM tables or the token table. Customers can approve the quote or request changes without creating an account. Approval marks the quote `approved` and creates or links one job/work order. Duplicate approvals do not create duplicate jobs. Change requests are stored as internal customer/location/job notes where available.
+
+## Secure Customer Invoice Links
+
+Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` before testing invoice links. The migration creates `public.invoice_portal_tokens`, enables RLS, grants management only to authenticated owner/admin accounts, grants the service role explicitly, and grants nothing to `anon`.
+
+From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it immediately, replace the active link, or revoke it. Only the SHA-256 token hash and short hint are stored. A replacement link revokes the previous active link.
+
+The customer opens:
+
+```text
+http://localhost:3000/portal/invoice/{token}
+```
+
+The signed-out route performs a server-only lookup and renders one invoice with customer, location, line items, totals, and print support. Invalid, expired, and revoked links fail cleanly. Online payment is intentionally not enabled.
 
 `SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
 
@@ -410,6 +424,7 @@ http://localhost:3000/crew/jobs
 http://localhost:3000/crew/jobs/{jobId}
 http://localhost:3000/portal
 http://localhost:3000/portal/quote/{token}
+http://localhost:3000/portal/invoice/{token}
 http://localhost:3000/api/leads
 ```
 

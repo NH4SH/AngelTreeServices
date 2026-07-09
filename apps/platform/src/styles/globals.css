@@ -4639,6 +4639,55 @@ h1,
   box-shadow: none;
 }
 
+.invoice-delivery-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.invoice-delivery-grid .portal-link-panel {
+  margin-top: 0;
+}
+
+.invoice-email-delivery-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.invoice-email-delivery-panel .inline-empty,
+.invoice-email-delivery-panel .send-email-action-form {
+  margin: 0;
+}
+
+.invoice-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.invoice-link-actions a {
+  text-decoration: none;
+}
+
+.invoice-link-history {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.invoice-link-history summary {
+  color: var(--color-charcoal);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.invoice-link-history[open] summary {
+  margin-bottom: 12px;
+}
+
 .customer-portal-page {
   width: min(980px, calc(100% - 32px));
   margin: 0 auto;
@@ -4683,6 +4732,13 @@ h1,
   border-radius: 12px;
   background: var(--color-surface-green);
   color: var(--color-forest);
+}
+
+.customer-portal-brand > img {
+  width: 48px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .customer-portal-brand strong,
@@ -7536,11 +7592,63 @@ body {
   color: var(--color-forest);
 }
 
+.customer-invoice-page {
+  width: min(1080px, calc(100% - 32px));
+}
+
+.customer-invoice-hero {
+  align-items: stretch;
+}
+
+.customer-invoice-summary .customer-quote-summary-list dd {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.customer-invoice-summary .customer-quote-summary-list svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--color-green);
+}
+
+.customer-invoice-document .business-document {
+  width: 100%;
+}
+
+.customer-invoice-payment-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 18px;
+  border: 1px solid oklch(0.8 0.07 148);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+}
+
+.customer-invoice-payment-note div {
+  min-width: 0;
+}
+
+.customer-invoice-payment-note strong {
+  color: var(--color-forest);
+}
+
+.customer-invoice-payment-note p {
+  max-width: 70ch;
+  margin: 5px 0 0;
+  color: var(--color-charcoal);
+  line-height: 1.55;
+}
+
 @media (max-width: 960px) {
   .customer-portal-hero,
   .customer-quote-workspace,
   .customer-portal-card-grid,
-  .customer-quote-overview {
+  .customer-quote-overview,
+  .invoice-delivery-grid {
     grid-template-columns: 1fr;
   }
 

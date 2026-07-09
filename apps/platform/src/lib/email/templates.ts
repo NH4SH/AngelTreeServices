@@ -105,8 +105,11 @@ export function quoteEmailTemplate(quote: QuoteDetail): TransactionalEmailTempla
   return buildTemplate(draft.subject, draft.body);
 }
 
-export function invoiceEmailTemplate(invoice: InvoiceDetail): TransactionalEmailTemplate {
-  const draft = generateInvoiceEmailDraft(invoice);
+export function invoiceEmailTemplate(
+  invoice: InvoiceDetail,
+  options: { portalUrl?: string } = {},
+): TransactionalEmailTemplate {
+  const draft = generateInvoiceEmailDraft(invoice, options);
   return buildTemplate(draft.subject, draft.body);
 }
 

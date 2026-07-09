@@ -19,6 +19,7 @@ Core URLs to verify:
 - `/admin/time`
 - `/admin/payroll`
 - `/portal/quote/[token]`
+- `/portal/invoice/[token]`
 - `/api/leads`
 
 ## 2. Required Netlify Environment Variables
@@ -63,6 +64,7 @@ Signed out:
 2. Open `/admin` and confirm redirect to `/login?next=/admin`.
 3. Open `/crew` and confirm redirect to `/login?next=/crew`.
 4. Open `/portal/quote/[token]` with a real token and confirm it loads without login.
+5. Open `/portal/invoice/[token]` with a real token and confirm the invoice, logo, formatted line items, and print action load without login.
 
 Signed in:
 

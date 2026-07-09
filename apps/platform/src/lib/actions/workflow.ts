@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
@@ -200,16 +201,11 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
   const invoiceId = getString(formData, "invoice_id");
   const nextStatus = getString(formData, "next_status") as InvoiceStatus;
 
-  if (!["sent", "void"].includes(nextStatus)) {
+  if (nextStatus !== "void") {
     return { status: "error", message: "That invoice status action is not allowed here." };
   }
 
-  const updatePayload: { status: InvoiceStatus; sent_at?: string } = { status: nextStatus };
-  if (nextStatus === "sent") {
-    updatePayload.sent_at = new Date().toISOString();
-  }
-
-  const { error } = await supabase.from("invoices").update(updatePayload).eq("id", invoiceId);
+  const { error } = await supabase.from("invoices").update({ status: nextStatus }).eq("id", invoiceId);
 
   if (error) {
     return { status: "error", message: error.message };
@@ -219,6 +215,55 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { status: "success", message: `Invoice marked ${nextStatus}.` };
+}
+
+export async function markInvoiceSentManually(
+  _previousState: WorkflowActionState,
+  formData: FormData,
+) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before updating invoices." };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can manually mark an invoice as sent." };
+  }
+
+  const invoiceId = getString(formData, "invoice_id");
+  const { data: invoice, error } = await supabase
+    .from("invoices")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    })
+    .eq("id", invoiceId)
+    .eq("status", "draft")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  if (!invoice) {
+    return { status: "error", message: "Only an unsent invoice can be manually marked sent." };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${invoiceId}`);
+  return { status: "success", message: "Marked as sent manually. No email was sent." };
 }
 
 export async function createInvoiceFromQuote(_previousState: WorkflowActionState, formData: FormData) {
@@ -249,7 +294,7 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   }
 
   if (existingInvoice) {
-    return { status: "error", message: "This quote already has an invoice." };
+    redirect(`/admin/invoices/${existingInvoice.id}`);
   }
 
   const { data: quote, error: quoteError } = await supabase
@@ -331,5 +376,5 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoice.id}`);
-  return { status: "success", message: "Invoice created from quote." };
+  redirect(`/admin/invoices/${invoice.id}`);
 }

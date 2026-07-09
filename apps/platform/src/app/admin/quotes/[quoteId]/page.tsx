@@ -30,6 +30,7 @@ import { getQuoteDetail } from "@/lib/data/quotes";
 import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { generateQuoteFollowUpMessage } from "@/lib/documents/scheduling-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
+import { formatInvoiceStatus } from "@/lib/invoices/status";
 import type { QuoteStatus } from "@/lib/types/database";
 
 type QuoteDetailPageProps = {
@@ -218,7 +219,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     detail.data.invoices.map((invoice) => (
                       <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
                         <strong>{invoice.invoice_number || "Invoice"}</strong>
-                        <span>{invoice.status.replace("_", " ")} - {formatCurrency(invoice.balance_due_cents)} due</span>
+                        <span>{formatInvoiceStatus(invoice.status)} - {formatCurrency(invoice.balance_due_cents)} due</span>
                       </Link>
                     ))
                   ) : (

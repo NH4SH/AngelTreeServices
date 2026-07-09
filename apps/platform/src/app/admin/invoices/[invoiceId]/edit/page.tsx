@@ -4,6 +4,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getInvoiceDetail } from "@/lib/data/invoices";
+import { getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { EditInvoiceForm } from "../../InvoiceForm";
 
 type InvoiceEditPageProps = {
@@ -43,7 +44,7 @@ export default async function InvoiceEditPage({ params }: InvoiceEditPageProps) 
                 <ReceiptText aria-hidden="true" size={18} />
                 Invoice editor
               </p>
-              <h1>Edit {detail.data.invoice_number || "draft invoice"}</h1>
+              <h1>Edit {getInvoiceDisplayNumber(detail.data.invoice_number)}</h1>
               <p>Update the due date and billing lines without changing linked payments, customer, job, or quote.</p>
             </section>
             <EditInvoiceForm invoice={detail.data} />

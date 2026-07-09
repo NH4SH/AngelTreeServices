@@ -8,6 +8,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getInvoices } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
+import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import type { Customer, InvoiceStatus, InvoiceWithRelations, Job } from "@/lib/types/database";
 
 type InvoicesPageProps = {
@@ -17,7 +18,7 @@ type InvoicesPageProps = {
 };
 
 const summaryOrder: { key: InvoiceStatus; label: string }[] = [
-  { key: "draft", label: "Draft" },
+  { key: "draft", label: "Ready" },
   { key: "sent", label: "Sent" },
   { key: "partially_paid", label: "Partially paid" },
   { key: "paid", label: "Paid" },
@@ -88,7 +89,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
               {invoices.data.map((invoice) => (
                 <article className="commerce-row invoice-grid" key={invoice.id}>
                   <div className="commerce-record-title">
-                    <Link href={`/admin/invoices/${invoice.id}`}>{invoice.invoice_number || "Draft invoice"}</Link>
+                    <Link href={`/admin/invoices/${invoice.id}`}>{getInvoiceDisplayNumber(invoice.invoice_number)}</Link>
                     <span>{invoice.invoice_line_items?.length ?? 0} line items</span>
                   </div>
                   <div className="commerce-cell">
@@ -97,7 +98,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                   </div>
                   <div className="commerce-cell">
                     <span className={`status-pill invoice-status ${invoice.status}`}>
-                      {invoice.status.replace("_", " ")}
+                      {formatInvoiceStatus(invoice.status)}
                     </span>
                   </div>
                   <div className="commerce-money">
@@ -112,7 +113,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     <Link className="secondary-action" href={`/admin/invoices/${invoice.id}`}>
                       Open
                     </Link>
-                    <InvoiceStatusActions invoiceId={invoice.id} />
+                    <InvoiceStatusActions invoiceId={invoice.id} status={invoice.status} />
                   </div>
                 </article>
               ))}

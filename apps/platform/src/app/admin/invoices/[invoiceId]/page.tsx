@@ -5,15 +5,19 @@ import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
+import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
-import { InvoiceStatusActions } from "@/components/workflow-actions";
+import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getInvoiceDetail } from "@/lib/data/invoices";
+import { getInvoicePortalTokens } from "@/lib/data/portal-invoice";
 import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
+import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import type { InvoiceStatus } from "@/lib/types/database";
 
 type InvoiceDetailPageProps = {
@@ -31,6 +35,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   }
 
   const detail = await getInvoiceDetail(invoiceId);
+  const canManageDelivery = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const portalTokens = detail.data && canManageDelivery
+    ? await getInvoicePortalTokens(invoiceId)
+    : { data: [], error: null };
   const emailEvents = detail.data ? await getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null };
   const emailSetup = getEmailSetupState();
 
@@ -39,6 +47,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
       <div className="shell app-content commerce-page">
         <Link className="crew-back-link" href="/admin/invoices">Back to invoices</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {portalTokens.error ? <DataWarning message={`Customer invoice links: ${portalTokens.error}`} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {!detail.data ? (
           <EmptyState title="Invoice not found or no access" body="This record is unavailable to the current account." />
@@ -50,7 +59,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   <ReceiptText aria-hidden="true" size={18} />
                   Invoice file
                 </p>
-                <h1>{detail.data.invoice_number || "Draft invoice"}</h1>
+                <h1>{getInvoiceDisplayNumber(detail.data.invoice_number)}</h1>
                 <p>{detail.data.customers?.display_name ?? "Unknown customer"} - {formatJobLabel(detail.data.jobs?.service_type)}</p>
               </div>
               <div className="commerce-header-aside">
@@ -67,6 +76,34 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 ) : null}
               </div>
             </section>
+
+            {canManageDelivery ? (
+              <section className="invoice-delivery-grid" aria-label="Customer invoice delivery">
+                <InvoicePortalLinkPanel
+                  invoice={detail.data}
+                  invoiceId={detail.data.id}
+                  tokens={portalTokens.data}
+                />
+                <section className="commerce-side-panel invoice-email-delivery-panel print-hidden">
+                  <PanelTitle icon={<Send size={18} />} title="Send invoice email" />
+                  <p className="inline-empty">
+                    Sending creates a fresh secure invoice link and marks the invoice sent only after delivery succeeds.
+                  </p>
+                  <EmailSetupNotice configured={emailSetup.configured} />
+                  <SendInvoiceEmailForm
+                    disabled={
+                      !emailSetup.configured ||
+                      !detail.data.customers?.email ||
+                      ["paid", "void"].includes(detail.data.status)
+                    }
+                    invoiceId={detail.data.id}
+                  />
+                  {!detail.data.customers?.email ? (
+                    <p className="inline-empty">Add a customer email address before sending from the platform.</p>
+                  ) : null}
+                </section>
+              </section>
+            ) : null}
 
             <section className="commerce-detail-layout">
               <main className="commerce-document-column">
@@ -114,15 +151,6 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 </section>
 
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<Send size={18} />} title="Invoice email sending" />
-                  <EmailSetupNotice configured={emailSetup.configured} />
-                  <SendInvoiceEmailForm disabled={!emailSetup.configured || !detail.data.customers?.email} invoiceId={detail.data.id} />
-                  {!detail.data.customers?.email ? (
-                    <p className="inline-empty">Add a customer email address before sending from the platform.</p>
-                  ) : null}
-                </section>
-
-                <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Email history" />
                   <EmailHistoryList events={emailEvents.data} />
                 </section>
@@ -134,7 +162,13 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   <span className={`status-pill invoice-status ${detail.data.status}`}>
                     {formatInvoiceStatus(detail.data.status)}
                   </span>
-                  <InvoiceStatusActions invoiceId={detail.data.id} />
+                  <p className="inline-empty">
+                    Email delivery marks this invoice sent. Manual sent is only for delivery outside the CRM.
+                  </p>
+                  {canManageDelivery ? (
+                    <ManualInvoiceSentAction invoiceId={detail.data.id} status={detail.data.status} />
+                  ) : null}
+                  <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />
                 </section>
 
                 <section className="commerce-side-panel">
@@ -190,11 +224,6 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     </article>
                   )) : <EmptyInline>No notes yet.</EmptyInline>}
                 </section>
-
-                <section className="commerce-side-panel">
-                  <PanelTitle icon={<Send size={18} />} title="Email draft" />
-                  <p className="inline-empty">Draft copy is still available below. Use the send button only when the invoice email is ready.</p>
-                </section>
               </aside>
             </section>
           </>
@@ -218,10 +247,6 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 
 function DataWarning({ message }: { message: string }) {
   return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
-}
-
-function formatInvoiceStatus(status: InvoiceStatus) {
-  return status.replace("_", " ");
 }
 
 function isInvoiceEditable(status: InvoiceStatus) {

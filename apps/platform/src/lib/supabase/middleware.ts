@@ -5,7 +5,7 @@ import { getSupabasePublicConfig } from "./config";
 const protectedRoutePrefixes = ["/admin", "/crew", "/portal"];
 
 function isProtectedRoute(pathname: string) {
-  if (pathname.startsWith("/portal/quote/")) {
+  if (pathname.startsWith("/portal/quote/") || pathname.startsWith("/portal/invoice/")) {
     return false;
   }
 

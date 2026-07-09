@@ -47,7 +47,7 @@ export function AddInvoiceForm({
 
       <section className="quote-editor-section">
         <div>
-          <p className="surface-label">Draft invoice</p>
+          <p className="surface-label">New invoice</p>
           <h3>Customer and billing details</h3>
         </div>
         <div className="form-grid-two">
@@ -123,7 +123,7 @@ export function AddInvoiceForm({
       <div className="quote-editor-action-bar">
         <button disabled={pending || customers.length === 0 || jobs.length === 0} type="submit">
           <Save aria-hidden="true" size={17} />
-          {pending ? "Saving..." : "Create draft invoice"}
+          {pending ? "Saving..." : "Create invoice"}
         </button>
         <Link
           className="secondary-action"

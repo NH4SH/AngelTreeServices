@@ -9,6 +9,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerDetail } from "@/lib/data/customers";
 import { getEmailEvents } from "@/lib/data/email-events";
+import { formatInvoiceStatus } from "@/lib/invoices/status";
 
 type CustomerDetailPageProps = {
   params: Promise<{
@@ -143,7 +144,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
                   detail.data.invoices.map((invoice) => (
                     <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
                       <strong>{invoice.invoice_number || "Invoice"}</strong>
-                      <span>{invoice.status.replace("_", " ")} - {formatCurrency(invoice.balance_due_cents)} due</span>
+                      <span>{formatInvoiceStatus(invoice.status)} - {formatCurrency(invoice.balance_due_cents)} due</span>
                     </Link>
                   ))
                 )}

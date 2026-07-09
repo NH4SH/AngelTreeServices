@@ -113,7 +113,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
             approvalMessage={
               isApproved
                 ? "Approved. Angel Tree Services will follow up with scheduling details."
-                : "Review the quote details below, then approve the work or request changes."
+                : "Approve this quote or request changes using your secure quote portal link."
             }
             quote={lookup.quote}
           />

@@ -1,5 +1,7 @@
 import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
+import { DocumentTerms } from "@/components/documents/document-terms";
 import { DocumentLineItems } from "@/components/documents/quote-document";
+import { invoiceTerms } from "@/lib/documents/terms";
 import type { InvoiceDetail } from "@/lib/types/database";
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
@@ -32,9 +34,14 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         totalCents={invoice.balance_due_cents}
         totalLabel="Balance due"
       />
+      <DocumentTerms
+        terms={invoiceTerms}
+        title="Terms & Conditions - Invoices"
+        variant="invoice"
+      />
       <section className="business-document-payment-note">
-        <strong>Payment status: {invoice.status.replace("_", " ")}</strong>
-        <p>Online payment links are intentionally not connected yet.</p>
+        <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
+        <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
       </section>
     </DocumentShell>
   );
@@ -55,4 +62,11 @@ function formatDate(value: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
 }

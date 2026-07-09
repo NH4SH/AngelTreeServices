@@ -79,7 +79,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                       </p>
                       <h2>Invoice document preview</h2>
                     </div>
-                    <PrintButton label="Print invoice" />
+                    <PrintButton href={`/admin/invoices/${detail.data.id}/print`} label="Print or save PDF" />
                   </div>
                   <InvoiceDocument invoice={detail.data} />
                 </section>

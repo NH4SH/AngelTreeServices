@@ -2197,6 +2197,325 @@ h1 {
   color: var(--color-forest);
 }
 
+.business-document-logo {
+  width: 64px;
+  height: 54px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.business-document-preview-badge {
+  display: inline-flex !important;
+  width: fit-content;
+  margin: 8px 0 0 auto;
+  border: 1px solid oklch(0.79 0.06 80);
+  border-radius: 999px;
+  background: oklch(0.97 0.025 80);
+  padding: 4px 8px;
+  color: oklch(0.38 0.06 70) !important;
+  font-size: 0.68rem !important;
+  font-weight: 800;
+}
+
+.quote-proposal-document {
+  color: var(--color-charcoal);
+}
+
+.quote-proposal-document .business-document-meta {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-subtle);
+}
+
+.quote-proposal-document .business-document-meta div {
+  border-top: 1px solid var(--color-border);
+  padding: 12px 14px;
+}
+
+.quote-proposal-document .business-document-meta div:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+.quote-proposal-document .business-document-meta-left {
+  border-right: 1px solid var(--color-border);
+}
+
+.quote-proposal-document .business-document-meta-wide {
+  grid-column: 1 / -1;
+}
+
+.quote-proposal-document .business-document-meta dd {
+  white-space: pre-line;
+}
+
+.quote-proposal-scope,
+.business-document-terms {
+  margin-top: 26px;
+}
+
+.quote-proposal-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid var(--color-forest);
+  padding-bottom: 9px;
+}
+
+.quote-proposal-section-heading span,
+.business-document-terms h3 {
+  color: var(--color-green);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.quote-proposal-section-heading h3 {
+  margin: 2px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.08rem;
+}
+
+.quote-proposal-section-heading > span {
+  color: var(--color-muted);
+}
+
+.quote-proposal-line-list {
+  display: grid;
+}
+
+.quote-proposal-line {
+  display: grid;
+  gap: 9px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 15px 0;
+  break-inside: avoid;
+}
+
+.quote-proposal-line-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: baseline;
+}
+
+.quote-proposal-line-heading strong:first-child {
+  color: var(--color-forest);
+  font-size: 0.98rem;
+}
+
+.quote-proposal-line-heading strong:last-child {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  text-align: right;
+}
+
+.business-document-preformatted {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.quote-proposal-line-pricing {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  margin: 1px 0 0;
+}
+
+.quote-proposal-line-pricing div {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px;
+}
+
+.quote-proposal-line-pricing dt,
+.quote-proposal-totals dt {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.quote-proposal-line-pricing dd,
+.quote-proposal-totals dd {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.quote-proposal-totals {
+  display: grid;
+  width: min(310px, 100%);
+  margin: 18px 0 0 auto;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface-green);
+}
+
+.quote-proposal-totals div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 9px 12px;
+}
+
+.quote-proposal-totals div:last-child {
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.quote-proposal-totals div:last-child dt,
+.quote-proposal-totals div:last-child dd {
+  color: var(--color-forest);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.business-document-terms h3 {
+  margin: 0;
+}
+
+.business-document-terms ul {
+  display: grid;
+  gap: 5px;
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.document-terms {
+  margin-top: 24px;
+}
+
+.document-terms-heading {
+  border-bottom: 1px solid var(--color-border-strong);
+  padding-bottom: 7px;
+}
+
+.document-terms-heading span {
+  color: var(--color-green);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.document-terms-heading h3 {
+  margin: 2px 0 0;
+  color: var(--color-forest);
+  font-size: 0.92rem;
+}
+
+.document-terms-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+  margin: 0;
+}
+
+.document-term {
+  border-top: 1px solid var(--color-border);
+  padding: 8px 0;
+  break-inside: avoid;
+}
+
+.document-term:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+.document-term dt {
+  color: var(--color-charcoal);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.document-term dd {
+  margin: 3px 0 0;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  line-height: 1.42;
+}
+
+.quote-document-terms .document-term:last-child {
+  grid-column: 1 / -1;
+}
+
+.invoice-document-terms .document-term dt {
+  color: var(--color-forest);
+}
+
+.quote-proposal-document .business-document-approval {
+  display: grid;
+  gap: 5px;
+  border-color: oklch(0.78 0.07 154);
+  background: var(--color-surface-green);
+  padding: 16px;
+  break-inside: avoid;
+}
+
+.quote-proposal-document .business-document-approval p {
+  margin: 0;
+  color: var(--color-charcoal);
+}
+
+.quote-proposal-document .business-document-approval small {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.quote-proposal-document .business-document-footer > div {
+  display: grid;
+  gap: 3px;
+}
+
+.quote-proposal-document .business-document-footer > div:last-child {
+  justify-items: end;
+  text-align: right;
+}
+
+.quote-print-page {
+  min-height: 100vh;
+  background: var(--color-page);
+  padding: 22px;
+}
+
+.document-print-page {
+  min-height: 100vh;
+  background: var(--color-page);
+  padding: 22px;
+}
+
+.quote-print-toolbar,
+.document-print-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(900px, 100%);
+  margin: 0 auto 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  padding: 10px;
+  box-shadow: var(--shadow-small);
+}
+
+.quote-print-toolbar p,
+.document-print-toolbar p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .email-draft-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4503,6 +4822,47 @@ h1,
     grid-template-columns: 1fr;
   }
 
+  .quote-proposal-section-heading,
+  .business-document-header,
+  .business-document-footer,
+  .quote-print-toolbar,
+  .document-print-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quote-proposal-section-heading > span {
+    align-self: flex-start;
+  }
+
+  .quote-proposal-line-pricing {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .quote-proposal-line-pricing div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .quote-proposal-document .business-document-footer > div:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .document-terms-list {
+    grid-template-columns: 1fr;
+  }
+
+  .document-term:nth-child(2) {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .quote-document-terms .document-term:last-child {
+    grid-column: auto;
+  }
+
   .customer-portal-header,
   .customer-portal-footer,
   .portal-token-row {
@@ -4724,10 +5084,14 @@ h1,
 
 @media print {
   @page {
-    margin: 0.55in;
+    size: letter;
+    margin: 0.42in;
   }
 
+  html,
   body {
+    min-height: 0 !important;
+    height: auto !important;
     background: oklch(1 0 0);
   }
 
@@ -4752,6 +5116,10 @@ h1,
     box-shadow: none;
   }
 
+  a[href]::after {
+    content: none !important;
+  }
+
   .app-topbar,
   .role-strip,
   .print-hidden {
@@ -4759,9 +5127,148 @@ h1,
   }
 
   .business-document-brand > span,
-  .business-document-approval,
   .business-document-payment-note {
     background: transparent;
+  }
+
+  .quote-print-page,
+  .document-print-page {
+    min-height: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .business-document,
+  .business-document * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .business-document-header,
+  .quote-proposal-section-heading,
+  .business-document-footer {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .business-document-header {
+    padding-bottom: 12px;
+  }
+
+  .business-document-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 14px;
+  }
+
+  .business-document-line-heading,
+  .business-document-line-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px 100px 110px;
+    gap: 12px;
+  }
+
+  .business-document-line-heading span:not(:first-child),
+  .business-document-line-row > span:not(:first-child),
+  .business-document-line-row > strong {
+    text-align: right;
+  }
+
+  .quote-proposal-document .business-document-meta div {
+    padding: 8px 10px;
+  }
+
+  .quote-proposal-scope,
+  .business-document-terms {
+    margin-top: 16px;
+  }
+
+  .quote-proposal-line {
+    gap: 6px;
+    padding: 10px 0;
+  }
+
+  .quote-proposal-line-pricing {
+    display: flex;
+    grid-template-columns: none;
+    gap: 20px;
+  }
+
+  .quote-proposal-line-pricing div {
+    grid-template-columns: auto auto;
+    gap: 5px;
+  }
+
+  .quote-proposal-totals {
+    margin-top: 10px;
+  }
+
+  .business-document-terms ul {
+    gap: 3px;
+    margin-top: 6px;
+    line-height: 1.35;
+  }
+
+  .document-terms {
+    margin-top: 14px;
+  }
+
+  .document-terms-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+  }
+
+  .document-term {
+    padding: 5px 0;
+  }
+
+  .document-term:nth-child(2) {
+    border-top: 0;
+  }
+
+  .document-term dt {
+    font-size: 0.68rem;
+  }
+
+  .document-term dd {
+    margin-top: 2px;
+    font-size: 0.69rem;
+    line-height: 1.32;
+  }
+
+  .quote-document-terms .document-term:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .invoice-document-terms .document-terms-heading {
+    break-after: avoid;
+  }
+
+  .quote-proposal-document .business-document-approval {
+    margin-top: 14px;
+    padding: 10px 12px;
+  }
+
+  .business-document-footer {
+    margin-top: 16px;
+    padding-top: 9px;
+  }
+
+  .quote-proposal-document .business-document-footer > div:last-child {
+    justify-items: end;
+    text-align: right;
+  }
+
+  .quote-proposal-line,
+  .quote-proposal-totals,
+  .business-document-terms,
+  .business-document-approval,
+  .business-document-payment-note,
+  .business-document-footer {
+    break-inside: avoid;
+  }
+
+  .document-term {
+    break-inside: avoid;
   }
 }
 

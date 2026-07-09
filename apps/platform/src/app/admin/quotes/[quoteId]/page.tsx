@@ -96,9 +96,9 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                       </p>
                       <h2>Quote document preview</h2>
                     </div>
-                    <PrintButton label="Print quote" />
+                    <PrintButton href={`/admin/quotes/${detail.data.id}/print`} label="Print or save PDF" />
                   </div>
-                  <QuoteDocument quote={detail.data} />
+                  <QuoteDocument quote={detail.data} showInternalPreview={detail.data.status === "draft"} />
                 </section>
 
                 <section className="commerce-side-panel">

@@ -81,9 +81,9 @@ Transactional email uses Resend from server-only code. Add these environment var
 
 ```env
 RESEND_API_KEY=
-EMAIL_FROM="Angel Tree Services <no-reply@angeltreeservices.org>"
-EMAIL_REPLY_TO="office@angeltreeservices.org"
-INTERNAL_LEAD_NOTIFICATION_EMAIL="office@angeltreeservices.org"
+EMAIL_FROM="Angel Tree Services <info@angeltreeservice.org>"
+EMAIL_REPLY_TO="info@angeltreeservice.org"
+INTERNAL_LEAD_NOTIFICATION_EMAIL="info@angeltreeservice.org"
 ```
 
 Do not commit real Resend API keys or SMTP credentials.
@@ -105,9 +105,9 @@ Admins and owners can trigger the email from `/admin/access`, but the app never 
 
 Recommended sender setup:
 
-- Sender: `Angel Tree Services <no-reply@angeltreeservices.org>`
-- Reply-to: `office@angeltreeservices.org` or the value in `EMAIL_REPLY_TO`
-- Verify `angeltreeservices.org` or a dedicated mail subdomain in Resend.
+- Sender: `Angel Tree Services <info@angeltreeservice.org>` or the value in `EMAIL_FROM`
+- Reply-to: `info@angeltreeservice.org` or the value in `EMAIL_REPLY_TO`
+- Verify `angeltreeservice.org` or a dedicated mail subdomain in Resend.
 - Add the SPF, DKIM, and DMARC DNS records Resend provides for the verified domain.
 - In Supabase Auth, configure custom SMTP using Resend so Auth emails, including password reset, are not limited by Supabase built-in email quotas.
 - Keep Supabase SMTP credentials and `RESEND_API_KEY` only in Supabase/Netlify environment settings.

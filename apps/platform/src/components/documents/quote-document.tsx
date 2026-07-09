@@ -1,5 +1,6 @@
 import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
+import { getEmailSetupState } from "@/lib/email/config";
 import { getQuoteTerms } from "@/lib/documents/terms";
 import type { QuoteDetail } from "@/lib/types/database";
 
@@ -14,6 +15,7 @@ export function QuoteDocument({
 }) {
   const lineItems = [...(quote.quote_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const proposalNote = getProposalNote(quote, lineItems);
+  const contactEmail = getEmailSetupState().replyTo;
 
   return (
     <DocumentShell
@@ -29,7 +31,7 @@ export function QuoteDocument({
           </div>
           <div>
             <span>(540) 388-8715</span>
-            <span>office@angeltreeservices.org</span>
+            <span>{contactEmail}</span>
             <span>angeltreeservices.org</span>
           </div>
         </>

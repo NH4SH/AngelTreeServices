@@ -6,8 +6,8 @@ export type EmailProviderConfig = {
   replyTo: string;
 };
 
-const defaultFrom = "Angel Tree Services <no-reply@angeltreeservices.org>";
-const defaultReplyTo = "office@angeltreeservices.org";
+const defaultFrom = "Angel Tree Services <info@angeltreeservice.org>";
+const defaultReplyTo = "info@angeltreeservice.org";
 
 export function getEmailProviderConfig(): EmailProviderConfig | null {
   const apiKey = process.env.RESEND_API_KEY;

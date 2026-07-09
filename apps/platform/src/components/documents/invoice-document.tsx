@@ -1,4 +1,4 @@
-import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
+import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { invoiceTerms } from "@/lib/documents/terms";
 import { getEmailSetupState } from "@/lib/email/config";

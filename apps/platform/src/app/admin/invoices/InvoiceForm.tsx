@@ -97,7 +97,10 @@ export function AddInvoiceForm({
           </div>
           <button
             className="secondary-action quote-line-helper-button"
-            onClick={() => setLineItems((items) => [...items, newInvoiceLine()])}
+            onClick={() => {
+              setLineItems((items) => [...items, newInvoiceLine()]);
+              setDirty(true);
+            }}
             type="button"
           >
             <Plus aria-hidden="true" size={16} />
@@ -105,7 +108,11 @@ export function AddInvoiceForm({
           </button>
         </div>
 
-        <InvoiceLineEditors lineItems={lineItems} setLineItems={setLineItems} />
+        <InvoiceLineEditors
+          lineItems={lineItems}
+          onDirty={() => setDirty(true)}
+          setLineItems={setLineItems}
+        />
 
         <dl className="quote-editor-totals" aria-label="Invoice totals">
           <div><dt>Subtotal</dt><dd>{formatMoney(totalCents)}</dd></div>

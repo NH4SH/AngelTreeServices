@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import type { CustomerActionState } from "./actions";
-import { createCustomer, createServiceLocation } from "./actions";
-import type { CustomerType, CustomerWithLocations } from "@/lib/types/database";
+import { createCustomer, createServiceLocation, updateCustomer } from "./actions";
+import type { Customer, CustomerStatus, CustomerType, CustomerWithLocations, Organization } from "@/lib/types/database";
 
 const initialState: CustomerActionState = {
   status: "idle",
@@ -11,6 +12,7 @@ const initialState: CustomerActionState = {
 };
 
 const customerTypes: CustomerType[] = ["residential", "commercial", "property_manager", "hoa"];
+const customerStatuses: CustomerStatus[] = ["active", "inactive", "archived"];
 
 export function AddCustomerForm() {
   const [state, formAction, pending] = useActionState(createCustomer, initialState);
@@ -58,6 +60,95 @@ export function AddCustomerForm() {
       <button disabled={pending} type="submit">
         {pending ? "Saving..." : "Add customer"}
       </button>
+    </form>
+  );
+}
+
+export function EditCustomerForm({
+  customer,
+  organizations,
+}: {
+  customer: Customer;
+  organizations: Pick<Organization, "id" | "name">[];
+}) {
+  const [state, formAction, pending] = useActionState(updateCustomer, initialState);
+
+  return (
+    <form action={formAction} className="crm-form edit-record-form">
+      <input name="customer_id" type="hidden" value={customer.id} />
+      <FormMessage state={state} />
+      <label>
+        Customer name
+        <input defaultValue={customer.display_name} name="display_name" required />
+      </label>
+      <label>
+        Primary contact name
+        <input defaultValue={customer.primary_contact_name ?? ""} name="primary_contact_name" placeholder="Main contact person" />
+      </label>
+      <div className="form-grid-two">
+        <label>
+          Phone
+          <input defaultValue={customer.phone ?? ""} name="phone" placeholder="(540) 555-1234" type="tel" />
+        </label>
+        <label>
+          Email
+          <input defaultValue={customer.email ?? ""} name="email" placeholder="name@example.com" type="email" />
+        </label>
+      </div>
+      <label>
+        Billing/contact address
+        <textarea
+          defaultValue={customer.billing_address ?? ""}
+          name="billing_address"
+          placeholder="Mailing address, billing contact, or office contact notes"
+          rows={3}
+        />
+      </label>
+      <div className="form-grid-two">
+        <label>
+          Customer type
+          <select defaultValue={customer.customer_type} name="customer_type">
+            {customerTypes.map((type) => (
+              <option key={type} value={type}>
+                {type.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Status
+          <select defaultValue={customer.status} name="status">
+            {customerStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <label>
+        Organization
+        <select defaultValue={customer.organization_id ?? ""} name="organization_id">
+          <option value="">No linked organization</option>
+          {organizations.map((organization) => (
+            <option key={organization.id} value={organization.id}>
+              {organization.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        New internal note
+        <textarea name="notes" placeholder="Optional note to add to this customer history" rows={3} />
+      </label>
+      <div className="record-form-actions">
+        <button disabled={pending} type="submit">
+          {pending ? "Saving..." : "Save changes"}
+        </button>
+        <Link className="secondary-action" href={`/admin/customers/${customer.id}`}>
+          Cancel
+        </Link>
+      </div>
     </form>
   );
 }

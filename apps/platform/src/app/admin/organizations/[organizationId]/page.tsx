@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Building2, FileSignature, MapPin, ReceiptText, UsersRound, Workflow } from "lucide-react";
+import { Building2, FileSignature, MapPin, Pencil, ReceiptText, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -8,12 +8,225 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getOrganizationDetail } from "@/lib/data/organizations";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
 
-export default async function OrganizationDetailPage({ params }: { params: Promise<{ organizationId: string }> }) {
-  const { organizationId } = await params; const context = await getAuthenticatedPlatformContext(`/admin/organizations/${organizationId}`);
-  if (!context.configured) return <SetupRequired title="Configure Supabase before opening organization details" />;
-  const detail = await getOrganizationDetail(organizationId); const org = detail.data;
-  return <PlatformFrame active="organizations" roles={context.roles} userEmail={context.user.email}><div className="shell app-content"><Link className="crew-back-link" href="/admin/organizations">Back to organizations</Link>{detail.error ? <Warning message={detail.error} /> : null}{!org ? <section className="empty-state"><h2>Organization not found or no access</h2></section> : <><section className="page-heading"><p className="surface-label"><Building2 size={18} />Organization file</p><h1>{org.organization.name}</h1><p>{org.organization.organization_type.replace("_", " ")} account with repeat-property workflow scaffolding.</p></section><section className="detail-grid"><Panel icon={<Building2 size={18} />} title="Billing"><p>{org.organization.billing_email || "No billing email"}</p><p>{org.organization.billing_phone || "No billing phone"}</p><p>{org.organization.billing_address || "No billing address"}</p></Panel><Panel icon={<UsersRound size={18} />} title="Contacts">{org.contacts.length ? org.contacts.map((contact) => <article className="linked-record" key={contact.id}><strong>{contact.full_name}</strong><span>{contact.role_title || "Contact"} - {contact.email || contact.phone || "No contact details"}</span><span>{contact.receives_invoices ? "Invoices" : "No invoices"} - {contact.receives_job_updates ? "Job updates" : "No job updates"}</span></article>) : <p>No organization contacts yet.</p>}</Panel><Panel icon={<MapPin size={18} />} title="Properties">{org.serviceLocations.length ? org.serviceLocations.map((location) => <article className="linked-record" key={location.id}><strong>{location.label || "Property"}</strong><span>{location.street}, {location.city}, {location.state}</span></article>) : <p>No linked properties yet.</p>}</Panel><Panel icon={<UsersRound size={18} />} title="Linked customers">{org.customers.length ? org.customers.map((customer) => <Link className="linked-record" href={`/admin/customers/${customer.id}`} key={customer.id}><strong>{customer.display_name}</strong><span>{customer.customer_type.replace("_", " ")}</span></Link>) : <p>No linked customers yet. Link customers in Supabase or add organization-aware customer editing next.</p>}</Panel><Panel icon={<Workflow size={18} />} title="Jobs">{org.jobs.length ? org.jobs.map((job) => <Link className="linked-record" href={`/admin/jobs/${job.id}`} key={job.id}><strong>{job.service_type?.replace("_", " ") || "Job"}</strong><span>{job.status.replace("_", " ")}</span></Link>) : <p>No organization jobs yet.</p>}</Panel><Panel icon={<FileSignature size={18} />} title="Quotes">{org.quotes.length ? org.quotes.map((quote) => <Link className="linked-record" href={`/admin/quotes/${quote.id}`} key={quote.id}><strong>{quote.quote_number || "Quote"}</strong><span>{quote.status.replace("_", " ")}</span></Link>) : <p>No organization quotes yet.</p>}</Panel><Panel icon={<ReceiptText size={18} />} title="Invoices">{org.invoices.length ? org.invoices.map((invoice) => <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}><strong>{invoice.invoice_number || "Invoice"}</strong><span>{formatInvoiceStatus(invoice.status)} - {money(invoice.balance_due_cents)} due</span></Link>) : <p>No organization invoices yet.</p>}</Panel></section><section className="crm-layout"><aside className="crm-side"><section className="form-panel"><h2>Add contact</h2><AddOrganizationContactForm organizationId={organizationId} /></section></aside><aside className="crm-side"><section className="form-panel"><h2>Add property</h2><AddOrganizationPropertyForm customers={org.customers} organizationId={organizationId} /></section></aside></section><section className="form-panel organization-request-scaffold"><h2>Internal work request scaffold</h2><p>Future portal requests will create a scoped organization job after validation and authorization.</p><div className="form-grid-two"><label>Property<select disabled><option>Select linked property</option></select></label><label>Urgency<select disabled><option>Normal</option><option>Urgent</option><option>Emergency</option></select></label></div><label>Requested service<select disabled><option>Tree service</option></select></label><label>Issue description<textarea disabled rows={4} /></label><label>Photos<input disabled type="file" /></label><button disabled type="button">Portal request submission not connected</button></section></>}</div></PlatformFrame>;
+type OrganizationDetailPageProps = {
+  params: Promise<{
+    organizationId: string;
+  }>;
+  searchParams: Promise<{
+    updated?: string;
+  }>;
+};
+
+export default async function OrganizationDetailPage({ params, searchParams }: OrganizationDetailPageProps) {
+  const { organizationId } = await params;
+  const query = await searchParams;
+  const context = await getAuthenticatedPlatformContext(`/admin/organizations/${organizationId}`);
+
+  if (!context.configured) {
+    return <SetupRequired title="Configure Supabase before opening organization details" />;
+  }
+
+  const detail = await getOrganizationDetail(organizationId);
+  const org = detail.data;
+
+  return (
+    <PlatformFrame active="organizations" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content">
+        <Link className="crew-back-link" href="/admin/organizations">
+          Back to organizations
+        </Link>
+        {detail.error ? <Warning message={detail.error} /> : null}
+        {query.updated === "1" ? <SuccessNotice message="Organization changes saved." /> : null}
+        {!org ? (
+          <section className="empty-state">
+            <h2>Organization not found or no access</h2>
+          </section>
+        ) : (
+          <>
+            <section className="page-heading">
+              <div>
+                <p className="surface-label">
+                  <Building2 aria-hidden="true" size={18} />
+                  Organization file
+                </p>
+                <h1>{org.organization.name}</h1>
+                <p>{org.organization.organization_type.replace("_", " ")} account with repeat-property workflow scaffolding.</p>
+              </div>
+              <Link className="primary-action" href={`/admin/organizations/${org.organization.id}/edit`}>
+                <Pencil aria-hidden="true" size={17} />
+                Edit
+              </Link>
+            </section>
+
+            <section className="detail-grid">
+              <Panel icon={<Building2 size={18} />} title="Billing">
+                <p>{org.organization.billing_email || "No billing email"}</p>
+                <p>{org.organization.billing_phone || "No billing phone"}</p>
+                <p>{org.organization.billing_address || "No billing address"}</p>
+                <p>Updated {formatDateTime(org.organization.updated_at)}</p>
+              </Panel>
+
+              <Panel icon={<UsersRound size={18} />} title="Contacts">
+                {org.contacts.length ? (
+                  org.contacts.map((contact) => (
+                    <article className="linked-record" key={contact.id}>
+                      <strong>{contact.full_name}</strong>
+                      <span>{contact.role_title || "Contact"} - {contact.email || contact.phone || "No contact details"}</span>
+                      <span>{contact.receives_invoices ? "Invoices" : "No invoices"} - {contact.receives_job_updates ? "Job updates" : "No job updates"}</span>
+                    </article>
+                  ))
+                ) : (
+                  <p>No organization contacts yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<MapPin size={18} />} title="Properties">
+                {org.serviceLocations.length ? (
+                  org.serviceLocations.map((location) => (
+                    <article className="linked-record" key={location.id}>
+                      <strong>{location.label || "Property"}</strong>
+                      <span>{location.street}, {location.city}, {location.state}</span>
+                    </article>
+                  ))
+                ) : (
+                  <p>No linked properties yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<UsersRound size={18} />} title="Linked customers">
+                {org.customers.length ? (
+                  org.customers.map((customer) => (
+                    <Link className="linked-record" href={`/admin/customers/${customer.id}`} key={customer.id}>
+                      <strong>{customer.display_name}</strong>
+                      <span>{customer.customer_type.replace("_", " ")}</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No linked customers yet. Link customers from the customer edit page.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<Workflow size={18} />} title="Jobs">
+                {org.jobs.length ? (
+                  org.jobs.map((job) => (
+                    <Link className="linked-record" href={`/admin/jobs/${job.id}`} key={job.id}>
+                      <strong>{job.service_type?.replace("_", " ") || "Job"}</strong>
+                      <span>{job.status.replace("_", " ")}</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No organization jobs yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<FileSignature size={18} />} title="Quotes">
+                {org.quotes.length ? (
+                  org.quotes.map((quote) => (
+                    <Link className="linked-record" href={`/admin/quotes/${quote.id}`} key={quote.id}>
+                      <strong>{quote.quote_number || "Quote"}</strong>
+                      <span>{quote.status.replace("_", " ")}</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No organization quotes yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<ReceiptText size={18} />} title="Invoices">
+                {org.invoices.length ? (
+                  org.invoices.map((invoice) => (
+                    <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
+                      <strong>{invoice.invoice_number || "Invoice"}</strong>
+                      <span>{formatInvoiceStatus(invoice.status)} - {money(invoice.balance_due_cents)} due</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No organization invoices yet.</p>
+                )}
+              </Panel>
+            </section>
+
+            <section className="crm-layout">
+              <aside className="crm-side">
+                <section className="form-panel">
+                  <h2>Add contact</h2>
+                  <AddOrganizationContactForm organizationId={organizationId} />
+                </section>
+              </aside>
+              <aside className="crm-side">
+                <section className="form-panel">
+                  <h2>Add property</h2>
+                  <AddOrganizationPropertyForm customers={org.customers} organizationId={organizationId} />
+                </section>
+              </aside>
+            </section>
+
+            <section className="form-panel organization-request-scaffold">
+              <h2>Internal work request scaffold</h2>
+              <p>Future portal requests will create a scoped organization job after validation and authorization.</p>
+              <div className="form-grid-two">
+                <label>
+                  Property
+                  <select disabled>
+                    <option>Select linked property</option>
+                  </select>
+                </label>
+                <label>
+                  Urgency
+                  <select disabled>
+                    <option>Normal</option>
+                    <option>Urgent</option>
+                    <option>Emergency</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Requested service
+                <select disabled>
+                  <option>Tree service</option>
+                </select>
+              </label>
+              <label>
+                Issue description
+                <textarea disabled rows={4} />
+              </label>
+              <label>
+                Photos
+                <input disabled type="file" />
+              </label>
+              <button disabled type="button">Portal request submission not connected</button>
+            </section>
+          </>
+        )}
+      </div>
+    </PlatformFrame>
+  );
 }
-function Panel({ children, icon, title }: { children: ReactNode; icon: ReactNode; title: string }) { return <article className="detail-panel"><h2 className="panel-title">{icon}{title}</h2><div className="linked-record-list">{children}</div></article>; }
-function Warning({ message }: { message: string }) { return <section className="data-warning"><strong>Database notice</strong><p>{message}</p></section>; }
-function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100); }
+
+function Panel({ children, icon, title }: { children: ReactNode; icon: ReactNode; title: string }) {
+  return (
+    <article className="detail-panel">
+      <h2 className="panel-title">{icon}{title}</h2>
+      <div className="linked-record-list">{children}</div>
+    </article>
+  );
+}
+
+function Warning({ message }: { message: string }) {
+  return <section className="data-warning"><strong>Database notice</strong><p>{message}</p></section>;
+}
+
+function SuccessNotice({ message }: { message: string }) {
+  return <section className="form-message success record-save-notice" role="status">{message}</section>;
+}
+
+function money(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}

@@ -1308,6 +1308,30 @@ h1 {
   color: oklch(0.38 0.1 28);
 }
 
+.record-save-notice {
+  margin: 0;
+}
+
+.edit-record-panel {
+  max-width: 880px;
+}
+
+.edit-record-form {
+  gap: 16px;
+}
+
+.record-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.record-form-actions .secondary-action {
+  min-height: 44px;
+  padding-inline: 16px;
+}
+
 .record-list {
   display: grid;
   gap: 12px;

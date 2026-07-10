@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Building2, MapPin, UserPlus } from "lucide-react";
-import { createOrganization, createOrganizationContact, createOrganizationProperty, type OrganizationActionState } from "./actions";
-import type { Customer, OrganizationType } from "@/lib/types/database";
+import { createOrganization, createOrganizationContact, createOrganizationProperty, updateOrganization, type OrganizationActionState } from "./actions";
+import type { Customer, Organization, OrganizationType } from "@/lib/types/database";
 
 const initialState: OrganizationActionState = { status: "idle", message: "" };
 const types: OrganizationType[] = ["property_manager", "hoa", "commercial", "other"];
@@ -50,6 +51,63 @@ export function AddOrganizationForm() {
         <Building2 size={17} />
         {pending ? "Saving..." : "Add organization"}
       </button>
+    </form>
+  );
+}
+
+export function EditOrganizationForm({ organization }: { organization: Organization }) {
+  const [state, action, pending] = useActionState(updateOrganization, initialState);
+
+  return (
+    <form action={action} className="crm-form edit-record-form">
+      <input name="organization_id" type="hidden" value={organization.id} />
+      <Message state={state} />
+      <label>
+        Organization name
+        <input defaultValue={organization.name} name="name" required />
+      </label>
+      <label>
+        Type
+        <select defaultValue={organization.organization_type} name="organization_type">
+          {types.map((type) => (
+            <option key={type} value={type}>
+              {type.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="form-grid-two">
+        <label>
+          Billing email
+          <input defaultValue={organization.billing_email ?? ""} name="billing_email" placeholder="billing@example.com" type="email" />
+        </label>
+        <label>
+          Billing phone
+          <input defaultValue={organization.billing_phone ?? ""} name="billing_phone" placeholder="(540) 555-1234" type="tel" />
+        </label>
+      </div>
+      <label>
+        Billing/contact address
+        <textarea
+          defaultValue={organization.billing_address ?? ""}
+          name="billing_address"
+          placeholder="Mailing address for statements and office records"
+          rows={3}
+        />
+      </label>
+      <label>
+        Notes
+        <textarea defaultValue={organization.notes ?? ""} name="notes" placeholder="Contract terms, preferred contacts, billing notes" rows={4} />
+      </label>
+      <div className="record-form-actions">
+        <button disabled={pending} type="submit">
+          <Building2 size={17} />
+          {pending ? "Saving..." : "Save changes"}
+        </button>
+        <Link className="secondary-action" href={`/admin/organizations/${organization.id}`}>
+          Cancel
+        </Link>
+      </div>
     </form>
   );
 }

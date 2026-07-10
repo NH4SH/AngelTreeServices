@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BriefcaseBusiness, FileSignature, MailCheck, MapPin, ReceiptText, StickyNote, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, StickyNote, UsersRound } from "lucide-react";
 import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
@@ -15,10 +15,15 @@ type CustomerDetailPageProps = {
   params: Promise<{
     customerId: string;
   }>;
+  searchParams: Promise<{
+    created?: string;
+    updated?: string;
+  }>;
 };
 
-export default async function CustomerDetailPage({ params }: CustomerDetailPageProps) {
+export default async function CustomerDetailPage({ params, searchParams }: CustomerDetailPageProps) {
   const { customerId } = await params;
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/customers/${customerId}`);
 
   if (!context.configured) {
@@ -34,20 +39,28 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
         <Link className="crew-back-link" href="/admin/customers">Back to customers</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {query.updated === "1" ? <SuccessNotice message="Customer changes saved." /> : null}
+        {query.created === "1" ? <SuccessNotice message="Customer created." /> : null}
         {!detail.data ? (
           <EmptyState title="Customer not found or no access" body="This record is unavailable to the current account." />
         ) : (
           <>
             <section className="page-heading">
-              <p className="surface-label">
-                <UsersRound aria-hidden="true" size={18} />
-                Customer File
-              </p>
-              <h1>{detail.data.customer.display_name}</h1>
-              <p>
-                {detail.data.customer.customer_type.replace("_", " ")} customer with linked properties,
-                jobs, quotes, invoices, and notes.
-              </p>
+              <div>
+                <p className="surface-label">
+                  <UsersRound aria-hidden="true" size={18} />
+                  Customer File
+                </p>
+                <h1>{detail.data.customer.display_name}</h1>
+                <p>
+                  {detail.data.customer.customer_type.replace("_", " ")} customer with linked properties,
+                  jobs, quotes, invoices, and notes.
+                </p>
+              </div>
+              <Link className="primary-action" href={`/admin/customers/${detail.data.customer.id}/edit`}>
+                <Pencil aria-hidden="true" size={17} />
+                Edit
+              </Link>
             </section>
 
             <section className="detail-grid">
@@ -69,6 +82,14 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
                   <div>
                     <dt>Status</dt>
                     <dd>{detail.data.customer.status}</dd>
+                  </div>
+                  <div>
+                    <dt>Billing address</dt>
+                    <dd>{detail.data.customer.billing_address || "Not set"}</dd>
+                  </div>
+                  <div>
+                    <dt>Last updated</dt>
+                    <dd>{formatDateTime(detail.data.customer.updated_at)}</dd>
                   </div>
                 </dl>
               </article>
@@ -202,6 +223,17 @@ function DataWarning({ message }: { message: string }) {
   return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
 }
 
+function SuccessNotice({ message }: { message: string }) {
+  return <section className="form-message success record-save-notice" role="status">{message}</section>;
+}
+
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

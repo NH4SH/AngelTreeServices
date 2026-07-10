@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { OrganizationType } from "@/lib/types/database";
 
@@ -28,6 +29,47 @@ export async function createOrganization(_state: OrganizationActionState, formDa
   if (error) return { status: "error", message: error.message };
   revalidatePath("/admin/organizations"); revalidatePath("/admin");
   return { status: "success", message: "Organization saved." };
+}
+
+export async function updateOrganization(_state: OrganizationActionState, formData: FormData): Promise<OrganizationActionState> {
+  const supabase = await getClient();
+  if (!supabase) return { status: "error", message: "Sign in before editing organization records." };
+
+  const organizationId = text(formData, "organization_id", 80);
+  const name = text(formData, "name", 160);
+  const organizationType = text(formData, "organization_type", 30) as OrganizationType;
+  const billingEmail = normalizeEmail(formData.get("billing_email"));
+
+  if (!organizationId || !name || !allowedTypes.includes(organizationType)) {
+    return { status: "error", message: "Organization name and type are required." };
+  }
+
+  if (billingEmail && !isValidEmail(billingEmail)) {
+    return { status: "error", message: "Enter a valid billing email address or leave email blank." };
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      name,
+      organization_type: organizationType,
+      billing_email: billingEmail,
+      billing_phone: optional(formData, "billing_phone", 40),
+      billing_address: optional(formData, "billing_address", 240),
+      notes: optional(formData, "notes", 1000),
+    })
+    .eq("id", organizationId);
+
+  if (error) return { status: "error", message: error.message };
+
+  revalidatePath("/admin/organizations");
+  revalidatePath(`/admin/organizations/${organizationId}`);
+  revalidatePath(`/admin/organizations/${organizationId}/edit`);
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/jobs");
+  revalidatePath("/admin/quotes");
+  revalidatePath("/admin/invoices");
+  redirect(`/admin/organizations/${organizationId}?updated=1`);
 }
 
 export async function createOrganizationContact(_state: OrganizationActionState, formData: FormData): Promise<OrganizationActionState> {
@@ -64,3 +106,5 @@ export async function createOrganizationProperty(_state: OrganizationActionState
 
 function text(formData: FormData, key: string, max: number) { return String(formData.get(key) ?? "").trim().slice(0, max); }
 function optional(formData: FormData, key: string, max: number) { return text(formData, key, max) || null; }
+function normalizeEmail(value: FormDataEntryValue | null) { return String(value ?? "").trim().toLowerCase() || null; }
+function isValidEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }

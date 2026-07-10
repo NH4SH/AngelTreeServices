@@ -214,7 +214,7 @@ Implemented actions:
 - Job status transitions: `new_lead -> estimate_scheduled`, `estimate_scheduled -> quoted`, `accepted -> scheduled`, `scheduled -> in_progress`, `in_progress -> completed`.
 - Quote creation: saves a `draft` quote from a customer, service location, optional estimate event, optional existing job/work order, and multiple proposal line items.
 - Quote line editor: supports add, remove, duplicate, reorder, multi-line scope descriptions, an Indent line helper, and visible subtotal/total calculation.
-- Send quote: generates a fresh secure portal link, sends the quote email, then automatically marks the quote `sent` and records `sent_at`.
+- Send quote: when no active customer link exists, generates a secure portal link, sends the quote email, then automatically marks the quote `sent` and records `sent_at`. Existing hash-only links keep working after edits; regenerate only when the office intentionally needs a replacement URL.
 - Quote workflow actions: approve and create/link a work order, mark change requested, or mark declined.
 - Create invoice from quote: requires an approved quote, ensures the work order exists, copies quote line items into invoice line items, and links invoice to quote, job, and customer.
 - Invoice delivery actions: generate/revoke secure customer links, send by configured email, record manual sent delivery, and mark void.
@@ -252,7 +252,7 @@ The print buttons call `window.print()`. Browser print-to-PDF is available for o
 
 Apply `supabase/migrations/0003_quote_portal_tokens.sql` before testing customer quote links. The migration creates `public.quote_portal_tokens`, enables RLS, grants access only to authenticated users, and adds a staff-only management policy. It deliberately grants nothing to `anon`.
 
-From `/admin/quotes/[quoteId]`, use **Send quote email** to generate a fresh 30-day secure quote link and send it to the customer, or use **Generate secure quote link** when the office needs to copy a link manually. Copy manual URLs immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Existing links can be revoked from the same quote page.
+From `/admin/quotes/[quoteId]`, use **Generate secure quote link** when the office needs to copy a customer link manually. Copy manual URLs immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Editing a quote does not revoke an existing customer link; the existing link resolves the quote by token and shows the latest saved quote details. Existing links can be explicitly revoked from the same quote page, and **Regenerate link** creates a replacement link before revoking the previous active link.
 
 The customer opens:
 

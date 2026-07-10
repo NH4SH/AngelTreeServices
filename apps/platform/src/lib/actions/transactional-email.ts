@@ -57,6 +57,19 @@ export async function sendQuoteEmail(
     return { status: "error", message: "This quote is no longer open for sending." };
   }
 
+  const activePortalLink = await hasActiveQuotePortalLink(auth.supabase, detail.data.id);
+  if (activePortalLink.error) {
+    return { status: "error", message: activePortalLink.error };
+  }
+
+  if (activePortalLink.exists) {
+    return {
+      status: "error",
+      message:
+        "This quote already has an active secure customer link. Edits update that link automatically; use Regenerate link only if you need to replace it before sending a new email.",
+    };
+  }
+
   const portalLink = await createQuotePortalLinkForEmail(auth, detail.data.id, detail.data.customer_id);
 
   if (portalLink.error) {
@@ -253,6 +266,27 @@ async function createQuotePortalLinkForEmail(
   }
 
   return { error: null, url: `${await getRequestOrigin()}/portal/quote/${rawToken}` };
+}
+
+async function hasActiveQuotePortalLink(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  quoteId: string,
+) {
+  const { data, error } = await supabase
+    .from("quote_portal_tokens")
+    .select("id, expires_at")
+    .eq("quote_id", quoteId)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { exists: false, error: error.message };
+  }
+
+  return {
+    exists: (data ?? []).some((token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now()),
+    error: null,
+  };
 }
 
 async function getRequestOrigin() {

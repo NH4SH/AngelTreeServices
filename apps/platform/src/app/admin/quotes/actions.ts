@@ -326,16 +326,6 @@ export async function updateQuote(
     return { status: "error", message: `Quote details saved, but line items could not be fully updated: ${lineItemError}` };
   }
 
-  const { error: portalTokenError } = await supabase
-    .from("quote_portal_tokens")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("quote_id", quoteId)
-    .is("revoked_at", null);
-
-  if (portalTokenError) {
-    return { status: "error", message: `Quote saved, but old portal links could not be closed: ${portalTokenError.message}` };
-  }
-
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -348,7 +338,9 @@ export async function updateQuote(
 
   return {
     status: "success",
-    message: returnsToDraft ? "Changes saved. This quote is now a draft and must be sent again." : "Draft quote saved.",
+    message: returnsToDraft
+      ? "Changes saved. This quote is now a draft and existing customer links still show the updated quote."
+      : "Draft quote saved. Existing customer links still show the updated quote.",
   };
 }
 

@@ -113,7 +113,7 @@ export function AddQuoteForm({
         </div>
         {quote && ["sent", "change_requested"].includes(quote.status) ? (
           <p className="form-guidance warning">
-            Saving changes returns this quote to draft so the revised version can be reviewed and sent again.
+            Saving changes returns this quote to draft so the revised version can be reviewed again. Editing this quote will update the customer's existing link. It will not revoke the link.
           </p>
         ) : null}
         <div className="form-grid-two">

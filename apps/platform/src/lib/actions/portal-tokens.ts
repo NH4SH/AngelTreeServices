@@ -21,6 +21,12 @@ export type PortalTokenActionState = {
   expiresAt?: string;
 };
 
+type ActiveQuotePortalToken = {
+  id: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+};
+
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -54,25 +60,22 @@ export async function createQuotePortalLink(
     return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
   }
 
-  const rawToken = generatePortalToken();
-  const expiresAt = new Date(Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const tokenHash = hashPortalToken(rawToken);
-
-  if (!tokenHash) {
-    return { status: "error", message: "Could not generate a secure quote token." };
+  const activeTokenLookup = await getActiveQuotePortalTokens(supabase, quote.id);
+  if (activeTokenLookup.error) {
+    return { status: "error", message: activeTokenLookup.error };
   }
 
-  const { error } = await supabase.from("quote_portal_tokens").insert({
-    quote_id: quote.id,
-    customer_id: quote.customer_id,
-    token_hash: tokenHash,
-    token_hint: getPortalTokenHint(rawToken),
-    expires_at: expiresAt,
-    created_by_user_id: user.id,
-  });
+  if (activeTokenLookup.tokens.length > 0) {
+    return {
+      status: "error",
+      message: "An active quote link already exists. Editing this quote updates the customer's existing link; use Regenerate link only when you need to replace it.",
+    };
+  }
 
-  if (error) {
-    return { status: "error", message: error.message };
+  const tokenRecord = await createQuotePortalTokenRecord(supabase, quote.id, quote.customer_id, user.id);
+
+  if (tokenRecord.error) {
+    return { status: "error", message: tokenRecord.error };
   }
 
   revalidatePath(`/admin/quotes/${quote.id}`);
@@ -80,8 +83,74 @@ export async function createQuotePortalLink(
   return {
     status: "success",
     message: "Secure customer quote link generated. Copy it now; the raw token is not stored.",
-    portalUrl: `${await getRequestOrigin()}/portal/quote/${rawToken}`,
-    expiresAt,
+    portalUrl: `${await getRequestOrigin()}/portal/quote/${tokenRecord.rawToken}`,
+    expiresAt: tokenRecord.expiresAt,
+  };
+}
+
+export async function regenerateQuotePortalLink(
+  _previousState: PortalTokenActionState,
+  formData: FormData,
+): Promise<PortalTokenActionState> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before regenerating customer links." };
+  }
+
+  const quoteId = getString(formData, "quote_id");
+  const { data: quote, error: quoteError } = await supabase
+    .from("quotes")
+    .select("id, customer_id")
+    .eq("id", quoteId)
+    .single();
+
+  if (quoteError || !quote) {
+    return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
+  }
+
+  const activeTokenLookup = await getActiveQuotePortalTokens(supabase, quote.id);
+  if (activeTokenLookup.error) {
+    return { status: "error", message: activeTokenLookup.error };
+  }
+
+  const tokenRecord = await createQuotePortalTokenRecord(supabase, quote.id, quote.customer_id, user.id);
+
+  if (tokenRecord.error || !tokenRecord.tokenId) {
+    return { status: "error", message: tokenRecord.error ?? "Could not regenerate a secure quote token." };
+  }
+
+  const activeTokenIds = activeTokenLookup.tokens.map((token) => token.id);
+  if (activeTokenIds.length > 0) {
+    const { error: revokeError } = await supabase
+      .from("quote_portal_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("quote_id", quote.id)
+      .in("id", activeTokenIds);
+
+    if (revokeError) {
+      await supabase.from("quote_portal_tokens").update({ revoked_at: new Date().toISOString() }).eq("id", tokenRecord.tokenId);
+      return { status: "error", message: `New link was not activated because the old link could not be revoked: ${revokeError.message}` };
+    }
+  }
+
+  revalidatePath(`/admin/quotes/${quote.id}`);
+
+  return {
+    status: "success",
+    message: activeTokenIds.length
+      ? "Secure customer quote link regenerated. The previous active link is now revoked."
+      : "Secure customer quote link generated. Copy it now; the raw token is not stored.",
+    portalUrl: `${await getRequestOrigin()}/portal/quote/${tokenRecord.rawToken}`,
+    expiresAt: tokenRecord.expiresAt,
   };
 }
 
@@ -220,6 +289,62 @@ async function getRequestOrigin() {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
+}
+
+async function getActiveQuotePortalTokens(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  quoteId: string,
+): Promise<{ tokens: ActiveQuotePortalToken[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("quote_portal_tokens")
+    .select("id, expires_at, revoked_at")
+    .eq("quote_id", quoteId)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { tokens: [], error: error.message };
+  }
+
+  const tokens = ((data ?? []) as ActiveQuotePortalToken[]).filter(
+    (token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now(),
+  );
+
+  return { tokens, error: null };
+}
+
+async function createQuotePortalTokenRecord(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  quoteId: string,
+  customerId: string,
+  userId: string,
+): Promise<{ error: string | null; rawToken: string; expiresAt: string; tokenId: string | null }> {
+  const rawToken = generatePortalToken();
+  const expiresAt = new Date(Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const tokenHash = hashPortalToken(rawToken);
+
+  if (!tokenHash) {
+    return { error: "Could not generate a secure quote portal link.", rawToken: "", expiresAt: "", tokenId: null };
+  }
+
+  const { data, error } = await supabase
+    .from("quote_portal_tokens")
+    .insert({
+      quote_id: quoteId,
+      customer_id: customerId,
+      token_hash: tokenHash,
+      token_hint: getPortalTokenHint(rawToken),
+      expires_at: expiresAt,
+      created_by_user_id: userId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Could not create a secure quote portal link.", rawToken: "", expiresAt: "", tokenId: null };
+  }
+
+  return { error: null, rawToken, expiresAt, tokenId: data.id };
 }
 
 async function logPortalActivity(

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, MapPin } from "lucide-react";
 import { EditOrganizationForm } from "../../OrganizationForms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -43,12 +43,28 @@ export default async function OrganizationEditPage({ params }: OrganizationEditP
                   Edit organization
                 </p>
                 <h1>{detail.data.organization.name}</h1>
-                <p>Update billing and account information without changing linked customers, jobs, quotes, invoices, or documents.</p>
+                <p>Update billing and account information without changing linked customers, service locations, jobs, quotes, invoices, or documents.</p>
               </div>
             </section>
             <section className="form-panel edit-record-panel">
               <h2>Organization information</h2>
               <EditOrganizationForm organization={detail.data.organization} />
+            </section>
+            <section className="form-panel edit-record-panel">
+              <h2 className="panel-title"><MapPin aria-hidden="true" size={18} />Service locations</h2>
+              {detail.data.serviceLocations.length ? (
+                <div className="linked-record-list">
+                  {detail.data.serviceLocations.map((location) => (
+                    <article className="linked-record" key={location.id}>
+                      <strong>{location.label || "Service location"}</strong>
+                      <span>{location.street}, {location.city}, {location.state} {location.postal_code ?? ""}</span>
+                      <span>Edit this service/job address from the linked customer record so job, quote, and schedule relationships stay intact.</span>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="inline-empty">No organization service locations yet. Add properties from the organization detail page or edit the linked customer.</p>
+              )}
             </section>
           </>
         )}

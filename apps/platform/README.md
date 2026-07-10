@@ -132,6 +132,9 @@ supabase/migrations/0010_time_clock_clock_out_policy_fix.sql
 supabase/migrations/0011_employee_access_requests.sql
 supabase/migrations/20260707000822_email_events_log.sql
 supabase/migrations/20260708004341_quote_first_workflow.sql
+supabase/migrations/20260709122947_quote_sent_delivery_metadata.sql
+supabase/migrations/20260709132222_invoice_portal_tokens.sql
+supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -264,7 +267,7 @@ The public route performs a narrow server-side lookup and exposes only the linke
 
 ## Secure Customer Invoice Links
 
-Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` before testing invoice links. The migration creates `public.invoice_portal_tokens`, enables RLS, grants management only to authenticated owner/admin accounts, grants the service role explicitly, and grants nothing to `anon`.
+Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql` before testing invoice links. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, grant the service role explicitly, and grant nothing to `anon`. If production shows `Could not find the table 'public.invoice_portal_tokens' in the schema cache`, apply the pending invoice-token migrations and refresh/wait for the Supabase schema cache.
 
 From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it immediately, replace the active link, or revoke it. Only the SHA-256 token hash and short hint are stored. A replacement link revokes the previous active link.
 
@@ -464,7 +467,7 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 - Email delivery requires Resend/Supabase SMTP configuration.
 - No external calendar sync or automated reminder delivery.
 - No PDF generation.
-- No public invoice links.
+- Public invoice links require the invoice portal token migrations above and `SUPABASE_SERVICE_ROLE_KEY` on the server.
 - No persisted completion checklist yet.
 - No job-photo delete UI or deletion activity-log entry yet.
 - No persisted marketing permission, photo selection, gallery eligibility, or follow-up note state yet.
@@ -480,4 +483,4 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 
 ## Next Step
 
-Add production rate limiting and canonical deployment URL configuration for customer quote-link actions, then prepare secure invoice portal links and real email delivery.
+Add production rate limiting and canonical deployment URL configuration for customer quote and invoice portal actions, then continue hardening real email delivery.

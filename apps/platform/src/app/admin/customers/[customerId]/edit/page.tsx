@@ -48,12 +48,16 @@ export default async function CustomerEditPage({ params }: CustomerEditPageProps
                   Edit customer
                 </p>
                 <h1>{detail.data.customer.display_name}</h1>
-                <p>Update the customer record without changing linked jobs, quotes, invoices, notes, or portal links.</p>
+                <p>Update contact details and real service addresses without changing linked jobs, quotes, invoices, notes, or portal links.</p>
               </div>
             </section>
             <section className="form-panel edit-record-panel">
               <h2>Customer information</h2>
-              <EditCustomerForm customer={detail.data.customer} organizations={organizations.data} />
+              <EditCustomerForm
+                customer={detail.data.customer}
+                organizations={organizations.data}
+                serviceLocations={detail.data.serviceLocations}
+              />
             </section>
           </>
         )}

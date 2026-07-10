@@ -45,6 +45,9 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only.
 - Do not add the service role key to the public website Netlify site.
 - `SUPABASE_DB_URL` is not required for normal app page runtime right now.
+- Secure invoice links require `supabase/migrations/20260709132222_invoice_portal_tokens.sql`
+  and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`.
+  If `/admin/invoices/[invoiceId]` shows an `invoice_portal_tokens` schema-cache notice, apply the pending migrations and refresh/wait for the Supabase schema cache.
 
 ## 3. Required Supabase Auth URLs
 

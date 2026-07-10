@@ -2,6 +2,10 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import {
+  formatInvoicePortalTokenError,
+  isInvoicePortalTokenTableMissing,
+} from "@/lib/portal/invoice-token-errors";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import type {
   DataResult,
@@ -45,7 +49,7 @@ export async function getInvoicePortalTokens(
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: formatInvoicePortalTokenError(error.message) };
   }
 
   return { data: (data ?? []) as InvoicePortalTokenSummary[], error: null };
@@ -69,7 +73,17 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  if (tokenError || !token) {
+  if (tokenError) {
+    console.error("Invoice portal token lookup failed", tokenError);
+    return isInvoicePortalTokenTableMissing(tokenError.message)
+      ? portalLookup(
+          "configuration_required",
+          "Secure invoice links are not configured yet. Please contact Angel Tree Services.",
+        )
+      : portalLookup("invalid", "This secure invoice link is not valid.");
+  }
+
+  if (!token) {
     return portalLookup("invalid", "This secure invoice link is not valid.");
   }
 

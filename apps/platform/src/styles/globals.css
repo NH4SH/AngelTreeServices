@@ -1332,6 +1332,53 @@ h1 {
   padding-inline: 16px;
 }
 
+.edit-record-section {
+  gap: 12px;
+}
+
+.service-location-editor-list {
+  display: grid;
+  gap: 14px;
+}
+
+.service-location-editor {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--color-surface-subtle);
+}
+
+.new-location-editor {
+  border-color: oklch(0.76 0.1 154 / 0.55);
+  background: oklch(0.975 0.018 154);
+}
+
+.location-editor-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.location-editor-heading strong {
+  color: var(--color-forest);
+  font-size: 0.98rem;
+}
+
+.remove-location-option {
+  align-items: flex-start;
+  border: 1px solid oklch(0.83 0.08 28 / 0.7);
+  border-radius: 12px;
+  padding: 10px;
+  background: oklch(0.98 0.012 28);
+  color: oklch(0.38 0.08 28);
+  font-size: 0.84rem;
+  font-weight: 720;
+}
+
 .record-list {
   display: grid;
   gap: 12px;

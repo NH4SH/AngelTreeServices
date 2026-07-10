@@ -86,7 +86,7 @@ Before deploy, verify:
 
 ## 6. Invoice Portal Assumptions
 
-Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and verify:
+Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, then refresh/wait for the Supabase schema cache and verify:
 
 1. An owner/admin can generate an invoice link without email configuration.
 2. The copied URL uses the deployed host.
@@ -134,4 +134,4 @@ These are still intentionally unfinished for first private deployment:
 - payroll export integration
 - external calendar sync
 - durable distributed rate limiting for public lead intake
-- public invoice portal links
+- public invoice payment collection

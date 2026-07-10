@@ -7,6 +7,7 @@ import {
   hashPortalToken,
   INVOICE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
+import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
 
 export async function createInvoicePortalTokenRecord({
   customerId,
@@ -48,8 +49,12 @@ export async function createInvoicePortalTokenRecord({
     .single();
 
   if (tokenError || !token) {
+    if (tokenError) {
+      console.error("Invoice portal token creation failed", tokenError);
+    }
+
     return {
-      error: tokenError?.message ?? "Could not save the secure invoice link.",
+      error: formatInvoicePortalTokenError(tokenError?.message ?? "Could not save the secure invoice link."),
       expiresAt: "",
       rawToken: "",
       tokenId: "",
@@ -61,6 +66,7 @@ export async function createInvoicePortalTokenRecord({
 
     if (revokeError) {
       await supabase.from("invoice_portal_tokens").delete().eq("id", token.id);
+      console.error("Invoice portal replacement link cleanup failed", revokeError);
       return { error: revokeError, expiresAt: "", rawToken: "", tokenId: "" };
     }
   }
@@ -80,5 +86,9 @@ export async function revokeOtherInvoicePortalTokens(
     .is("revoked_at", null)
     .neq("id", retainedTokenId);
 
-  return error?.message ?? null;
+  if (error) {
+    console.error("Invoice portal older-token revoke failed", error);
+  }
+
+  return error ? formatInvoicePortalTokenError(error.message) : null;
 }

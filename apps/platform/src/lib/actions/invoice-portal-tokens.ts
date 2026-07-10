@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createInvoicePortalTokenRecord } from "@/lib/portal/invoice-links";
+import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
 import { createClient } from "@/lib/supabase/server";
 
 export type InvoicePortalTokenActionState = {
@@ -78,7 +79,7 @@ export async function revokeInvoicePortalLink(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: formatInvoicePortalTokenError(error.message) };
   }
 
   if (!data) {

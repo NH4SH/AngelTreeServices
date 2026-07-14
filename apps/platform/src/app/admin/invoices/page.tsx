@@ -1,10 +1,12 @@
 import { CircleDollarSign, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { InvoiceStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddInvoiceForm } from "./InvoiceForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getInvoices } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
@@ -113,6 +115,13 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     <Link className="secondary-action" href={`/admin/invoices/${invoice.id}`}>
                       Open
                     </Link>
+                    <DuplicateRecordButton
+                      action={duplicateInvoice}
+                      hiddenFieldName="invoice_id"
+                      hiddenFieldValue={invoice.id}
+                      label="Duplicate"
+                      pendingLabel="Copying..."
+                    />
                     <InvoiceStatusActions invoiceId={invoice.id} status={invoice.status} />
                   </div>
                 </article>

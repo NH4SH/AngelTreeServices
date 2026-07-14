@@ -12,7 +12,7 @@ import { AddQuoteForm } from "../../QuoteForm";
 
 type QuoteEditPageProps = {
   params: Promise<{ quoteId: string }>;
-  searchParams: Promise<{ line_error?: string; saved?: string }>;
+  searchParams: Promise<{ duplicated?: string; line_error?: string; saved?: string }>;
 };
 
 export default async function QuoteEditPage({ params, searchParams }: QuoteEditPageProps) {
@@ -63,6 +63,9 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
             </section>
             {query.saved === "1" ? (
               <p className="form-message success" role="status">Draft quote saved. You can keep editing it here.</p>
+            ) : null}
+            {query.duplicated === "quote" ? (
+              <p className="form-message success" role="status">Quote duplicated as draft.</p>
             ) : null}
             {query.line_error === "1" ? (
               <p className="form-message error" role="alert">

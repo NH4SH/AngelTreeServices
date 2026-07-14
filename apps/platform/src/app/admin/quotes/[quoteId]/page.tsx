@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { QuoteDocument } from "@/components/documents/quote-document";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
@@ -22,6 +23,7 @@ import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
@@ -85,6 +87,14 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     Edit quote
                   </Link>
                 ) : null}
+                <DuplicateRecordButton
+                  action={duplicateQuote}
+                  buttonClassName="secondary-action"
+                  hiddenFieldName="quote_id"
+                  hiddenFieldValue={detail.data.id}
+                  label="Duplicate quote"
+                  pendingLabel="Copying quote..."
+                />
               </div>
             </section>
 

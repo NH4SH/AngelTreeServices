@@ -1,9 +1,11 @@
 import { ClipboardCheck, MapPin } from "lucide-react";
 import Link from "next/link";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddJobForm } from "./JobForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobs } from "@/lib/data/jobs";
 import type { JobStatus } from "@/lib/types/database";
@@ -91,6 +93,13 @@ export default async function JobsPage() {
                     </dl>
                     <div className="record-actions">
                       <Link href={`/admin/jobs/${job.id}`}>Open job</Link>
+                      <DuplicateRecordButton
+                        action={duplicateJob}
+                        hiddenFieldName="job_id"
+                        hiddenFieldValue={job.id}
+                        label="Duplicate"
+                        pendingLabel="Copying..."
+                      />
                       <Link href={`/crew/jobs/${job.id}`}>Crew view</Link>
                     </div>
                   </article>

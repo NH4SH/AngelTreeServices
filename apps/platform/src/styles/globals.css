@@ -1815,6 +1815,19 @@ h1 {
   display: contents;
 }
 
+.duplicate-action-form button {
+  cursor: pointer;
+}
+
+.duplicate-action-form button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.duplicate-action-form .form-message {
+  flex-basis: 100%;
+}
+
 .workflow-action-panel button,
 .compact-action {
   display: inline-flex;

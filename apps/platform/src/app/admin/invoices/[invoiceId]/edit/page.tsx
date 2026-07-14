@@ -9,10 +9,12 @@ import { EditInvoiceForm } from "../../InvoiceForm";
 
 type InvoiceEditPageProps = {
   params: Promise<{ invoiceId: string }>;
+  searchParams: Promise<{ duplicated?: string }>;
 };
 
-export default async function InvoiceEditPage({ params }: InvoiceEditPageProps) {
+export default async function InvoiceEditPage({ params, searchParams }: InvoiceEditPageProps) {
   const { invoiceId } = await params;
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/invoices/${invoiceId}/edit`);
 
   if (!context.configured) {
@@ -47,6 +49,9 @@ export default async function InvoiceEditPage({ params }: InvoiceEditPageProps) 
               <h1>Edit {getInvoiceDisplayNumber(detail.data.invoice_number)}</h1>
               <p>Update the due date and billing lines without changing linked payments, customer, job, or quote.</p>
             </section>
+            {query.duplicated === "invoice" ? (
+              <p className="form-message success" role="status">Invoice duplicated.</p>
+            ) : null}
             <EditInvoiceForm invoice={detail.data} />
           </>
         )}

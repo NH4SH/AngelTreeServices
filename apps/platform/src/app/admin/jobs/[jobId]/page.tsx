@@ -4,6 +4,7 @@ import { CalendarDays, Camera, ClipboardCheck, FileSignature, MapPin, Navigation
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { PrintButton } from "@/components/documents/print-button";
 import { WorkOrderDocument } from "@/components/documents/work-order-document";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { JobStatusActions } from "@/components/workflow-actions";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
@@ -12,6 +13,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getJobDetail } from "@/lib/data/jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
@@ -25,10 +27,14 @@ type JobDetailPageProps = {
   params: Promise<{
     jobId: string;
   }>;
+  searchParams: Promise<{
+    duplicated?: string;
+  }>;
 };
 
-export default async function JobDetailPage({ params }: JobDetailPageProps) {
+export default async function JobDetailPage({ params, searchParams }: JobDetailPageProps) {
   const { jobId } = await params;
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/jobs/${jobId}`);
 
   if (!context.configured) {
@@ -49,6 +55,9 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
+        {query.duplicated === "job" ? (
+          <p className="form-message success" role="status">Work order duplicated.</p>
+        ) : null}
         {!job ? (
           <EmptyState title="Job not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -59,6 +68,14 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
               <p>{job.requested_scope || "No requested scope entered yet."}</p>
               <div className="action-row">
                 <Link className="secondary-action" href={`/crew/jobs/${job.id}`}>Crew view</Link>
+                <DuplicateRecordButton
+                  action={duplicateJob}
+                  buttonClassName="secondary-action"
+                  hiddenFieldName="job_id"
+                  hiddenFieldValue={job.id}
+                  label="Duplicate work order"
+                  pendingLabel="Copying work order..."
+                />
               </div>
             </section>
 

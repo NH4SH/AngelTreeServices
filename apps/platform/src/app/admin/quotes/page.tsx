@@ -1,10 +1,12 @@
 import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { CreateInvoiceFromQuoteAction } from "@/components/workflow-actions";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getQuotes } from "@/lib/data/quotes";
@@ -110,6 +112,13 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                     <Link className="secondary-action" href={`/admin/quotes/${quote.id}`}>
                       Open
                     </Link>
+                    <DuplicateRecordButton
+                      action={duplicateQuote}
+                      hiddenFieldName="quote_id"
+                      hiddenFieldValue={quote.id}
+                      label="Duplicate"
+                      pendingLabel="Copying..."
+                    />
                     <Link className="secondary-action" href={`/admin/quotes/${quote.id}#portal-link`}>
                       <Link2 aria-hidden="true" size={16} />
                       Portal

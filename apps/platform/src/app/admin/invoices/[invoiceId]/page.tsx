@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
@@ -11,6 +12,7 @@ import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/work
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getInvoiceDetail } from "@/lib/data/invoices";
@@ -74,6 +76,14 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     Edit invoice
                   </Link>
                 ) : null}
+                <DuplicateRecordButton
+                  action={duplicateInvoice}
+                  buttonClassName="secondary-action"
+                  hiddenFieldName="invoice_id"
+                  hiddenFieldValue={detail.data.id}
+                  label="Duplicate invoice"
+                  pendingLabel="Copying invoice..."
+                />
               </div>
             </section>
 

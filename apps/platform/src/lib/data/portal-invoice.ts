@@ -6,7 +6,8 @@ import {
   formatInvoicePortalTokenError,
   isInvoicePortalTokenTableMissing,
 } from "@/lib/portal/invoice-token-errors";
-import { hashPortalToken } from "@/lib/portal/tokens";
+import { decryptPortalToken, hashPortalToken } from "@/lib/portal/tokens";
+import { getPortalUrl } from "@/lib/portal/urls";
 import type {
   DataResult,
   InvoiceDetail,
@@ -18,7 +19,9 @@ import type {
 export type InvoicePortalTokenSummary = Pick<
   InvoicePortalToken,
   "id" | "invoice_id" | "token_hint" | "expires_at" | "viewed_at" | "revoked_at" | "created_at"
->;
+> & {
+  portalUrl: string | null;
+};
 
 export type PortalInvoiceLookupStatus =
   | "ready"
@@ -44,7 +47,7 @@ export async function getInvoicePortalTokens(
 
   const { data, error } = await supabase
     .from("invoice_portal_tokens")
-    .select("id, invoice_id, token_hint, expires_at, viewed_at, revoked_at, created_at")
+    .select("id, invoice_id, token_hint, token_encrypted, expires_at, viewed_at, revoked_at, created_at")
     .eq("invoice_id", invoiceId)
     .order("created_at", { ascending: false });
 
@@ -52,7 +55,19 @@ export async function getInvoicePortalTokens(
     return { data: [], error: formatInvoicePortalTokenError(error.message) };
   }
 
-  return { data: (data ?? []) as InvoicePortalTokenSummary[], error: null };
+  const tokenRows = data ?? [];
+  const records = await Promise.all(tokenRows.map(async (token) => {
+    const isActive = !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now());
+    const rawToken = isActive ? decryptPortalToken(token.token_encrypted) : null;
+    const { token_encrypted: _tokenEncrypted, ...summary } = token;
+
+    return {
+      ...summary,
+      portalUrl: rawToken ? await getPortalUrl("invoice", rawToken) : null,
+    } as InvoicePortalTokenSummary;
+  }));
+
+  return { data: records, error: null };
 }
 
 export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalInvoiceLookup> {

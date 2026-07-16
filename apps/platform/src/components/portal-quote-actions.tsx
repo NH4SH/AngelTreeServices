@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/portal-tokens";
 
 const initialState: PortalTokenActionState = {
+  ok: false,
   status: "idle",
   message: "",
 };

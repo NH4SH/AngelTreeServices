@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
@@ -9,15 +8,13 @@ import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { invoiceEmailTemplate } from "@/lib/email/templates";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
-  createInvoicePortalTokenRecord,
-  getActiveInvoicePortalTokens,
+  createOrGetInvoicePortalTokenRecord,
 } from "@/lib/portal/invoice-links";
 import {
-  generatePortalToken,
-  getPortalTokenHint,
   hashPortalToken,
-  QUOTE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
+import { createOrGetQuotePortalTokenRecord } from "@/lib/portal/quote-links";
+import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 
 export type TransactionalEmailActionState = {
@@ -57,7 +54,7 @@ export async function sendQuoteEmail(
     return { status: "error", message: "This quote is no longer open for sending." };
   }
 
-  const portalLink = await getQuotePortalLinkForEmail(auth, detail.data.id, detail.data.customer_id, formData);
+  const portalLink = await getQuotePortalLinkForEmail(auth, detail.data.id, formData);
 
   if (portalLink.error) {
     return { status: "error", message: portalLink.error };
@@ -137,7 +134,7 @@ export async function sendInvoiceEmail(
     return { status: "error", message: "Paid and void invoices are closed for regular sending." };
   }
 
-  const portalLink = await getInvoicePortalLinkForEmail(auth, detail.data.id, detail.data.customer_id, formData);
+  const portalLink = await getInvoicePortalLinkForEmail(auth, detail.data.id, formData);
 
   if (portalLink.error) {
     return { status: "error", message: portalLink.error };
@@ -208,43 +205,9 @@ async function requireInternalEmailSender() {
   return { supabase, userId: user.id };
 }
 
-async function createQuotePortalLinkForEmail(
-  auth: { supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>; userId: string },
-  quoteId: string,
-  customerId: string,
-) {
-  const rawToken = generatePortalToken();
-  const tokenHash = hashPortalToken(rawToken);
-
-  if (!tokenHash) {
-    return { created: false, error: "Could not generate a secure quote portal link.", tokenId: null, url: "" };
-  }
-
-  const expiresAt = new Date(Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await auth.supabase
-    .from("quote_portal_tokens")
-    .insert({
-      quote_id: quoteId,
-      customer_id: customerId,
-      token_hash: tokenHash,
-      token_hint: getPortalTokenHint(rawToken),
-      expires_at: expiresAt,
-      created_by_user_id: auth.userId,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { created: false, error: error?.message ?? "Could not create a secure quote portal link.", tokenId: null, url: "" };
-  }
-
-  return { created: true, error: null, tokenId: data.id as string, url: `${await getRequestOrigin()}/portal/quote/${rawToken}` };
-}
-
 async function getQuotePortalLinkForEmail(
   auth: { supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>; userId: string },
   quoteId: string,
-  customerId: string,
   formData: FormData,
 ) {
   const submittedPortalUrl = String(formData.get("portal_url") ?? "").trim();
@@ -253,28 +216,22 @@ async function getQuotePortalLinkForEmail(
     return validateSubmittedPortalUrl(auth.supabase, "quote", quoteId, submittedPortalUrl);
   }
 
-  const activePortalLink = await getActiveQuotePortalTokensForEmail(auth.supabase, quoteId);
-  if (activePortalLink.error) {
-    return { created: false, error: activePortalLink.error, tokenId: null, url: "" };
+  const token = await createOrGetQuotePortalTokenRecord({ quoteId, supabase: auth.supabase });
+  if (token.error) {
+    return { created: false, error: token.error, tokenId: null, url: "" };
   }
 
-  if (activePortalLink.tokens.length > 0) {
-    return {
-      created: false,
-      error:
-        "This quote already has an active customer link, and raw links are not stored. Use the original customer link or intentionally regenerate the link before resending.",
-      tokenId: null,
-      url: "",
-    };
-  }
-
-  return createQuotePortalLinkForEmail(auth, quoteId, customerId);
+  return {
+    created: token.created,
+    error: null,
+    tokenId: token.tokenId,
+    url: await getPortalUrl("quote", token.rawToken),
+  };
 }
 
 async function getInvoicePortalLinkForEmail(
   auth: { supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>; userId: string },
   invoiceId: string,
-  customerId: string,
   formData: FormData,
 ) {
   const submittedPortalUrl = String(formData.get("portal_url") ?? "").trim();
@@ -283,27 +240,9 @@ async function getInvoicePortalLinkForEmail(
     return validateSubmittedPortalUrl(auth.supabase, "invoice", invoiceId, submittedPortalUrl);
   }
 
-  const activePortalLink = await getActiveInvoicePortalTokens(auth.supabase, invoiceId);
-  if (activePortalLink.error) {
-    return { created: false, error: activePortalLink.error, tokenId: null, url: "" };
-  }
-
-  if (activePortalLink.tokens.length > 0) {
-    return {
-      created: false,
-      error:
-        "This invoice already has an active customer link, and raw links are not stored. Use the original customer link or intentionally regenerate the link before resending.",
-      tokenId: null,
-      url: "",
-    };
-  }
-
-  const token = await createInvoicePortalTokenRecord({
-    customerId,
+  const token = await createOrGetInvoicePortalTokenRecord({
     invoiceId,
-    replaceExisting: false,
     supabase: auth.supabase,
-    userId: auth.userId,
   });
 
   if (token.error) {
@@ -311,31 +250,10 @@ async function getInvoicePortalLinkForEmail(
   }
 
   return {
-    created: true,
+    created: token.created,
     error: null,
     tokenId: token.tokenId,
-    url: `${await getRequestOrigin()}/portal/invoice/${token.rawToken}`,
-  };
-}
-
-async function getActiveQuotePortalTokensForEmail(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  quoteId: string,
-) {
-  const { data, error } = await supabase
-    .from("quote_portal_tokens")
-    .select("id, expires_at")
-    .eq("quote_id", quoteId)
-    .is("revoked_at", null)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return { tokens: [], error: error.message };
-  }
-
-  return {
-    tokens: (data ?? []).filter((token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now()),
-    error: null,
+    url: await getPortalUrl("invoice", token.rawToken),
   };
 }
 
@@ -377,7 +295,7 @@ async function validateSubmittedPortalUrl(
     created: false,
     error: null,
     tokenId: data.id as string,
-    url: submittedPortalUrl.startsWith("http") ? submittedPortalUrl : `${await getRequestOrigin()}/portal/${portalType}/${rawToken}`,
+    url: submittedPortalUrl.startsWith("http") ? submittedPortalUrl : await getPortalUrl(portalType, rawToken),
   };
 }
 
@@ -401,11 +319,4 @@ function extractPortalToken(value: string, portalType: "quote" | "invoice") {
   }
 
   return trimmed;
-}
-
-async function getRequestOrigin() {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
 }

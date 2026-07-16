@@ -69,11 +69,14 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
+PORTAL_TOKEN_ENCRYPTION_KEY=
 ```
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the only values that browser code should use.
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only, bypasses Row Level Security, and must never be imported into client components, exposed in browser JavaScript, committed with real values, or printed to public logs.
+
+`PORTAL_TOKEN_ENCRYPTION_KEY` is a server-only base64-encoded 32-byte key used to encrypt recoverable customer portal tokens at rest. Generate it with `openssl rand -base64 32`, set the same value in Netlify and local `.env.local`, and do not rotate it while staff need to copy existing customer links.
 
 `LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. The endpoint already allows `https://angeltreeservices.org`, `https://www.angeltreeservices.org`, `http://localhost:8000`, and `http://127.0.0.1:8000`.
 
@@ -253,9 +256,9 @@ The print buttons call `window.print()`. Browser print-to-PDF is available for o
 
 ## Secure Customer Quote Portal Links
 
-Apply `supabase/migrations/0003_quote_portal_tokens.sql` before testing customer quote links. The migration creates `public.quote_portal_tokens`, enables RLS, grants access only to authenticated users, and adds a staff-only management policy. It deliberately grants nothing to `anon`.
+Apply `supabase/migrations/0003_quote_portal_tokens.sql` and `supabase/migrations/20260716165828_add_recoverable_portal_links.sql` before testing customer quote links. The migrations create `public.quote_portal_tokens`, enable RLS, and add encrypted staff-only recovery for newly generated links. They deliberately grant nothing to `anon`.
 
-From `/admin/quotes/[quoteId]`, use **Generate secure quote link** when the office needs to copy a customer link manually. Copy manual URLs immediately: the app stores only a SHA-256 hash and a short hint, never the raw token. Editing a quote does not revoke an existing customer link; the existing link resolves the quote by token and shows the latest saved quote details. Existing links can be explicitly revoked from the same quote page, and **Regenerate link** creates a replacement link before revoking the previous active link. Resending email uses a submitted active raw link when one is available on screen; otherwise it creates a link only when no active link exists.
+From `/admin/quotes/[quoteId]`, use **Generate customer link** when the office needs a manual customer URL. New tokens are SHA-256 hashed for portal validation and encrypted at rest with `PORTAL_TOKEN_ENCRYPTION_KEY` so the same active link remains visible and copyable after refresh. Editing a quote does not revoke an existing customer link; the link resolves the latest saved quote details. Existing links can be explicitly revoked from the same quote page, and **Regenerate link** creates a replacement link before revoking the previous active link. Links created before this recovery migration remain valid but cannot be reconstructed from their hash; regenerate them only when intentionally replacing the old link. Resending email reuses the active recoverable link when available.
 
 The customer opens:
 
@@ -267,9 +270,9 @@ The public route performs a narrow server-side lookup and exposes only the linke
 
 ## Secure Customer Invoice Links
 
-Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql` before testing invoice links. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, grant the service role explicitly, and grant nothing to `anon`. If production shows `Could not find the table 'public.invoice_portal_tokens' in the schema cache`, apply the pending invoice-token migrations and refresh/wait for the Supabase schema cache.
+Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, and `supabase/migrations/20260716165828_add_recoverable_portal_links.sql` before testing invoice links. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, add encrypted staff-only recovery for newly generated links, grant the service role explicitly, and grant nothing to `anon`. If production shows a schema-cache error, apply the pending migrations and refresh/wait for the Supabase schema cache.
 
-From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it immediately, intentionally regenerate the link, or revoke it. Only the SHA-256 token hash and short hint are stored. Editing an invoice does not revoke an existing customer link; the existing link resolves the invoice by token and shows the latest saved invoice details. Regenerate link creates a replacement link before revoking the previous active link. Resending email uses a submitted active raw link when one is available on screen; otherwise it creates a link only when no active link exists.
+From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it after refresh, intentionally regenerate the link, or revoke it. New tokens are SHA-256 hashed for portal validation and encrypted at rest with `PORTAL_TOKEN_ENCRYPTION_KEY` for staff-only recovery. Editing an invoice does not revoke an existing customer link; the link resolves the latest saved invoice details. Regenerate link creates a replacement link before revoking the previous active link. Links created before this recovery migration remain valid but cannot be reconstructed from their hash; regenerate them only when intentionally replacing the old link. Resending email reuses the active recoverable link when available.
 
 The customer opens:
 
@@ -287,6 +290,8 @@ Manual portal-link regression checks:
 2. Generate an invoice link, open it signed out, edit an invoice line item, then confirm the same link still opens and shows the updated invoice.
 3. Duplicate a quote or invoice and confirm the duplicate has no copied portal-token history.
 4. Regenerate or revoke a link only from the explicit link controls, and confirm the old link stops working only after that explicit action.
+5. Generate a quote and invoice link, refresh each detail page, and confirm the same active URL remains available to copy or open.
+6. Click Generate twice for the same record and confirm it returns the existing link rather than creating a second active token.
 
 ## Public Website Lead Intake
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Copy, ExternalLink, Link2, RotateCw, ShieldCheck, XCircle } from "lucide-react";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
@@ -16,8 +16,10 @@ import {
   type InvoiceEmailDraftInput,
 } from "@/lib/documents/email-drafts";
 import type { InvoicePortalTokenSummary } from "@/lib/data/portal-invoice";
+import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
 const initialState: InvoicePortalTokenActionState = {
+  ok: false,
   status: "idle",
   message: "",
 };
@@ -31,12 +33,18 @@ export function InvoicePortalLinkPanel({
   invoiceId: string;
   tokens: InvoicePortalTokenSummary[];
 }) {
-  const [createState, createAction, createPending] = useActionState(createInvoicePortalLink, initialState);
-  const [regenerateState, regenerateAction, regeneratePending] = useActionState(regenerateInvoicePortalLink, initialState);
-  const [revokeState, revokeAction, revokePending] = useActionState(revokeInvoicePortalLink, initialState);
+  const create = usePortalLinkAction(createInvoicePortalLink, initialState);
+  const regenerate = usePortalLinkAction(regenerateInvoicePortalLink, initialState);
+  const revoke = usePortalLinkAction(revokeInvoicePortalLink, initialState);
   const [copyFeedback, setCopyFeedback] = useState("");
   const activeToken = tokens.find((token) => getTokenState(token) === "Active");
-  const latestLinkState = regenerateState.portalUrl ? regenerateState : createState;
+  const activeRecoverableToken = activeToken?.portalUrl ? activeToken : null;
+  const latestLinkState = regenerate.state.portalUrl
+    ? regenerate.state
+    : create.state.portalUrl
+      ? create.state
+      : { portalUrl: activeRecoverableToken?.portalUrl, expiresAt: activeRecoverableToken?.expires_at };
+  const isPending = create.pending || regenerate.pending || revoke.pending;
 
   async function copyPortalLink() {
     if (!latestLinkState.portalUrl) {
@@ -67,27 +75,31 @@ export function InvoicePortalLinkPanel({
 
       <div className="portal-link-actions">
         {!activeToken ? (
-          <form action={createAction}>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void create.submit(new FormData(event.currentTarget));
+          }}>
             <input name="invoice_id" type="hidden" value={invoiceId} />
-            <button className="portal-primary-button" disabled={createPending} type="submit">
+            <button className="portal-primary-button" disabled={isPending} type="submit">
               <Link2 aria-hidden="true" size={18} />
-              {createPending ? "Generating..." : "Generate invoice link"}
+              {create.pending ? "Generating..." : "Generate customer link"}
             </button>
           </form>
         ) : null}
         {activeToken ? (
           <form
-            action={regenerateAction}
             onSubmit={(event) => {
+              event.preventDefault();
               if (!window.confirm("Regenerating this link will disable the previous customer link.")) {
-                event.preventDefault();
+                return;
               }
+              void regenerate.submit(new FormData(event.currentTarget));
             }}
           >
             <input name="invoice_id" type="hidden" value={invoiceId} />
-            <button className="portal-secondary-button" disabled={regeneratePending} type="submit">
+            <button className="portal-secondary-button" disabled={isPending} type="submit">
               <RotateCw aria-hidden="true" size={18} />
-              {regeneratePending ? "Regenerating..." : "Regenerate link"}
+              {regenerate.pending ? "Regenerating..." : "Regenerate link"}
             </button>
           </form>
         ) : null}
@@ -96,18 +108,18 @@ export function InvoicePortalLinkPanel({
       {activeToken && !latestLinkState.portalUrl ? (
         <p className="portal-link-note">
           <ShieldCheck aria-hidden="true" size={17} />
-          An active link exists and will show saved invoice edits. The active raw URL cannot be shown again because only its secure hash is stored.
+          This active link predates secure recovery. It remains valid, but cannot be copied here. Regenerate only if you intend to replace it.
         </p>
       ) : null}
 
-      {createState.message ? (
-        <p className={`form-message ${createState.status}`} role={createState.status === "error" ? "alert" : "status"}>
-          {createState.message}
+      {create.state.message ? (
+        <p className={`form-message ${create.state.status}`} role={create.state.status === "error" ? "alert" : "status"}>
+          {create.state.message}
         </p>
       ) : null}
-      {regenerateState.message ? (
-        <p className={`form-message ${regenerateState.status}`} role={regenerateState.status === "error" ? "alert" : "status"}>
-          {regenerateState.message}
+      {regenerate.state.message ? (
+        <p className={`form-message ${regenerate.state.status}`} role={regenerate.state.status === "error" ? "alert" : "status"}>
+          {regenerate.state.message}
         </p>
       ) : null}
 
@@ -120,7 +132,7 @@ export function InvoicePortalLinkPanel({
           <div className="invoice-link-actions">
             <button className="portal-secondary-button" onClick={copyPortalLink} type="button">
               <Copy aria-hidden="true" size={17} />
-              Copy invoice link
+              Copy customer link
             </button>
             <Link
               className="portal-secondary-button"
@@ -154,16 +166,17 @@ export function InvoicePortalLinkPanel({
                 </div>
                 {!token.revoked_at ? (
                   <form
-                    action={revokeAction}
-                    onSubmit={(event) => {
-                      if (!window.confirm("Revoke this invoice link? The customer will no longer be able to open this exact secure link.")) {
-                        event.preventDefault();
-                      }
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!window.confirm("Revoke this invoice link? The customer will no longer be able to open this exact secure link.")) {
+                      return;
+                    }
+                    void revoke.submit(new FormData(event.currentTarget));
                     }}
                   >
                     <input name="invoice_id" type="hidden" value={invoiceId} />
                     <input name="token_id" type="hidden" value={token.id} />
-                    <button className="portal-text-button" disabled={revokePending} type="submit">
+                    <button className="portal-text-button" disabled={isPending} type="submit">
                       <XCircle aria-hidden="true" size={17} />
                       Revoke
                     </button>
@@ -174,9 +187,9 @@ export function InvoicePortalLinkPanel({
           ) : (
             <p className="inline-empty">No customer invoice links generated yet.</p>
           )}
-          {revokeState.message ? (
-            <p className={`form-message ${revokeState.status}`} role={revokeState.status === "error" ? "alert" : "status"}>
-              {revokeState.message}
+          {revoke.state.message ? (
+            <p className={`form-message ${revoke.state.status}`} role={revoke.state.status === "error" ? "alert" : "status"}>
+              {revoke.state.message}
             </p>
           ) : null}
         </div>

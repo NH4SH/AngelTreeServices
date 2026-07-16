@@ -200,6 +200,7 @@ export type QuotePortalToken = {
   quote_id: string;
   customer_id: string;
   token_hash: string;
+  token_encrypted: string | null;
   token_hint: string | null;
   expires_at: string | null;
   used_at: string | null;
@@ -214,6 +215,7 @@ export type InvoicePortalToken = {
   invoice_id: string;
   customer_id: string;
   token_hash: string;
+  token_encrypted: string | null;
   token_hint: string | null;
   expires_at: string | null;
   viewed_at: string | null;

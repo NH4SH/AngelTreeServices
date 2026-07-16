@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Clipboard, Copy, Link2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
+import { useState } from "react";
+import { Clipboard, Copy, ExternalLink, Link2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import {
@@ -12,8 +12,10 @@ import {
 } from "@/lib/actions/portal-tokens";
 import { generateQuoteEmailDraft, type QuoteEmailDraftInput } from "@/lib/documents/email-drafts";
 import type { QuotePortalTokenSummary } from "@/lib/data/portal-quote";
+import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
 const initialState: PortalTokenActionState = {
+  ok: false,
   status: "idle",
   message: "",
 };
@@ -27,13 +29,19 @@ export function QuotePortalLinkPanel({
   quoteId: string;
   tokens: QuotePortalTokenSummary[];
 }) {
-  const [createState, createAction, createPending] = useActionState(createQuotePortalLink, initialState);
-  const [regenerateState, regenerateAction, regeneratePending] = useActionState(regenerateQuotePortalLink, initialState);
-  const [revokeState, revokeAction, revokePending] = useActionState(revokeQuotePortalLink, initialState);
+  const create = usePortalLinkAction(createQuotePortalLink, initialState);
+  const regenerate = usePortalLinkAction(regenerateQuotePortalLink, initialState);
+  const revoke = usePortalLinkAction(revokeQuotePortalLink, initialState);
   const [copyFeedback, setCopyFeedback] = useState("");
   const activeTokens = tokens.filter((token) => getTokenState(token) === "Active" || getTokenState(token) === "Opened or used");
   const tokenStatus = getTokenStatus(tokens);
-  const latestLinkState = regenerateState.portalUrl ? regenerateState : createState;
+  const activeToken = activeTokens.find((token) => token.portalUrl);
+  const latestLinkState = regenerate.state.portalUrl
+    ? regenerate.state
+    : create.state.portalUrl
+      ? create.state
+      : { portalUrl: activeToken?.portalUrl, expiresAt: activeToken?.expires_at };
+  const isPending = create.pending || regenerate.pending || revoke.pending;
 
   async function copyPortalLink() {
     if (!latestLinkState.portalUrl) {
@@ -69,45 +77,49 @@ export function QuotePortalLinkPanel({
 
       <div className="portal-link-actions">
         {activeTokens.length === 0 ? (
-          <form action={createAction}>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void create.submit(new FormData(event.currentTarget));
+          }}>
             <input name="quote_id" type="hidden" value={quoteId} />
-            <button className="portal-primary-button" disabled={createPending} type="submit">
+            <button className="portal-primary-button" disabled={isPending} type="submit">
               <Link2 aria-hidden="true" size={18} />
-              {createPending ? "Generating..." : "Generate secure quote link"}
+              {create.pending ? "Generating..." : "Generate customer link"}
             </button>
           </form>
         ) : (
           <p className="portal-link-note compact">
             <Clipboard aria-hidden="true" size={17} />
-            The active raw URL cannot be shown again because only its secure hash is stored.
+            {activeToken ? "Customer link ready." : "This active link predates secure recovery. It remains valid, but cannot be copied here. Regenerate only if you intend to replace it."}
           </p>
         )}
         {activeTokens.length > 0 ? (
           <form
-            action={regenerateAction}
             onSubmit={(event) => {
+              event.preventDefault();
               if (!window.confirm("Regenerating this link will disable the previous customer link.")) {
-                event.preventDefault();
+                return;
               }
+              void regenerate.submit(new FormData(event.currentTarget));
             }}
           >
             <input name="quote_id" type="hidden" value={quoteId} />
-            <button className="portal-secondary-button" disabled={regeneratePending} type="submit">
+            <button className="portal-secondary-button" disabled={isPending} type="submit">
               <RefreshCw aria-hidden="true" size={18} />
-              {regeneratePending ? "Regenerating..." : "Regenerate link"}
+              {regenerate.pending ? "Regenerating..." : "Regenerate link"}
             </button>
           </form>
         ) : null}
       </div>
 
-      {createState.message ? (
-        <p className={`form-message ${createState.status}`} role={createState.status === "error" ? "alert" : "status"}>
-          {createState.message}
+      {create.state.message ? (
+        <p className={`form-message ${create.state.status}`} role={create.state.status === "error" ? "alert" : "status"}>
+          {create.state.message}
         </p>
       ) : null}
-      {regenerateState.message ? (
-        <p className={`form-message ${regenerateState.status}`} role={regenerateState.status === "error" ? "alert" : "status"}>
-          {regenerateState.message}
+      {regenerate.state.message ? (
+        <p className={`form-message ${regenerate.state.status}`} role={regenerate.state.status === "error" ? "alert" : "status"}>
+          {regenerate.state.message}
         </p>
       ) : null}
 
@@ -121,6 +133,10 @@ export function QuotePortalLinkPanel({
               <Copy aria-hidden="true" size={17} />
               Copy link
             </button>
+            <a className="portal-secondary-button" href={latestLinkState.portalUrl} rel="noreferrer" target="_blank">
+              <ExternalLink aria-hidden="true" size={17} />
+              Open customer link
+            </a>
             <SendQuoteEmailForm portalUrl={latestLinkState.portalUrl} quoteId={quoteId} />
           <p>
             Expires {latestLinkState.expiresAt ? formatDate(latestLinkState.expiresAt) : "after the configured window"}.
@@ -140,16 +156,17 @@ export function QuotePortalLinkPanel({
               </div>
               {!token.revoked_at ? (
                 <form
-                  action={revokeAction}
                   onSubmit={(event) => {
+                    event.preventDefault();
                     if (!window.confirm("Revoke this quote link? The customer will no longer be able to open this exact secure link.")) {
-                      event.preventDefault();
+                      return;
                     }
+                    void revoke.submit(new FormData(event.currentTarget));
                   }}
                 >
                   <input name="quote_id" type="hidden" value={quoteId} />
                   <input name="token_id" type="hidden" value={token.id} />
-                  <button className="portal-text-button" disabled={revokePending} type="submit">
+                  <button className="portal-text-button" disabled={isPending} type="submit">
                     <XCircle aria-hidden="true" size={17} />
                     Revoke
                   </button>
@@ -160,9 +177,9 @@ export function QuotePortalLinkPanel({
         ) : (
           <p className="inline-empty">No customer portal links generated yet.</p>
         )}
-        {revokeState.message ? (
-          <p className={`form-message ${revokeState.status}`} role={revokeState.status === "error" ? "alert" : "status"}>
-            {revokeState.message}
+        {revoke.state.message ? (
+          <p className={`form-message ${revoke.state.status}`} role={revoke.state.status === "error" ? "alert" : "status"}>
+            {revoke.state.message}
           </p>
         ) : null}
       </div>

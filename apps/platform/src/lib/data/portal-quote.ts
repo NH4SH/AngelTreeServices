@@ -2,13 +2,16 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
-import { hashPortalToken } from "@/lib/portal/tokens";
+import { decryptPortalToken, hashPortalToken } from "@/lib/portal/tokens";
+import { getPortalUrl } from "@/lib/portal/urls";
 import type { DataResult, JobWithRelations, QuoteDetail, QuotePortalToken, QuoteWithRelations } from "@/lib/types/database";
 
 export type QuotePortalTokenSummary = Pick<
   QuotePortalToken,
   "id" | "quote_id" | "token_hint" | "expires_at" | "used_at" | "revoked_at" | "created_at"
->;
+> & {
+  portalUrl: string | null;
+};
 
 export type PortalQuoteLookupStatus = "ready" | "configuration_required" | "invalid" | "expired" | "revoked";
 
@@ -28,7 +31,7 @@ export async function getQuotePortalTokens(quoteId: string): Promise<DataResult<
 
   const { data, error } = await supabase
     .from("quote_portal_tokens")
-    .select("id, quote_id, token_hint, expires_at, used_at, revoked_at, created_at")
+    .select("id, quote_id, token_hint, token_encrypted, expires_at, used_at, revoked_at, created_at")
     .eq("quote_id", quoteId)
     .order("created_at", { ascending: false });
 
@@ -36,7 +39,19 @@ export async function getQuotePortalTokens(quoteId: string): Promise<DataResult<
     return { data: [], error: error.message };
   }
 
-  return { data: (data ?? []) as QuotePortalTokenSummary[], error: null };
+  const tokenRows = data ?? [];
+  const records = await Promise.all(tokenRows.map(async (token) => {
+    const isActive = !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now());
+    const rawToken = isActive ? decryptPortalToken(token.token_encrypted) : null;
+    const { token_encrypted: _tokenEncrypted, ...summary } = token;
+
+    return {
+      ...summary,
+      portalUrl: rawToken ? await getPortalUrl("quote", rawToken) : null,
+    } as QuotePortalTokenSummary;
+  }));
+
+  return { data: records, error: null };
 }
 
 export async function getQuoteByPortalToken(rawToken: string): Promise<PortalQuoteLookup> {

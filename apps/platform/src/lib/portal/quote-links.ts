@@ -7,11 +7,10 @@ import {
   generatePortalToken,
   getPortalTokenHint,
   hashPortalToken,
-  INVOICE_PORTAL_LINK_LIFETIME_DAYS,
+  QUOTE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
-import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
 
-export type ActiveInvoicePortalToken = {
+export type ActiveQuotePortalToken = {
   id: string;
   encrypted_token: string | null;
   expires_at: string | null;
@@ -25,11 +24,11 @@ type PortalTokenRecord = {
   id: string;
 };
 
-export async function createOrGetInvoicePortalTokenRecord({
-  invoiceId,
+export async function createOrGetQuotePortalTokenRecord({
+  quoteId,
   supabase,
 }: {
-  invoiceId: string;
+  quoteId: string;
   supabase: SupabaseClient;
 }): Promise<
   | { created: boolean; error: null; expiresAt: string; rawToken: string; tokenId: string }
@@ -40,16 +39,16 @@ export async function createOrGetInvoicePortalTokenRecord({
   const encrypted = encryptPortalToken(rawToken);
 
   if (!tokenHash || encrypted.error) {
-    return { created: false, error: encrypted.error ?? "Could not generate a secure invoice token.", expiresAt: "", rawToken: "", tokenId: "" };
+    return { created: false, error: encrypted.error ?? "Could not generate a secure quote portal link.", expiresAt: "", rawToken: "", tokenId: "" };
   }
 
   const expiresAt = new Date(
-    Date.now() + INVOICE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000,
+    Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
   const { data, error } = await supabase
-    .rpc("create_or_get_invoice_portal_token", {
+    .rpc("create_or_get_quote_portal_token", {
       p_expires_at: expiresAt,
-      p_invoice_id: invoiceId,
+      p_quote_id: quoteId,
       p_token_encrypted: encrypted.encryptedToken,
       p_token_hash: tokenHash,
       p_token_hint: getPortalTokenHint(rawToken),
@@ -57,8 +56,8 @@ export async function createOrGetInvoicePortalTokenRecord({
     .single();
 
   if (error || !data) {
-    console.error("Invoice portal token create-or-get failed", error);
-    return { created: false, error: formatInvoicePortalTokenError(error?.message ?? "Could not save the secure invoice link."), expiresAt: "", rawToken: "", tokenId: "" };
+    console.error("Quote portal token create-or-get failed", error);
+    return { created: false, error: error?.message ?? "Could not create a secure quote portal link.", expiresAt: "", rawToken: "", tokenId: "" };
   }
 
   const token = data as PortalTokenRecord;
@@ -86,14 +85,14 @@ export async function createOrGetInvoicePortalTokenRecord({
   };
 }
 
-export async function createNewInvoicePortalTokenRecord({
+export async function createNewQuotePortalTokenRecord({
   customerId,
-  invoiceId,
+  quoteId,
   supabase,
   userId,
 }: {
   customerId: string;
-  invoiceId: string;
+  quoteId: string;
   supabase: SupabaseClient;
   userId: string;
 }) {
@@ -102,16 +101,16 @@ export async function createNewInvoicePortalTokenRecord({
   const encrypted = encryptPortalToken(rawToken);
 
   if (!tokenHash || encrypted.error) {
-    return { error: encrypted.error ?? "Could not generate a secure invoice token.", expiresAt: "", rawToken: "", tokenId: "" };
+    return { error: encrypted.error ?? "Could not generate a secure quote portal link.", expiresAt: "", rawToken: "", tokenId: "" };
   }
 
   const expiresAt = new Date(
-    Date.now() + INVOICE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000,
+    Date.now() + QUOTE_PORTAL_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
   const { data, error } = await supabase
-    .from("invoice_portal_tokens")
+    .from("quote_portal_tokens")
     .insert({
-      invoice_id: invoiceId,
+      quote_id: quoteId,
       customer_id: customerId,
       token_hash: tokenHash,
       token_encrypted: encrypted.encryptedToken,
@@ -123,37 +122,30 @@ export async function createNewInvoicePortalTokenRecord({
     .single();
 
   if (error || !data) {
-    console.error("Invoice portal token regeneration failed", error);
-    return {
-      error: formatInvoicePortalTokenError(error?.message ?? "Could not save the secure invoice link."),
-      expiresAt: "",
-      rawToken: "",
-      tokenId: "",
-    };
+    console.error("Quote portal token regeneration failed", error);
+    return { error: error?.message ?? "Could not create a secure quote portal link.", expiresAt: "", rawToken: "", tokenId: "" };
   }
 
   return { error: null, expiresAt, rawToken, tokenId: data.id as string };
 }
 
-export async function getActiveInvoicePortalTokens(
-  supabase: SupabaseClient,
-  invoiceId: string,
-): Promise<{ tokens: ActiveInvoicePortalToken[]; error: string | null }> {
+export async function getActiveQuotePortalTokens(supabase: SupabaseClient, quoteId: string) {
   const { data, error } = await supabase
-    .from("invoice_portal_tokens")
+    .from("quote_portal_tokens")
     .select("id, encrypted_token, expires_at, revoked_at")
-    .eq("invoice_id", invoiceId)
+    .eq("quote_id", quoteId)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Invoice portal token lookup failed", error);
-    return { tokens: [], error: formatInvoicePortalTokenError(error.message) };
+    console.error("Quote portal token lookup failed", error);
+    return { tokens: [] as ActiveQuotePortalToken[], error: error.message };
   }
 
-  const tokens = ((data ?? []) as ActiveInvoicePortalToken[]).filter(
-    (token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now(),
-  );
-
-  return { tokens, error: null };
+  return {
+    tokens: ((data ?? []) as ActiveQuotePortalToken[]).filter(
+      (token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now(),
+    ),
+    error: null,
+  };
 }

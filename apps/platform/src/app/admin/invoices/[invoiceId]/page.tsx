@@ -97,7 +97,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 <section className="commerce-side-panel invoice-email-delivery-panel print-hidden">
                   <PanelTitle icon={<Send size={18} />} title="Send invoice email" />
                   <p className="inline-empty">
-                    Sending creates a fresh secure invoice link and marks the invoice sent only after delivery succeeds.
+                    Sending reuses the active customer link when one exists and marks the invoice sent only after delivery succeeds.
                   </p>
                   <EmailSetupNotice configured={emailSetup.configured} />
                   <SendInvoiceEmailForm

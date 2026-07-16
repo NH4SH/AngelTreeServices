@@ -1,17 +1,18 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { createInvoicePortalTokenRecord, getActiveInvoicePortalTokens } from "@/lib/portal/invoice-links";
-import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
+import { createNewInvoicePortalTokenRecord, createOrGetInvoicePortalTokenRecord, getActiveInvoicePortalTokens } from "@/lib/portal/invoice-links";
+import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 
 export type InvoicePortalTokenActionState = {
+  ok: boolean;
   status: "idle" | "success" | "error";
   message: string;
   portalUrl?: string;
   expiresAt?: string;
+  reusedExisting?: boolean;
 };
 
 const getString = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
@@ -34,41 +35,28 @@ export async function createInvoicePortalLink(
     .single();
 
   if (invoiceError || !invoice) {
-    return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
+    console.error("Invoice portal link invoice lookup failed", invoiceError);
+    return { ok: false, status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
   }
 
-  const activeTokenLookup = await getActiveInvoicePortalTokens(auth.supabase, invoice.id);
-  if (activeTokenLookup.error) {
-    return { status: "error", message: activeTokenLookup.error };
-  }
-
-  if (activeTokenLookup.tokens.length > 0) {
-    return {
-      status: "error",
-      message:
-        "An active invoice link already exists. Editing this invoice updates the customer's existing link; use Regenerate link only when you need to replace it.",
-    };
-  }
-
-  const token = await createInvoicePortalTokenRecord({
-    customerId: invoice.customer_id,
+  const token = await createOrGetInvoicePortalTokenRecord({
     invoiceId: invoice.id,
-    replaceExisting: false,
     supabase: auth.supabase,
-    userId: auth.userId,
   });
 
   if (token.error) {
-    return { status: "error", message: token.error };
+    return { ok: false, status: "error", message: token.error };
   }
 
   revalidatePath(`/admin/invoices/${invoice.id}`);
 
   return {
+    ok: true,
     status: "success",
-    message: "Secure customer invoice link generated. Copy it now; the raw token is not stored.",
-    portalUrl: `${await getRequestOrigin()}/portal/invoice/${token.rawToken}`,
+    message: "Customer link ready.",
+    portalUrl: await getPortalUrl("invoice", token.rawToken),
     expiresAt: token.expiresAt,
+    reusedExisting: !token.created,
   };
 }
 
@@ -90,24 +78,24 @@ export async function regenerateInvoicePortalLink(
     .single();
 
   if (invoiceError || !invoice) {
-    return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
+    console.error("Invoice portal link invoice lookup failed", invoiceError);
+    return { ok: false, status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
   }
 
   const activeTokenLookup = await getActiveInvoicePortalTokens(auth.supabase, invoice.id);
   if (activeTokenLookup.error) {
-    return { status: "error", message: activeTokenLookup.error };
+    return { ok: false, status: "error", message: activeTokenLookup.error };
   }
 
-  const token = await createInvoicePortalTokenRecord({
+  const token = await createNewInvoicePortalTokenRecord({
     customerId: invoice.customer_id,
     invoiceId: invoice.id,
-    replaceExisting: false,
     supabase: auth.supabase,
     userId: auth.userId,
   });
 
   if (token.error) {
-    return { status: "error", message: token.error };
+    return { ok: false, status: "error", message: token.error };
   }
 
   const activeTokenIds = activeTokenLookup.tokens.map((activeToken) => activeToken.id);
@@ -124,8 +112,9 @@ export async function regenerateInvoicePortalLink(
         .update({ revoked_at: new Date().toISOString() })
         .eq("id", token.tokenId);
       return {
+        ok: false,
         status: "error",
-        message: `New link was not activated because the old link could not be revoked: ${formatInvoicePortalTokenError(revokeError.message)}`,
+        message: "Could not regenerate the customer link. The previous link remains protected.",
       };
     }
   }
@@ -133,12 +122,14 @@ export async function regenerateInvoicePortalLink(
   revalidatePath(`/admin/invoices/${invoice.id}`);
 
   return {
+    ok: true,
     status: "success",
     message: activeTokenIds.length
       ? "Secure customer invoice link regenerated. The previous active link is now revoked."
-      : "Secure customer invoice link generated. Copy it now; the raw token is not stored.",
-    portalUrl: `${await getRequestOrigin()}/portal/invoice/${token.rawToken}`,
+      : "Customer link ready.",
+    portalUrl: await getPortalUrl("invoice", token.rawToken),
     expiresAt: token.expiresAt,
+    reusedExisting: false,
   };
 }
 
@@ -163,22 +154,23 @@ export async function revokeInvoicePortalLink(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: formatInvoicePortalTokenError(error.message) };
+    console.error("Invoice portal link revoke failed", error);
+    return { ok: false, status: "error", message: "Could not revoke the customer link. Please try again." };
   }
 
   if (!data) {
-    return { status: "error", message: "Invoice link not found or no access." };
+    return { ok: false, status: "error", message: "Invoice link not found or no access." };
   }
 
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  return { status: "success", message: "Secure customer invoice link revoked." };
+  return { ok: true, status: "success", message: "Secure customer invoice link revoked." };
 }
 
 async function requireInvoiceLinkAdmin() {
   const supabase = await createClient();
 
   if (!supabase) {
-    return { error: { status: "error" as const, message: "Supabase is not configured." } };
+    return { error: { ok: false, status: "error" as const, message: "Supabase is not configured." } };
   }
 
   const {
@@ -186,13 +178,14 @@ async function requireInvoiceLinkAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: { status: "error" as const, message: "Sign in before managing invoice links." } };
+    return { error: { ok: false, status: "error" as const, message: "Sign in before managing invoice links." } };
   }
 
   const roles = await getUserRoles(supabase, user.id);
   if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
     return {
       error: {
+        ok: false,
         status: "error" as const,
         message: "Only owners and admins can manage customer invoice links.",
       },
@@ -200,11 +193,4 @@ async function requireInvoiceLinkAdmin() {
   }
 
   return { error: null, supabase, userId: user.id };
-}
-
-async function getRequestOrigin() {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
 }

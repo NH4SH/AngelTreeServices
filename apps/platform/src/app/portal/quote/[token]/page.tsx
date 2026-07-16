@@ -24,6 +24,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
   }
 
   const isApproved = lookup.quote.status === "approved";
+  const scopeSummary = getQuoteScopeSummary(lookup.quote);
 
   return (
     <main className="customer-portal-page customer-quote-page">
@@ -84,18 +85,15 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
       <section className="customer-quote-workspace">
         <div className="customer-quote-document-column">
           <div className="customer-quote-overview">
-            <article className="customer-quote-overview-card">
-              <strong>
-                <MapPin aria-hidden="true" size={16} />
-                Scope at a glance
-              </strong>
-              <p>
-                {lookup.quote.jobs?.requested_scope ||
-                  lookup.quote.customer_message ||
-                  getLineItemScope(lookup.quote) ||
-                  "Scope details will appear here when attached to the quote."}
-              </p>
-            </article>
+            {scopeSummary ? (
+              <article className="customer-quote-overview-card">
+                <strong>
+                  <MapPin aria-hidden="true" size={16} />
+                  Scope at a glance
+                </strong>
+                <p className="business-document-preformatted">{scopeSummary}</p>
+              </article>
+            ) : null}
             <article className="customer-quote-overview-card">
               <strong>
                 <Clock3 aria-hidden="true" size={16} />
@@ -190,6 +188,11 @@ function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>
   return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
 }
 
-function getLineItemScope(quote: NonNullable<Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]>) {
-  return (quote.quote_line_items ?? []).map((item) => item.description || item.name).filter(Boolean).join("; ");
+function getQuoteScopeSummary(quote: NonNullable<Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]>) {
+  const lineItemScope = (quote.quote_line_items ?? [])
+    .map((item) => [item.name, item.description].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n");
+
+  return lineItemScope || quote.jobs?.requested_scope?.trim() || null;
 }

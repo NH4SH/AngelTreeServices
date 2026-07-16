@@ -56,7 +56,7 @@ export function QuoteDocument({
       />
 
       {proposalNote ? (
-        <DocumentSection title="Proposal notes">
+        <DocumentSection title="Notes from Angel Tree Services">
           <p className="business-document-preformatted">{proposalNote}</p>
         </DocumentSection>
       ) : null}

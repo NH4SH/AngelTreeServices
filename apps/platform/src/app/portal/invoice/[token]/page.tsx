@@ -19,6 +19,7 @@ export default async function CustomerInvoicePortalPage({ params }: CustomerInvo
   }
 
   const invoice = lookup.invoice;
+  const scopeSummary = getInvoiceScopeSummary(invoice);
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
@@ -65,6 +66,18 @@ export default async function CustomerInvoicePortalPage({ params }: CustomerInvo
           </dl>
         </aside>
       </section>
+
+      {scopeSummary ? (
+        <section className="customer-quote-overview customer-invoice-scope-overview print-hidden">
+          <article className="customer-quote-overview-card">
+            <strong>
+              <ReceiptText aria-hidden="true" size={16} />
+              Scope at a glance
+            </strong>
+            <p className="business-document-preformatted">{scopeSummary}</p>
+          </article>
+        </section>
+      ) : null}
 
       <section className="customer-invoice-document">
         <InvoiceDocument invoice={invoice} />
@@ -134,4 +147,15 @@ function formatCurrency(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function getInvoiceScopeSummary(
+  invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceByPortalToken>>["invoice"]>,
+) {
+  const lineItemScope = (invoice.invoice_line_items ?? [])
+    .map((item) => [item.name, item.description].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n");
+
+  return lineItemScope || invoice.jobs?.requested_scope?.trim() || null;
 }

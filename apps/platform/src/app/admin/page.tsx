@@ -21,6 +21,7 @@ import { getDashboardJobSummaries } from "@/lib/data/jobs";
 import { getOrganizationDashboardSummary } from "@/lib/data/organizations";
 import { getQuoteDashboardSummaries } from "@/lib/data/quotes";
 import { getScheduleDashboardSummary } from "@/lib/data/schedule";
+import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -30,13 +31,14 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
     getUnpaidInvoices(),
     getOrganizationDashboardSummary(),
     getScheduleDashboardSummary(),
+    getCommunicationDashboardSummary(),
   ]);
 
   const lanes: {
@@ -174,7 +176,7 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error]
+        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
@@ -223,6 +225,18 @@ export default async function AdminPage() {
                   <strong>{item.value}</strong>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Customer communications" detail="Reminder queue and delivery attention" />
+            <div className="pipeline-list">
+              <a className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></a>
+              <a className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></a>
+              <a className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></a>
+              <a className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></a>
+              <a className="pipeline-row" href="/admin/communications"><span>Failed communications</span><strong>{communicationSummary.data.failed.length}</strong></a>
+              <a className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></a>
             </div>
           </section>
 

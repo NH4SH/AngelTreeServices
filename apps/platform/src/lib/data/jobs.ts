@@ -34,7 +34,7 @@ export async function getCompletedJobsForMarketing(): Promise<DataResult<JobDeta
     .select(
       "*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), job_photos(*)",
     )
-    .in("status", ["completed", "invoiced", "paid"])
+    .in("status", ["completed", "ready_to_invoice", "invoiced", "paid"])
     .order("completed_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false });
 
@@ -206,7 +206,7 @@ export async function getDashboardJobSummaries() {
     supabase
       .from("jobs")
       .select(commonSelect)
-      .eq("status", "completed")
+      .in("status", ["completed", "ready_to_invoice"])
       .order("completed_at", { ascending: false, nullsFirst: false })
       .limit(12),
     supabase

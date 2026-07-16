@@ -3,8 +3,10 @@ import type { JobPhotoType, SignedJobPhoto } from "@/lib/types/database";
 
 const galleryGroups: { photoType: JobPhotoType; title: string }[] = [
   { photoType: "before", title: "Before photos" },
+  { photoType: "during", title: "During-work photos" },
   { photoType: "after", title: "After photos" },
   { photoType: "issue", title: "Issue or hazard photos" },
+  { photoType: "equipment_access", title: "Equipment and access photos" },
   { photoType: "completion", title: "Completion photos" },
 ];
 

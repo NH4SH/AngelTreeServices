@@ -18,6 +18,7 @@ INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
+COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=
 ```
@@ -35,6 +36,7 @@ Notes:
 - `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only. Do not prefix them with `NEXT_PUBLIC_`.
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are server-only. Use Stripe test keys first and never prefix either value with `NEXT_PUBLIC_`.
 - `APP_BASE_URL` is the canonical platform origin used for Stripe Checkout return URLs. It must be the deployed admin origin, without a path.
+- `COMMUNICATION_WORKER_SECRET` is server-only and authenticates the hourly Netlify function to the internal communication processor. Generate at least 32 random characters with `openssl rand -hex 32`.
 - `SUPABASE_DB_URL` is not required for normal runtime page rendering. Keep it for migrations and server-side tooling only.
 
 ## 2. Supabase Auth Setup
@@ -143,6 +145,32 @@ The migration is not an application deployment step and must not be applied to p
 
 ## 9. Build And Start Commands
 
+Before building, apply and review this migration without enabling automatic sends:
+
+```text
+supabase/migrations/20260716215149_automated_customer_communications.sql
+```
+
+The migration defaults the communication master switch to off. After deployment, open `/admin/communications`, verify a test recipient and active portal link, send one manual reminder, run **Process due reminders now**, then enable automatic sending. The scheduled function is `netlify/functions/process-communications.ts` and runs hourly. Turn the master switch off to stop automatic processing quickly without deleting queue history.
+
+## Crew closeout migration
+
+Before deploying the crew closeout routes, review and apply:
+
+```text
+supabase/migrations/20260716222258_crew_job_closeout_workflow.sql
+```
+
+Apply it after `20260716215149_automated_customer_communications.sql`. No new secret or storage bucket is required. After the schema cache refreshes, verify with separate crew and owner/admin test accounts:
+
+1. Assigned crew can read and submit only their assigned work order closeout.
+2. An unassigned crew account cannot read the job, closeout, checklist, scope results, or photos.
+3. Customer/anonymous sessions cannot read any closeout table.
+4. Crew cannot approve, reopen, mark ready to invoice, change pricing, or generate an invoice.
+5. Office users can review at `/admin/jobs/closeouts` and `/admin/jobs/[jobId]/closeout`.
+6. A returned closeout becomes editable by assigned crew and retains earlier submission snapshots.
+7. Invoice generation accepts `ready_to_invoice`, reuses an existing invoice, and does not include internal or incident notes.
+
 From `apps/platform`:
 
 ```powershell
@@ -176,12 +204,13 @@ After deployment, manually verify:
 11. Open a sent test invoice through its customer link, pay it with Stripe test mode, then confirm one payment appears and the invoice becomes paid.
 12. Replay the successful webhook event from Stripe and confirm no second payment record is created.
 13. Record a manual check payment on a separate sent invoice and confirm its balance/status update without a Stripe record.
+14. Complete the communication smoke test in `PRODUCTION_TESTING.md` before enabling the master switch.
 
 ## 11. Not In Scope Yet
 
 These are still intentionally unfinished for first private deployment:
 
-- production email sending
+- SMS reminders and marketing automation
 - payroll export integration
 - external calendar sync
 - durable distributed rate limiting for public lead intake

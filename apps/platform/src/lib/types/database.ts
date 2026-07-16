@@ -11,6 +11,9 @@ export type JobStatus =
   | "accepted"
   | "scheduled"
   | "in_progress"
+  | "returned_for_correction"
+  | "completed_pending_review"
+  | "ready_to_invoice"
   | "completed"
   | "invoiced"
   | "paid"
@@ -54,8 +57,12 @@ export type ScheduleEventType =
 export type ScheduleEventStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
 export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "void" | "overdue";
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded" | "cancelled";
-export type JobPhotoType = "before" | "after" | "customer_upload" | "estimate" | "job" | "issue" | "completion";
-export type JobPhotoUploadCategory = "before" | "after" | "issue" | "completion";
+export type JobPhotoType = "before" | "during" | "after" | "customer_upload" | "estimate" | "job" | "issue" | "completion" | "equipment_access";
+export type JobPhotoUploadCategory = "before" | "during" | "after" | "issue" | "completion" | "equipment_access";
+export type JobCloseoutStatus = "draft" | "submitted" | "returned" | "approved" | "ready_to_invoice";
+export type CloseoutChecklistStatus = "pending" | "complete" | "not_applicable";
+export type CloseoutScopeState = "completed" | "partially_completed" | "not_completed" | "change_required";
+export type CustomerAcknowledgmentStatus = "acknowledged" | "customer_not_present" | "customer_declined";
 export type OrganizationType = "property_manager" | "hoa" | "commercial" | "other";
 export type TimeEntryType = "job" | "drive" | "shop" | "maintenance" | "admin" | "training" | "break" | "other";
 export type TimeEntryStatus = "active" | "completed" | "adjusted" | "void";
@@ -70,8 +77,29 @@ export type EmailEventType =
   | "lead_internal_notice"
   | "quote"
   | "invoice"
-  | "password_reset_admin_triggered";
+  | "password_reset_admin_triggered"
+  | "estimate_confirmation"
+  | "estimate_reminder"
+  | "quote_follow_up"
+  | "work_confirmation"
+  | "work_reminder"
+  | "invoice_payment_reminder"
+  | "overdue_invoice_reminder"
+  | "payment_confirmation";
 export type EmailEventStatus = "sent" | "failed";
+export type CommunicationType = Extract<
+  EmailEventType,
+  | "estimate_confirmation"
+  | "estimate_reminder"
+  | "quote_follow_up"
+  | "work_confirmation"
+  | "work_reminder"
+  | "invoice_payment_reminder"
+  | "overdue_invoice_reminder"
+  | "payment_confirmation"
+>;
+export type CommunicationStatus = "pending" | "processing" | "sent" | "skipped" | "failed" | "cancelled";
+export type CommunicationRecipientSource = "customer" | "organization";
 
 export type Organization = {
   id: string;
@@ -156,6 +184,9 @@ export type Job = {
   scheduled_start_at: string | null;
   scheduled_end_at: string | null;
   completed_at: string | null;
+  started_at: string | null;
+  started_by_user_id: string | null;
+  completed_by_user_id: string | null;
   lost_reason: string | null;
   created_at: string;
   updated_at: string;
@@ -176,6 +207,7 @@ export type Quote = {
   sent_at: string | null;
   sent_method: QuoteSentMethod | null;
   sent_by_user_id: string | null;
+  automatic_follow_ups_enabled: boolean;
   approved_at: string | null;
   expires_at: string | null;
   created_at: string;
@@ -239,6 +271,7 @@ export type Invoice = {
   due_at: string | null;
   sent_at: string | null;
   paid_at: string | null;
+  automatic_reminders_enabled: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -357,6 +390,11 @@ export type EmailEvent = {
   related_job_id: string | null;
   related_quote_id: string | null;
   related_invoice_id: string | null;
+  related_organization_id: string | null;
+  related_schedule_event_id: string | null;
+  related_appointment_id: string | null;
+  related_payment_id: string | null;
+  related_communication_id: string | null;
   recipient_email: string;
   subject: string;
   email_type: EmailEventType;
@@ -366,6 +404,59 @@ export type EmailEvent = {
   sent_by_user_id: string | null;
   created_at: string;
   sent_at: string | null;
+};
+
+export type CommunicationSettings = {
+  singleton: boolean;
+  automated_sending_enabled: boolean;
+  business_timezone: string;
+  minimum_send_interval_hours: number;
+  estimate_confirmation_enabled: boolean;
+  estimate_reminder_enabled: boolean;
+  estimate_reminder_hours_before: number;
+  work_confirmation_enabled: boolean;
+  work_reminder_enabled: boolean;
+  work_reminder_hours_before: number;
+  quote_follow_up_enabled: boolean;
+  quote_first_follow_up_days: number;
+  quote_second_follow_up_days: number;
+  invoice_reminder_enabled: boolean;
+  invoice_first_reminder_days: number;
+  invoice_second_reminder_days: number;
+  payment_confirmation_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerCommunication = {
+  id: string;
+  communication_type: CommunicationType;
+  reminder_stage: string;
+  customer_id: string;
+  organization_id: string | null;
+  quote_id: string | null;
+  invoice_id: string | null;
+  job_id: string | null;
+  schedule_event_id: string | null;
+  appointment_id: string | null;
+  payment_id: string | null;
+  recipient_source: CommunicationRecipientSource;
+  recipient_email: string;
+  scheduled_for: string;
+  source_version: string | null;
+  sent_at: string | null;
+  cancelled_at: string | null;
+  processing_started_at: string | null;
+  status: CommunicationStatus;
+  is_automatic: boolean;
+  provider_message_id: string | null;
+  attempt_count: number;
+  last_error: string | null;
+  skip_reason: string | null;
+  idempotency_key: string;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type TimeEntry = {
@@ -441,6 +532,81 @@ export type JobPhoto = {
   updated_at: string;
 };
 
+export type JobCloseout = {
+  id: string;
+  job_id: string;
+  status: JobCloseoutStatus;
+  crew_internal_notes: string | null;
+  customer_summary: string | null;
+  incident_occurred: boolean | null;
+  incident_description: string | null;
+  additional_work_requested: boolean | null;
+  additional_work_description: string | null;
+  acknowledgment_status: CustomerAcknowledgmentStatus | null;
+  acknowledgment_name: string | null;
+  acknowledged_at: string | null;
+  acknowledgment_collected_by_user_id: string | null;
+  has_scope_exception: boolean;
+  has_incident: boolean;
+  has_additional_work: boolean;
+  submitted_at: string | null;
+  submitted_by_user_id: string | null;
+  reviewed_at: string | null;
+  reviewed_by_user_id: string | null;
+  review_notes: string | null;
+  reopened_at: string | null;
+  reopened_by_user_id: string | null;
+  reopen_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type JobCloseoutChecklistItem = {
+  id: string;
+  job_id: string;
+  item_key: string;
+  label: string;
+  sort_order: number;
+  is_required: boolean;
+  allow_not_applicable: boolean;
+  completion_status: CloseoutChecklistStatus;
+  explanation: string | null;
+  updated_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type JobCloseoutScopeItem = {
+  id: string;
+  job_id: string;
+  source_key: string;
+  quote_line_item_id: string | null;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  completion_state: CloseoutScopeState | null;
+  exception_note: string | null;
+  updated_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type JobCloseoutSubmission = {
+  id: string;
+  closeout_id: string;
+  revision_number: number;
+  submitted_by_user_id: string | null;
+  snapshot_json: Record<string, unknown>;
+  submitted_at: string;
+};
+
+export type JobCloseoutBundle = {
+  closeout: JobCloseout;
+  checklist: JobCloseoutChecklistItem[];
+  scopeItems: JobCloseoutScopeItem[];
+  submissions: JobCloseoutSubmission[];
+};
+
 export type SignedJobPhoto = JobPhoto & {
   signed_url: string | null;
 };
@@ -468,6 +634,9 @@ export type CrewJob = Pick<
   | "scheduled_start_at"
   | "scheduled_end_at"
   | "completed_at"
+  | "started_at"
+  | "started_by_user_id"
+  | "completed_by_user_id"
   | "created_at"
   | "updated_at"
 > & {

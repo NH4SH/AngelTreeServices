@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Building2, FileSignature, MapPin, Pencil, ReceiptText, UsersRound, Workflow } from "lucide-react";
+import { Building2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
+import { CommunicationHistoryList } from "@/components/communication-history";
+import { EmailHistoryList } from "@/components/email-history";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getOrganizationDetail } from "@/lib/data/organizations";
+import { getCustomerCommunications } from "@/lib/data/communications";
+import { getEmailEvents } from "@/lib/data/email-events";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
 
 type OrganizationDetailPageProps = {
@@ -28,6 +32,8 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
 
   const detail = await getOrganizationDetail(organizationId);
   const org = detail.data;
+  const emailEvents = org ? await getEmailEvents({ organizationId, limit: 15 }) : { data: [], error: null };
+  const communications = org ? await getCustomerCommunications({ organizationId, limit: 25 }) : { data: [], error: null };
 
   return (
     <PlatformFrame active="organizations" roles={context.roles} userEmail={context.user.email}>
@@ -36,6 +42,8 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
           Back to organizations
         </Link>
         {detail.error ? <Warning message={detail.error} /> : null}
+        {emailEvents.error ? <Warning message={emailEvents.error} /> : null}
+        {communications.error ? <Warning message={`Customer reminders: ${communications.error}`} /> : null}
         {query.updated === "1" ? <SuccessNotice message="Organization changes saved." /> : null}
         {!org ? (
           <section className="empty-state">
@@ -143,6 +151,11 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 ) : (
                   <p>No organization invoices yet.</p>
                 )}
+              </Panel>
+
+              <Panel icon={<MailCheck size={18} />} title="Communication history">
+                <EmailHistoryList events={emailEvents.data} />
+                <CommunicationHistoryList communications={communications.data} />
               </Panel>
             </section>
 

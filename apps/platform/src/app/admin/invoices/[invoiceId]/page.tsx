@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CircleDollarSign, ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
+import { CommunicationControls } from "@/components/communication-controls";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
@@ -16,6 +17,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmailEvents } from "@/lib/data/email-events";
+import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { getInvoicePortalTokens } from "@/lib/data/portal-invoice";
 import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
@@ -44,6 +46,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
     ? await getInvoicePortalTokens(invoiceId)
     : { data: [], error: null };
   const emailEvents = detail.data ? await getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null };
+  const communications = detail.data ? await getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null };
+  const recipientOptions = detail.data
+    ? await getCommunicationRecipientOptions(detail.data.customer_id)
+    : { data: [], error: null };
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
   const successfulPaymentCents = (detail.data?.payments ?? [])
@@ -57,6 +63,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {portalTokens.error ? <DataWarning message={`Customer invoice links: ${portalTokens.error}`} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {detail.data && canManageDelivery && isInvoicePayable(detail.data.status, detail.data.balance_due_cents) && !stripeSetup.configured ? (
           <DataWarning message="Stripe Checkout is not configured, so customers will not see an online payment button." />
         ) : null}
@@ -172,6 +180,18 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Email history" />
                   <EmailHistoryList events={emailEvents.data} />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Payment reminders" />
+                  <CommunicationControls
+                    automaticEnabled={detail.data.automatic_reminders_enabled}
+                    communicationType={detail.data.due_at && new Date(detail.data.due_at).getTime() < Date.now() ? "overdue_invoice_reminder" : "invoice_payment_reminder"}
+                    communications={communications.data}
+                    recipientOptions={recipientOptions.data}
+                    recordId={detail.data.id}
+                    recordType="invoice"
+                  />
                 </section>
               </main>
 

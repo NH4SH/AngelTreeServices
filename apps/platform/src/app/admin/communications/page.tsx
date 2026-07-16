@@ -1,0 +1,115 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { AlertTriangle, CalendarClock, MailCheck, MessageSquareMore, Settings2 } from "lucide-react";
+import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
+import { PlatformFrame } from "@/components/PlatformFrame";
+import { SetupRequired } from "@/components/SetupRequired";
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getCommunicationSettings, getCustomerCommunications } from "@/lib/data/communications";
+import type { CustomerCommunication } from "@/lib/types/database";
+
+export default async function CommunicationsPage() {
+  const context = await getAuthenticatedPlatformContext("/admin/communications");
+  if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
+
+  const [settings, communications] = await Promise.all([
+    getCommunicationSettings(),
+    getCustomerCommunications({ limit: 100 }),
+  ]);
+  const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
+  const failed = communications.data.filter((item) => item.status === "failed");
+  const recent = communications.data.filter((item) => !["pending", "failed"].includes(item.status)).slice(0, 20);
+
+  return (
+    <PlatformFrame active="communications" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content">
+        <section className="page-heading">
+          <div>
+            <p className="surface-label"><MessageSquareMore aria-hidden="true" size={18} />Customer communications</p>
+            <h1>Reminders and follow-ups</h1>
+            <p>Review scheduled customer email, delivery history, skipped messages, and failures without exposing internal notes.</p>
+          </div>
+          {canManageSettings ? <RunCommunicationWorkerForm /> : null}
+        </section>
+
+        {settings.error ? <Warning message={settings.error} /> : null}
+        {communications.error ? <Warning message={communications.error} /> : null}
+
+        <section className="communication-metric-grid">
+          <Metric icon={<CalendarClock size={19} />} label="Scheduled" value={pending.length} />
+          <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length} />
+          <Metric icon={<MailCheck size={19} />} label="Recently completed" value={recent.length} />
+        </section>
+
+        <section className="detail-grid communication-page-grid">
+          <article className="detail-panel wide-detail-panel">
+            <h2 className="panel-title"><CalendarClock size={18} />Scheduled reminders</h2>
+            <CommunicationRows rows={pending} empty="No reminders are currently scheduled." />
+          </article>
+          <article className="detail-panel">
+            <h2 className="panel-title"><AlertTriangle size={18} />Failed communications</h2>
+            <CommunicationRows rows={failed} empty="No failed communications." />
+          </article>
+          <article className="detail-panel">
+            <h2 className="panel-title"><MailCheck size={18} />Recent history</h2>
+            <CommunicationRows rows={recent} empty="No communication history yet." />
+          </article>
+        </section>
+
+        {canManageSettings && settings.data ? (
+          <section className="form-panel communication-settings-panel">
+            <h2><Settings2 aria-hidden="true" size={19} />Communication defaults</h2>
+            <p>The master switch starts disabled after migration. Enable it only after a test customer, portal links, and Netlify worker environment are verified.</p>
+            <CommunicationSettingsForm settings={settings.data} />
+          </section>
+        ) : null}
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function CommunicationRows({ empty, rows }: { empty: string; rows: CustomerCommunication[] }) {
+  if (!rows.length) return <p className="inline-empty">{empty}</p>;
+
+  return (
+    <div className="communication-list">
+      {rows.map((item) => (
+        <Link className={`communication-row status-${item.status}`} href={recordHref(item)} key={item.id}>
+          <div>
+            <strong>{item.communication_type.replaceAll("_", " ")}</strong>
+            <span>{item.status} - {formatDateTime(item.sent_at ?? item.scheduled_for)}</span>
+            <small>{item.recipient_email}</small>
+            {item.skip_reason || item.last_error ? <small>{item.skip_reason || item.last_error}</small> : null}
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
+  return <article className="communication-metric"><span>{icon}</span><div><strong>{value}</strong><small>{label}</small></div></article>;
+}
+
+function Warning({ message }: { message: string }) {
+  return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
+}
+
+function recordHref(item: CustomerCommunication) {
+  if (item.quote_id) return `/admin/quotes/${item.quote_id}`;
+  if (item.invoice_id) return `/admin/invoices/${item.invoice_id}`;
+  if (item.schedule_event_id) return `/admin/schedule?event=${item.schedule_event_id}`;
+  if (item.appointment_id) return `/admin/schedule?appointment=${item.appointment_id}`;
+  if (item.job_id) return `/admin/jobs/${item.job_id}`;
+  return `/admin/customers/${item.customer_id}`;
+}
+
+function byScheduledDate(left: CustomerCommunication, right: CustomerCommunication) {
+  return new Date(left.scheduled_for).getTime() - new Date(right.scheduled_for).getTime();
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}

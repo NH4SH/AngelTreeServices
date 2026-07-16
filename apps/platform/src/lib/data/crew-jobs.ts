@@ -38,8 +38,7 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
   let query = supabase
     .from("jobs")
     .select(crewJobSelect)
-    .in("status", ["scheduled", "in_progress", "completed"])
-    .eq("notes.visibility", "crew_visible")
+    .in("status", ["scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"])
     .order("scheduled_start_at", { ascending: true, nullsFirst: false });
 
   if (access && !canViewAllCrewJobs(access.roles)) {
@@ -68,8 +67,7 @@ export async function getCrewJobById(
   let query = supabase
     .from("jobs")
     .select(crewJobSelect)
-    .eq("id", jobId)
-    .eq("notes.visibility", "crew_visible");
+    .eq("id", jobId);
 
   if (access && !canViewAllCrewJobs(access.roles)) {
     query = query.eq("assigned_crew_user_id", access.userId);
@@ -111,7 +109,7 @@ export async function getCrewDashboardSummaries(access?: CrewAccessContext) {
         const photoTypes = new Set((job.job_photos ?? []).map((photo) => photo.photo_type));
         return !photoTypes.has("before") || !photoTypes.has("after");
       }),
-      readyToComplete: jobs.data.filter((job) => job.status === "in_progress"),
+      readyToComplete: jobs.data.filter((job) => ["in_progress", "returned_for_correction"].includes(job.status)),
     },
     error: null,
   };

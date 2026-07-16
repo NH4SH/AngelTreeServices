@@ -10,15 +10,16 @@ import {
   Truck,
   Wrench,
 } from "lucide-react";
-import { CompletionChecklist } from "@/components/completion-checklist";
+import { CrewJobCloseoutForm } from "@/components/crew-job-closeout-form";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { CrewStatusActions } from "./CrewStatusActions";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
+import { getJobCloseout } from "@/lib/data/job-closeouts";
+import { getActiveTimeEntryForUser } from "@/lib/data/time-clock";
 import type { CrewJob, SignedJobPhoto } from "@/lib/types/database";
 
 type CrewJobDetailPageProps = {
@@ -39,7 +40,17 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
     roles: context.roles,
     userId: context.user.id,
   });
-  const photos = job.data ? await getJobPhotos(jobId) : { data: [], error: null };
+  const [photos, closeout, activeTimer] = job.data
+    ? await Promise.all([
+        getJobPhotos(jobId),
+        getJobCloseout(jobId),
+        getActiveTimeEntryForUser(context.user.id),
+      ])
+    : [
+        { data: [], error: null },
+        { data: null, error: null },
+        { data: null, error: null },
+      ];
 
   return (
     <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
@@ -50,6 +61,8 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
 
         {job.error ? <DataWarning message={job.error} /> : null}
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
+        {closeout.error ? <DataWarning message={`Closeout: ${closeout.error}`} /> : null}
+        {activeTimer.error ? <DataWarning message={`Time clock: ${activeTimer.error}`} /> : null}
 
         {!job.data ? (
           <section className="empty-state">
@@ -57,17 +70,36 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
             <p>This job either does not exist or is not visible to this signed-in account.</p>
           </section>
         ) : (
-          <CrewJobDetail job={job.data} photos={photos.data} />
+          <CrewJobDetail
+            activeTimerJobId={activeTimer.data?.job_id ?? null}
+            assignedCrewLabel={context.user.email ?? "Assigned crew member"}
+            closeout={closeout.data}
+            job={job.data}
+            photos={photos.data}
+          />
         )}
       </div>
     </PlatformFrame>
   );
 }
 
-function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[] }) {
+function CrewJobDetail({
+  activeTimerJobId,
+  assignedCrewLabel,
+  closeout,
+  job,
+  photos,
+}: {
+  activeTimerJobId: string | null;
+  assignedCrewLabel: string;
+  closeout: Awaited<ReturnType<typeof getJobCloseout>>["data"];
+  job: CrewJob;
+  photos: SignedJobPhoto[];
+}) {
   const phone = job.customers?.phone;
   const directionsUrl = getDirectionsUrl(job);
   const crewNotes = (job.notes ?? []).filter((note) => note.visibility === "crew_visible");
+  const customerNotes = (job.notes ?? []).filter((note) => note.visibility === "customer_visible");
 
   return (
     <>
@@ -80,7 +112,7 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
         <p>{formatLocation(job)}</p>
         <div className="crew-job-meta-row">
           <span>{formatDateTime(job.scheduled_start_at)}</span>
-          <span>{job.status.replace("_", " ")}</span>
+          <span>{formatStatus(job.status)}</span>
         </div>
       </section>
 
@@ -142,6 +174,15 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
         <p className="crew-scope-copy">{job.requested_scope || "No scope entered yet."}</p>
       </section>
 
+      {customerNotes.length > 0 ? (
+        <section className="crew-panel">
+          <PanelHeading icon={<MessageCircle size={19} />} title="Customer-visible notes" subtitle="These notes may also appear in customer-facing records." />
+          <div className="crew-note-list">
+            {customerNotes.map((note) => <p className="pre-wrap-copy" key={note.id}>{note.body}</p>)}
+          </div>
+        </section>
+      ) : null}
+
       <section className="crew-panel">
         <PanelHeading icon={<Phone size={19} />} title="Customer" subtitle="Only job contact details appear here." />
         <dl className="crew-detail-list">
@@ -186,6 +227,11 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
       </section>
 
       <section className="crew-panel">
+        <PanelHeading icon={<Truck size={19} />} title="Assigned crew" subtitle="The account responsible for this work order." />
+        <p>{assignedCrewLabel}</p>
+      </section>
+
+      <section className="crew-panel">
         <PanelHeading icon={<Wrench size={19} />} title="Equipment needed" subtitle="Placeholder for future planning." />
         <p>Equipment, materials, and vehicle needs can be added after job detail workflows settle.</p>
       </section>
@@ -217,6 +263,12 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
             title="After photo"
           />
           <JobPhotoUploader
+            description="Document progress during the work when useful."
+            jobId={job.id}
+            photoCategory="during"
+            title="During-work photo"
+          />
+          <JobPhotoUploader
             description="Document hazards, damage, or scope changes."
             jobId={job.id}
             photoCategory="issue"
@@ -228,6 +280,12 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
             photoCategory="completion"
             title="Completion photo"
           />
+          <JobPhotoUploader
+            description="Document equipment placement or difficult access conditions."
+            jobId={job.id}
+            photoCategory="equipment_access"
+            title="Equipment or access photo"
+          />
         </div>
         <p className="field-note">
           Uploads stay private in Supabase Storage. Preview links expire automatically.
@@ -235,9 +293,19 @@ function CrewJobDetail({ job, photos }: { job: CrewJob; photos: SignedJobPhoto[]
       </section>
 
       <section id="complete">
-        <CompletionChecklist />
+        {closeout ? (
+          <CrewJobCloseoutForm
+            bundle={closeout}
+            hasActiveJobTimer={activeTimerJobId === job.id}
+            jobId={job.id}
+            jobStatus={job.status}
+          />
+        ) : (
+          <section className="crew-panel">
+            <PanelHeading icon={<CheckCircle2 size={19} />} title="Job closeout unavailable" subtitle="The closeout migration must be applied before this workflow can be used." />
+          </section>
+        )}
       </section>
-      <CrewStatusActions jobId={job.id} status={job.status} />
     </>
   );
 }
@@ -287,6 +355,15 @@ function getDirectionsUrl(job: CrewJob) {
 
   const query = [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function formatStatus(status: CrewJob["status"]) {
+  const labels: Partial<Record<CrewJob["status"], string>> = {
+    completed_pending_review: "Completed, awaiting office review",
+    ready_to_invoice: "Ready to invoice",
+    returned_for_correction: "Returned for correction",
+  };
+  return labels[status] ?? status.replaceAll("_", " ");
 }
 
 function DataWarning({ message }: { message: string }) {

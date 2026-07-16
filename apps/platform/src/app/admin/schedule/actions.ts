@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import type {
   AppointmentStatus,
   AppointmentType,
@@ -118,6 +120,7 @@ export async function createAppointment(
     });
   }
 
+  await syncScheduleCommunications();
   revalidateSchedulePaths(jobId);
   return { status: "success", message: "Appointment saved." };
 }
@@ -164,6 +167,11 @@ export async function updateAppointmentStatus(
   if (!data) {
     return { status: "error", message: "Appointment not found or no access." };
   }
+
+  if (["completed", "cancelled", "no_show"].includes(nextStatus)) {
+    await cancelPendingCommunications(supabase, { appointmentId }, `Appointment marked ${nextStatus.replaceAll("_", " ")}.`);
+  }
+  await syncScheduleCommunications();
 
   revalidateSchedulePaths(jobId);
   return { status: "success", message: `Appointment marked ${nextStatus.replace("_", " ")}.` };
@@ -226,6 +234,8 @@ export async function updateAppointmentDetails(
   if (!data) {
     return { status: "error", message: "Appointment not found or no access." };
   }
+
+  await syncScheduleCommunications();
 
   revalidateSchedulePaths(jobId);
   return { status: "success", message: "Appointment details updated." };
@@ -356,6 +366,7 @@ export async function createScheduleEvent(
     });
   }
 
+  await syncScheduleCommunications();
   revalidateSchedulePaths(event.job_id ?? undefined);
   return { status: "success", message: "Schedule event saved." };
 }
@@ -399,6 +410,11 @@ export async function updateScheduleEventStatus(
   if (!data) {
     return { status: "error", message: "Schedule event not found or no access." };
   }
+
+  if (["completed", "cancelled", "no_show"].includes(nextStatus)) {
+    await cancelPendingCommunications(supabase, { scheduleEventId: eventId }, `Schedule event marked ${nextStatus.replaceAll("_", " ")}.`);
+  }
+  await syncScheduleCommunications();
 
   revalidateSchedulePaths(data.job_id ?? undefined);
   return { status: "success", message: `Event marked ${nextStatus.replace("_", " ")}.` };
@@ -523,12 +539,19 @@ export async function updateScheduleEventDetails(
     }
   }
 
+  await syncScheduleCommunications();
+
   revalidateSchedulePaths(data.job_id ?? undefined);
   return { status: "success", message: "Schedule event updated." };
 }
 
 function getOptionalString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() || null;
+}
+
+async function syncScheduleCommunications() {
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
 }
 
 function parseDateTime(value: FormDataEntryValue | null, optional = false) {

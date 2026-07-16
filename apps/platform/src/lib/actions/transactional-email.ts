@@ -17,6 +17,8 @@ import {
 import { createOrGetQuotePortalTokenRecord } from "@/lib/portal/quote-links";
 import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { syncAutomatedCommunications } from "@/lib/communications/queue";
 
 export type TransactionalEmailActionState = {
   status: "idle" | "success" | "error";
@@ -96,6 +98,8 @@ export async function sendQuoteEmail(
       subjectId: detail.data.id,
       subjectType: "quote",
     });
+    const communicationSupabase = getServiceRoleClient();
+    if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
   } else if (portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("quote_portal_tokens")
@@ -182,6 +186,8 @@ export async function sendInvoiceEmail(
       subjectId: detail.data.id,
       subjectType: "invoice",
     });
+    const communicationSupabase = getServiceRoleClient();
+    if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
   } else if (portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("invoice_portal_tokens")

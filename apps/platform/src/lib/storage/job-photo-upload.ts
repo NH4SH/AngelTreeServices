@@ -1,6 +1,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canAccessAssignedCrewJob } from "@/lib/auth/crewAccess";
 import type { PlatformRoleName } from "@/lib/auth/roles";
@@ -14,9 +15,11 @@ export type JobPhotoUploadState = {
 
 const categoryToDbType: Record<JobPhotoUploadCategory, JobPhotoType> = {
   before: "before",
+  during: "during",
   after: "after",
   issue: "issue",
   completion: "completion",
+  equipment_access: "equipment_access",
 };
 
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -64,7 +67,7 @@ export async function uploadJobPhotoForUser({
     };
   }
 
-  if (!["before", "after", "issue", "completion"].includes(category)) {
+  if (!["before", "during", "after", "issue", "completion", "equipment_access"].includes(category)) {
     return { status: "error", message: "Choose a supported photo type." };
   }
 
@@ -131,6 +134,14 @@ export async function uploadJobPhotoForUser({
           message: `Photo metadata failed. The uploaded file was removed. ${photoError.message}`,
         };
   }
+
+  await recordActivity(supabase, {
+    actorUserId: userId,
+    eventType: "job_photo_uploaded",
+    metadata: { photo_type: category },
+    subjectId: jobId,
+    subjectType: "job",
+  });
 
   return { status: "success", message: "Photo uploaded and attached to the job.", jobId };
 }

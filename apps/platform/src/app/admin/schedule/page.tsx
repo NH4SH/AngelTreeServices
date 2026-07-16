@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { AppointmentEditForm } from "@/components/appointment-edit-form";
+import { CommunicationControls } from "@/components/communication-controls";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
@@ -48,6 +49,7 @@ import {
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getScheduleCalendarData } from "@/lib/data/schedule";
+import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getDirectionsUrl } from "@/lib/maps";
 import type {
   AppointmentStatus,
@@ -112,6 +114,15 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     schedule.data.appointments.find((appointment) => appointment.id === params.appointment) ?? null;
   const selectedEvent =
     schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
+  const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
+  const selectedCommunications = selectedEvent
+    ? await getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
+    : selectedAppointment
+      ? await getCustomerCommunications({ appointmentId: selectedAppointment.id, limit: 20 })
+      : { data: [], error: null };
+  const selectedRecipients = selectedCustomerId
+    ? await getCommunicationRecipientOptions(selectedCustomerId)
+    : { data: [], error: null };
   const query: ScheduleQuery = {
     assigned_user_id: assignedUserId,
     date: formatDateInput(date),
@@ -137,7 +148,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <p>Jobs, estimates, follow-ups, PTO, internal events, and crew assignments in one place.</p>
         </section>
 
-        {[schedule.error, jobs.error].filter(Boolean).map((message) => (
+        {[schedule.error, jobs.error, selectedCommunications.error, selectedRecipients.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -285,6 +296,8 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             current={query}
             event={selectedEvent}
             jobs={jobs.data}
+            communications={selectedCommunications.data}
+            recipientOptions={selectedRecipients.data}
             users={schedule.data.users}
           />
         ) : null}
@@ -292,7 +305,9 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
         {selectedAppointment ? (
           <AppointmentDetailPanel
             appointment={selectedAppointment}
+            communications={selectedCommunications.data}
             current={query}
+            recipientOptions={selectedRecipients.data}
             users={schedule.data.users}
           />
         ) : null}
@@ -672,14 +687,18 @@ function ScheduleEventFormDrawer({
 }
 
 function ScheduleEventDetailPanel({
+  communications,
   current,
   event,
   jobs,
+  recipientOptions,
   users,
 }: {
+  communications: import("@/lib/types/database").CustomerCommunication[];
   current: ScheduleQuery;
   event: ScheduleEventWithRelations;
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  recipientOptions: { email: string; label: string; source: "customer" | "organization" }[];
   users: ScheduleUser[];
 }) {
   const directionsUrl = getDirectionsUrl(event.service_locations);
@@ -802,6 +821,20 @@ function ScheduleEventDetailPanel({
           <QuickScheduleStatusButton event={event} label="Cancel" nextStatus="cancelled" />
         </div>
 
+        {event.job_id && ["estimate", "job", "maintenance", "emergency"].includes(event.event_type) ? (
+          <section className="schedule-communication-panel">
+            <h3>Customer reminder</h3>
+            <p>Messages use the current appointment window and service address. Internal calendar, access, gate, crew, and service notes stay private.</p>
+            <CommunicationControls
+              communicationType={event.event_type === "estimate" ? "estimate_reminder" : "work_reminder"}
+              communications={communications}
+              recipientOptions={recipientOptions}
+              recordId={event.id}
+              recordType="schedule_event"
+            />
+          </section>
+        ) : null}
+
         <details className="appointment-edit-details">
           <summary>Edit event details</summary>
           <ScheduleEventEditForm event={event} jobs={jobs} users={users} />
@@ -813,11 +846,15 @@ function ScheduleEventDetailPanel({
 
 function AppointmentDetailPanel({
   appointment,
+  communications,
   current,
+  recipientOptions,
   users,
 }: {
   appointment: AppointmentWithRelations;
+  communications: import("@/lib/types/database").CustomerCommunication[];
   current: ScheduleQuery;
+  recipientOptions: { email: string; label: string; source: "customer" | "organization" }[];
   users: ScheduleUser[];
 }) {
   const directionsUrl = getDirectionsUrl(appointment.service_locations);
@@ -871,6 +908,20 @@ function AppointmentDetailPanel({
           <QuickAppointmentStatusButton appointment={appointment} label="Mark complete" nextStatus="completed" />
           <QuickAppointmentStatusButton appointment={appointment} label="Cancel" nextStatus="cancelled" />
         </div>
+
+        {["estimate", "job", "maintenance"].includes(appointment.appointment_type) ? (
+          <section className="schedule-communication-panel">
+            <h3>Customer reminder</h3>
+            <p>Messages use the current appointment window and service address. Internal calendar, access, gate, crew, and service notes stay private.</p>
+            <CommunicationControls
+              communicationType={appointment.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
+              communications={communications}
+              recipientOptions={recipientOptions}
+              recordId={appointment.id}
+              recordType="appointment"
+            />
+          </section>
+        ) : null}
 
         <details className="appointment-edit-details">
           <summary>Edit legacy appointment</summary>

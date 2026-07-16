@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
+import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createNewQuotePortalTokenRecord, createOrGetQuotePortalTokenRecord, getActiveQuotePortalTokens } from "@/lib/portal/quote-links";
@@ -276,6 +277,8 @@ export async function requestQuoteChangesByPortalToken(
     await supabase.from("notes").delete().eq("id", note.id);
     return { ok: false, status: "error", message: quoteError.message };
   }
+
+  await cancelPendingCommunications(supabase, { quoteId: lookup.quote.id }, "Customer requested changes to the quote.");
 
   await supabase.from("quote_portal_tokens").update({ used_at: requestedAt }).eq("id", lookup.tokenId);
   await logPortalActivity(supabase, lookup.quote.id, "quote_portal_changes_requested");

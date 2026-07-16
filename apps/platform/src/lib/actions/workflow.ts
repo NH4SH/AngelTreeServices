@@ -9,6 +9,7 @@ import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -43,7 +44,6 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     estimate_scheduled: ["quoted"],
     accepted: ["scheduled"],
     scheduled: ["in_progress"],
-    in_progress: ["completed"],
   };
 
   const { data: job, error: jobError } = await supabase
@@ -60,10 +60,7 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     return { status: "error", message: "That job status transition is not allowed here." };
   }
 
-  const updatePayload: { status: JobStatus; completed_at?: string } = { status: nextStatus };
-  if (nextStatus === "completed") {
-    updatePayload.completed_at = new Date().toISOString();
-  }
+  const updatePayload: { status: JobStatus } = { status: nextStatus };
 
   const { error } = await supabase.from("jobs").update(updatePayload).eq("id", jobId);
 
@@ -73,7 +70,7 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
 
   await recordActivity(supabase, {
     actorUserId: user.id,
-    eventType: nextStatus === "completed" ? "work_order_completed" : "work_order_status_changed",
+    eventType: "work_order_status_changed",
     metadata: { from_status: job.status, to_status: nextStatus },
     subjectId: jobId,
     subjectType: "job",
@@ -141,6 +138,8 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
     });
   }
 
+  await cancelPendingCommunications(supabase, { quoteId }, `Quote status changed to ${nextStatus.replaceAll("_", " ")}.`);
+
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -204,6 +203,9 @@ export async function markQuoteSentManually(
     subjectType: "quote",
   });
 
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -253,12 +255,17 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
     return { status: "error", message: error.message };
   }
 
+  await cancelPendingCommunications(supabase, { invoiceId }, "Invoice was voided.");
+
   await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "invoice_voided",
     subjectId: invoiceId,
     subjectType: "invoice",
   });
+
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -315,6 +322,9 @@ export async function markInvoiceSentManually(
     subjectId: invoiceId,
     subjectType: "invoice",
   });
+
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -443,11 +453,27 @@ async function createInvoiceForCompletedJob({
     return { ok: true, invoiceId: existingInvoice.invoiceId, existing: true };
   }
 
+  const { data: invoiceableJob, error: invoiceableJobError } = await supabase
+    .from("jobs")
+    .select("status")
+    .eq("id", jobId)
+    .single();
+
+  if (invoiceableJobError || !invoiceableJob) {
+    return { ok: false, message: invoiceableJobError?.message ?? "Could not find this work order." };
+  }
+
+  if (!["completed", "ready_to_invoice"].includes(invoiceableJob.status)) {
+    return { ok: false, message: "Complete office closeout review before generating an invoice." };
+  }
+
+  const previousJobStatus = invoiceableJob.status as JobStatus;
+
   const { data: claimedJob, error: claimError } = await supabase
     .from("jobs")
     .update({ status: "invoiced" })
     .eq("id", jobId)
-    .eq("status", "completed")
+    .eq("status", previousJobStatus)
     .select("id, customer_id, source_quote_id, service_type, requested_scope")
     .maybeSingle();
 
@@ -471,7 +497,7 @@ async function createInvoiceForCompletedJob({
   const linkedQuoteId = sourceQuoteId ?? claimedJob.source_quote_id ?? null;
   const quoteResult = await getInvoiceSourceQuote(supabase, linkedQuoteId, jobId);
   if (!quoteResult.ok) {
-    await restoreCompletedJob(supabase, jobId);
+    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return quoteResult;
   }
 
@@ -505,7 +531,7 @@ async function createInvoiceForCompletedJob({
     .single();
 
   if (invoiceError || !invoice) {
-    await restoreCompletedJob(supabase, jobId);
+    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { ok: false, message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -523,7 +549,7 @@ async function createInvoiceForCompletedJob({
 
   if (lineItemError) {
     await supabase.from("invoices").delete().eq("id", invoice.id);
-    await restoreCompletedJob(supabase, jobId);
+    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { ok: false, message: `Invoice was not created because line items failed: ${lineItemError.message}` };
   }
 
@@ -595,11 +621,12 @@ async function getInvoiceSourceQuote(
   };
 }
 
-async function restoreCompletedJob(
+async function restoreInvoiceableJob(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   jobId: string,
+  status: JobStatus,
 ) {
-  await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId).eq("status", "invoiced");
+  await supabase.from("jobs").update({ status }).eq("id", jobId).eq("status", "invoiced");
 }
 
 function formatServiceType(serviceType: string | null) {

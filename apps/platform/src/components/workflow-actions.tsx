@@ -304,7 +304,6 @@ function getNextJobStatus(status: JobStatus) {
     estimate_scheduled: "quoted",
     accepted: "scheduled",
     scheduled: "in_progress",
-    in_progress: "completed",
   };
 
   return transitions[status] ?? null;

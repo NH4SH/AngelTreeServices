@@ -87,6 +87,8 @@ RESEND_API_KEY=
 EMAIL_FROM="Angel Tree Services <info@angeltreeservice.org>"
 EMAIL_REPLY_TO="info@angeltreeservice.org"
 INTERNAL_LEAD_NOTIFICATION_EMAIL="info@angeltreeservice.org"
+APP_BASE_URL=http://localhost:3000
+COMMUNICATION_WORKER_SECRET=
 ```
 
 Do not commit real Resend API keys or SMTP credentials.
@@ -141,11 +143,25 @@ supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql
 supabase/migrations/20260716165828_add_recoverable_portal_links.sql
 supabase/migrations/20260716210754_stripe_invoice_payments.sql
 supabase/migrations/20260716212545_harden_security_definer_functions.sql
+supabase/migrations/20260716215149_automated_customer_communications.sql
+supabase/migrations/20260716222258_crew_job_closeout_workflow.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
 
 The migration creates the core platform tables and enables Row Level Security. It intentionally inserts no real customer, job, quote, invoice, or payment data.
+
+### Crew job closeouts
+
+Apply `supabase/migrations/20260716222258_crew_job_closeout_workflow.sql` after the communications migration. It adds private closeout, checklist, scope-result, and immutable submission tables; new work-order review statuses; assigned-crew read policies; and narrowly granted authenticated RPCs for starting, saving, and submitting assigned work. It adds no storage bucket and requires no new environment variable.
+
+Routes:
+
+- `/crew/jobs/[jobId]` contains the mobile closeout workflow.
+- `/admin/jobs/closeouts` is the office review queue.
+- `/admin/jobs/[jobId]/closeout` is the office review page.
+
+The migration seeds closeout rows for existing jobs and snapshots accepted quote line descriptions without copying prices. Customer portals have no policy for these tables. Apply the migration before deploying the app code, then wait for the Supabase schema cache to refresh.
 
 The current CRM forms use normal authenticated Supabase requests. They do not use the service role key. For reads and writes to work, the signed-in user must have one of the staff roles allowed by the migration policies: `owner`, `admin`, or `estimator`.
 
@@ -166,6 +182,7 @@ The first admin CRM surface now includes:
 - `/admin/invoices`: invoice records, balance tracking, and payment follow-up.
 - `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment history, owner/admin manual-payment entry, document preview, and safe invoice status actions.
 - `/admin/schedule`: estimate, job, and follow-up appointment records.
+- `/admin/communications`: pending reminders, failures, delivery history, and owner/admin communication defaults.
 - `/admin/documents`: quote, invoice, email, and work-order preview scaffolds.
 - `/admin/marketing`: protected review-request queue, completed-job post drafts, private gallery candidates, and service-area content ideas.
 - `/admin/organizations`: property-manager, HOA, and commercial account records.
@@ -363,7 +380,26 @@ To test in a development Supabase project:
 4. Open `/admin/schedule`, switch between day and week, then filter by `follow_up`.
 5. Edit the appointment status, time, assignee, or notes from the schedule card.
 
-External calendar sync, automated reminders, and production SMS/email delivery are intentionally not implemented yet.
+External calendar sync and SMS delivery are intentionally not implemented. Operational email reminders use the existing Resend helper and the communication queue described below.
+
+## Automated Customer Communications
+
+Apply `supabase/migrations/20260716215149_automated_customer_communications.sql` after the security-hardening migration. It adds the RLS-protected `customer_communications` queue, singleton reminder settings, an atomic service-role claim RPC, communication links on `email_events`, and per-quote/per-invoice automation switches. It does not contain customer message bodies, portal tokens, or provider credentials.
+
+Set these server-only Netlify values:
+
+```env
+APP_BASE_URL=https://admin.angeltreeservices.org
+COMMUNICATION_WORKER_SECRET=
+```
+
+Generate `COMMUNICATION_WORKER_SECRET` with `openssl rand -hex 32`. The Netlify Scheduled Function at `netlify/functions/process-communications.ts` runs hourly and calls the authenticated internal processor route. The route rechecks current email, customer/document/appointment status, current invoice balance, current schedule, and recoverable active portal link immediately before sending. Resend receives the stable queue ID as an idempotency key. Temporary failures retry at most three times; permanent failures and skip reasons remain visible to staff.
+
+The migration deliberately seeds `automated_sending_enabled = false`. Deployment order is: apply the migration, set/redeploy environment variables, verify a test quote/invoice portal link, send a manual test from `/admin/communications` or a record detail page, invoke **Process due reminders now**, then enable automated sending in `/admin/communications`. Disable the master switch there to stop automatic sends quickly; already sent history is retained. Manual sends remain deliberate staff actions.
+
+Business timezone and default offsets are database settings managed at `/admin/communications`: 24 hours before estimate/work appointments, quote follow-ups 3 and 7 days after send, and invoice reminders 3 and 10 days after due. Rescheduling creates a new versioned reminder and cancels the obsolete pending version. Quote and invoice reminders reuse an existing recoverable active portal link and never generate, revoke, or log a token.
+
+The platform sends one Angel Tree payment confirmation per successful payment when that setting is enabled. To avoid two receipts, disable Stripe's automatic successful-payment receipt email for this flow, or disable platform payment confirmations if Stripe receipts are the chosen customer receipt.
 
 ## Completed Job Review And Marketing Workflow
 
@@ -491,7 +527,7 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 ## Current Limitations
 
 - Email delivery requires Resend/Supabase SMTP configuration.
-- No external calendar sync or automated reminder delivery.
+- No external calendar sync or SMS reminder delivery.
 - No PDF generation.
 - Public invoice links require the invoice portal token migrations above and `SUPABASE_SERVICE_ROLE_KEY` on the server.
 - No persisted completion checklist yet.

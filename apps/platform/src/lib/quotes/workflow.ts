@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { recordActivity } from "@/lib/activity-log";
+import { cancelPendingCommunications } from "@/lib/communications/queue";
 import type { JobStatus } from "@/lib/types/database";
 
 type QuoteWorkflowResult =
@@ -145,6 +146,8 @@ async function markQuoteApproved(
   if (error || !data) {
     return { ok: false, message: error?.message ?? "Only an open quote can be approved." };
   }
+
+  await cancelPendingCommunications(supabase, { quoteId }, "Quote was approved and converted to a work order.");
 
   return { ok: true, jobId, createdJob: false };
 }

@@ -7,6 +7,7 @@ export type EmailEventFilters = {
   customerId?: string;
   invoiceId?: string;
   jobId?: string;
+  organizationId?: string;
   quoteId?: string;
   types?: EmailEvent["email_type"][];
   limit?: number;
@@ -39,6 +40,10 @@ export async function getEmailEvents(filters: EmailEventFilters = {}): Promise<D
 
   if (filters.invoiceId) {
     query = query.eq("related_invoice_id", filters.invoiceId);
+  }
+
+  if (filters.organizationId) {
+    query = query.eq("related_organization_id", filters.organizationId);
   }
 
   if (filters.types?.length) {

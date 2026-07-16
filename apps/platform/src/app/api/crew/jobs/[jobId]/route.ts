@@ -3,6 +3,7 @@ import { apiError, apiSuccess } from "@/lib/api/responses";
 import { toCrewApiJobDetail } from "@/lib/api/crew-contract";
 import { getCrewApiContext } from "@/lib/auth/apiContext";
 import { getCrewJobById } from "@/lib/data/crew-jobs";
+import { getJobCloseout } from "@/lib/data/job-closeouts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -35,7 +36,10 @@ export async function GET(request: NextRequest, { params }: CrewJobApiRouteProps
     return apiError("job_not_available", "Job not found or not assigned to this crew account.", 404);
   }
 
+  const closeout = await getJobCloseout(jobId, auth.context.supabase);
+
   return apiSuccess({
-    job: toCrewApiJobDetail(job.data),
+    job: toCrewApiJobDetail(job.data, closeout.data),
+    warning: closeout.error,
   });
 }

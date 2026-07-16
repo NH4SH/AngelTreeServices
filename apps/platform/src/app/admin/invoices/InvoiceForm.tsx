@@ -36,7 +36,7 @@ export function AddInvoiceForm({
     [jobs, selectedCustomerId],
   );
   const invoiceableJobs = useMemo(
-    () => matchingJobs.filter((job) => job.status === "completed"),
+    () => matchingJobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)),
     [matchingJobs],
   );
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);

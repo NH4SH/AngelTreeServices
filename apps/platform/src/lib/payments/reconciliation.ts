@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
+import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
   | { ok: true; balanceDueCents: number; paidCents: number; status: InvoiceStatus }
@@ -61,6 +63,14 @@ export async function reconcileInvoiceBalance(
 
   if (updateError) {
     return { ok: false, message: updateError.message };
+  }
+
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) {
+    if (balanceDueCents === 0) {
+      await cancelPendingCommunications(communicationSupabase, { invoiceId }, "Invoice was paid in full.");
+    }
+    await syncAutomatedCommunications(communicationSupabase);
   }
 
   return { ok: true, balanceDueCents, paidCents: payments.totalCents, status };

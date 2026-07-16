@@ -38,6 +38,7 @@ INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
+COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org
 ```
@@ -54,6 +55,7 @@ Notes:
 - `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only and must not use a `NEXT_PUBLIC_` prefix.
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are server-only. Start with Stripe test keys and never expose them through browser configuration.
 - `APP_BASE_URL` must be `https://admin.angeltreeservices.org` in production so Checkout returns to the same customer portal link.
+- `COMMUNICATION_WORKER_SECRET` must be a server-only random value of at least 32 characters shared only by the Netlify Scheduled Function and internal processor route.
 - Do not add the service role key to the public website Netlify site.
 - `SUPABASE_DB_URL` is not required for normal app page runtime right now.
 - Secure invoice links require `supabase/migrations/20260709132222_invoice_portal_tokens.sql`
@@ -161,7 +163,54 @@ Run this with a non-production test customer after migration and deployment:
 10. Duplicate a quote, invoice, and work order. Confirm each duplicate is a draft/new record with no copied portal token, email history, payments, time entries, photos, or internal crew notes.
 11. Confirm the dashboard shows any remaining draft quote, accepted work awaiting scheduling, completed work awaiting invoice, and sent invoice awaiting payment in their queue.
 
-## 8. Stripe Checkout Smoke Test
+## 8. Communication Queue Smoke Test
+
+Apply `supabase/migrations/20260716215149_automated_customer_communications.sql` after the security-hardening migration. Keep **Automated sending** off in `/admin/communications` until this test passes. The hourly worker is `netlify/functions/process-communications.ts`.
+
+## Mobile crew job closeout
+
+Apply `supabase/migrations/20260716222258_crew_job_closeout_workflow.sql` before this test. Use non-production customer and job records.
+
+1. Assign a scheduled job to a timer-enabled crew test user and open `/crew/jobs/[jobId]` on a phone-sized viewport.
+2. Tap **Start work**. Confirm the schedule times remain unchanged and a second start is rejected.
+3. With an active timer on a different job, confirm Start work warns and does not create overlapping time.
+4. Mark every scope item. Mark one item partially completed and confirm an exception note is required.
+5. Upload before, after, and issue photos. Temporarily interrupt the network during one upload, confirm the failure is visible, and retry.
+6. Complete every checklist item. Confirm a Not applicable choice requires a reason.
+7. Enter private crew notes and a separate customer-facing summary. Confirm multiline formatting survives save and refresh.
+8. Answer the incident and additional-work questions. Confirm incident Yes requires a description and issue photo.
+9. Select acknowledged, customer not present, or customer declined. Confirm a typed name is required only for acknowledged.
+10. Submit twice. Confirm one closeout remains, one revision is created for the successful submission, and the second request is rejected.
+11. Confirm the crew view locks and the job appears at `/admin/jobs/closeouts` as completed awaiting review.
+12. Review scope, checklist, photos, notes, incident, acknowledgment, and time at `/admin/jobs/[jobId]/closeout`.
+13. Return it with a reason. Confirm assigned crew can correct it and the prior submission snapshot remains.
+14. Resubmit, approve, then mark ready to invoice. Confirm incidents and scope exceptions require these deliberate office actions and never become invoice-ready automatically.
+15. Generate the invoice through the existing action. Confirm a repeated click opens the existing invoice and does not create another one.
+16. Confirm the invoice and customer portal exclude crew/internal notes and incident details.
+17. Sign in as a different crew user and confirm the job and closeout are unavailable. Check anonymous/customer portal requests cannot read closeout tables.
+18. Recheck quote, invoice, portal-link, email, Stripe, schedule, and time-clock workflows.
+
+If Docker/local Supabase is available, run `supabase db reset`, execute assigned-crew/staff/anonymous RLS checks, and run the security advisors. Otherwise apply the migration in a reviewed Supabase environment and do not treat application build results as database verification.
+
+1. Create a test customer with a valid email and schedule an estimate. Confirm a reminder can be scheduled and sends once.
+2. Reschedule the estimate. Confirm the obsolete pending reminder is cancelled and a new version is scheduled.
+3. Send a quote with an active recoverable portal link. Confirm 3-day and 7-day follow-ups appear only after automation is enabled.
+4. Approve the quote before a follow-up runs. Confirm pending follow-ups are cancelled and no reminder is sent.
+5. Create an unpaid invoice with a due date and active recoverable invoice link. Confirm a reminder shows the current server-side balance and reuses that link.
+6. Pay the invoice before the reminder runs. Confirm pending invoice reminders are cancelled.
+7. Confirm one payment confirmation is queued per successful payment. Disable Stripe automatic receipt email if the platform confirmation is the chosen receipt.
+8. Invoke **Process due reminders now** twice or trigger two workers together. Confirm one successful `email_events` row and one provider message exist for each logical reminder.
+9. Double-click **Send reminder now**. Confirm the pending state prevents a second submit and the stable idempotency key prevents a duplicate send.
+10. Change the customer email before a scheduled send. Confirm the worker uses the current email or skips when it is invalid; it must not send to the stale address.
+11. Cancel or complete an appointment and confirm its pending reminders are cancelled.
+12. Revoke or expire a portal link and confirm quote/invoice reminders skip with a visible reason rather than generating a replacement.
+13. Inspect received appointment email and confirm calendar notes, access notes, gate codes, service notes, crew notes, and internal notes are absent.
+14. Force a temporary provider failure, confirm staff can see it, and confirm retries stop after three attempts.
+15. Open customer and organization details and confirm communication history is visible only to signed-in staff.
+
+After the test passes, enable **Automated sending**. Turn it off immediately if unexpected recipients or timing are observed; manual sends and history remain available.
+
+## 9. Stripe Checkout Smoke Test
 
 Before testing, apply `supabase/migrations/20260716210754_stripe_invoice_payments.sql`, deploy with Stripe test-mode environment variables, and configure this Stripe webhook endpoint:
 
@@ -181,7 +230,7 @@ Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succe
 8. Duplicate a paid invoice. Confirm the new draft has no payment records, Stripe session, or portal-token history.
 9. Record a manual check payment as an owner/admin. Confirm the payment ledger, balance, and invoice status update without any Stripe identifiers.
 
-## 9. Supabase Security Regression
+## 10. Supabase Security Regression
 
 After applying `supabase/migrations/20260716212545_harden_security_definer_functions.sql`:
 
@@ -198,7 +247,7 @@ After applying `supabase/migrations/20260716212545_harden_security_definer_funct
 
 Keep `app_private` out of the Supabase Data API exposed-schema list. See `SECURITY_HARDENING.md` for the full function findings and expected grants.
 
-## 10. Rollback Notes
+## 11. Rollback Notes
 
 If the admin deploy fails:
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CalendarDays, Camera, ClipboardCheck, FileSignature, MapPin, Navigation, ReceiptText, Truck, UsersRound } from "lucide-react";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
+import { CommunicationControls } from "@/components/communication-controls";
 import { PrintButton } from "@/components/documents/print-button";
 import { WorkOrderDocument } from "@/components/documents/work-order-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
@@ -17,6 +18,7 @@ import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getJobDetail } from "@/lib/data/jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
+import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
 import { generateEstimateScheduledMessage, generateJobScheduledMessage, generatePostJobFollowUpMessage } from "@/lib/documents/scheduling-drafts";
@@ -41,12 +43,19 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
     return <SetupRequired title="Configure Supabase before opening job details" />;
   }
 
-  const [detail, assignedUsers, photos] = await Promise.all([
+  const [detail, assignedUsers, photos, communications] = await Promise.all([
     getJobDetail(jobId),
     getAssignableUsers(),
     getJobPhotos(jobId),
+    getCustomerCommunications({ jobId, limit: 30 }),
   ]);
   const job = detail.data;
+  const recipientOptions = job
+    ? await getCommunicationRecipientOptions(job.customer_id)
+    : { data: [], error: null };
+  const nextAppointment = job?.appointments
+    ?.filter((appointment) => ["estimate", "job", "maintenance"].includes(appointment.appointment_type) && ["scheduled", "confirmed"].includes(appointment.status))
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime())[0] ?? null;
 
   return (
     <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
@@ -55,6 +64,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
+        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {query.duplicated === "job" ? (
           <p className="form-message success" role="status">Work order duplicated.</p>
         ) : null}
@@ -108,7 +119,10 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 <PanelTitle icon={<ClipboardCheck size={18} />} title="Status" />
                 <span className="status-pill">{job.status.replace("_", " ")}</span>
                 <JobStatusActions jobId={job.id} status={job.status} />
-                {job.status === "completed" ? <CreateInvoiceFromJobAction jobId={job.id} /> : null}
+                {["completed", "ready_to_invoice"].includes(job.status) ? <CreateInvoiceFromJobAction jobId={job.id} /> : null}
+                {["returned_for_correction", "completed_pending_review", "ready_to_invoice"].includes(job.status) ? (
+                  <Link className="secondary-action compact-action" href={`/admin/jobs/${job.id}/closeout`}>Review closeout</Link>
+                ) : null}
               </article>
               <article className="detail-panel">
                 <PanelTitle icon={<UsersRound size={18} />} title="Customer" />
@@ -138,6 +152,19 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                   </article>
                 )) : <EmptyInline>No appointments yet.</EmptyInline>}
               </article>
+              {(nextAppointment || job.scheduled_start_at) ? (
+                <article className="detail-panel wide-detail-panel">
+                  <PanelTitle icon={<CalendarDays size={18} />} title="Customer appointment communication" />
+                  <p className="inline-empty">Customer messages use the current schedule and service location. Internal calendar, access, gate, crew, and service notes are never included.</p>
+                  <CommunicationControls
+                    communicationType={nextAppointment?.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
+                    communications={communications.data.filter((item) => nextAppointment ? item.appointment_id === nextAppointment.id : item.job_id === job.id)}
+                    recipientOptions={recipientOptions.data}
+                    recordId={nextAppointment?.id ?? job.id}
+                    recordType={nextAppointment ? "appointment" : "job"}
+                  />
+                </article>
+              ) : null}
               <RecordLinks
                 empty="No quotes yet."
                 icon={<FileSignature size={18} />}
@@ -195,7 +222,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               <EmailDraftCard draft={generateWorkOrderCrewMessage(job)} label="Crew message draft" />
             </section>
 
-            {job.status === "completed" ? (
+            {["completed", "ready_to_invoice", "invoiced", "paid"].includes(job.status) ? (
               <CompletedJobMarketingWorkspace
                 googleReviewUrl={getGoogleReviewUrl()}
                 job={job}

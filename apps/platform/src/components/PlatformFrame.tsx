@@ -11,6 +11,7 @@ import {
   Leaf,
   LogOut,
   Megaphone,
+  MessageSquareMore,
   ReceiptText,
   ShieldCheck,
   UserCheck,
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
+  { href: "/admin/communications", label: "Communications", Icon: MessageSquareMore, match: "communications" },
   { href: "/admin/time", label: "Time", Icon: Clock3, match: "admin-time", visibility: "review" },
   { href: "/admin/payroll", label: "Payroll", Icon: ReceiptText, match: "payroll", visibility: "review" },
   { href: "/admin/access", label: "Access", Icon: UserCheck, match: "access", visibility: "approval" },
@@ -51,6 +53,7 @@ type PlatformFrameProps = {
     | "quotes"
     | "invoices"
     | "schedule"
+    | "communications"
     | "admin-time"
     | "payroll"
     | "access"

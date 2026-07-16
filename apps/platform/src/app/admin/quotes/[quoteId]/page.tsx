@@ -12,6 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
+import { CommunicationControls } from "@/components/communication-controls";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
@@ -27,6 +28,7 @@ import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
+import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
 import { getQuoteDetail } from "@/lib/data/quotes";
 import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
@@ -52,6 +54,10 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   const detail = await getQuoteDetail(quoteId);
   const portalTokens = detail.data ? await getQuotePortalTokens(quoteId) : { data: [], error: null };
   const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
+  const communications = detail.data ? await getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null };
+  const recipientOptions = detail.data
+    ? await getCommunicationRecipientOptions(detail.data.customer_id)
+    : { data: [], error: null };
   const assignedUsers = await getAssignableUsers();
   const emailSetup = getEmailSetupState();
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
@@ -63,6 +69,8 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {!detail.data ? (
           <EmptyState title="Quote not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -162,6 +170,18 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Email history" />
                   <EmailHistoryList events={emailEvents.data} />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<CalendarDays size={18} />} title="Quote follow-up" />
+                  <CommunicationControls
+                    automaticEnabled={detail.data.automatic_follow_ups_enabled}
+                    communicationType="quote_follow_up"
+                    communications={communications.data}
+                    recipientOptions={recipientOptions.data}
+                    recordId={detail.data.id}
+                    recordType="quote"
+                  />
                 </section>
               </main>
 

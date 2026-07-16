@@ -4,11 +4,13 @@ import { BriefcaseBusiness, FileSignature, MailCheck, MapPin, Pencil, ReceiptTex
 import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
+import { CommunicationHistoryList } from "@/components/communication-history";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerDetail } from "@/lib/data/customers";
 import { getEmailEvents } from "@/lib/data/email-events";
+import { getCustomerCommunications } from "@/lib/data/communications";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
 
 type CustomerDetailPageProps = {
@@ -32,6 +34,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
 
   const detail = await getCustomerDetail(customerId);
   const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
+  const communications = detail.data ? await getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null };
 
   return (
     <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>
@@ -39,6 +42,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
         <Link className="crew-back-link" href="/admin/customers">Back to customers</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
         {query.updated === "1" ? <SuccessNotice message="Customer changes saved." /> : null}
         {query.created === "1" ? <SuccessNotice message="Customer created." /> : null}
         {!detail.data ? (
@@ -173,6 +177,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
 
               <RecordSection icon={<MailCheck size={18} />} title="Email history">
                 <EmailHistoryList events={emailEvents.data} />
+                <CommunicationHistoryList communications={communications.data} />
               </RecordSection>
             </section>
 

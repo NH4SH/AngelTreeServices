@@ -62,6 +62,12 @@ export async function createInvoice(
     return { status: "error", message: "Selected job does not belong to the selected customer." };
   }
 
+  if (!["completed", "ready_to_invoice"].includes(job.status)) {
+    return { status: "error", message: "Complete office closeout review before creating an invoice." };
+  }
+
+  const previousJobStatus = job.status;
+
   const { data: existingInvoice, error: existingInvoiceError } = await supabase
     .from("invoices")
     .select("id")
@@ -82,7 +88,7 @@ export async function createInvoice(
     .from("jobs")
     .update({ status: "invoiced" })
     .eq("id", jobId)
-    .eq("status", "completed")
+    .eq("status", previousJobStatus)
     .select("id")
     .maybeSingle();
 
@@ -112,7 +118,7 @@ export async function createInvoice(
     .single();
 
   if (invoiceError || !invoice) {
-    await restoreCompletedJob(supabase, jobId);
+    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -130,7 +136,7 @@ export async function createInvoice(
 
   if (lineItemError) {
     await supabase.from("invoices").delete().eq("id", invoice.id);
-    await restoreCompletedJob(supabase, jobId);
+    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return {
       status: "error",
       message: `Invoice was not created because line items failed: ${lineItemError.message}`,
@@ -382,9 +388,10 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-async function restoreCompletedJob(
+async function restoreInvoiceableJob(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   jobId: string,
+  status: string,
 ) {
-  await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId).eq("status", "invoiced");
+  await supabase.from("jobs").update({ status }).eq("id", jobId).eq("status", "invoiced");
 }

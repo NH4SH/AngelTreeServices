@@ -15,6 +15,12 @@ export type SendEmailInput = {
   relatedJobId?: string | null;
   relatedQuoteId?: string | null;
   relatedInvoiceId?: string | null;
+  relatedOrganizationId?: string | null;
+  relatedScheduleEventId?: string | null;
+  relatedAppointmentId?: string | null;
+  relatedPaymentId?: string | null;
+  relatedCommunicationId?: string | null;
+  idempotencyKey?: string;
   sentByUserId?: string | null;
   supabase?: SupabaseClient<any, "public", any> | null;
 };
@@ -24,6 +30,7 @@ export type SendEmailResult = {
   configured: boolean;
   message: string;
   providerMessageId: string | null;
+  retryable: boolean;
 };
 
 export type RecordEmailEventInput = {
@@ -37,6 +44,11 @@ export type RecordEmailEventInput = {
   relatedJobId?: string | null;
   relatedQuoteId?: string | null;
   relatedInvoiceId?: string | null;
+  relatedOrganizationId?: string | null;
+  relatedScheduleEventId?: string | null;
+  relatedAppointmentId?: string | null;
+  relatedPaymentId?: string | null;
+  relatedCommunicationId?: string | null;
   sentByUserId?: string | null;
   supabase?: SupabaseClient<any, "public", any> | null;
 };
@@ -47,7 +59,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   if (!isValidEmail(recipient)) {
     const message = "Recipient email address is missing or invalid.";
     await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: true, message, providerMessageId: null };
+    return { ok: false, configured: true, message, providerMessageId: null, retryable: false };
   }
 
   const config = getEmailProviderConfig();
@@ -55,7 +67,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   if (!config) {
     const message = "Email sending is not configured. Drafts are still available.";
     await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: false, message, providerMessageId: null };
+    return { ok: false, configured: false, message, providerMessageId: null, retryable: false };
   }
 
   try {
@@ -64,6 +76,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
+        ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey.slice(0, 256) } : {}),
       },
       body: JSON.stringify({
         from: config.from,
@@ -79,7 +92,13 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     if (!response.ok) {
       const message = getProviderErrorMessage(payload, response.status);
       await logEmailEvent(input, "failed", null, message, recipient);
-      return { ok: false, configured: true, message, providerMessageId: null };
+      return {
+        ok: false,
+        configured: true,
+        message,
+        providerMessageId: null,
+        retryable: response.status === 429 || response.status >= 500 || isConcurrentIdempotencyError(payload),
+      };
     }
 
     const providerMessageId = typeof payload.id === "string" ? payload.id : null;
@@ -89,11 +108,12 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
       configured: true,
       message: "Email sent.",
       providerMessageId,
+      retryable: false,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Email provider request failed.";
     await logEmailEvent(input, "failed", null, message, recipient);
-    return { ok: false, configured: true, message, providerMessageId: null };
+    return { ok: false, configured: true, message, providerMessageId: null, retryable: true };
   }
 }
 
@@ -108,6 +128,11 @@ export async function recordEmailEvent(input: RecordEmailEventInput) {
       relatedJobId: input.relatedJobId,
       relatedQuoteId: input.relatedQuoteId,
       relatedInvoiceId: input.relatedInvoiceId,
+      relatedOrganizationId: input.relatedOrganizationId,
+      relatedScheduleEventId: input.relatedScheduleEventId,
+      relatedAppointmentId: input.relatedAppointmentId,
+      relatedPaymentId: input.relatedPaymentId,
+      relatedCommunicationId: input.relatedCommunicationId,
       sentByUserId: input.sentByUserId,
       supabase: input.supabase,
     },
@@ -137,6 +162,11 @@ async function logEmailEvent(
     related_job_id: input.relatedJobId ?? null,
     related_quote_id: input.relatedQuoteId ?? null,
     related_invoice_id: input.relatedInvoiceId ?? null,
+    related_organization_id: input.relatedOrganizationId ?? null,
+    related_schedule_event_id: input.relatedScheduleEventId ?? null,
+    related_appointment_id: input.relatedAppointmentId ?? null,
+    related_payment_id: input.relatedPaymentId ?? null,
+    related_communication_id: input.relatedCommunicationId ?? null,
     recipient_email: recipientEmail,
     subject: input.subject,
     email_type: input.emailType,
@@ -146,6 +176,12 @@ async function logEmailEvent(
     sent_by_user_id: input.sentByUserId ?? null,
     sent_at: status === "sent" ? new Date().toISOString() : null,
   });
+}
+
+function isConcurrentIdempotencyError(payload: unknown) {
+  if (!payload || typeof payload !== "object") return false;
+  const name = "name" in payload ? payload.name : "error" in payload ? payload.error : null;
+  return name === "concurrent_idempotent_requests";
 }
 
 function isValidEmail(value: string) {

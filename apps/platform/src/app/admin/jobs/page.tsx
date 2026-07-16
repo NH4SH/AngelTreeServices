@@ -17,6 +17,9 @@ const statuses: JobStatus[] = [
   "accepted",
   "scheduled",
   "in_progress",
+  "returned_for_correction",
+  "completed_pending_review",
+  "ready_to_invoice",
   "completed",
   "invoiced",
   "paid",
@@ -47,6 +50,9 @@ export default async function JobsPage() {
           </p>
           <h1>Jobs and work orders</h1>
           <p>Track approved, scheduled, active, and completed field work. Early website requests can still appear here for compatibility.</p>
+          <div className="action-row">
+            <Link className="primary-action" href="/admin/jobs/closeouts">Open closeout review queue</Link>
+          </div>
         </section>
 
         {[jobs.error, customers.error, serviceLocations.error].filter(Boolean).map((message) => (

@@ -2,6 +2,7 @@ import { completionChecklistItems } from "@/lib/crew/completion-checklist";
 import { getDirectionsUrl } from "@/lib/maps";
 import type {
   CrewJob,
+  JobCloseoutBundle,
   JobPhotoType,
   JobPhotoUploadCategory,
   SignedJobPhoto,
@@ -53,10 +54,11 @@ export type CrewApiJobDetail = CrewApiJobListItem & {
     createdAt: string;
   }[];
   completionChecklist: {
-    persisted: false;
+    persisted: boolean;
     items: {
       label: string;
-      completed: false;
+      completed: boolean;
+      status: "pending" | "complete" | "not_applicable";
     }[];
   };
 };
@@ -105,7 +107,7 @@ export function toCrewApiJobListItem(job: CrewJob): CrewApiJobListItem {
   };
 }
 
-export function toCrewApiJobDetail(job: CrewJob): CrewApiJobDetail {
+export function toCrewApiJobDetail(job: CrewJob, closeout?: JobCloseoutBundle | null): CrewApiJobDetail {
   const listItem = toCrewApiJobListItem(job);
   const location = job.service_locations;
 
@@ -128,11 +130,18 @@ export function toCrewApiJobDetail(job: CrewJob): CrewApiJobDetail {
         createdAt: note.created_at,
       })),
     completionChecklist: {
-      persisted: false,
-      items: completionChecklistItems.map((label) => ({
-        label,
-        completed: false as const,
-      })),
+      persisted: Boolean(closeout),
+      items: closeout
+        ? closeout.checklist.map((item) => ({
+            label: item.label,
+            completed: item.completion_status === "complete",
+            status: item.completion_status,
+          }))
+        : completionChecklistItems.map((label) => ({
+            label,
+            completed: false,
+            status: "pending" as const,
+          })),
     },
   };
 }
@@ -176,6 +185,8 @@ function getPhotoSummary(job: CrewJob): CrewPhotoSummary {
     after: 0,
     before: 0,
     completion: 0,
+    during: 0,
+    equipment_access: 0,
     issue: 0,
   };
 

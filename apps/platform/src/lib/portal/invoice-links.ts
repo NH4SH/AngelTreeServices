@@ -9,6 +9,12 @@ import {
 } from "@/lib/portal/tokens";
 import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
 
+type ActiveInvoicePortalToken = {
+  id: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+};
+
 export async function createInvoicePortalTokenRecord({
   customerId,
   invoiceId,
@@ -72,6 +78,28 @@ export async function createInvoicePortalTokenRecord({
   }
 
   return { error: null, expiresAt, rawToken, tokenId: token.id as string };
+}
+
+export async function getActiveInvoicePortalTokens(
+  supabase: SupabaseClient,
+  invoiceId: string,
+): Promise<{ tokens: ActiveInvoicePortalToken[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("invoice_portal_tokens")
+    .select("id, expires_at, revoked_at")
+    .eq("invoice_id", invoiceId)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { tokens: [], error: formatInvoicePortalTokenError(error.message) };
+  }
+
+  const tokens = ((data ?? []) as ActiveInvoicePortalToken[]).filter(
+    (token) => !token.expires_at || new Date(token.expires_at).getTime() > Date.now(),
+  );
+
+  return { tokens, error: null };
 }
 
 export async function revokeOtherInvoicePortalTokens(

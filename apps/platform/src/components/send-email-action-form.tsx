@@ -15,9 +15,11 @@ const initialState: TransactionalEmailActionState = {
 
 export function SendQuoteEmailForm({
   disabled = false,
+  portalUrl,
   quoteId,
 }: {
   disabled?: boolean;
+  portalUrl?: string;
   quoteId: string;
 }) {
   const [state, formAction, pending] = useActionState(sendQuoteEmail, initialState);
@@ -25,6 +27,7 @@ export function SendQuoteEmailForm({
   return (
     <form action={formAction} className="send-email-action-form">
       <input name="quote_id" type="hidden" value={quoteId} />
+      {portalUrl ? <input name="portal_url" type="hidden" value={portalUrl} /> : null}
       <button disabled={disabled || pending} type="submit">
         <Send aria-hidden="true" size={16} />
         {pending ? "Sending..." : "Send quote email"}
@@ -37,15 +40,18 @@ export function SendQuoteEmailForm({
 export function SendInvoiceEmailForm({
   disabled = false,
   invoiceId,
+  portalUrl,
 }: {
   disabled?: boolean;
   invoiceId: string;
+  portalUrl?: string;
 }) {
   const [state, formAction, pending] = useActionState(sendInvoiceEmail, initialState);
 
   return (
     <form action={formAction} className="send-email-action-form">
       <input name="invoice_id" type="hidden" value={invoiceId} />
+      {portalUrl ? <input name="portal_url" type="hidden" value={portalUrl} /> : null}
       <button disabled={disabled || pending} type="submit">
         <Send aria-hidden="true" size={16} />
         {pending ? "Sending..." : "Send invoice email"}

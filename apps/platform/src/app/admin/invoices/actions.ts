@@ -214,7 +214,7 @@ export async function updateInvoice(
     redirect(`/admin/invoices/${invoiceId}`);
   }
 
-  return { status: "success", message: "Invoice changes saved." };
+  return { status: "success", message: "Invoice changes saved. Existing customer link remains active." };
 }
 
 function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {

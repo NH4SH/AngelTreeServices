@@ -339,8 +339,8 @@ export async function updateQuote(
   return {
     status: "success",
     message: returnsToDraft
-      ? "Changes saved. This quote is now a draft and existing customer links still show the updated quote."
-      : "Draft quote saved. Existing customer links still show the updated quote.",
+      ? "Changes saved. This quote is now a draft and the existing customer link remains active."
+      : "Draft quote saved. Existing customer link remains active.",
   };
 }
 

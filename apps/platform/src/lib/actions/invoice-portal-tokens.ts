@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { createInvoicePortalTokenRecord } from "@/lib/portal/invoice-links";
+import { createInvoicePortalTokenRecord, getActiveInvoicePortalTokens } from "@/lib/portal/invoice-links";
 import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,9 +37,23 @@ export async function createInvoicePortalLink(
     return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
   }
 
+  const activeTokenLookup = await getActiveInvoicePortalTokens(auth.supabase, invoice.id);
+  if (activeTokenLookup.error) {
+    return { status: "error", message: activeTokenLookup.error };
+  }
+
+  if (activeTokenLookup.tokens.length > 0) {
+    return {
+      status: "error",
+      message:
+        "An active invoice link already exists. Editing this invoice updates the customer's existing link; use Regenerate link only when you need to replace it.",
+    };
+  }
+
   const token = await createInvoicePortalTokenRecord({
     customerId: invoice.customer_id,
     invoiceId: invoice.id,
+    replaceExisting: false,
     supabase: auth.supabase,
     userId: auth.userId,
   });
@@ -53,6 +67,76 @@ export async function createInvoicePortalLink(
   return {
     status: "success",
     message: "Secure customer invoice link generated. Copy it now; the raw token is not stored.",
+    portalUrl: `${await getRequestOrigin()}/portal/invoice/${token.rawToken}`,
+    expiresAt: token.expiresAt,
+  };
+}
+
+export async function regenerateInvoicePortalLink(
+  _previousState: InvoicePortalTokenActionState,
+  formData: FormData,
+): Promise<InvoicePortalTokenActionState> {
+  const auth = await requireInvoiceLinkAdmin();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
+  const invoiceId = getString(formData, "invoice_id");
+  const { data: invoice, error: invoiceError } = await auth.supabase
+    .from("invoices")
+    .select("id, customer_id")
+    .eq("id", invoiceId)
+    .single();
+
+  if (invoiceError || !invoice) {
+    return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
+  }
+
+  const activeTokenLookup = await getActiveInvoicePortalTokens(auth.supabase, invoice.id);
+  if (activeTokenLookup.error) {
+    return { status: "error", message: activeTokenLookup.error };
+  }
+
+  const token = await createInvoicePortalTokenRecord({
+    customerId: invoice.customer_id,
+    invoiceId: invoice.id,
+    replaceExisting: false,
+    supabase: auth.supabase,
+    userId: auth.userId,
+  });
+
+  if (token.error) {
+    return { status: "error", message: token.error };
+  }
+
+  const activeTokenIds = activeTokenLookup.tokens.map((activeToken) => activeToken.id);
+  if (activeTokenIds.length > 0) {
+    const { error: revokeError } = await auth.supabase
+      .from("invoice_portal_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("invoice_id", invoice.id)
+      .in("id", activeTokenIds);
+
+    if (revokeError) {
+      await auth.supabase
+        .from("invoice_portal_tokens")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", token.tokenId);
+      return {
+        status: "error",
+        message: `New link was not activated because the old link could not be revoked: ${formatInvoicePortalTokenError(revokeError.message)}`,
+      };
+    }
+  }
+
+  revalidatePath(`/admin/invoices/${invoice.id}`);
+
+  return {
+    status: "success",
+    message: activeTokenIds.length
+      ? "Secure customer invoice link regenerated. The previous active link is now revoked."
+      : "Secure customer invoice link generated. Copy it now; the raw token is not stored.",
     portalUrl: `${await getRequestOrigin()}/portal/invoice/${token.rawToken}`,
     expiresAt: token.expiresAt,
   };

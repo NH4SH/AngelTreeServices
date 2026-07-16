@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Clipboard, Copy, Link2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 import { EmailDraftCard } from "@/components/email-draft-card";
+import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import {
   createQuotePortalLink,
   regenerateQuotePortalLink,
@@ -85,7 +86,7 @@ export function QuotePortalLinkPanel({
           <form
             action={regenerateAction}
             onSubmit={(event) => {
-              if (!window.confirm("Regenerate this quote link? The current customer link will stop working after the new link is created.")) {
+              if (!window.confirm("Regenerating this link will disable the previous customer link.")) {
                 event.preventDefault();
               }
             }}
@@ -116,10 +117,11 @@ export function QuotePortalLinkPanel({
             Copy this link now
             <input readOnly value={latestLinkState.portalUrl} />
           </label>
-          <button className="portal-secondary-button" onClick={copyPortalLink} type="button">
-            <Copy aria-hidden="true" size={17} />
-            Copy link
-          </button>
+            <button className="portal-secondary-button" onClick={copyPortalLink} type="button">
+              <Copy aria-hidden="true" size={17} />
+              Copy link
+            </button>
+            <SendQuoteEmailForm portalUrl={latestLinkState.portalUrl} quoteId={quoteId} />
           <p>
             Expires {latestLinkState.expiresAt ? formatDate(latestLinkState.expiresAt) : "after the configured window"}.
           </p>

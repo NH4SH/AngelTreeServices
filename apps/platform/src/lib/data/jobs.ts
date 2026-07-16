@@ -169,6 +169,8 @@ export async function getDashboardJobSummaries() {
       lanes: {
         newLeads: [],
         estimatesToSchedule: [],
+        approvedWorkToSchedule: [],
+        completedWorkToInvoice: [],
         todaysJobs: [],
       },
       error: "Supabase is not configured.",
@@ -182,7 +184,7 @@ export async function getDashboardJobSummaries() {
   const commonSelect =
     "*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
 
-  const [newLeads, estimatesToSchedule, todaysJobs] = await Promise.all([
+  const [newLeads, estimatesToSchedule, approvedWorkToSchedule, completedWorkToInvoice, todaysJobs] = await Promise.all([
     supabase
       .from("jobs")
       .select(commonSelect)
@@ -198,6 +200,18 @@ export async function getDashboardJobSummaries() {
     supabase
       .from("jobs")
       .select(commonSelect)
+      .eq("status", "accepted")
+      .order("updated_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("jobs")
+      .select(commonSelect)
+      .eq("status", "completed")
+      .order("completed_at", { ascending: false, nullsFirst: false })
+      .limit(12),
+    supabase
+      .from("jobs")
+      .select(commonSelect)
       .gte("scheduled_start_at", start.toISOString())
       .lt("scheduled_start_at", end.toISOString())
       .order("scheduled_start_at", { ascending: true })
@@ -208,11 +222,15 @@ export async function getDashboardJobSummaries() {
     lanes: {
       newLeads: (newLeads.data ?? []) as JobWithRelations[],
       estimatesToSchedule: (estimatesToSchedule.data ?? []) as JobWithRelations[],
+      approvedWorkToSchedule: (approvedWorkToSchedule.data ?? []) as JobWithRelations[],
+      completedWorkToInvoice: (completedWorkToInvoice.data ?? []) as JobWithRelations[],
       todaysJobs: (todaysJobs.data ?? []) as JobWithRelations[],
     },
     error:
       newLeads.error?.message ??
       estimatesToSchedule.error?.message ??
+      approvedWorkToSchedule.error?.message ??
+      completedWorkToInvoice.error?.message ??
       todaysJobs.error?.message ??
       null,
   };

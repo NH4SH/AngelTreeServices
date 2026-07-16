@@ -10,6 +10,11 @@ Set these for the deployed `apps/platform` app:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+PORTAL_TOKEN_ENCRYPTION_KEY=
+RESEND_API_KEY=
+EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
+EMAIL_REPLY_TO=info@angeltreeservice.org
+INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=
 ```
@@ -24,6 +29,7 @@ Notes:
 
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the only Supabase values that belong in browser code.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It is used for secure quote-token lookup and public lead intake writes. Never expose it in client components, browser bundles, or public logs.
+- `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only. Do not prefix them with `NEXT_PUBLIC_`.
 - `SUPABASE_DB_URL` is not required for normal runtime page rendering. Keep it for migrations and server-side tooling only.
 
 ## 2. Supabase Auth Setup
@@ -86,7 +92,7 @@ Before deploy, verify:
 
 ## 6. Invoice Portal Assumptions
 
-Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql` and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, then refresh/wait for the Supabase schema cache and verify:
+Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, and `supabase/migrations/20260716165828_add_recoverable_portal_links.sql`, then refresh/wait for the Supabase schema cache and verify:
 
 1. An owner/admin can generate an invoice link without email configuration.
 2. The copied URL uses the deployed host.
@@ -124,6 +130,8 @@ After deployment, manually verify:
 6. Public lead intake succeeds from the live public-site origin.
 7. Quote, invoice, customer, and job detail links navigate cleanly.
 8. Time clock pages load for enabled users and deny disabled users with a helpful message.
+9. Complete a test work order, generate its invoice once, and confirm a second attempt opens the existing invoice instead of creating another.
+10. Edit a sent quote and a sent invoice, then open their existing customer links signed out to confirm each shows the latest saved document.
 
 ## 9. Not In Scope Yet
 

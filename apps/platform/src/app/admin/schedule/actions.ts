@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AppointmentStatus,
@@ -83,18 +84,22 @@ export async function createAppointment(
     return { status: "error", message: jobError?.message ?? "Could not find selected job." };
   }
 
-  const { error } = await supabase.from("appointments").insert({
-    job_id: jobId,
-    service_location_id: job.service_location_id,
-    appointment_type: appointmentType,
-    assigned_user_id: assignedUserId,
-    starts_at: startsAt.toISOString(),
-    ends_at: endsAt?.toISOString() ?? null,
-    calendar_notes: calendarNotes,
-  });
+  const { data: appointment, error } = await supabase
+    .from("appointments")
+    .insert({
+      job_id: jobId,
+      service_location_id: job.service_location_id,
+      appointment_type: appointmentType,
+      assigned_user_id: assignedUserId,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt?.toISOString() ?? null,
+      calendar_notes: calendarNotes,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { status: "error", message: error.message };
+  if (error || !appointment) {
+    return { status: "error", message: error?.message ?? "Could not save the appointment." };
   }
 
   const nextJobStatus = getScheduledJobStatus(job.status as JobStatus, appointmentType);
@@ -103,6 +108,14 @@ export async function createAppointment(
     if (statusError) {
       return { status: "error", message: `Appointment saved, but the job status could not be updated: ${statusError.message}` };
     }
+
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: nextJobStatus === "scheduled" ? "work_order_scheduled" : "estimate_scheduled",
+      metadata: { appointment_id: appointment.id },
+      subjectId: jobId,
+      subjectType: "job",
+    });
   }
 
   revalidateSchedulePaths(jobId);
@@ -333,6 +346,14 @@ export async function createScheduleEvent(
         message: `Event saved, but the linked job status could not be updated: ${statusError.message}`,
       };
     }
+
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: nextJobStatus === "scheduled" ? "work_order_scheduled" : "estimate_scheduled",
+      metadata: { schedule_event_id: event.id },
+      subjectId: jobContext.id,
+      subjectType: "job",
+    });
   }
 
   revalidateSchedulePaths(event.job_id ?? undefined);

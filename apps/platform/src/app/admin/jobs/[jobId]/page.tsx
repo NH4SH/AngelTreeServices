@@ -6,7 +6,7 @@ import { PrintButton } from "@/components/documents/print-button";
 import { WorkOrderDocument } from "@/components/documents/work-order-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
-import { JobStatusActions } from "@/components/workflow-actions";
+import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -108,6 +108,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 <PanelTitle icon={<ClipboardCheck size={18} />} title="Status" />
                 <span className="status-pill">{job.status.replace("_", " ")}</span>
                 <JobStatusActions jobId={job.id} status={job.status} />
+                {job.status === "completed" ? <CreateInvoiceFromJobAction jobId={job.id} /> : null}
               </article>
               <article className="detail-panel">
                 <PanelTitle icon={<UsersRound size={18} />} title="Customer" />

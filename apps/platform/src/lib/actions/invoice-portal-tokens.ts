@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createNewInvoicePortalTokenRecord, createOrGetInvoicePortalTokenRecord, getActiveInvoicePortalTokens } from "@/lib/portal/invoice-links";
 import { getPortalUrl } from "@/lib/portal/urls";
@@ -46,6 +47,15 @@ export async function createInvoicePortalLink(
 
   if (token.error) {
     return { ok: false, status: "error", message: token.error };
+  }
+
+  if (token.created) {
+    await recordActivity(auth.supabase, {
+      actorUserId: auth.userId,
+      eventType: "invoice_portal_link_generated",
+      subjectId: invoice.id,
+      subjectType: "invoice",
+    });
   }
 
   revalidatePath(`/admin/invoices/${invoice.id}`);
@@ -119,6 +129,13 @@ export async function regenerateInvoicePortalLink(
     }
   }
 
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "invoice_portal_link_regenerated",
+    subjectId: invoice.id,
+    subjectType: "invoice",
+  });
+
   revalidatePath(`/admin/invoices/${invoice.id}`);
 
   return {
@@ -161,6 +178,13 @@ export async function revokeInvoicePortalLink(
   if (!data) {
     return { ok: false, status: "error", message: "Invoice link not found or no access." };
   }
+
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "invoice_portal_link_revoked",
+    subjectId: invoiceId,
+    subjectType: "invoice",
+  });
 
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { ok: true, status: "success", message: "Secure customer invoice link revoked." };

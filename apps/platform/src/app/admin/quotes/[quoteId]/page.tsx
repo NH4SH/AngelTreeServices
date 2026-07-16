@@ -19,7 +19,7 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
-import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
+import { ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -182,7 +182,11 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   {canManuallyMarkSent ? (
                     <ManualQuoteSentAction quoteId={detail.data.id} status={detail.data.status} />
                   ) : null}
-                  {detail.data.status === "approved" ? <CreateInvoiceFromQuoteAction quoteId={detail.data.id} /> : null}
+                  {detail.data.status === "approved" && detail.data.jobs ? (
+                    <Link className="secondary-action" href={`/admin/jobs/${detail.data.jobs.id}`}>
+                      Open work order
+                    </Link>
+                  ) : null}
                 </section>
 
                 <section className="commerce-side-panel">

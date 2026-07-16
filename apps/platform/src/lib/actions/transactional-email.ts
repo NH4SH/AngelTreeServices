@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { getQuoteDetail } from "@/lib/data/quotes";
@@ -88,6 +89,13 @@ export async function sendQuoteEmail(
     if (statusError) {
       return { status: "error", message: `Quote email sent, but status update failed: ${statusError.message}` };
     }
+    await recordActivity(auth.supabase, {
+      actorUserId: auth.userId,
+      eventType: "quote_sent",
+      metadata: { delivery_method: "crm_email" },
+      subjectId: detail.data.id,
+      subjectType: "quote",
+    });
   } else if (portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("quote_portal_tokens")
@@ -167,6 +175,13 @@ export async function sendInvoiceEmail(
     if (statusError) {
       return { status: "error", message: `Invoice email sent, but status update failed: ${statusError.message}` };
     }
+    await recordActivity(auth.supabase, {
+      actorUserId: auth.userId,
+      eventType: "invoice_sent",
+      metadata: { delivery_method: "crm_email" },
+      subjectId: detail.data.id,
+      subjectType: "invoice",
+    });
   } else if (portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("invoice_portal_tokens")

@@ -22,6 +22,7 @@
 
 html {
   min-height: 100%;
+  scrollbar-gutter: stable;
   background: var(--color-page);
 }
 
@@ -3097,9 +3098,10 @@ body {
 .app-shell {
   display: grid;
   grid-template-columns: 244px minmax(0, 1fr);
+  align-items: start;
   gap: 0;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
 }
@@ -3107,8 +3109,10 @@ body {
 .app-sidebar {
   position: sticky;
   top: 0;
+  align-self: start;
   display: flex;
   height: 100vh;
+  height: 100dvh;
   flex-direction: column;
   border-right: 1px solid var(--color-border);
   background: oklch(0.976 0.004 150);
@@ -3242,6 +3246,7 @@ body {
 
 .app-main {
   min-width: 0;
+  min-height: 100dvh;
 }
 
 .app-mobilebar {
@@ -3266,6 +3271,7 @@ body {
 }
 
 .app-content {
+  min-width: 0;
   padding-top: 0;
 }
 
@@ -4447,6 +4453,7 @@ h1,
   height: calc(100vh - 20px);
   margin: 10px;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--color-border);
   border-radius: 18px;
   background: var(--color-surface);
@@ -6472,6 +6479,11 @@ body {
   justify-content: flex-end;
 }
 
+body:has(.commerce-drawer-overlay),
+body:has(.appointment-overlay) {
+  overflow: hidden;
+}
+
 .commerce-drawer-backdrop {
   position: absolute;
   inset: 0;
@@ -6482,6 +6494,7 @@ body {
   position: relative;
   z-index: 1;
   overflow: auto;
+  overscroll-behavior: contain;
   width: min(520px, 100%);
   height: 100%;
   border-left: 1px solid var(--color-border);
@@ -6610,8 +6623,7 @@ body {
 }
 
 .commerce-detail-sidebar {
-  position: sticky;
-  top: 88px;
+  align-content: start;
 }
 
 .commerce-document-panel,

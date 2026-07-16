@@ -19,7 +19,7 @@ import { getFollowUpsDue } from "@/lib/data/appointments";
 import { getUnpaidInvoices } from "@/lib/data/invoices";
 import { getDashboardJobSummaries } from "@/lib/data/jobs";
 import { getOrganizationDashboardSummary } from "@/lib/data/organizations";
-import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
+import { getQuoteDashboardSummaries } from "@/lib/data/quotes";
 import { getScheduleDashboardSummary } from "@/lib/data/schedule";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
@@ -30,9 +30,9 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, awaitingQuotes, followUps, unpaidInvoices, organizationSummary, scheduleSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary] = await Promise.all([
     getDashboardJobSummaries(),
-    getQuotesAwaitingResponse(),
+    getQuoteDashboardSummaries(),
     getFollowUpsDue(),
     getUnpaidInvoices(),
     getOrganizationDashboardSummary(),
@@ -44,15 +44,27 @@ export default async function AdminPage() {
     description: string;
     Icon: LucideIcon;
     href: string;
-    items: { title: string; meta: string }[];
+    items: { href: string; title: string; meta: string }[];
     placeholder?: string;
   }[] = [
+    {
+      title: "Draft quotes",
+      description: "Proposals that still need scope, pricing, or a deliberate send.",
+      Icon: ClipboardCheck,
+      href: "/admin/quotes",
+      items: quoteSummaries.data.drafts.map((quote) => ({
+        href: `/admin/quotes/${quote.id}`,
+        title: quote.quote_number ?? "Draft quote",
+        meta: quote.customers?.display_name ?? "Unknown customer",
+      })),
+    },
     {
       title: "New leads",
       description: "Requests that need first contact, qualification, or a quick call back.",
       Icon: PhoneCall,
       href: "/admin/jobs",
       items: jobSummaries.lanes.newLeads.map((job) => ({
+        href: `/admin/jobs/${job.id}`,
         title: job.customers?.display_name ?? "Unknown customer",
         meta: job.requested_scope ?? "No scope entered yet",
       })),
@@ -63,6 +75,7 @@ export default async function AdminPage() {
       Icon: CalendarDays,
       href: "/admin/jobs",
       items: jobSummaries.lanes.estimatesToSchedule.map((job) => ({
+        href: `/admin/jobs/${job.id}`,
         title: job.customers?.display_name ?? "Unknown customer",
         meta: job.service_locations
           ? `${job.service_locations.street}, ${job.service_locations.city}`
@@ -74,9 +87,32 @@ export default async function AdminPage() {
       description: "Sent quotes that need approval, edits, or a thoughtful reminder.",
       Icon: MessageSquareMore,
       href: "/admin/quotes",
-      items: awaitingQuotes.data.map((quote) => ({
+      items: quoteSummaries.data.awaitingResponse.map((quote) => ({
+        href: `/admin/quotes/${quote.id}`,
         title: quote.quote_number ?? "Sent quote",
         meta: quote.customers?.display_name ?? "Unknown customer",
+      })),
+    },
+    {
+      title: "Approved work to schedule",
+      description: "Accepted work orders that need a crew date or schedule event.",
+      Icon: CalendarDays,
+      href: "/admin/jobs",
+      items: jobSummaries.lanes.approvedWorkToSchedule.map((job) => ({
+        href: `/admin/jobs/${job.id}`,
+        title: job.customers?.display_name ?? "Unknown customer",
+        meta: job.requested_scope ?? "Approved work order",
+      })),
+    },
+    {
+      title: "Completed work to invoice",
+      description: "Finished work orders ready for one linked customer invoice.",
+      Icon: CircleDollarSign,
+      href: "/admin/jobs",
+      items: jobSummaries.lanes.completedWorkToInvoice.map((job) => ({
+        href: `/admin/jobs/${job.id}`,
+        title: job.customers?.display_name ?? "Unknown customer",
+        meta: job.service_type?.replace("_", " ") ?? "Completed work order",
       })),
     },
     {
@@ -85,6 +121,7 @@ export default async function AdminPage() {
       Icon: Truck,
       href: "/admin/schedule",
       items: jobSummaries.lanes.todaysJobs.map((job) => ({
+        href: `/admin/jobs/${job.id}`,
         title: job.service_type?.replace("_", " ") ?? "Service job",
         meta: job.customers?.display_name ?? "Unknown customer",
       })),
@@ -95,6 +132,7 @@ export default async function AdminPage() {
       Icon: Clock3,
       href: "/admin/schedule",
       items: followUps.data.map((appointment) => ({
+        href: `/admin/schedule?appointment=${appointment.id}`,
         title: appointment.jobs?.service_type?.replace("_", " ") ?? "Follow-up",
         meta: formatFollowUpMeta(appointment),
       })),
@@ -105,17 +143,19 @@ export default async function AdminPage() {
       Icon: CircleDollarSign,
       href: "/admin/invoices",
       items: unpaidInvoices.data.map((invoice) => ({
+        href: `/admin/invoices/${invoice.id}`,
         title: invoice.invoice_number ?? "Open invoice",
         meta: `${invoice.customers?.display_name ?? "Unknown customer"} - ${formatCurrency(invoice.balance_due_cents)}`,
       })),
     },
   ];
-  const todayLanes = [lanes[3], lanes[4]];
-  const attentionLanes = [lanes[0], lanes[1], lanes[2], lanes[5]];
+  const attentionLanes = [lanes[0], lanes[1], lanes[2], lanes[3], lanes[4], lanes[5], lanes[8]];
   const pipelineSummary = [
+    { label: "Draft quotes", value: quoteSummaries.data.drafts.length },
     { label: "New leads", value: jobSummaries.lanes.newLeads.length },
     { label: "Estimates", value: jobSummaries.lanes.estimatesToSchedule.length },
-    { label: "Quotes waiting", value: awaitingQuotes.data.length },
+    { label: "Quotes waiting", value: quoteSummaries.data.awaitingResponse.length },
+    { label: "Ready to invoice", value: jobSummaries.lanes.completedWorkToInvoice.length },
     { label: "Open invoices", value: unpaidInvoices.data.length },
   ];
 
@@ -134,7 +174,7 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, awaitingQuotes.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error]
+        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
@@ -288,7 +328,7 @@ export default async function AdminPage() {
         <section className="workflow-strip" aria-label="First workflow">
           <span>
             <ClipboardCheck aria-hidden="true" size={18} />
-            First usable workflow: customer to service location to job to quote
+            Operational workflow: estimate to quote to scheduled work to invoice
           </span>
         </section>
       </div>
@@ -312,17 +352,19 @@ function WorkflowLane({
     title: string;
     Icon: LucideIcon;
     href: string;
-    items: { title: string; meta: string }[];
+    items: { href: string; title: string; meta: string }[];
   };
 }) {
+  const preview = lane.items[0];
+
   return (
-    <a className="workflow-row" href={lane.href}>
+    <a className="workflow-row" href={preview?.href ?? lane.href}>
       <span className="workflow-row-icon" aria-hidden="true">
         <lane.Icon size={15} />
       </span>
       <span>
         <strong>{lane.title}</strong>
-        {lane.items[0] ? <small>{lane.items[0].title}: {lane.items[0].meta}</small> : <small>Clear for now</small>}
+        {preview ? <small>{preview.title}: {preview.meta}</small> : <small>Clear for now</small>}
       </span>
       <b>{lane.items.length}</b>
     </a>

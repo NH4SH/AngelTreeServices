@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import type { QuoteStatus } from "@/lib/types/database";
 
@@ -170,6 +171,14 @@ export async function createQuote(
     }
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "quote_created",
+    metadata: { service_location_id: serviceLocationId },
+    subjectId: quote.id,
+    subjectType: "quote",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/customers/${customerId}`);
@@ -297,7 +306,6 @@ export async function updateQuote(
     }
   }
 
-  const returnsToDraft = existingQuote.status !== "draft";
   const { error: quoteError } = await supabase
     .from("quotes")
     .update({
@@ -305,15 +313,12 @@ export async function updateQuote(
       customer_id: customerId,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
-      status: returnsToDraft ? "draft" : existingQuote.status,
+      status: existingQuote.status,
       subtotal_cents: subtotalCents,
       tax_cents: 0,
       total_cents: subtotalCents,
       customer_message: customerMessage,
       expires_at: expiresAt,
-      sent_at: returnsToDraft ? null : undefined,
-      sent_method: returnsToDraft ? null : undefined,
-      sent_by_user_id: returnsToDraft ? null : undefined,
     })
     .eq("id", quoteId);
 
@@ -338,9 +343,7 @@ export async function updateQuote(
 
   return {
     status: "success",
-    message: returnsToDraft
-      ? "Changes saved. This quote is now a draft and the existing customer link remains active."
-      : "Draft quote saved. Existing customer link remains active.",
+    message: "Changes saved. The current quote status and existing customer link remain active.",
   };
 }
 

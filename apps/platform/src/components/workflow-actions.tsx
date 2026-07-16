@@ -3,7 +3,9 @@
 import { useActionState } from "react";
 import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
+import Link from "next/link";
 import {
+  createInvoiceFromJob,
   createInvoiceFromQuote,
   markInvoiceSentManually,
   markQuoteSentManually,
@@ -14,6 +16,7 @@ import {
 import type { InvoiceStatus, JobStatus, QuoteStatus } from "@/lib/types/database";
 
 type ActionState = {
+  invoiceId?: string;
   status: string;
   message: string;
 };
@@ -118,6 +121,27 @@ export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
           Create invoice from quote
         </button>
       </form>
+    </WorkflowActionPanel>
+  );
+}
+
+export function CreateInvoiceFromJobAction({ jobId }: { jobId: string }) {
+  const [state, formAction, pending] = useActionState(createInvoiceFromJob, initialState);
+
+  return (
+    <WorkflowActionPanel message={state.message} status={state.status}>
+      <form action={formAction} className="inline-action-form">
+        <input name="job_id" type="hidden" value={jobId} />
+        <button disabled={pending} type="submit">
+          <FilePlus2 aria-hidden="true" size={18} />
+          {pending ? "Generating invoice..." : "Generate invoice"}
+        </button>
+      </form>
+      {state.invoiceId ? (
+        <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>
+          Open existing invoice
+        </Link>
+      ) : null}
     </WorkflowActionPanel>
   );
 }

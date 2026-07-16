@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 
 export type InvoiceActionState = {
@@ -49,7 +50,7 @@ export async function createInvoice(
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id, customer_id")
+    .select("id, customer_id, status")
     .eq("id", jobId)
     .single();
 
@@ -59,6 +60,38 @@ export async function createInvoice(
 
   if (job.customer_id !== customerId) {
     return { status: "error", message: "Selected job does not belong to the selected customer." };
+  }
+
+  const { data: existingInvoice, error: existingInvoiceError } = await supabase
+    .from("invoices")
+    .select("id")
+    .eq("job_id", jobId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingInvoiceError) {
+    return { status: "error", message: existingInvoiceError.message };
+  }
+
+  if (existingInvoice) {
+    return { status: "error", message: "An invoice already exists for this work order. Open it or use Duplicate for an additional draft." };
+  }
+
+  const { data: claimedJob, error: claimError } = await supabase
+    .from("jobs")
+    .update({ status: "invoiced" })
+    .eq("id", jobId)
+    .eq("status", "completed")
+    .select("id")
+    .maybeSingle();
+
+  if (claimError) {
+    return { status: "error", message: claimError.message };
+  }
+
+  if (!claimedJob) {
+    return { status: "error", message: "Complete this work order before creating an invoice." };
   }
 
   const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
@@ -79,6 +112,7 @@ export async function createInvoice(
     .single();
 
   if (invoiceError || !invoice) {
+    await restoreCompletedJob(supabase, jobId);
     return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -95,12 +129,15 @@ export async function createInvoice(
   );
 
   if (lineItemError) {
+    await supabase.from("invoices").delete().eq("id", invoice.id);
+    await restoreCompletedJob(supabase, jobId);
     return {
       status: "error",
-      message: `Invoice saved, but line items failed: ${lineItemError.message}`,
+      message: `Invoice was not created because line items failed: ${lineItemError.message}`,
     };
   }
 
+  let noteWarning = "";
   if (notes) {
     const { error: noteError } = await supabase.from("notes").insert({
       customer_id: customerId,
@@ -111,13 +148,29 @@ export async function createInvoice(
     });
 
     if (noteError) {
-      return { status: "error", message: `Invoice saved, but note failed: ${noteError.message}` };
+      console.error("Invoice note write failed", noteError);
+      noteWarning = " The internal note could not be added.";
     }
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "invoice_generated",
+    metadata: { source_quote_id: null },
+    subjectId: invoice.id,
+    subjectType: "invoice",
+  });
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "work_order_invoiced",
+    metadata: { invoice_id: invoice.id },
+    subjectId: jobId,
+    subjectType: "job",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
-  return { status: "success", message: "Invoice saved. Payment collection is not connected yet." };
+  return { status: "success", message: `Invoice saved. Payment collection is not connected yet.${noteWarning}` };
 }
 
 type InvoiceLineItemInput = {
@@ -327,4 +380,11 @@ async function syncInvoiceLineItems(
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+async function restoreCompletedJob(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  jobId: string,
+) {
+  await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId).eq("status", "invoiced");
 }

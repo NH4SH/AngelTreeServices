@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { recordActivity } from "@/lib/activity-log";
 import type { JobStatus } from "@/lib/types/database";
 
 type QuoteWorkflowResult =
@@ -25,6 +26,7 @@ export async function approveQuoteAndEnsureWorkOrder(
   supabase: SupabaseClient<any, "public", any>,
   quoteId: string,
   approvedAt = new Date().toISOString(),
+  actorUserId: string | null = null,
 ): Promise<QuoteWorkflowResult> {
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
@@ -37,6 +39,11 @@ export async function approveQuoteAndEnsureWorkOrder(
   }
 
   const typedQuote = quote as QuoteForApproval;
+  const approvableStatuses = ["draft", "sent", "change_requested", "approved"];
+
+  if (!approvableStatuses.includes(typedQuote.status)) {
+    return { ok: false, message: "Only an open quote can be approved." };
+  }
 
   if (typedQuote.job_id) {
     const updateResult = await markQuoteApproved(supabase, typedQuote.id, typedQuote.job_id, approvedAt);
@@ -45,6 +52,7 @@ export async function approveQuoteAndEnsureWorkOrder(
     }
 
     await moveLinkedJobToAccepted(supabase, typedQuote.job_id);
+    await logQuoteApproval(supabase, typedQuote, actorUserId, false);
     return { ok: true, jobId: typedQuote.job_id, createdJob: false };
   }
 
@@ -60,6 +68,9 @@ export async function approveQuoteAndEnsureWorkOrder(
 
   if (existingJob) {
     const updateResult = await markQuoteApproved(supabase, typedQuote.id, existingJob.id, approvedAt);
+    if (updateResult.ok) {
+      await logQuoteApproval(supabase, typedQuote, actorUserId, false);
+    }
     return updateResult.ok ? { ok: true, jobId: existingJob.id, createdJob: false } : updateResult;
   }
 
@@ -94,6 +105,9 @@ export async function approveQuoteAndEnsureWorkOrder(
       }
 
       const updateResult = await markQuoteApproved(supabase, typedQuote.id, duplicateGuardJob.id, approvedAt);
+      if (updateResult.ok) {
+        await logQuoteApproval(supabase, typedQuote, actorUserId, false);
+      }
       return updateResult.ok ? { ok: true, jobId: duplicateGuardJob.id, createdJob: false } : updateResult;
     }
 
@@ -101,6 +115,16 @@ export async function approveQuoteAndEnsureWorkOrder(
   }
 
   const updateResult = await markQuoteApproved(supabase, typedQuote.id, createdJob.id, approvedAt);
+  if (updateResult.ok) {
+    await recordActivity(supabase, {
+      actorUserId,
+      eventType: "work_order_created",
+      metadata: { source_quote_id: typedQuote.id },
+      subjectId: createdJob.id,
+      subjectType: "job",
+    });
+    await logQuoteApproval(supabase, typedQuote, actorUserId, true);
+  }
   return updateResult.ok ? { ok: true, jobId: createdJob.id, createdJob: true } : updateResult;
 }
 
@@ -110,16 +134,38 @@ async function markQuoteApproved(
   jobId: string,
   approvedAt: string,
 ): Promise<QuoteWorkflowResult> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("quotes")
     .update({ status: "approved", approved_at: approvedAt, job_id: jobId })
-    .eq("id", quoteId);
+    .eq("id", quoteId)
+    .in("status", ["draft", "sent", "change_requested", "approved"])
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    return { ok: false, message: error.message };
+  if (error || !data) {
+    return { ok: false, message: error?.message ?? "Only an open quote can be approved." };
   }
 
   return { ok: true, jobId, createdJob: false };
+}
+
+async function logQuoteApproval(
+  supabase: SupabaseClient<any, "public", any>,
+  quote: QuoteForApproval,
+  actorUserId: string | null,
+  createdWorkOrder: boolean,
+) {
+  if (quote.status === "approved") {
+    return;
+  }
+
+  await recordActivity(supabase, {
+    actorUserId,
+    eventType: "quote_approved",
+    metadata: { work_order_created: createdWorkOrder },
+    subjectId: quote.id,
+    subjectType: "quote",
+  });
 }
 
 async function moveLinkedJobToAccepted(supabase: SupabaseClient<any, "public", any>, jobId: string) {

@@ -1,6 +1,5 @@
 import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
-import { CreateInvoiceFromQuoteAction } from "@/components/workflow-actions";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -123,7 +122,11 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                       <Link2 aria-hidden="true" size={16} />
                       Portal
                     </Link>
-                    {quote.status === "approved" ? <CreateInvoiceFromQuoteAction quoteId={quote.id} /> : null}
+                    {quote.status === "approved" && quote.jobs ? (
+                      <Link className="secondary-action" href={`/admin/jobs/${quote.jobs.id}`}>
+                        Work order
+                      </Link>
+                    ) : null}
                   </div>
                 </article>
               ))}

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
@@ -56,6 +57,15 @@ export async function createQuotePortalLink(
 
   if (tokenRecord.error) {
     return { ok: false, status: "error", message: tokenRecord.error };
+  }
+
+  if (tokenRecord.created) {
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: "quote_portal_link_generated",
+      subjectId: quote.id,
+      subjectType: "quote",
+    });
   }
 
   revalidatePath(`/admin/quotes/${quote.id}`);
@@ -126,6 +136,13 @@ export async function regenerateQuotePortalLink(
     }
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "quote_portal_link_regenerated",
+    subjectId: quote.id,
+    subjectType: "quote",
+  });
+
   revalidatePath(`/admin/quotes/${quote.id}`);
 
   return {
@@ -170,6 +187,13 @@ export async function revokeQuotePortalLink(
     console.error("Quote portal link revoke failed", error);
     return { ok: false, status: "error", message: "Could not revoke the customer link. Please try again." };
   }
+
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "quote_portal_link_revoked",
+    subjectId: quoteId,
+    subjectType: "quote",
+  });
 
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true, status: "success", message: "Secure customer quote link revoked." };

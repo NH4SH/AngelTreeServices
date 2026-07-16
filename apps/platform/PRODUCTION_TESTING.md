@@ -30,6 +30,11 @@ Set these on the Netlify admin site:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+PORTAL_TOKEN_ENCRYPTION_KEY=
+RESEND_API_KEY=
+EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
+EMAIL_REPLY_TO=info@angeltreeservice.org
+INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org
 ```
@@ -43,10 +48,12 @@ SUPABASE_DB_URL=
 Notes:
 
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only.
+- `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only and must not use a `NEXT_PUBLIC_` prefix.
 - Do not add the service role key to the public website Netlify site.
 - `SUPABASE_DB_URL` is not required for normal app page runtime right now.
 - Secure invoice links require `supabase/migrations/20260709132222_invoice_portal_tokens.sql`
   and `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`.
+  Also apply `supabase/migrations/20260716165828_add_recoverable_portal_links.sql` before using recoverable customer links.
   If `/admin/invoices/[invoiceId]` shows an `invoice_portal_tokens` schema-cache notice, apply the pending migrations and refresh/wait for the Supabase schema cache.
 
 ## 3. Required Supabase Auth URLs
@@ -133,7 +140,23 @@ Test flow:
    - the public site is posting to `https://admin.angeltreeservices.org/api/leads`
    - Netlify env vars were redeployed after changes
 
-## 7. Rollback Notes
+## 7. Operational Workflow Smoke Test
+
+Run this with a non-production test customer after migration and deployment:
+
+1. Create a customer and service location, then create a quote. Confirm the quote starts as `draft`.
+2. Save/edit the draft and confirm it remains `draft`; generate a customer link and verify the signed-out portal page loads.
+3. Send the quote through the CRM. Confirm it becomes `sent` only after the send succeeds and the existing active link is reused.
+4. Edit the sent quote, reopen the original signed-out link, and confirm it shows the latest scope and totals.
+5. Approve the quote. Confirm one accepted work order is created or linked; repeat the action and confirm no duplicate work order appears.
+6. Schedule the work order, move it through `in progress`, then complete it.
+7. Generate the invoice from the completed work order. Confirm scope, prices, quote, customer, and job links carry over.
+8. Attempt invoice generation again. Confirm the app links to the existing invoice instead of creating a second invoice.
+9. Generate or send the invoice link, edit the invoice, and confirm the same signed-out link shows the saved update.
+10. Duplicate a quote, invoice, and work order. Confirm each duplicate is a draft/new record with no copied portal token, email history, payments, time entries, photos, or internal crew notes.
+11. Confirm the dashboard shows any remaining draft quote, accepted work awaiting scheduling, completed work awaiting invoice, and sent invoice awaiting payment in their queue.
+
+## 8. Rollback Notes
 
 If the admin deploy fails:
 

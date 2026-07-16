@@ -35,6 +35,10 @@ export function AddInvoiceForm({
     () => jobs.filter((job) => !selectedCustomerId || job.customer_id === selectedCustomerId),
     [jobs, selectedCustomerId],
   );
+  const invoiceableJobs = useMemo(
+    () => matchingJobs.filter((job) => job.status === "completed"),
+    [matchingJobs],
+  );
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
 
   return (
@@ -68,10 +72,10 @@ export function AddInvoiceForm({
             </select>
           </label>
           <label>
-            Job
+            Completed work order
             <select name="job_id" required>
-              <option value="">Choose job</option>
-              {matchingJobs.map((job) => (
+              <option value="">Choose completed work order</option>
+              {invoiceableJobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.service_type ?? "job"} - {job.status.replace("_", " ")}
                 </option>

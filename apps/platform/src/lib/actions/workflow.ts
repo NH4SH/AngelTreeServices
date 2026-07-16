@@ -2,12 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
+  invoiceId?: string;
   status: string;
   message: string;
 };
@@ -66,6 +68,14 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     return { status: "error", message: error.message };
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: nextStatus === "completed" ? "work_order_completed" : "work_order_status_changed",
+    metadata: { from_status: job.status, to_status: nextStatus },
+    subjectId: jobId,
+    subjectType: "job",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
@@ -98,7 +108,7 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
   let message = `Quote marked ${nextStatus.replace("_", " ")}.`;
 
   if (nextStatus === "approved") {
-    const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId);
+    const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
 
     if (!result.ok) {
       return { status: "error", message: result.message };
@@ -119,6 +129,13 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
     if (error) {
       return { status: "error", message: error.message };
     }
+
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: nextStatus === "change_requested" ? "quote_change_requested" : "quote_declined",
+      subjectId: quoteId,
+      subjectType: "quote",
+    });
   }
 
   revalidatePath("/admin");
@@ -177,6 +194,13 @@ export async function markQuoteSentManually(
     return { status: "error", message: "Only draft or change-requested quotes can be manually marked sent." };
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "quote_marked_sent_manually",
+    subjectId: quoteId,
+    subjectType: "quote",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -210,6 +234,13 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
   if (error) {
     return { status: "error", message: error.message };
   }
+
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "invoice_voided",
+    subjectId: invoiceId,
+    subjectType: "invoice",
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -260,6 +291,13 @@ export async function markInvoiceSentManually(
     return { status: "error", message: "Only an unsent invoice can be manually marked sent." };
   }
 
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "invoice_marked_sent_manually",
+    subjectId: invoiceId,
+    subjectType: "invoice",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
@@ -282,24 +320,9 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   }
 
   const quoteId = getString(formData, "quote_id");
-
-  const { data: existingInvoice, error: existingError } = await supabase
-    .from("invoices")
-    .select("id")
-    .eq("quote_id", quoteId)
-    .maybeSingle();
-
-  if (existingError) {
-    return { status: "error", message: existingError.message };
-  }
-
-  if (existingInvoice) {
-    redirect(`/admin/invoices/${existingInvoice.id}`);
-  }
-
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("*, quote_line_items(*)")
+    .select("id, status")
     .eq("id", quoteId)
     .single();
 
@@ -307,74 +330,260 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
     return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
   }
 
-  const typedQuote = quote as {
-    id: string;
-    job_id: string | null;
-    customer_id: string;
-    status: QuoteStatus;
-    subtotal_cents: number;
-    tax_cents: number;
-    total_cents: number;
-    quote_line_items?: QuoteLineItem[];
-  };
-  const lineItems = (typedQuote.quote_line_items ?? []) as QuoteLineItem[];
-
-  if (lineItems.length === 0) {
-    return { status: "error", message: "Add at least one quote line item before creating an invoice." };
-  }
-
-  if (typedQuote.status !== "approved") {
+  if (quote.status !== "approved") {
     return { status: "error", message: "Approve the quote before creating an invoice." };
   }
 
-  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, quoteId);
+  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
 
   if (!approvalResult.ok) {
     return { status: "error", message: approvalResult.message };
   }
 
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .insert({
-      job_id: approvalResult.jobId,
-      quote_id: typedQuote.id,
-      customer_id: typedQuote.customer_id,
-      status: "draft",
-      subtotal_cents: typedQuote.subtotal_cents,
-      tax_cents: typedQuote.tax_cents,
-      total_cents: typedQuote.total_cents,
-      balance_due_cents: typedQuote.total_cents,
-    })
-    .select("id")
-    .single();
+  const result = await createInvoiceForCompletedJob({
+    actorUserId: user.id,
+    jobId: approvalResult.jobId,
+    sourceQuoteId: quote.id,
+    supabase,
+  });
 
-  if (invoiceError || !invoice) {
-    return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
-  }
-
-  const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
-    lineItems.map((item) => ({
-      invoice_id: invoice.id,
-      name: item.name,
-      description: item.description,
-      quantity: item.quantity,
-      unit_price_cents: item.unit_price_cents,
-      total_cents: item.total_cents,
-      sort_order: item.sort_order,
-    })),
-  );
-
-  if (lineItemError) {
-    return {
-      status: "error",
-      message: `Invoice created, but line items failed: ${lineItemError.message}`,
-    };
+  if (!result.ok) {
+    return { status: "error", message: result.message };
   }
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath("/admin/invoices");
-  revalidatePath(`/admin/invoices/${invoice.id}`);
-  redirect(`/admin/invoices/${invoice.id}`);
+  revalidatePath(`/admin/invoices/${result.invoiceId}`);
+  redirect(`/admin/invoices/${result.invoiceId}`);
+}
+
+export async function createInvoiceFromJob(_previousState: WorkflowActionState, formData: FormData) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before generating an invoice." };
+  }
+
+  const jobId = getString(formData, "job_id");
+  if (!jobId) {
+    return { status: "error", message: "Choose a completed work order before generating an invoice." };
+  }
+
+  const result = await createInvoiceForCompletedJob({ actorUserId: user.id, jobId, supabase });
+  if (!result.ok) {
+    return { status: "error", message: result.message };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${result.invoiceId}`);
+
+  if (result.existing) {
+    return {
+      invoiceId: result.invoiceId,
+      status: "success",
+      message: "An invoice already exists for this work order.",
+    };
+  }
+
+  redirect(`/admin/invoices/${result.invoiceId}`);
+}
+
+type InvoiceGenerationResult =
+  | { ok: true; invoiceId: string; existing: boolean }
+  | { ok: false; message: string };
+
+async function createInvoiceForCompletedJob({
+  actorUserId,
+  jobId,
+  sourceQuoteId,
+  supabase,
+}: {
+  actorUserId: string;
+  jobId: string;
+  sourceQuoteId?: string;
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>;
+}): Promise<InvoiceGenerationResult> {
+  const existingInvoice = await findInvoiceForJob(supabase, jobId);
+  if (existingInvoice.error) {
+    return { ok: false, message: existingInvoice.error };
+  }
+
+  if (existingInvoice.invoiceId) {
+    return { ok: true, invoiceId: existingInvoice.invoiceId, existing: true };
+  }
+
+  const { data: claimedJob, error: claimError } = await supabase
+    .from("jobs")
+    .update({ status: "invoiced" })
+    .eq("id", jobId)
+    .eq("status", "completed")
+    .select("id, customer_id, source_quote_id, service_type, requested_scope")
+    .maybeSingle();
+
+  if (claimError) {
+    return { ok: false, message: claimError.message };
+  }
+
+  if (!claimedJob) {
+    const claimedInvoice = await findInvoiceForJob(supabase, jobId);
+    if (claimedInvoice.error) {
+      return { ok: false, message: claimedInvoice.error };
+    }
+
+    if (claimedInvoice.invoiceId) {
+      return { ok: true, invoiceId: claimedInvoice.invoiceId, existing: true };
+    }
+
+    return { ok: false, message: "Complete this work order before generating an invoice." };
+  }
+
+  const linkedQuoteId = sourceQuoteId ?? claimedJob.source_quote_id ?? null;
+  const quoteResult = await getInvoiceSourceQuote(supabase, linkedQuoteId, jobId);
+  if (!quoteResult.ok) {
+    await restoreCompletedJob(supabase, jobId);
+    return quoteResult;
+  }
+
+  const lines = quoteResult.lineItems.length > 0
+    ? quoteResult.lineItems
+    : [{
+        description: claimedJob.requested_scope,
+        name: formatServiceType(claimedJob.service_type),
+        quantity: 1,
+        sort_order: 0,
+        total_cents: 0,
+        unit_price_cents: 0,
+      }];
+  const subtotalCents = lines.reduce((sum, line) => sum + line.total_cents, 0);
+  const taxCents = quoteResult.taxCents;
+  const totalCents = subtotalCents + taxCents;
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .insert({
+      balance_due_cents: totalCents,
+      customer_id: claimedJob.customer_id,
+      job_id: claimedJob.id,
+      quote_id: quoteResult.quoteId,
+      status: "draft",
+      subtotal_cents: subtotalCents,
+      tax_cents: taxCents,
+      total_cents: totalCents,
+    })
+    .select("id")
+    .single();
+
+  if (invoiceError || !invoice) {
+    await restoreCompletedJob(supabase, jobId);
+    return { ok: false, message: invoiceError?.message ?? "Could not create invoice." };
+  }
+
+  const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
+    lines.map((line, index) => ({
+      description: line.description,
+      invoice_id: invoice.id,
+      name: line.name,
+      quantity: line.quantity,
+      sort_order: index,
+      total_cents: line.total_cents,
+      unit_price_cents: line.unit_price_cents,
+    })),
+  );
+
+  if (lineItemError) {
+    await supabase.from("invoices").delete().eq("id", invoice.id);
+    await restoreCompletedJob(supabase, jobId);
+    return { ok: false, message: `Invoice was not created because line items failed: ${lineItemError.message}` };
+  }
+
+  await recordActivity(supabase, {
+    actorUserId,
+    eventType: "invoice_generated",
+    metadata: { source_quote_id: quoteResult.quoteId },
+    subjectId: invoice.id,
+    subjectType: "invoice",
+  });
+  await recordActivity(supabase, {
+    actorUserId,
+    eventType: "work_order_invoiced",
+    metadata: { invoice_id: invoice.id },
+    subjectId: jobId,
+    subjectType: "job",
+  });
+
+  return { ok: true, invoiceId: invoice.id, existing: false };
+}
+
+async function findInvoiceForJob(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  jobId: string,
+) {
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id")
+    .eq("job_id", jobId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return { error: error?.message ?? null, invoiceId: data?.id ?? null };
+}
+
+async function getInvoiceSourceQuote(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  quoteId: string | null,
+  jobId: string,
+): Promise<
+  | { ok: true; quoteId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
+  | { ok: false; message: string }
+> {
+  if (!quoteId) {
+    return { ok: true, quoteId: null, taxCents: 0, lineItems: [] };
+  }
+
+  const { data: quote, error } = await supabase
+    .from("quotes")
+    .select("id, job_id, status, tax_cents, quote_line_items(name, description, quantity, unit_price_cents, total_cents, sort_order)")
+    .eq("id", quoteId)
+    .maybeSingle();
+
+  if (error || !quote) {
+    return { ok: false, message: error?.message ?? "Could not find the source quote for this work order." };
+  }
+
+  if (quote.job_id && quote.job_id !== jobId) {
+    return { ok: false, message: "The source quote is linked to a different work order." };
+  }
+
+  return {
+    ok: true,
+    quoteId: quote.id,
+    taxCents: quote.tax_cents ?? 0,
+    lineItems: ((quote.quote_line_items ?? []) as QuoteLineItem[])
+      .sort((left, right) => left.sort_order - right.sort_order),
+  };
+}
+
+async function restoreCompletedJob(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  jobId: string,
+) {
+  await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId).eq("status", "invoiced");
+}
+
+function formatServiceType(serviceType: string | null) {
+  return serviceType?.replaceAll("_", " ") || "Completed service";
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceLineItem, JobPriority, QuoteLineItem } from "@/lib/types/database";
@@ -83,6 +84,14 @@ export async function duplicateQuote(
     return { status: "error", message: `Quote copy was not saved because line items failed: ${lineItemError}` };
   }
 
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "quote_duplicated",
+    metadata: { source_quote_id: quoteId },
+    subjectId: newQuote.id,
+    subjectType: "quote",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -156,6 +165,14 @@ export async function duplicateInvoice(
     return { status: "error", message: `Invoice copy was not saved because line items failed: ${lineItemError}` };
   }
 
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "invoice_duplicated",
+    metadata: { source_invoice_id: invoiceId },
+    subjectId: newInvoice.id,
+    subjectType: "invoice",
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
@@ -181,9 +198,7 @@ export async function duplicateJob(
 
   const { data: job, error: jobError } = await auth.supabase
     .from("jobs")
-    .select(
-      "id, customer_id, service_location_id, service_type, priority, requested_scope, internal_notes",
-    )
+    .select("id, customer_id, service_location_id, service_type, priority, requested_scope")
     .eq("id", jobId)
     .single();
 
@@ -203,7 +218,7 @@ export async function duplicateJob(
       service_type: job.service_type,
       priority: (job.priority ?? "normal") as JobPriority,
       requested_scope: job.requested_scope,
-      internal_notes: job.internal_notes,
+      internal_notes: null,
       scheduled_start_at: null,
       scheduled_end_at: null,
       completed_at: null,
@@ -215,6 +230,14 @@ export async function duplicateJob(
   if (createError || !newJob) {
     return { status: "error", message: createError?.message ?? "Could not duplicate work order." };
   }
+
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "work_order_duplicated",
+    metadata: { source_job_id: jobId },
+    subjectId: newJob.id,
+    subjectType: "job",
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");

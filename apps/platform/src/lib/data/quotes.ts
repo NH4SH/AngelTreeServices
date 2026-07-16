@@ -42,6 +42,41 @@ export async function getQuotesAwaitingResponse() {
   };
 }
 
+export async function getQuoteDashboardSummaries() {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return {
+      data: { drafts: [] as QuoteWithRelations[], awaitingResponse: [] as QuoteWithRelations[] },
+      error: "Supabase is not configured.",
+    };
+  }
+
+  const quoteSelect = "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)";
+  const [drafts, awaitingResponse] = await Promise.all([
+    supabase
+      .from("quotes")
+      .select(quoteSelect)
+      .eq("status", "draft")
+      .order("updated_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("quotes")
+      .select(quoteSelect)
+      .in("status", ["sent", "change_requested"])
+      .order("updated_at", { ascending: false })
+      .limit(12),
+  ]);
+
+  return {
+    data: {
+      drafts: (drafts.data ?? []) as QuoteWithRelations[],
+      awaitingResponse: (awaitingResponse.data ?? []) as QuoteWithRelations[],
+    },
+    error: drafts.error?.message ?? awaitingResponse.error?.message ?? null,
+  };
+}
+
 export async function getQuotesByCustomerId(customerId: string): Promise<DataResult<QuoteWithRelations[]>> {
   const supabase = await createClient();
 

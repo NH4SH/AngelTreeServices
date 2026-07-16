@@ -2,26 +2,12 @@
 
 import { useActionState } from "react";
 import { createJob, type JobActionState } from "./actions";
-import type { Customer, JobPriority, JobServiceType, JobStatus, ServiceLocation } from "@/lib/types/database";
+import type { Customer, JobPriority, JobServiceType, ServiceLocation } from "@/lib/types/database";
 
 const initialState: JobActionState = {
   status: "idle",
   message: "",
 };
-
-const statuses: JobStatus[] = [
-  "new_lead",
-  "estimate_scheduled",
-  "quoted",
-  "accepted",
-  "scheduled",
-  "in_progress",
-  "completed",
-  "invoiced",
-  "paid",
-  "lost",
-  "cancelled",
-];
 
 const serviceTypes: JobServiceType[] = [
   "tree_removal",
@@ -74,23 +60,13 @@ export function AddJobForm({
           ))}
         </select>
       </label>
-      <div className="form-grid-three">
+      <div className="form-grid-two">
         <label>
           Service type
           <select name="service_type" defaultValue="tree_removal">
             {serviceTypes.map((type) => (
               <option key={type} value={type}>
                 {type.replace("_", " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Status
-          <select name="status" defaultValue="new_lead">
-            {statuses.map((status) => (
-              <option key={status} value={status}>
-                {status.replace("_", " ")}
               </option>
             ))}
           </select>

@@ -138,6 +138,7 @@ supabase/migrations/20260708004341_quote_first_workflow.sql
 supabase/migrations/20260709122947_quote_sent_delivery_metadata.sql
 supabase/migrations/20260709132222_invoice_portal_tokens.sql
 supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql
+supabase/migrations/20260716165828_add_recoverable_portal_links.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -157,7 +158,7 @@ The first admin CRM surface now includes:
 - `/admin/jobs`: approved, scheduled, active, and completed jobs/work orders, with legacy lead records still supported.
 - `/admin/jobs/[jobId]`: job file with customer/location summary, scope, schedule, quote/invoice links, photos, crew work order link, and validated status transitions.
 - `/admin/quotes`: quote-first proposal center for customer/location draft quotes and multi-line proposal line items.
-- `/admin/quotes/[quoteId]`: quote file with line items, document preview, send-quote action, approval/change/decline workflow actions, and create-invoice-from-quote after approval.
+- `/admin/quotes/[quoteId]`: quote file with line items, document preview, send-quote action, approval/change/decline workflow actions, and linked work-order navigation after approval.
 - `/admin/invoices`: invoice records and one starter line item, without payment collection.
 - `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment placeholder, document preview, and safe invoice status actions.
 - `/admin/schedule`: estimate, job, and follow-up appointment records.
@@ -212,7 +213,7 @@ There is no delete button yet. The migration permits assigned uploaders to remov
 The internal workflow now connects:
 
 ```text
-Customer -> Service Location -> Quote -> Approval -> Job / Work Order -> Invoice
+Customer -> Service Location -> Estimate -> Draft Quote -> Send -> Approval -> Job / Work Order -> Schedule -> Complete -> Invoice -> Send -> Payment later
 ```
 
 Implemented actions:
@@ -221,8 +222,8 @@ Implemented actions:
 - Quote creation: saves a `draft` quote from a customer, service location, optional estimate event, optional existing job/work order, and multiple proposal line items.
 - Quote line editor: supports add, remove, duplicate, reorder, multi-line scope descriptions, an Indent line helper, and visible subtotal/total calculation.
 - Send quote: when no active customer link exists, generates a secure portal link, sends the quote email, then automatically marks the quote `sent` and records `sent_at`. Existing hash-only links keep working after edits; regenerate only when the office intentionally needs a replacement URL.
-- Quote workflow actions: approve and create/link a work order, mark change requested, or mark declined.
-- Create invoice from quote: requires an approved quote, ensures the work order exists, copies quote line items into invoice line items, and links invoice to quote, job, and customer.
+- Quote workflow actions: approve and create/link one accepted work order, mark change requested, or mark declined.
+- Generate invoice from completed work order: atomically claims a completed work order for invoicing, copies quote line items into invoice line items, links the invoice to quote, job, and customer, and reuses the existing invoice if staff repeat the action.
 - Invoice delivery actions: generate/revoke secure customer links, send by configured email, record manual sent delivery, and mark void.
 
 Scaffolded only:

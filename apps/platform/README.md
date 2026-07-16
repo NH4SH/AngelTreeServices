@@ -139,6 +139,8 @@ supabase/migrations/20260709122947_quote_sent_delivery_metadata.sql
 supabase/migrations/20260709132222_invoice_portal_tokens.sql
 supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql
 supabase/migrations/20260716165828_add_recoverable_portal_links.sql
+supabase/migrations/20260716210754_stripe_invoice_payments.sql
+supabase/migrations/20260716212545_harden_security_definer_functions.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -146,6 +148,8 @@ For the first pass, you can paste the migration into the Supabase SQL editor. La
 The migration creates the core platform tables and enables Row Level Security. It intentionally inserts no real customer, job, quote, invoice, or payment data.
 
 The current CRM forms use normal authenticated Supabase requests. They do not use the service role key. For reads and writes to work, the signed-in user must have one of the staff roles allowed by the migration policies: `owner`, `admin`, or `estimator`.
+
+The final security migration moves RLS-only and trigger-only `SECURITY DEFINER` functions into the non-exposed `app_private` schema, fixes trigger function search paths, and removes default API-role execution. Keep `app_private` out of the Supabase Data API exposed schemas. Run `supabase/verification/security_advisor_hardening.sql` after applying it, follow `SECURITY_HARDENING.md`, and enable **Prevent the use of leaked passwords** manually in Supabase Auth settings.
 
 If your Supabase Data API settings do not automatically expose SQL-created tables, grant access to the `authenticated` role while keeping RLS enabled. Do not disable RLS to fix access errors.
 
@@ -159,8 +163,8 @@ The first admin CRM surface now includes:
 - `/admin/jobs/[jobId]`: job file with customer/location summary, scope, schedule, quote/invoice links, photos, crew work order link, and validated status transitions.
 - `/admin/quotes`: quote-first proposal center for customer/location draft quotes and multi-line proposal line items.
 - `/admin/quotes/[quoteId]`: quote file with line items, document preview, send-quote action, approval/change/decline workflow actions, and linked work-order navigation after approval.
-- `/admin/invoices`: invoice records and one starter line item, without payment collection.
-- `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment placeholder, document preview, and safe invoice status actions.
+- `/admin/invoices`: invoice records, balance tracking, and payment follow-up.
+- `/admin/invoices/[invoiceId]`: invoice file with line items, balance due, due date, payment history, owner/admin manual-payment entry, document preview, and safe invoice status actions.
 - `/admin/schedule`: estimate, job, and follow-up appointment records.
 - `/admin/documents`: quote, invoice, email, and work-order preview scaffolds.
 - `/admin/marketing`: protected review-request queue, completed-job post drafts, private gallery candidates, and service-area content ideas.
@@ -225,13 +229,11 @@ Implemented actions:
 - Quote workflow actions: approve and create/link one accepted work order, mark change requested, or mark declined.
 - Generate invoice from completed work order: atomically claims a completed work order for invoicing, copies quote line items into invoice line items, links the invoice to quote, job, and customer, and reuses the existing invoice if staff repeat the action.
 - Invoice delivery actions: generate/revoke secure customer links, send by configured email, record manual sent delivery, and mark void.
+- Invoice payments: sent invoices can use Stripe-hosted Checkout from a valid customer portal link. Signed Stripe webhooks create idempotent payment records and reconcile the remaining balance; owner/admin users can record manual check, cash, ACH, or other payments.
 
 Scaffolded only:
 
-- Record manual payment later.
 - Production PDF generation.
-- Production email sending.
-- Stripe/payment collection.
 
 ## Printable Documents And Email Drafts
 
@@ -271,7 +273,7 @@ The public route performs a narrow server-side lookup and exposes only the linke
 
 ## Secure Customer Invoice Links
 
-Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, and `supabase/migrations/20260716165828_add_recoverable_portal_links.sql` before testing invoice links. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, add encrypted staff-only recovery for newly generated links, grant the service role explicitly, and grant nothing to `anon`. If production shows a schema-cache error, apply the pending migrations and refresh/wait for the Supabase schema cache.
+Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, `supabase/migrations/20260716165828_add_recoverable_portal_links.sql`, and `supabase/migrations/20260716210754_stripe_invoice_payments.sql` before testing invoice links and payments. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, add encrypted staff-only recovery for newly generated links, and add private, service-role-only Stripe Checkout session tracking. If production shows a schema-cache error, apply the pending migrations and refresh/wait for the Supabase schema cache.
 
 From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it after refresh, intentionally regenerate the link, or revoke it. New tokens are SHA-256 hashed for portal validation and encrypted at rest with `PORTAL_TOKEN_ENCRYPTION_KEY` for staff-only recovery. Editing an invoice does not revoke an existing customer link; the link resolves the latest saved invoice details. Regenerate link creates a replacement link before revoking the previous active link. Links created before this recovery migration remain valid but cannot be reconstructed from their hash; regenerate them only when intentionally replacing the old link. Resending email reuses the active recoverable link when available.
 
@@ -281,7 +283,19 @@ The customer opens:
 http://localhost:3000/portal/invoice/{token}
 ```
 
-The signed-out route performs a server-only lookup and renders one invoice with customer, location, line items, totals, and print support. Invalid, expired, and revoked links fail cleanly. Online payment is intentionally not enabled.
+The signed-out route performs a server-only lookup and renders one invoice with customer, location, line items, totals, print support, and eligible Stripe Checkout payment. Invalid, expired, and revoked links fail cleanly. Checkout always revalidates the token and calculates the current remaining balance server-side; Stripe webhooks, not the return redirect, create payment records and mark invoices paid.
+
+## Stripe Checkout Payments
+
+Set these server-only values for the platform deployment:
+
+```env
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+APP_BASE_URL=https://admin.angeltreeservices.org
+```
+
+Configure Stripe test mode to POST `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `payment_intent.payment_failed` to `/api/stripe/webhook`. Do not use `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: the customer is redirected to Stripe-hosted Checkout and no Stripe.js client is loaded. `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` must remain server-only.
 
 `SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
 
@@ -476,7 +490,6 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 
 ## Current Limitations
 
-- No payment handling.
 - Email delivery requires Resend/Supabase SMTP configuration.
 - No external calendar sync or automated reminder delivery.
 - No PDF generation.

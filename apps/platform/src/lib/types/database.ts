@@ -261,9 +261,14 @@ export type Payment = {
   invoice_id: string;
   customer_id: string;
   amount_cents: number;
+  currency: string;
   payment_method: string | null;
   provider: string | null;
   provider_payment_id: string | null;
+  provider_checkout_session_id: string | null;
+  provider_charge_id: string | null;
+  reference: string | null;
+  notes: string | null;
   status: PaymentStatus;
   paid_at: string | null;
   created_at: string;

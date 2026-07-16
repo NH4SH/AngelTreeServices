@@ -6,6 +6,9 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
+import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout";
+import { getStripeServerConfig } from "@/lib/stripe/server";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -227,6 +230,21 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
 
   if (nextStatus !== "void") {
     return { status: "error", message: "That invoice status action is not allowed here." };
+  }
+
+  const paymentSupabase = getServiceRoleClient();
+  if (!paymentSupabase) {
+    return { status: "error", message: "Could not confirm whether this invoice has an active customer checkout." };
+  }
+
+  const stripeConfig = getStripeServerConfig();
+  const cancellation = await cancelOutstandingInvoiceCheckouts({
+    invoiceId,
+    stripe: stripeConfig.configured ? stripeConfig.stripe : null,
+    supabase: paymentSupabase,
+  });
+  if (!cancellation.ok) {
+    return { status: "error", message: cancellation.message };
   }
 
   const { error } = await supabase.from("invoices").update({ status: nextStatus }).eq("id", invoiceId);

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
+import { CircleDollarSign, ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
+import { ManualPaymentForm } from "@/components/manual-payment-form";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -20,7 +21,8 @@ import { getInvoicePortalTokens } from "@/lib/data/portal-invoice";
 import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
-import type { InvoiceStatus } from "@/lib/types/database";
+import { getStripeServerConfig } from "@/lib/stripe/server";
+import type { InvoiceStatus, Payment } from "@/lib/types/database";
 
 type InvoiceDetailPageProps = {
   params: Promise<{
@@ -43,6 +45,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
     : { data: [], error: null };
   const emailEvents = detail.data ? await getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null };
   const emailSetup = getEmailSetupState();
+  const stripeSetup = getStripeServerConfig();
+  const successfulPaymentCents = (detail.data?.payments ?? [])
+    .filter((payment) => payment.status === "succeeded")
+    .reduce((sum, payment) => sum + payment.amount_cents, 0);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
@@ -51,6 +57,9 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {portalTokens.error ? <DataWarning message={`Customer invoice links: ${portalTokens.error}`} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {detail.data && canManageDelivery && isInvoicePayable(detail.data.status, detail.data.balance_due_cents) && !stripeSetup.configured ? (
+          <DataWarning message="Stripe Checkout is not configured, so customers will not see an online payment button." />
+        ) : null}
         {!detail.data ? (
           <EmptyState title="Invoice not found or no access" body="This record is unavailable to the current account." />
         ) : (
@@ -226,6 +235,28 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                 </section>
 
                 <section className="commerce-side-panel">
+                  <PanelTitle icon={<CircleDollarSign size={18} />} title="Payments" />
+                  <dl className="record-details">
+                    <div><dt>Total</dt><dd>{formatCurrency(detail.data.total_cents)}</dd></div>
+                    <div><dt>Received</dt><dd>{formatCurrency(successfulPaymentCents)}</dd></div>
+                    <div><dt>Remaining</dt><dd>{formatCurrency(detail.data.balance_due_cents)}</dd></div>
+                  </dl>
+                  {detail.data.payments?.length ? (
+                    <div className="payment-record-list">
+                      {detail.data.payments.map((payment) => (
+                        <article className="linked-record" key={payment.id}>
+                          <strong>{formatCurrency(payment.amount_cents)} - {payment.status.replace("_", " ")}</strong>
+                          <span>{formatPaymentMeta(payment)}</span>
+                        </article>
+                      ))}
+                    </div>
+                  ) : <EmptyInline>No payments recorded yet.</EmptyInline>}
+                  {canManageDelivery && isInvoicePayable(detail.data.status, detail.data.balance_due_cents) ? (
+                    <ManualPaymentForm balanceDueCents={detail.data.balance_due_cents} invoiceId={detail.data.id} />
+                  ) : null}
+                </section>
+
+                <section className="commerce-side-panel">
                   <PanelTitle icon={<StickyNote size={18} />} title="Internal notes" />
                   {detail.data.notes?.length ? detail.data.notes.map((note) => (
                     <article className="linked-record" key={note.id}>
@@ -273,4 +304,14 @@ function formatDate(value?: string | null) {
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function isInvoicePayable(status: InvoiceStatus, balanceDueCents: number) {
+  return balanceDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(status);
+}
+
+function formatPaymentMeta(payment: Payment) {
+  const method = payment.provider === "stripe" ? "Stripe Checkout" : payment.payment_method?.replace("_", " ") || "Manual payment";
+  const reference = payment.reference || payment.provider_payment_id || "No reference";
+  return `${method} - ${formatDate(payment.paid_at)} - ${reference}`;
 }

@@ -170,7 +170,7 @@ export async function createInvoice(
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
-  return { status: "success", message: `Invoice saved. Payment collection is not connected yet.${noteWarning}` };
+  return { status: "success", message: `Invoice saved. Review it, then send it to the customer when ready.${noteWarning}` };
 }
 
 type InvoiceLineItemInput = {

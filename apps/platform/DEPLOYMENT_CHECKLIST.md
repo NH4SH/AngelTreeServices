@@ -15,6 +15,9 @@ RESEND_API_KEY=
 EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
 EMAIL_REPLY_TO=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+APP_BASE_URL=https://admin.angeltreeservices.org
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=
 ```
@@ -30,6 +33,8 @@ Notes:
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the only Supabase values that belong in browser code.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It is used for secure quote-token lookup and public lead intake writes. Never expose it in client components, browser bundles, or public logs.
 - `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only. Do not prefix them with `NEXT_PUBLIC_`.
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are server-only. Use Stripe test keys first and never prefix either value with `NEXT_PUBLIC_`.
+- `APP_BASE_URL` is the canonical platform origin used for Stripe Checkout return URLs. It must be the deployed admin origin, without a path.
 - `SUPABASE_DB_URL` is not required for normal runtime page rendering. Keep it for migrations and server-side tooling only.
 
 ## 2. Supabase Auth Setup
@@ -41,6 +46,7 @@ Still verify:
 - the deployed platform domain can set auth cookies normally
 - your Supabase project has the correct site URL for future auth emails
 - any future redirect URLs include the staging/private platform domain before enabling magic links, password recovery, or email confirmations
+- Supabase Auth settings have **Prevent the use of leaked passwords** enabled (available on Pro plans and above)
 
 ## 3. Protected And Public Routes
 
@@ -100,7 +106,42 @@ Before deploy, apply `supabase/migrations/20260709132222_invoice_portal_tokens.s
 4. Replaced, revoked, expired, and invalid links show the unavailable state.
 5. The browser never receives `SUPABASE_SERVICE_ROLE_KEY`.
 
-## 7. Build And Start Commands
+## 7. Stripe Checkout Setup
+
+Before enabling online payment, apply `supabase/migrations/20260716210754_stripe_invoice_payments.sql` after the existing portal-link migrations. Then, in the Stripe test-mode dashboard, create this webhook endpoint:
+
+```text
+https://admin.angeltreeservices.org/api/stripe/webhook
+```
+
+Subscribe it to:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `payment_intent.payment_failed`
+
+Copy that endpoint's signing secret to `STRIPE_WEBHOOK_SECRET`, redeploy the platform, and complete the test-mode smoke test before using live-mode keys. The portal uses hosted Stripe Checkout; no publishable key is needed.
+
+## 8. Supabase Security Advisor Hardening
+
+After all earlier migrations, apply:
+
+```text
+supabase/migrations/20260716212545_harden_security_definer_functions.sql
+```
+
+Then:
+
+1. Run `supabase/verification/security_advisor_hardening.sql` in the SQL editor or with `psql`.
+2. Confirm `app_private` is **not** in Supabase Data API exposed schemas.
+3. Rerun Supabase Security Advisor and confirm the mutable-search-path and exposed `SECURITY DEFINER` warnings are gone.
+4. In Supabase Auth settings, enable **Prevent the use of leaked passwords** manually.
+5. Complete the security regression checklist in `SECURITY_HARDENING.md`.
+
+The migration is not an application deployment step and must not be applied to production without an intentional database review.
+
+## 9. Build And Start Commands
 
 From `apps/platform`:
 
@@ -118,7 +159,7 @@ npm run dev:lan
 npm run start:lan
 ```
 
-## 8. Manual Staging Smoke Test
+## 10. Manual Staging Smoke Test
 
 After deployment, manually verify:
 
@@ -132,14 +173,16 @@ After deployment, manually verify:
 8. Time clock pages load for enabled users and deny disabled users with a helpful message.
 9. Complete a test work order, generate its invoice once, and confirm a second attempt opens the existing invoice instead of creating another.
 10. Edit a sent quote and a sent invoice, then open their existing customer links signed out to confirm each shows the latest saved document.
+11. Open a sent test invoice through its customer link, pay it with Stripe test mode, then confirm one payment appears and the invoice becomes paid.
+12. Replay the successful webhook event from Stripe and confirm no second payment record is created.
+13. Record a manual check payment on a separate sent invoice and confirm its balance/status update without a Stripe record.
 
-## 9. Not In Scope Yet
+## 11. Not In Scope Yet
 
 These are still intentionally unfinished for first private deployment:
 
-- public payment collection
 - production email sending
 - payroll export integration
 - external calendar sync
 - durable distributed rate limiting for public lead intake
-- public invoice payment collection
+- subscriptions, financing, saved cards, and customer-entered partial payments

@@ -1,17 +1,21 @@
 import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
+import { InvoicePortalPaymentButton } from "@/components/invoice-portal-payment-button";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
+import { getStripeServerConfig } from "@/lib/stripe/server";
 
 type CustomerInvoicePortalPageProps = {
   params: Promise<{
     token: string;
   }>;
+  searchParams: Promise<{ payment?: string }>;
 };
 
-export default async function CustomerInvoicePortalPage({ params }: CustomerInvoicePortalPageProps) {
+export default async function CustomerInvoicePortalPage({ params, searchParams }: CustomerInvoicePortalPageProps) {
   const { token } = await params;
+  const { payment } = await searchParams;
   const lookup = await getInvoiceByPortalToken(token);
 
   if (!lookup.invoice) {
@@ -20,6 +24,12 @@ export default async function CustomerInvoicePortalPage({ params }: CustomerInvo
 
   const invoice = lookup.invoice;
   const scopeSummary = getInvoiceScopeSummary(invoice);
+  const paymentTotalCents = (invoice.payments ?? [])
+    .filter((paymentRecord) => paymentRecord.status === "succeeded")
+    .reduce((sum, paymentRecord) => sum + paymentRecord.amount_cents, 0);
+  const amountDueCents = Math.max(0, invoice.total_cents - paymentTotalCents);
+  const stripeConfigured = getStripeServerConfig().configured;
+  const canPay = stripeConfigured && amountDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(invoice.status);
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
@@ -48,7 +58,7 @@ export default async function CustomerInvoicePortalPage({ params }: CustomerInvo
         <aside className="customer-portal-summary-card customer-invoice-summary">
           <div className="customer-quote-summary-total">
             <span>Balance due</span>
-            <strong>{formatCurrency(invoice.balance_due_cents)}</strong>
+            <strong>{formatCurrency(amountDueCents)}</strong>
           </div>
           <dl className="customer-quote-summary-list">
             <div>
@@ -86,8 +96,28 @@ export default async function CustomerInvoicePortalPage({ params }: CustomerInvo
       <section className="customer-invoice-payment-note print-hidden">
         <CircleDollarSign aria-hidden="true" size={22} />
         <div>
-          <strong>Payment options</strong>
-          <p>Online payment is not enabled yet. Please contact Angel Tree Services for payment options.</p>
+          {invoice.status === "paid" || amountDueCents === 0 ? (
+            <>
+              <strong>Payment received</strong>
+              <p>
+                {invoice.paid_at
+                  ? `${formatCurrency(paymentTotalCents)} paid ${formatDate(invoice.paid_at)}. Thank you.`
+                  : `Thank you. ${formatCurrency(paymentTotalCents)} has been paid in full.`}
+              </p>
+            </>
+          ) : canPay ? (
+            <>
+              <strong>Pay securely online</strong>
+              {payment === "success" ? <p>Payment submitted. This invoice will update as soon as Stripe confirms it.</p> : null}
+              {payment === "cancelled" ? <p>Checkout was cancelled. No payment was made.</p> : null}
+              <InvoicePortalPaymentButton token={token} />
+            </>
+          ) : (
+            <>
+              <strong>Payment options</strong>
+              <p>Please contact Angel Tree Services for payment options.</p>
+            </>
+          )}
         </div>
       </section>
 

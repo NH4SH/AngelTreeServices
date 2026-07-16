@@ -163,10 +163,6 @@ export function InvoiceStatusActions({
     <WorkflowActionPanel message={state.message} status={state.status}>
       <div className="workflow-button-row">
         <InvoiceStatusButton disabled={pending} formAction={formAction} invoiceId={invoiceId} status="void" />
-        <button disabled type="button">
-          <FilePlus2 aria-hidden="true" size={18} />
-          Record payment later
-        </button>
       </div>
     </WorkflowActionPanel>
   );

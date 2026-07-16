@@ -133,9 +133,9 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         <section className="notice-panel commerce-boundary-note">
           <strong>
             <CircleDollarSign aria-hidden="true" size={18} />
-            Payment boundary
+            Payments
           </strong>
-          <p>Invoices can be organized and marked for office workflow. This phase still does not collect, create, or reconcile real payments.</p>
+          <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
         {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} /> : null}

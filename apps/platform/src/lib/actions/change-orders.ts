@@ -13,14 +13,7 @@ import {
 import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
-
-export type ChangeOrderActionState = {
-  status: "idle" | "success" | "error";
-  message: string;
-  portalUrl?: string;
-};
-
-const idle: ChangeOrderActionState = { status: "idle", message: "" };
+import type { ChangeOrderActionState } from "@/lib/action-states/change-orders";
 
 export async function createChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
@@ -523,5 +516,3 @@ function money(centsValue: number) { return new Intl.NumberFormat("en-US", { sty
 function failure(message: string): ChangeOrderActionState { return { status: "error", message }; }
 function success(message: string): ChangeOrderActionState { return { status: "success", message }; }
 function revalidateChangeOrderPaths(id: string, jobId: string | null, organizationId: string | null) { revalidatePath("/admin/change-orders"); revalidatePath(`/admin/change-orders/${id}`); if (jobId) { revalidatePath(`/admin/jobs/${jobId}`); revalidatePath(`/crew/jobs/${jobId}`); } if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`); }
-
-export { idle as initialChangeOrderActionState };

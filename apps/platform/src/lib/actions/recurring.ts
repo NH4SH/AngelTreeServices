@@ -9,15 +9,7 @@ import {
   platformRoleGroups,
 } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
-
-export type RecurringActionState = {
-  status: "idle" | "success" | "error";
-  message: string;
-};
-export const initialRecurringActionState: RecurringActionState = {
-  status: "idle",
-  message: "",
-};
+import type { RecurringActionState } from "@/lib/action-states/recurring";
 
 export async function createFollowUpTask(
   _state: RecurringActionState,

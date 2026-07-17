@@ -25,13 +25,15 @@ import {
   createServiceRecommendation,
   createTaskFromRecommendation,
   generateRecurringOpportunities,
-  initialRecurringActionState,
   rescheduleRecurringLocation,
   updateFollowUpTask,
   updateRecurringLocationState,
   updateRecurringPlanState,
-  type RecurringActionState,
 } from "@/lib/actions/recurring";
+import {
+  initialRecurringActionState,
+  type RecurringActionState,
+} from "@/lib/action-states/recurring";
 import type {
   AssignableUser,
   Organization,

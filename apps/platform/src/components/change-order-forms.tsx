@@ -8,15 +8,17 @@ import {
   createChangeOrderPortalLink,
   attachApprovedChangeOrdersToInvoice,
   duplicateChangeOrder,
-  initialChangeOrderActionState,
   manuallyApproveChangeOrder,
   regenerateChangeOrderPortalLink,
   revokeChangeOrderPortalLink,
   sendChangeOrderEmail,
   updateChangeOrder,
   updateChangeOrderWorkflow,
-  type ChangeOrderActionState,
 } from "@/lib/actions/change-orders";
+import {
+  initialChangeOrderActionState,
+  type ChangeOrderActionState,
+} from "@/lib/action-states/change-orders";
 import type { ChangeOrderJobOption, ChangeOrderTokenSummary } from "@/lib/data/change-orders";
 import type { MaterialRecord } from "@/lib/data/materials";
 import type { ChangeOrderWithRelations, OrganizationContact, ServiceCategory } from "@/lib/types/database";

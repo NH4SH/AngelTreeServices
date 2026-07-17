@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { CheckCircle2, MessageSquareText, XCircle } from "lucide-react";
-import { approveChangeOrderByPortal, initialChangeOrderActionState, respondToChangeOrderByPortal } from "@/lib/actions/change-orders";
+import { approveChangeOrderByPortal, respondToChangeOrderByPortal } from "@/lib/actions/change-orders";
+import { initialChangeOrderActionState } from "@/lib/action-states/change-orders";
 
 export function PortalChangeOrderActions({ token }: { token: string }) {
   const [approvalState, approvalAction, approvalPending] = useActionState(approveChangeOrderByPortal, initialChangeOrderActionState);

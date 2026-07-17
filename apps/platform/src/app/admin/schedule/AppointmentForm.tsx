@@ -82,6 +82,14 @@ export function AddAppointmentForm({
         Notes
         <textarea name="calendar_notes" placeholder="Calendar notes for office or crew" rows={3} />
       </label>
+      <label>
+        Owner/admin override reason
+        <textarea
+          name="eligibility_override_reason"
+          placeholder="Only needed if the assigned employee has a qualification warning"
+          rows={2}
+        />
+      </label>
       <button disabled={pending || (!jobId && jobs.length === 0)} type="submit">
         <CalendarPlus aria-hidden="true" size={18} />
         {pending ? "Saving..." : "Add appointment"}

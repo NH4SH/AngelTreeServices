@@ -129,6 +129,14 @@ export function AddScheduleEventForm({
         Notes
         <textarea name="calendar_notes" placeholder="Internal schedule notes, access details, or reminders" rows={4} />
       </label>
+      <label>
+        Owner/admin override reason
+        <textarea
+          name="eligibility_override_reason"
+          placeholder="Only needed if an assigned employee has a qualification warning"
+          rows={2}
+        />
+      </label>
       <button disabled={pending} type="submit">
         <CalendarPlus aria-hidden="true" size={18} />
         {pending ? "Saving..." : "Add event"}
@@ -225,6 +233,15 @@ export function ScheduleEventEditForm({
       <label>
         <span>Notes</span>
         <textarea defaultValue={event.calendar_notes ?? ""} name="calendar_notes" rows={4} />
+      </label>
+      <label>
+        <span>Owner/admin override reason</span>
+        <textarea
+          maxLength={600}
+          name="eligibility_override_reason"
+          placeholder="Only needed if an assigned employee has a qualification warning"
+          rows={2}
+        />
       </label>
       <button disabled={pending} type="submit">
         <Save aria-hidden="true" size={17} />

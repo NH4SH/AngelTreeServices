@@ -16,6 +16,7 @@ import {
   employeeAccessRequestAdminTemplate,
 } from "@/lib/email/templates";
 import { recordEmailEvent, sendTransactionalEmail } from "@/lib/email/send";
+import { recordActivity } from "@/lib/activity-log";
 
 const allowedRequestedRoles = new Set(employeeRequestedRoleOptions.map((option) => option.value));
 const allowedApprovalRoles = new Set<AccessApprovalRole>(["admin", "estimator", "crew", "payroll_admin"]);
@@ -211,6 +212,65 @@ export async function approveEmployeeAccessRequest(
     return { status: "error", message: profileError.message };
   }
 
+  const existingEmployeeByRequest = await supabase
+    .from("employee_records")
+    .select("id, employment_status, legal_name, preferred_name")
+    .eq("access_request_id", request.id)
+    .maybeSingle();
+  const existingEmployeeByAuth = existingEmployeeByRequest.data
+    ? existingEmployeeByRequest
+    : await supabase
+        .from("employee_records")
+        .select("id, employment_status, legal_name, preferred_name")
+        .eq("auth_user_id", targetProfile.id)
+        .maybeSingle();
+  const existingEmployeeByEmail = existingEmployeeByAuth.data
+    ? existingEmployeeByAuth
+    : await supabase
+        .from("employee_records")
+        .select("id, employment_status, legal_name, preferred_name")
+        .is("auth_user_id", null)
+        .ilike("contact_email", request.email)
+        .is("archived_at", null)
+        .limit(1)
+        .maybeSingle();
+  const employeeRecord = existingEmployeeByEmail.data;
+  const employeeResult = employeeRecord
+    ? await supabase
+        .from("employee_records")
+        .update({
+          access_request_id: request.id,
+          auth_user_id: targetProfile.id,
+          contact_email: request.email,
+          contact_phone: request.phone,
+          legal_name: employeeRecord.legal_name ?? request.full_name,
+          preferred_name: employeeRecord.preferred_name ?? request.full_name,
+          employment_status: employeeRecord.employment_status === "applicant" ? "onboarding" : employeeRecord.employment_status,
+          manual_review_required: false,
+        })
+        .eq("id", employeeRecord.id)
+        .select("id")
+        .single()
+    : await supabase
+        .from("employee_records")
+        .insert({
+          access_request_id: request.id,
+          auth_user_id: targetProfile.id,
+          contact_email: request.email,
+          contact_phone: request.phone,
+          legal_name: request.full_name,
+          preferred_name: request.full_name,
+          employment_status: "onboarding",
+          manual_review_required: false,
+          created_by_user_id: reviewer.userId,
+        })
+        .select("id")
+        .single();
+
+  if (employeeResult.error || !employeeResult.data) {
+    return { status: "error", message: employeeResult.error?.message ?? "Employee record could not be linked to the approved account." };
+  }
+
   const { data: roleRow, error: roleError } = await supabase
     .from("roles")
     .select("id")
@@ -259,6 +319,14 @@ export async function approveEmployeeAccessRequest(
   if (updateError) {
     return { status: "error", message: updateError.message };
   }
+
+  await recordActivity(supabase, {
+    actorUserId: reviewer.userId,
+    eventType: "platform_access_approved",
+    metadata: { assigned_role: approvedRole, time_clock_enabled: enableTimeClock },
+    subjectId: employeeResult.data.id,
+    subjectType: "employee",
+  });
 
   revalidateAccessPaths(targetProfile.id);
   const emailResult = await sendTransactionalEmail({

@@ -546,3 +546,16 @@ For now, logged-in access is enough. Full role enforcement should come after ini
 ## Next Step
 
 Add production rate limiting and canonical deployment URL configuration for customer quote and invoice portal actions, then continue hardening real email delivery.
+## Equipment operations
+
+Fleet management lives at `/admin/equipment`; assigned crew equipment lives at `/crew/equipment`. The module uses private RLS-protected tables and narrow crew RPCs. Equipment files are stored in the private `equipment-files` bucket. Apply `supabase/migrations/20260716232544_equipment_fleet_management.sql` before opening these routes in a deployed environment.
+
+## Employee operations
+
+Employee onboarding and operational readiness live at `/admin/employees`, with shared training at `/admin/training`, safety meetings at `/admin/safety`, limited employee self-service at `/employee`, and a narrow supervisor readiness view at `/crew/team`.
+
+Apply `supabase/migrations/20260716235514_employee_onboarding_training_compliance.sql` after `20260716232544_equipment_fleet_management.sql`. The employee migration creates normalized operational records separate from Supabase Auth, repeat-safe internal-profile backfill, onboarding checklists, credential warning mappings, multi-attendee training and safety records, append-only versioned acknowledgments, requests, separation review, RLS policies, and private `employee-files` and `employee-program-files` Storage buckets.
+
+The migration adds no environment variables and does not enable employee email reminders. Existing profiles with internal roles are backfilled using their existing auth IDs and marked for manual review; legal name, hire date, emergency contact, and credential status are never guessed. A pre-login employee is linked by matching contact email when their internal profile/access request is approved. Review every match after deployment.
+
+Employee contact email remains operational data. Editing it does not silently change the Supabase Auth login email. Owner/admin retain role, access, password-reset, inactive, and archive controls. Other operational staff can manage non-sensitive onboarding/training/safety records, supervisors receive only a narrow crew-readiness RPC, and employees use narrow self-service RPCs without self-approval powers.

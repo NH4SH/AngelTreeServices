@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Camera, ClipboardCheck, FileSignature, MapPin, Navigation, ReceiptText, Truck, UsersRound } from "lucide-react";
+import { CalendarDays, Camera, ClipboardCheck, FileSignature, Forklift, MapPin, Navigation, ReceiptText, Truck, UsersRound } from "lucide-react";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
 import { PrintButton } from "@/components/documents/print-button";
@@ -193,6 +193,20 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 <PanelTitle icon={<Truck size={18} />} title="Crew work order" />
                 <p>Scope, service location, access notes, crew notes, checklist, and photo needs are available in the crew view.</p>
                 <Link className="primary-action compact-action" href={`/crew/jobs/${job.id}`}>Open work order</Link>
+              </article>
+              <article className="detail-panel wide-detail-panel">
+                <PanelTitle icon={<Forklift size={18} />} title="Assigned equipment" />
+                {job.equipment_assignments?.length ? (
+                  <div className="linked-record-list">
+                    {job.equipment_assignments.map((assignment) => (
+                      <Link className="linked-record" href={`/admin/equipment/${assignment.asset_id}`} key={assignment.id}>
+                        <strong>{assignment.equipment_assets?.name ?? "Equipment"}</strong>
+                        <span>{assignment.equipment_assets?.asset_number ?? "No asset number"} - {assignment.equipment_assets?.status.replaceAll("_", " ") ?? "Unknown status"}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : <EmptyInline>No equipment assigned to this work order yet.</EmptyInline>}
+                <Link className="secondary-action compact-action" href="/admin/equipment">Assign equipment</Link>
               </article>
             </section>
 

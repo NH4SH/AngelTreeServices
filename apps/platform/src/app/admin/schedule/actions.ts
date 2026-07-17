@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import type {
   AppointmentStatus,
@@ -14,7 +16,7 @@ import type {
 } from "@/lib/types/database";
 
 export type AppointmentActionState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "success" | "error" | "warning";
   message: string;
 };
 
@@ -63,6 +65,7 @@ export async function createAppointment(
   const endsAt = parseDateTime(formData.get("ends_at"), true);
   const assignedUserId = getOptionalString(formData, "assigned_user_id");
   const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
 
   if (!jobId || !startsAt) {
     return { status: "error", message: "Job and start time are required." };
@@ -75,6 +78,9 @@ export async function createAppointment(
   if (endsAt && endsAt <= startsAt) {
     return { status: "error", message: "End time must be after the start time." };
   }
+
+  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserId ? [assignedUserId] : [], appointmentType, eligibilityOverrideReason);
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
@@ -103,6 +109,7 @@ export async function createAppointment(
   if (error || !appointment) {
     return { status: "error", message: error?.message ?? "Could not save the appointment." };
   }
+  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserId ?? "", reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: appointment.id, subjectType: "appointment" });
 
   const nextJobStatus = getScheduledJobStatus(job.status as JobStatus, appointmentType);
   if (nextJobStatus) {
@@ -122,7 +129,9 @@ export async function createAppointment(
 
   await syncScheduleCommunications();
   revalidateSchedulePaths(jobId);
-  return { status: "success", message: "Appointment saved." };
+  return eligibility.warningCount
+    ? { status: "warning", message: `Appointment saved with a qualification warning. ${eligibility.message}` }
+    : { status: "success", message: "Appointment saved." };
 }
 
 export async function updateAppointmentStatus(
@@ -204,7 +213,9 @@ export async function updateAppointmentDetails(
   const startsAt = parseDateTime(formData.get("starts_at"));
   const endsAt = parseDateTime(formData.get("ends_at"), true);
   const assignedUserId = getOptionalString(formData, "assigned_user_id");
+  const appointmentType = String(formData.get("appointment_type") ?? "job") as AppointmentType;
   const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
 
   if (!appointmentId || !jobId || !startsAt) {
     return { status: "error", message: "Appointment, job, and start time are required." };
@@ -213,6 +224,14 @@ export async function updateAppointmentDetails(
   if (endsAt && endsAt <= startsAt) {
     return { status: "error", message: "End time must be after the start time." };
   }
+  const eligibility = await checkAssignmentEligibility(
+    supabase,
+    user.id,
+    assignedUserId ? [assignedUserId] : [],
+    appointmentTypes.includes(appointmentType) ? appointmentType : "job",
+    eligibilityOverrideReason,
+  );
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
 
   const { data, error } = await supabase
     .from("appointments")
@@ -235,10 +254,26 @@ export async function updateAppointmentDetails(
     return { status: "error", message: "Appointment not found or no access." };
   }
 
+  if (eligibility.warningCount) {
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning",
+      metadata: {
+        assigned_user_ids: assignedUserId ?? "",
+        reason: eligibilityOverrideReason,
+        warning_count: eligibility.warningCount,
+      },
+      subjectId: appointmentId,
+      subjectType: "appointment",
+    });
+  }
+
   await syncScheduleCommunications();
 
   revalidateSchedulePaths(jobId);
-  return { status: "success", message: "Appointment details updated." };
+  return eligibility.warningCount
+    ? { status: "warning", message: `Appointment updated with a qualification warning. ${eligibility.message}` }
+    : { status: "success", message: "Appointment details updated." };
 }
 
 export async function createScheduleEvent(
@@ -279,6 +314,7 @@ export async function createScheduleEvent(
         .filter(Boolean),
     ),
   );
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
 
   if (!title || !normalizedStartsAt) {
     return { status: "error", message: "Title and start time are required." };
@@ -295,6 +331,8 @@ export async function createScheduleEvent(
   if (normalizedEndsAt && normalizedEndsAt <= normalizedStartsAt) {
     return { status: "error", message: "End time must be after the start time." };
   }
+  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserIds, eventType, eligibilityOverrideReason);
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
 
   const jobContext = jobId ? await getJobScheduleContext(supabase, jobId) : null;
 
@@ -332,6 +370,7 @@ export async function createScheduleEvent(
   if (error || !event) {
     return { status: "error", message: error?.message ?? "Could not create the schedule event." };
   }
+  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserIds.join(","), reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: event.id, subjectType: "schedule_event" });
 
   if (assignedUserIds.length > 0) {
     const { error: assignmentError } = await supabase.from("schedule_event_assignments").insert(
@@ -368,7 +407,9 @@ export async function createScheduleEvent(
 
   await syncScheduleCommunications();
   revalidateSchedulePaths(event.job_id ?? undefined);
-  return { status: "success", message: "Schedule event saved." };
+  return eligibility.warningCount
+    ? { status: "warning", message: `Schedule event saved with a qualification warning. ${eligibility.message}` }
+    : { status: "success", message: "Schedule event saved." };
 }
 
 export async function updateScheduleEventStatus(
@@ -463,6 +504,7 @@ export async function updateScheduleEventDetails(
         .filter(Boolean),
     ),
   );
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
 
   if (!eventId || !title || !normalizedStartsAt) {
     return { status: "error", message: "Event, title, and start time are required." };
@@ -475,6 +517,8 @@ export async function updateScheduleEventDetails(
   if (normalizedEndsAt && normalizedEndsAt <= normalizedStartsAt) {
     return { status: "error", message: "End time must be after the start time." };
   }
+  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserIds, eventType, eligibilityOverrideReason);
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
 
   const jobContext = jobId ? await getJobScheduleContext(supabase, jobId) : null;
 
@@ -512,6 +556,7 @@ export async function updateScheduleEventDetails(
   if (error) {
     return { status: "error", message: error.message };
   }
+  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserIds.join(","), reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: eventId, subjectType: "schedule_event" });
 
   if (!data) {
     return { status: "error", message: "Schedule event not found or no access." };
@@ -542,11 +587,31 @@ export async function updateScheduleEventDetails(
   await syncScheduleCommunications();
 
   revalidateSchedulePaths(data.job_id ?? undefined);
-  return { status: "success", message: "Schedule event updated." };
+  return eligibility.warningCount
+    ? { status: "warning", message: `Schedule event updated with a qualification warning. ${eligibility.message}` }
+    : { status: "success", message: "Schedule event updated." };
 }
 
 function getOptionalString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() || null;
+}
+
+async function checkAssignmentEligibility(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  actorUserId: string,
+  assignedUserIds: string[],
+  assignmentRole: string,
+  overrideReason: string | null,
+) {
+  const warnings = await getEmployeeEligibilityWarnings(assignedUserIds, { type: "job_assignment_role", value: assignmentRole });
+  if (!warnings.length) return { blocked: false, message: "", warningCount: 0 };
+  const blockingWarnings = warnings.filter((warning) => warning.requiresOverride);
+  const summary = warnings.map((warning) => warning.message).join(" ");
+  if (!blockingWarnings.length) return { blocked: false, message: summary, warningCount: warnings.length };
+  const roles = await getCurrentUserRolesFromClient(supabase, actorUserId);
+  const canOverride = hasAllowedRole(roles, platformRoleGroups.accessApproval);
+  if (!overrideReason || !canOverride) return { blocked: true, message: `${summary} Owner/admin can proceed only after entering an override reason.`, warningCount: warnings.length };
+  return { blocked: false, message: summary, warningCount: warnings.length };
 }
 
 async function syncScheduleCommunications() {

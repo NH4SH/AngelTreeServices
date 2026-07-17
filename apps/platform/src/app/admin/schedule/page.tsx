@@ -783,6 +783,14 @@ function ScheduleEventDetailPanel({
             <dd>{assignees.length ? assignees.join(", ") : "Unassigned"}</dd>
           </div>
           <div>
+            <dt>Assigned equipment</dt>
+            <dd>
+              {event.equipment_assignments?.length
+                ? event.equipment_assignments.map((assignment) => `${assignment.equipment_assets?.asset_number ?? "Asset"} - ${assignment.equipment_assets?.name ?? "Equipment"}`).join(", ")
+                : "No equipment assigned"}
+            </dd>
+          </div>
+          <div>
             <dt>Linked job</dt>
             <dd>{event.job_id ? `Job ${event.job_id.slice(0, 8)}` : "No linked job"}</dd>
           </div>
@@ -810,6 +818,7 @@ function ScheduleEventDetailPanel({
 
         <div className="appointment-detail-actions">
           {event.job_id ? <Link href={`/admin/jobs/${event.job_id}`}>Open job</Link> : null}
+          <Link href="/admin/equipment">Assign equipment</Link>
           {directionsUrl ? (
             <a href={directionsUrl} rel="noreferrer" target="_blank">
               <Navigation aria-hidden="true" size={15} />

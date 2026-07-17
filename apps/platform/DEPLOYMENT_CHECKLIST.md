@@ -215,3 +215,52 @@ These are still intentionally unfinished for first private deployment:
 - external calendar sync
 - durable distributed rate limiting for public lead intake
 - subscriptions, financing, saved cards, and customer-entered partial payments
+## Equipment and fleet migration
+
+Apply `supabase/migrations/20260716232544_equipment_fleet_management.sql` before deploying the equipment routes. The migration creates private fleet, assignment, reading, inspection, repair, maintenance, document, and status-history tables; authenticated crew RPCs; RLS policies; and the private `equipment-files` Storage bucket.
+
+From the repository root, use the existing linked Supabase project workflow:
+
+```bash
+supabase migration list
+supabase db push
+```
+
+Do not add `app_private` to the Supabase Data API exposed schemas. After applying, refresh the PostgREST schema cache if the project does not pick up the new tables automatically.
+
+## Employee onboarding and compliance migration
+
+Review and apply these migrations in order:
+
+```text
+supabase/migrations/20260716232544_equipment_fleet_management.sql
+supabase/migrations/20260716235514_employee_onboarding_training_compliance.sql
+```
+
+The second migration references equipment assignments for issued PPE/equipment self-service. It creates the private `employee-files` and `employee-program-files` buckets, role-aware document metadata/storage policies, narrow employee and supervisor RPCs, operational employee tables, repeat-safe profile backfill, and configurable qualification warning mappings. It adds no secrets or environment variables and does not enable automated email notifications.
+
+From the repository root:
+
+```bash
+supabase migration list
+supabase db push
+```
+
+After applying:
+
+1. Refresh the PostgREST schema cache if needed.
+2. Keep `app_private` out of exposed API schemas.
+3. Review `/admin/employees` records marked for manual review and confirm email-to-auth matches.
+4. Verify owner/admin, office staff, supervisor, employee, crew, and anonymous access separately.
+5. Confirm `employee-files` is private and signed links respect employee-visible, supervisor-visible, admin-only, and owner-only classifications.
+6. Run Supabase Security Advisor and the employee checklist in `PRODUCTION_TESTING.md`.
+
+For a local Supabase environment:
+
+```bash
+supabase start
+supabase db reset
+supabase db lint --local
+```
+
+Do not treat the Next.js build as proof that migrations, RLS, Storage, or backfill behavior passed.

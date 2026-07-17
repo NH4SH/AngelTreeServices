@@ -6,7 +6,9 @@ import {
   Clock3,
   Files,
   FileText,
+  Forklift,
   HardHat,
+  GraduationCap,
   LayoutDashboard,
   Leaf,
   LogOut,
@@ -27,12 +29,16 @@ import {
 
 const navItems = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, match: "admin" },
+  { href: "/admin/employees", label: "Employees", Icon: UsersRound, match: "employees", visibility: "staff" },
+  { href: "/admin/training", label: "Training", Icon: GraduationCap, match: "training", visibility: "staff" },
+  { href: "/admin/safety", label: "Safety", Icon: ShieldCheck, match: "safety", visibility: "staff" },
   { href: "/admin/customers", label: "Customers", Icon: UsersRound, match: "customers" },
   { href: "/admin/organizations", label: "Organizations", Icon: Building2, match: "organizations" },
   { href: "/admin/jobs", label: "Jobs", Icon: Workflow, match: "jobs" },
   { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
+  { href: "/admin/equipment", label: "Equipment", Icon: Forklift, match: "equipment" },
   { href: "/admin/communications", label: "Communications", Icon: MessageSquareMore, match: "communications" },
   { href: "/admin/time", label: "Time", Icon: Clock3, match: "admin-time", visibility: "review" },
   { href: "/admin/payroll", label: "Payroll", Icon: ReceiptText, match: "payroll", visibility: "review" },
@@ -40,19 +46,26 @@ const navItems = [
   { href: "/admin/documents", label: "Documents", Icon: Files, match: "documents" },
   { href: "/admin/marketing", label: "Marketing", Icon: Megaphone, match: "marketing" },
   { href: "/crew", label: "Crew View", Icon: HardHat, match: "crew" },
+  { href: "/crew/equipment", label: "Assigned Equipment", Icon: Forklift, match: "crew-equipment" },
+  { href: "/crew/team", label: "My Crew", Icon: UsersRound, match: "crew-team", visibility: "eligible" },
   { href: "/crew/time", label: "Time Clock", Icon: Clock3, match: "crew-time", visibility: "eligible" },
+  { href: "/employee", label: "My Employee Profile", Icon: UserCheck, match: "employee-self" },
   { href: "/portal", label: "Customer Portal", Icon: ShieldCheck, match: "portal" },
 ];
 
 type PlatformFrameProps = {
   active:
     | "admin"
+    | "employees"
+    | "training"
+    | "safety"
     | "customers"
     | "organizations"
     | "jobs"
     | "quotes"
     | "invoices"
     | "schedule"
+    | "equipment"
     | "communications"
     | "admin-time"
     | "payroll"
@@ -60,7 +73,10 @@ type PlatformFrameProps = {
     | "documents"
     | "marketing"
     | "crew"
+    | "crew-equipment"
+    | "crew-team"
     | "crew-time"
+    | "employee-self"
     | "portal";
   children: ReactNode;
   roles?: PlatformRoleName[];
@@ -84,6 +100,10 @@ export function PlatformFrame({
 
     if (item.visibility === "approval") {
       return hasAllowedRole(roles, platformRoleGroups.accessApproval);
+    }
+
+    if (item.visibility === "staff") {
+      return hasAllowedRole(roles, platformRoleGroups.internalStaff);
     }
 
     return true;

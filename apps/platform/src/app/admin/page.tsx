@@ -22,6 +22,8 @@ import { getOrganizationDashboardSummary } from "@/lib/data/organizations";
 import { getQuoteDashboardSummaries } from "@/lib/data/quotes";
 import { getScheduleDashboardSummary } from "@/lib/data/schedule";
 import { getCommunicationDashboardSummary } from "@/lib/data/communications";
+import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
+import { getEmployeeDashboardSummary } from "@/lib/data/employees";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -31,7 +33,7 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
@@ -39,6 +41,8 @@ export default async function AdminPage() {
     getOrganizationDashboardSummary(),
     getScheduleDashboardSummary(),
     getCommunicationDashboardSummary(),
+    getEquipmentDashboardSummary(),
+    getEmployeeDashboardSummary(),
   ]);
 
   const lanes: {
@@ -176,7 +180,7 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error]
+        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
@@ -237,6 +241,32 @@ export default async function AdminPage() {
               <a className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></a>
               <a className="pipeline-row" href="/admin/communications"><span>Failed communications</span><strong>{communicationSummary.data.failed.length}</strong></a>
               <a className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></a>
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Fleet attention" detail="Safety, repairs, maintenance, and expiring documents" />
+            <div className="pipeline-list">
+              <a className="pipeline-row" href="/admin/equipment?status=out_of_service"><span>Out of service</span><strong>{equipmentSummary.data.outOfService.length}</strong></a>
+              <a className="pipeline-row" href="/admin/equipment?status=maintenance_due"><span>Maintenance due soon</span><strong>{equipmentSummary.data.dueMaintenance.length}</strong></a>
+              <a className="pipeline-row" href="/admin/equipment"><span>Open problem reports</span><strong>{equipmentSummary.data.openProblems.length}</strong></a>
+              <a className="pipeline-row" href="/admin/equipment"><span>Failed inspections</span><strong>{equipmentSummary.data.failedInspections.length}</strong></a>
+              <a className="pipeline-row" href="/admin/equipment"><span>Documents expiring in 30 days</span><strong>{equipmentSummary.data.expiringDocuments.length}</strong></a>
+            </div>
+          </section>
+
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Employee readiness" detail="Onboarding, access, training, credentials, and return review" />
+            <div className="pipeline-list">
+              <a className="pipeline-row" href="/admin/employees?status=onboarding"><span>Employees onboarding</span><strong>{employeeSummary.data.onboarding.length}</strong></a>
+              <a className="pipeline-row" href="/admin/access"><span>Access requests awaiting approval</span><strong>{employeeSummary.data.pendingAccess.length}</strong></a>
+              <a className="pipeline-row" href="/admin/employees?credential=expiring"><span>Credentials expiring soon</span><strong>{employeeSummary.data.expiring.length}</strong></a>
+              <a className="pipeline-row" href="/admin/employees?credential=expired"><span>Expired credentials</span><strong>{employeeSummary.data.expired.length}</strong></a>
+              <a className="pipeline-row" href="/admin/employees?training=none"><span>Missing training records</span><strong>{employeeSummary.data.missingTraining.length}</strong></a>
+              <a className="pipeline-row" href="/admin/safety"><span>Safety acknowledgments pending</span><strong>{employeeSummary.data.pendingSafetyAcknowledgments.length}</strong></a>
+              <a className="pipeline-row" href="/admin/employees"><span>Documents awaiting verification</span><strong>{employeeSummary.data.pendingDocuments.length}</strong></a>
+              <a className="pipeline-row" href="/admin/equipment"><span>Equipment/PPE overdue for return</span><strong>{employeeSummary.data.equipmentDueBack.length}</strong></a>
+              <a className="pipeline-row" href="/admin/employees?status=inactive"><span>Inactive access requiring review</span><strong>{employeeSummary.data.inactiveAccessReview.length}</strong></a>
             </div>
           </section>
 

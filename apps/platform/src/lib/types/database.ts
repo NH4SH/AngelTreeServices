@@ -100,6 +100,31 @@ export type CommunicationType = Extract<
 >;
 export type CommunicationStatus = "pending" | "processing" | "sent" | "skipped" | "failed" | "cancelled";
 export type CommunicationRecipientSource = "customer" | "organization";
+export type EquipmentCategory =
+  | "vehicle"
+  | "chipper"
+  | "stump_grinder"
+  | "skid_steer"
+  | "crane"
+  | "aerial_lift"
+  | "trailer"
+  | "chainsaw"
+  | "climbing_gear"
+  | "rigging_gear"
+  | "ppe"
+  | "landscaping_equipment"
+  | "lawn_care_equipment"
+  | "other";
+export type EquipmentStatus =
+  | "available"
+  | "assigned"
+  | "in_use"
+  | "maintenance_due"
+  | "out_of_service"
+  | "awaiting_parts"
+  | "repair_scheduled"
+  | "retired";
+export type EquipmentInspectionResult = "passed" | "passed_with_attention" | "failed";
 
 export type Organization = {
   id: string;
@@ -697,6 +722,9 @@ export type ScheduleEventWithRelations = ScheduleEvent & {
   jobs?: ScheduleLinkedJobSummary | null;
   service_locations?: ScheduleLocationSummary | null;
   schedule_event_assignments?: ScheduleEventAssignmentWithUser[];
+  equipment_assignments?: (EquipmentAssignment & {
+    equipment_assets?: Pick<EquipmentAsset, "id" | "asset_number" | "name" | "status" | "category"> | null;
+  })[];
 };
 
 export type CalendarEntrySource = "appointment" | "schedule_event";
@@ -882,6 +910,9 @@ export type JobDetail = JobWithRelations & {
   quotes?: QuoteWithRelations[];
   invoices?: InvoiceWithRelations[];
   appointments?: AppointmentWithRelations[];
+  equipment_assignments?: (EquipmentAssignment & {
+    equipment_assets?: Pick<EquipmentAsset, "id" | "asset_number" | "name" | "status" | "category"> | null;
+  })[];
 };
 
 export type QuoteDetail = QuoteWithRelations & {
@@ -909,3 +940,241 @@ export type DataResult<T> = {
   data: T;
   error: string | null;
 };
+
+export type EquipmentAsset = {
+  id: string;
+  asset_number: string;
+  name: string;
+  category: EquipmentCategory;
+  manufacturer: string | null;
+  model: string | null;
+  model_year: number | null;
+  serial_number: string | null;
+  vin: string | null;
+  license_plate: string | null;
+  ownership_type: "owned" | "leased" | "rented" | "other" | null;
+  purchase_date: string | null;
+  status: EquipmentStatus;
+  current_mileage: number | null;
+  current_hours: number | null;
+  location_label: string | null;
+  assigned_employee_id: string | null;
+  photo_storage_path: string | null;
+  safety_class: string | null;
+  ppe_required: string | null;
+  inspection_template_key: string | null;
+  inspection_interval_days: number | null;
+  next_inspection_due_at: string | null;
+  admin_notes: string | null;
+  is_active: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EquipmentAssignment = {
+  id: string;
+  asset_id: string;
+  job_id: string | null;
+  schedule_event_id: string | null;
+  assigned_user_id: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  notes: string | null;
+  conflict_override_reason: string | null;
+  returned_at: string | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
+  jobs?: Pick<Job, "id" | "service_type" | "status"> | null;
+  schedule_events?: Pick<ScheduleEvent, "id" | "title" | "starts_at" | "ends_at"> | null;
+};
+
+export type EquipmentMaintenanceSchedule = {
+  id: string;
+  asset_id: string;
+  title: string;
+  maintenance_type: "preventive" | "inspection" | "repair" | "registration" | "other";
+  interval_days: number | null;
+  interval_miles: number | null;
+  interval_hours: number | null;
+  last_completed_at: string | null;
+  next_due_at: string | null;
+  next_due_mileage: number | null;
+  next_due_hours: number | null;
+  instructions: string | null;
+  is_active: boolean;
+};
+
+export type EquipmentMaintenanceRecord = {
+  id: string;
+  asset_id: string;
+  schedule_id: string | null;
+  schedule_event_id: string | null;
+  maintenance_type: "preventive" | "inspection" | "repair" | "registration" | "other";
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
+  title: string;
+  description: string | null;
+  vendor_name: string | null;
+  scheduled_for: string | null;
+  completed_at: string | null;
+  mileage_at_service: number | null;
+  hours_at_service: number | null;
+  cost_cents: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EquipmentInspection = {
+  id: string;
+  asset_id: string;
+  assignment_id: string | null;
+  job_id: string | null;
+  template_key: string;
+  template_version: number;
+  responses_json: Record<string, "pass" | "attention" | "fail">;
+  overall_result: EquipmentInspectionResult;
+  notes: string | null;
+  mileage: number | null;
+  hours: number | null;
+  inspected_by_user_id: string | null;
+  inspected_at: string;
+  profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
+};
+
+export type EquipmentProblemReport = {
+  id: string;
+  asset_id: string;
+  assignment_id: string | null;
+  job_id: string | null;
+  severity: "attention" | "unsafe" | "critical";
+  status: "open" | "triaged" | "repair_scheduled" | "resolved" | "dismissed";
+  title: string;
+  description: string;
+  equipment_stopped: boolean;
+  photo_storage_path: string | null;
+  photo_signed_url?: string | null;
+  reported_by_user_id: string | null;
+  resolution_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
+};
+
+export type EquipmentReading = {
+  id: string;
+  asset_id: string;
+  reading_type: "mileage" | "hours";
+  reading_value: number;
+  recorded_at: string;
+  correction_reason: string | null;
+  supersedes_reading_id: string | null;
+  source: "manual" | "inspection" | "maintenance" | "closeout";
+};
+
+export type EquipmentDocument = {
+  id: string;
+  asset_id: string;
+  document_type: "registration" | "insurance" | "inspection" | "manual" | "warranty" | "receipt" | "photo" | "other";
+  title: string;
+  storage_path: string;
+  signed_url?: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EquipmentDetail = EquipmentAsset & {
+  equipment_assignments?: EquipmentAssignment[];
+  equipment_maintenance_schedules?: EquipmentMaintenanceSchedule[];
+  equipment_maintenance_records?: EquipmentMaintenanceRecord[];
+  equipment_inspections?: EquipmentInspection[];
+  equipment_problem_reports?: EquipmentProblemReport[];
+  equipment_readings?: EquipmentReading[];
+  equipment_documents?: EquipmentDocument[];
+};
+
+export type CrewEquipmentAssignment = {
+  assignment_id: string;
+  asset_id: string;
+  asset_number: string;
+  asset_name: string;
+  category: EquipmentCategory;
+  status: EquipmentStatus;
+  manufacturer: string | null;
+  model: string | null;
+  photo_storage_path: string | null;
+  safety_class: string | null;
+  ppe_required: string | null;
+  inspection_template_key: string | null;
+  next_inspection_due_at: string | null;
+  job_id: string | null;
+  schedule_event_id: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  assignment_notes: string | null;
+};
+
+export type EmploymentStatus = "applicant" | "onboarding" | "active" | "seasonal" | "leave" | "inactive" | "separated";
+export type EmployeeRecord = {
+  id: string;
+  auth_user_id: string | null;
+  access_request_id: string | null;
+  legal_name: string | null;
+  preferred_name: string | null;
+  employee_number: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  home_address: string | null;
+  hire_date: string | null;
+  employment_status: EmploymentStatus;
+  employment_type: "permanent" | "seasonal" | "temporary" | "contractor" | "other" | null;
+  job_title: string | null;
+  department: string | null;
+  crew_name: string | null;
+  supervisor_employee_id: string | null;
+  preferred_language: string | null;
+  operational_notes: string | null;
+  profile_photo_storage_path: string | null;
+  is_supervisor: boolean;
+  is_active: boolean;
+  separation_date: string | null;
+  separation_reason: string | null;
+  manual_review_required: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: AssignableUser | null;
+  supervisor?: Pick<EmployeeRecord, "id" | "preferred_name" | "legal_name"> | null;
+};
+export type EmployeeEmergencyContact = { id: string; employee_id: string; full_name: string; relationship: string | null; phone: string; alternate_phone: string | null; is_primary: boolean; created_at: string; updated_at: string };
+export type EmployeeOnboardingItem = { id: string; employee_id: string; item_key: string; label: string; sort_order: number; completion_status: "incomplete" | "complete" | "not_applicable"; notes: string | null; completed_at: string | null; completed_by_user_id: string | null; reopened_at: string | null; reopen_reason: string | null; updated_at: string };
+export type CredentialType = { id: string; type_key: string; label: string; default_warning_days: number; description: string | null; is_active: boolean };
+export type EmployeeCredential = { id: string; employee_id: string; credential_type_id: string; credential_number: string | null; issuing_organization: string | null; issue_date: string | null; expiration_date: string | null; status: "pending_verification" | "active" | "suspended" | "revoked" | "not_required"; verified_at: string | null; verified_by_user_id: string | null; document_id: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; credential_types?: CredentialType | null };
+export type EmployeeDocument = { id: string; employee_id: string; document_type: string; title: string; storage_path: string; mime_type: string | null; file_size_bytes: number | null; issue_date: string | null; expiration_date: string | null; access_classification: "employee_visible" | "supervisor_visible" | "admin_only" | "owner_only"; review_status: "pending" | "approved" | "rejected"; review_notes: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; signed_url?: string | null };
+export type TrainingSession = { id: string; title: string; training_type: string; provider_or_instructor: string | null; starts_at: string; duration_minutes: number | null; location_label: string | null; refresher_due_at: string | null; instructor_notes: string | null; document_version: string | null; archived_at: string | null; created_at: string; updated_at: string };
+export type TrainingAttendee = { id: string; training_session_id: string; employee_id: string; result: "completed" | "passed" | "failed" | "incomplete"; score: number | null; attendee_notes: string | null; acknowledged_at: string | null; acknowledgment_name: string | null; training_sessions?: TrainingSession | null };
+export type SafetyMeeting = { id: string; title: string; topic_key: string | null; starts_at: string; location_label: string | null; leader_name: string | null; subject_matter: string | null; meeting_notes: string | null; follow_up_actions: string | null; document_version: string | null; archived_at: string | null; created_at: string; updated_at: string };
+export type SafetyMeetingAttendee = { id: string; safety_meeting_id: string; employee_id: string; attendance_status: "present" | "absent" | "excused"; acknowledged_at: string | null; acknowledgment_name: string | null; notes: string | null; safety_meetings?: SafetyMeeting | null };
+export type EmployeeRequest = { id: string; employee_id: string; request_type: "profile_correction" | "credential_renewal" | "training_request" | "document_review" | "other"; title: string; details: string; status: "pending" | "approved" | "rejected" | "completed"; review_notes: string | null; created_at: string; updated_at: string };
+export type EmployeeDetail = EmployeeRecord & {
+  employee_emergency_contacts?: EmployeeEmergencyContact[];
+  employee_onboarding_items?: EmployeeOnboardingItem[];
+  employee_credentials?: EmployeeCredential[];
+  employee_documents?: EmployeeDocument[];
+  employee_requests?: EmployeeRequest[];
+  training_attendees?: TrainingAttendee[];
+  safety_meeting_attendees?: SafetyMeetingAttendee[];
+  employee_separation_items?: EmployeeOnboardingItem[];
+};
+export type EmployeeSelfServiceData = {
+  employee: Pick<EmployeeRecord, "id" | "legal_name" | "preferred_name" | "employee_number" | "contact_email" | "contact_phone" | "home_address" | "hire_date" | "employment_status" | "job_title" | "department" | "crew_name" | "preferred_language" | "is_supervisor">;
+  onboarding: { id: string; label: string; status: string; notes: string | null }[];
+  credentials: { id: string; type: string; issue_date: string | null; expiration_date: string | null; status: string; verified_at: string | null }[];
+  training: { id: string; title: string; starts_at: string; result: string; refresher_due_at: string | null; document_version: string | null; acknowledged_at: string | null }[];
+  safety_meetings: { id: string; title: string; starts_at: string; attendance_status: string; acknowledged_at: string | null; document_version: string | null }[];
+  documents: { id: string; title: string; document_type: string; expiration_date: string | null; review_status: string; storage_path: string; signed_url?: string | null }[];
+  requests: { id: string; request_type: string; title: string; status: string; review_notes: string | null; created_at: string }[];
+  issued_equipment: { assignment_id: string; asset_id: string; asset_number: string; name: string; category: string; condition: string | null; assigned_at: string; expected_return_at: string | null; returned_at: string | null }[];
+};
+export type SupervisedTeamData = { is_supervisor: boolean; employees: { id: string; preferred_name: string | null; legal_name: string | null; job_title: string | null; crew_name: string | null; employment_status: EmploymentStatus; onboarding_progress: number; credentials: { label: string; status: string; expiration_date: string | null }[]; training_count: number; pending_safety_acknowledgments: number; documents: { id: string; title: string; access_classification: string; signed_url: string | null }[] }[] };

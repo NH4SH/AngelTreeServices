@@ -16,6 +16,524 @@
   --shadow-small: 0 8px 20px oklch(0.22 0.012 145 / 0.05);
 }
 
+/* Employee operations */
+.employee-page,
+.employee-detail-page,
+.employee-self-page,
+.employee-team-page {
+  display: grid;
+  gap: 22px;
+}
+
+.employee-summary-grid,
+.employee-metric-grid,
+.employee-self-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.employee-summary-card,
+.employee-metric-grid > article,
+.employee-self-summary > article {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid var(--color-forest);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 16px;
+}
+
+.employee-summary-card strong,
+.employee-metric-grid strong,
+.employee-self-summary strong {
+  overflow-wrap: anywhere;
+  color: var(--color-charcoal);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.employee-summary-card span,
+.employee-metric-grid small,
+.employee-self-summary small {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+}
+
+.employee-summary-card.warning {
+  border-left-color: #b86a16;
+  background: #fffaf1;
+}
+
+.employee-summary-card.danger {
+  border-left-color: #b83a36;
+  background: #fff7f6;
+}
+
+.employee-summary-card.info {
+  border-left-color: #2876a8;
+  background: #f6fbff;
+}
+
+.employee-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.7fr) repeat(6, minmax(130px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.employee-filter-bar label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.employee-filter-bar input,
+.employee-filter-bar select {
+  width: 100%;
+  min-height: 46px;
+}
+
+.employee-search {
+  position: relative;
+}
+
+.employee-search svg {
+  position: absolute;
+  bottom: 14px;
+  left: 13px;
+  color: var(--color-muted);
+}
+
+.employee-search input {
+  padding-left: 42px;
+}
+
+.employee-record-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+  border-radius: 8px;
+}
+
+.employee-card-signals,
+.employee-team-signals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.employee-card-signals span,
+.employee-team-signals span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: #f7fbf8;
+  padding: 9px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.employee-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 30px;
+  border: 1px solid #a9c9b5;
+  border-radius: 999px;
+  background: #edf7f0;
+  padding: 4px 10px;
+  color: #185d36;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.employee-status.status-applicant,
+.employee-status.status-onboarding {
+  border-color: #9fc2dc;
+  background: #eef7fd;
+  color: #1d5c84;
+}
+
+.employee-status.status-seasonal,
+.employee-status.status-leave {
+  border-color: #e0bd79;
+  background: #fff8e9;
+  color: #7d4b0e;
+}
+
+.employee-status.status-inactive,
+.employee-status.status-separated {
+  border-color: #d0d4d2;
+  background: #f3f4f4;
+  color: #59615d;
+}
+
+.employee-attention,
+.employee-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #e4c28b;
+  border-radius: 8px;
+  background: #fff9ed;
+  padding: 13px;
+  color: #74430c;
+}
+
+.employee-warning-banner p {
+  margin: 4px 0 0;
+}
+
+.credential-expired,
+.attention-text {
+  color: #a32925 !important;
+}
+
+.credential-expiring,
+.credential-pending {
+  color: #88500b !important;
+}
+
+.employee-action-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  border-block: 1px solid var(--color-border);
+  padding: 13px 0;
+}
+
+.employee-action-ribbon a,
+.employee-action-ribbon button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  background: var(--color-surface);
+  padding: 0 13px;
+  color: var(--color-charcoal);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.employee-action-ribbon form {
+  display: contents;
+}
+
+.employee-onboarding-panel,
+.employee-separation-panel,
+.employee-qualification-panel {
+  min-width: 0;
+}
+
+.employee-checklist {
+  display: grid;
+  gap: 8px;
+}
+
+.employee-checklist-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.35fr) minmax(145px, 0.7fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  border-top: 1px solid var(--color-border);
+  padding: 11px 0;
+}
+
+.employee-checklist-row:first-child {
+  border-top: 0;
+}
+
+.employee-checklist-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.employee-checklist-row small {
+  color: var(--color-muted);
+}
+
+.employee-checklist-row input,
+.employee-checklist-row select,
+.employee-checklist-row button {
+  min-height: 43px;
+}
+
+.employee-checklist-row .form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.employee-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.employee-workspace-grid > .panel {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.credential-row.success {
+  border-left: 4px solid #2d7a4b;
+}
+
+.credential-row.warning {
+  border-left: 4px solid #ba721e;
+}
+
+.credential-row.danger {
+  border-left: 4px solid #bd3f3a;
+}
+
+.employee-admin-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inline-admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inline-admin-form input {
+  min-width: min(280px, 100%);
+  min-height: 44px;
+}
+
+.employee-sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px 0;
+}
+
+.qualification-settings {
+  display: grid;
+  gap: 18px;
+}
+
+.qualification-settings .linked-record {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.qualification-settings .linked-record > span {
+  grid-column: 1;
+}
+
+.qualification-settings .linked-record > form {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.employee-self-summary > article {
+  border-left-width: 4px;
+}
+
+.employee-self-list {
+  display: grid;
+  gap: 9px;
+}
+
+.employee-self-list > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 13px;
+}
+
+.employee-self-list > article > small,
+.employee-self-list > article > .employee-ack-form,
+.employee-self-list > article > a {
+  grid-column: 1 / -1;
+}
+
+.self-status {
+  border-radius: 999px;
+  background: #eef3f0;
+  padding: 5px 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.self-status.complete {
+  background: #e7f5eb;
+  color: #176038;
+}
+
+.employee-ack-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: end;
+  border-top: 1px solid var(--color-border);
+  padding-top: 11px;
+}
+
+.employee-ack-form label {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.employee-ack-form input,
+.employee-ack-form button {
+  min-height: 46px;
+}
+
+.employee-ack-form .form-message {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.employee-self-details {
+  margin-top: 14px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.employee-self-details summary {
+  min-height: 44px;
+  color: var(--color-forest);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.employee-team-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-team-card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.employee-team-signals {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1180px) {
+  .employee-filter-bar {
+    grid-template-columns: repeat(4, minmax(145px, 1fr));
+  }
+
+  .employee-search {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 860px) {
+  .employee-summary-grid,
+  .employee-metric-grid,
+  .employee-self-summary,
+  .employee-workspace-grid,
+  .employee-team-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-record-list {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-checklist-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-checklist-row > div,
+  .employee-checklist-row .form-message {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .employee-filter-bar,
+  .employee-summary-grid,
+  .employee-metric-grid,
+  .employee-self-summary,
+  .employee-workspace-grid,
+  .employee-team-list,
+  .employee-checklist-row {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-search,
+  .employee-checklist-row > div,
+  .employee-checklist-row .form-message {
+    grid-column: 1;
+  }
+
+  .employee-card-signals,
+  .employee-team-signals {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-action-ribbon,
+  .employee-admin-controls,
+  .inline-admin-form,
+  .employee-ack-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .employee-action-ribbon a,
+  .employee-action-ribbon button,
+  .employee-sticky-actions a,
+  .employee-sticky-actions button,
+  .inline-admin-form input,
+  .inline-admin-form button,
+  .employee-ack-form button {
+    width: 100%;
+  }
+
+  .employee-self-list > article {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Operational customer communications */
 .communication-control-stack,
 .communication-list,
@@ -7205,6 +7723,196 @@ body {
 .photo-uploader {
   border-radius: 16px;
   padding: 16px;
+}
+
+/* Equipment and fleet operations */
+.equipment-page,
+.equipment-detail-page {
+  gap: 18px;
+}
+
+.equipment-summary-grid,
+.equipment-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.equipment-summary-card,
+.equipment-metric-grid article {
+  display: grid;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 13px;
+  color: var(--color-charcoal);
+}
+
+.equipment-summary-card {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 3px 10px;
+}
+
+.equipment-summary-card > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: oklch(0.955 0.02 154);
+  color: var(--color-forest);
+}
+
+.equipment-summary-card.warning > span { background: oklch(0.955 0.055 84); color: oklch(0.42 0.11 66); }
+.equipment-summary-card.danger > span { background: oklch(0.955 0.04 25); color: oklch(0.44 0.15 25); }
+.equipment-summary-card strong { font-size: 1.35rem; line-height: 1; }
+.equipment-summary-card small,
+.equipment-metric-grid small { color: var(--color-muted); font-size: 0.78rem; font-weight: 650; }
+.equipment-metric-grid strong { margin-top: 5px; overflow-wrap: anywhere; font-size: 1rem; }
+
+.equipment-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(150px, 210px) auto;
+  align-items: end;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: oklch(0.985 0.004 154);
+  padding: 12px;
+}
+
+.equipment-filter-bar label { display: grid; gap: 5px; color: var(--color-charcoal); font-size: 0.78rem; font-weight: 700; }
+.equipment-filter-bar input,
+.equipment-filter-bar select { min-height: 42px; border: 1px solid var(--color-border-strong); border-radius: 9px; background: white; padding: 8px 10px; color: var(--color-charcoal); }
+.equipment-search { position: relative; }
+.equipment-search svg { position: absolute; bottom: 12px; left: 11px; color: var(--color-muted); }
+.equipment-search input { padding-left: 38px; }
+
+.equipment-record-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.equipment-card { border-left: 4px solid oklch(0.62 0.07 154); }
+.equipment-card.status-out_of_service,
+.equipment-card.status-awaiting_parts { border-left-color: oklch(0.55 0.17 25); }
+.equipment-card.status-maintenance_due,
+.equipment-card.status-repair_scheduled { border-left-color: oklch(0.67 0.13 75); }
+.equipment-card .secondary-action { justify-self: start; }
+
+.equipment-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid oklch(0.76 0.05 154);
+  border-radius: 999px;
+  background: oklch(0.96 0.025 154);
+  color: oklch(0.35 0.07 154);
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 760;
+  text-transform: capitalize;
+}
+
+.equipment-status.status-out_of_service,
+.equipment-status.status-awaiting_parts,
+.equipment-status.status-retired { border-color: oklch(0.78 0.08 25); background: oklch(0.96 0.035 25); color: oklch(0.4 0.14 25); }
+.equipment-status.status-maintenance_due,
+.equipment-status.status-repair_scheduled { border-color: oklch(0.8 0.09 76); background: oklch(0.97 0.04 84); color: oklch(0.4 0.1 65); }
+
+.equipment-safety-banner,
+.crew-equipment-safety-alert,
+.crew-equipment-ready {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid oklch(0.77 0.1 25);
+  border-radius: 13px;
+  background: oklch(0.965 0.035 25);
+  color: oklch(0.36 0.12 25);
+  padding: 14px;
+}
+
+.equipment-safety-banner p,
+.crew-equipment-safety-alert p,
+.crew-equipment-ready p { margin: 3px 0 0; color: inherit; line-height: 1.45; }
+.crew-equipment-ready { border-color: oklch(0.77 0.07 154); background: oklch(0.97 0.025 154); color: oklch(0.34 0.075 154); }
+
+.equipment-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.equipment-workspace-grid .form-panel h2 { display: flex; align-items: center; gap: 7px; }
+.equipment-edit-panel { max-width: 980px; }
+.equipment-form-actions { position: sticky; bottom: 10px; z-index: 3; border: 1px solid var(--color-border); border-radius: 12px; background: oklch(0.99 0.003 154 / 0.97); padding: 10px; box-shadow: var(--shadow-small); }
+.equipment-archive-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.equipment-archive-panel p { margin: 4px 0 0; }
+.equipment-maintenance-row details { margin-top: 8px; }
+.equipment-maintenance-row summary { cursor: pointer; color: var(--color-forest); font-weight: 700; }
+.equipment-history-heading { margin: 16px 0 8px; color: var(--color-charcoal); font-size: 0.86rem; text-transform: uppercase; }
+.equipment-problem.unsafe,
+.equipment-problem.critical { border-color: oklch(0.78 0.1 25); background: oklch(0.98 0.018 25); }
+.attention-text { color: oklch(0.44 0.13 52) !important; font-weight: 700; }
+
+.crew-equipment-list { display: grid; gap: 14px; }
+.crew-equipment-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-left: 6px solid oklch(0.58 0.1 154);
+  border-radius: 16px;
+  background: white;
+  padding: 17px;
+}
+.crew-equipment-card.status-out_of_service { border-left-color: oklch(0.52 0.17 25); }
+.crew-equipment-card-heading { display: flex; align-items: center; gap: 12px; }
+.crew-equipment-card-heading p,
+.crew-equipment-card-heading h2,
+.crew-equipment-card-heading span { margin: 0; }
+.crew-equipment-card-heading p { color: var(--color-muted); font-size: 0.78rem; font-weight: 750; text-transform: uppercase; }
+.crew-equipment-card-heading h2 { color: var(--color-charcoal); font-size: 1.2rem; }
+.crew-equipment-card-heading span { color: var(--color-muted); font-size: 0.9rem; }
+.crew-equipment-card .primary-action { min-height: 54px; font-size: 1rem; }
+.crew-equipment-stop { display: flex; align-items: center; gap: 8px; border-radius: 10px; background: oklch(0.96 0.04 25); color: oklch(0.39 0.14 25); padding: 11px; }
+
+.crew-equipment-form { display: grid; gap: 14px; margin-top: 16px; }
+.crew-equipment-form > label { display: grid; gap: 6px; color: var(--color-charcoal); font-size: 0.92rem; font-weight: 700; }
+.crew-equipment-form input,
+.crew-equipment-form select,
+.crew-equipment-form textarea { width: 100%; min-height: 48px; border: 1px solid var(--color-border-strong); border-radius: 11px; background: white; padding: 10px 12px; color: var(--color-charcoal); font-size: 1rem; }
+.crew-equipment-form button { min-height: 56px; border: 1px solid var(--color-forest); border-radius: 12px; background: var(--color-forest); color: white; font-size: 1rem; font-weight: 780; }
+.crew-inspection-list { display: grid; gap: 10px; }
+.crew-inspection-item { min-width: 0; border: 1px solid var(--color-border); border-radius: 12px; background: oklch(0.985 0.004 154); padding: 12px; }
+.crew-inspection-item legend { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; width: 100%; color: var(--color-charcoal); font-size: 0.95rem; font-weight: 720; }
+.crew-inspection-item legend span { border-radius: 999px; background: oklch(0.96 0.04 78); color: oklch(0.42 0.1 65); padding: 3px 7px; font-size: 0.68rem; text-transform: uppercase; }
+.crew-inspection-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.crew-inspection-options label { display: grid; place-items: center; gap: 5px; min-height: 58px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: white; color: var(--color-charcoal); font-size: 0.82rem; font-weight: 700; text-align: center; }
+.crew-inspection-options input { width: 20px; min-height: 20px; height: 20px; }
+.crew-stop-checkbox { display: flex !important; align-items: flex-start; gap: 10px; border: 1px solid oklch(0.78 0.09 25); border-radius: 11px; background: oklch(0.97 0.03 25); padding: 12px; }
+.crew-stop-checkbox input { width: 22px; min-height: 22px; height: 22px; }
+.crew-stop-checkbox span { display: grid; gap: 2px; }
+.crew-stop-checkbox small { color: var(--color-muted); font-weight: 500; }
+.crew-equipment-form .crew-danger-action { border-color: oklch(0.42 0.15 25); background: oklch(0.42 0.15 25); }
+.file-label { display: flex; align-items: center; gap: 7px; }
+
+@media (max-width: 980px) {
+  .equipment-summary-grid,
+  .equipment-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .equipment-filter-bar { grid-template-columns: 1fr 1fr; }
+  .equipment-search { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .equipment-summary-grid,
+  .equipment-metric-grid,
+  .equipment-record-list,
+  .equipment-workspace-grid,
+  .equipment-filter-bar { grid-template-columns: 1fr; }
+  .equipment-search { grid-column: auto; }
+  .equipment-archive-panel { align-items: stretch; flex-direction: column; }
+  .equipment-form-actions { bottom: 6px; }
+  .crew-inspection-options { grid-template-columns: 1fr; }
+  .crew-inspection-options label { grid-template-columns: auto 1fr; place-items: center start; min-height: 48px; padding: 8px 12px; text-align: left; }
 }
 
 .crew-panel-icon {

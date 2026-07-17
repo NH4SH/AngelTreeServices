@@ -260,3 +260,60 @@ Important:
 
 - The public website should remain unaffected because it is deployed as a separate Netlify site.
 - Do not change public-site DNS or env vars while rolling back the admin app unless the lead form target must be corrected.
+## Equipment, inspection, and maintenance checks
+
+1. Sign in as admin/owner and create a vehicle with an asset number, VIN, plate, safety class, inspection checklist, and maintenance interval.
+2. Attempt to create another active asset with the same VIN or plate. Confirm the warning appears and only saves after the explicit duplicate confirmation.
+3. Edit the asset and confirm its ID and existing history remain unchanged.
+4. Add mileage and engine-hour readings. Enter a lower reading and confirm a reason plus correction acknowledgment are required and the prior row remains visible.
+5. Add date-, mileage-, and hour-based maintenance schedules. Confirm a date-based item appears as a maintenance event in `/admin/schedule`.
+6. Record completed maintenance and confirm the maintenance history remains and the next interval advances.
+7. Assign equipment to a job, schedule event, and crew employee. Confirm it appears on the equipment record, linked job, schedule detail, and `/crew/equipment` for that employee.
+8. Attempt an overlapping assignment. Confirm it blocks unless owner/admin enters an override reason.
+9. Take an asset out of service and confirm assignment is blocked. Resolve unsafe problems, enter a return-to-service reason, and confirm assignment becomes available again.
+10. As crew, confirm only currently assigned equipment is visible and no VIN, ownership, purchase cost, admin notes, or unrelated asset data appears.
+11. Complete each fixed inspection template at least once: bucket/aerial, chipper, trailer, chainsaw, skid steer, climbing/rigging, and PPE.
+12. Fail a safety-critical inspection item. Confirm the inspection saves, a problem report is created, and the asset immediately becomes out of service.
+13. Report an unsafe equipment problem with a camera photo. Confirm the image is stored in the private `equipment-files` bucket and the asset becomes out of service.
+14. Report a non-unsafe attention item. Confirm staff sees it in the fleet queue without deleting or replacing prior reports.
+15. Verify out-of-service assets, maintenance due, failed inspections, open problems, and expiring documents appear on the admin dashboard/equipment summary.
+16. Verify archived equipment leaves active fleet results while readings, assignments, inspections, repairs, documents, and activity rows remain stored.
+17. Sign out and confirm equipment tables, RPCs, documents, and storage files are not publicly enumerable.
+18. Sign in as crew and attempt direct table reads for `equipment_assets`, `equipment_documents`, and `equipment_asset_costs`; confirm RLS denies them.
+19. Sign in as estimator/office staff and confirm operational fleet management works but purchase costs remain hidden.
+20. Sign in as admin/owner and confirm purchase cost is available on create/edit.
+
+## Employee onboarding, training, and safety checks
+
+Apply `supabase/migrations/20260716232544_equipment_fleet_management.sql` and then `supabase/migrations/20260716235514_employee_onboarding_training_compliance.sql` before this test.
+
+1. Create an employee record before platform access approval.
+2. Approve that employee's existing access request.
+3. Confirm the operational employee links to the correct existing auth profile.
+4. Confirm approval, page refresh, and repeat backfill do not create duplicate profiles or employees.
+5. Assign a crew, supervisor, and platform roles; confirm only owner/admin can change roles.
+6. Start onboarding and confirm the seeded checklist appears.
+7. Complete and mark checklist items not applicable; confirm verifier and timestamps persist.
+8. Reopen a completed item and confirm a reason is required and retained.
+9. Add a credential and confirm it remains pending verification.
+10. Verify the credential as staff; confirm an employee cannot verify their own credential.
+11. Add expiration dates at 90, 60, 30, and 7-day thresholds and confirm configured warning badges/queues.
+12. Confirm expired credentials remain stored and visible rather than being deleted.
+13. Configure a job-role or equipment-category qualification warning and assign an employee missing it.
+14. Confirm schedule/equipment assignment warns without silently removing existing assignments.
+15. Override as owner/admin with a reason and confirm `employee_qualification_override` activity is recorded.
+16. Create one training session with multiple attendees and confirm one shared session plus distinct attendee rows.
+17. Acknowledge assigned training with a typed name; change the document version and confirm prior acknowledgment history remains.
+18. Create a safety meeting with present and absent employees and confirm attendance history appears on each employee.
+19. Confirm a present employee can acknowledge only their own assigned safety meeting.
+20. Upload employee-visible, supervisor-visible, admin-only, and owner-only documents and verify each access boundary with separate accounts.
+21. Confirm all employee files use short-lived signed URLs and anonymous users cannot enumerate the bucket or metadata.
+22. Issue PPE/equipment through the existing fleet assignment and confirm employee and admin views reference the same assignment.
+23. Return the item and confirm assignment history remains visible.
+24. Mark an employee as a supervisor and confirm `/crew/team` shows only direct-report/matching-crew readiness, without contact, HR, role, auth, or private document data.
+25. Submit a correction, renewed-credential document, and training request from `/employee`; confirm each remains pending for staff review.
+26. Mark an employee inactive; confirm login profile and timer eligibility are disabled while old time, job, training, credential, acknowledgment, and equipment history remains.
+27. Complete the separation checklist and explicitly review future schedule assignments and unreturned equipment.
+28. Exercise one existing optional credential reminder through the current email system only if configured; confirm no private note or document content is included and no duplicate reminder is produced.
+29. Recheck scheduling, time clock, payroll review, fleet, closeout, quotes, invoices, portals, email, and Stripe workflows.
+30. Run Supabase Security Advisor and verify no new anonymous table access, broad RPC execute grant, public bucket, or exposed `app_private` function/schema exists.

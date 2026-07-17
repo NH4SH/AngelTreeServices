@@ -86,7 +86,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     return { data: null, error: jobError?.message ?? "Job not found or no access." };
   }
 
-  const [notes, photos, quotes, invoices, appointments] = await Promise.all([
+  const [notes, photos, quotes, invoices, appointments, equipmentAssignments] = await Promise.all([
     supabase
       .from("notes")
       .select("*")
@@ -116,6 +116,11 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       )
       .eq("job_id", jobId)
       .order("starts_at", { ascending: true }),
+    supabase
+      .from("equipment_assignments")
+      .select("*, equipment_assets(id, asset_number, name, status, category), profiles(id, full_name, email), schedule_events(id, title, starts_at, ends_at)")
+      .eq("job_id", jobId)
+      .order("starts_at", { ascending: false }),
   ]);
 
   const firstError =
@@ -124,6 +129,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     quotes.error?.message ??
     invoices.error?.message ??
     appointments.error?.message ??
+    equipmentAssignments.error?.message ??
     null;
 
   return {
@@ -134,6 +140,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       quotes: (quotes.data ?? []) as QuoteWithRelations[],
       invoices: (invoices.data ?? []) as InvoiceWithRelations[],
       appointments: (appointments.data ?? []) as AppointmentWithRelations[],
+      equipment_assignments: equipmentAssignments.data ?? [],
     },
     error: firstError,
   };

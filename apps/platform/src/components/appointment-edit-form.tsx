@@ -23,6 +23,7 @@ export function AppointmentEditForm({
     <form action={formAction} className="appointment-edit-form">
       <input name="appointment_id" type="hidden" value={appointment.id} />
       <input name="job_id" type="hidden" value={appointment.job_id} />
+      <input name="appointment_type" type="hidden" value={appointment.appointment_type} />
       <div className="form-grid-two">
         <label>
           <span>Start time</span>
@@ -46,6 +47,15 @@ export function AppointmentEditForm({
         <span>Calendar notes</span>
         <textarea defaultValue={appointment.calendar_notes ?? ""} maxLength={1000} name="calendar_notes" rows={3} />
       </label>
+      <label>
+        <span>Owner/admin override reason</span>
+        <textarea
+          maxLength={600}
+          name="eligibility_override_reason"
+          placeholder="Only needed if the assigned employee has a qualification warning"
+          rows={2}
+        />
+      </label>
       <button disabled={pending} type="submit">
         <Save aria-hidden="true" size={17} />
         {pending ? "Saving..." : "Save changes"}
@@ -64,4 +74,3 @@ function toLocalDateTime(value: string) {
   const offset = date.getTimezoneOffset();
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }
-

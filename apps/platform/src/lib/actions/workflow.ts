@@ -22,6 +22,28 @@ function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+async function syncAutomatedCommunicationsBestEffort(workflow: string) {
+  try {
+    const communicationSupabase = getServiceRoleClient();
+    if (!communicationSupabase) {
+      return;
+    }
+
+    const result = await syncAutomatedCommunications(communicationSupabase);
+    if (result.error) {
+      console.error("Automated communication sync failed after workflow update", {
+        workflow,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error("Automated communication sync threw after workflow update", {
+      workflow,
+      error,
+    });
+  }
+}
+
 export async function updateJobStatus(_previousState: WorkflowActionState, formData: FormData) {
   const supabase = await createClient();
 
@@ -203,8 +225,7 @@ export async function markQuoteSentManually(
     subjectType: "quote",
   });
 
-  const communicationSupabase = getServiceRoleClient();
-  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  await syncAutomatedCommunicationsBestEffort("quote_marked_sent_manually");
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
@@ -264,8 +285,7 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
     subjectType: "invoice",
   });
 
-  const communicationSupabase = getServiceRoleClient();
-  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  await syncAutomatedCommunicationsBestEffort("invoice_voided");
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -323,8 +343,7 @@ export async function markInvoiceSentManually(
     subjectType: "invoice",
   });
 
-  const communicationSupabase = getServiceRoleClient();
-  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  await syncAutomatedCommunicationsBestEffort("invoice_marked_sent_manually");
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");

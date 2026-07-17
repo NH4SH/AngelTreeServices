@@ -110,6 +110,16 @@ The exported Squarespace grid is not a reusable page-layout system. New static s
 - Keep useful content clear of the curve by balancing the outgoing section’s bottom padding with the incoming section’s top padding. Do not solve overlap by adding a large empty spacer.
 - Avoid stacking two unrelated waves at the same boundary or changing the existing divider paths without visual regression review.
 
+### Static Interior Pages
+
+- Use the shared `site-pages.css` system and generator in `scripts/build-public-pages.py`; do not copy the Squarespace export into each route.
+- Keep the sticky translucent-green header, compact navigation, cream/white content bands, Poppins typography, rounded actions, and shallow white-stroked hero wave.
+- Editorial heroes may use a two-column text/image layout when a truthful real image is available. Use a centered single-column hero when it is not.
+- Interior-page body content should remain in normal document flow within the shared `1180px` content constraint.
+- Process steps, FAQs, callouts, related links, and final CTAs are shared patterns, not page-specific inventions.
+- At tablet/mobile widths the navigation collapses to an accessible native-details menu, hero columns stack, and quick actions remain safe-area aware.
+- New service pages should feel calmer and more editorial than a contractor card template; cards support decisions rather than replacing the page hierarchy.
+
 ## Motion
 
 - Use the existing underline draw and short color fades only where they communicate state.

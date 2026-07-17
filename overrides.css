@@ -10,6 +10,157 @@
   --ats-green-shadow: rgba(20, 72, 24, 0.1);
 }
 
+.ats-credential-link {
+  color: inherit;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 180ms ease;
+}
+
+.ats-credential-link:hover,
+.ats-credential-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.ats-mobile-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.ats-home-mobile-menu {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  /* The brand already links home, so the exported Home item can yield room to
+     the new public-site destinations without wrapping the legacy header. */
+  #header .header-nav-item--homepage {
+    display: none;
+  }
+
+  #header .header-title-nav-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  #header .header-title {
+    flex: 0 1 clamp(240px, 27vw, 350px);
+    width: auto;
+  }
+
+  #header .header-nav {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  #header .header-nav-list {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: clamp(14px, 2vw, 30px);
+  }
+
+  #header .header-nav-item {
+    margin-right: 0;
+  }
+
+  #header .header-actions {
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: clamp(14px, 2vw, 28px);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  #header .header-inner {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  #header .header-actions-action--social {
+    display: none;
+  }
+
+  #header .header-nav-item a {
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  #header .header-title {
+    flex-basis: 350px;
+    flex-shrink: 0;
+  }
+
+  #header .header-nav-list {
+    gap: 12px;
+  }
+
+  #header .header-actions {
+    margin-left: 8px;
+  }
+}
+
+@media (max-width: 767px) {
+  .ats-home-mobile-menu {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: 12px;
+    display: block;
+    color: #fff;
+  }
+
+  .ats-home-mobile-menu summary {
+    min-height: 40px;
+    padding: 8px 13px;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .ats-home-mobile-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ats-home-mobile-menu nav {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    width: min(260px, calc(100vw - 24px));
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 18px;
+    background: rgba(22, 63, 25, 0.98);
+    box-shadow: 0 18px 40px rgba(8, 42, 12, 0.28);
+  }
+
+  .ats-home-mobile-menu nav a {
+    padding: 11px 13px;
+    display: block;
+    border-radius: 11px;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .ats-home-mobile-menu nav a:hover,
+  .ats-home-mobile-menu nav a:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
 /* Hero background: use static image to avoid resize flicker */
 #top .section-background {
   background-image: url("assets/hero-grass-1600.webp");

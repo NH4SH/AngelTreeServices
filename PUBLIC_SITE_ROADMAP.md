@@ -55,8 +55,10 @@ Risk labels describe regression or claim risk, not implementation effort. Any cr
 
 ## P2 — Content Depth and Performance
 
-- [ ] Create a static services hub.
-- [ ] Publish the first two or three confirmed high-intent service pages.
+- [x] Create a reusable static-page system and services hub.
+- [x] Publish tree removal, tree pruning, stump grinding, emergency tree service, and commercial/HOA tree care pages.
+- [x] Publish a verified credentials and safety page.
+- [x] Publish a project-library index using real imagery without inferred case-study facts.
 - [ ] Collect and publish one verified featured project with approved media/facts.
 - [ ] Add a useful regional service-area page.
 - [ ] Consolidate the duplicate mobile/desktop hero into one responsive source of truth.
@@ -68,7 +70,7 @@ Risk labels describe regression or claim risk, not implementation effort. Any cr
 ## P3 — Ongoing Growth
 
 - [ ] Add additional service pages based on actual demand and operations.
-- [ ] Grow the project library with real local work.
+- [ ] Grow the project library with approved project facts, privacy-safe locations, and media permission.
 - [ ] Add unique location content only when local proof supports it.
 - [ ] Review credentials, memberships, contact details, structured data, and claims quarterly.
 - [ ] Review Core Web Vitals and conversion events after meaningful releases.

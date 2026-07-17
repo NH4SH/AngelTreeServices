@@ -449,9 +449,47 @@
     return true;
   }
 
+  function applyEstimatePrefill(form) {
+    var parameters;
+
+    try {
+      parameters = new URLSearchParams(window.location.search);
+    } catch (error) {
+      return;
+    }
+
+    var requestedService = parameters.get("service");
+    var serviceField = form.querySelector('select[name="service"]');
+
+    if (requestedService && serviceField) {
+      var matchingOption = Array.prototype.find.call(serviceField.options, function (option) {
+        return option.value === requestedService;
+      });
+
+      if (matchingOption) {
+        serviceField.value = matchingOption.value;
+      }
+    }
+
+    var requestedCustomerType = parameters.get("customer_type");
+    if (requestedCustomerType) {
+      var customerTypeField = Array.prototype.find.call(
+        form.querySelectorAll('input[name="customer_type"]'),
+        function (field) {
+          return field.value === requestedCustomerType;
+        }
+      );
+
+      if (customerTypeField) {
+        customerTypeField.checked = true;
+      }
+    }
+  }
+
   function initForm(form) {
     form.dataset.formStartedAt = String(Date.now());
     setSubmissionMetadata(form, true);
+    applyEstimatePrefill(form);
     syncCommercialFields(form);
     setSubmitting(form, false);
     setSummaryState(form, false);

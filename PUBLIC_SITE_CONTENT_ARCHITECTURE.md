@@ -17,22 +17,32 @@ The `www` host may redirect at Netlify. Email addresses on `angeltreeservice.org
 | Route/source | Role | Indexing |
 | --- | --- | --- |
 | `/` (`index.html`) | Primary homepage and estimate journey | Index |
+| `/services/` | Tree-services decision hub | Index |
+| `/services/tree-removal/` | Tree-removal planning and estimate intent | Index |
+| `/services/tree-pruning/` | Purpose-led pruning guidance and estimate intent | Index |
+| `/services/stump-grinding/` | Stump-grinding scope and estimate intent | Index |
+| `/services/emergency-tree-service/` | Storm-tree safety guidance and urgent contact path | Index |
+| `/services/commercial-hoa-tree-care/` | Commercial, HOA, and property-management service path | Index |
+| `/credentials-safety/` | Verified credentials, planning, and safety practices | Index |
+| `/projects/` | Real-work image library and future case-study hub | Index |
 | `/landing-clean/` | Alternate design experiment | Noindex |
 | `/localbuild/` | Older static alternate/source | Noindex |
 | `/admin/` | Legacy placeholder; internal platform now lives separately | Noindex |
+
+Individual project pages remain withheld until factual project notes and media permission are approved.
 
 ## Target Information Architecture
 
 ### Primary Navigation
 
-- Home
-- Tree Services
-- Landscaping & Lawn Care
+- Brand link to Home
+- Services
 - Projects
-- About
-- Contact / Free Estimate
+- Commercial
+- Credentials
+- Call / Free Estimate
 
-Keep “Call” visually available, particularly on mobile.
+This compact structure is now shared by the homepage and Batch 2 pages. Keep “Call” and “Free Estimate” visually available, particularly on mobile.
 
 ### Service Hub
 
@@ -42,10 +52,11 @@ Purpose: help visitors choose the correct service and provide a crawlable overvi
 
 Recommended child pages, only where the service is operationally confirmed:
 
-- `/services/tree-removal/`
-- `/services/tree-pruning/`
-- `/services/stump-grinding/`
-- `/services/storm-cleanup/`
+- `/services/tree-removal/` — published.
+- `/services/tree-pruning/` — published.
+- `/services/stump-grinding/` — published.
+- `/services/emergency-tree-service/` — published.
+- `/services/commercial-hoa-tree-care/` — published.
 - `/services/tree-assessment/`
 - `/services/landscaping/`
 - `/services/lawn-care/`
@@ -200,11 +211,14 @@ Do not turn educational pages into diagnoses from photographs. Recommended schem
 
 ## Internal Linking
 
-- Homepage service cards link to corresponding service pages once published.
-- Service pages link to relevant projects and adjacent services.
+- Homepage links to the service hub, projects, commercial/HOA, credentials/safety, and the shared estimate flow.
+- Service pages link to relevant adjacent services, the project library, credentials/safety, and the shared estimate flow.
 - Project pages link back to the performed service and estimate action.
+- Commercial/HOA content links to relevant services, credentials/safety, and an organization-prefilled estimate path.
 - Service-area content links to services, not to duplicate city variants.
 - Use descriptive link labels; avoid generic “learn more” where context is unclear.
+
+The shared estimate path accepts only exact existing `service` and `customer_type` values. The destination retains normal browser referrer data and existing UTM attribution rather than creating a second form endpoint.
 
 ## Priority Page Briefs
 

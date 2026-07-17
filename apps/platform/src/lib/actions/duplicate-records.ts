@@ -43,6 +43,12 @@ export async function duplicateQuote(
     quote_line_items?: QuoteLineItem[];
   };
   const serviceLocationId = typedQuote.service_location_id ?? typedQuote.jobs?.service_location_id ?? null;
+  const quoteContacts = await activeOrganizationContactIds(auth.supabase, typedQuote.organization_id, [
+    typedQuote.recipient_contact_id,
+    typedQuote.approval_contact_id,
+    typedQuote.onsite_contact_id,
+    typedQuote.billing_contact_id,
+  ]);
 
   if (!serviceLocationId) {
     return {
@@ -60,6 +66,12 @@ export async function duplicateQuote(
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: null,
       estimator_user_id: auth.userId,
+      recipient_contact_id: quoteContacts.ids.has(typedQuote.recipient_contact_id) ? typedQuote.recipient_contact_id : null,
+      approval_contact_id: quoteContacts.ids.has(typedQuote.approval_contact_id) ? typedQuote.approval_contact_id : null,
+      onsite_contact_id: quoteContacts.ids.has(typedQuote.onsite_contact_id) ? typedQuote.onsite_contact_id : null,
+      billing_contact_id: quoteContacts.ids.has(typedQuote.billing_contact_id) ? typedQuote.billing_contact_id : null,
+      purchase_order_reference: typedQuote.purchase_order_reference,
+      payment_terms: typedQuote.payment_terms,
       status: "draft",
       quote_number: await getNextRecordNumber(auth.supabase, "quotes", "quote_number", "Q", typedQuote.quote_number),
       subtotal_cents: typedQuote.subtotal_cents,
@@ -101,7 +113,7 @@ export async function duplicateQuote(
   revalidatePath(`/admin/quotes/${quoteId}`);
   if (typedQuote.customer_id) revalidatePath(`/admin/customers/${typedQuote.customer_id}`);
   if (typedQuote.organization_id) revalidatePath(`/admin/organizations/${typedQuote.organization_id}`);
-  redirect(`/admin/quotes/${newQuote.id}/edit?duplicated=quote`);
+  redirect(`/admin/quotes/${newQuote.id}/edit?duplicated=quote${quoteContacts.warning ? "&contact_warning=1" : ""}`);
 }
 
 export async function duplicateInvoice(
@@ -133,6 +145,10 @@ export async function duplicateInvoice(
   const typedInvoice = invoice as typeof invoice & {
     invoice_line_items?: InvoiceLineItem[];
   };
+  const invoiceContacts = await activeOrganizationContactIds(auth.supabase, typedInvoice.organization_id, [
+    typedInvoice.billing_contact_id,
+    typedInvoice.accounts_payable_contact_id,
+  ]);
 
   const { data: newInvoice, error: createError } = await auth.supabase
     .from("invoices")
@@ -142,8 +158,10 @@ export async function duplicateInvoice(
       customer_id: typedInvoice.customer_id,
       organization_id: typedInvoice.organization_id,
       service_location_id: typedInvoice.service_location_id,
-      billing_contact_id: typedInvoice.billing_contact_id,
-      accounts_payable_contact_id: typedInvoice.accounts_payable_contact_id,
+      billing_contact_id: invoiceContacts.ids.has(typedInvoice.billing_contact_id) ? typedInvoice.billing_contact_id : null,
+      accounts_payable_contact_id: invoiceContacts.ids.has(typedInvoice.accounts_payable_contact_id) ? typedInvoice.accounts_payable_contact_id : null,
+      purchase_order_reference: typedInvoice.purchase_order_reference,
+      payment_terms: typedInvoice.payment_terms,
       status: "draft",
       invoice_number: await getNextRecordNumber(
         auth.supabase,
@@ -187,7 +205,7 @@ export async function duplicateInvoice(
   revalidatePath(`/admin/invoices/${invoiceId}`);
   if (typedInvoice.customer_id) revalidatePath(`/admin/customers/${typedInvoice.customer_id}`);
   if (typedInvoice.organization_id) revalidatePath(`/admin/organizations/${typedInvoice.organization_id}`);
-  redirect(`/admin/invoices/${newInvoice.id}/edit?duplicated=invoice`);
+  redirect(`/admin/invoices/${newInvoice.id}/edit?duplicated=invoice${invoiceContacts.warning ? "&contact_warning=1" : ""}`);
 }
 
 export async function duplicateJob(
@@ -208,13 +226,17 @@ export async function duplicateJob(
 
   const { data: job, error: jobError } = await auth.supabase
     .from("jobs")
-    .select("id, customer_id, organization_id, service_location_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
+    .select("id, customer_id, organization_id, service_location_id, onsite_contact_id, property_manager_contact_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
     .eq("id", jobId)
     .single();
 
   if (jobError || !job) {
     return { status: "error", message: jobError?.message ?? "Work order not found or no access." };
   }
+  const jobContacts = await activeOrganizationContactIds(auth.supabase, job.organization_id, [
+    job.onsite_contact_id,
+    job.property_manager_contact_id,
+  ]);
 
   const { data: newJob, error: createError } = await auth.supabase
     .from("jobs")
@@ -222,6 +244,8 @@ export async function duplicateJob(
       customer_id: job.customer_id,
       organization_id: job.organization_id,
       service_location_id: job.service_location_id,
+      onsite_contact_id: jobContacts.ids.has(job.onsite_contact_id) ? job.onsite_contact_id : null,
+      property_manager_contact_id: jobContacts.ids.has(job.property_manager_contact_id) ? job.property_manager_contact_id : null,
       source_quote_id: null,
       lead_source_id: null,
       assigned_crew_user_id: null,
@@ -258,7 +282,24 @@ export async function duplicateJob(
   revalidatePath(`/admin/jobs/${jobId}`);
   if (job.customer_id) revalidatePath(`/admin/customers/${job.customer_id}`);
   if (job.organization_id) revalidatePath(`/admin/organizations/${job.organization_id}`);
-  redirect(`/admin/jobs/${newJob.id}?duplicated=job`);
+  redirect(`/admin/jobs/${newJob.id}?duplicated=job${jobContacts.warning ? "&contact_warning=1" : ""}`);
+}
+
+async function activeOrganizationContactIds(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  organizationId: string | null,
+  selectedIds: Array<string | null>,
+) {
+  const requested = selectedIds.filter((id): id is string => Boolean(id));
+  if (!organizationId || requested.length === 0) return { ids: new Set<string>(), warning: false };
+  const { data, error } = await supabase
+    .from("organization_contacts")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("is_active", true)
+    .in("id", requested);
+  const ids = new Set((data ?? []).map((contact) => contact.id));
+  return { ids, warning: Boolean(error) || ids.size !== new Set(requested).size };
 }
 
 async function requireInternalStaff() {

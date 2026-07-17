@@ -1,5 +1,8 @@
 import type { Job, ServiceLocation } from "@/lib/types/database";
 
+type CustomerDisplay = { display_name?: string | null } | null | undefined;
+type OrganizationDisplay = { name?: string | null } | null | undefined;
+
 export type ContractingParty =
   | { kind: "customer"; customerId: string; organizationId: null }
   | { kind: "organization"; customerId: null; organizationId: string };
@@ -23,6 +26,19 @@ export function belongsToContractingParty(
   party: ContractingParty,
 ) {
   return party.kind === "customer"
-    ? record.customer_id === party.customerId
-    : record.organization_id === party.organizationId;
+    ? record.customer_id === party.customerId && record.organization_id === null
+    : record.organization_id === party.organizationId && record.customer_id === null;
+}
+
+export function contractingPartyName(record: {
+  customers?: CustomerDisplay;
+  organizations?: OrganizationDisplay;
+}) {
+  return record.organizations?.name ?? record.customers?.display_name ?? "Unknown contracting party";
+}
+
+export function contractingPartyType(record: { customer_id: string | null; organization_id: string | null }) {
+  if (record.organization_id && !record.customer_id) return "organization" as const;
+  if (record.customer_id && !record.organization_id) return "customer" as const;
+  return "invalid" as const;
 }

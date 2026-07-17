@@ -41,7 +41,7 @@ export type ChangeOrderActivity = {
 
 export type ChangeOrderJobOption = {
   id: string;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
   service_location_id: string;
   source_quote_id: string | null;
@@ -76,7 +76,7 @@ export async function getChangeOrderFormOptions() {
   ]);
   return {
     jobs: (jobs.data ?? []) as unknown as ChangeOrderJobOption[],
-    quotes: (quotes.data ?? []) as Pick<Quote, "id" | "quote_number" | "customer_id" | "service_location_id" | "job_id" | "status" | "total_cents">[],
+    quotes: (quotes.data ?? []) as Pick<Quote, "id" | "quote_number" | "customer_id" | "organization_id" | "service_location_id" | "job_id" | "status" | "total_cents">[],
     contacts: (contacts.data ?? []) as OrganizationContact[],
     error: jobs.error?.message ?? quotes.error?.message ?? contacts.error?.message ?? null,
   };

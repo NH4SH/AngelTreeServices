@@ -16,6 +16,8 @@ type QuoteForApproval = {
   organization_id: string | null;
   approval_contact_id: string | null;
   recipient_contact_id: string | null;
+  onsite_contact_id: string | null;
+  billing_contact_id: string | null;
   service_location_id: string | null;
   customer_message: string | null;
   debris_handling: string | null;
@@ -41,7 +43,7 @@ export async function approveQuoteAndEnsureWorkOrder(
 ): Promise<QuoteWorkflowResult> {
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("id, job_id, customer_id, organization_id, approval_contact_id, recipient_contact_id, service_location_id, customer_message, debris_handling, debris_handling_notes, recurring_service_plan_id, recurring_occurrence_id, status, quote_line_items(id, name, description, material_id, quantity, sort_order)")
+    .select("id, job_id, customer_id, organization_id, approval_contact_id, recipient_contact_id, onsite_contact_id, billing_contact_id, service_location_id, customer_message, debris_handling, debris_handling_notes, recurring_service_plan_id, recurring_occurrence_id, status, quote_line_items(id, name, description, material_id, quantity, sort_order)")
     .eq("id", quoteId)
     .single();
 
@@ -95,6 +97,7 @@ export async function approveQuoteAndEnsureWorkOrder(
       customer_id: typedQuote.customer_id,
       organization_id: typedQuote.organization_id,
       property_manager_contact_id: typedQuote.approval_contact_id ?? typedQuote.recipient_contact_id,
+      onsite_contact_id: typedQuote.onsite_contact_id,
       service_location_id: typedQuote.service_location_id,
       source_quote_id: typedQuote.id,
       status: "accepted",

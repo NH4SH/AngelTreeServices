@@ -351,3 +351,38 @@ npx supabase db push
 The migration adds no environment variables. Leave `automated_generation_enabled` off for initial deployment. Confirm `/admin/recurring` loads, manually generate one due test occurrence twice, and verify the second run creates no duplicate. Test individual and multi-property organization plans, distinct approval/onsite/billing contacts, independent property pause, renewal pricing review, exactly-one work-order conversion, invoice provenance, assigned-crew recommendation submission, anonymous denial, and the checklist in `RECURRING_SERVICES.md` before considering scheduled generation.
 
 Refresh the PostgREST schema cache if necessary, keep `app_private` out of exposed API schemas, and run Supabase Security Advisor. Do not treat a successful Next.js build as database or RLS verification.
+# Contracting Party Migration
+
+Migration: `20260717040930_contracting_party_integrity_and_review.sql`
+
+This release makes organizations first-class contracting parties. It does not automatically resolve records with both or neither owner. Before deployment:
+
+1. Back up the production database.
+2. Run `supabase/verification/contracting_party_ownership_audit.sql` in the Supabase SQL Editor.
+3. Review every ambiguous record. Do not infer that a linked person is the contracting customer merely because they are an organization contact.
+4. Apply the reviewed migration. It preserves existing rows, enforces exact ownership on new/changed rows, and writes ambiguous history to `contracting_party_review_items`.
+5. Deploy the compatible platform application immediately after the migration.
+6. Open **Reports > Data quality** and resolve the manual-review queue.
+7. After the queue is empty, validate the `*_exactly_one_*` constraints in a separately reviewed migration.
+8. Run individual, organization, portal, email, Stripe test-mode, recurring-service, and crew-assignment smoke tests.
+9. Run Supabase Security Advisor and confirm no new anon table access or public function execution.
+
+Rollback consideration: application code deployed with this release expects `contracting_party_review_items`. Roll back the application before rolling back the migration. Do not restore legacy `NOT NULL customer_id` constraints while organization-owned records exist.
+
+Manual smoke test:
+
+- Complete the individual customer quote -> portal approval -> one work order -> invoice -> payment path.
+- Create an organization with no linked customer, three role-specific contacts, and two properties.
+- Create a quote for the second property; verify `customer_id` is null and the recipient, approver, onsite, and billing contacts remain distinct.
+- Send and approve the quote through its token; verify exactly one organization-owned work order and no placeholder customer.
+- Confirm crew sees the organization, property, onsite contact, and access instructions without organization billing data.
+- Create and approve a change order, complete closeout, generate the invoice, and verify ownership and service location match the quote and job.
+- Send the invoice to the billing/AP contact and complete one Stripe test-mode payment; verify one payment and one balance update.
+- Duplicate the organization quote, work order, and invoice; verify ownership and active contacts copy while portal tokens, approvals, email history, and payments do not.
+- Create an organization recurring plan without a customer, then generate and approve a renewal quote and verify one work order for the selected property.
+- Schedule an organization job and verify notices resolve to the onsite/property contact, while invoice/payment messages resolve to billing/AP.
+- Record a material delivery for the organization and verify its linked work order has the same contracting party.
+- Confirm individual customer pages contain only individual-owned records and the organization page shows direct-owned work, payments, balance, communications, recurring work, and activity.
+- Confirm Reports separates individual customers from organizations and does not count organization contacts as customers.
+- Open a quote/invoice portal signed out and verify it exposes only the token's document.
+- Verify crew cannot read organization billing data and anon cannot query organization or review tables.

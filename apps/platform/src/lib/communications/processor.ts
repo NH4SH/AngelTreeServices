@@ -250,8 +250,9 @@ async function getCurrentRecipient(supabase: SupabaseClient, communication: Cust
       .maybeSingle();
     if (error || !organization) return { customerName: null, email: null, error: error?.message ?? "Organization not found." };
     if (organization.status === "archived") return { customerName: null, email: null, error: "The organization is archived." };
-    const email = organization.billing_email?.trim().toLowerCase() ?? "";
-    if (!isValidEmail(email)) return { customerName: null, email: null, error: "The organization billing email is missing or invalid." };
+    const selectedEmail = await getOrganizationWorkflowRecipient(supabase, communication, organization.id);
+    const email = (selectedEmail ?? organization.billing_email)?.trim().toLowerCase() ?? "";
+    if (!isValidEmail(email)) return { customerName: null, email: null, error: "The selected organization contact email is missing or invalid." };
     return { customerName: organization.name as string, email, error: null };
   }
 
@@ -275,6 +276,38 @@ async function getCurrentRecipient(supabase: SupabaseClient, communication: Cust
   }
 
   return { customerName: customer.display_name as string, email, error: null };
+}
+
+async function getOrganizationWorkflowRecipient(
+  supabase: SupabaseClient,
+  communication: CustomerCommunication,
+  organizationId: string,
+) {
+  let contactIds: Array<string | null> = [];
+
+  if (communication.quote_id) {
+    const { data } = await supabase.from("quotes").select("organization_id, approval_contact_id, recipient_contact_id").eq("id", communication.quote_id).maybeSingle();
+    if (data?.organization_id === organizationId) contactIds = [data.approval_contact_id, data.recipient_contact_id];
+  } else if (communication.invoice_id) {
+    const { data } = await supabase.from("invoices").select("organization_id, accounts_payable_contact_id, billing_contact_id").eq("id", communication.invoice_id).maybeSingle();
+    if (data?.organization_id === organizationId) contactIds = [data.accounts_payable_contact_id, data.billing_contact_id];
+  } else if (communication.payment_id) {
+    const { data: payment } = await supabase.from("payments").select("invoice_id, organization_id").eq("id", communication.payment_id).maybeSingle();
+    if (payment?.organization_id === organizationId) {
+      const { data } = await supabase.from("invoices").select("accounts_payable_contact_id, billing_contact_id").eq("id", payment.invoice_id).maybeSingle();
+      contactIds = [data?.accounts_payable_contact_id ?? null, data?.billing_contact_id ?? null];
+    }
+  } else if (communication.job_id) {
+    const { data } = await supabase.from("jobs").select("organization_id, onsite_contact_id, property_manager_contact_id").eq("id", communication.job_id).maybeSingle();
+    if (data?.organization_id === organizationId) contactIds = [data.onsite_contact_id, data.property_manager_contact_id];
+  }
+
+  for (const contactId of contactIds) {
+    if (!contactId) continue;
+    const { data } = await supabase.from("organization_contacts").select("email, is_active, organization_id").eq("id", contactId).maybeSingle();
+    if (data?.organization_id === organizationId && data.is_active && isValidEmail(data.email?.trim().toLowerCase() ?? "")) return data.email;
+  }
+  return null;
 }
 
 async function prepareQuoteFollowUp(

@@ -56,7 +56,8 @@ export async function getInvoicesByCustomerId(customerId: string): Promise<DataR
     .select(
       "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
-    .or(`customer_id.eq.${customerId},legacy_customer_id.eq.${customerId}`)
+    .eq("customer_id", customerId)
+    .is("organization_id", null)
     .order("created_at", { ascending: false });
 
   if (error) {

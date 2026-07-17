@@ -10,7 +10,7 @@ import { EditInvoiceForm } from "../../InvoiceForm";
 
 type InvoiceEditPageProps = {
   params: Promise<{ invoiceId: string }>;
-  searchParams: Promise<{ duplicated?: string }>;
+  searchParams: Promise<{ contact_warning?: string; duplicated?: string }>;
 };
 
 export default async function InvoiceEditPage({ params, searchParams }: InvoiceEditPageProps) {
@@ -53,6 +53,9 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
             </section>
             {query.duplicated === "invoice" ? (
               <p className="form-message success" role="status">Invoice duplicated.</p>
+            ) : null}
+            {query.contact_warning === "1" ? (
+              <p className="form-message error" role="alert">One or more selected organization billing contacts were inactive and were not copied. Review recipients before sending.</p>
             ) : null}
             <EditInvoiceForm invoice={detail.data} serviceCategories={serviceCategories.data} />
           </>

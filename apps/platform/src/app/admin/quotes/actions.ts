@@ -52,6 +52,12 @@ export async function createQuote(
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
+  const recipientContactId = String(formData.get("recipient_contact_id") ?? "").trim() || null;
+  const approvalContactId = String(formData.get("approval_contact_id") ?? "").trim() || null;
+  const onsiteContactId = String(formData.get("onsite_contact_id") ?? "").trim() || null;
+  const billingContactId = String(formData.get("billing_contact_id") ?? "").trim() || null;
+  const purchaseOrderReference = String(formData.get("purchase_order_reference") ?? "").trim() || null;
+  const paymentTerms = String(formData.get("payment_terms") ?? "").trim() || null;
   const debrisHandling = String(formData.get("debris_handling") ?? "").trim() || null;
   const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
@@ -72,6 +78,9 @@ export async function createQuote(
   if (accountError || !account || account.status !== "active") {
     return { status: "error", message: accountError?.message ?? "The selected contracting party is not active." };
   }
+
+  const contactError = await validateOrganizationContacts(supabase, party, [recipientContactId, approvalContactId], [onsiteContactId, billingContactId]);
+  if (contactError) return { status: "error", message: contactError };
 
   let serviceLocationId = serviceLocationIdInput || null;
 
@@ -145,6 +154,12 @@ export async function createQuote(
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       estimator_user_id: user.id,
+      recipient_contact_id: recipientContactId,
+      approval_contact_id: approvalContactId,
+      onsite_contact_id: onsiteContactId,
+      billing_contact_id: billingContactId,
+      purchase_order_reference: purchaseOrderReference,
+      payment_terms: paymentTerms,
       status: "draft",
       subtotal_cents: subtotalCents,
       tax_cents: 0,
@@ -221,6 +236,12 @@ export async function updateQuote(
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
+  const recipientContactId = String(formData.get("recipient_contact_id") ?? "").trim() || null;
+  const approvalContactId = String(formData.get("approval_contact_id") ?? "").trim() || null;
+  const onsiteContactId = String(formData.get("onsite_contact_id") ?? "").trim() || null;
+  const billingContactId = String(formData.get("billing_contact_id") ?? "").trim() || null;
+  const purchaseOrderReference = String(formData.get("purchase_order_reference") ?? "").trim() || null;
+  const paymentTerms = String(formData.get("payment_terms") ?? "").trim() || null;
   const debrisHandling = String(formData.get("debris_handling") ?? "").trim() || null;
   const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
@@ -234,12 +255,17 @@ export async function updateQuote(
 
   const { data: existingQuote, error: quoteLookupError } = await supabase
     .from("quotes")
-    .select("id, status, recurring_occurrence_id")
+    .select("id, customer_id, organization_id, status, recurring_occurrence_id")
     .eq("id", quoteId)
     .single();
 
   if (quoteLookupError || !existingQuote) {
     return { status: "error", message: quoteLookupError?.message ?? "Quote not found or no access." };
+  }
+
+  const ownerChanged = existingQuote.customer_id !== party.customerId || existingQuote.organization_id !== party.organizationId;
+  if (ownerChanged && formData.get("confirm_contracting_party_change") !== "on") {
+    return { status: "error", message: "Confirm the contracting-party change before saving this quote." };
   }
 
   const editableStatuses: QuoteStatus[] = ["draft", "sent", "change_requested"];
@@ -256,6 +282,9 @@ export async function updateQuote(
   if (accountError || !account || account.status !== "active") {
     return { status: "error", message: accountError?.message ?? "The selected contracting party is not active." };
   }
+
+  const contactError = await validateOrganizationContacts(supabase, party, [recipientContactId, approvalContactId], [onsiteContactId, billingContactId]);
+  if (contactError) return { status: "error", message: contactError };
 
   let serviceLocationId = serviceLocationIdInput || null;
 
@@ -326,6 +355,12 @@ export async function updateQuote(
       job_id: jobId,
       customer_id: party.customerId,
       organization_id: party.organizationId,
+      recipient_contact_id: recipientContactId,
+      approval_contact_id: approvalContactId,
+      onsite_contact_id: onsiteContactId,
+      billing_contact_id: billingContactId,
+      purchase_order_reference: purchaseOrderReference,
+      payment_terms: paymentTerms,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       status: existingQuote.status,
@@ -352,6 +387,21 @@ export async function updateQuote(
 
   if (existingQuote.recurring_occurrence_id) {
     await supabase.from("recurring_service_occurrences").update({ pricing_review_status: "reviewed" }).eq("id", existingQuote.recurring_occurrence_id);
+  }
+
+  if (ownerChanged) {
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: "quote_contracting_party_changed",
+      metadata: {
+        previous_customer_id: existingQuote.customer_id,
+        previous_organization_id: existingQuote.organization_id,
+        customer_id: party.customerId,
+        organization_id: party.organizationId,
+      },
+      subjectId: quoteId,
+      subjectType: "quote",
+    });
   }
 
   revalidatePath("/admin");
@@ -408,6 +458,30 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
   }
 
   return items;
+}
+
+async function validateOrganizationContacts(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  party: NonNullable<ReturnType<typeof parseContractingParty>>,
+  requiredContactIds: Array<string | null>,
+  optionalContactIds: Array<string | null>,
+) {
+  const ids = [...requiredContactIds, ...optionalContactIds].filter((id): id is string => Boolean(id));
+  if (party.kind === "customer") {
+    return ids.length ? "Organization contacts cannot be attached to an individual customer quote." : null;
+  }
+  if (requiredContactIds.some((id) => !id)) {
+    return "Choose both a quote recipient and an approval contact for organization quotes.";
+  }
+  const { data, error } = await supabase
+    .from("organization_contacts")
+    .select("id, organization_id, is_active")
+    .in("id", ids);
+  if (error) return error.message;
+  if ((data ?? []).length !== new Set(ids).size || (data ?? []).some((contact) => contact.organization_id !== party.organizationId || !contact.is_active)) {
+    return "Choose active contacts belonging to the selected organization.";
+  }
+  return null;
 }
 
 async function syncQuoteLineItems(

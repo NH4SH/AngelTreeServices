@@ -192,6 +192,9 @@ function formatLocation(quote: QuoteDetail) {
 }
 
 function formatContact(quote: QuoteDetail) {
+  if (quote.recipient_contact) {
+    return [quote.recipient_contact.full_name, quote.recipient_contact.phone, quote.recipient_contact.email].filter(Boolean).join("\n");
+  }
   const contact = quote.organizations
     ? [quote.organizations.billing_phone, quote.organizations.billing_email].filter(Boolean)
     : [quote.customers?.phone, quote.customers?.email].filter(Boolean);

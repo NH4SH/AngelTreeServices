@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
 import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
-import type { Customer, Job, Organization, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { Customer, Job, Organization, OrganizationContact, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 import type { MaterialRecord } from "@/lib/data/materials";
 
@@ -43,6 +43,7 @@ export function AddQuoteForm({
   jobs,
   materials,
   organizations,
+  organizationContacts,
   quote,
   serviceCategories,
   serviceLocations,
@@ -53,6 +54,7 @@ export function AddQuoteForm({
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   materials: MaterialRecord[];
   organizations: Pick<Organization, "id" | "name">[];
+  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
   quote?: QuoteDetail;
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
@@ -65,6 +67,7 @@ export function AddQuoteForm({
     quote ? contractingPartyValue(quote) : defaultCustomerId ? `customer:${defaultCustomerId}` : "",
   );
   const selectedParty = parseContractingParty(selectedPartyValue);
+  const originalPartyValue = quote ? contractingPartyValue(quote) : "";
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(
     quote?.quote_line_items?.length
       ? [...quote.quote_line_items]
@@ -88,6 +91,12 @@ export function AddQuoteForm({
   const matchingJobs = useMemo(
     () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
     [selectedParty, jobs],
+  );
+  const matchingContacts = useMemo(
+    () => selectedParty?.kind === "organization"
+      ? organizationContacts.filter((contact) => contact.organization_id === selectedParty.organizationId)
+      : [],
+    [organizationContacts, selectedParty],
   );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
   const closeHref = quote ? `/admin/quotes/${quote.id}` : "/admin/quotes";
@@ -160,6 +169,58 @@ export function AddQuoteForm({
                 </option>
               ))}
             </select>
+          </label>
+        </div>
+        {quote && selectedPartyValue !== originalPartyValue ? (
+          <label className="checkbox-field">
+            <input name="confirm_contracting_party_change" required type="checkbox" />
+            I understand this changes the legal contracting party. Existing portal access remains attached to this quote.
+          </label>
+        ) : null}
+        {selectedParty?.kind === "organization" ? (
+          <>
+          <div className="form-grid-two">
+            <label>
+              Quote recipient
+              <select defaultValue={quote?.recipient_contact_id ?? ""} name="recipient_contact_id" required>
+                <option value="">Choose recipient</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
+              </select>
+            </label>
+            <label>
+              Approval contact
+              <select defaultValue={quote?.approval_contact_id ?? ""} name="approval_contact_id" required>
+                <option value="">Choose approval contact</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.contact_roles?.length ? ` - ${contact.contact_roles.join(", ")}` : ""}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="form-grid-two">
+            <label>
+              Onsite contact
+              <select defaultValue={quote?.onsite_contact_id ?? ""} name="onsite_contact_id">
+                <option value="">No onsite contact selected</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}</option>)}
+              </select>
+            </label>
+            <label>
+              Billing contact
+              <select defaultValue={quote?.billing_contact_id ?? ""} name="billing_contact_id">
+                <option value="">Use approval contact</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
+              </select>
+            </label>
+          </div>
+          </>
+        ) : null}
+        <div className="form-grid-two">
+          <label>
+            Purchase order / reference
+            <input defaultValue={quote?.purchase_order_reference ?? ""} name="purchase_order_reference" />
+          </label>
+          <label>
+            Payment terms
+            <input defaultValue={quote?.payment_terms ?? ""} name="payment_terms" placeholder="Net 30" />
           </label>
         </div>
         <div className="form-grid-two">

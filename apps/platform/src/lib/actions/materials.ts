@@ -12,6 +12,7 @@ import {
   materialUnits,
 } from "@/lib/materials/definitions";
 import { createClient } from "@/lib/supabase/server";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 
 export type MaterialActionState = { status: "idle" | "success" | "error" | "warning"; message: string };
 
@@ -447,12 +448,17 @@ export async function recordProductionBatch(_state: MaterialActionState, formDat
 export async function recordCustomerDelivery(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
   const context = await getContext();
   if (!context || !isStaff(context.roles)) return fail("Only authorized staff can schedule or complete deliveries.");
-  const customerId = text(formData, "customer_id", 80);
+  const party = parseContractingParty(formData.get("contracting_party"));
   const materialId = text(formData, "material_id", 80);
   const quantity = decimal(formData, "quantity");
   const unit = text(formData, "unit", 40);
   const status = text(formData, "status", 30);
-  if (!customerId || !materialId || !quantity || !["planned", "scheduled", "out_for_delivery", "delivered"].includes(status)) return fail("Customer, material, quantity, and delivery status are required.");
+  if (!party || !materialId || !quantity || !["planned", "scheduled", "out_for_delivery", "delivered"].includes(status)) return fail("Contracting party, material, quantity, and delivery status are required.");
+  const jobId = optional(formData, "job_id", 80);
+  if (jobId) {
+    const { data: job, error: jobError } = await context.supabase.from("jobs").select("customer_id, organization_id").eq("id", jobId).single();
+    if (jobError || !job || !belongsToContractingParty(job, party)) return fail(jobError?.message ?? "The selected work order does not belong to this contracting party.");
+  }
   const unitError = await validateMaterialUnit(context, materialId, unit);
   if (unitError) return fail(unitError);
   const proof = await uploadMaterialFile(context, formData.get("proof"), "delivery");
@@ -461,13 +467,13 @@ export async function recordCustomerDelivery(_state: MaterialActionState, formDa
   if (status === "delivered") {
     const source = text(formData, "source_location_id", 80);
     if (!source) return fail("Choose the source location before marking a delivery complete.");
-    const movement = await insertMovement(context, { materialId, type: "delivery", quantity, unit, sourceLocationId: source, jobId: optional(formData, "job_id", 80), notes: "Customer delivery", idempotencyKey: text(formData, "idempotency_key", 120) || crypto.randomUUID(), attachmentPath: proof.path, isEstimated: formData.get("is_estimated") === "on" });
+    const movement = await insertMovement(context, { materialId, type: "delivery", quantity, unit, sourceLocationId: source, jobId, notes: "Customer delivery", idempotencyKey: text(formData, "idempotency_key", 120) || crypto.randomUUID(), attachmentPath: proof.path, isEstimated: formData.get("is_estimated") === "on" });
     if (!movement.data) return fail(movement.error ?? "Could not post delivery movement.");
     transactionId = movement.data.id;
   }
   const { data, error } = await context.supabase.from("customer_deliveries").insert({
-    customer_id: customerId, service_location_id: optional(formData, "service_location_id", 80),
-    job_id: optional(formData, "job_id", 80), quote_id: optional(formData, "quote_id", 80), invoice_id: optional(formData, "invoice_id", 80),
+    customer_id: party.customerId, organization_id: party.organizationId, service_location_id: optional(formData, "service_location_id", 80),
+    job_id: jobId, quote_id: optional(formData, "quote_id", 80), invoice_id: optional(formData, "invoice_id", 80),
     material_id: materialId, quantity, unit, delivery_window_start: dateTime(formData, "delivery_window_start"),
     delivery_window_end: dateTime(formData, "delivery_window_end"), delivered_at: status === "delivered" ? new Date().toISOString() : null,
     vehicle_asset_id: optional(formData, "vehicle_asset_id", 80), trailer_asset_id: optional(formData, "trailer_asset_id", 80),
@@ -483,7 +489,7 @@ export async function recordCustomerDelivery(_state: MaterialActionState, formDa
     return fail(error?.message ?? "Could not record delivery.");
   }
   await log(context, status === "delivered" ? "material_delivery_completed" : "material_delivery_scheduled", data.id, "customer_delivery");
-  revalidateMaterials(optional(formData, "job_id", 80));
+  revalidateMaterials(jobId);
   return ok(status === "delivered" ? "Delivery completed and stock updated." : "Delivery saved.");
 }
 

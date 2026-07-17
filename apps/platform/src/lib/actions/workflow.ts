@@ -610,7 +610,7 @@ async function getInvoiceSourceQuote(
 
   const { data: quote, error } = await supabase
     .from("quotes")
-    .select("id, job_id, status, tax_cents, approval_contact_id, recipient_contact_id, quote_line_items(name, description, service_category_id, material_id, quantity, unit_price_cents, total_cents, sort_order)")
+    .select("id, job_id, status, tax_cents, billing_contact_id, approval_contact_id, recipient_contact_id, quote_line_items(name, description, service_category_id, material_id, quantity, unit_price_cents, total_cents, sort_order)")
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -625,7 +625,7 @@ async function getInvoiceSourceQuote(
   return {
     ok: true,
     quoteId: quote.id,
-    billingContactId: quote.approval_contact_id ?? quote.recipient_contact_id,
+    billingContactId: quote.billing_contact_id ?? quote.approval_contact_id ?? quote.recipient_contact_id,
     taxCents: quote.tax_cents ?? 0,
     lineItems: ((quote.quote_line_items ?? []) as QuoteLineItem[])
       .sort((left, right) => left.sort_order - right.sort_order),

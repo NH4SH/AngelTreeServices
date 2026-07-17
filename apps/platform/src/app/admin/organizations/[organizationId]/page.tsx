@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Building2, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
+import { Activity, Building2, CircleDollarSign, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { EmailHistoryList } from "@/components/email-history";
@@ -144,6 +144,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
               </Panel>
 
               <Panel icon={<ReceiptText size={18} />} title="Invoices">
+                <article className="linked-record"><strong>{money(org.outstandingBalanceCents)}</strong><span>Outstanding organization balance</span></article>
                 {org.invoices.length ? (
                   org.invoices.map((invoice) => (
                     <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
@@ -154,6 +155,10 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 ) : (
                   <p>No organization invoices yet.</p>
                 )}
+              </Panel>
+
+              <Panel icon={<CircleDollarSign size={18} />} title="Payments">
+                {org.payments.length ? org.payments.map((payment) => <Link className="linked-record" href={`/admin/invoices/${payment.invoice_id}`} key={payment.id}><strong>{money(payment.amount_cents)}</strong><span>{payment.status.replaceAll("_", " ")} - {formatDateTime(payment.paid_at ?? payment.created_at)}</span></Link>) : <p>No organization payments yet.</p>}
               </Panel>
 
               <Panel icon={<FilePlus2 size={18} />} title="Change orders">
@@ -177,6 +182,10 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
 
               <Panel icon={<Sprout size={18} />} title="Recommended future work">
                 {recurring.recommendations.length ? recurring.recommendations.map((item) => <Link className="linked-record" href="/admin/recurring" key={item.id}><strong>{item.title}</strong><span>{item.service_locations?.label || item.service_locations?.street} - {item.status.replaceAll("_", " ")}</span></Link>) : <p>No recommendations awaiting action.</p>}
+              </Panel>
+
+              <Panel icon={<Activity size={18} />} title="Activity history">
+                {org.activity.length ? org.activity.map((item) => <article className="linked-record" key={item.id}><strong>{item.event_type.replaceAll("_", " ")}</strong><span>{item.subject_type.replaceAll("_", " ")} - {formatDateTime(item.created_at)}</span></article>) : <p>No recorded organization activity yet.</p>}
               </Panel>
             </section>
 

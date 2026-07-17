@@ -8,12 +8,12 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
-import { getOrganizations } from "@/lib/data/organizations";
+import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
 import { getQuotes } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
-import type { Customer, Job, Organization, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { Customer, Job, Organization, OrganizationContact, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 type QuotesPageProps = {
   searchParams: Promise<{
@@ -38,10 +38,11 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     return <SetupRequired title="Configure Supabase before opening quotes" />;
   }
 
-  const [quotes, customers, organizations, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [quotes, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
     getQuotes(),
     getCustomerOptions(),
     getOrganizations(),
+    getActiveOrganizationContacts(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
@@ -68,7 +69,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, customers.error, organizations.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[quotes.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
@@ -148,6 +149,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             jobs={jobs.data}
             materials={materials.data}
             organizations={organizations.data}
+            organizationContacts={organizationContacts.data}
             serviceCategories={serviceCategories.data}
             serviceLocations={serviceLocations.data}
           />
@@ -164,6 +166,7 @@ function QuoteCreateDrawer({
   jobs,
   materials,
   organizations,
+  organizationContacts,
   serviceCategories,
   serviceLocations,
 }: {
@@ -173,6 +176,7 @@ function QuoteCreateDrawer({
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   materials: MaterialRecord[];
   organizations: Pick<Organization, "id" | "name">[];
+  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
@@ -200,6 +204,7 @@ function QuoteCreateDrawer({
           jobs={jobs}
           materials={materials}
           organizations={organizations}
+          organizationContacts={organizationContacts}
           serviceCategories={serviceCategories}
           serviceLocations={serviceLocations}
         />

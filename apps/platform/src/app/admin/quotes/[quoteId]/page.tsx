@@ -217,6 +217,18 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   </Link>
                 </section>
 
+                {detail.data.organization_id ? (
+                  <section className="commerce-side-panel">
+                    <PanelTitle icon={<UsersRound size={18} />} title="Organization contacts" />
+                    <div className="linked-record-list">
+                      <ContactLine label="Attention" contact={detail.data.recipient_contact} />
+                      <ContactLine label="Approval" contact={detail.data.approval_contact} />
+                      <ContactLine label="Onsite" contact={detail.data.onsite_contact} />
+                      <ContactLine label="Billing" contact={detail.data.billing_contact} />
+                    </div>
+                  </section>
+                ) : null}
+
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<MapPin size={18} />} title="Service location" />
                   {detail.data.service_locations ? (
@@ -323,6 +335,10 @@ function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
 
 function EmptyInline({ children }: { children: ReactNode }) {
   return <p className="inline-empty">{children}</p>;
+}
+
+function ContactLine({ contact, label }: { contact?: { full_name: string; email?: string | null; phone?: string | null; is_active: boolean } | null; label: string }) {
+  return <article className="linked-record"><strong>{label}: {contact?.full_name ?? "Not selected"}</strong><span>{contact ? (contact.email || contact.phone || "No contact details") : "Choose an organization contact while editing."}</span>{contact && !contact.is_active ? <span className="status-pill attention">Inactive</span> : null}</article>;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {

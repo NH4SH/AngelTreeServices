@@ -256,6 +256,8 @@ export type Quote = {
   legacy_customer_id: string | null;
   recipient_contact_id: string | null;
   approval_contact_id: string | null;
+  onsite_contact_id: string | null;
+  billing_contact_id: string | null;
   purchase_order_reference: string | null;
   payment_terms: string | null;
   recurring_service_plan_id: string | null;
@@ -1029,6 +1031,8 @@ export type QuoteWithRelations = Quote & {
   organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_phone" | "billing_address"> | null;
   recipient_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
   approval_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  onsite_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  billing_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
   service_locations?: Pick<
     ServiceLocation,
     "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
@@ -1286,6 +1290,16 @@ export type OrganizationDetail = {
   quotes: QuoteWithRelations[];
   invoices: InvoiceWithRelations[];
   changeOrders: ChangeOrderWithRelations[];
+  payments: Payment[];
+  activity: {
+    id: string;
+    subject_type: string;
+    subject_id: string;
+    event_type: string;
+    metadata_json: Record<string, unknown>;
+    created_at: string;
+  }[];
+  outstandingBalanceCents: number;
 };
 
 export type DataResult<T> = {

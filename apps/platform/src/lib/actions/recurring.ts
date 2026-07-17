@@ -782,6 +782,8 @@ export async function createRenewalQuote(
       organization_id: plan.organization_id,
       recipient_contact_id: plan.approval_contact_id,
       approval_contact_id: plan.approval_contact_id,
+      onsite_contact_id: plan.default_onsite_contact_id,
+      billing_contact_id: plan.billing_contact_id,
       service_location_id: occurrence.service_location_id,
       estimator_user_id: auth.userId,
       status: "draft",

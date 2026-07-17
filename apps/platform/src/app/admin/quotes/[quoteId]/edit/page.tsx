@@ -5,7 +5,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
-import { getOrganizations } from "@/lib/data/organizations";
+import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
 import { getQuoteDetail } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions } from "@/lib/data/materials";
@@ -15,7 +15,7 @@ import { AddQuoteForm } from "../../QuoteForm";
 
 type QuoteEditPageProps = {
   params: Promise<{ quoteId: string }>;
-  searchParams: Promise<{ duplicated?: string; line_error?: string; renewal?: string; saved?: string }>;
+  searchParams: Promise<{ contact_warning?: string; duplicated?: string; line_error?: string; renewal?: string; saved?: string }>;
 };
 
 export default async function QuoteEditPage({ params, searchParams }: QuoteEditPageProps) {
@@ -27,10 +27,11 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     return <SetupRequired title="Configure Supabase before editing quotes" />;
   }
 
-  const [detail, customers, organizations, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [detail, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
     getQuoteDetail(quoteId),
     getCustomerOptions(),
     getOrganizations(),
+    getActiveOrganizationContacts(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
@@ -42,7 +43,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
         <Link className="crew-back-link" href={`/admin/quotes/${quoteId}`}>Back to quote</Link>
-        {[detail.error, customers.error, organizations.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[detail.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => <DataWarning key={message} message={message ?? ""} />)}
 
@@ -76,6 +77,9 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
             {query.duplicated === "quote" ? (
               <p className="form-message success" role="status">Quote duplicated as draft.</p>
             ) : null}
+            {query.contact_warning === "1" ? (
+              <p className="form-message error" role="alert">One or more selected organization contacts were inactive and were not copied. Choose active contacts before sending.</p>
+            ) : null}
             {query.line_error === "1" ? (
               <p className="form-message error" role="alert">
                 The quote draft was created, but its line items could not be saved. Review the lines and save again.
@@ -87,6 +91,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               jobs={jobs.data}
               materials={materials.data}
               organizations={organizations.data}
+              organizationContacts={organizationContacts.data}
               quote={detail.data}
               serviceCategories={serviceCategories.data}
               serviceLocations={serviceLocations.data}

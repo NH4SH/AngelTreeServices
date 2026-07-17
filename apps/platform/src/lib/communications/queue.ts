@@ -125,7 +125,7 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
+    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(email, is_active), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(email, is_active)")
     .eq("status", "sent")
     .eq("automatic_follow_ups_enabled", true)
     .not("sent_at", "is", null)
@@ -135,7 +135,7 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
 
   const queue: QueueInput[] = [];
   for (const quote of data ?? []) {
-    const party = getQueueableParty(quote.customers, quote.organizations);
+    const party = getQueueableParty(quote.customers, quote.organizations, contactEmail(quote.approval_contact, quote.recipient_contact));
     if (!party || !quote.sent_at) continue;
 
     for (const [stage, days] of [
@@ -163,7 +163,7 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
   const dueLookback = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("invoices")
-    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
+    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
     .in("status", ["sent", "partially_paid", "overdue"])
     .eq("automatic_reminders_enabled", true)
     .gt("balance_due_cents", 0)
@@ -174,7 +174,7 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
 
   const queue: QueueInput[] = [];
   for (const invoice of data ?? []) {
-    const party = getQueueableParty(invoice.customers, invoice.organizations);
+    const party = getQueueableParty(invoice.customers, invoice.organizations, contactEmail(invoice.accounts_payable_contact, invoice.billing_contact));
     if (!party || !invoice.due_at) continue;
 
     queue.push(buildQueueInput({
@@ -205,7 +205,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("schedule_events")
-    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status))")
+    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("event_type", ["estimate", "job", "maintenance", "emergency"])
     .in("status", ["scheduled", "confirmed"])
     .not("job_id", "is", null)
@@ -216,8 +216,8 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
 
   const queue: QueueInput[] = [];
   for (const event of data ?? []) {
-    const job = one<{ id: string; customers: CustomerReference | CustomerReference[] | null; organizations: OrganizationReference | OrganizationReference[] | null }>(event.jobs);
-    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null);
+    const job = one<any>(event.jobs);
+    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
     if (!job || !party) continue;
 
     await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at);
@@ -262,7 +262,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("appointments")
-    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status))")
+    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("appointment_type", ["estimate", "job", "maintenance"])
     .in("status", ["scheduled", "confirmed"])
     .gt("starts_at", now)
@@ -272,8 +272,8 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
 
   const queue: QueueInput[] = [];
   for (const appointment of data ?? []) {
-    const job = one<{ id: string; customers: CustomerReference | CustomerReference[] | null; organizations: OrganizationReference | OrganizationReference[] | null }>(appointment.jobs);
-    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null);
+    const job = one<any>(appointment.jobs);
+    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
     if (!job || !party) continue;
 
     await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at);
@@ -318,14 +318,15 @@ async function syncPayments(supabase: SupabaseClient, settings: CommunicationSet
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
+    .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status), invoices(accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active))")
     .eq("status", "succeeded")
     .gte("created_at", settings.updated_at);
 
   if (error) return { created: 0, error: error.message };
 
   const queue = (data ?? []).flatMap((payment) => {
-    const party = getQueueableParty(payment.customers, payment.organizations);
+    const invoice = one<any>(payment.invoices);
+    const party = getQueueableParty(payment.customers, payment.organizations, contactEmail(invoice?.accounts_payable_contact, invoice?.billing_contact));
     if (!party) return [];
 
     return [buildQueueInput({
@@ -413,8 +414,11 @@ function isQueueableCustomer(customer: CustomerReference | null): customer is Cu
 function getQueueableParty(
   customerValue: CustomerReference | CustomerReference[] | null | undefined,
   organizationValue: OrganizationReference | OrganizationReference[] | null | undefined,
+  preferredOrganizationEmail?: string | null,
 ): ContractingPartyReference | null {
   const customer = one(customerValue);
+  const organization = one(organizationValue);
+  if (Boolean(customer) === Boolean(organization)) return null;
   if (isQueueableCustomer(customer)) {
     return {
       customerId: customer.id,
@@ -424,14 +428,22 @@ function getQueueableParty(
     };
   }
 
-  const organization = one(organizationValue);
-  if (!organization || organization.status === "archived" || !isValidEmail(organization.billing_email ?? "")) return null;
+  const organizationEmail = isValidEmail(preferredOrganizationEmail ?? "") ? preferredOrganizationEmail : organization?.billing_email;
+  if (!organization || organization.status === "archived" || !isValidEmail(organizationEmail ?? "")) return null;
   return {
     customerId: null,
-    email: organization.billing_email!.trim().toLowerCase(),
+    email: organizationEmail!.trim().toLowerCase(),
     organizationId: organization.id,
     recipientSource: "organization",
   };
+}
+
+function contactEmail(...values: unknown[]) {
+  for (const value of values) {
+    const contact = one(value as { email?: string | null; is_active?: boolean } | { email?: string | null; is_active?: boolean }[] | null);
+    if (contact?.is_active !== false && isValidEmail(contact?.email ?? "")) return contact!.email!.trim().toLowerCase();
+  }
+  return null;
 }
 
 function isValidEmail(value: string) {

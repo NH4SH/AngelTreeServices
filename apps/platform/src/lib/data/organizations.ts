@@ -7,6 +7,7 @@ import type {
   Organization,
   OrganizationContact,
   OrganizationDetail,
+  Payment,
   QuoteWithRelations,
   ChangeOrderWithRelations,
   ServiceLocation,
@@ -18,6 +19,21 @@ export async function getOrganizations(): Promise<DataResult<Organization[]>> {
 
   const { data, error } = await supabase.from("organizations").select("*").order("name");
   return error ? { data: [], error: error.message } : { data: (data ?? []) as Organization[], error: null };
+}
+
+export async function getActiveOrganizationContacts(): Promise<DataResult<OrganizationContact[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+
+  const { data, error } = await supabase
+    .from("organization_contacts")
+    .select("*")
+    .eq("is_active", true)
+    .order("full_name");
+
+  return error
+    ? { data: [], error: error.message }
+    : { data: (data ?? []) as OrganizationContact[], error: null };
 }
 
 export async function getOrganizationDetail(organizationId: string): Promise<DataResult<OrganizationDetail | null>> {
@@ -38,8 +54,20 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
     supabase.from("quotes").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
   ]);
-  const changeOrders = await supabase.from("change_orders").select("*, change_order_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false });
-  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? changeOrders.error?.message ?? null;
+  const [changeOrders, payments] = await Promise.all([
+    supabase.from("change_orders").select("*, change_order_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("payments").select("*").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+  ]);
+  const ownedRecordIds = [
+    organizationId,
+    ...(jobs.data ?? []).map((record) => record.id),
+    ...(quotes.data ?? []).map((record) => record.id),
+    ...(invoices.data ?? []).map((record) => record.id),
+    ...(changeOrders.data ?? []).map((record) => record.id),
+  ];
+  const activity = await supabase.from("activity_log").select("id, subject_type, subject_id, event_type, metadata_json, created_at").in("subject_id", ownedRecordIds).order("created_at", { ascending: false }).limit(75);
+  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? changeOrders.error?.message ?? payments.error?.message ?? activity.error?.message ?? null;
+  const typedInvoices = (invoices.data ?? []) as InvoiceWithRelations[];
 
   return {
     data: {
@@ -49,8 +77,13 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
       serviceLocations: (locations.data ?? []) as ServiceLocation[],
       jobs: (jobs.data ?? []) as JobWithRelations[],
       quotes: (quotes.data ?? []) as QuoteWithRelations[],
-      invoices: (invoices.data ?? []) as InvoiceWithRelations[],
+      invoices: typedInvoices,
       changeOrders: (changeOrders.data ?? []) as ChangeOrderWithRelations[],
+      payments: (payments.data ?? []) as Payment[],
+      activity: activity.data ?? [],
+      outstandingBalanceCents: typedInvoices
+        .filter((invoice) => !["paid", "void"].includes(invoice.status))
+        .reduce((total, invoice) => total + invoice.balance_due_cents, 0),
     },
     error: firstError,
   };

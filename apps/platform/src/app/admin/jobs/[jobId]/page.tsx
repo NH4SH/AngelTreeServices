@@ -35,6 +35,7 @@ type JobDetailPageProps = {
     jobId: string;
   }>;
   searchParams: Promise<{
+    contact_warning?: string;
     duplicated?: string;
   }>;
 };
@@ -77,6 +78,9 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
         {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {query.duplicated === "job" ? (
           <p className="form-message success" role="status">Work order duplicated.</p>
+        ) : null}
+        {query.contact_warning === "1" ? (
+          <p className="form-message error" role="alert">One or more selected organization contacts were inactive and were not copied. Review the work order contacts before scheduling.</p>
         ) : null}
         {!job ? (
           <EmptyState title="Job not found or no access" body="This record is unavailable to the current account." />

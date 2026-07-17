@@ -57,7 +57,8 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
     .select(
       "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
     )
-    .or(`customer_id.eq.${customerId},legacy_customer_id.eq.${customerId}`)
+    .eq("customer_id", customerId)
+    .is("organization_id", null)
     .order("created_at", { ascending: false });
 
   if (error) {

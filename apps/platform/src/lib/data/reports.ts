@@ -67,7 +67,8 @@ export type ReportData = {
   settings: ReportingSettings;
   canViewFinancials: boolean;
   quotes: ReportQuote[]; invoices: ReportInvoice[]; arInvoices: ReportInvoice[]; payments: ReportPayment[]; jobs: ReportJob[];
-  timeEntries: ReportTimeEntry[]; scheduleEvents: ReportScheduleEvent[]; customers: any[];
+  timeEntries: ReportTimeEntry[]; scheduleEvents: ReportScheduleEvent[]; customers: any[]; organizations: any[];
+  contractingPartyReviewItems: { id: string; record_type: string; record_id: string; issue_type: string; details: Record<string, unknown>; status: string; created_at: string }[];
   leadSources: LeadSourceRelation[]; serviceCategories: ServiceCategory[];
   jobCosts: ReportJobCost[]; laborRates: ReportLaborRate[]; equipmentUsage: ReportEquipmentUsage[];
   maintenance: any[]; equipmentProblems: any[]; inspections: any[]; assets: any[];
@@ -154,7 +155,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   let previousQuoteQuery = supabase.from("quotes").select("id, estimator_user_id, status, total_cents, sent_at, approved_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000);
   if (estimatorOnly) previousQuoteQuery = previousQuoteQuery.eq("estimator_user_id", userId);
 
-  const [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult, previousQuotes, previousJobs, previousInvoices, previousPayments] = await Promise.all([
+  const [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, organizationsResult, ownershipReviewResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult, previousQuotes, previousJobs, previousInvoices, previousPayments] = await Promise.all([
     supabase.from("reporting_settings").select("*").eq("singleton_key", true).maybeSingle(),
     quoteQuery,
     jobQuery,
@@ -164,6 +165,8 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     timeQuery,
     scheduleQuery,
     supabase.from("customers").select("id, display_name, status, organization_id, lead_source_id, created_at, lead_sources(id, name), service_locations(id, city, state, postal_code)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
+    supabase.from("organizations").select("id, name, status, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
+    supabase.from("contracting_party_review_items").select("id, record_type, record_id, issue_type, details, status, created_at").eq("status", "open").order("created_at", { ascending: false }).limit(1000),
     supabase.from("lead_sources").select("id, name").eq("is_active", true).order("name"),
     supabase.from("service_categories").select("*").eq("is_active", true).order("sort_order"),
     canViewFinancials ? supabase.from("job_cost_entries").select("id, job_id, category, description, vendor_name, amount_cents, incurred_on, review_status, receipt_storage_path").is("archived_at", null).gte("incurred_on", filters.startDate).lte("incurred_on", filters.endDate).limit(5000) : Promise.resolve({ data: [], error: null }),
@@ -186,7 +189,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     canViewFinancials ? supabase.from("payments").select("id, amount_cents, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const results = [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult];
+  const results = [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, organizationsResult, ownershipReviewResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult];
   results.forEach((result) => { if (result.error) warnings.push(result.error.message); });
 
   const settings = (settingsResult.data as ReportingSettings | null) ?? defaultSettings;
@@ -255,6 +258,8 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     timeEntries,
     scheduleEvents,
     customers,
+    organizations: organizationsResult.data ?? [],
+    contractingPartyReviewItems: ownershipReviewResult.data ?? [],
     leadSources: (sourcesResult.data ?? []) as LeadSourceRelation[],
     serviceCategories: (categoriesResult.data ?? []) as ServiceCategory[],
     jobCosts,

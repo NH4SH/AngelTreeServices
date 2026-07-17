@@ -8,7 +8,7 @@ import type { PublicLeadSubmission } from "@/lib/leads/intake";
 export async function notifyOfficeOfWebsiteLead(jobId: string, submission: PublicLeadSubmission) {
   const template = leadInternalNoticeTemplate({ jobId, submission });
 
-  return sendTransactionalEmail({
+  const result = await sendTransactionalEmail({
     to: getInternalLeadNotificationEmail(),
     subject: template.subject,
     text: template.text,
@@ -16,4 +16,10 @@ export async function notifyOfficeOfWebsiteLead(jobId: string, submission: Publi
     emailType: "lead_internal_notice",
     relatedJobId: jobId,
   });
+
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+
+  return result;
 }

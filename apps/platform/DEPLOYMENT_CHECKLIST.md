@@ -24,7 +24,7 @@ STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
 COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
-LEAD_INTAKE_ALLOWED_ORIGINS=
+LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
 
 Optional, server-only tooling value:
@@ -77,7 +77,7 @@ Do a quick smoke test after deploy:
 If the public website submits directly to the deployed platform app across origins, set:
 
 ```env
-LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org
+LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
 
 Add any staging public-site origin used for testing.
@@ -386,6 +386,25 @@ Manual smoke test:
 - Confirm Reports separates individual customers from organizations and does not count organization contacts as customers.
 - Open a quote/invoice portal signed out and verify it exposes only the token's document.
 - Verify crew cannot read organization billing data and anon cannot query organization or review tables.
+
+## Public website lead intake
+
+The root `index.html` and `landing-clean/landing-clean.html` load `ats-form-enhancements.js` and set the production intake URL to `https://admin.angeltreeservices.org/api/leads`. The API implementation is `apps/platform/src/app/api/leads/route.ts`; do not add a competing static-site endpoint.
+
+Deploy in this order:
+
+1. Back up production and review `supabase/migrations/20260717160000_public_website_lead_intake_metadata.sql`.
+2. Apply the reviewed migration. Do not apply it automatically from the public-site deploy.
+3. Configure `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, and the exact `LEAD_INTAKE_ALLOWED_ORIGINS` value above on the admin CRM.
+4. Deploy the admin CRM/API and open `/admin/communications/lead-intake` while signed in to confirm endpoint, allowed origins, database connectivity, and notification destination.
+5. Deploy the public static website files.
+6. Submit one controlled request from the plural production domain and one from the singular domain.
+7. Confirm each request appears once in `/admin/communications` with source Website, and confirm the office email arrives.
+8. Remove or clearly label controlled test records.
+
+A saved lead is the customer-facing success condition. If office email fails after the save, the API returns success and records `notification_status = failed` for staff review. If the database save fails, the API returns a failure and the browser retains the entered form values.
+
+Rollback the public website endpoint configuration before rolling back the API. Roll back the application before removing columns it expects; the migration is additive and can safely remain while an application rollback is investigated.
 
 ## Production stabilization and schema alignment
 

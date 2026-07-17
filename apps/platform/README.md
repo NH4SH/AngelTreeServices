@@ -80,7 +80,13 @@ PORTAL_TOKEN_ENCRYPTION_KEY=
 
 `PORTAL_TOKEN_ENCRYPTION_KEY` is a server-only base64-encoded 32-byte key used to encrypt recoverable customer portal tokens at rest. Generate it with `openssl rand -base64 32`, set the same value in Netlify and local `.env.local`, and do not rotate it while staff need to copy existing customer links.
 
-`LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. The endpoint already allows `https://angeltreeservices.org`, `https://www.angeltreeservices.org`, `http://localhost:8000`, and `http://127.0.0.1:8000`.
+`LEAD_INTAKE_ALLOWED_ORIGINS` is an optional comma-separated list of additional public website origins allowed to submit the contact form. Production should explicitly configure all four supported public origins:
+
+```text
+https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
+```
+
+Localhost origins are accepted only outside production.
 
 Transactional email uses Resend from server-only code. Add these environment variables in Netlify and local `.env.local` when email sending should be active:
 
@@ -352,7 +358,9 @@ Website lead_source -> customer -> service_location -> new_lead job -> internal 
 
 It does not grant anonymous Data API access to CRM tables and never returns CRM record IDs to the browser.
 
-For production, serve the public website and platform API behind the same domain or configure a hosting rewrite from `/api/leads` to the platform app. If the website is intentionally hosted on a separate origin, set `window.ATS_LEAD_INTAKE_URL` before `ats-form-enhancements.js` loads and add that website origin to `LEAD_INTAKE_ALLOWED_ORIGINS`.
+The production public forms set `window.ATS_LEAD_INTAKE_URL` to the canonical API at `https://admin.angeltreeservices.org/api/leads`. Local previews keep the relative `/api/leads` fallback so developers can supply an override. Do not point the production forms at the static website domain unless an intentional proxy is deployed there.
+
+Website inquiries are temporarily represented by the legacy CRM model as `jobs.status = new_lead`. Migration `20260717160000_public_website_lead_intake_metadata.sql` adds submission idempotency, attribution, duplicate-review, and notification-status metadata to those records. The public browser never writes directly to Supabase; `/api/leads` validates and saves through the server-only service client. Staff can review website requests in `/admin/communications`, and authorized staff can inspect non-secret configuration health at `/admin/communications/lead-intake`.
 
 For local testing, run the static site on port `8000` and the platform app on port `3000`. The public enhancement script automatically posts local static submissions to `http://localhost:3000/api/leads`.
 

@@ -755,8 +755,16 @@
 }
 
 .communication-metric-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 18px;
+}
+
+.website-lead-list {
+  margin-top: 16px;
+}
+
+.website-lead-details {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .communication-metric {
@@ -826,6 +834,10 @@
   .communication-row button,
   .communication-automation-row button {
     width: 100%;
+  }
+
+  .website-lead-details {
+    grid-template-columns: 1fr;
   }
 }
 

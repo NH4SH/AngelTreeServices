@@ -1,4 +1,65 @@
 (function () {
+  var successMessage = "Thank you — your request was received. We’ll contact you shortly.";
+
+  function trackEvent(name, parameters) {
+    if (typeof window.gtag !== "function") {
+      return;
+    }
+
+    window.gtag("event", name, parameters || {});
+  }
+
+  function initPublicSiteAnalytics() {
+    document.addEventListener("click", function (event) {
+      var link = event.target.closest("a");
+      if (!link) {
+        return;
+      }
+
+      if (link.classList.contains("ats-emergency-call")) {
+        trackEvent("emergency_cta_click", { location: "homepage_guidance" });
+        return;
+      }
+
+      if (link.matches('a[href^="tel:"]')) {
+        trackEvent("phone_link_click", {
+          location: link.closest("#contact") ? "contact" : link.closest("#top") ? "hero" : "site",
+        });
+        return;
+      }
+
+      if (link.matches('a[href="#contact"]')) {
+        trackEvent("estimate_cta_click", {
+          location: link.closest("#top") ? "hero" : link.closest(".ats-emergency") ? "emergency" : "site",
+        });
+      }
+
+      if (link.classList.contains("list-item-content__button")) {
+        var card = link.closest(".list-item");
+        var heading = card ? card.querySelector("h2, h3") : null;
+        trackEvent("service_link_click", {
+          service_name: heading ? heading.textContent.trim().slice(0, 80) : "service",
+        });
+      }
+    });
+  }
+
+  function initMobileActions() {
+    var actions = document.querySelector(".ats-mobile-actions");
+    var contact = document.querySelector("#contact");
+
+    if (!actions || !contact || typeof window.IntersectionObserver !== "function") {
+      return;
+    }
+
+    new IntersectionObserver(
+      function (entries) {
+        actions.classList.toggle("is-hidden", entries[0].isIntersecting);
+      },
+      { threshold: 0 }
+    ).observe(contact);
+  }
+
   function getFieldContainer(field) {
     return (
       field.closest(".form-item") ||
@@ -278,6 +339,54 @@
     return "/api/leads";
   }
 
+  function generateSubmissionId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+
+    return "website-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function setHiddenFieldValue(form, name, value) {
+    var field = form.querySelector('input[name="' + name + '"]');
+
+    if (!field) {
+      field = document.createElement("input");
+      field.type = "hidden";
+      field.name = name;
+      form.appendChild(field);
+    }
+
+    field.value = value || "";
+    return field;
+  }
+
+  function setSubmissionMetadata(form, resetSubmissionId) {
+    if (resetSubmissionId || !form.dataset.submissionId) {
+      form.dataset.submissionId = generateSubmissionId();
+    }
+
+    setHiddenFieldValue(form, "submission_id", form.dataset.submissionId);
+    setHiddenFieldValue(form, "form_started_at", form.dataset.formStartedAt || String(Date.now()));
+    setHiddenFieldValue(form, "page_url", window.location.href || "");
+    setHiddenFieldValue(form, "referrer", document.referrer || "");
+
+    try {
+      var params = new URLSearchParams(window.location.search);
+      setHiddenFieldValue(form, "utm_source", params.get("utm_source") || "");
+      setHiddenFieldValue(form, "utm_medium", params.get("utm_medium") || "");
+      setHiddenFieldValue(form, "utm_campaign", params.get("utm_campaign") || "");
+      setHiddenFieldValue(form, "utm_term", params.get("utm_term") || "");
+      setHiddenFieldValue(form, "utm_content", params.get("utm_content") || "");
+    } catch (error) {
+      setHiddenFieldValue(form, "utm_source", "");
+      setHiddenFieldValue(form, "utm_medium", "");
+      setHiddenFieldValue(form, "utm_campaign", "");
+      setHiddenFieldValue(form, "utm_term", "");
+      setHiddenFieldValue(form, "utm_content", "");
+    }
+  }
+
   function submitLead(form) {
     return fetch(getLeadIntakeEndpoint(form), {
       method: "POST",
@@ -307,7 +416,7 @@
           return {
             ok: true,
             message:
-              body.message || "Thanks. We received your request and will follow up soon.",
+              body.message || successMessage,
           };
         });
     });
@@ -341,10 +450,25 @@
   }
 
   function initForm(form) {
+    form.dataset.formStartedAt = String(Date.now());
+    setSubmissionMetadata(form, true);
     syncCommercialFields(form);
     setSubmitting(form, false);
     setSummaryState(form, false);
     setServerStatus(form, "", "");
+
+    form.addEventListener(
+      "input",
+      function () {
+        if (form.dataset.analyticsStarted === "true") {
+          return;
+        }
+
+        form.dataset.analyticsStarted = "true";
+        trackEvent("estimate_form_started", { form_name: "contact" });
+      },
+      { once: true }
+    );
 
     Array.prototype.forEach.call(
       form.querySelectorAll('input[name="customer_type"]'),
@@ -402,16 +526,20 @@
 
       event.preventDefault();
       document.body.classList.remove("ats-form-submitted");
+      setSubmissionMetadata(form, false);
       setServerStatus(form, "", "");
       setSubmitting(form, true);
 
       submitLead(form)
         .then(function (response) {
           form.reset();
+          form.dataset.formStartedAt = String(Date.now());
+          setSubmissionMetadata(form, true);
           syncCommercialFields(form);
           document.body.classList.add("ats-form-submitted");
           setSummaryState(form, false);
-          setServerStatus(form, response.message || "Thanks. We received your request.", "success");
+          setServerStatus(form, response.message || successMessage, "success");
+          trackEvent("estimate_form_submitted", { form_name: "contact" });
         })
         .catch(function (error) {
           setServerStatus(
@@ -419,6 +547,10 @@
             error.message || "We could not send your request right now. Please call our office.",
             "error"
           );
+          trackEvent("estimate_form_failed", {
+            form_name: "contact",
+            reason: "network_or_server",
+          });
         })
         .finally(function () {
           setSubmitting(form, false);
@@ -427,6 +559,8 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    initPublicSiteAnalytics();
+    initMobileActions();
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), initForm);
   });
 

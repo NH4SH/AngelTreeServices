@@ -42,7 +42,7 @@ STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
 COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
-LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org
+LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
 
 Optional server-side tooling variable:
@@ -136,18 +136,29 @@ Public lead submissions should originate from:
 ```text
 https://angeltreeservices.org
 https://www.angeltreeservices.org
+https://angeltreeservice.org
+https://www.angeltreeservice.org
 ```
 
 Test flow:
 
-1. Submit the public website lead form.
-2. Confirm the form shows a success state.
-3. Confirm it does not show a false failure message after success.
-4. Confirm the lead is written into Supabase CRM records.
-5. If the form fails, verify:
-   - `LEAD_INTAKE_ALLOWED_ORIGINS` is set correctly
-   - the public site is posting to `https://admin.angeltreeservices.org/api/leads`
-   - Netlify env vars were redeployed after changes
+1. Open `/admin/communications/lead-intake` while signed in. Confirm the canonical endpoint, four production origins, database write path, and notification destination are healthy without exposing credentials.
+2. Submit the public form from `angeltreeservices.org`. Confirm the browser shows “Thank you — your request was received. We’ll contact you shortly.”
+3. Confirm exactly one Website lead appears immediately in `/admin/communications`, in the dashboard New leads queue, and as a legacy `jobs.status = new_lead` record.
+4. Confirm name/contact, address, service, request type, source detail, submitted time, page/referrer, and UTM metadata are preserved. Confirm UTM values are not included in customer-visible notes.
+5. Confirm the office notification arrives with a CRM link and the lead shows notification status sent.
+6. Force the notification provider to fail after the database save. Confirm the browser still shows success, the lead remains, and staff can see the failed notification status/activity.
+7. Force the database insert to fail in a safe test environment. Confirm the browser shows failure, retains entered values, and no office notification is sent.
+8. Double-click Submit. Confirm the button locks and only one lead is created.
+9. Replay the same `submission_id`. Confirm the API returns success for the original lead and creates no second job, customer, organization, or location.
+10. Send the same email/phone/address/message with a new submission ID within 30 minutes. Confirm the second legitimate request is retained but flagged as a likely duplicate for review.
+11. Populate the honeypot or submit faster than the minimum completion time. Confirm a harmless success-style response, no CRM record, and no notification.
+12. Submit from an unapproved Origin header. Confirm HTTP 403 and no record. Repeat from all four approved production origins and confirm they are accepted.
+13. Submit a homeowner request. Confirm the prospect and location are associated with one new lead and no quote or approved work order is created.
+14. Submit a commercial/property-management request with a company name. Confirm the organization and submitter contact remain distinct and no placeholder individual contracting customer is required.
+15. From the lead, test Call, Email, communication logging, assignment, estimate scheduling, quote creation, unqualified/closed status, and conversion. Confirm the original website metadata and activity history remain attached.
+16. Confirm internal notes and notification errors never appear in public quote/invoice portals.
+17. If intake fails unexpectedly, verify `LEAD_INTAKE_ALLOWED_ORIGINS`, `SUPABASE_SERVICE_ROLE_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, the canonical endpoint in the public page source, and that both Netlify sites were redeployed after environment changes.
 
 ## 7. Operational Workflow Smoke Test
 

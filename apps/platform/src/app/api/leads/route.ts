@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { createWebsiteLead, parsePublicLeadSubmission } from "@/lib/leads/intake";
+import { PUBLIC_LEAD_SUCCESS_MESSAGE, getAllowedLeadIntakeOrigins } from "@/lib/leads/config";
+import {
+  createWebsiteLead,
+  parsePublicLeadSubmission,
+  recordWebsiteLeadNotificationStatus,
+} from "@/lib/leads/intake";
 import { notifyOfficeOfWebsiteLead } from "@/lib/leads/notifications";
 
 const maxBodyBytes = 32_000;
@@ -22,21 +27,26 @@ export async function OPTIONS(request: Request) {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
+  const requestAddress = getClientAddress(request);
 
   if (!isAllowedOrigin(origin)) {
+    console.warn("Website lead intake rejected: origin not allowed.", { origin, requestAddress });
     return json({ ok: false, message: "This request could not be submitted." }, 403, origin);
   }
 
   if (Number(request.headers.get("content-length") ?? 0) > maxBodyBytes) {
+    console.warn("Website lead intake rejected: payload too large.", { origin, requestAddress });
     return json({ ok: false, message: "Please shorten your request and try again." }, 413, origin);
   }
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data") && !contentType.includes("application/x-www-form-urlencoded")) {
+    console.warn("Website lead intake rejected: unsupported content type.", { origin, requestAddress, contentType });
     return json({ ok: false, message: "This request format is not supported." }, 415, origin);
   }
 
-  if (isRateLimited(getClientAddress(request))) {
+  if (isRateLimited(requestAddress)) {
+    console.warn("Website lead intake rejected: rate limited.", { origin, requestAddress });
     return json({ ok: false, message: "Please wait a few minutes before sending another request." }, 429, origin);
   }
 
@@ -44,33 +54,52 @@ export async function POST(request: Request) {
     const parsed = await parsePublicLeadSubmission(request);
 
     if (parsed.spam) {
-      return json({ ok: true, message: "Thanks. We received your request." }, 202, origin);
+      console.info("Website lead intake skipped as spam.", { origin, requestAddress });
+      return json({ ok: true, message: PUBLIC_LEAD_SUCCESS_MESSAGE }, 202, origin);
     }
 
     if (!parsed.data) {
+      console.warn("Website lead intake rejected: validation failed.", {
+        origin,
+        requestAddress,
+        error: parsed.error,
+      });
       return json({ ok: false, message: parsed.error }, 400, origin);
     }
 
     const result = await createWebsiteLead(parsed.data);
+    const logContext = {
+      duplicateMode: result.duplicateMode,
+      jobId: result.jobId,
+      origin,
+      requestAddress,
+      submissionId: result.submissionId,
+    };
 
     if (!result.jobId) {
-      console.error("Website lead intake failed:", result.error);
+      console.error("Website lead intake failed before CRM save.", { ...logContext, error: result.error });
       return json({ ok: false, message: "We could not send your request right now. Please call our office." }, 503, origin);
     }
 
     if (result.error) {
-      console.error("Website lead intake completed with a note warning:", result.error);
+      console.warn("Website lead intake completed with a follow-up warning.", { ...logContext, error: result.error });
     }
 
-    try {
-      await notifyOfficeOfWebsiteLead(result.jobId, parsed.data);
-    } catch (notificationError) {
-      console.error("Website lead notification failed after lead creation:", notificationError);
+    if (result.created) {
+      try {
+        await notifyOfficeOfWebsiteLead(result.jobId, parsed.data);
+        await recordWebsiteLeadNotificationStatus(result.jobId, "sent", null);
+      } catch (notificationError) {
+        const notificationMessage = notificationError instanceof Error ? notificationError.message : "Unknown notification failure";
+        await recordWebsiteLeadNotificationStatus(result.jobId, "failed", notificationMessage);
+        console.error("Website lead notification failed after CRM save.", { ...logContext, error: notificationMessage });
+      }
     }
 
-    return json({ ok: true, message: "Thanks. We received your request and will follow up soon." }, 201, origin);
+    console.info("Website lead intake saved successfully.", logContext);
+    return json({ ok: true, message: PUBLIC_LEAD_SUCCESS_MESSAGE }, result.created ? 201 : 200, origin);
   } catch (error) {
-    console.error("Website lead intake request failed:", error);
+    console.error("Website lead intake request failed unexpectedly.", { origin, requestAddress, error });
     return json({ ok: false, message: "We could not send your request right now. Please call our office." }, 500, origin);
   }
 }
@@ -99,22 +128,14 @@ function corsHeaders(origin: string | null) {
 
 function isAllowedOrigin(origin: string | null) {
   if (!origin) {
-    return true;
+    return process.env.NODE_ENV !== "production";
   }
 
   return getAllowedOrigins().has(origin);
 }
 
 function getAllowedOrigins() {
-  const configured = process.env.LEAD_INTAKE_ALLOWED_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? [];
-
-  return new Set([
-    "https://angeltreeservices.org",
-    "https://www.angeltreeservices.org",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    ...configured,
-  ]);
+  return new Set(getAllowedLeadIntakeOrigins());
 }
 
 function getClientAddress(request: Request) {

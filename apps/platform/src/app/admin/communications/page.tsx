@@ -1,21 +1,27 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AlertTriangle, CalendarClock, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Globe2, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
 import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { getCommunicationSettings, getCustomerCommunications } from "@/lib/data/communications";
+import {
+  getCommunicationSettings,
+  getCustomerCommunications,
+  getWebsiteLeadInbox,
+  type WebsiteLeadInboxItem,
+} from "@/lib/data/communications";
 import type { CustomerCommunication } from "@/lib/types/database";
 
 export default async function CommunicationsPage() {
   const context = await getAuthenticatedPlatformContext("/admin/communications");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
 
-  const [settings, communications] = await Promise.all([
+  const [settings, communications, websiteLeads] = await Promise.all([
     getCommunicationSettings(),
     getCustomerCommunications({ limit: 100 }),
+    getWebsiteLeadInbox(),
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
@@ -36,18 +42,31 @@ export default async function CommunicationsPage() {
 
         <nav className="local-workflow-tabs" aria-label="Lead and communication views">
           <a aria-current="page" href="#inbox"><MessageSquareMore size={16} />Inbox</a>
-          <Link href="/admin/jobs?status=new_lead"><PhoneCall size={16} />Leads</Link>
+          <a href="#website-leads"><Globe2 size={16} />Website leads</a>
           <Link href="/admin/schedule?event_type=estimate"><CalendarClock size={16} />Estimate appointments</Link>
           <a href="#history"><MailCheck size={16} />Communication history</a>
         </nav>
 
         {settings.error ? <Warning message={settings.error} /> : null}
         {communications.error ? <Warning message={communications.error} /> : null}
+        {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
 
         <section className="communication-metric-grid">
+          <Metric icon={<Globe2 size={19} />} label="Website leads" value={websiteLeads.data.length} />
           <Metric icon={<CalendarClock size={19} />} label="Scheduled" value={pending.length} />
           <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length} />
           <Metric icon={<MailCheck size={19} />} label="Recently completed" value={recent.length} />
+        </section>
+
+        <section className="detail-panel" id="website-leads">
+          <div className="panel-heading-row">
+            <div>
+              <h2 className="panel-title"><Globe2 size={18} />Website lead inbox</h2>
+              <p>Public requests are stored as legacy new-lead jobs until staff qualifies and converts them.</p>
+            </div>
+            {canManageSettings ? <Link className="secondary-action compact-action" href="/admin/communications/lead-intake">Lead intake diagnostics</Link> : null}
+          </div>
+          <WebsiteLeadRows rows={websiteLeads.data} />
         </section>
 
         <section className="detail-grid communication-page-grid" id="inbox">
@@ -75,6 +94,48 @@ export default async function CommunicationsPage() {
       </div>
     </PlatformFrame>
   );
+}
+
+function WebsiteLeadRows({ rows }: { rows: WebsiteLeadInboxItem[] }) {
+  if (!rows.length) return <p className="inline-empty">No website leads have arrived yet.</p>;
+
+  return (
+    <div className="record-list website-lead-list">
+      {rows.map((lead) => (
+        <article className="record-card" key={lead.jobId}>
+          <div className="record-card-header">
+            <div>
+              <h2>{lead.customerName}</h2>
+              <p>{lead.sourceBadge} · {formatDateTime(lead.submittedAt)}</p>
+            </div>
+            <span className="status-pill">{lead.currentStatus.replaceAll("_", " ")}</span>
+          </div>
+          <dl className="record-details website-lead-details">
+            <Detail label="Phone" value={lead.phone ?? "Not provided"} />
+            <Detail label="Email" value={lead.email ?? "Not provided"} />
+            <Detail label="Service" value={lead.serviceRequested ?? "Not selected"} />
+            <Detail label="Address" value={lead.address || "Needs confirmation"} />
+            <Detail label="Assigned" value={lead.assignedStaff ?? "Unassigned"} />
+            <Detail label="Last communication" value={lead.lastCommunication ?? "No staff communication yet"} />
+            <Detail label="Next action" value={lead.nextAction ?? "Review lead"} />
+            <Detail label="Office notification" value={lead.notificationStatus} />
+          </dl>
+          {lead.duplicateOfJobId ? <p className="data-warning">Possible duplicate of lead {lead.duplicateOfJobId}.</p> : null}
+          <div className="record-actions">
+            <Link href={`/admin/jobs/${lead.jobId}`}>Open lead</Link>
+            {lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}
+            {lead.email ? <a href={`mailto:${lead.email}`}>Email</a> : null}
+            <Link href={`/admin/schedule?new=1&event_type=estimate&job_id=${lead.jobId}`}>Schedule estimate</Link>
+            <Link href={`/admin/quotes?new=1&job_id=${lead.jobId}`}>Create quote</Link>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div><dt>{label}</dt><dd>{value}</dd></div>;
 }
 
 function CommunicationRows({ empty, rows }: { empty: string; rows: CustomerCommunication[] }) {

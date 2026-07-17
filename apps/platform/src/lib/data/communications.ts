@@ -6,6 +6,7 @@ import type {
   CommunicationStatus,
   CustomerCommunication,
   DataResult,
+  JobStatus,
 } from "@/lib/types/database";
 
 export type CommunicationFilters = {
@@ -18,6 +19,23 @@ export type CommunicationFilters = {
   quoteId?: string;
   scheduleEventId?: string;
   statuses?: CommunicationStatus[];
+};
+
+export type WebsiteLeadInboxItem = {
+  address: string;
+  assignedStaff: string | null;
+  currentStatus: JobStatus;
+  customerName: string;
+  duplicateOfJobId: string | null;
+  email: string | null;
+  jobId: string;
+  lastCommunication: string | null;
+  nextAction: string | null;
+  notificationStatus: "pending" | "sent" | "failed" | "skipped";
+  phone: string | null;
+  serviceRequested: string | null;
+  sourceBadge: string;
+  submittedAt: string;
 };
 
 export async function getCustomerCommunications(
@@ -164,4 +182,123 @@ export async function getCommunicationDashboardSummary() {
     },
     error,
   };
+}
+
+export async function getWebsiteLeadInbox(limit = 24): Promise<DataResult<WebsiteLeadInboxItem[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+
+  const { data: leadSources, error: leadSourceError } = await supabase
+    .from("lead_sources")
+    .select("id")
+    .eq("source_type", "website");
+
+  if (leadSourceError) {
+    return { data: [], error: leadSourceError.message };
+  }
+
+  const leadSourceIds = (leadSources ?? []).map((row) => row.id);
+  if (!leadSourceIds.length) {
+    return { data: [], error: null };
+  }
+
+  const { data: jobs, error: jobsError } = await supabase
+    .from("jobs")
+    .select(
+      "id, status, submitted_at, created_at, service_type, duplicate_of_job_id, notification_status, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
+    )
+    .in("lead_source_id", leadSourceIds)
+    .order("submitted_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (jobsError) {
+    return { data: [], error: jobsError.message };
+  }
+
+  const jobIds = (jobs ?? []).map((job) => job.id);
+  if (!jobIds.length) {
+    return { data: [], error: null };
+  }
+
+  const { data: communications, error: communicationsError } = await supabase
+    .from("customer_communications")
+    .select("job_id, communication_type, status, recipient_email, scheduled_for, sent_at, created_at")
+    .in("job_id", jobIds)
+    .order("created_at", { ascending: false });
+
+  if (communicationsError) {
+    return { data: [], error: communicationsError.message };
+  }
+
+  const communicationMap = new Map<string, CustomerCommunication[]>();
+  (communications ?? []).forEach((item) => {
+    const jobId = item.job_id;
+    if (!jobId) return;
+
+    const existing = communicationMap.get(jobId) ?? [];
+    existing.push(item as CustomerCommunication);
+    communicationMap.set(jobId, existing);
+  });
+
+  return {
+    data: (jobs ?? []).map((job: any) => {
+      const rows = communicationMap.get(job.id) ?? [];
+      const pending = rows
+        .filter((row) => row.status === "pending")
+        .sort((left, right) => new Date(left.scheduled_for).getTime() - new Date(right.scheduled_for).getTime())[0] ?? null;
+      const latest = rows[0] ?? null;
+      const serviceLocation = job.service_locations;
+      const customer = job.customers;
+      const organization = job.organizations;
+      const assignedProfile = job.profiles;
+
+      return {
+        address: [serviceLocation?.street, serviceLocation?.city, serviceLocation?.state, serviceLocation?.postal_code]
+          .filter(Boolean)
+          .join(", "),
+        assignedStaff: assignedProfile?.full_name || assignedProfile?.email || null,
+        currentStatus: job.status as JobStatus,
+        customerName: organization?.name || customer?.display_name || "Website lead",
+        duplicateOfJobId: job.duplicate_of_job_id ?? null,
+        email: customer?.email || organization?.billing_email || latest?.recipient_email || null,
+        jobId: job.id,
+        lastCommunication: latest ? summarizeCommunication(latest) : null,
+        nextAction: pending ? `Pending ${pending.communication_type.replaceAll("_", " ")} · ${formatDateTime(pending.scheduled_for)}` : defaultNextAction(job.status as JobStatus),
+        notificationStatus: (job.notification_status ?? "pending") as WebsiteLeadInboxItem["notificationStatus"],
+        phone: customer?.phone || organization?.billing_phone || null,
+        serviceRequested: job.service_type ? job.service_type.replaceAll("_", " ") : null,
+        sourceBadge: "Website",
+        submittedAt: job.submitted_at || job.created_at,
+      };
+    }),
+    error: null,
+  };
+}
+
+function summarizeCommunication(item: CustomerCommunication) {
+  const when = item.sent_at ?? item.scheduled_for;
+  return `${item.communication_type.replaceAll("_", " ")} · ${item.status} · ${formatDateTime(when)}`;
+}
+
+function defaultNextAction(status: JobStatus) {
+  switch (status) {
+    case "new_lead":
+      return "Call or email this lead";
+    case "estimate_scheduled":
+      return "Confirm estimate appointment";
+    case "quoted":
+      return "Send or follow up on the quote";
+    case "accepted":
+      return "Schedule approved work";
+    case "lost":
+    case "cancelled":
+      return "Closed";
+    default:
+      return "Review lead status";
+  }
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }

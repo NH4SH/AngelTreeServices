@@ -1,0 +1,224 @@
+- generic [ref=f10e2]:
+  - banner:
+    - generic [ref=f10e3]:
+      - link "Skip to Content" [ref=f10e4] [cursor=pointer]:
+        - /url: "#page"
+      - generic [ref=f10e5]:
+        - generic [ref=f10e7]:
+          - generic [ref=f10e8]:
+            - generic [ref=f10e10]:
+              - link [ref=f10e11] [cursor=pointer]:
+                - /url: https://angeltreeservices.org/
+                - img "Angel Tree Services" [ref=f10e12]
+              - text: Angel Tree Services
+            - navigation [ref=f10e15]:
+              - link "Home" [ref=f10e17] [cursor=pointer]:
+                - /url: https://angeltreeservices.org/
+              - link "About" [ref=f10e19] [cursor=pointer]:
+                - /url: "#about"
+              - link "Services" [ref=f10e21] [cursor=pointer]:
+                - /url: "#services"
+              - link "Contact" [ref=f10e23] [cursor=pointer]:
+                - /url: "#contact"
+          - generic [ref=f10e24]:
+            - link "Instagram" [ref=f10e26] [cursor=pointer]:
+              - /url: http://instagram.com/angeltreeservices
+            - link "Call Us!" [ref=f10e29] [cursor=pointer]:
+              - /url: tel:+15403888715
+        - text: Angel Tree Services
+  - main [ref=f10e30]:
+    - article [ref=f10e31]:
+      - generic [ref=f10e37]:
+        - heading "Your yard’s best friends." [level=1] [ref=f10e44]
+        - paragraph [ref=f10e49]:
+          - text: Certified-arborist-led
+          - strong [ref=f10e50]: tree care
+          - text: ", green"
+          - strong [ref=f10e51]: landscaping
+          - text: ", and"
+          - strong [ref=f10e52]: lawn care
+          - text: for the Fredericksburg region (Spotsylvania, Stafford, King George, and Caroline) — backed by
+          - strong [ref=f10e53]: 30+ years
+          - text: of experience.
+        - link "Request a Free Estimate" [ref=f10e58] [cursor=pointer]:
+          - /url: "#contact"
+        - generic [ref=f10e63]:
+          - paragraph [ref=f10e64]: ISA member and certified arborist
+          - paragraph [ref=f10e65]: 30+ years of industry experience
+          - generic [ref=f10e66]:
+            - img "ISA Member" [ref=f10e67]
+            - img "ISA Certified Arborist" [ref=f10e68]
+      - generic [ref=f10e71]:
+        - generic [ref=f10e73]:
+          - generic [ref=f10e74]:
+            - paragraph [ref=f10e75]:
+              - strong [ref=f10e76]: Safety
+              - text: ","
+              - strong [ref=f10e77]: Service
+              - text: ", and"
+              - strong [ref=f10e78]: Satisfaction
+              - text: is our motto.
+            - paragraph [ref=f10e79]: We treat every customer as if they were a part of the family.
+          - list [ref=f10e80]:
+            - listitem [ref=f10e81]:
+              - img "A tree removed in Fredericksburg Virginia" [ref=f10e84]
+              - generic [ref=f10e85]:
+                - generic [ref=f10e86]:
+                  - heading "Tree Service" [level=2] [ref=f10e87]
+                  - paragraph [ref=f10e89]: Over 30 years of experience will leave your trees safe, healthy, and happy.
+                - link "Treat your trees to the area's premier service." [ref=f10e92] [cursor=pointer]:
+                  - /url: "#contact"
+            - listitem [ref=f10e93]:
+              - img "Grass mowing in Fredericksburg/Stafford" [ref=f10e96]
+              - generic [ref=f10e97]:
+                - generic [ref=f10e98]:
+                  - heading "Lawn Care" [level=2] [ref=f10e99]
+                  - paragraph [ref=f10e101]: Your lawn will have never looked so beautiful!
+                - link "Cultivating Fredericksburg's best yards. Let's add yours to the list!" [ref=f10e104] [cursor=pointer]:
+                  - /url: "#contact"
+            - listitem [ref=f10e105]:
+              - img "Beautiful Garden and lawn we serviced in Fredericksburg" [ref=f10e108]
+              - generic [ref=f10e109]:
+                - generic [ref=f10e110]:
+                  - heading "Landscaping" [level=2] [ref=f10e111]
+                  - paragraph [ref=f10e113]: Tell us all about your dream scenery and we’ll do our best to make it a reality.
+                - link "We'll help make your visions for the yard a reality!" [ref=f10e116] [cursor=pointer]:
+                  - /url: "#contact"
+          - link "Explore all of our services!" [ref=f10e118] [cursor=pointer]:
+            - /url: "#services"
+        - button "Pause Background" [ref=f10e119] [cursor=pointer]
+      - region [ref=f10e120]:
+        - generic [ref=f10e121]:
+          - generic [ref=f10e122]:
+            - paragraph [ref=f10e123]: A clear path from request to cleanup
+            - heading "What happens after you reach out" [level=2] [ref=f10e124]
+            - list [ref=f10e125]:
+              - listitem [ref=f10e126]:
+                - strong [ref=f10e127]: Request an estimate
+                - generic [ref=f10e128]: Tell us what you need and where the work is located.
+              - listitem [ref=f10e129]:
+                - strong [ref=f10e130]: Property visit
+                - generic [ref=f10e131]: We review the site, access, and your goals in person.
+              - listitem [ref=f10e132]:
+                - strong [ref=f10e133]: Detailed proposal
+                - generic [ref=f10e134]: You receive a clear written scope for the recommended work.
+              - listitem [ref=f10e135]:
+                - strong [ref=f10e136]: Approve and schedule
+                - generic [ref=f10e137]: Once approved, we coordinate a practical service date.
+              - listitem [ref=f10e138]:
+                - strong [ref=f10e139]: Work and cleanup
+                - generic [ref=f10e140]: Our crew completes the agreed work with care for your property.
+              - listitem [ref=f10e141]:
+                - strong [ref=f10e142]: Follow-up
+                - generic [ref=f10e143]: We make sure the completed scope and next steps are clear.
+          - complementary [ref=f10e144]:
+            - generic [ref=f10e145]:
+              - paragraph [ref=f10e146]: Storm damage and immediate hazards
+              - heading "Call first when safety cannot wait" [level=2] [ref=f10e147]
+              - paragraph [ref=f10e148]: If a tree has fallen on a structure or vehicle, blocked access, or created an immediate hazard, call us first. Stay clear of downed or contacted power lines and contact 911 or your electric utility when appropriate.
+            - generic [ref=f10e149]:
+              - link "Call (540) 388-8715" [ref=f10e150] [cursor=pointer]:
+                - /url: tel:+15403888715
+              - link "Request an estimate" [ref=f10e151] [cursor=pointer]:
+                - /url: "#contact"
+      - generic [ref=f10e157]:
+        - generic [ref=f10e161]:
+          - heading [level=3] [ref=f10e162]:
+            - link "+1 (540) 388-8715" [ref=f10e164] [cursor=pointer]:
+              - /url: tel:+15403888715
+          - paragraph [ref=f10e166]:
+            - link "info@angeltreeservice.org" [ref=f10e167] [cursor=pointer]:
+              - /url: mailto:info@angeltreeservice.org
+          - paragraph [ref=f10e168]: Questions or storm damage? Call or email and we’ll help you with the next step.
+        - generic [ref=f10e171]:
+          - generic [ref=f10e172]:
+            - heading "Tell us about the job" [level=3] [ref=f10e173]
+            - paragraph [ref=f10e174]: Share the service, property address, and a few project details. We’ll follow up with the next step for your free estimate.
+            - paragraph [ref=f10e175]:
+              - text: Storm damage or something urgent?
+              - link "(540) 388-8715" [ref=f10e176] [cursor=pointer]:
+                - /url: tel:+15403888715
+          - generic [ref=f10e178]:
+            - generic [ref=f10e179]:
+              - generic [ref=f10e180]:
+                - generic [ref=f10e181]:
+                  - generic [ref=f10e182]: Full name *
+                  - textbox "Full name *" [ref=f10e186]:
+                    - /placeholder: John Doe
+                - generic [ref=f10e187]:
+                  - generic [ref=f10e188]: Phone *
+                  - textbox "Phone *" [ref=f10e192]:
+                    - /placeholder: (540) 555-1234
+                - generic [ref=f10e193]:
+                  - generic [ref=f10e196] [cursor=pointer]:
+                    - generic [ref=f10e197]: Email
+                    - generic [ref=f10e198]: (optional)
+                  - textbox "Email (optional)" [ref=f10e199]:
+                    - /placeholder: john.doe@gmail.com
+              - generic [ref=f10e200]:
+                - generic [ref=f10e201]:
+                  - generic [ref=f10e202]: Service needed *
+                  - combobox "Service needed *" [ref=f10e206]:
+                    - option "Select a service" [disabled] [selected]
+                    - option "Tree care"
+                    - option "Landscaping"
+                    - option "Lawn care"
+                    - option "Storm cleanup"
+                    - option "Multiple services / not sure yet"
+                - group "Request type *" [ref=f10e207]:
+                  - radiogroup "This request is for" [ref=f10e212]:
+                    - generic [ref=f10e213]:
+                      - radio "Homeowner" [checked]
+                      - generic [ref=f10e214]: Homeowner
+                    - generic [ref=f10e215]:
+                      - radio "Commercial / property management"
+                      - generic [ref=f10e216]: Commercial / property management
+              - generic [ref=f10e217]:
+                - generic [ref=f10e218]: Property address *
+                - textbox "Property address *" [ref=f10e222]:
+                  - /placeholder: 123 Main St, Fredericksburg, VA
+              - generic [ref=f10e223]:
+                - generic [ref=f10e224]: Project details *
+                - paragraph [ref=f10e228]: A short note is plenty. Tell us what you need, anything urgent, and anything that will help us prepare for the estimate.
+                - textbox "Project details *" [ref=f10e229]:
+                  - /placeholder: "For example: We have two large trees near the driveway that need to come down, and we’d love an estimate this week if possible."
+              - group "Best way to reach you (optional)" [ref=f10e230]:
+                - generic [ref=f10e232]:
+                  - generic [ref=f10e233] [cursor=pointer]:
+                    - radio "No preference" [checked] [ref=f10e234]
+                    - generic [ref=f10e235]: No preference
+                  - generic [ref=f10e236] [cursor=pointer]:
+                    - radio "Call" [ref=f10e237]
+                    - generic [ref=f10e238]: Call
+                  - generic [ref=f10e239] [cursor=pointer]:
+                    - radio "Text" [ref=f10e240]
+                    - generic [ref=f10e241]: Text
+                  - generic [ref=f10e242] [cursor=pointer]:
+                    - radio "Email" [ref=f10e243]
+                    - generic [ref=f10e244]: Email
+              - generic [ref=f10e246] [cursor=pointer]:
+                - checkbox "This involves a fallen tree, blocked access, or another immediate hazard." [ref=f10e247]
+                - generic [ref=f10e248]: This involves a fallen tree, blocked access, or another immediate hazard.
+              - generic [ref=f10e250] [cursor=pointer]:
+                - checkbox "Send me seasonal tips, service reminders, and scheduling updates." [ref=f10e251]
+                - generic [ref=f10e252]: Send me seasonal tips, service reminders, and scheduling updates.
+            - generic [ref=f10e253]:
+              - button "Send My Request" [ref=f10e254] [cursor=pointer]
+              - link "Prefer to call? (540) 388-8715" [ref=f10e255] [cursor=pointer]:
+                - /url: tel:+15403888715
+            - paragraph [ref=f10e256]: We only use this information to follow up about your request.
+  - contentinfo [ref=f10e257]:
+    - generic [ref=f10e263]:
+      - heading "Angel Tree Services LLC" [level=4] [ref=f10e268]
+      - generic [ref=f10e273]:
+        - generic [ref=f10e274]: Angel Tree Services LLC
+        - generic [ref=f10e275]: Proud Member of
+        - link [ref=f10e277] [cursor=pointer]:
+          - /url: http://www.fredericksburgchamber.org/
+          - img "Fredericksburg Regional Chamber of Commerce" [ref=f10e278]
+      - paragraph [ref=f10e283]: Est. 2015
+      - generic [ref=f10e287]:
+        - paragraph [ref=f10e288]
+        - paragraph [ref=f10e289]:
+          - strong [ref=f10e290]: info@angeltreeservice.org
+        - paragraph [ref=f10e291]: +1 (540) 388-8715

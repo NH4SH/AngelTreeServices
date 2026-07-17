@@ -627,6 +627,14 @@
       const params = new URLSearchParams(window.location.search);
       if (params.get("contact") === "success") document.body.classList.add("ats-form-submitted");
     </script>
-    <script defer src="../ats-form-enhancements.js?v=1"></script>
+    <script>
+      (function () {
+        var isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        if (!isLocal) {
+          window.ATS_LEAD_INTAKE_URL = "https://admin.angeltreeservices.org/api/leads";
+        }
+      })();
+    </script>
+    <script defer src="../ats-form-enhancements.js?v=3"></script>
   </body>
 </html>

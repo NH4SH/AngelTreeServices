@@ -474,7 +474,7 @@ async function createInvoiceForCompletedJob({
     .update({ status: "invoiced" })
     .eq("id", jobId)
     .eq("status", previousJobStatus)
-    .select("id, customer_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
+    .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
     .maybeSingle();
 
   if (claimError) {
@@ -522,6 +522,10 @@ async function createInvoiceForCompletedJob({
     .insert({
       balance_due_cents: totalCents,
       customer_id: claimedJob.customer_id,
+      organization_id: claimedJob.organization_id,
+      billing_contact_id: quoteResult.billingContactId ?? claimedJob.property_manager_contact_id,
+      accounts_payable_contact_id: quoteResult.billingContactId ?? claimedJob.property_manager_contact_id,
+      service_location_id: claimedJob.service_location_id,
       job_id: claimedJob.id,
       quote_id: quoteResult.quoteId,
       recurring_service_plan_id: claimedJob.recurring_service_plan_id,
@@ -597,16 +601,16 @@ async function getInvoiceSourceQuote(
   quoteId: string | null,
   jobId: string,
 ): Promise<
-  | { ok: true; quoteId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "service_category_id" | "material_id" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
+  | { ok: true; quoteId: string | null; billingContactId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "service_category_id" | "material_id" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
   | { ok: false; message: string }
 > {
   if (!quoteId) {
-    return { ok: true, quoteId: null, taxCents: 0, lineItems: [] };
+    return { ok: true, quoteId: null, billingContactId: null, taxCents: 0, lineItems: [] };
   }
 
   const { data: quote, error } = await supabase
     .from("quotes")
-    .select("id, job_id, status, tax_cents, quote_line_items(name, description, service_category_id, material_id, quantity, unit_price_cents, total_cents, sort_order)")
+    .select("id, job_id, status, tax_cents, approval_contact_id, recipient_contact_id, quote_line_items(name, description, service_category_id, material_id, quantity, unit_price_cents, total_cents, sort_order)")
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -621,6 +625,7 @@ async function getInvoiceSourceQuote(
   return {
     ok: true,
     quoteId: quote.id,
+    billingContactId: quote.approval_contact_id ?? quote.recipient_contact_id,
     taxCents: quote.tax_cents ?? 0,
     lineItems: ((quote.quote_line_items ?? []) as QuoteLineItem[])
       .sort((left, right) => left.sort_order - right.sort_order),

@@ -242,6 +242,23 @@ async function prepareCommunication(
 }
 
 async function getCurrentRecipient(supabase: SupabaseClient, communication: CustomerCommunication) {
+  if (communication.organization_id) {
+    const { data: organization, error } = await supabase
+      .from("organizations")
+      .select("id, name, billing_email, status")
+      .eq("id", communication.organization_id)
+      .maybeSingle();
+    if (error || !organization) return { customerName: null, email: null, error: error?.message ?? "Organization not found." };
+    if (organization.status === "archived") return { customerName: null, email: null, error: "The organization is archived." };
+    const email = organization.billing_email?.trim().toLowerCase() ?? "";
+    if (!isValidEmail(email)) return { customerName: null, email: null, error: "The organization billing email is missing or invalid." };
+    return { customerName: organization.name as string, email, error: null };
+  }
+
+  if (!communication.customer_id) {
+    return { customerName: null, email: null, error: "The contracting party is unavailable." };
+  }
+
   const { data: customer, error } = await supabase
     .from("customers")
     .select("id, display_name, email, organization_id, status")
@@ -251,18 +268,7 @@ async function getCurrentRecipient(supabase: SupabaseClient, communication: Cust
   if (error || !customer) return { customerName: null, email: null, error: error?.message ?? "Customer not found." };
   if (customer.status === "archived") return { customerName: null, email: null, error: "The customer is archived." };
 
-  let email = customer.email?.trim().toLowerCase() ?? "";
-  if (communication.recipient_source === "organization") {
-    if (!customer.organization_id || customer.organization_id !== communication.organization_id) {
-      return { customerName: null, email: null, error: "The customer is no longer linked to the selected organization." };
-    }
-    const { data: organization } = await supabase
-      .from("organizations")
-      .select("billing_email")
-      .eq("id", customer.organization_id)
-      .maybeSingle();
-    email = organization?.billing_email?.trim().toLowerCase() ?? "";
-  }
+  const email = customer.email?.trim().toLowerCase() ?? "";
 
   if (!isValidEmail(email)) {
     return { customerName: null, email: null, error: "The current customer or organization email address is missing or invalid." };

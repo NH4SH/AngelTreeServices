@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type Reac
 import { useActionState } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
-import type { Customer, Job, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
+import type { Customer, Job, Organization, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 import type { MaterialRecord } from "@/lib/data/materials";
 
@@ -41,6 +42,7 @@ export function AddQuoteForm({
   estimateScheduleEvents,
   jobs,
   materials,
+  organizations,
   quote,
   serviceCategories,
   serviceLocations,
@@ -48,17 +50,21 @@ export function AddQuoteForm({
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   materials: MaterialRecord[];
+  organizations: Pick<Organization, "id" | "name">[];
   quote?: QuoteDetail;
   serviceCategories: ServiceCategory[];
-  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
+  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
   const isEditing = Boolean(quote);
   const action = isEditing ? updateQuote : createQuote;
   const [state, formAction, pending] = useActionState(action, initialState);
   const [dirty, setDirty] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState(quote?.customer_id ?? defaultCustomerId);
+  const [selectedPartyValue, setSelectedPartyValue] = useState(
+    quote ? contractingPartyValue(quote) : defaultCustomerId ? `customer:${defaultCustomerId}` : "",
+  );
+  const selectedParty = parseContractingParty(selectedPartyValue);
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(
     quote?.quote_line_items?.length
       ? [...quote.quote_line_items]
@@ -76,12 +82,12 @@ export function AddQuoteForm({
       : [initialLineItem()],
   );
   const matchingLocations = useMemo(
-    () => serviceLocations.filter((location) => !selectedCustomerId || location.customer_id === selectedCustomerId),
-    [selectedCustomerId, serviceLocations],
+    () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],
+    [selectedParty, serviceLocations],
   );
   const matchingJobs = useMemo(
-    () => jobs.filter((job) => !selectedCustomerId || job.customer_id === selectedCustomerId),
-    [selectedCustomerId, jobs],
+    () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
+    [selectedParty, jobs],
   );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
   const closeHref = quote ? `/admin/quotes/${quote.id}` : "/admin/quotes";
@@ -120,7 +126,7 @@ export function AddQuoteForm({
       <section className="quote-editor-section">
         <div>
           <p className="surface-label">{isEditing ? "Edit quote" : "Draft quote"}</p>
-          <h3>Customer and proposed work</h3>
+          <h3>Contracting party and proposed work</h3>
         </div>
         {quote && ["sent", "change_requested"].includes(quote.status) ? (
           <p className="form-guidance warning">
@@ -129,22 +135,19 @@ export function AddQuoteForm({
         ) : null}
         <div className="form-grid-two">
           <label>
-            Customer
+            Contracting party
             <select
-              name="customer_id"
+              name="contracting_party"
               onChange={(event) => {
-                setSelectedCustomerId(event.target.value);
+                setSelectedPartyValue(event.target.value);
                 setDirty(true);
               }}
               required
-              value={selectedCustomerId}
+              value={selectedPartyValue}
             >
-              <option value="">Choose customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.display_name}
-                </option>
-              ))}
+              <option value="">Choose customer or organization</option>
+              <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
+              <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
             </select>
           </label>
           <label>

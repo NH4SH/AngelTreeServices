@@ -40,7 +40,7 @@ export function QuoteDocument({
     >
       <DocumentMeta
         items={[
-          { label: "Prepared for", value: quote.customers?.display_name ?? "Customer" },
+          { label: "Prepared for", value: quote.organizations?.name ?? quote.customers?.display_name ?? "Contracting party" },
           { label: "Contact", value: formatContact(quote) },
           { label: "Service location", value: formatLocation(quote), wide: true },
           { label: "Prepared", value: formatDate(quote.created_at) },
@@ -192,7 +192,9 @@ function formatLocation(quote: QuoteDetail) {
 }
 
 function formatContact(quote: QuoteDetail) {
-  const contact = [quote.customers?.phone, quote.customers?.email].filter(Boolean);
+  const contact = quote.organizations
+    ? [quote.organizations.billing_phone, quote.organizations.billing_email].filter(Boolean)
+    : [quote.customers?.phone, quote.customers?.email].filter(Boolean);
   return contact.length ? contact.join("\n") : "Contact information available through our office";
 }
 

@@ -45,7 +45,7 @@ export async function createQuotePortalLink(
   const quoteId = getString(formData, "quote_id");
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("id, customer_id")
+    .select("id, customer_id, organization_id")
     .eq("id", quoteId)
     .single();
 
@@ -102,7 +102,7 @@ export async function regenerateQuotePortalLink(
   const quoteId = getString(formData, "quote_id");
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("id, customer_id")
+    .select("id, customer_id, organization_id")
     .eq("id", quoteId)
     .single();
 
@@ -116,7 +116,13 @@ export async function regenerateQuotePortalLink(
     return { ok: false, status: "error", message: activeTokenLookup.error };
   }
 
-  const tokenRecord = await createNewQuotePortalTokenRecord({ customerId: quote.customer_id, quoteId: quote.id, supabase, userId: user.id });
+  const tokenRecord = await createNewQuotePortalTokenRecord({
+    customerId: quote.customer_id,
+    organizationId: quote.organization_id,
+    quoteId: quote.id,
+    supabase,
+    userId: user.id,
+  });
 
   if (tokenRecord.error || !tokenRecord.tokenId) {
     return { ok: false, status: "error", message: tokenRecord.error ?? "Could not regenerate a secure quote token." };

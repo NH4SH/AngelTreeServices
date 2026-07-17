@@ -24,7 +24,7 @@ export function generateCompletedJobReviewRequest(
   job: JobDetail,
   reviewUrl: string | null,
 ): ReviewRequestDraft {
-  const customerName = job.customers?.display_name ?? "there";
+  const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
   const service = formatServiceType(job.service_type);
   const link = reviewUrl || missingReviewUrl;
 

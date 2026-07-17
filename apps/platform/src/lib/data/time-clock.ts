@@ -28,7 +28,7 @@ type ProfileLabelRow = Pick<AssignableUser, "id" | "full_name" | "email">;
 export const timeEntrySelect = `
   *,
   profiles(id, full_name, email),
-  jobs(id, service_type, status, customers(display_name)),
+  jobs(id, service_type, status, customers(display_name), organizations(name)),
   schedule_events(id, title, event_type, starts_at, ends_at),
   time_entry_adjustments(*),
   time_entry_approvals(*)
@@ -77,7 +77,7 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
   )] as string[];
   const activeEntriesResult = await supabase
     .from("time_entries")
-    .select("id, user_id, entry_type, clock_in_at, jobs(customers(display_name)), schedule_events(title)")
+    .select("id, user_id, entry_type, clock_in_at, jobs(customers(display_name), organizations(name)), schedule_events(title)")
     .eq("status", "active")
     .is("clock_out_at", null);
   const creatorProfiles = creatorIds.length
@@ -106,7 +106,7 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
       user_id: string;
       entry_type: TimeClockUserSummary["active_timer_entry_type"];
       clock_in_at: string;
-      jobs?: { customers?: { display_name?: string | null } | null } | null;
+      jobs?: { customers?: { display_name?: string | null } | null; organizations?: { name?: string | null } | null } | null;
       schedule_events?: { title?: string | null } | null;
     }[]).map((entry) => [
       entry.user_id,
@@ -114,7 +114,7 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
         id: entry.id,
         entryType: entry.entry_type,
         startedAt: entry.clock_in_at,
-        workLabel: entry.jobs?.customers?.display_name || entry.schedule_events?.title || null,
+        workLabel: entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || null,
       },
     ]),
   );

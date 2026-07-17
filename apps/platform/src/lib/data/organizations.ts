@@ -104,9 +104,9 @@ export async function getOrganizationDashboardSummary() {
     contacts: [],
     customers: ((customers ?? []) as Customer[]).filter((customer) => customer.organization_id === organization.id),
     serviceLocations: ((locations.data ?? []) as ServiceLocation[]).filter((location) => location.organization_id === organization.id),
-    jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => job.organization_id === organization.id || customerToOrganization.get(job.customer_id) === organization.id),
-    quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => quote.organization_id === organization.id || customerToOrganization.get(quote.customer_id) === organization.id),
-    invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => invoice.organization_id === organization.id || customerToOrganization.get(invoice.customer_id) === organization.id),
+    jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => job.organization_id === organization.id || (job.customer_id && customerToOrganization.get(job.customer_id) === organization.id)),
+    quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => quote.organization_id === organization.id || (quote.customer_id && customerToOrganization.get(quote.customer_id) === organization.id)),
+    invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => invoice.organization_id === organization.id || (invoice.customer_id && customerToOrganization.get(invoice.customer_id) === organization.id)),
     changeOrders: ((changeOrders.data ?? []) as ChangeOrderWithRelations[]).filter((order) => order.organization_id === organization.id),
   }));
 

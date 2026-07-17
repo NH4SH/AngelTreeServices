@@ -74,7 +74,7 @@ function QueueLane({ icon, items, title }: { icon: React.ReactNode; items: Close
             <article className="closeout-queue-row" key={item.id}>
               <div className="closeout-queue-main">
                 <div>
-                  <h3>{job?.customers?.display_name ?? "Unknown customer"}</h3>
+                  <h3>{job?.organizations?.name ?? job?.customers?.display_name ?? "Unknown contracting party"}</h3>
                   <p><MapPin aria-hidden="true" size={15} />{location ? `${location.street}, ${location.city}, ${location.state}` : "No service location"}</p>
                 </div>
                 <span className={`closeout-status-chip status-${item.status}`}>{formatCloseoutStatus(item.status)}</span>

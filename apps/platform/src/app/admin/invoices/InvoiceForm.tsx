@@ -13,7 +13,8 @@ import {
 } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
-import type { Customer, InvoiceDetail, Job, ServiceCategory } from "@/lib/types/database";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import type { Customer, InvoiceDetail, Job, Organization, ServiceCategory } from "@/lib/types/database";
 
 const initialState: InvoiceActionState = {
   status: "idle",
@@ -23,19 +24,22 @@ const initialState: InvoiceActionState = {
 export function AddInvoiceForm({
   customers,
   jobs,
+  organizations,
   serviceCategories,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
 }) {
   const [state, formAction, pending] = useActionState(createInvoice, initialState);
   const [dirty, setDirty] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedPartyValue, setSelectedPartyValue] = useState("");
+  const selectedParty = parseContractingParty(selectedPartyValue);
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([newInvoiceLine()]);
   const matchingJobs = useMemo(
-    () => jobs.filter((job) => !selectedCustomerId || job.customer_id === selectedCustomerId),
-    [jobs, selectedCustomerId],
+    () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
+    [jobs, selectedParty],
   );
   const invoiceableJobs = useMemo(
     () => matchingJobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)),
@@ -54,23 +58,20 @@ export function AddInvoiceForm({
       <section className="quote-editor-section">
         <div>
           <p className="surface-label">New invoice</p>
-          <h3>Customer and billing details</h3>
+          <h3>Contracting party and billing details</h3>
         </div>
         <div className="form-grid-two">
           <label>
-            Customer
+            Contracting party
             <select
-              name="customer_id"
-              onChange={(event) => setSelectedCustomerId(event.target.value)}
+              name="contracting_party"
+              onChange={(event) => setSelectedPartyValue(event.target.value)}
               required
-              value={selectedCustomerId}
+              value={selectedPartyValue}
             >
-              <option value="">Choose customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.display_name}
-                </option>
-              ))}
+              <option value="">Choose customer or organization</option>
+              <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
+              <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
             </select>
           </label>
           <label>
@@ -128,7 +129,7 @@ export function AddInvoiceForm({
       </section>
 
       <div className="quote-editor-action-bar">
-        <button disabled={pending || customers.length === 0 || jobs.length === 0} type="submit">
+        <button disabled={pending || !selectedParty || invoiceableJobs.length === 0} type="submit">
           <Save aria-hidden="true" size={17} />
           {pending ? "Saving..." : "Create invoice"}
         </button>
@@ -213,8 +214,8 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
         </div>
         <div className="form-grid-two">
           <label>
-            Customer
-            <input disabled value={invoice.customers?.display_name ?? "Unknown customer"} />
+            Contracting party
+            <input disabled value={invoice.organizations?.name ?? invoice.customers?.display_name ?? "Unknown contracting party"} />
           </label>
           <label>
             Job

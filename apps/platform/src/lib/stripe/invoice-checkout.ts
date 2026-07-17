@@ -17,7 +17,7 @@ type CheckoutReservation = {
 type CheckoutInput = {
   amountCents: number;
   currency?: string;
-  customerId: string;
+  customerId: string | null;
   invoiceId: string;
   invoiceNumber: string | null;
   organizationId?: string | null;
@@ -39,7 +39,7 @@ const reservationTimeoutMs = 5 * 60 * 1000;
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const currency = (input.currency ?? "usd").toLowerCase();
-  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.amountCents, currency);
+  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency);
 
   if (!reservationResult.ok) {
     return reservationResult;
@@ -76,7 +76,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
 
   try {
     const metadata = compactMetadata({
-      customer_id: input.customerId,
+      customer_id: input.customerId ?? "",
       invoice_id: input.invoiceId,
       invoice_number: input.invoiceNumber ?? "",
       organization_id: input.organizationId ?? "",
@@ -137,7 +137,8 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
 async function reserveCheckout(
   supabase: SupabaseClient<any, "public", any>,
   invoiceId: string,
-  customerId: string,
+  customerId: string | null,
+  organizationId: string | null,
   amountCents: number,
   currency: string,
 ): Promise<{ ok: true; reservation: CheckoutReservation } | { ok: false; message: string }> {
@@ -159,7 +160,7 @@ async function reserveCheckout(
     const reservation = active as CheckoutReservation;
     if (reservation.status === "creating" && Date.now() - new Date(reservation.created_at).getTime() > reservationTimeoutMs) {
       await supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id).eq("status", "creating");
-      return reserveCheckout(supabase, invoiceId, customerId, amountCents, currency);
+      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
     }
 
     return { ok: true, reservation };
@@ -167,7 +168,7 @@ async function reserveCheckout(
 
   const { data, error } = await supabase
     .from("invoice_checkout_sessions")
-    .insert({ amount_cents: amountCents, currency, customer_id: customerId, invoice_id: invoiceId, status: "creating" })
+    .insert({ amount_cents: amountCents, currency, customer_id: customerId, organization_id: organizationId, invoice_id: invoiceId, status: "creating" })
     .select("id, amount_cents, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
     .single();
 
@@ -176,7 +177,7 @@ async function reserveCheckout(
   }
 
   if (error?.code === "23505") {
-    return reserveCheckout(supabase, invoiceId, customerId, amountCents, currency);
+    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
   }
 
   console.error("Stripe Checkout reservation failed", error);

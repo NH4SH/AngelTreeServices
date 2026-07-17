@@ -239,7 +239,7 @@ export default async function AdminPayrollPage({ searchParams }: AdminPayrollPag
                     <div>
                       <strong>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</strong>
                       <span>
-                        {entry.entry_type.replace("_", " ")} - {entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked work"}
+                        {entry.entry_type.replace("_", " ")} - {entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked work"}
                       </span>
                     </div>
                     <b>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</b>

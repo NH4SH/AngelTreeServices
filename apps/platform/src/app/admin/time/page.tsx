@@ -196,7 +196,7 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                   <article className="time-entry-row" key={entry.id}>
                     <div>
                       <strong>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</strong>
-                      <span>{entry.entry_type.replace("_", " ")} - {entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+                      <span>{entry.entry_type.replace("_", " ")} - {entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
                       {entry.entry_type === "job" && !entry.job_id && !entry.schedule_event_id ? (
                         <small className="time-row-warning">Missing linked job or schedule event.</small>
                       ) : null}
@@ -227,7 +227,7 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                   <Link className="time-entry-row link-row" href={`/admin/time/${entry.user_id}`} key={entry.id}>
                     <div>
                       <strong>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</strong>
-                      <span>{entry.entry_type.replace("_", " ")} - {entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+                      <span>{entry.entry_type.replace("_", " ")} - {entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
                     </div>
                     <div>
                       <b>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</b>
@@ -335,7 +335,7 @@ export default async function AdminTimePage({ searchParams }: AdminTimePageProps
                       {entry.notes ? <small>{entry.notes}</small> : null}
                     </span>
                     <span>{entry.entry_type.replace("_", " ")}</span>
-                    <span>{entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+                    <span>{entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
                     <span>{formatTimeRange(entry.clock_in_at, entry.clock_out_at)}</span>
                     <span>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</span>
                     <span>

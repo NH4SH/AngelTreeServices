@@ -365,8 +365,8 @@ as $$
     when 'quarterly' then (p_current_date + interval '3 months')::date
     when 'twice_yearly' then (p_current_date + interval '6 months')::date
     when 'annually' then (p_current_date + interval '1 year')::date
-    when 'custom_days' then p_current_date + pg_catalog.coalesce(p_custom_interval_count, 1)
-    when 'custom_months' then (p_current_date + pg_catalog.make_interval(months => pg_catalog.coalesce(p_custom_interval_count, 1)))::date
+    when 'custom_days' then p_current_date + coalesce(p_custom_interval_count, 1)
+    when 'custom_months' then (p_current_date + pg_catalog.make_interval(months => coalesce(p_custom_interval_count, 1)))::date
     else p_current_date
   end;
 $$;
@@ -394,10 +394,10 @@ begin
     into generation_enabled, business_timezone
   from public.recurring_service_settings where singleton_key;
   business_date := pg_catalog.timezone(
-    pg_catalog.coalesce(business_timezone, 'America/New_York'),
+    coalesce(business_timezone, 'America/New_York'),
     pg_catalog.now()
   )::date;
-  if acting_user_id is null and not pg_catalog.coalesce(generation_enabled, false) then
+  if acting_user_id is null and not coalesce(generation_enabled, false) then
     return query select 0, 0;
     return;
   end if;
@@ -416,7 +416,7 @@ begin
       and (o.id is null or o.status = 'active')
       and l.next_service_due_date <= business_date + p.planning_window_days
     order by l.next_service_due_date
-    limit pg_catalog.greatest(1, pg_catalog.least(p_limit, 500))
+    limit greatest(1, least(p_limit, 500))
     for update of l skip locked
   loop
     insert into public.recurring_service_occurrences (
@@ -449,7 +449,7 @@ begin
         row_item.customer_id, row_item.organization_id, row_item.service_location_id, row_item.id,
         generated_id, 'Review renewal: ' || row_item.plan_name,
         'Review scope, contacts, property status, and current pricing before creating work.',
-        'renew_service', (pg_catalog.greatest(business_date, row_item.next_service_due_date - row_item.quote_lead_days)::timestamp at time zone pg_catalog.coalesce(business_timezone, 'America/New_York')),
+        'renew_service', (greatest(business_date, row_item.next_service_due_date - row_item.quote_lead_days)::timestamp at time zone coalesce(business_timezone, 'America/New_York')),
         'normal', null,
         'renewal-review:' || generated_id::text, acting_user_id
       ) on conflict (dedupe_key) do nothing;
@@ -480,7 +480,7 @@ declare
 begin
   if not app_private.has_staff_role() then raise exception 'Only staff can close recurring occurrences.'; end if;
   if p_status not in ('completed', 'skipped', 'cancelled') then raise exception 'Choose a valid closing status.'; end if;
-  if p_status in ('skipped', 'cancelled') and pg_catalog.btrim(pg_catalog.coalesce(p_reason, '')) = '' then
+  if p_status in ('skipped', 'cancelled') and pg_catalog.btrim(coalesce(p_reason, '')) = '' then
     raise exception 'A reason is required.';
   end if;
 
@@ -505,10 +505,15 @@ begin
   where id = p_occurrence_id;
 
   if target.recurrence_pattern <> 'seasonal_manual' then
-    update public.recurring_plan_locations set
+    update public.recurring_plan_locations as rpl set
       next_service_due_date = next_date,
-      next_review_date = next_date - (select planning_window_days from public.recurring_service_plans where id = target.recurring_plan_id)
-    where id = target.recurring_plan_location_id and next_service_due_date <= target.target_service_date;
+      next_review_date = next_date - (
+        select rsp.planning_window_days
+        from public.recurring_service_plans as rsp
+        where rsp.id = target.recurring_plan_id
+      )
+    where rpl.id = target.recurring_plan_location_id
+      and rpl.next_service_due_date <= target.target_service_date;
   end if;
 
   update public.follow_up_tasks set status = 'completed', completed_at = pg_catalog.now(), completed_by_user_id = (select auth.uid())
@@ -548,7 +553,7 @@ begin
   if target.assigned_crew_user_id <> acting_user_id and not app_private.has_staff_role() then
     raise exception 'This work order is not assigned to this crew account.';
   end if;
-  if pg_catalog.btrim(pg_catalog.coalesce(p_title, '')) = '' or pg_catalog.btrim(pg_catalog.coalesce(p_description, '')) = '' then
+  if pg_catalog.btrim(coalesce(p_title, '')) = '' or pg_catalog.btrim(coalesce(p_description, '')) = '' then
     raise exception 'Title and recommendation are required.';
   end if;
 
@@ -559,8 +564,8 @@ begin
   ) values (
     target.customer_id, target.organization_id, target.service_location_id, target.id,
     pg_catalog.left(pg_catalog.btrim(p_title), 180), pg_catalog.left(pg_catalog.btrim(p_description), 5000),
-    pg_catalog.nullif(pg_catalog.left(pg_catalog.btrim(pg_catalog.coalesce(p_internal_notes, '')), 5000), ''),
-    pg_catalog.nullif(pg_catalog.left(pg_catalog.btrim(pg_catalog.coalesce(p_timeframe, '')), 240), ''),
+    nullif(pg_catalog.left(pg_catalog.btrim(coalesce(p_internal_notes, '')), 5000), ''),
+    nullif(pg_catalog.left(pg_catalog.btrim(coalesce(p_timeframe, '')), 240), ''),
     'crew', 'pending_office_review', acting_user_id
   ) returning id into recommendation_id;
 

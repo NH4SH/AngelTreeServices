@@ -98,7 +98,7 @@ export async function getPayrollExportCsv(payPeriodId: string): Promise<DataResu
       entry.clock_in_at,
       entry.clock_out_at ?? "",
       entry.clock_out_at ? getTimeEntryHours(entry).toFixed(2) : "",
-      entry.jobs?.customers?.display_name || entry.schedule_events?.title || "",
+      entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "",
       entry.entry_type,
       entry.notes ?? "",
     ]),

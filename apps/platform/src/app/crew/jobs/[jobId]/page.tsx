@@ -221,7 +221,7 @@ function CrewJobDetail({
         <dl className="crew-detail-list">
           <div>
             <dt>Name</dt>
-            <dd>{job.customers?.display_name ?? "Not available"}</dd>
+            <dd>{job.organizations?.name ?? job.customers?.display_name ?? "Not available"}</dd>
           </div>
           <div>
             <dt>Phone</dt>

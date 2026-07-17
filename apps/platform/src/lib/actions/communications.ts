@@ -249,69 +249,70 @@ async function resolveCommunicationContext(
   if (recordType === "quote" && communicationType === "quote_follow_up") {
     const { data, error } = await supabase
       .from("quotes")
-      .select("id, customer_id, job_id, status, updated_at, customers(id, email, organization_id, organizations(billing_email))")
+      .select("id, customer_id, organization_id, job_id, status, updated_at, customers(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Quote not found.");
     if (data.status !== "sent") return failedContext("Quote follow-ups are available only while a sent quote awaits a response.");
-    return contextFromCustomer(data.customers, { quoteId: data.id, jobId: data.job_id, sourceVersion: data.updated_at });
+    return contextFromParty(data.customers, data.organizations, { quoteId: data.id, jobId: data.job_id, sourceVersion: data.updated_at });
   }
 
   if (recordType === "invoice" && ["invoice_payment_reminder", "overdue_invoice_reminder"].includes(communicationType)) {
     const { data, error } = await supabase
       .from("invoices")
-      .select("id, customer_id, job_id, status, balance_due_cents, updated_at, customers(id, email, organization_id, organizations(billing_email))")
+      .select("id, customer_id, organization_id, job_id, status, balance_due_cents, updated_at, customers(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Invoice not found.");
     if (["paid", "void"].includes(data.status) || Number(data.balance_due_cents) <= 0) {
       return failedContext("This invoice does not have an eligible balance for a reminder.");
     }
-    return contextFromCustomer(data.customers, { invoiceId: data.id, jobId: data.job_id, sourceVersion: data.updated_at });
+    return contextFromParty(data.customers, data.organizations, { invoiceId: data.id, jobId: data.job_id, sourceVersion: data.updated_at });
   }
 
   if (recordType === "job" && ["work_confirmation", "work_reminder"].includes(communicationType)) {
     const { data, error } = await supabase
       .from("jobs")
-      .select("id, status, scheduled_start_at, updated_at, customers(id, email, organization_id, organizations(billing_email))")
+      .select("id, status, scheduled_start_at, updated_at, customers(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Job not found.");
     if (!data.scheduled_start_at || !["accepted", "scheduled"].includes(data.status)) {
       return failedContext("Add a future work schedule before sending this reminder.");
     }
-    return contextFromCustomer(data.customers, { jobId: data.id, sourceVersion: data.scheduled_start_at });
+    return contextFromParty(data.customers, data.organizations, { jobId: data.id, sourceVersion: data.scheduled_start_at });
   }
 
   if (recordType === "schedule_event" && communicationType !== "quote_follow_up") {
     const { data, error } = await supabase
       .from("schedule_events")
-      .select("id, job_id, status, event_type, starts_at, updated_at, jobs(id, customers(id, email, organization_id, organizations(billing_email)))")
+      .select("id, job_id, status, event_type, starts_at, updated_at, jobs(id, customers(id, email), organizations(id, billing_email))")
       .eq("id", recordId)
       .maybeSingle();
-    const job = one<{ id: string; customers: unknown }>(data?.jobs);
+    const job = one<{ id: string; customers: unknown; organizations: unknown }>(data?.jobs);
     if (error || !data || !job) return failedContext(error?.message ?? "A linked customer job is required.");
     if (!["scheduled", "confirmed"].includes(data.status)) return failedContext("This schedule event is not open for reminders.");
-    return contextFromCustomer(job.customers, { jobId: job.id, scheduleEventId: data.id, sourceVersion: data.starts_at });
+    return contextFromParty(job.customers, job.organizations, { jobId: job.id, scheduleEventId: data.id, sourceVersion: data.starts_at });
   }
 
   if (recordType === "appointment" && communicationType !== "quote_follow_up") {
     const { data, error } = await supabase
       .from("appointments")
-      .select("id, job_id, status, appointment_type, starts_at, updated_at, jobs(id, customers(id, email, organization_id, organizations(billing_email)))")
+      .select("id, job_id, status, appointment_type, starts_at, updated_at, jobs(id, customers(id, email), organizations(id, billing_email))")
       .eq("id", recordId)
       .maybeSingle();
-    const job = one<{ id: string; customers: unknown }>(data?.jobs);
+    const job = one<{ id: string; customers: unknown; organizations: unknown }>(data?.jobs);
     if (error || !data || !job) return failedContext(error?.message ?? "A linked customer job is required.");
     if (!["scheduled", "confirmed"].includes(data.status)) return failedContext("This appointment is not open for reminders.");
-    return contextFromCustomer(job.customers, { appointmentId: data.id, jobId: job.id, sourceVersion: data.starts_at });
+    return contextFromParty(job.customers, job.organizations, { appointmentId: data.id, jobId: job.id, sourceVersion: data.starts_at });
   }
 
   return failedContext("That reminder does not match this record type.");
 }
 
-function contextFromCustomer(
-  value: unknown,
+function contextFromParty(
+  customerValue: unknown,
+  organizationValue: unknown,
   relations: {
     appointmentId?: string | null;
     invoiceId?: string | null;
@@ -324,21 +325,19 @@ function contextFromCustomer(
   const customer = one<{
     id: string;
     email: string | null;
-    organization_id: string | null;
-    organizations: { billing_email: string | null } | { billing_email: string | null }[] | null;
-  }>(value as never);
-  if (!customer) return failedContext("The current customer is unavailable.");
-  const organization = one<{ billing_email: string | null }>(customer.organizations);
+  }>(customerValue as never);
+  const organization = one<{ id: string; billing_email: string | null }>(organizationValue as never);
+  if (!customer && !organization) return failedContext("The contracting party is unavailable.");
 
   return {
     data: {
       appointmentId: relations.appointmentId ?? null,
-      customerEmail: customer.email?.trim().toLowerCase() ?? null,
-      customerId: customer.id,
+      customerEmail: customer?.email?.trim().toLowerCase() ?? null,
+      customerId: customer?.id ?? null,
       invoiceId: relations.invoiceId ?? null,
       jobId: relations.jobId ?? null,
       organizationEmail: organization?.billing_email?.trim().toLowerCase() ?? null,
-      organizationId: customer.organization_id,
+      organizationId: organization?.id ?? null,
       quoteId: relations.quoteId ?? null,
       scheduleEventId: relations.scheduleEventId ?? null,
       sourceVersion: relations.sourceVersion,

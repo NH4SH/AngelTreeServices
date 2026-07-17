@@ -147,7 +147,7 @@ export default async function CrewTimePage() {
                   </div>
                   <div>
                     <dt>Job</dt>
-                    <dd>{activeEntry.data.jobs?.customers?.display_name || "No linked job"}</dd>
+                    <dd>{activeEntry.data.jobs?.organizations?.name || activeEntry.data.jobs?.customers?.display_name || "No linked job"}</dd>
                   </div>
                   <div>
                     <dt>Schedule</dt>
@@ -271,7 +271,7 @@ function RecentTimeEntries({ entries }: { entries: Awaited<ReturnType<typeof get
         <article className="time-entry-row" key={entry.id}>
           <div>
             <strong>{entry.entry_type.replace("_", " ")}</strong>
-            <span>{entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+            <span>{entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
           </div>
           <div>
             <b>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</b>

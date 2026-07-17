@@ -117,7 +117,7 @@ export async function sendQuoteEmail(
   }
 
   revalidatePath(`/admin/quotes/${quoteId}`);
-  revalidatePath(`/admin/customers/${detail.data.customer_id}`);
+  if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
   if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
     ? { status: "success", message: portalLink.created ? "Quote email sent and marked sent." : "Quote email resent using the existing customer link." }
@@ -146,10 +146,13 @@ export async function sendInvoiceEmail(
     return { status: "error", message: detail.error ?? "Invoice not found." };
   }
 
-  const recipient = detail.data.customers?.email;
+  const recipient = detail.data.accounts_payable_contact?.email
+    ?? detail.data.billing_contact?.email
+    ?? detail.data.customers?.email
+    ?? detail.data.organizations?.billing_email;
 
   if (!recipient) {
-    return { status: "error", message: "This customer does not have an email address." };
+    return { status: "error", message: "The contracting party does not have a billing email address." };
   }
 
   if (["paid", "void"].includes(detail.data.status)) {
@@ -173,6 +176,7 @@ export async function sendInvoiceEmail(
     relatedJobId: detail.data.job_id,
     relatedQuoteId: detail.data.quote_id,
     relatedInvoiceId: detail.data.id,
+    relatedOrganizationId: detail.data.organization_id,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
   });
@@ -206,7 +210,8 @@ export async function sendInvoiceEmail(
   }
 
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  revalidatePath(`/admin/customers/${detail.data.customer_id}`);
+  if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
+  if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
     ? { status: "success", message: portalLink.created ? "Invoice email sent and marked sent." : "Invoice email resent using the existing customer link." }
     : { status: "error", message: result.message };

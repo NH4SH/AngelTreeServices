@@ -11,7 +11,7 @@ export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>>
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
     .order("created_at", { ascending: false });
 
@@ -32,7 +32,7 @@ export async function getUnpaidInvoices(): Promise<DataResult<InvoiceWithRelatio
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
     .in("status", ["sent", "partially_paid", "overdue"])
     .order("created_at", { ascending: false })
@@ -54,9 +54,9 @@ export async function getInvoicesByCustomerId(customerId: string): Promise<DataR
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
-    .eq("customer_id", customerId)
+    .or(`customer_id.eq.${customerId},legacy_customer_id.eq.${customerId}`)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -76,7 +76,7 @@ export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<In
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      "*, jobs(*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(id, full_name, email, phone, is_active), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(id, full_name, email, phone, is_active), invoice_line_items(*), payments(*)",
     )
     .eq("id", invoiceId)
     .single();

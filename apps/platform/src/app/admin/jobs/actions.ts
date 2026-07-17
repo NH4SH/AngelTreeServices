@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import type { JobPriority, JobStatus } from "@/lib/types/database";
 
 export type JobActionState = {
@@ -28,7 +29,7 @@ export async function createJob(
     return { status: "error", message: "Sign in before adding CRM records." };
   }
 
-  const customerId = String(formData.get("customer_id") ?? "");
+  const party = parseContractingParty(formData.get("contracting_party"));
   const serviceLocationId = String(formData.get("service_location_id") ?? "");
   const serviceType = String(formData.get("service_type") ?? "other");
   const requestedScope = String(formData.get("requested_scope") ?? "").trim();
@@ -37,8 +38,8 @@ export async function createJob(
   const leadSourceId = String(formData.get("lead_source_id") ?? "").trim() || null;
   const leadCampaign = String(formData.get("lead_campaign") ?? "").trim().slice(0, 240) || null;
 
-  if (!customerId || !serviceLocationId || !requestedScope) {
-    return { status: "error", message: "Customer, service location, and description are required." };
+  if (!party || !serviceLocationId || !requestedScope) {
+    return { status: "error", message: "Contracting party, service location, and description are required." };
   }
 
   const { data: serviceLocation, error: locationError } = await supabase
@@ -51,8 +52,8 @@ export async function createJob(
     return { status: "error", message: locationError?.message ?? "Could not find the selected service location." };
   }
 
-  if (serviceLocation.customer_id !== customerId) {
-    return { status: "error", message: "Selected service location does not belong to the selected customer." };
+  if (!belongsToContractingParty(serviceLocation, party)) {
+    return { status: "error", message: "Selected service location does not belong to the selected contracting party." };
   }
 
   const scheduledStartAt = estimatedDate ? new Date(`${estimatedDate}T09:00:00`).toISOString() : null;
@@ -61,8 +62,8 @@ export async function createJob(
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
-      customer_id: customerId,
-      organization_id: serviceLocation.organization_id,
+      customer_id: party.customerId,
+      organization_id: party.organizationId,
       service_location_id: serviceLocationId,
       service_type: serviceType,
       requested_scope: requestedScope,
@@ -89,5 +90,7 @@ export async function createJob(
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath("/admin/schedule");
+  if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
+  if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
   return { status: "success", message: "Job saved." };
 }

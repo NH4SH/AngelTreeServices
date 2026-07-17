@@ -261,27 +261,13 @@ export async function createQuoteFromRecommendation(
   if (recommendation.related_quote_id)
     redirect(`/admin/quotes/${recommendation.related_quote_id}/edit`);
 
-  let customerId = recommendation.customer_id;
-  if (!customerId && recommendation.organization_id) {
-    const { data: linkedCustomer } = await auth.supabase
-      .from("customers")
-      .select("id")
-      .eq("organization_id", recommendation.organization_id)
-      .eq("status", "active")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
-    customerId = linkedCustomer?.id ?? null;
-  }
-  if (!customerId)
-    return failure(
-      "Link this organization to its contracting customer before preparing a quote.",
-    );
+  if ((recommendation.customer_id === null) === (recommendation.organization_id === null))
+    return failure("The recommendation must identify exactly one contracting party.");
 
   const { data: quote, error: quoteError } = await auth.supabase
     .from("quotes")
     .insert({
-      customer_id: customerId,
+      customer_id: recommendation.customer_id,
       organization_id: recommendation.organization_id,
       recipient_contact_id: recommendation.organization_contact_id,
       approval_contact_id: recommendation.organization_contact_id,
@@ -770,22 +756,9 @@ export async function createRenewalQuote(
     return failure(
       "The recurring plan must be active before preparing a quote.",
     );
-  let customerId = plan.customer_id ?? location?.customer_id ?? null;
-  if (!customerId && plan.organization_id) {
-    const { data: linkedCustomer } = await auth.supabase
-      .from("customers")
-      .select("id")
-      .eq("organization_id", plan.organization_id)
-      .eq("status", "active")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
-    customerId = linkedCustomer?.id ?? null;
-  }
-  if (!customerId)
-    return failure(
-      "This organization has no linked contracting customer for the existing quote workflow. Link the appropriate customer before preparing the renewal quote.",
-    );
+  const customerId = plan.customer_id ?? null;
+  if ((customerId === null) === (plan.organization_id === null))
+    return failure("The recurring plan must identify exactly one contracting party.");
   const sourceQuoteId =
     occurrence.prior_quote_id ?? plan.source_quote_id ?? null;
   const source = sourceQuoteId
@@ -944,28 +917,17 @@ export async function createAuthorizedRecurringWorkOrder(
     (plan.authorization_end_date && plan.authorization_end_date < today)
   )
     return failure("The recurring authorization is not currently active.");
-  let customerId = plan.customer_id ?? location?.customer_id ?? null;
-  if (!customerId && plan.organization_id) {
-    const { data: linkedCustomer } = await auth.supabase
-      .from("customers")
-      .select("id")
-      .eq("organization_id", plan.organization_id)
-      .eq("status", "active")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
-    customerId = linkedCustomer?.id ?? null;
-  }
-  if (!customerId)
-    return failure(
-      "Link the organization to the contracting customer before creating the work order.",
-    );
+  const customerId = plan.customer_id ?? null;
+  if ((customerId === null) === (plan.organization_id === null))
+    return failure("The recurring plan must identify exactly one contracting party.");
   const { data: job, error: jobError } = await auth.supabase
     .from("jobs")
     .insert({
       customer_id: customerId,
       organization_id: plan.organization_id,
       service_location_id: occurrence.service_location_id,
+      onsite_contact_id: plan.default_onsite_contact_id,
+      property_manager_contact_id: plan.approval_contact_id ?? plan.authorized_contact_id,
       status: "accepted",
       service_type: "other",
       requested_scope: plan.service_description,

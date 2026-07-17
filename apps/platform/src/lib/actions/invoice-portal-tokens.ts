@@ -31,7 +31,7 @@ export async function createInvoicePortalLink(
   const invoiceId = getString(formData, "invoice_id");
   const { data: invoice, error: invoiceError } = await auth.supabase
     .from("invoices")
-    .select("id, customer_id")
+    .select("id, customer_id, organization_id")
     .eq("id", invoiceId)
     .single();
 
@@ -83,7 +83,7 @@ export async function regenerateInvoicePortalLink(
   const invoiceId = getString(formData, "invoice_id");
   const { data: invoice, error: invoiceError } = await auth.supabase
     .from("invoices")
-    .select("id, customer_id")
+    .select("id, customer_id, organization_id")
     .eq("id", invoiceId)
     .single();
 
@@ -99,6 +99,7 @@ export async function regenerateInvoicePortalLink(
 
   const token = await createNewInvoicePortalTokenRecord({
     customerId: invoice.customer_id,
+    organizationId: invoice.organization_id,
     invoiceId: invoice.id,
     supabase: auth.supabase,
     userId: auth.userId,

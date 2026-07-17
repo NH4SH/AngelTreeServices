@@ -88,11 +88,13 @@ export async function createOrGetInvoicePortalTokenRecord({
 
 export async function createNewInvoicePortalTokenRecord({
   customerId,
+  organizationId,
   invoiceId,
   supabase,
   userId,
 }: {
-  customerId: string;
+  customerId: string | null;
+  organizationId: string | null;
   invoiceId: string;
   supabase: SupabaseClient;
   userId: string;
@@ -113,6 +115,7 @@ export async function createNewInvoicePortalTokenRecord({
     .insert({
       invoice_id: invoiceId,
       customer_id: customerId,
+      organization_id: organizationId,
       token_hash: tokenHash,
       token_encrypted: encrypted.encryptedToken,
       token_hint: getPortalTokenHint(rawToken),

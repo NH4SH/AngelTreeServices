@@ -22,7 +22,7 @@ export function generateJobScheduledMessage(job: JobDetail, appointment: Appoint
 }
 
 export function generateQuoteFollowUpMessage(quote: QuoteDetail): EmailDraft {
-  const customerName = quote.customers?.display_name ?? "there";
+  const customerName = quote.organizations?.name ?? quote.customers?.display_name ?? "there";
 
   return {
     subject: `${companyName}: following up on your quote`,
@@ -40,7 +40,7 @@ export function generateQuoteFollowUpMessage(quote: QuoteDetail): EmailDraft {
 }
 
 export function generatePostJobFollowUpMessage(job: JobDetail): EmailDraft {
-  const customerName = job.customers?.display_name ?? "there";
+  const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
 
   return {
     subject: `${companyName}: checking in after your service`,
@@ -58,7 +58,7 @@ export function generatePostJobFollowUpMessage(job: JobDetail): EmailDraft {
 }
 
 function scheduledMessage(job: JobDetail, appointment: Appointment, label: string, message: string): EmailDraft {
-  const customerName = job.customers?.display_name ?? "there";
+  const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
   const address = job.service_locations
     ? [job.service_locations.street, job.service_locations.city, job.service_locations.state, job.service_locations.postal_code]
         .filter(Boolean)
@@ -95,4 +95,3 @@ function formatDateTime(value: string) {
     minute: "2-digit",
   }).format(new Date(value));
 }
-

@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .select("id, customer_id, invoice_number, status, total_cents, customers(organization_id), jobs(service_location_id)")
+    .select("id, customer_id, organization_id, invoice_number, status, total_cents, jobs(service_location_id)")
     .eq("id", lookup.invoice.id)
     .single();
 
@@ -59,7 +59,6 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     return paymentError("This invoice no longer has a balance due.", 409);
   }
 
-  const customer = asOne(invoice.customers) as { organization_id?: string | null } | null;
   const job = asOne(invoice.jobs) as { service_location_id?: string | null } | null;
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const checkout = await createOrReuseInvoiceCheckout({
@@ -67,7 +66,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     customerId: invoice.customer_id,
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoice_number,
-    organizationId: customer?.organization_id ?? null,
+    organizationId: invoice.organization_id,
     portalUrl,
     serviceLocationId: job?.service_location_id ?? null,
     stripe: stripeConfig.stripe,

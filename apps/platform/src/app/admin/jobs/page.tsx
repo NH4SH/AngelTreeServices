@@ -8,6 +8,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobs } from "@/lib/data/jobs";
+import { getOrganizations } from "@/lib/data/organizations";
 import { getLeadSources } from "@/lib/data/reports";
 import type { JobStatus } from "@/lib/types/database";
 
@@ -35,9 +36,10 @@ export default async function JobsPage() {
     return <SetupRequired title="Configure Supabase before opening jobs" />;
   }
 
-  const [jobs, customers, serviceLocations, leadSources] = await Promise.all([
+  const [jobs, customers, organizations, serviceLocations, leadSources] = await Promise.all([
     getJobs(),
     getCustomerOptions(),
+    getOrganizations(),
     getServiceLocations(),
     getLeadSources(),
   ]);
@@ -57,7 +59,7 @@ export default async function JobsPage() {
           </div>
         </section>
 
-        {[jobs.error, customers.error, serviceLocations.error, leadSources.error].filter(Boolean).map((message) => (
+        {[jobs.error, customers.error, organizations.error, serviceLocations.error, leadSources.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -78,7 +80,7 @@ export default async function JobsPage() {
                     <div className="record-card-header">
                       <div>
                         <h2>{job.service_type?.replace("_", " ") || "Service job"}</h2>
-                        <p>{job.customers?.display_name ?? "Unknown customer"}</p>
+                        <p>{job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party"}</p>
                       </div>
                       <span className="status-pill">{job.status.replace("_", " ")}</span>
                     </div>
@@ -120,7 +122,7 @@ export default async function JobsPage() {
             <section className="form-panel">
               <h2>Add job / work order</h2>
               <p className="form-panel-copy">For new estimates, start with a quote. Use this for approved work or legacy lead records.</p>
-              <AddJobForm customers={customers.data} leadSources={leadSources.data} serviceLocations={serviceLocations.data} />
+              <AddJobForm customers={customers.data} leadSources={leadSources.data} organizations={organizations.data} serviceLocations={serviceLocations.data} />
             </section>
           </aside>
         </section>

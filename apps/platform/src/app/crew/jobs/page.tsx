@@ -63,7 +63,7 @@ function CrewJobCard({ job }: { job: CrewJob }) {
         <div>
           <p className="job-kicker">{formatDateTime(job.scheduled_start_at)}</p>
           <h2>{job.service_type?.replace("_", " ") ?? "Service job"}</h2>
-          <p>{job.customers?.display_name ?? "Customer not available"}</p>
+          <p>{job.organizations?.name ?? job.customers?.display_name ?? "Contracting party not available"}</p>
           <p>{formatLocation(job)}</p>
         </div>
         <span className="status-pill">{job.status.replace("_", " ")}</span>

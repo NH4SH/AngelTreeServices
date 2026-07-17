@@ -33,7 +33,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
     >
       <DocumentMeta
         items={[
-          { label: "Bill to", value: invoice.customers?.display_name ?? "Customer not attached yet." },
+          { label: "Bill to", value: invoice.organizations?.name ?? invoice.customers?.display_name ?? "Contracting party not attached yet." },
           { label: "Contact", value: formatContact(invoice) },
           { label: "Service location", value: formatLocation(invoice), wide: true },
           { label: "Issue date", value: formatDate(invoice.created_at) },
@@ -135,7 +135,9 @@ function formatLocation(invoice: InvoiceDetail) {
 }
 
 function formatContact(invoice: InvoiceDetail) {
-  const contact = [invoice.customers?.phone, invoice.customers?.email].filter(Boolean);
+  const contact = invoice.organizations
+    ? [invoice.organizations.billing_phone, invoice.organizations.billing_email].filter(Boolean)
+    : [invoice.customers?.phone, invoice.customers?.email].filter(Boolean);
   return contact.length ? contact.join("\n") : "Contact information available through our office";
 }
 

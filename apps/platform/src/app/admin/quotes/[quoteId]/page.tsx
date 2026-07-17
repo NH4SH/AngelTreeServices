@@ -56,7 +56,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
   const communications = detail.data ? await getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null };
   const recipientOptions = detail.data
-    ? await getCommunicationRecipientOptions(detail.data.customer_id)
+    ? await getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id })
     : { data: [], error: null };
   const assignedUsers = await getAssignableUsers();
   const emailSetup = getEmailSetupState();
@@ -82,7 +82,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   Quote file
                 </p>
                 <h1>{detail.data.quote_number || "Draft quote"}</h1>
-                <p>{detail.data.customers?.display_name ?? "Unknown customer"} - {formatProposalLabel(detail.data)}</p>
+                <p>{detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "Unknown contracting party"} - {formatProposalLabel(detail.data)}</p>
               </div>
               <div className="commerce-header-aside">
                 <span className={`status-pill quote-status ${detail.data.status}`}>
@@ -156,11 +156,11 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   <PanelTitle icon={<Send size={18} />} title="Quote email sending" />
                   <EmailSetupNotice configured={emailSetup.configured} />
                   <SendQuoteEmailForm
-                    disabled={!emailSetup.configured || !detail.data.customers?.email || isQuoteClosedForSending(detail.data.status)}
+                    disabled={!emailSetup.configured || !(detail.data.approval_contact?.email ?? detail.data.recipient_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) || isQuoteClosedForSending(detail.data.status)}
                     quoteId={detail.data.id}
                   />
-                  {!detail.data.customers?.email ? (
-                    <p className="inline-empty">Add a customer email address before sending from the platform.</p>
+                  {!(detail.data.approval_contact?.email ?? detail.data.recipient_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) ? (
+                    <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
                   ) : null}
                   {isQuoteClosedForSending(detail.data.status) ? (
                     <p className="inline-empty">This quote is closed, so it cannot be sent again from the main workflow.</p>
@@ -210,10 +210,10 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 </section>
 
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<UsersRound size={18} />} title="Customer" />
-                  <Link className="linked-record" href={`/admin/customers/${detail.data.customer_id}`}>
-                    <strong>{detail.data.customers?.display_name ?? "Unknown customer"}</strong>
-                    <span>{detail.data.customers?.phone || detail.data.customers?.email || "No contact set"}</span>
+                  <PanelTitle icon={<UsersRound size={18} />} title="Contracting party" />
+                  <Link className="linked-record" href={detail.data.organization_id ? `/admin/organizations/${detail.data.organization_id}` : `/admin/customers/${detail.data.customer_id}`}>
+                    <strong>{detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "Unknown contracting party"}</strong>
+                    <span>{detail.data.organizations?.billing_phone || detail.data.organizations?.billing_email || detail.data.customers?.phone || detail.data.customers?.email || "No contact set"}</span>
                   </Link>
                 </section>
 

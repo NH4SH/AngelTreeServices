@@ -75,7 +75,7 @@ export default async function AdminPage() {
       items: quoteSummaries.data.drafts.map((quote) => ({
         href: `/admin/quotes/${quote.id}`,
         title: quote.quote_number ?? "Draft quote",
-        meta: quote.customers?.display_name ?? "Unknown customer",
+        meta: quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party",
       })),
     },
     {
@@ -85,7 +85,7 @@ export default async function AdminPage() {
       href: "/admin/jobs",
       items: jobSummaries.lanes.newLeads.map((job) => ({
         href: `/admin/jobs/${job.id}`,
-        title: job.customers?.display_name ?? "Unknown customer",
+        title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.requested_scope ?? "No scope entered yet",
       })),
     },
@@ -96,7 +96,7 @@ export default async function AdminPage() {
       href: "/admin/jobs",
       items: jobSummaries.lanes.estimatesToSchedule.map((job) => ({
         href: `/admin/jobs/${job.id}`,
-        title: job.customers?.display_name ?? "Unknown customer",
+        title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.service_locations
           ? `${job.service_locations.street}, ${job.service_locations.city}`
           : "No service location",
@@ -110,7 +110,7 @@ export default async function AdminPage() {
       items: quoteSummaries.data.awaitingResponse.map((quote) => ({
         href: `/admin/quotes/${quote.id}`,
         title: quote.quote_number ?? "Sent quote",
-        meta: quote.customers?.display_name ?? "Unknown customer",
+        meta: quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party",
       })),
     },
     {
@@ -120,7 +120,7 @@ export default async function AdminPage() {
       href: "/admin/jobs",
       items: jobSummaries.lanes.approvedWorkToSchedule.map((job) => ({
         href: `/admin/jobs/${job.id}`,
-        title: job.customers?.display_name ?? "Unknown customer",
+        title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.requested_scope ?? "Approved work order",
       })),
     },
@@ -131,7 +131,7 @@ export default async function AdminPage() {
       href: "/admin/jobs",
       items: jobSummaries.lanes.completedWorkToInvoice.map((job) => ({
         href: `/admin/jobs/${job.id}`,
-        title: job.customers?.display_name ?? "Unknown customer",
+        title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.service_type?.replace("_", " ") ?? "Completed work order",
       })),
     },
@@ -143,7 +143,7 @@ export default async function AdminPage() {
       items: jobSummaries.lanes.todaysJobs.map((job) => ({
         href: `/admin/jobs/${job.id}`,
         title: job.service_type?.replace("_", " ") ?? "Service job",
-        meta: job.customers?.display_name ?? "Unknown customer",
+        meta: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
       })),
     },
     {
@@ -165,7 +165,7 @@ export default async function AdminPage() {
       items: unpaidInvoices.data.map((invoice) => ({
         href: `/admin/invoices/${invoice.id}`,
         title: invoice.invoice_number ?? "Open invoice",
-        meta: `${invoice.customers?.display_name ?? "Unknown customer"} - ${formatCurrency(invoice.balance_due_cents)}`,
+        meta: `${invoice.organizations?.name ?? invoice.customers?.display_name ?? "Unknown contracting party"} - ${formatCurrency(invoice.balance_due_cents)}`,
       })),
     },
   ];

@@ -67,7 +67,7 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
 
   const { data: checkout, error: checkoutError } = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, invoice_id, customer_id, amount_cents, currency, status")
+    .select("id, invoice_id, customer_id, organization_id, amount_cents, currency, status")
     .eq("stripe_checkout_session_id", session.id)
     .maybeSingle();
 
@@ -93,6 +93,7 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
     amount_cents: session.amount_total,
     currency: session.currency.toLowerCase(),
     customer_id: checkout.customer_id,
+    organization_id: checkout.organization_id,
     invoice_id: checkout.invoice_id,
     paid_at: new Date().toISOString(),
     payment_method: "stripe_checkout",

@@ -87,7 +87,7 @@ export function CrewClockInForm({
             <option value="">No linked job</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
-                {(job.customers?.display_name || "Customer")} - {job.service_type?.replace("_", " ") || "work"}
+                {(job.organizations?.name || job.customers?.display_name || "Contracting party")} - {job.service_type?.replace("_", " ") || "work"}
               </option>
             ))}
           </select>
@@ -113,7 +113,7 @@ export function CrewClockInForm({
         <p>
           {selectedEntryType === "job"
             ? selectedJob
-              ? `Job time linked to ${selectedJob.customers?.display_name || "a customer job"}.`
+              ? `Job time linked to ${selectedJob.organizations?.name || selectedJob.customers?.display_name || "a work order"}.`
               : selectedScheduleEvent
                 ? `Job time linked to the schedule event "${selectedScheduleEvent.title}".`
                 : "Job time works best when it is linked to a job or scheduled event."
@@ -139,7 +139,7 @@ export function CrewClockInForm({
 
 export function QuickClockInEventForm({ event }: { event: ScheduleEventWithRelations }) {
   const [state, formAction, pending] = useActionState(clockIn, initialState);
-  const customer = event.jobs?.customers?.display_name;
+  const customer = event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name;
 
   return (
     <form action={formAction} className="quick-clock-event-form">
@@ -219,7 +219,7 @@ export function LiveTimerCard({ entry }: { entry: TimeEntryWithRelations }) {
       <strong>{elapsed}</strong>
       <span>
         {entry.entry_type.replace("_", " ")}
-        {entry.jobs?.customers?.display_name ? ` - ${entry.jobs.customers.display_name}` : ""}
+        {entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name ? ` - ${entry.jobs?.organizations?.name ?? entry.jobs?.customers?.display_name}` : ""}
       </span>
       <div className="time-live-context">
         {entry.jobs?.service_type ? (

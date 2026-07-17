@@ -11,7 +11,7 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
+      "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
     )
     .order("created_at", { ascending: false });
 
@@ -31,7 +31,7 @@ export async function getQuotesAwaitingResponse() {
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
+    .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
     .in("status", ["sent", "change_requested"])
     .order("created_at", { ascending: false })
     .limit(12);
@@ -52,7 +52,7 @@ export async function getQuoteDashboardSummaries() {
     };
   }
 
-  const quoteSelect = "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)";
+  const quoteSelect = "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)";
   const [drafts, awaitingResponse] = await Promise.all([
     supabase
       .from("quotes")
@@ -86,8 +86,8 @@ export async function getQuotesByCustomerId(customerId: string): Promise<DataRes
 
   const { data, error } = await supabase
     .from("quotes")
-    .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
-    .eq("customer_id", customerId)
+    .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
+    .or(`customer_id.eq.${customerId},legacy_customer_id.eq.${customerId}`)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -107,7 +107,7 @@ export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteD
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
     .select(
-      "*, jobs:jobs!quotes_job_id_fkey(*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(id, full_name, email, phone, is_active), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(id, full_name, email, phone, is_active), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
+      "*, jobs:jobs!quotes_job_id_fkey(*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(id, full_name, email, phone, is_active), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(id, full_name, email, phone, is_active), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
     )
     .eq("id", quoteId)
     .single();
@@ -124,13 +124,15 @@ export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteD
     .order("created_at", { ascending: false });
   const scopedNotesQuery = jobId
     ? notesQuery.eq("job_id", jobId)
-    : notesQuery.eq("customer_id", typedQuote.customer_id);
+    : typedQuote.customer_id
+      ? notesQuery.eq("customer_id", typedQuote.customer_id)
+      : notesQuery.eq("service_location_id", typedQuote.service_location_id);
   const [notes, invoices] = await Promise.all([
     scopedNotesQuery,
     supabase
       .from("invoices")
       .select(
-        "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+        "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
       )
       .eq("quote_id", quoteId)
       .order("created_at", { ascending: false }),

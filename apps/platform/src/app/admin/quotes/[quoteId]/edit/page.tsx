@@ -5,6 +5,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
+import { getOrganizations } from "@/lib/data/organizations";
 import { getQuoteDetail } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions } from "@/lib/data/materials";
@@ -26,9 +27,10 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     return <SetupRequired title="Configure Supabase before editing quotes" />;
   }
 
-  const [detail, customers, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [detail, customers, organizations, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
     getQuoteDetail(quoteId),
     getCustomerOptions(),
+    getOrganizations(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
@@ -40,7 +42,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
         <Link className="crew-back-link" href={`/admin/quotes/${quoteId}`}>Back to quote</Link>
-        {[detail.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[detail.error, customers.error, organizations.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => <DataWarning key={message} message={message ?? ""} />)}
 
@@ -84,6 +86,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               estimateScheduleEvents={estimateScheduleEvents.data}
               jobs={jobs.data}
               materials={materials.data}
+              organizations={organizations.data}
               quote={detail.data}
               serviceCategories={serviceCategories.data}
               serviceLocations={serviceLocations.data}

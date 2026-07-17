@@ -87,7 +87,7 @@ export async function getQuoteByPortalToken(rawToken: string): Promise<PortalQuo
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
     .select(
-      "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type, requested_scope, service_locations(id, label, street, city, state, postal_code)), customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code), quote_line_items(*)",
+      "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type, requested_scope, service_locations(id, label, street, city, state, postal_code)), customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), service_locations(id, label, street, city, state, postal_code), quote_line_items(*)",
     )
     .eq("id", token.quote_id)
     .single();

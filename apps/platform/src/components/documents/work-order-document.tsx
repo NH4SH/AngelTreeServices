@@ -23,8 +23,8 @@ export function WorkOrderDocument({ job }: { job: JobDetail }) {
     >
       <DocumentMeta
         items={[
-          { label: "Customer", value: job.customers?.display_name ?? "Customer not attached yet." },
-          { label: "Contact", value: job.customers?.phone || "No phone attached yet." },
+          { label: "Contracting party", value: job.organizations?.name ?? job.customers?.display_name ?? "Contracting party not attached yet." },
+          { label: "Contact", value: job.organizations?.billing_phone || job.customers?.phone || "No phone attached yet." },
           { label: "Service location", value: formatLocation(job) },
           { label: "Scheduled", value: job.scheduled_start_at ? formatDateTime(job.scheduled_start_at) : "No schedule attached yet." },
         ]}

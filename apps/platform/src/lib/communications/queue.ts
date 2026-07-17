@@ -14,6 +14,19 @@ type CustomerReference = {
   status: string;
 };
 
+type OrganizationReference = {
+  billing_email: string | null;
+  id: string;
+  status: string;
+};
+
+type ContractingPartyReference = {
+  customerId: string | null;
+  email: string;
+  organizationId: string | null;
+  recipientSource: "customer" | "organization";
+};
+
 type QueueInput = Pick<
   CustomerCommunication,
   | "communication_type"
@@ -112,7 +125,7 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, customer_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers(id, email, organization_id, status)")
+    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
     .eq("status", "sent")
     .eq("automatic_follow_ups_enabled", true)
     .not("sent_at", "is", null)
@@ -122,8 +135,8 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
 
   const queue: QueueInput[] = [];
   for (const quote of data ?? []) {
-    const customer = one<CustomerReference>(quote.customers);
-    if (!isQueueableCustomer(customer) || !quote.sent_at) continue;
+    const party = getQueueableParty(quote.customers, quote.organizations);
+    if (!party || !quote.sent_at) continue;
 
     for (const [stage, days] of [
       ["first", settings.quote_first_follow_up_days],
@@ -131,7 +144,7 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
     ] as const) {
       queue.push(buildQueueInput({
         communicationType: "quote_follow_up",
-        customer,
+        party,
         idempotencyKey: `auto:quote:${quote.id}:follow-up:${stage}`,
         quoteId: quote.id,
         reminderStage: stage,
@@ -150,7 +163,7 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
   const dueLookback = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("invoices")
-    .select("id, customer_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers(id, email, organization_id, status)")
+    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
     .in("status", ["sent", "partially_paid", "overdue"])
     .eq("automatic_reminders_enabled", true)
     .gt("balance_due_cents", 0)
@@ -161,12 +174,12 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
 
   const queue: QueueInput[] = [];
   for (const invoice of data ?? []) {
-    const customer = one<CustomerReference>(invoice.customers);
-    if (!isQueueableCustomer(customer) || !invoice.due_at) continue;
+    const party = getQueueableParty(invoice.customers, invoice.organizations);
+    if (!party || !invoice.due_at) continue;
 
     queue.push(buildQueueInput({
       communicationType: "invoice_payment_reminder",
-      customer,
+      party,
       idempotencyKey: `auto:invoice:${invoice.id}:reminder:first`,
       invoiceId: invoice.id,
       reminderStage: "first",
@@ -175,7 +188,7 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
     }));
     queue.push(buildQueueInput({
       communicationType: "overdue_invoice_reminder",
-      customer,
+      party,
       idempotencyKey: `auto:invoice:${invoice.id}:reminder:second`,
       invoiceId: invoice.id,
       reminderStage: "second",
@@ -192,7 +205,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("schedule_events")
-    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, customers(id, email, organization_id, status))")
+    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status))")
     .in("event_type", ["estimate", "job", "maintenance", "emergency"])
     .in("status", ["scheduled", "confirmed"])
     .not("job_id", "is", null)
@@ -203,9 +216,9 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
 
   const queue: QueueInput[] = [];
   for (const event of data ?? []) {
-    const job = one<{ id: string; customer_id: string; customers: CustomerReference | CustomerReference[] | null }>(event.jobs);
-    const customer = one<CustomerReference>(job?.customers ?? null);
-    if (!job || !isQueueableCustomer(customer)) continue;
+    const job = one<{ id: string; customers: CustomerReference | CustomerReference[] | null; organizations: OrganizationReference | OrganizationReference[] | null }>(event.jobs);
+    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null);
+    if (!job || !party) continue;
 
     await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at);
     const isEstimate = event.event_type === "estimate";
@@ -217,7 +230,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
     if (confirmationEnabled && event.created_at >= settings.updated_at) {
       queue.push(buildQueueInput({
         communicationType: `${prefix}_confirmation` as CommunicationType,
-        customer,
+        party,
         idempotencyKey: `auto:schedule-event:${event.id}:confirmation:${event.starts_at}`,
         jobId: job.id,
         reminderStage: "confirmation",
@@ -230,7 +243,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
     if (reminderEnabled) {
       queue.push(buildQueueInput({
         communicationType: `${prefix}_reminder` as CommunicationType,
-        customer,
+        party,
         idempotencyKey: `auto:schedule-event:${event.id}:reminder:${event.starts_at}`,
         jobId: job.id,
         reminderStage: "reminder",
@@ -249,7 +262,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("appointments")
-    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, customers(id, email, organization_id, status))")
+    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status))")
     .in("appointment_type", ["estimate", "job", "maintenance"])
     .in("status", ["scheduled", "confirmed"])
     .gt("starts_at", now)
@@ -259,9 +272,9 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
 
   const queue: QueueInput[] = [];
   for (const appointment of data ?? []) {
-    const job = one<{ id: string; customer_id: string; customers: CustomerReference | CustomerReference[] | null }>(appointment.jobs);
-    const customer = one<CustomerReference>(job?.customers ?? null);
-    if (!job || !isQueueableCustomer(customer)) continue;
+    const job = one<{ id: string; customers: CustomerReference | CustomerReference[] | null; organizations: OrganizationReference | OrganizationReference[] | null }>(appointment.jobs);
+    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null);
+    if (!job || !party) continue;
 
     await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at);
     const isEstimate = appointment.appointment_type === "estimate";
@@ -274,7 +287,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
       queue.push(buildQueueInput({
         appointmentId: appointment.id,
         communicationType: `${prefix}_confirmation` as CommunicationType,
-        customer,
+        party,
         idempotencyKey: `auto:appointment:${appointment.id}:confirmation:${appointment.starts_at}`,
         jobId: job.id,
         reminderStage: "confirmation",
@@ -287,7 +300,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
       queue.push(buildQueueInput({
         appointmentId: appointment.id,
         communicationType: `${prefix}_reminder` as CommunicationType,
-        customer,
+        party,
         idempotencyKey: `auto:appointment:${appointment.id}:reminder:${appointment.starts_at}`,
         jobId: job.id,
         reminderStage: "reminder",
@@ -305,19 +318,19 @@ async function syncPayments(supabase: SupabaseClient, settings: CommunicationSet
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, invoice_id, customer_id, status, created_at, updated_at, customers(id, email, organization_id, status)")
+    .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status)")
     .eq("status", "succeeded")
     .gte("created_at", settings.updated_at);
 
   if (error) return { created: 0, error: error.message };
 
   const queue = (data ?? []).flatMap((payment) => {
-    const customer = one<CustomerReference>(payment.customers);
-    if (!isQueueableCustomer(customer)) return [];
+    const party = getQueueableParty(payment.customers, payment.organizations);
+    if (!party) return [];
 
     return [buildQueueInput({
       communicationType: "payment_confirmation",
-      customer,
+      party,
       idempotencyKey: `auto:payment:${payment.id}:confirmation`,
       invoiceId: payment.invoice_id,
       paymentId: payment.id,
@@ -351,7 +364,7 @@ async function cancelObsoleteAppointmentVersion(
 function buildQueueInput(input: {
   appointmentId?: string;
   communicationType: CommunicationType;
-  customer: CustomerReference;
+  party: ContractingPartyReference;
   idempotencyKey: string;
   invoiceId?: string;
   jobId?: string;
@@ -365,16 +378,16 @@ function buildQueueInput(input: {
   return {
     communication_type: input.communicationType,
     reminder_stage: input.reminderStage,
-    customer_id: input.customer.id,
-    organization_id: input.customer.organization_id,
+    customer_id: input.party.customerId,
+    organization_id: input.party.organizationId,
     quote_id: input.quoteId ?? null,
     invoice_id: input.invoiceId ?? null,
     job_id: input.jobId ?? null,
     schedule_event_id: input.scheduleEventId ?? null,
     appointment_id: input.appointmentId ?? null,
     payment_id: input.paymentId ?? null,
-    recipient_source: "customer",
-    recipient_email: input.customer.email?.trim().toLowerCase() ?? "",
+    recipient_source: input.party.recipientSource,
+    recipient_email: input.party.email,
     scheduled_for: input.scheduledFor,
     source_version: input.sourceVersion,
     is_automatic: true,
@@ -395,6 +408,30 @@ async function insertQueueRows(supabase: SupabaseClient, rows: QueueInput[]) {
 
 function isQueueableCustomer(customer: CustomerReference | null): customer is CustomerReference {
   return Boolean(customer && customer.status !== "archived" && isValidEmail(customer.email ?? ""));
+}
+
+function getQueueableParty(
+  customerValue: CustomerReference | CustomerReference[] | null | undefined,
+  organizationValue: OrganizationReference | OrganizationReference[] | null | undefined,
+): ContractingPartyReference | null {
+  const customer = one(customerValue);
+  if (isQueueableCustomer(customer)) {
+    return {
+      customerId: customer.id,
+      email: customer.email!.trim().toLowerCase(),
+      organizationId: null,
+      recipientSource: "customer",
+    };
+  }
+
+  const organization = one(organizationValue);
+  if (!organization || organization.status === "archived" || !isValidEmail(organization.billing_email ?? "")) return null;
+  return {
+    customerId: null,
+    email: organization.billing_email!.trim().toLowerCase(),
+    organizationId: organization.id,
+    recipientSource: "organization",
+  };
 }
 
 function isValidEmail(value: string) {

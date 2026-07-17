@@ -147,6 +147,7 @@ supabase/migrations/20260716210754_stripe_invoice_payments.sql
 supabase/migrations/20260716212545_harden_security_definer_functions.sql
 supabase/migrations/20260716215149_automated_customer_communications.sql
 supabase/migrations/20260716222258_crew_job_closeout_workflow.sql
+supabase/migrations/20260717032430_organization_contracting_parties.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -577,6 +578,8 @@ See [CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md](./CHANGE_ORDER_AND_ORGANIZATION_
 ## Recurring services and follow-ups
 
 Apply `supabase/migrations/20260717022829_recurring_services_followups_and_renewals.sql` after the change-order and organization-parity migration. Staff queues and multi-property service plans live at `/admin/recurring`; assigned crew can submit future-work recommendations from the existing crew job page.
+
+Apply `supabase/migrations/20260717032430_organization_contracting_parties.sql` before deploying the matching platform code. It removes the legacy contracting-customer requirement from quotes, work orders, and invoices; enforces exactly one customer or organization; carries that party through portal tokens, payments, checkout sessions, and communications; and preserves former customer references in `legacy_customer_id`. Review the backfill in a staging copy before production, then verify organization contacts, portals, recurring generation, checkout, and reports. The application does not apply this migration automatically.
 
 Generation is manual and duplicate-safe by default. `automated_generation_enabled` is seeded off, and no recurring communication, work order, or payment is created merely because a plan exists. Renewal quotes use the existing secure quote, approval, work-order, schedule, closeout, invoice, email, and payment workflows.
 

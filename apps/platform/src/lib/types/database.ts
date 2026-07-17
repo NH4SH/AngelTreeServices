@@ -200,7 +200,7 @@ export type Customer = {
 
 export type ServiceLocation = {
   id: string;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
   label: string | null;
   street: string;
@@ -218,8 +218,9 @@ export type ServiceLocation = {
 
 export type Job = {
   id: string;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
+  legacy_customer_id: string | null;
   service_location_id: string;
   source_quote_id: string | null;
   lead_source_id: string | null;
@@ -250,8 +251,9 @@ export type Job = {
 export type Quote = {
   id: string;
   job_id: string | null;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
+  legacy_customer_id: string | null;
   recipient_contact_id: string | null;
   approval_contact_id: string | null;
   purchase_order_reference: string | null;
@@ -301,7 +303,8 @@ export type QuoteLineItem = {
 export type QuotePortalToken = {
   id: string;
   quote_id: string;
-  customer_id: string;
+  customer_id: string | null;
+  organization_id: string | null;
   token_hash: string;
   token_encrypted: string | null;
   token_hint: string | null;
@@ -316,7 +319,8 @@ export type QuotePortalToken = {
 export type InvoicePortalToken = {
   id: string;
   invoice_id: string;
-  customer_id: string;
+  customer_id: string | null;
+  organization_id: string | null;
   token_hash: string;
   token_encrypted: string | null;
   token_hint: string | null;
@@ -332,8 +336,9 @@ export type Invoice = {
   id: string;
   job_id: string;
   quote_id: string | null;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
+  legacy_customer_id: string | null;
   service_location_id: string | null;
   billing_contact_id: string | null;
   accounts_payable_contact_id: string | null;
@@ -647,7 +652,8 @@ export type ServiceRecommendationWithRelations = ServiceRecommendation & {
 export type Payment = {
   id: string;
   invoice_id: string;
-  customer_id: string;
+  customer_id: string | null;
+  organization_id: string | null;
   amount_cents: number;
   currency: string;
   payment_method: string | null;
@@ -787,7 +793,7 @@ export type CustomerCommunication = {
   id: string;
   communication_type: CommunicationType;
   reminder_stage: string;
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
   quote_id: string | null;
   invoice_id: string | null;
@@ -976,6 +982,7 @@ export type CustomerWithLocations = Customer & {
 
 export type JobWithRelations = Job & {
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_phone"> | null;
   service_locations?: Pick<
     ServiceLocation,
     "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
@@ -1000,6 +1007,7 @@ export type CrewJob = Pick<
   | "updated_at"
 > & {
   customers?: Pick<Customer, "display_name" | "phone"> | null;
+  organizations?: Pick<Organization, "name" | "billing_phone"> | null;
   service_locations?: Pick<
     ServiceLocation,
     | "label"
@@ -1032,12 +1040,16 @@ export type QuoteWithRelations = Quote & {
 export type InvoiceWithRelations = Invoice & {
   jobs?: Pick<Job, "id" | "status" | "service_type" | "requested_scope"> | null;
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_phone" | "billing_address"> | null;
+  billing_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  accounts_payable_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
   invoice_line_items?: InvoiceLineItem[];
   payments?: Payment[];
 };
 
-export type ScheduleLinkedJobSummary = Pick<Job, "id" | "customer_id" | "status" | "service_type" | "requested_scope"> & {
+export type ScheduleLinkedJobSummary = Pick<Job, "id" | "customer_id" | "organization_id" | "status" | "service_type" | "requested_scope"> & {
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_phone" | "billing_email"> | null;
 };
 
 export type ScheduleLocationSummary = Pick<
@@ -1088,6 +1100,7 @@ export type TimeEntryWithRelations = TimeEntry & {
   profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
   jobs?: Pick<Job, "id" | "service_type" | "status"> & {
     customers?: Pick<Customer, "display_name"> | null;
+    organizations?: Pick<Organization, "name"> | null;
   } | null;
   schedule_events?: Pick<ScheduleEvent, "id" | "title" | "event_type" | "starts_at" | "ends_at"> | null;
   time_entry_adjustments?: TimeEntryAdjustment[];

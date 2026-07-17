@@ -107,7 +107,7 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
               <div className="time-entry-row">
                 <div>
                   <strong>{detail.data.activeEntry.entry_type.replace("_", " ")}</strong>
-                  <span>{detail.data.activeEntry.jobs?.customers?.display_name || detail.data.activeEntry.schedule_events?.title || "No linked record"}</span>
+                  <span>{detail.data.activeEntry.jobs?.organizations?.name || detail.data.activeEntry.jobs?.customers?.display_name || detail.data.activeEntry.schedule_events?.title || "No linked record"}</span>
                 </div>
                 <div>
                   <b>Since {formatTime(detail.data.activeEntry.clock_in_at)}</b>
@@ -160,7 +160,7 @@ export default async function AdminTimeUserPage({ params }: AdminTimeUserPagePro
                   <div className="time-detail-card-header">
                     <div>
                       <strong>{entry.entry_type.replace("_", " ")}</strong>
-                      <span>{entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
+                      <span>{entry.jobs?.organizations?.name || entry.jobs?.customers?.display_name || entry.schedule_events?.title || "No linked record"}</span>
                     </div>
                     <b>{entry.clock_out_at ? `${getTimeEntryHours(entry).toFixed(2)}h` : "Active"}</b>
                   </div>

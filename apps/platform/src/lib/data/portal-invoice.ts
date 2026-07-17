@@ -113,7 +113,7 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(id, status, service_type, requested_scope, service_locations(id, label, street, city, state, postal_code)), customers(id, display_name, phone, email), invoice_line_items(*), payments(*)",
+      "*, jobs(id, status, service_type, requested_scope, service_locations(id, label, street, city, state, postal_code)), customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), invoice_line_items(*), payments(*)",
     )
     .eq("id", token.invoice_id)
     .single();

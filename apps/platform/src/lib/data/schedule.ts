@@ -86,7 +86,7 @@ export async function getEstimateScheduleEventOptions(): Promise<DataResult<Esti
   const { data, error } = await supabase
     .from("schedule_events")
     .select(
-      "id, title, starts_at, service_location_id, location_label, jobs(customers(display_name)), service_locations(label, street, city, state)",
+      "id, title, starts_at, service_location_id, location_label, jobs(customers(display_name), organizations(name)), service_locations(label, street, city, state)",
     )
     .eq("event_type", "estimate")
     .order("starts_at", { ascending: false })
@@ -103,14 +103,14 @@ export async function getEstimateScheduleEventOptions(): Promise<DataResult<Esti
       starts_at: string;
       service_location_id: string | null;
       location_label: string | null;
-      jobs?: { customers?: { display_name?: string | null } | null } | null;
+      jobs?: { customers?: { display_name?: string | null } | null; organizations?: { name?: string | null } | null } | null;
       service_locations?: { label?: string | null; street?: string | null; city?: string | null; state?: string | null } | null;
     }[]).map((event) => ({
       id: event.id,
       title: event.title,
       starts_at: event.starts_at,
       service_location_id: event.service_location_id,
-      customer_label: event.jobs?.customers?.display_name ?? null,
+      customer_label: event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name ?? null,
       location_label:
         event.location_label ||
         event.service_locations?.label ||
@@ -139,7 +139,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let appointmentsQuery = supabase
     .from("appointments")
     .select(
-      "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
     )
     .order("starts_at", { ascending: true });
 
@@ -176,7 +176,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let eventsQuery = supabase
     .from("schedule_events")
     .select(
-      "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
     )
     .order("starts_at", { ascending: true });
 
@@ -269,7 +269,7 @@ function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry 
     job_id: event.job_id,
     service_location_id: event.service_location_id,
     assignees,
-    customer_label: event.jobs?.customers?.display_name ?? null,
+    customer_label: event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name ?? null,
   };
 }
 
@@ -295,7 +295,7 @@ function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntr
     job_id: appointment.job_id,
     service_location_id: appointment.service_location_id,
     assignees,
-    customer_label: appointment.jobs?.customers?.display_name ?? null,
+    customer_label: appointment.jobs?.organizations?.name ?? appointment.jobs?.customers?.display_name ?? null,
   };
 }
 
@@ -348,7 +348,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("appointments")
       .select(
-        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+        "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
       )
       .gte("starts_at", start.toISOString())
       .lt("starts_at", end.toISOString())
@@ -356,7 +356,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("schedule_events")
       .select(
-        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+        "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
       )
       .gte("starts_at", start.toISOString())
       .lt("starts_at", end.toISOString())
@@ -364,7 +364,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("appointments")
       .select(
-        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+        "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
       )
       .eq("appointment_type", "estimate")
       .gte("starts_at", start.toISOString())
@@ -374,7 +374,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("schedule_events")
       .select(
-        "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+        "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
       )
       .eq("event_type", "estimate")
       .gte("starts_at", start.toISOString())

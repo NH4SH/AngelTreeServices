@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
@@ -34,14 +35,14 @@ export async function createInvoice(
   }
 
   const jobId = String(formData.get("job_id") ?? "");
-  const customerId = String(formData.get("customer_id") ?? "");
+  const party = parseContractingParty(formData.get("contracting_party"));
   const dueDate = String(formData.get("due_date") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
   const lineItems = getInvoiceLineItems(formData);
   const totalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
-  if (!jobId || !customerId) {
-    return { status: "error", message: "Choose a customer and job before creating an invoice." };
+  if (!jobId || !party) {
+    return { status: "error", message: "Choose a contracting party and job before creating an invoice." };
   }
 
   if (lineItems.length === 0) {
@@ -50,7 +51,7 @@ export async function createInvoice(
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id, customer_id, organization_id, service_location_id, status, recurring_service_plan_id, recurring_occurrence_id")
+    .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, status, recurring_service_plan_id, recurring_occurrence_id")
     .eq("id", jobId)
     .single();
 
@@ -58,8 +59,8 @@ export async function createInvoice(
     return { status: "error", message: jobError?.message ?? "Could not find the selected job." };
   }
 
-  if (job.customer_id !== customerId) {
-    return { status: "error", message: "Selected job does not belong to the selected customer." };
+  if (!belongsToContractingParty(job, party)) {
+    return { status: "error", message: "Selected job does not belong to the selected contracting party." };
   }
 
   if (!["completed", "ready_to_invoice"].includes(job.status)) {
@@ -106,8 +107,10 @@ export async function createInvoice(
     .from("invoices")
     .insert({
       job_id: jobId,
-      customer_id: customerId,
-      organization_id: job.organization_id,
+      customer_id: party.customerId,
+      organization_id: party.organizationId,
+      billing_contact_id: job.property_manager_contact_id,
+      accounts_payable_contact_id: job.property_manager_contact_id,
       service_location_id: job.service_location_id,
       recurring_service_plan_id: job.recurring_service_plan_id,
       recurring_occurrence_id: job.recurring_occurrence_id,
@@ -151,7 +154,7 @@ export async function createInvoice(
   let noteWarning = "";
   if (notes) {
     const { error: noteError } = await supabase.from("notes").insert({
-      customer_id: customerId,
+      customer_id: party.customerId,
       job_id: jobId,
       author_user_id: user.id,
       visibility: "internal",
@@ -181,6 +184,8 @@ export async function createInvoice(
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
+  if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
+  if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
   return { status: "success", message: `Invoice saved. Review it, then send it to the customer when ready.${noteWarning}` };
 }
 
@@ -229,7 +234,7 @@ export async function updateInvoice(
 
   const { data: invoice, error: lookupError } = await supabase
     .from("invoices")
-    .select("id, customer_id, status, total_cents, balance_due_cents")
+    .select("id, customer_id, organization_id, status, total_cents, balance_due_cents")
     .eq("id", invoiceId)
     .single();
 
@@ -273,7 +278,8 @@ export async function updateInvoice(
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   revalidatePath(`/admin/invoices/${invoiceId}/edit`);
-  revalidatePath(`/admin/customers/${invoice.customer_id}`);
+  if (invoice.customer_id) revalidatePath(`/admin/customers/${invoice.customer_id}`);
+  if (invoice.organization_id) revalidatePath(`/admin/organizations/${invoice.organization_id}`);
 
   if (submitIntent === "save_close") {
     redirect(`/admin/invoices/${invoiceId}`);

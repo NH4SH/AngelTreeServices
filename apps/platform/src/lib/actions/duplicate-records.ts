@@ -56,6 +56,7 @@ export async function duplicateQuote(
     .insert({
       job_id: null,
       customer_id: typedQuote.customer_id,
+      organization_id: typedQuote.organization_id,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: null,
       estimator_user_id: auth.userId,
@@ -98,7 +99,8 @@ export async function duplicateQuote(
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
-  revalidatePath(`/admin/customers/${typedQuote.customer_id}`);
+  if (typedQuote.customer_id) revalidatePath(`/admin/customers/${typedQuote.customer_id}`);
+  if (typedQuote.organization_id) revalidatePath(`/admin/organizations/${typedQuote.organization_id}`);
   redirect(`/admin/quotes/${newQuote.id}/edit?duplicated=quote`);
 }
 
@@ -138,6 +140,10 @@ export async function duplicateInvoice(
       job_id: typedInvoice.job_id,
       quote_id: null,
       customer_id: typedInvoice.customer_id,
+      organization_id: typedInvoice.organization_id,
+      service_location_id: typedInvoice.service_location_id,
+      billing_contact_id: typedInvoice.billing_contact_id,
+      accounts_payable_contact_id: typedInvoice.accounts_payable_contact_id,
       status: "draft",
       invoice_number: await getNextRecordNumber(
         auth.supabase,
@@ -179,7 +185,8 @@ export async function duplicateInvoice(
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  revalidatePath(`/admin/customers/${typedInvoice.customer_id}`);
+  if (typedInvoice.customer_id) revalidatePath(`/admin/customers/${typedInvoice.customer_id}`);
+  if (typedInvoice.organization_id) revalidatePath(`/admin/organizations/${typedInvoice.organization_id}`);
   redirect(`/admin/invoices/${newInvoice.id}/edit?duplicated=invoice`);
 }
 
@@ -201,7 +208,7 @@ export async function duplicateJob(
 
   const { data: job, error: jobError } = await auth.supabase
     .from("jobs")
-    .select("id, customer_id, service_location_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
+    .select("id, customer_id, organization_id, service_location_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
     .eq("id", jobId)
     .single();
 
@@ -213,6 +220,7 @@ export async function duplicateJob(
     .from("jobs")
     .insert({
       customer_id: job.customer_id,
+      organization_id: job.organization_id,
       service_location_id: job.service_location_id,
       source_quote_id: null,
       lead_source_id: null,
@@ -248,7 +256,8 @@ export async function duplicateJob(
   revalidatePath("/admin/jobs");
   revalidatePath("/admin/schedule");
   revalidatePath(`/admin/jobs/${jobId}`);
-  revalidatePath(`/admin/customers/${job.customer_id}`);
+  if (job.customer_id) revalidatePath(`/admin/customers/${job.customer_id}`);
+  if (job.organization_id) revalidatePath(`/admin/organizations/${job.organization_id}`);
   redirect(`/admin/jobs/${newJob.id}?duplicated=job`);
 }
 

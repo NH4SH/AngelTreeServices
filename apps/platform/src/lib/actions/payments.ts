@@ -47,7 +47,7 @@ export async function recordManualPayment(
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .select("id, customer_id, status, balance_due_cents")
+    .select("id, customer_id, organization_id, status, balance_due_cents")
     .eq("id", invoiceId)
     .single();
 
@@ -66,6 +66,7 @@ export async function recordManualPayment(
   const { error: paymentError } = await supabase.from("payments").insert({
     amount_cents: amountCents,
     customer_id: invoice.customer_id,
+    organization_id: invoice.organization_id,
     currency: "usd",
     invoice_id: invoice.id,
     notes,

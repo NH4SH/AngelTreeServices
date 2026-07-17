@@ -103,7 +103,9 @@ function recordHref(item: CustomerCommunication) {
   if (item.schedule_event_id) return `/admin/schedule?event=${item.schedule_event_id}`;
   if (item.appointment_id) return `/admin/schedule?appointment=${item.appointment_id}`;
   if (item.job_id) return `/admin/jobs/${item.job_id}`;
-  return `/admin/customers/${item.customer_id}`;
+  return item.organization_id
+    ? `/admin/organizations/${item.organization_id}`
+    : `/admin/customers/${item.customer_id}`;
 }
 
 function byScheduledDate(left: CustomerCommunication, right: CustomerCommunication) {

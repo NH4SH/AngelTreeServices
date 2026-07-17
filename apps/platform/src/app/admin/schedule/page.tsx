@@ -115,13 +115,14 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const selectedEvent =
     schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
   const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
+  const selectedOrganizationId = selectedEvent?.jobs?.organization_id ?? selectedAppointment?.jobs?.organization_id ?? null;
   const selectedCommunications = selectedEvent
     ? await getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
     : selectedAppointment
       ? await getCustomerCommunications({ appointmentId: selectedAppointment.id, limit: 20 })
       : { data: [], error: null };
-  const selectedRecipients = selectedCustomerId
-    ? await getCommunicationRecipientOptions(selectedCustomerId)
+  const selectedRecipients = selectedCustomerId || selectedOrganizationId
+    ? await getCommunicationRecipientOptions({ customerId: selectedCustomerId, organizationId: selectedOrganizationId })
     : { data: [], error: null };
   const query: ScheduleQuery = {
     assigned_user_id: assignedUserId,
@@ -724,7 +725,7 @@ function ScheduleEventDetailPanel({
         .filter(Boolean)
         .join(", ")
     : (event.location_label || "No location yet.");
-  const customerSummary = event.jobs?.customers?.display_name || "No linked customer";
+  const customerSummary = event.jobs?.organizations?.name || event.jobs?.customers?.display_name || "No linked contracting party";
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="schedule-event-detail-title" aria-modal="true">

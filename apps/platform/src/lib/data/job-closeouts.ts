@@ -18,6 +18,7 @@ export type CloseoutQueueItem = JobCloseout & {
     completed_at: string | null;
     assigned_crew_user_id: string | null;
     customers?: { display_name: string } | null;
+    organizations?: { name: string } | null;
     service_locations?: { street: string; city: string; state: string } | null;
     job_photos?: { id: string; photo_type: string }[];
     invoices?: { id: string; status: string }[];
@@ -99,6 +100,7 @@ export async function getCloseoutQueue(): Promise<DataResult<CloseoutQueueItem[]
         completed_at,
         assigned_crew_user_id,
         customers(display_name),
+        organizations(name),
         service_locations(street, city, state),
         job_photos(id, photo_type),
         invoices(id, status)

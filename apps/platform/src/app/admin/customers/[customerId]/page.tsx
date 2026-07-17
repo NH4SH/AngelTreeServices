@@ -210,7 +210,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 <section className="form-panel">
                   <h2>Add job / work order</h2>
                   <p className="inline-empty">Use this after quote approval or for work that already has approval.</p>
-                  <AddJobForm customers={[detail.data.customer]} leadSources={leadSources.data} serviceLocations={detail.data.serviceLocations} />
+                  <AddJobForm customers={[detail.data.customer]} leadSources={leadSources.data} organizations={[]} serviceLocations={detail.data.serviceLocations} />
                 </section>
               </aside>
             </section>

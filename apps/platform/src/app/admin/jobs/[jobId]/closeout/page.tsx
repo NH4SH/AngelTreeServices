@@ -54,7 +54,7 @@ export default async function CloseoutReviewPage({ params }: CloseoutReviewPageP
           <>
             <section className="page-heading closeout-review-heading">
               <p className="surface-label"><ClipboardCheck aria-hidden="true" size={18} />Office closeout review</p>
-              <h1>{job.customers?.display_name ?? "Customer"}</h1>
+              <h1>{job.organizations?.name ?? job.customers?.display_name ?? "Contracting party"}</h1>
               <p>{job.service_type?.replaceAll("_", " ") ?? "Service job"} at {formatLocation(job.service_locations)}</p>
               <div className="action-row">
                 <span className={`closeout-status-chip status-${bundle.closeout.status}`}>{formatStatus(bundle.closeout.status)}</span>

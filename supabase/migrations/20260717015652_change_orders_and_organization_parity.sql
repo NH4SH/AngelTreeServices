@@ -374,7 +374,7 @@ begin
   if p_approval_method not in ('portal', 'phone', 'email', 'in_person', 'signed_paper', 'other') then
     raise exception 'Choose a valid approval method.';
   end if;
-  if pg_catalog.btrim(pg_catalog.coalesce(p_approved_by_name, '')) = '' then
+  if pg_catalog.btrim(coalesce(p_approved_by_name, '')) = '' then
     raise exception 'Approver name is required.';
   end if;
 
@@ -396,7 +396,7 @@ begin
       approved_by_contact_id = p_approved_by_contact_id,
       approval_method = p_approval_method,
       approval_recorded_by_user_id = p_recorded_by_user_id,
-      approval_notes = pg_catalog.nullif(pg_catalog.left(pg_catalog.btrim(pg_catalog.coalesce(p_approval_notes, '')), 2000), '')
+      approval_notes = nullif(pg_catalog.left(pg_catalog.btrim(coalesce(p_approval_notes, '')), 2000), '')
     where id = p_change_order_id;
   end if;
 
@@ -410,13 +410,13 @@ begin
   get diagnostics inserted_count = row_count;
 
   update public.change_orders
-  set applied_to_job_at = pg_catalog.coalesce(applied_to_job_at, approved_time)
+  set applied_to_job_at = coalesce(applied_to_job_at, approved_time)
   where id = p_change_order_id;
 
   update public.jobs j
   set projected_value_cents =
-    pg_catalog.coalesce((select q.total_cents from public.quotes q where q.id = j.source_quote_id and q.status = 'approved'), 0)
-    + pg_catalog.coalesce((select pg_catalog.sum(co.total_cents) from public.change_orders co where co.job_id = j.id and co.status = 'approved'), 0)
+    coalesce((select q.total_cents from public.quotes q where q.id = j.source_quote_id and q.status = 'approved'), 0)
+    + coalesce((select pg_catalog.sum(co.total_cents) from public.change_orders co where co.job_id = j.id and co.status = 'approved'), 0)
   where j.id = target.job_id;
 
   if was_new then
@@ -485,7 +485,7 @@ begin
     total_cents = totals.total_cents + i.tax_cents,
     balance_due_cents = totals.total_cents + i.tax_cents
   from (
-    select invoice_id, pg_catalog.coalesce(pg_catalog.sum(total_cents), 0)::integer as total_cents
+    select invoice_id, coalesce(pg_catalog.sum(total_cents), 0)::integer as total_cents
     from public.invoice_line_items where invoice_id = target.id group by invoice_id
   ) totals
   where i.id = target.id and i.id = totals.invoice_id;

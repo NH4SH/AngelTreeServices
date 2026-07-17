@@ -7,20 +7,20 @@ export type EmailDraft = {
 
 const companyName = "Angel Tree Services";
 
-export type QuoteEmailDraftInput = Pick<QuoteDetail, "quote_number" | "customer_message" | "customers"> & {
+export type QuoteEmailDraftInput = Pick<QuoteDetail, "quote_number" | "customer_message" | "customers" | "organizations"> & {
   quote_line_items?: Pick<QuoteLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[];
 };
 
 export type InvoiceEmailDraftInput = Pick<
   InvoiceDetail,
-  "invoice_number" | "balance_due_cents" | "due_at" | "customers" | "jobs" | "invoice_line_items"
+  "invoice_number" | "balance_due_cents" | "due_at" | "customers" | "organizations" | "jobs" | "invoice_line_items"
 >;
 
 export function generateQuoteEmailDraft(
   quote: QuoteEmailDraftInput,
   options: { portalUrl?: string } = {},
 ): EmailDraft {
-  const customerName = quote.customers?.display_name ?? "there";
+  const customerName = quote.organizations?.name ?? quote.customers?.display_name ?? "there";
   const quoteLabel = quote.quote_number ?? "your tree service quote";
 
   return {
@@ -48,7 +48,7 @@ export function generateInvoiceEmailDraft(
   invoice: InvoiceEmailDraftInput,
   options: { portalUrl?: string } = {},
 ): EmailDraft {
-  const customerName = invoice.customers?.display_name ?? "there";
+  const customerName = invoice.organizations?.name ?? invoice.customers?.display_name ?? "there";
   const invoiceLabel = invoice.invoice_number ?? "your invoice";
 
   return {
@@ -109,7 +109,7 @@ function getLineItemSummary(
 }
 
 export function generateQuoteFollowUpDraft(quote: QuoteDetail): EmailDraft {
-  const customerName = quote.customers?.display_name ?? "there";
+  const customerName = quote.organizations?.name ?? quote.customers?.display_name ?? "there";
 
   return {
     subject: `${companyName}: following up on your quote`,

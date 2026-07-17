@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { createJob, type JobActionState } from "./actions";
-import type { Customer, JobPriority, JobServiceType, ServiceLocation } from "@/lib/types/database";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import type { Customer, JobPriority, JobServiceType, Organization, ServiceLocation } from "@/lib/types/database";
 
 const initialState: JobActionState = {
   status: "idle",
@@ -24,13 +25,21 @@ const priorities: JobPriority[] = ["normal", "urgent", "emergency"];
 export function AddJobForm({
   customers,
   leadSources,
+  organizations,
   serviceLocations,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   leadSources: { id: string; name: string }[];
+  organizations: Pick<Organization, "id" | "name">[];
   serviceLocations: ServiceLocation[];
 }) {
   const [state, formAction, pending] = useActionState(createJob, initialState);
+  const [partyValue, setPartyValue] = useState("");
+  const party = parseContractingParty(partyValue);
+  const matchingLocations = useMemo(
+    () => party ? serviceLocations.filter((location) => belongsToContractingParty(location, party)) : [],
+    [party, serviceLocations],
+  );
 
   return (
     <form action={formAction} className="crm-form">
@@ -40,21 +49,18 @@ export function AddJobForm({
         </p>
       ) : null}
       <label>
-        Customer
-        <select name="customer_id" required>
-          <option value="">Choose customer</option>
-          {customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.display_name}
-            </option>
-          ))}
+        Contracting party
+        <select name="contracting_party" onChange={(event) => setPartyValue(event.target.value)} required value={partyValue}>
+          <option value="">Choose customer or organization</option>
+          <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
+          <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
         </select>
       </label>
       <label>
         Service location
         <select name="service_location_id" required>
           <option value="">Choose service location</option>
-          {serviceLocations.map((location) => (
+          {matchingLocations.map((location) => (
             <option key={location.id} value={location.id}>
               {location.label ? `${location.label}: ` : ""}
               {location.street}, {location.city}
@@ -105,7 +111,7 @@ export function AddJobForm({
         Description
         <textarea name="requested_scope" placeholder="Describe the requested work" required rows={4} />
       </label>
-      <button disabled={pending || customers.length === 0 || serviceLocations.length === 0} type="submit">
+      <button disabled={pending || !party || matchingLocations.length === 0} type="submit">
         {pending ? "Saving..." : "Add job"}
       </button>
     </form>

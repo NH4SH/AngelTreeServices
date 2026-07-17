@@ -87,11 +87,13 @@ export async function createOrGetQuotePortalTokenRecord({
 
 export async function createNewQuotePortalTokenRecord({
   customerId,
+  organizationId,
   quoteId,
   supabase,
   userId,
 }: {
-  customerId: string;
+  customerId: string | null;
+  organizationId: string | null;
   quoteId: string;
   supabase: SupabaseClient;
   userId: string;
@@ -112,6 +114,7 @@ export async function createNewQuotePortalTokenRecord({
     .insert({
       quote_id: quoteId,
       customer_id: customerId,
+      organization_id: organizationId,
       token_hash: tokenHash,
       token_encrypted: encrypted.encryptedToken,
       token_hint: getPortalTokenHint(rawToken),

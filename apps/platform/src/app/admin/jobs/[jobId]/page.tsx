@@ -58,7 +58,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   ]);
   const job = detail.data;
   const recipientOptions = job
-    ? await getCommunicationRecipientOptions(job.customer_id)
+    ? await getCommunicationRecipientOptions({ customerId: job.customer_id, organizationId: job.organization_id })
     : { data: [], error: null };
   const nextAppointment = job?.appointments
     ?.filter((appointment) => ["estimate", "job", "maintenance"].includes(appointment.appointment_type) && ["scheduled", "confirmed"].includes(appointment.status))
@@ -134,10 +134,10 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 ) : null}
               </article>
               <article className="detail-panel">
-                <PanelTitle icon={<UsersRound size={18} />} title="Customer" />
-                <Link className="linked-record" href={`/admin/customers/${job.customer_id}`}>
-                  <strong>{job.customers?.display_name ?? "Unknown customer"}</strong>
-                  <span>{job.customers?.phone || job.customers?.email || "No contact set"}</span>
+                <PanelTitle icon={<UsersRound size={18} />} title="Contracting party" />
+                <Link className="linked-record" href={job.organization_id ? `/admin/organizations/${job.organization_id}` : `/admin/customers/${job.customer_id}`}>
+                  <strong>{job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party"}</strong>
+                  <span>{job.organizations?.billing_phone || job.organizations?.billing_email || job.customers?.phone || job.customers?.email || "No contact set"}</span>
                 </Link>
               </article>
               <article className="detail-panel">

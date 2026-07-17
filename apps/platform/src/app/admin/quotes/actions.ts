@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
+import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import type { QuoteStatus } from "@/lib/types/database";
 
 export type QuoteActionState = {
@@ -46,7 +47,7 @@ export async function createQuote(
     return { status: "error", message: "Sign in before adding CRM records." };
   }
 
-  const customerId = String(formData.get("customer_id") ?? "");
+  const party = parseContractingParty(formData.get("contracting_party"));
   const serviceLocationIdInput = String(formData.get("service_location_id") ?? "");
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
@@ -58,18 +59,18 @@ export async function createQuote(
   const lineItems = getQuoteLineItems(formData);
   const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
-  if (!customerId) {
-    return { status: "error", message: "Choose a customer before creating a draft quote." };
+  if (!party) {
+    return { status: "error", message: "Choose a customer or organization before creating a draft quote." };
   }
 
-  const { data: customer, error: customerError } = await supabase
-    .from("customers")
-    .select("id, organization_id")
-    .eq("id", customerId)
+  const { data: account, error: accountError } = await supabase
+    .from(party.kind === "customer" ? "customers" : "organizations")
+    .select("id, status")
+    .eq("id", party.customerId ?? party.organizationId)
     .single();
 
-  if (customerError || !customer) {
-    return { status: "error", message: customerError?.message ?? "Could not find the selected customer." };
+  if (accountError || !account || account.status !== "active") {
+    return { status: "error", message: accountError?.message ?? "The selected contracting party is not active." };
   }
 
   let serviceLocationId = serviceLocationIdInput || null;
@@ -108,15 +109,15 @@ export async function createQuote(
       return { status: "error", message: locationError?.message ?? "Could not find the selected service location." };
     }
 
-    if (location.customer_id !== customerId && (!customer.organization_id || location.organization_id !== customer.organization_id)) {
-      return { status: "error", message: "Selected service location does not belong to the selected customer." };
+    if (!belongsToContractingParty(location, party)) {
+      return { status: "error", message: "Selected service location does not belong to the selected contracting party." };
     }
   }
 
   if (jobId) {
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, customer_id, service_location_id")
+      .select("id, customer_id, organization_id, service_location_id")
       .eq("id", jobId)
       .single();
 
@@ -124,8 +125,8 @@ export async function createQuote(
       return { status: "error", message: jobError?.message ?? "Could not find the selected job." };
     }
 
-    if (job.customer_id !== customerId) {
-      return { status: "error", message: "Selected job does not belong to the selected customer." };
+    if (!belongsToContractingParty(job, party)) {
+      return { status: "error", message: "Selected job does not belong to the selected contracting party." };
     }
 
     serviceLocationId ||= job.service_location_id;
@@ -139,8 +140,8 @@ export async function createQuote(
     .from("quotes")
     .insert({
       job_id: jobId,
-      customer_id: customerId,
-      organization_id: customer.organization_id,
+      customer_id: party.customerId,
+      organization_id: party.organizationId,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       estimator_user_id: user.id,
@@ -191,7 +192,8 @@ export async function createQuote(
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
-  revalidatePath(`/admin/customers/${customerId}`);
+  if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
+  if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
   redirect(submitIntent === "save_close" ? `/admin/quotes/${quote.id}` : `/admin/quotes/${quote.id}/edit?saved=1`);
 }
 
@@ -214,7 +216,7 @@ export async function updateQuote(
   }
 
   const quoteId = String(formData.get("quote_id") ?? "");
-  const customerId = String(formData.get("customer_id") ?? "");
+  const party = parseContractingParty(formData.get("contracting_party"));
   const serviceLocationIdInput = String(formData.get("service_location_id") ?? "");
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
@@ -226,8 +228,8 @@ export async function updateQuote(
   const lineItems = getQuoteLineItems(formData);
   const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
-  if (!quoteId || !customerId) {
-    return { status: "error", message: "Quote and customer are required." };
+  if (!quoteId || !party) {
+    return { status: "error", message: "Quote and contracting party are required." };
   }
 
   const { data: existingQuote, error: quoteLookupError } = await supabase
@@ -245,14 +247,14 @@ export async function updateQuote(
     return { status: "error", message: "Approved, declined, expired, or cancelled quotes are locked from regular editing." };
   }
 
-  const { data: customer, error: customerError } = await supabase
-    .from("customers")
-    .select("id, organization_id")
-    .eq("id", customerId)
+  const { data: account, error: accountError } = await supabase
+    .from(party.kind === "customer" ? "customers" : "organizations")
+    .select("id, status")
+    .eq("id", party.customerId ?? party.organizationId)
     .single();
 
-  if (customerError || !customer) {
-    return { status: "error", message: customerError?.message ?? "Could not find the selected customer." };
+  if (accountError || !account || account.status !== "active") {
+    return { status: "error", message: accountError?.message ?? "The selected contracting party is not active." };
   }
 
   let serviceLocationId = serviceLocationIdInput || null;
@@ -291,15 +293,15 @@ export async function updateQuote(
       return { status: "error", message: locationError?.message ?? "Could not find the selected service location." };
     }
 
-    if (location.customer_id !== customerId && (!customer.organization_id || location.organization_id !== customer.organization_id)) {
-      return { status: "error", message: "Selected service location does not belong to the selected customer." };
+    if (!belongsToContractingParty(location, party)) {
+      return { status: "error", message: "Selected service location does not belong to the selected contracting party." };
     }
   }
 
   if (jobId) {
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, customer_id, service_location_id")
+      .select("id, customer_id, organization_id, service_location_id")
       .eq("id", jobId)
       .single();
 
@@ -307,8 +309,8 @@ export async function updateQuote(
       return { status: "error", message: jobError?.message ?? "Could not find the selected job." };
     }
 
-    if (job.customer_id !== customerId) {
-      return { status: "error", message: "Selected job does not belong to the selected customer." };
+    if (!belongsToContractingParty(job, party)) {
+      return { status: "error", message: "Selected job does not belong to the selected contracting party." };
     }
 
     serviceLocationId ||= job.service_location_id;
@@ -322,8 +324,8 @@ export async function updateQuote(
     .from("quotes")
     .update({
       job_id: jobId,
-      customer_id: customerId,
-      organization_id: customer.organization_id,
+      customer_id: party.customerId,
+      organization_id: party.organizationId,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       status: existingQuote.status,
@@ -356,7 +358,8 @@ export async function updateQuote(
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath(`/admin/quotes/${quoteId}/edit`);
-  revalidatePath(`/admin/customers/${customerId}`);
+  if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
+  if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
 
   if (submitIntent === "save_close") {
     redirect(`/admin/quotes/${quoteId}`);

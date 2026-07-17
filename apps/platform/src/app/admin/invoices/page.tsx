@@ -10,9 +10,10 @@ import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getInvoices } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
+import { getOrganizations } from "@/lib/data/organizations";
 import { getServiceCategories } from "@/lib/data/reports";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
-import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, ServiceCategory } from "@/lib/types/database";
+import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, ServiceCategory } from "@/lib/types/database";
 
 type InvoicesPageProps = {
   searchParams: Promise<{
@@ -37,9 +38,10 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     return <SetupRequired title="Configure Supabase before opening invoices" />;
   }
 
-  const [invoices, customers, jobs, serviceCategories] = await Promise.all([
+  const [invoices, customers, organizations, jobs, serviceCategories] = await Promise.all([
     getInvoices(),
     getCustomerOptions(),
+    getOrganizations(),
     getJobOptions(),
     getServiceCategories(),
   ]);
@@ -66,7 +68,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           </Link>
         </section>
 
-        {[invoices.error, customers.error, jobs.error, serviceCategories.error].filter(Boolean).map((message) => (
+        {[invoices.error, customers.error, organizations.error, jobs.error, serviceCategories.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -97,7 +99,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     <span>{invoice.invoice_line_items?.length ?? 0} line items</span>
                   </div>
                   <div className="commerce-cell">
-                    <strong>{invoice.customers?.display_name ?? "Unknown customer"}</strong>
+                    <strong>{invoice.organizations?.name ?? invoice.customers?.display_name ?? "Unknown contracting party"}</strong>
                     <span>{formatServiceType(invoice.jobs?.service_type) || invoice.jobs?.requested_scope || "No job scope attached"}</span>
                   </div>
                   <div className="commerce-cell">
@@ -140,7 +142,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
-        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} serviceCategories={serviceCategories.data} /> : null}
+        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} /> : null}
       </div>
     </PlatformFrame>
   );
@@ -149,10 +151,12 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 function InvoiceCreateDrawer({
   customers,
   jobs,
+  organizations,
   serviceCategories,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
 }) {
   return (
@@ -172,7 +176,7 @@ function InvoiceCreateDrawer({
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddInvoiceForm customers={customers} jobs={jobs} serviceCategories={serviceCategories} />
+        <AddInvoiceForm customers={customers} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} />
         <Link className="secondary-action commerce-cancel-link" href="/admin/invoices">
           Cancel
         </Link>

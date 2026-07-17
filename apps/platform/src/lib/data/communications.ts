@@ -64,7 +64,13 @@ export async function getCommunicationSettings(): Promise<DataResult<Communicati
   };
 }
 
-export async function getCommunicationRecipientOptions(customerId: string): Promise<DataResult<{
+export async function getCommunicationRecipientOptions({
+  customerId,
+  organizationId,
+}: {
+  customerId: string | null;
+  organizationId: string | null;
+}): Promise<DataResult<{
   email: string;
   label: string;
   source: "customer" | "organization";
@@ -72,16 +78,21 @@ export async function getCommunicationRecipientOptions(customerId: string): Prom
   const supabase = await createClient();
   if (!supabase) return { data: [], error: "Supabase is not configured." };
 
-  const { data, error } = await supabase
-    .from("customers")
-    .select("email, organizations(name, billing_email)")
-    .eq("id", customerId)
-    .maybeSingle();
-  if (error || !data) return { data: [], error: error?.message ?? "Customer not found." };
+  const [customerResult, organizationResult] = await Promise.all([
+    customerId
+      ? supabase.from("customers").select("email").eq("id", customerId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    organizationId
+      ? supabase.from("organizations").select("name, billing_email").eq("id", organizationId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+  const error = customerResult.error ?? organizationResult.error;
+  if (error) return { data: [], error: error.message };
 
-  const organization = Array.isArray(data.organizations) ? data.organizations[0] : data.organizations;
+  const customer = customerResult.data;
+  const organization = organizationResult.data;
   const options = [];
-  if (data.email) options.push({ email: data.email, label: "Customer", source: "customer" as const });
+  if (customer?.email) options.push({ email: customer.email, label: "Customer", source: "customer" as const });
   if (organization?.billing_email) {
     options.push({
       email: organization.billing_email,

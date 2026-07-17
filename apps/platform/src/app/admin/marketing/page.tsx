@@ -74,7 +74,7 @@ export default async function MarketingPage() {
                   return (
                     <article className="marketing-queue-item" key={job.id}>
                       <div>
-                        <strong>{job.customers?.display_name ?? "Customer"}</strong>
+                        <strong>{job.organizations?.name ?? job.customers?.display_name ?? "Contracting party"}</strong>
                         <span>{formatJobLabel(job)}</span>
                       </div>
                       <span>{draft.reviewUrl ? "Review link configured" : "Review link needs setup"}</span>

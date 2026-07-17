@@ -9,7 +9,7 @@ import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
-import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { cancelPendingCommunications } from "@/lib/communications/queue";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -20,28 +20,6 @@ type WorkflowActionState = {
 
 function getString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-async function syncAutomatedCommunicationsBestEffort(workflow: string) {
-  try {
-    const communicationSupabase = getServiceRoleClient();
-    if (!communicationSupabase) {
-      return;
-    }
-
-    const result = await syncAutomatedCommunications(communicationSupabase);
-    if (result.error) {
-      console.error("Automated communication sync failed after workflow update", {
-        workflow,
-        error: result.error,
-      });
-    }
-  } catch (error) {
-    console.error("Automated communication sync threw after workflow update", {
-      workflow,
-      error,
-    });
-  }
 }
 
 export async function updateJobStatus(_previousState: WorkflowActionState, formData: FormData) {
@@ -225,8 +203,6 @@ export async function markQuoteSentManually(
     subjectType: "quote",
   });
 
-  await syncAutomatedCommunicationsBestEffort("quote_marked_sent_manually");
-
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -285,8 +261,6 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
     subjectType: "invoice",
   });
 
-  await syncAutomatedCommunicationsBestEffort("invoice_voided");
-
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
@@ -342,8 +316,6 @@ export async function markInvoiceSentManually(
     subjectId: invoiceId,
     subjectType: "invoice",
   });
-
-  await syncAutomatedCommunicationsBestEffort("invoice_marked_sent_manually");
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");

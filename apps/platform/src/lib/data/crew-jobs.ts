@@ -16,7 +16,7 @@ const crewJobSelect = `
   completed_at,
   created_at,
   updated_at,
-  customers(display_name, phone),
+  customers:customers!jobs_customer_id_fkey(display_name, phone),
   organizations(name, billing_phone),
   service_locations(label, street, city, state, postal_code, access_notes, gate_code, service_notes),
   job_photos(photo_type),

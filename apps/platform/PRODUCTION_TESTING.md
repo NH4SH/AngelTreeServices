@@ -319,3 +319,19 @@ Apply `supabase/migrations/20260716232544_equipment_fleet_management.sql` and th
 28. Exercise one existing optional credential reminder through the current email system only if configured; confirm no private note or document content is included and no duplicate reminder is produced.
 29. Recheck scheduling, time clock, payroll review, fleet, closeout, quotes, invoices, portals, email, and Stripe workflows.
 30. Run Supabase Security Advisor and verify no new anonymous table access, broad RPC execute grant, public bucket, or exposed `app_private` function/schema exists.
+
+## Production stabilization regression
+
+Apply the reviewed migrations in `DEPLOYMENT_CHECKLIST.md` before this test. Use non-production records and separate owner, estimator, and crew accounts.
+
+1. Open Dashboard, Reports, Employees, Jobs, Quotes, Change Orders, Recurring Services, Invoices, Schedule, Equipment, Materials, Time, Payroll, and Documents. Confirm no ambiguous-relationship, missing-column, missing-table, or repeated database notice appears.
+2. Create one individual job and one organization job. Confirm the first resolves only its contracting customer and the second resolves only its organization.
+3. Open an individual quote and organization invoice. Confirm their explicit contracting relationships and linked work orders are correct.
+4. Assign equipment to a crew member as an owner. Confirm both the assignee and assigning staff member display correctly.
+5. Open Reports > Crew & labor. Confirm the type comes from `time_entries.entry_type`, filters and CSV export work, and no `time_type` query remains.
+6. Open Payroll with no entries, then with one completed entry in an active pay period. Confirm both load and a crew account receives the existing access-required screen.
+7. Open Recurring Services and confirm `follow_up_tasks` is available. Open Reports > Data quality and confirm `contracting_party_review_items` is available.
+8. Upload a document, link it to each supported record type as appropriate, search/filter it, open its short-lived signed URL, and archive it. Confirm the Storage bucket is private.
+9. Confirm crew and anonymous sessions cannot query `documents` or `pay_periods`; crew can still read only its permitted time and assigned work.
+10. Confirm anonymous requests cannot query internal jobs, follow-up tasks, review items, or documents. Confirm no new `SECURITY DEFINER` function is exposed publicly.
+11. Run `npx supabase db lint --local`, Supabase Security Advisor, platform typecheck/build, and `git diff --check`.

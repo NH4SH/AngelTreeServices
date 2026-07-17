@@ -133,7 +133,7 @@ export async function getEmployeeDashboardSummary() {
     supabase.from("safety_meeting_attendees").select("id, employee_id, safety_meeting_id, attendance_status, acknowledged_at, employee_records(preferred_name, legal_name), safety_meetings(title, starts_at)").eq("attendance_status", "present").is("acknowledged_at", null).order("created_at").limit(30),
     supabase.from("employee_documents").select("id, employee_id, title, review_status, employee_records(preferred_name, legal_name)").eq("review_status", "pending").is("archived_at", null).limit(20),
     supabase.from("employee_requests").select("id, employee_id, title, request_type, employee_records(preferred_name, legal_name)").eq("status", "pending").order("created_at").limit(20),
-    supabase.from("equipment_assignments").select("id, assigned_user_id, ends_at, returned_at, equipment_assets(name, asset_number), profiles(full_name)").is("returned_at", null).not("ends_at", "is", null).lt("ends_at", today.toISOString()).limit(20),
+    supabase.from("equipment_assignments").select("id, assigned_user_id, ends_at, returned_at, equipment_assets(name, asset_number), profiles:profiles!equipment_assignments_assigned_user_id_fkey(full_name)").is("returned_at", null).not("ends_at", "is", null).lt("ends_at", today.toISOString()).limit(20),
   ]);
   const credentialRows = credentials.data ?? [];
   return { data: {

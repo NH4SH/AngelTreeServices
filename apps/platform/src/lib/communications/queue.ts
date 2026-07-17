@@ -125,7 +125,7 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(email, is_active), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(email, is_active)")
+    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers:customers!quotes_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(email, is_active), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(email, is_active)")
     .eq("status", "sent")
     .eq("automatic_follow_ups_enabled", true)
     .not("sent_at", "is", null)
@@ -163,7 +163,7 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
   const dueLookback = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("invoices")
-    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
+    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers:customers!invoices_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
     .in("status", ["sent", "partially_paid", "overdue"])
     .eq("automatic_reminders_enabled", true)
     .gt("balance_due_cents", 0)
@@ -205,7 +205,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("schedule_events")
-    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("event_type", ["estimate", "job", "maintenance", "emergency"])
     .in("status", ["scheduled", "confirmed"])
     .not("job_id", "is", null)
@@ -262,7 +262,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("appointments")
-    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("appointment_type", ["estimate", "job", "maintenance"])
     .in("status", ["scheduled", "confirmed"])
     .gt("starts_at", now)

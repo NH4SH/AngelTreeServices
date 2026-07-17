@@ -386,3 +386,53 @@ Manual smoke test:
 - Confirm Reports separates individual customers from organizations and does not count organization contacts as customers.
 - Open a quote/invoice portal signed out and verify it exposes only the token's document.
 - Verify crew cannot read organization billing data and anon cannot query organization or review tables.
+
+## Production stabilization and schema alignment
+
+Do not deploy the stabilization application before its required database objects exist. This checkout was not linked to a remote Supabase project during local verification, so `npx supabase migration list` could not compare production history. Link the intended project and review the local/remote columns before running any push.
+
+Production symptoms indicate these migrations are absent or incomplete:
+
+```text
+supabase/migrations/20260717022829_recurring_services_followups_and_renewals.sql
+  creates public.follow_up_tasks
+supabase/migrations/20260717040930_contracting_party_integrity_and_review.sql
+  creates public.contracting_party_review_items
+supabase/migrations/20260717141937_document_library_stabilization.sql
+  adds Documents v1, a private bucket, RLS, and the Storage-policy grant correction
+```
+
+The dual `customer_id` and `legacy_customer_id` relationships visible in production suggest `20260717032430_organization_contracting_parties.sql` is already present, but migration history is the authority. Do not infer applied history only from columns. No historical migration was edited in this stabilization pass.
+
+Required chronological order, including prerequisites, is:
+
+```text
+20260717015652_change_orders_and_organization_parity.sql
+20260717022829_recurring_services_followups_and_renewals.sql
+20260717032430_organization_contracting_parties.sql
+20260717040930_contracting_party_integrity_and_review.sql
+20260717141937_document_library_stabilization.sql
+```
+
+Before deployment:
+
+1. Confirm a recent Supabase backup or PITR restore point. For a manual backup, use a protected direct database connection and `pg_dump` from a trusted machine; never commit the dump or database password.
+2. Link only the intended production project and run `npx supabase migration list`.
+3. Investigate any remote migration recorded out of chronological order or any local migration missing remotely. Do not edit an already-applied migration.
+4. Review the pending migrations above and deploy the compatible platform build immediately after the database changes.
+5. Do not expose `app_private` through the Data API. Confirm the `platform-documents` bucket is private.
+
+After migrations succeed, reload PostgREST only if the new objects are still absent from the schema cache:
+
+```sql
+notify pgrst, 'reload schema';
+```
+
+A reload does not create `follow_up_tasks`, `contracting_party_review_items`, or `documents`. Apply migrations first. Then verify those tables through an authenticated staff session, run Supabase Security Advisor, and complete the stabilization checklist in `PRODUCTION_TESTING.md`.
+
+Rollback considerations:
+
+- Roll back the application before rolling back a migration it expects.
+- The Documents migration is additive; leaving its table and private bucket in place is safer than dropping uploaded metadata or files.
+- Do not restore legacy customer requirements or remove organization ownership columns while organization-owned records exist.
+- If a migration fails, stop and inspect the exact statement and production history. Do not mark it applied manually or continue with later migrations.

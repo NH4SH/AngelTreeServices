@@ -99,7 +99,7 @@ export async function getCloseoutQueue(): Promise<DataResult<CloseoutQueueItem[]
         status,
         completed_at,
         assigned_crew_user_id,
-        customers(display_name),
+        customers:customers!jobs_customer_id_fkey(display_name),
         organizations(name),
         service_locations(street, city, state),
         job_photos(id, photo_type),

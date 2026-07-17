@@ -11,7 +11,7 @@ export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
     )
     .order("created_at", { ascending: false });
 
@@ -32,7 +32,7 @@ export async function getCompletedJobsForMarketing(): Promise<DataResult<JobDeta
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), job_photos(*)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), job_photos(*)",
     )
     .in("status", ["completed", "ready_to_invoice", "invoiced", "paid"])
     .order("completed_at", { ascending: false, nullsFirst: false })
@@ -55,7 +55,7 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
     )
     .eq("customer_id", customerId)
     .is("organization_id", null)
@@ -78,7 +78,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .select(
-      "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
     )
     .eq("id", jobId)
     .single();
@@ -100,13 +100,13 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .order("created_at", { ascending: false }),
     supabase
       .from("quotes")
-      .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), quote_line_items(*)")
+      .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), quote_line_items(*)")
       .eq("job_id", jobId)
       .order("created_at", { ascending: false }),
     supabase
       .from("invoices")
       .select(
-        "*, jobs(id, status, service_type, requested_scope), customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), invoice_line_items(*), payments(*)",
+        "*, jobs(id, status, service_type, requested_scope), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), invoice_line_items(*), payments(*)",
       )
       .eq("job_id", jobId)
       .order("created_at", { ascending: false }),
@@ -119,7 +119,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .order("starts_at", { ascending: true }),
     supabase
       .from("equipment_assignments")
-      .select("*, equipment_assets(id, asset_number, name, status, category), profiles(id, full_name, email), schedule_events(id, title, starts_at, ends_at)")
+      .select("*, equipment_assets(id, asset_number, name, status, category), profiles:profiles!equipment_assignments_assigned_user_id_fkey(id, full_name, email), created_by_profile:profiles!equipment_assignments_created_by_user_id_fkey(id, full_name, email), schedule_events(id, title, starts_at, ends_at)")
       .eq("job_id", jobId)
       .order("starts_at", { ascending: false }),
     supabase
@@ -197,7 +197,7 @@ export async function getDashboardJobSummaries() {
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
   const commonSelect =
-    "*, customers(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
+    "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
 
   const [newLeads, estimatesToSchedule, approvedWorkToSchedule, completedWorkToInvoice, todaysJobs] = await Promise.all([
     supabase

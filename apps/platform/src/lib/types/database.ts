@@ -1,4 +1,4 @@
-// Manual Phase 2 types that match supabase/migrations/0001_initial_platform_schema.sql.
+// Manual domain and relation types aligned with the current local migration chain.
 // Replace these with generated Supabase types after the project has a stable Supabase CLI workflow.
 
 export type CustomerType = "residential" | "commercial" | "property_manager" | "hoa";
@@ -1352,6 +1352,7 @@ export type EquipmentAssignment = {
   created_at: string;
   updated_at: string;
   profiles?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
+  created_by_profile?: Pick<AssignableUser, "id" | "full_name" | "email"> | null;
   jobs?: Pick<Job, "id" | "service_type" | "status"> | null;
   schedule_events?: Pick<ScheduleEvent, "id" | "title" | "starts_at" | "ends_at"> | null;
 };
@@ -1572,6 +1573,28 @@ export type EmployeeOnboardingItem = { id: string; employee_id: string; item_key
 export type CredentialType = { id: string; type_key: string; label: string; default_warning_days: number; description: string | null; is_active: boolean };
 export type EmployeeCredential = { id: string; employee_id: string; credential_type_id: string; credential_number: string | null; issuing_organization: string | null; issue_date: string | null; expiration_date: string | null; status: "pending_verification" | "active" | "suspended" | "revoked" | "not_required"; verified_at: string | null; verified_by_user_id: string | null; document_id: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; credential_types?: CredentialType | null };
 export type EmployeeDocument = { id: string; employee_id: string; document_type: string; title: string; storage_path: string; mime_type: string | null; file_size_bytes: number | null; issue_date: string | null; expiration_date: string | null; access_classification: "employee_visible" | "supervisor_visible" | "admin_only" | "owner_only"; review_status: "pending" | "approved" | "rejected"; review_notes: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; signed_url?: string | null };
+export type PlatformDocument = {
+  id: string;
+  title: string;
+  document_type: "contract" | "proposal" | "invoice" | "work_order" | "insurance" | "permit" | "safety" | "employee" | "equipment" | "photo" | "receipt" | "other";
+  storage_path: string;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  customer_id: string | null;
+  organization_id: string | null;
+  job_id: string | null;
+  quote_id: string | null;
+  invoice_id: string | null;
+  employee_id: string | null;
+  equipment_asset_id: string | null;
+  access_classification: "staff" | "employee_sensitive";
+  expires_at: string | null;
+  uploaded_by_user_id: string | null;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type TrainingSession = { id: string; title: string; training_type: string; provider_or_instructor: string | null; starts_at: string; duration_minutes: number | null; location_label: string | null; refresher_due_at: string | null; instructor_notes: string | null; document_version: string | null; archived_at: string | null; created_at: string; updated_at: string };
 export type TrainingAttendee = { id: string; training_session_id: string; employee_id: string; result: "completed" | "passed" | "failed" | "incomplete"; score: number | null; attendee_notes: string | null; acknowledged_at: string | null; acknowledgment_name: string | null; training_sessions?: TrainingSession | null };
 export type SafetyMeeting = { id: string; title: string; topic_key: string | null; starts_at: string; location_label: string | null; leader_name: string | null; subject_matter: string | null; meeting_notes: string | null; follow_up_actions: string | null; document_version: string | null; archived_at: string | null; created_at: string; updated_at: string };

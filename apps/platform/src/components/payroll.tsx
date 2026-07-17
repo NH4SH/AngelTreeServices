@@ -7,7 +7,7 @@ import {
   updatePayPeriodStatus,
   type PayrollActionState,
 } from "@/lib/actions/payroll";
-import type { PayPeriod, PayPeriodStatus } from "@/lib/types/database";
+import type { PayPeriod } from "@/lib/types/database";
 
 const initialState: PayrollActionState = {
   status: "idle",
@@ -72,10 +72,6 @@ export function PayPeriodStatusForm({
       <ActionMessage state={state} />
     </form>
   );
-}
-
-export function formatPayPeriodStatus(status: PayPeriodStatus) {
-  return status.replace("_", " ");
 }
 
 function ActionMessage({ state }: { state: PayrollActionState }) {

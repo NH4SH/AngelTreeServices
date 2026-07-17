@@ -28,7 +28,7 @@ type ProfileLabelRow = Pick<AssignableUser, "id" | "full_name" | "email">;
 export const timeEntrySelect = `
   *,
   profiles(id, full_name, email),
-  jobs(id, service_type, status, customers(display_name), organizations(name)),
+  jobs(id, service_type, status, customers:customers!jobs_customer_id_fkey(display_name), organizations(name)),
   schedule_events(id, title, event_type, starts_at, ends_at),
   time_entry_adjustments(*),
   time_entry_approvals(*)
@@ -77,7 +77,7 @@ export async function getTimeClockUsers(): Promise<DataResult<TimeClockUserSumma
   )] as string[];
   const activeEntriesResult = await supabase
     .from("time_entries")
-    .select("id, user_id, entry_type, clock_in_at, jobs(customers(display_name), organizations(name)), schedule_events(title)")
+    .select("id, user_id, entry_type, clock_in_at, jobs(customers:customers!jobs_customer_id_fkey(display_name), organizations(name)), schedule_events(title)")
     .eq("status", "active")
     .is("clock_out_at", null);
   const creatorProfiles = creatorIds.length
@@ -228,7 +228,7 @@ export async function getAssignedScheduleEventsForUser(
   let query = supabase
     .from("schedule_events")
     .select(
-      "*, jobs(id, customer_id, status, service_type, requested_scope, customers(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
+      "*, jobs(id, customer_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
     )
     .in("status", ["scheduled", "confirmed", "in_progress"])
     .order("starts_at", { ascending: true });

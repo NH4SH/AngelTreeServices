@@ -42,13 +42,13 @@ export default async function AdminPage() {
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
     getUnpaidInvoices(),
-    getOrganizationDashboardSummary(),
-    getScheduleDashboardSummary(),
-    getCommunicationDashboardSummary(),
-    getEquipmentDashboardSummary(),
-    getEmployeeDashboardSummary(),
-    getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)),
-    getMaterialsDashboardSummary(),
+    loadOptionalDashboardModule("Organizations", getOrganizationDashboardSummary(), { data: [], error: "Organizations are temporarily unavailable." }),
+    loadOptionalDashboardModule("Schedule", getScheduleDashboardSummary(), { data: { conflicts: [], todaysCrewSchedules: [], unassignedEntries: [], upcomingEstimates: [] }, error: "Schedule is temporarily unavailable." }),
+    loadOptionalDashboardModule("Communications", getCommunicationDashboardSummary(), { data: { dueToday: [], failed: [], overdueInvoiceCount: 0, quotesAwaitingResponseCount: 0, scheduled: [] }, error: "Communications are temporarily unavailable." }),
+    loadOptionalDashboardModule("Equipment", getEquipmentDashboardSummary(), { data: { dueMaintenance: [], failedInspections: [], openProblems: [], expiringDocuments: [], outOfService: [] }, error: "Equipment is temporarily unavailable." }),
+    loadOptionalDashboardModule("Employees", getEmployeeDashboardSummary(), { data: { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] }, error: "Employee readiness is temporarily unavailable." }),
+    loadOptionalDashboardModule("Reporting", getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)), { data: { approvedQuoteCents: 0, quoteApprovalRate: null, invoicedCents: 0, collectedCents: 0, outstandingCents: 0, overdueCents: 0 }, error: "Reporting is temporarily unavailable." }),
+    loadOptionalDashboardModule("Materials", getMaterialsDashboardSummary(), { data: { items: [] }, error: "Materials are temporarily unavailable." }),
   ]);
 
   const lanes: {
@@ -194,10 +194,10 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error, materialsSummary.error]
-          .filter(Boolean)
+        {Array.from(new Set([jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error, materialsSummary.error]
+          .filter((message): message is string => Boolean(message))))
           .map((message) => (
-          <DataWarning key={message} message={message ?? ""} />
+          <DataWarning key={message} message={message} />
         ))}
 
         <section className="dashboard-grid" aria-label="CRM operational overview">
@@ -468,6 +468,15 @@ function formatCurrency(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+async function loadOptionalDashboardModule<T>(label: string, loader: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await loader;
+  } catch (error) {
+    console.error(`${label} dashboard module failed`, error);
+    return fallback;
+  }
 }
 
 function formatFollowUpMeta(appointment: AppointmentWithRelations) {

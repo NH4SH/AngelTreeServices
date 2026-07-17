@@ -50,9 +50,9 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
     supabase.from("service_locations").select("*").eq("organization_id", organizationId).order("created_at", { ascending: false }),
   ]);
   const [jobs, quotes, invoices] = await Promise.all([
-    supabase.from("jobs").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
-    supabase.from("quotes").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
-    supabase.from("invoices").select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("jobs").select("*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("quotes").select("*, customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("invoices").select("*, customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), invoice_line_items(*), payments(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
   ]);
   const [changeOrders, payments] = await Promise.all([
     supabase.from("change_orders").select("*, change_order_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
@@ -109,15 +109,15 @@ export async function getOrganizationDashboardSummary() {
   const [jobs, quotes, invoices, locations, changeOrders] = await Promise.all([
     supabase
       .from("jobs")
-      .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)")
+      .select("*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)")
       .not("organization_id", "is", null),
     supabase
       .from("quotes")
-      .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
+      .select("*, customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
       .not("organization_id", "is", null),
     supabase
       .from("invoices")
-      .select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)")
+      .select("*, customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), invoice_line_items(*), payments(*)")
       .not("organization_id", "is", null),
     supabase.from("service_locations").select("*").not("organization_id", "is", null),
     supabase.from("change_orders").select("*, change_order_line_items(*)").not("organization_id", "is", null),

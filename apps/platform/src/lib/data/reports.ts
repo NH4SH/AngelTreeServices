@@ -41,7 +41,7 @@ export type ReportJob = {
   job_closeouts: { id: string; status: string; has_scope_exception: boolean; has_incident: boolean }[];
 };
 export type ReportTimeEntry = {
-  id: string; user_id: string; job_id: string | null; time_type: string; status: string; clock_in_at: string; clock_out_at: string | null; break_minutes: number;
+  id: string; user_id: string; job_id: string | null; entry_type: string; status: string; clock_in_at: string; clock_out_at: string | null; break_minutes: number;
   profiles: Relation<NamedRelation>; jobs: Relation<{ id: string; assigned_crew_user_id: string | null }>;
   time_entry_approvals: { approval_status: string; approved_at: string }[];
 };
@@ -129,26 +129,26 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   const previous = reportUtcBounds(filters.previousStartDate, filters.previousEndDate, filters.timezone);
   const warnings: string[] = [];
 
-  let quoteQuery = supabase.from("quotes").select("id, quote_number, customer_id, organization_id, estimator_user_id, status, total_cents, created_at, sent_at, approved_at, expires_at, customers(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), profiles:profiles!quotes_estimator_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), quote_line_items(id, total_cents, service_category_id, service_categories(id, label)), jobs:jobs!quotes_job_id_fkey(id)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
+  let quoteQuery = supabase.from("quotes").select("id, quote_number, customer_id, organization_id, estimator_user_id, status, total_cents, created_at, sent_at, approved_at, expires_at, customers:customers!quotes_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), profiles:profiles!quotes_estimator_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), quote_line_items(id, total_cents, service_category_id, service_categories(id, label)), jobs:jobs!quotes_job_id_fkey(id)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
   if (estimatorOnly) quoteQuery = quoteQuery.eq("estimator_user_id", userId);
   if (filters.customerId) quoteQuery = quoteQuery.eq("customer_id", filters.customerId);
   if (filters.status) quoteQuery = quoteQuery.eq("status", filters.status);
   if (filters.employeeId) quoteQuery = quoteQuery.eq("estimator_user_id", filters.employeeId);
 
-  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
+  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers:customers!jobs_customer_id_fkey(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
   if (filters.customerId) jobQuery = jobQuery.eq("customer_id", filters.customerId);
   if (filters.leadSourceId) jobQuery = jobQuery.eq("lead_source_id", filters.leadSourceId);
   if (filters.employeeId) jobQuery = jobQuery.eq("assigned_crew_user_id", filters.employeeId);
   if (filters.status) jobQuery = jobQuery.eq("status", filters.status);
 
   const invoiceQuery = canViewFinancials
-    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, payment_method, provider, status, paid_at, created_at)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
+    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, payment_method, provider, status, paid_at, created_at)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const paymentQuery = canViewFinancials
     ? supabase.from("payments").select("id, invoice_id, amount_cents, payment_method, provider, status, paid_at, created_at").eq("status", "succeeded").gte("paid_at", current.start).lt("paid_at", current.endExclusive).order("paid_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const timeQuery = canViewFinancials
-    ? supabase.from("time_entries").select("id, user_id, job_id, time_type, status, clock_in_at, clock_out_at, break_minutes, profiles(id, full_name, email), jobs(id, assigned_crew_user_id), time_entry_approvals(approval_status, approved_at)").gte("clock_in_at", current.start).lt("clock_in_at", current.endExclusive).order("clock_in_at", { ascending: false }).limit(5000)
+    ? supabase.from("time_entries").select("id, user_id, job_id, entry_type, status, clock_in_at, clock_out_at, break_minutes, profiles(id, full_name, email), jobs(id, assigned_crew_user_id), time_entry_approvals(approval_status, approved_at)").gte("clock_in_at", current.start).lt("clock_in_at", current.endExclusive).order("clock_in_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const scheduleQuery = supabase.from("schedule_events").select("id, title, event_type, status, job_id, starts_at, ends_at, schedule_event_assignments(user_id)").gte("starts_at", current.start).lt("starts_at", current.endExclusive).order("starts_at").limit(5000);
 
@@ -160,7 +160,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     quoteQuery,
     jobQuery,
     invoiceQuery,
-    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, payment_method, provider, status, paid_at, created_at)").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, payment_method, provider, status, paid_at, created_at)").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
     paymentQuery,
     timeQuery,
     scheduleQuery,

@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
-import { CreatePayPeriodForm, formatPayPeriodStatus, PayPeriodStatusForm } from "@/components/payroll";
+import { CreatePayPeriodForm, PayPeriodStatusForm } from "@/components/payroll";
 import { TimeEntryApprovalForm } from "@/components/time-clock";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -329,6 +329,10 @@ function formatRange(clockInAt: string, clockOutAt: string | null) {
 
 function formatPayPeriodLabel(startsAt: string, endsAt: string) {
   return `${startsAt.slice(0, 10)} to ${endsAt.slice(0, 10)}`;
+}
+
+function formatPayPeriodStatus(status: string) {
+  return status.replaceAll("_", " ");
 }
 
 function formatReviewStatus(status: ReturnType<typeof getLatestTimeEntryReviewStatus>) {

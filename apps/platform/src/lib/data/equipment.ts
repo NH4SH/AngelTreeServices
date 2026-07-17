@@ -11,7 +11,8 @@ const assetDetailSelect = `
   *,
   equipment_assignments(
     *,
-    profiles(id, full_name, email),
+    profiles:profiles!equipment_assignments_assigned_user_id_fkey(id, full_name, email),
+    created_by_profile:profiles!equipment_assignments_created_by_user_id_fkey(id, full_name, email),
     jobs(id, service_type, status),
     schedule_events(id, title, starts_at, ends_at)
   ),

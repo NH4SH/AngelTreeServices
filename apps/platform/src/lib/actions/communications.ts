@@ -249,7 +249,7 @@ async function resolveCommunicationContext(
   if (recordType === "quote" && communicationType === "quote_follow_up") {
     const { data, error } = await supabase
       .from("quotes")
-      .select("id, customer_id, organization_id, job_id, status, updated_at, customers(id, email), organizations(id, billing_email)")
+      .select("id, customer_id, organization_id, job_id, status, updated_at, customers:customers!quotes_customer_id_fkey(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Quote not found.");
@@ -260,7 +260,7 @@ async function resolveCommunicationContext(
   if (recordType === "invoice" && ["invoice_payment_reminder", "overdue_invoice_reminder"].includes(communicationType)) {
     const { data, error } = await supabase
       .from("invoices")
-      .select("id, customer_id, organization_id, job_id, status, balance_due_cents, updated_at, customers(id, email), organizations(id, billing_email)")
+      .select("id, customer_id, organization_id, job_id, status, balance_due_cents, updated_at, customers:customers!invoices_customer_id_fkey(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Invoice not found.");
@@ -273,7 +273,7 @@ async function resolveCommunicationContext(
   if (recordType === "job" && ["work_confirmation", "work_reminder"].includes(communicationType)) {
     const { data, error } = await supabase
       .from("jobs")
-      .select("id, status, scheduled_start_at, updated_at, customers(id, email), organizations(id, billing_email)")
+      .select("id, status, scheduled_start_at, updated_at, customers:customers!jobs_customer_id_fkey(id, email), organizations(id, billing_email)")
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Job not found.");
@@ -286,7 +286,7 @@ async function resolveCommunicationContext(
   if (recordType === "schedule_event" && communicationType !== "quote_follow_up") {
     const { data, error } = await supabase
       .from("schedule_events")
-      .select("id, job_id, status, event_type, starts_at, updated_at, jobs(id, customers(id, email), organizations(id, billing_email))")
+      .select("id, job_id, status, event_type, starts_at, updated_at, jobs(id, customers:customers!jobs_customer_id_fkey(id, email), organizations(id, billing_email))")
       .eq("id", recordId)
       .maybeSingle();
     const job = one<{ id: string; customers: unknown; organizations: unknown }>(data?.jobs);
@@ -298,7 +298,7 @@ async function resolveCommunicationContext(
   if (recordType === "appointment" && communicationType !== "quote_follow_up") {
     const { data, error } = await supabase
       .from("appointments")
-      .select("id, job_id, status, appointment_type, starts_at, updated_at, jobs(id, customers(id, email), organizations(id, billing_email))")
+      .select("id, job_id, status, appointment_type, starts_at, updated_at, jobs(id, customers:customers!jobs_customer_id_fkey(id, email), organizations(id, billing_email))")
       .eq("id", recordId)
       .maybeSingle();
     const job = one<{ id: string; customers: unknown; organizations: unknown }>(data?.jobs);

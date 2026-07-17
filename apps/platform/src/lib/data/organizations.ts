@@ -8,6 +8,7 @@ import type {
   OrganizationContact,
   OrganizationDetail,
   QuoteWithRelations,
+  ChangeOrderWithRelations,
   ServiceLocation,
 } from "@/lib/types/database";
 
@@ -32,15 +33,13 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
     supabase.from("customers").select("*").eq("organization_id", organizationId).order("display_name"),
     supabase.from("service_locations").select("*").eq("organization_id", organizationId).order("created_at", { ascending: false }),
   ]);
-  const customerIds = (customers.data ?? []).map((customer) => customer.id);
-  const [jobs, quotes, invoices] = customerIds.length
-    ? await Promise.all([
-        supabase.from("jobs").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").in("customer_id", customerIds).order("created_at", { ascending: false }),
-        supabase.from("quotes").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").in("customer_id", customerIds).order("created_at", { ascending: false }),
-        supabase.from("invoices").select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)").in("customer_id", customerIds).order("created_at", { ascending: false }),
-      ])
-    : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
-  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? null;
+  const [jobs, quotes, invoices] = await Promise.all([
+    supabase.from("jobs").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("quotes").select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("invoices").select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+  ]);
+  const changeOrders = await supabase.from("change_orders").select("*, change_order_line_items(*)").eq("organization_id", organizationId).order("created_at", { ascending: false });
+  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? changeOrders.error?.message ?? null;
 
   return {
     data: {
@@ -51,6 +50,7 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
       jobs: (jobs.data ?? []) as JobWithRelations[],
       quotes: (quotes.data ?? []) as QuoteWithRelations[],
       invoices: (invoices.data ?? []) as InvoiceWithRelations[],
+      changeOrders: (changeOrders.data ?? []) as ChangeOrderWithRelations[],
     },
     error: firstError,
   };
@@ -73,25 +73,24 @@ export async function getOrganizationDashboardSummary() {
     return { data: [], error: customersError.message };
   }
 
-  const customerIds = (customers ?? []).map((customer) => customer.id);
-  if (customerIds.length === 0) return { data: [], error: null };
-
-  const [jobs, quotes, invoices] = await Promise.all([
+  const [jobs, quotes, invoices, locations, changeOrders] = await Promise.all([
     supabase
       .from("jobs")
       .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)")
-      .in("customer_id", customerIds),
+      .not("organization_id", "is", null),
     supabase
       .from("quotes")
       .select("*, customers(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
-      .in("customer_id", customerIds),
+      .not("organization_id", "is", null),
     supabase
       .from("invoices")
       .select("*, customers(id, display_name, phone, email), invoice_line_items(*), payments(*)")
-      .in("customer_id", customerIds),
+      .not("organization_id", "is", null),
+    supabase.from("service_locations").select("*").not("organization_id", "is", null),
+    supabase.from("change_orders").select("*, change_order_line_items(*)").not("organization_id", "is", null),
   ]);
 
-  const firstError = jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? null;
+  const firstError = jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? locations.error?.message ?? changeOrders.error?.message ?? null;
   if (firstError) {
     return { data: [], error: firstError };
   }
@@ -104,10 +103,11 @@ export async function getOrganizationDashboardSummary() {
     organization,
     contacts: [],
     customers: ((customers ?? []) as Customer[]).filter((customer) => customer.organization_id === organization.id),
-    serviceLocations: [],
-    jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => customerToOrganization.get(job.customer_id) === organization.id),
-    quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => customerToOrganization.get(quote.customer_id) === organization.id),
-    invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => customerToOrganization.get(invoice.customer_id) === organization.id),
+    serviceLocations: ((locations.data ?? []) as ServiceLocation[]).filter((location) => location.organization_id === organization.id),
+    jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => job.organization_id === organization.id || customerToOrganization.get(job.customer_id) === organization.id),
+    quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => quote.organization_id === organization.id || customerToOrganization.get(quote.customer_id) === organization.id),
+    invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => invoice.organization_id === organization.id || customerToOrganization.get(invoice.customer_id) === organization.id),
+    changeOrders: ((changeOrders.data ?? []) as ChangeOrderWithRelations[]).filter((order) => order.organization_id === organization.id),
   }));
 
   return {

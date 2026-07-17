@@ -474,7 +474,7 @@ async function createInvoiceForCompletedJob({
     .update({ status: "invoiced" })
     .eq("id", jobId)
     .eq("status", previousJobStatus)
-    .select("id, customer_id, source_quote_id, service_type, requested_scope")
+    .select("id, customer_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
     .maybeSingle();
 
   if (claimError) {
@@ -524,6 +524,8 @@ async function createInvoiceForCompletedJob({
       customer_id: claimedJob.customer_id,
       job_id: claimedJob.id,
       quote_id: quoteResult.quoteId,
+      recurring_service_plan_id: claimedJob.recurring_service_plan_id,
+      recurring_occurrence_id: claimedJob.recurring_occurrence_id,
       status: "draft",
       subtotal_cents: subtotalCents,
       tax_cents: taxCents,

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobPhoto, JobWithRelations, Note, QuoteWithRelations } from "@/lib/types/database";
+import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobPhoto, JobWithRelations, Note, QuoteWithRelations } from "@/lib/types/database";
 
 export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
   const supabase = await createClient();
@@ -86,7 +86,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     return { data: null, error: jobError?.message ?? "Job not found or no access." };
   }
 
-  const [notes, photos, quotes, invoices, appointments, equipmentAssignments] = await Promise.all([
+  const [notes, photos, quotes, invoices, appointments, equipmentAssignments, changeOrders] = await Promise.all([
     supabase
       .from("notes")
       .select("*")
@@ -121,6 +121,11 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .select("*, equipment_assets(id, asset_number, name, status, category), profiles(id, full_name, email), schedule_events(id, title, starts_at, ends_at)")
       .eq("job_id", jobId)
       .order("starts_at", { ascending: false }),
+    supabase
+      .from("change_orders")
+      .select("*, change_order_line_items(*), invoices(id, invoice_number, status)")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false }),
   ]);
 
   const firstError =
@@ -130,6 +135,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     invoices.error?.message ??
     appointments.error?.message ??
     equipmentAssignments.error?.message ??
+    changeOrders.error?.message ??
     null;
 
   return {
@@ -141,6 +147,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       invoices: (invoices.data ?? []) as InvoiceWithRelations[],
       appointments: (appointments.data ?? []) as AppointmentWithRelations[],
       equipment_assignments: equipmentAssignments.data ?? [],
+      change_orders: (changeOrders.data ?? []) as ChangeOrderWithRelations[],
     },
     error: firstError,
   };

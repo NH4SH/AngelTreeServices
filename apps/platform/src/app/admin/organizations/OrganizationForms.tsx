@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Building2, MapPin, UserPlus } from "lucide-react";
 import { createOrganization, createOrganizationContact, createOrganizationProperty, updateOrganization, type OrganizationActionState } from "./actions";
-import type { Customer, Organization, OrganizationType } from "@/lib/types/database";
+import type { Customer, Organization, OrganizationType, ServiceLocation } from "@/lib/types/database";
 
 const initialState: OrganizationActionState = { status: "idle", message: "" };
-const types: OrganizationType[] = ["property_manager", "hoa", "commercial", "other"];
+const types: OrganizationType[] = ["property_manager", "hoa", "commercial", "nonprofit", "church", "municipality", "general_contractor", "apartment_community", "real_estate", "other"];
 
 export function AddOrganizationForm() {
   const [state, action, pending] = useActionState(createOrganization, initialState);
@@ -47,6 +47,12 @@ export function AddOrganizationForm() {
         Notes
         <textarea name="notes" placeholder="Contract terms, preferred contacts, billing notes" rows={3} />
       </label>
+      <div className="form-grid-two">
+        <label>Payment terms<input name="payment_terms" placeholder="Net 30, due on receipt..." /></label>
+        <label>Status<select defaultValue="active" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></label>
+      </div>
+      <label className="checkbox-field"><input name="tax_exempt" type="checkbox" /> Tax exempt</label>
+      <label>Tax / exemption reference<input name="tax_reference" /></label>
       <button disabled={pending} type="submit">
         <Building2 size={17} />
         {pending ? "Saving..." : "Add organization"}
@@ -99,6 +105,12 @@ export function EditOrganizationForm({ organization }: { organization: Organizat
         Notes
         <textarea defaultValue={organization.notes ?? ""} name="notes" placeholder="Contract terms, preferred contacts, billing notes" rows={4} />
       </label>
+      <div className="form-grid-two">
+        <label>Payment terms<input defaultValue={organization.payment_terms ?? ""} name="payment_terms" placeholder="Net 30, due on receipt..." /></label>
+        <label>Status<select defaultValue={organization.status ?? "active"} name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></label>
+      </div>
+      <label className="checkbox-field"><input defaultChecked={organization.tax_exempt ?? false} name="tax_exempt" type="checkbox" /> Tax exempt</label>
+      <label>Tax / exemption reference<input defaultValue={organization.tax_reference ?? ""} name="tax_reference" /></label>
       <div className="record-form-actions">
         <button disabled={pending} type="submit">
           <Building2 size={17} />
@@ -112,7 +124,7 @@ export function EditOrganizationForm({ organization }: { organization: Organizat
   );
 }
 
-export function AddOrganizationContactForm({ organizationId }: { organizationId: string }) {
+export function AddOrganizationContactForm({ organizationId, serviceLocations }: { organizationId: string; serviceLocations: Pick<ServiceLocation, "id" | "label" | "street">[] }) {
   const [state, action, pending] = useActionState(createOrganizationContact, initialState);
 
   return (
@@ -137,6 +149,10 @@ export function AddOrganizationContactForm({ organizationId }: { organizationId:
         Role title
         <input name="role_title" placeholder="Community manager, board treasurer..." />
       </label>
+      <fieldset className="organization-contact-role-grid"><legend>Workflow roles</legend>{contactRoles.map(([value, label]) => <label className="checkbox-field" key={value}><input name="contact_roles" type="checkbox" value={value} />{label}</label>)}</fieldset>
+      <label>Preferred contact method<select defaultValue="email" name="preferred_contact_method"><option value="email">Email</option><option value="phone">Phone call</option><option value="text">Text message</option><option value="other">Other</option></select></label>
+      <label>Associated property<select name="service_location_id"><option value="">All organization properties</option>{serviceLocations.map((location) => <option key={location.id} value={location.id}>{location.label || location.street}</option>)}</select></label>
+      <label>Contact notes<textarea name="contact_notes" rows={3} /></label>
       <label className="checkbox-field">
         <input name="receives_invoices" type="checkbox" />
         Receives invoices
@@ -162,8 +178,8 @@ export function AddOrganizationPropertyForm({ customers, organizationId }: { cus
       <Message state={state} />
       <label>
         Linked customer
-        <select name="customer_id" required>
-          <option value="">Choose customer</option>
+        <select name="customer_id">
+          <option value="">Organization-owned property</option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>
               {customer.display_name}
@@ -188,13 +204,15 @@ export function AddOrganizationPropertyForm({ customers, organizationId }: { cus
         Service notes
         <textarea name="service_notes" placeholder="Access notes, parking, equipment concerns" rows={3} />
       </label>
-      <button disabled={pending || customers.length === 0} type="submit">
+      <button disabled={pending} type="submit">
         <MapPin size={17} />
         {pending ? "Saving..." : "Add property"}
       </button>
     </form>
   );
 }
+
+const contactRoles = [["primary", "Primary contact"], ["billing", "Billing contact"], ["property_manager", "Property manager"], ["onsite", "Onsite contact"], ["approval_authority", "Approval authority"], ["board_representative", "Board representative"], ["accounts_payable", "Accounts payable"], ["maintenance", "Maintenance contact"], ["emergency", "Emergency contact"], ["other", "Other"]] as const;
 
 function Message({ state }: { state: OrganizationActionState }) {
   return state.message ? (

@@ -15,6 +15,7 @@ export type SendEmailInput = {
   relatedJobId?: string | null;
   relatedQuoteId?: string | null;
   relatedInvoiceId?: string | null;
+  relatedChangeOrderId?: string | null;
   relatedOrganizationId?: string | null;
   relatedScheduleEventId?: string | null;
   relatedAppointmentId?: string | null;
@@ -44,6 +45,7 @@ export type RecordEmailEventInput = {
   relatedJobId?: string | null;
   relatedQuoteId?: string | null;
   relatedInvoiceId?: string | null;
+  relatedChangeOrderId?: string | null;
   relatedOrganizationId?: string | null;
   relatedScheduleEventId?: string | null;
   relatedAppointmentId?: string | null;
@@ -128,6 +130,7 @@ export async function recordEmailEvent(input: RecordEmailEventInput) {
       relatedJobId: input.relatedJobId,
       relatedQuoteId: input.relatedQuoteId,
       relatedInvoiceId: input.relatedInvoiceId,
+      relatedChangeOrderId: input.relatedChangeOrderId,
       relatedOrganizationId: input.relatedOrganizationId,
       relatedScheduleEventId: input.relatedScheduleEventId,
       relatedAppointmentId: input.relatedAppointmentId,
@@ -162,6 +165,7 @@ async function logEmailEvent(
     related_job_id: input.relatedJobId ?? null,
     related_quote_id: input.relatedQuoteId ?? null,
     related_invoice_id: input.relatedInvoiceId ?? null,
+    related_change_order_id: input.relatedChangeOrderId ?? null,
     related_organization_id: input.relatedOrganizationId ?? null,
     related_schedule_event_id: input.relatedScheduleEventId ?? null,
     related_appointment_id: input.relatedAppointmentId ?? null,

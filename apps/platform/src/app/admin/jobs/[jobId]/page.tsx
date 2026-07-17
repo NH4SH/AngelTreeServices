@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Camera, ClipboardCheck, FileSignature, Forklift, MapPin, Navigation, PackageCheck, ReceiptText, Truck, UsersRound } from "lucide-react";
+import { CalendarDays, Camera, ClipboardCheck, FilePlus2, FileSignature, Forklift, MapPin, Navigation, PackageCheck, ReceiptText, Truck, UsersRound } from "lucide-react";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
 import { PrintButton } from "@/components/documents/print-button";
@@ -184,6 +184,36 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 }))}
                 title="Related quote"
               />
+              <article className="detail-panel wide-detail-panel change-order-job-panel">
+                <div className="panel-heading-row">
+                  <PanelTitle icon={<FilePlus2 size={18} />} title="Additional work and change orders" />
+                  <Link className="primary-action compact-action" href={`/admin/change-orders?new=1&jobId=${job.id}`}>
+                    <FilePlus2 size={17} /> Create change order
+                  </Link>
+                </div>
+                <div className="job-scope-groups">
+                  <section>
+                    <h3>Original approved scope</h3>
+                    <p className="pre-wrap-copy">{job.requested_scope || "Open the approved quote for original scope details."}</p>
+                  </section>
+                  <section>
+                    <h3>Approved change orders</h3>
+                    {(job.change_orders ?? []).filter((order) => order.status === "approved").length ? (job.change_orders ?? []).filter((order) => order.status === "approved").map((order) => (
+                      <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}>
+                        <strong>{order.change_order_number} - {order.title}</strong>
+                        <span>{formatCurrency(order.total_cents)} additional - {order.invoice_id ? "billed" : "not yet billed"}</span>
+                      </Link>
+                    )) : <EmptyInline>No approved additions.</EmptyInline>}
+                  </section>
+                  <section>
+                    <h3>Pending change orders</h3>
+                    {(job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status)).length ? (job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status)).map((order) => (
+                      <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number} - {order.title}</strong><span>{order.status.replaceAll("_", " ")} - not part of crew scope or billing</span></Link>
+                    )) : <EmptyInline>No pending additions.</EmptyInline>}
+                  </section>
+                  {(job.change_orders ?? []).some((order) => ["declined", "cancelled", "expired"].includes(order.status)) ? <section><h3>Declined or cancelled</h3>{(job.change_orders ?? []).filter((order) => ["declined", "cancelled", "expired"].includes(order.status)).map((order) => <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}</strong><span>{order.status}</span></Link>)}</section> : null}
+                </div>
+              </article>
               <RecordLinks
                 empty="No invoices yet."
                 icon={<ReceiptText size={18} />}

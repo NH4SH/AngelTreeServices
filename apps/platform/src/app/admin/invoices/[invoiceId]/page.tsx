@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CircleDollarSign, ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
+import { AttachApprovedChangeOrdersButton } from "@/components/change-order-forms";
 import { CommunicationControls } from "@/components/communication-controls";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
@@ -150,6 +151,9 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<FileText size={18} />} title="Line items" />
+                  {detail.data.status === "draft" ? <AttachApprovedChangeOrdersButton invoiceId={detail.data.id} /> : (
+                    <p className="inline-empty">Approved additions can only be attached to a draft invoice. Use a supplemental draft for work approved after this invoice entered billing.</p>
+                  )}
                   {detail.data.invoice_line_items?.length ? (
                     <div className="line-items-preview commerce-line-items">
                       {detail.data.invoice_line_items.map((item) => (

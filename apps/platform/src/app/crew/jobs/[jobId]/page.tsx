@@ -4,14 +4,17 @@ import {
   Camera,
   CheckCircle2,
   ClipboardCheck,
+  FilePlus2,
   MapPin,
   MessageCircle,
   PackageCheck,
   Phone,
   ReceiptText,
+  Sprout,
   Truck,
 } from "lucide-react";
 import { CrewJobCloseoutForm } from "@/components/crew-job-closeout-form";
+import { CrewRecommendationForm } from "@/components/crew-recommendation-form";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
 import { CrewMaterialMovementForm, DisposalForm } from "@/components/materials-forms";
 import { JobCostEntryForm } from "@/components/reporting-input-forms";
@@ -19,7 +22,7 @@ import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCrewJobById } from "@/lib/data/crew-jobs";
+import { getCrewApprovedChangeOrderScope, getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
 import { getJobCloseout } from "@/lib/data/job-closeouts";
 import { getJobMaterials } from "@/lib/data/materials";
@@ -44,18 +47,20 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
     roles: context.roles,
     userId: context.user.id,
   });
-  const [photos, closeout, activeTimer, materials] = job.data
+  const [photos, closeout, activeTimer, materials, approvedAdditions] = job.data
     ? await Promise.all([
         getJobPhotos(jobId),
         getJobCloseout(jobId),
         getActiveTimeEntryForUser(context.user.id),
         getJobMaterials(jobId, context.roles, context.user.id),
+        getCrewApprovedChangeOrderScope(jobId, { roles: context.roles, userId: context.user.id }),
       ])
     : [
         { data: [], error: null },
         { data: null, error: null },
         { data: null, error: null },
         { data: null, error: null },
+        { data: [], error: null },
       ];
 
   return (
@@ -70,6 +75,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
         {closeout.error ? <DataWarning message={`Closeout: ${closeout.error}`} /> : null}
         {activeTimer.error ? <DataWarning message={`Time clock: ${activeTimer.error}`} /> : null}
         {materials.error ? <DataWarning message={`Materials: ${materials.error}`} /> : null}
+        {approvedAdditions.error ? <DataWarning message={`Approved additions: ${approvedAdditions.error}`} /> : null}
 
         {!job.data ? (
           <section className="empty-state">
@@ -83,6 +89,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
             closeout={closeout.data}
             job={job.data}
             materials={materials.data}
+            approvedAdditions={approvedAdditions.data}
             photos={photos.data}
           />
         )}
@@ -97,6 +104,7 @@ function CrewJobDetail({
   closeout,
   job,
   materials,
+  approvedAdditions,
   photos,
 }: {
   activeTimerJobId: string | null;
@@ -104,6 +112,7 @@ function CrewJobDetail({
   closeout: Awaited<ReturnType<typeof getJobCloseout>>["data"];
   job: CrewJob;
   materials: Awaited<ReturnType<typeof getJobMaterials>>["data"];
+  approvedAdditions: Awaited<ReturnType<typeof getCrewApprovedChangeOrderScope>>["data"];
   photos: SignedJobPhoto[];
 }) {
   const phone = job.customers?.phone;
@@ -179,9 +188,23 @@ function CrewJobDetail({
         </Link>
       </section>
 
+      {approvedAdditions.length ? (
+        <section className="crew-panel crew-approved-additions">
+          <PanelHeading icon={<FilePlus2 size={19} />} title="Approved additional work" subtitle="These items were approved after the original quote and are now part of this work order." />
+          <div className="crew-scope-list">
+            {approvedAdditions.map((item) => <article key={`${item.change_order_id}-${item.sort_order}`}><strong>{item.change_order_number}: {item.title}</strong>{item.description ? <p className="pre-wrap-copy">{item.description}</p> : null}</article>)}
+          </div>
+        </section>
+      ) : null}
+
       <section className="crew-panel">
         <PanelHeading icon={<ClipboardCheck size={19} />} title="Scope of work" subtitle="Read this first before starting." />
         <p className="crew-scope-copy">{job.requested_scope || "No scope entered yet."}</p>
+      </section>
+
+      <section className="crew-panel">
+        <PanelHeading icon={<Sprout size={19} />} title="Recommend future work" subtitle="Send an observation to the office without promising work or pricing." />
+        <CrewRecommendationForm jobId={job.id} />
       </section>
 
       {customerNotes.length > 0 ? (

@@ -13,10 +13,13 @@ type QuoteForApproval = {
   id: string;
   job_id: string | null;
   customer_id: string;
+  organization_id: string | null;
   service_location_id: string | null;
   customer_message: string | null;
   debris_handling: string | null;
   debris_handling_notes: string | null;
+  recurring_service_plan_id: string | null;
+  recurring_occurrence_id: string | null;
   status: string;
   quote_line_items?: {
     name: string;
@@ -36,7 +39,7 @@ export async function approveQuoteAndEnsureWorkOrder(
 ): Promise<QuoteWorkflowResult> {
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("id, job_id, customer_id, service_location_id, customer_message, debris_handling, debris_handling_notes, status, quote_line_items(id, name, description, material_id, quantity, sort_order)")
+    .select("id, job_id, customer_id, organization_id, service_location_id, customer_message, debris_handling, debris_handling_notes, recurring_service_plan_id, recurring_occurrence_id, status, quote_line_items(id, name, description, material_id, quantity, sort_order)")
     .eq("id", quoteId)
     .single();
 
@@ -88,6 +91,7 @@ export async function approveQuoteAndEnsureWorkOrder(
     .from("jobs")
     .insert({
       customer_id: typedQuote.customer_id,
+      organization_id: typedQuote.organization_id,
       service_location_id: typedQuote.service_location_id,
       source_quote_id: typedQuote.id,
       status: "accepted",
@@ -96,6 +100,9 @@ export async function approveQuoteAndEnsureWorkOrder(
       requested_scope: getWorkOrderScope(typedQuote),
       debris_handling: typedQuote.debris_handling,
       debris_handling_notes: typedQuote.debris_handling_notes,
+      recurring_service_plan_id: typedQuote.recurring_service_plan_id,
+      recurring_occurrence_id: typedQuote.recurring_occurrence_id,
+      recurring_authorization_source: typedQuote.recurring_occurrence_id ? "approved_renewal_quote" : null,
     })
     .select("id")
     .single();
@@ -170,7 +177,7 @@ async function syncQuoteOperationsToJob(
 ) {
   const { data: quote, error } = await supabase
     .from("quotes")
-    .select("debris_handling, debris_handling_notes, quote_line_items(id, material_id, quantity)")
+    .select("debris_handling, debris_handling_notes, recurring_service_plan_id, recurring_occurrence_id, quote_line_items(id, material_id, quantity)")
     .eq("id", quoteId)
     .single();
   if (error || !quote) return error?.message ?? "Quote operations were unavailable.";
@@ -178,8 +185,16 @@ async function syncQuoteOperationsToJob(
   const { error: jobError } = await supabase.from("jobs").update({
     debris_handling: quote.debris_handling,
     debris_handling_notes: quote.debris_handling_notes,
+    recurring_service_plan_id: quote.recurring_service_plan_id,
+    recurring_occurrence_id: quote.recurring_occurrence_id,
+    recurring_authorization_source: quote.recurring_occurrence_id ? "approved_renewal_quote" : null,
   }).eq("id", jobId);
   if (jobError) return jobError.message;
+
+  if (quote.recurring_occurrence_id) {
+    const { error: occurrenceError } = await supabase.from("recurring_service_occurrences").update({ status: "approved", work_order_id: jobId, renewal_quote_id: quoteId }).eq("id", quote.recurring_occurrence_id);
+    if (occurrenceError) return occurrenceError.message;
+  }
 
   const lines = (quote.quote_line_items ?? []).filter((line: any) => line.material_id);
   if (!lines.length) return null;

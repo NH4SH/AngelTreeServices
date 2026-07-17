@@ -133,7 +133,12 @@ export default async function CloseoutReviewPage({ params }: CloseoutReviewPageP
                 <PanelTitle icon={<ClipboardCheck size={18} />} title="Additional work request" />
                 <strong>{bundle.closeout.additional_work_requested ? "Follow-up needed" : "No additional work requested"}</strong>
                 {bundle.closeout.additional_work_description ? <p className="pre-wrap-copy">{bundle.closeout.additional_work_description}</p> : null}
-                <small className="privacy-note">Create a separate quote or work order. Do not add charges to the accepted scope automatically.</small>
+                <small className="privacy-note">Office review is required. This request never adds charges automatically.</small>
+                {bundle.closeout.has_additional_work ? bundle.closeout.change_order_id ? (
+                  <Link className="primary-action compact-action" href={`/admin/change-orders/${bundle.closeout.change_order_id}`}>Open change order</Link>
+                ) : (
+                  <Link className="primary-action compact-action" href={`/admin/change-orders?new=1&jobId=${job.id}&closeoutId=${bundle.closeout.id}`}>Create change order</Link>
+                ) : null}
               </article>
               <article className="detail-panel">
                 <PanelTitle icon={<UserRoundCheck size={18} />} title="Customer acknowledgment" />

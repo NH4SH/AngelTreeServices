@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Building2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, UsersRound, Workflow } from "lucide-react";
+import { Building2, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { EmailHistoryList } from "@/components/email-history";
@@ -11,6 +11,7 @@ import { getOrganizationDetail } from "@/lib/data/organizations";
 import { getCustomerCommunications } from "@/lib/data/communications";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
+import { getRecurringSummaryForOrganization } from "@/lib/data/recurring";
 
 type OrganizationDetailPageProps = {
   params: Promise<{
@@ -30,7 +31,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
     return <SetupRequired title="Configure Supabase before opening organization details" />;
   }
 
-  const detail = await getOrganizationDetail(organizationId);
+  const [detail, recurring] = await Promise.all([getOrganizationDetail(organizationId), getRecurringSummaryForOrganization(organizationId)]);
   const org = detail.data;
   const emailEvents = org ? await getEmailEvents({ organizationId, limit: 15 }) : { data: [], error: null };
   const communications = org ? await getCustomerCommunications({ organizationId, limit: 25 }) : { data: [], error: null };
@@ -44,6 +45,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
         {detail.error ? <Warning message={detail.error} /> : null}
         {emailEvents.error ? <Warning message={emailEvents.error} /> : null}
         {communications.error ? <Warning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recurring.error ? <Warning message={`Recurring services: ${recurring.error}`} /> : null}
         {query.updated === "1" ? <SuccessNotice message="Organization changes saved." /> : null}
         {!org ? (
           <section className="empty-state">
@@ -79,8 +81,9 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                   org.contacts.map((contact) => (
                     <article className="linked-record" key={contact.id}>
                       <strong>{contact.full_name}</strong>
-                      <span>{contact.role_title || "Contact"} - {contact.email || contact.phone || "No contact details"}</span>
+                      <span>{contact.contact_roles?.length ? contact.contact_roles.map((role) => role.replaceAll("_", " ")).join(", ") : contact.role_title || "Contact"} - {contact.email || contact.phone || "No contact details"}</span>
                       <span>{contact.receives_invoices ? "Invoices" : "No invoices"} - {contact.receives_job_updates ? "Job updates" : "No job updates"}</span>
+                      {!contact.is_active ? <span className="status-pill attention">Inactive</span> : null}
                     </article>
                   ))
                 ) : (
@@ -153,9 +156,27 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 )}
               </Panel>
 
+              <Panel icon={<FilePlus2 size={18} />} title="Change orders">
+                {org.changeOrders.length ? org.changeOrders.map((order) => <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number} - {order.title}</strong><span>{order.status.replaceAll("_", " ")} - {money(order.total_cents)}</span></Link>) : <p>No organization change orders yet.</p>}
+                <Link className="secondary-action compact-action" href="/admin/change-orders?new=1">Create change order</Link>
+              </Panel>
+
               <Panel icon={<MailCheck size={18} />} title="Communication history">
                 <EmailHistoryList events={emailEvents.data} />
                 <CommunicationHistoryList communications={communications.data} />
+              </Panel>
+
+              <Panel icon={<ClipboardList size={18} />} title="Open follow-ups">
+                {recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).length ? recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).map((task) => <Link className="linked-record" href="/admin/recurring" key={task.id}><strong>{task.title}</strong><span>{task.service_locations?.label || task.service_locations?.street || "Organization-wide"} - due {formatDateTime(task.due_at)}</span></Link>) : <p>No open follow-ups.</p>}
+              </Panel>
+
+              <Panel icon={<Sprout size={18} />} title="Recurring property portfolio">
+                {recurring.plans.length ? recurring.plans.map((plan) => <Link className="linked-record" href={`/admin/recurring/${plan.id}`} key={plan.id}><strong>{plan.plan_name}</strong><span>{plan.state} - {plan.recurring_plan_locations?.length ?? 0} selected propert{plan.recurring_plan_locations?.length === 1 ? "y" : "ies"}</span></Link>) : <p>No recurring service plans.</p>}
+                <Link className="secondary-action compact-action" href={`/admin/recurring?new_plan=1&organization_id=${organizationId}`}>Create service plan</Link>
+              </Panel>
+
+              <Panel icon={<Sprout size={18} />} title="Recommended future work">
+                {recurring.recommendations.length ? recurring.recommendations.map((item) => <Link className="linked-record" href="/admin/recurring" key={item.id}><strong>{item.title}</strong><span>{item.service_locations?.label || item.service_locations?.street} - {item.status.replaceAll("_", " ")}</span></Link>) : <p>No recommendations awaiting action.</p>}
               </Panel>
             </section>
 
@@ -163,7 +184,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
               <aside className="crm-side">
                 <section className="form-panel">
                   <h2>Add contact</h2>
-                  <AddOrganizationContactForm organizationId={organizationId} />
+                  <AddOrganizationContactForm organizationId={organizationId} serviceLocations={org.serviceLocations} />
                 </section>
               </aside>
               <aside className="crm-side">
@@ -174,41 +195,6 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
               </aside>
             </section>
 
-            <section className="form-panel organization-request-scaffold">
-              <h2>Internal work request scaffold</h2>
-              <p>Future portal requests will create a scoped organization job after validation and authorization.</p>
-              <div className="form-grid-two">
-                <label>
-                  Property
-                  <select disabled>
-                    <option>Select linked property</option>
-                  </select>
-                </label>
-                <label>
-                  Urgency
-                  <select disabled>
-                    <option>Normal</option>
-                    <option>Urgent</option>
-                    <option>Emergency</option>
-                  </select>
-                </label>
-              </div>
-              <label>
-                Requested service
-                <select disabled>
-                  <option>Tree service</option>
-                </select>
-              </label>
-              <label>
-                Issue description
-                <textarea disabled rows={4} />
-              </label>
-              <label>
-                Photos
-                <input disabled type="file" />
-              </label>
-              <button disabled type="button">Portal request submission not connected</button>
-            </section>
           </>
         )}
       </div>

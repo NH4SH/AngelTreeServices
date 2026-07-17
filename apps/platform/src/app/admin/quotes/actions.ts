@@ -64,7 +64,7 @@ export async function createQuote(
 
   const { data: customer, error: customerError } = await supabase
     .from("customers")
-    .select("id")
+    .select("id, organization_id")
     .eq("id", customerId)
     .single();
 
@@ -100,7 +100,7 @@ export async function createQuote(
   if (serviceLocationId) {
     const { data: location, error: locationError } = await supabase
       .from("service_locations")
-      .select("id, customer_id")
+      .select("id, customer_id, organization_id")
       .eq("id", serviceLocationId)
       .single();
 
@@ -108,7 +108,7 @@ export async function createQuote(
       return { status: "error", message: locationError?.message ?? "Could not find the selected service location." };
     }
 
-    if (location.customer_id !== customerId) {
+    if (location.customer_id !== customerId && (!customer.organization_id || location.organization_id !== customer.organization_id)) {
       return { status: "error", message: "Selected service location does not belong to the selected customer." };
     }
   }
@@ -140,6 +140,7 @@ export async function createQuote(
     .insert({
       job_id: jobId,
       customer_id: customerId,
+      organization_id: customer.organization_id,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       estimator_user_id: user.id,
@@ -231,7 +232,7 @@ export async function updateQuote(
 
   const { data: existingQuote, error: quoteLookupError } = await supabase
     .from("quotes")
-    .select("id, status")
+    .select("id, status, recurring_occurrence_id")
     .eq("id", quoteId)
     .single();
 
@@ -246,7 +247,7 @@ export async function updateQuote(
 
   const { data: customer, error: customerError } = await supabase
     .from("customers")
-    .select("id")
+    .select("id, organization_id")
     .eq("id", customerId)
     .single();
 
@@ -282,7 +283,7 @@ export async function updateQuote(
   if (serviceLocationId) {
     const { data: location, error: locationError } = await supabase
       .from("service_locations")
-      .select("id, customer_id")
+      .select("id, customer_id, organization_id")
       .eq("id", serviceLocationId)
       .single();
 
@@ -290,7 +291,7 @@ export async function updateQuote(
       return { status: "error", message: locationError?.message ?? "Could not find the selected service location." };
     }
 
-    if (location.customer_id !== customerId) {
+    if (location.customer_id !== customerId && (!customer.organization_id || location.organization_id !== customer.organization_id)) {
       return { status: "error", message: "Selected service location does not belong to the selected customer." };
     }
   }
@@ -322,6 +323,7 @@ export async function updateQuote(
     .update({
       job_id: jobId,
       customer_id: customerId,
+      organization_id: customer.organization_id,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
       status: existingQuote.status,
@@ -332,6 +334,8 @@ export async function updateQuote(
       debris_handling: debrisHandling,
       debris_handling_notes: debrisHandlingNotes,
       expires_at: expiresAt,
+      pricing_reviewed_at: existingQuote.recurring_occurrence_id ? new Date().toISOString() : undefined,
+      pricing_reviewed_by_user_id: existingQuote.recurring_occurrence_id ? user.id : undefined,
     })
     .eq("id", quoteId);
 
@@ -342,6 +346,10 @@ export async function updateQuote(
   const lineItemError = await syncQuoteLineItems(supabase, quoteId, lineItems);
   if (lineItemError) {
     return { status: "error", message: `Quote details saved, but line items could not be fully updated: ${lineItemError}` };
+  }
+
+  if (existingQuote.recurring_occurrence_id) {
+    await supabase.from("recurring_service_occurrences").update({ pricing_review_status: "reviewed" }).eq("id", existingQuote.recurring_occurrence_id);
   }
 
   revalidatePath("/admin");

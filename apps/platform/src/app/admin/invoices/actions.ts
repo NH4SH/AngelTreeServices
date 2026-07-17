@@ -50,7 +50,7 @@ export async function createInvoice(
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id, customer_id, status")
+    .select("id, customer_id, organization_id, service_location_id, status, recurring_service_plan_id, recurring_occurrence_id")
     .eq("id", jobId)
     .single();
 
@@ -107,6 +107,10 @@ export async function createInvoice(
     .insert({
       job_id: jobId,
       customer_id: customerId,
+      organization_id: job.organization_id,
+      service_location_id: job.service_location_id,
+      recurring_service_plan_id: job.recurring_service_plan_id,
+      recurring_occurrence_id: job.recurring_occurrence_id,
       status: "draft",
       subtotal_cents: totalCents,
       tax_cents: 0,

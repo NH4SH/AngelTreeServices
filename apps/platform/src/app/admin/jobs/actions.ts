@@ -43,7 +43,7 @@ export async function createJob(
 
   const { data: serviceLocation, error: locationError } = await supabase
     .from("service_locations")
-    .select("id, customer_id")
+    .select("id, customer_id, organization_id")
     .eq("id", serviceLocationId)
     .single();
 
@@ -62,6 +62,7 @@ export async function createJob(
     .from("jobs")
     .insert({
       customer_id: customerId,
+      organization_id: serviceLocation.organization_id,
       service_location_id: serviceLocationId,
       service_type: serviceType,
       requested_scope: requestedScope,

@@ -47,10 +47,14 @@ export async function sendQuoteEmail(
     return { status: "error", message: detail.error ?? "Quote not found." };
   }
 
-  const recipient = detail.data.customers?.email;
+  const recipient = detail.data.approval_contact?.email ?? detail.data.recipient_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email;
 
   if (!recipient) {
-    return { status: "error", message: "This customer does not have an email address." };
+    return { status: "error", message: "The selected quote recipient does not have an email address." };
+  }
+
+  if (detail.data.recurring_occurrence_id && !detail.data.pricing_reviewed_at) {
+    return { status: "error", message: "Review and save renewal pricing before sending this quote. Prior-year pricing is never sent automatically." };
   }
 
   if (["approved", "declined", "expired", "cancelled"].includes(detail.data.status)) {
@@ -72,6 +76,7 @@ export async function sendQuoteEmail(
     relatedCustomerId: detail.data.customer_id,
     relatedJobId: detail.data.job_id ?? null,
     relatedQuoteId: detail.data.id,
+    relatedOrganizationId: detail.data.organization_id,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
   });
@@ -98,6 +103,10 @@ export async function sendQuoteEmail(
       subjectId: detail.data.id,
       subjectType: "quote",
     });
+    if (detail.data.recurring_occurrence_id) {
+      await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", detail.data.recurring_occurrence_id);
+      await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "renewal_quote_sent", subjectId: detail.data.recurring_occurrence_id, subjectType: "recurring_occurrence", metadata: { quote_id: detail.data.id } });
+    }
     const communicationSupabase = getServiceRoleClient();
     if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
   } else if (portalLink.created && portalLink.tokenId) {
@@ -109,6 +118,7 @@ export async function sendQuoteEmail(
 
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath(`/admin/customers/${detail.data.customer_id}`);
+  if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
     ? { status: "success", message: portalLink.created ? "Quote email sent and marked sent." : "Quote email resent using the existing customer link." }
     : { status: "error", message: result.message };

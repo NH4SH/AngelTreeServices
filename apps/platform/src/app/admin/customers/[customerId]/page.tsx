@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BriefcaseBusiness, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, StickyNote, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, ClipboardList, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, StickyNote, UsersRound } from "lucide-react";
 import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
@@ -13,6 +13,7 @@ import { getEmailEvents } from "@/lib/data/email-events";
 import { getCustomerCommunications } from "@/lib/data/communications";
 import { getLeadSources } from "@/lib/data/reports";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
+import { getRecurringSummaryForCustomer } from "@/lib/data/recurring";
 
 type CustomerDetailPageProps = {
   params: Promise<{
@@ -33,7 +34,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
     return <SetupRequired title="Configure Supabase before opening customer details" />;
   }
 
-  const [detail, leadSources] = await Promise.all([getCustomerDetail(customerId), getLeadSources()]);
+  const [detail, leadSources, recurring] = await Promise.all([getCustomerDetail(customerId), getLeadSources(), getRecurringSummaryForCustomer(customerId)]);
   const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
   const communications = detail.data ? await getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null };
 
@@ -45,6 +46,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
         {leadSources.error ? <DataWarning message={leadSources.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recurring.error ? <DataWarning message={`Recurring services: ${recurring.error}`} /> : null}
         {query.updated === "1" ? <SuccessNotice message="Customer changes saved." /> : null}
         {query.created === "1" ? <SuccessNotice message="Customer created." /> : null}
         {!detail.data ? (
@@ -107,6 +109,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                   <Link href="/admin/schedule?event_type=estimate">Schedule estimate</Link>
                   <a href="#add-location">Add service location</a>
                   <a href="#add-job">Create job / work order</a>
+                  <Link href={`/admin/recurring?new_task=1&customer_id=${customerId}`}>Add follow-up</Link>
+                  <Link href={`/admin/recurring?new_plan=1&customer_id=${customerId}`}>Create recurring plan</Link>
                 </div>
               </article>
             </section>
@@ -180,6 +184,18 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
               <RecordSection icon={<MailCheck size={18} />} title="Email history">
                 <EmailHistoryList events={emailEvents.data} />
                 <CommunicationHistoryList communications={communications.data} />
+              </RecordSection>
+
+              <RecordSection icon={<ClipboardList size={18} />} title="Open follow-ups">
+                {recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).length ? recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).map((task) => <Link className="linked-record" href="/admin/recurring" key={task.id}><strong>{task.title}</strong><span>{task.status.replaceAll("_", " ")} - due {formatDateTime(task.due_at)}</span></Link>) : <EmptyInline>No open follow-ups.</EmptyInline>}
+              </RecordSection>
+
+              <RecordSection icon={<Sprout size={18} />} title="Recurring services">
+                {recurring.plans.length ? recurring.plans.map((plan) => <Link className="linked-record" href={`/admin/recurring/${plan.id}`} key={plan.id}><strong>{plan.plan_name}</strong><span>{plan.state} - {plan.recurring_plan_locations?.length ?? 0} service location(s)</span></Link>) : <EmptyInline>No recurring plans.</EmptyInline>}
+              </RecordSection>
+
+              <RecordSection icon={<Sprout size={18} />} title="Recommended future work">
+                {recurring.recommendations.length ? recurring.recommendations.map((item) => <Link className="linked-record" href="/admin/recurring" key={item.id}><strong>{item.title}</strong><span>{item.status.replaceAll("_", " ")}{item.recommended_timeframe ? ` - ${item.recommended_timeframe}` : ""}</span></Link>) : <EmptyInline>No future-work recommendations.</EmptyInline>}
               </RecordSection>
             </section>
 

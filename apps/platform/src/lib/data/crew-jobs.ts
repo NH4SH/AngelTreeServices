@@ -2,7 +2,7 @@ import { canViewAllCrewJobs } from "@/lib/auth/crewAccess";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
-import type { CrewJob, DataResult } from "@/lib/types/database";
+import type { CrewChangeOrderScopeItem, CrewJob, DataResult } from "@/lib/types/database";
 
 const crewJobSelect = `
   id,
@@ -52,6 +52,13 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
   }
 
   return { data: (data ?? []) as unknown as CrewJob[], error: null };
+}
+
+export async function getCrewApprovedChangeOrderScope(jobId: string, access?: CrewAccessContext): Promise<DataResult<CrewChangeOrderScopeItem[]>> {
+  const supabase = access?.supabase ?? await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+  const { data, error } = await supabase.rpc("get_crew_change_order_scope", { p_job_id: jobId });
+  return { data: (data ?? []) as CrewChangeOrderScopeItem[], error: error?.message ?? null };
 }
 
 export async function getCrewJobById(

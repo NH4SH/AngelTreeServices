@@ -1,5 +1,7 @@
 # Angel Tree Platform Deployment Checklist
 
+Change-order deployment: review and apply `supabase/migrations/20260717015652_change_orders_and_organization_parity.sql` after the crew closeout, reporting, and materials migrations. It adds no environment variables and reuses `PORTAL_TOKEN_ENCRYPTION_KEY`. Follow [CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md](./CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md), refresh the PostgREST schema cache, and rerun Supabase Security Advisor before enabling customer approval links.
+
 Reporting deployment: apply `supabase/migrations/20260717005036_business_reporting_profitability.sql` before deploying the reports application changes, then follow [REPORTING.md](./REPORTING.md). No new environment variables are required.
 
 Use this checklist before the first private staging deployment of the platform app.
@@ -329,3 +331,23 @@ Manual materials smoke test:
 30. Run Supabase Security Advisor and verify no new anonymous inventory access or public privileged functions.
 
 Known limitation: visual and dimensional bulk stockpile measurements are operational estimates, not survey-grade quantities. The platform does not infer legal load limits, chemical ratios, or unit conversions.
+
+## Recurring services migration
+
+Apply the recurring workflow after its organization/change-order dependency:
+
+```text
+supabase/migrations/20260717015652_change_orders_and_organization_parity.sql
+supabase/migrations/20260717022829_recurring_services_followups_and_renewals.sql
+```
+
+From the repository root:
+
+```bash
+npx supabase migration list
+npx supabase db push
+```
+
+The migration adds no environment variables. Leave `automated_generation_enabled` off for initial deployment. Confirm `/admin/recurring` loads, manually generate one due test occurrence twice, and verify the second run creates no duplicate. Test individual and multi-property organization plans, distinct approval/onsite/billing contacts, independent property pause, renewal pricing review, exactly-one work-order conversion, invoice provenance, assigned-crew recommendation submission, anonymous denial, and the checklist in `RECURRING_SERVICES.md` before considering scheduled generation.
+
+Refresh the PostgREST schema cache if necessary, keep `app_private` out of exposed API schemas, and run Supabase Security Advisor. Do not treat a successful Next.js build as database or RLS verification.

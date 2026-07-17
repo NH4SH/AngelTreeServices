@@ -41,6 +41,17 @@ export type QuoteStatus =
   | "cancelled";
 
 export type QuoteSentMethod = "crm_email" | "manual" | "printed" | "text" | "other";
+export type ChangeOrderStatus =
+  | "draft"
+  | "pending_internal_review"
+  | "ready_to_send"
+  | "sent"
+  | "approved"
+  | "declined"
+  | "change_requested"
+  | "cancelled"
+  | "expired";
+export type ChangeOrderApprovalMethod = "portal" | "phone" | "email" | "in_person" | "signed_paper" | "other";
 
 export type AppointmentType = "estimate" | "job" | "follow_up" | "maintenance" | "other";
 export type AppointmentStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
@@ -63,7 +74,7 @@ export type JobCloseoutStatus = "draft" | "submitted" | "returned" | "approved" 
 export type CloseoutChecklistStatus = "pending" | "complete" | "not_applicable";
 export type CloseoutScopeState = "completed" | "partially_completed" | "not_completed" | "change_required";
 export type CustomerAcknowledgmentStatus = "acknowledged" | "customer_not_present" | "customer_declined";
-export type OrganizationType = "property_manager" | "hoa" | "commercial" | "other";
+export type OrganizationType = "property_manager" | "hoa" | "commercial" | "nonprofit" | "church" | "municipality" | "general_contractor" | "apartment_community" | "real_estate" | "other";
 export type TimeEntryType = "job" | "drive" | "shop" | "maintenance" | "admin" | "training" | "break" | "other";
 export type TimeEntryStatus = "active" | "completed" | "adjusted" | "void";
 export type TimeEntryReviewStatus = "approved" | "needs_correction" | "rejected";
@@ -77,6 +88,7 @@ export type EmailEventType =
   | "lead_internal_notice"
   | "quote"
   | "invoice"
+  | "change_order"
   | "password_reset_admin_triggered"
   | "estimate_confirmation"
   | "estimate_reminder"
@@ -134,6 +146,10 @@ export type Organization = {
   billing_phone: string | null;
   billing_address: string | null;
   notes: string | null;
+  status: "active" | "inactive" | "archived";
+  payment_terms: string | null;
+  tax_exempt: boolean;
+  tax_reference: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -148,6 +164,11 @@ export type OrganizationContact = {
   role_title: string | null;
   receives_invoices: boolean;
   receives_job_updates: boolean;
+  contact_roles: string[];
+  preferred_contact_method: "email" | "phone" | "text" | "other" | null;
+  is_active: boolean;
+  notes: string | null;
+  service_location_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -198,6 +219,7 @@ export type ServiceLocation = {
 export type Job = {
   id: string;
   customer_id: string;
+  organization_id: string | null;
   service_location_id: string;
   source_quote_id: string | null;
   lead_source_id: string | null;
@@ -210,6 +232,10 @@ export type Job = {
   internal_notes: string | null;
   debris_handling: string | null;
   debris_handling_notes: string | null;
+  projected_value_cents: number;
+  recurring_service_plan_id: string | null;
+  recurring_occurrence_id: string | null;
+  recurring_authorization_source: string | null;
   scheduled_start_at: string | null;
   scheduled_end_at: string | null;
   completed_at: string | null;
@@ -225,6 +251,17 @@ export type Quote = {
   id: string;
   job_id: string | null;
   customer_id: string;
+  organization_id: string | null;
+  recipient_contact_id: string | null;
+  approval_contact_id: string | null;
+  purchase_order_reference: string | null;
+  payment_terms: string | null;
+  recurring_service_plan_id: string | null;
+  recurring_occurrence_id: string | null;
+  source_recommendation_id: string | null;
+  renewal_source_quote_id: string | null;
+  pricing_reviewed_at: string | null;
+  pricing_reviewed_by_user_id: string | null;
   service_location_id: string | null;
   estimate_schedule_event_id: string | null;
   status: QuoteStatus;
@@ -296,6 +333,14 @@ export type Invoice = {
   job_id: string;
   quote_id: string | null;
   customer_id: string;
+  organization_id: string | null;
+  service_location_id: string | null;
+  billing_contact_id: string | null;
+  accounts_payable_contact_id: string | null;
+  purchase_order_reference: string | null;
+  payment_terms: string | null;
+  recurring_service_plan_id: string | null;
+  recurring_occurrence_id: string | null;
   status: InvoiceStatus;
   invoice_number: string | null;
   subtotal_cents: number;
@@ -315,6 +360,7 @@ export type InvoiceLineItem = {
   invoice_id: string;
   service_category_id: string | null;
   material_id: string | null;
+  source_change_order_line_item_id: string | null;
   name: string;
   description: string | null;
   quantity: number;
@@ -323,6 +369,279 @@ export type InvoiceLineItem = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+};
+
+export type ChangeOrder = {
+  id: string;
+  change_order_number: string;
+  source_quote_id: string | null;
+  job_id: string | null;
+  source_closeout_id: string | null;
+  customer_id: string | null;
+  organization_id: string | null;
+  service_location_id: string | null;
+  requested_by_contact_id: string | null;
+  approval_contact_id: string | null;
+  created_by_user_id: string;
+  internally_reviewed_by_user_id: string | null;
+  approved_by_contact_id: string | null;
+  approved_by_name: string | null;
+  approval_recorded_by_user_id: string | null;
+  invoice_id: string | null;
+  title: string;
+  reason: string | null;
+  customer_description: string | null;
+  customer_notes: string | null;
+  internal_notes: string | null;
+  status: ChangeOrderStatus;
+  subtotal_cents: number;
+  tax_cents: number;
+  fee_cents: number;
+  total_cents: number;
+  original_approved_amount_cents: number;
+  expires_at: string | null;
+  internally_reviewed_at: string | null;
+  sent_at: string | null;
+  approved_at: string | null;
+  declined_at: string | null;
+  cancelled_at: string | null;
+  applied_to_job_at: string | null;
+  approval_method: ChangeOrderApprovalMethod | null;
+  approval_notes: string | null;
+  schedule_impact: Record<string, boolean | string | null>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChangeOrderLineItem = {
+  id: string;
+  change_order_id: string;
+  service_category_id: string | null;
+  material_id: string | null;
+  title: string;
+  description: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_price_cents: number;
+  amount_cents: number;
+  internal_cost_estimate_cents: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChangeOrderPortalToken = {
+  id: string;
+  change_order_id: string;
+  customer_id: string | null;
+  organization_id: string | null;
+  intended_contact_id: string | null;
+  token_hash: string;
+  token_hint: string | null;
+  token_encrypted: string | null;
+  expires_at: string | null;
+  viewed_at: string | null;
+  used_at: string | null;
+  revoked_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChangeOrderWithRelations = ChangeOrder & {
+  change_order_line_items?: ChangeOrderLineItem[];
+  customers?: Pick<Customer, "id" | "display_name" | "email" | "phone"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_address" | "payment_terms"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
+  approval_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  requested_by_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  jobs?: Pick<Job, "id" | "status" | "service_type" | "requested_scope" | "source_quote_id"> | null;
+  source_quote?: Pick<Quote, "id" | "quote_number" | "total_cents" | "approved_at"> | null;
+  invoices?: Pick<Invoice, "id" | "invoice_number" | "status"> | null;
+};
+
+export type CrewChangeOrderScopeItem = {
+  change_order_id: string;
+  change_order_number: string;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  approved_at: string;
+};
+
+export type FollowUpTaskStatus = "open" | "in_progress" | "waiting" | "completed" | "cancelled";
+export type FollowUpTaskType = "call_customer" | "schedule_estimate" | "prepare_quote" | "follow_up_quote" | "schedule_approved_work" | "collect_information" | "request_payment" | "renew_service" | "property_inspection" | "customer_callback" | "internal_review" | "other";
+export type RecurringPlanState = "active" | "paused" | "cancelled" | "expired";
+export type RecurringOccurrenceStatus = "upcoming" | "review_needed" | "quote_draft" | "quote_sent" | "approved" | "scheduled" | "completed" | "skipped" | "declined" | "cancelled";
+
+export type ServiceRecommendation = {
+  id: string;
+  customer_id: string | null;
+  organization_id: string | null;
+  organization_contact_id: string | null;
+  service_location_id: string;
+  service_category_id: string | null;
+  source_job_id: string | null;
+  source_closeout_id: string | null;
+  title: string;
+  customer_recommendation: string;
+  internal_notes: string | null;
+  recommended_timeframe: string | null;
+  priority: "low" | "normal" | "high" | "urgent";
+  estimated_value_cents: number | null;
+  origin: "crew" | "office" | "estimate" | "closeout" | "inspection" | "customer_request";
+  status: "recommended" | "pending_office_review" | "follow_up_scheduled" | "quote_planned" | "quote_created" | "accepted" | "declined" | "deferred" | "completed" | "cancelled";
+  related_quote_id: string | null;
+  reviewed_by_user_id: string | null;
+  reviewed_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringServicePlan = {
+  id: string;
+  customer_id: string | null;
+  organization_id: string | null;
+  service_category_id: string | null;
+  source_quote_id: string | null;
+  source_job_id: string | null;
+  source_recommendation_id: string | null;
+  plan_name: string;
+  service_description: string;
+  recurrence_pattern: "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly" | "twice_yearly" | "annually" | "custom_days" | "custom_months" | "seasonal_manual";
+  custom_interval_count: number | null;
+  preferred_service_window: string | null;
+  planning_window_days: number;
+  quote_lead_days: number;
+  reminder_lead_days: number;
+  authorization_mode: "quote_required" | "staff_review" | "existing_agreement";
+  agreement_reference: string | null;
+  authorization_start_date: string | null;
+  authorization_end_date: string | null;
+  authorized_contact_id: string | null;
+  approval_contact_id: string | null;
+  billing_contact_id: string | null;
+  default_onsite_contact_id: string | null;
+  default_payment_terms: string | null;
+  approved_price_cents: number | null;
+  pricing_rule: string | null;
+  estimated_duration_minutes: number | null;
+  preferred_crew_user_id: string | null;
+  standard_scope: unknown[];
+  material_requirements: unknown[];
+  equipment_requirements: unknown[];
+  season_start_month: number | null;
+  season_end_month: number | null;
+  weather_reschedule_allowed: boolean;
+  customer_notes: string | null;
+  internal_notes: string | null;
+  state: RecurringPlanState;
+  created_by_user_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringPlanLocation = {
+  id: string;
+  recurring_plan_id: string;
+  service_location_id: string;
+  onsite_contact_id: string | null;
+  next_review_date: string | null;
+  next_service_due_date: string;
+  preferred_service_window: string | null;
+  property_notes: string | null;
+  access_instructions: string | null;
+  state: "active" | "paused" | "removed";
+  paused_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringServiceOccurrence = {
+  id: string;
+  recurring_plan_id: string;
+  recurring_plan_location_id: string;
+  service_location_id: string;
+  occurrence_key: string;
+  target_service_date: string;
+  target_window_start: string | null;
+  target_window_end: string | null;
+  status: RecurringOccurrenceStatus;
+  prior_quote_id: string | null;
+  prior_work_order_id: string | null;
+  renewal_quote_id: string | null;
+  work_order_id: string | null;
+  assigned_estimator_user_id: string | null;
+  authorization_mode_snapshot: string;
+  authorization_reference_snapshot: string | null;
+  approved_price_cents_snapshot: number | null;
+  pricing_review_status: "required" | "reviewed" | "not_applicable";
+  review_notes: string | null;
+  skip_reason: string | null;
+  generated_at: string;
+  completed_at: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FollowUpTask = {
+  id: string;
+  customer_id: string | null;
+  organization_id: string | null;
+  organization_contact_id: string | null;
+  service_location_id: string | null;
+  quote_id: string | null;
+  change_order_id: string | null;
+  job_id: string | null;
+  invoice_id: string | null;
+  recurring_plan_id: string | null;
+  recurring_occurrence_id: string | null;
+  recommendation_id: string | null;
+  title: string;
+  description: string | null;
+  task_type: FollowUpTaskType;
+  due_at: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  assigned_to_user_id: string | null;
+  status: FollowUpTaskStatus;
+  completed_at: string | null;
+  completed_by_user_id: string | null;
+  snoozed_until: string | null;
+  notes: string | null;
+  dedupe_key: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringPlanWithRelations = RecurringServicePlan & {
+  customers?: Pick<Customer, "id" | "display_name" | "status"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "status"> | null;
+  service_categories?: Pick<ServiceCategory, "id" | "label"> | null;
+  recurring_plan_locations?: (RecurringPlanLocation & { service_locations?: ServiceLocation | null; onsite_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null })[];
+};
+
+export type RecurringOccurrenceWithRelations = RecurringServiceOccurrence & {
+  recurring_service_plans?: Pick<RecurringServicePlan, "id" | "plan_name" | "customer_id" | "organization_id" | "authorization_mode" | "state"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
+  renewal_quote?: Pick<Quote, "id" | "quote_number" | "status" | "total_cents"> | null;
+  work_order?: Pick<Job, "id" | "status" | "service_type"> | null;
+};
+
+export type FollowUpTaskWithRelations = FollowUpTask & {
+  customers?: Pick<Customer, "id" | "display_name"> | null;
+  organizations?: Pick<Organization, "id" | "name"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city"> | null;
+  assigned_profile?: AssignableUser | null;
+};
+
+export type ServiceRecommendationWithRelations = ServiceRecommendation & {
+  customers?: Pick<Customer, "id" | "display_name"> | null;
+  organizations?: Pick<Organization, "id" | "name"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city"> | null;
+  service_categories?: Pick<ServiceCategory, "id" | "label"> | null;
 };
 
 export type Payment = {
@@ -570,6 +889,7 @@ export type JobPhoto = {
 
 export type JobCloseout = {
   id: string;
+  change_order_id: string | null;
   job_id: string;
   status: JobCloseoutStatus;
   crew_internal_notes: string | null;
@@ -578,6 +898,9 @@ export type JobCloseout = {
   incident_description: string | null;
   additional_work_requested: boolean | null;
   additional_work_description: string | null;
+  future_work_recommended: boolean | null;
+  future_work_description: string | null;
+  future_work_timeframe: string | null;
   acknowledgment_status: CustomerAcknowledgmentStatus | null;
   acknowledgment_name: string | null;
   acknowledged_at: string | null;
@@ -695,6 +1018,9 @@ export type CrewJob = Pick<
 export type QuoteWithRelations = Quote & {
   jobs?: Pick<Job, "id" | "status" | "service_type"> | null;
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_phone" | "billing_address"> | null;
+  recipient_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
+  approval_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;
   service_locations?: Pick<
     ServiceLocation,
     "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
@@ -920,6 +1246,7 @@ export type JobDetail = JobWithRelations & {
   job_photos?: JobPhoto[];
   quotes?: QuoteWithRelations[];
   invoices?: InvoiceWithRelations[];
+  change_orders?: ChangeOrderWithRelations[];
   appointments?: AppointmentWithRelations[];
   equipment_assignments?: (EquipmentAssignment & {
     equipment_assets?: Pick<EquipmentAsset, "id" | "asset_number" | "name" | "status" | "category"> | null;
@@ -945,6 +1272,7 @@ export type OrganizationDetail = {
   jobs: JobWithRelations[];
   quotes: QuoteWithRelations[];
   invoices: InvoiceWithRelations[];
+  changeOrders: ChangeOrderWithRelations[];
 };
 
 export type DataResult<T> = {

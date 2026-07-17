@@ -568,6 +568,20 @@ Materials operations live at `/admin/materials`; assigned crews record job use f
 
 The migration creates the material catalog, locations, immutable inventory ledger, reservation history, purchases, disposal/load records, deliveries, production batches, stockpile measurements, private cost snapshots, and the private `material-files` bucket. Quote lines may reference catalog materials; quote approval copies a reviewable plan to the work order without reserving or consuming stock. Duplicates retain customer-facing line references but never copy transactions or reservations.
 
+## Change orders and organization parity
+
+Apply `supabase/migrations/20260717015652_change_orders_and_organization_parity.sql` after the closeout, reporting, and materials migrations. It adds RLS-protected change orders, recoverable portal links, atomic customer approval, separate approved work-order scope, duplicate-safe draft-invoice attachment, and direct organization-owned contacts and service locations. It adds no environment variables and reuses `PORTAL_TOKEN_ENCRYPTION_KEY`.
+
+See [CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md](./CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md) for deployment order, security decisions, organization parity findings, known focused UI gaps, and smoke tests.
+
+## Recurring services and follow-ups
+
+Apply `supabase/migrations/20260717022829_recurring_services_followups_and_renewals.sql` after the change-order and organization-parity migration. Staff queues and multi-property service plans live at `/admin/recurring`; assigned crew can submit future-work recommendations from the existing crew job page.
+
+Generation is manual and duplicate-safe by default. `automated_generation_enabled` is seeded off, and no recurring communication, work order, or payment is created merely because a plan exists. Renewal quotes use the existing secure quote, approval, work-order, schedule, closeout, invoice, email, and payment workflows.
+
+See [RECURRING_SERVICES.md](./RECURRING_SERVICES.md) for recurrence rules, organization contacts, RLS decisions, deployment order, limitations, and production smoke tests.
+
 Inventory costing uses `snapshot_at_use`: receiving a purchase updates the current material unit-cost reference, while approved job-use transactions create the direct job cost. This prevents purchase and usage from being counted twice and keeps old jobs from changing when today’s unit cost changes. Crew-recorded usage creates a private pending snapshot for authorized office review.
 
 Stockpile quantities entered from visual or dimensional measurements remain explicitly estimated. Units are never converted automatically. Vendor prices, receipts, internal costs, inventory quantities, and private notes are not exposed through customer portals.

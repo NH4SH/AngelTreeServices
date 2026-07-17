@@ -115,6 +115,28 @@ export async function submitCrewCloseout(
   };
 }
 
+export async function submitCrewRecommendation(
+  _previousState: CrewCloseoutActionState,
+  formData: FormData,
+): Promise<CrewCloseoutActionState> {
+  const context = await getCrewActionContext(formData);
+  if (!context.ok) return context.state;
+  const title = String(formData.get("title") ?? "").trim().slice(0, 180);
+  const description = String(formData.get("description") ?? "").trim().slice(0, 5000);
+  if (!title || !description) return { status: "error", message: "Add a short title and describe the future work you recommend." };
+  const { error } = await context.supabase.rpc("submit_crew_service_recommendation", {
+    p_description: description,
+    p_internal_notes: String(formData.get("internal_notes") ?? "").trim().slice(0, 5000) || null,
+    p_job_id: context.jobId,
+    p_timeframe: String(formData.get("timeframe") ?? "").trim().slice(0, 240) || null,
+    p_title: title,
+  });
+  if (error) return { status: "error", message: cleanDatabaseMessage(error.message) };
+  revalidatePath("/admin/recurring");
+  revalidateCloseoutPaths(context.jobId);
+  return { status: "success", message: "Recommendation sent to the office for review. It was not sent to the customer and no quote was created." };
+}
+
 async function getCrewActionContext(formData: FormData) {
   const supabase = await createClient();
   if (!supabase) {

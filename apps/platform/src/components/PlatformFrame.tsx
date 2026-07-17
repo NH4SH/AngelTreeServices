@@ -8,6 +8,7 @@ import {
   Clock3,
   Files,
   FileText,
+  FilePlus2,
   Forklift,
   HardHat,
   GraduationCap,
@@ -18,6 +19,7 @@ import {
   MessageSquareMore,
   ReceiptText,
   ShieldCheck,
+  Sprout,
   UserCheck,
   UsersRound,
   Workflow,
@@ -39,6 +41,8 @@ const navItems = [
   { href: "/admin/organizations", label: "Organizations", Icon: Building2, match: "organizations" },
   { href: "/admin/jobs", label: "Jobs", Icon: Workflow, match: "jobs" },
   { href: "/admin/quotes", label: "Quotes", Icon: FileText, match: "quotes" },
+  { href: "/admin/change-orders", label: "Change Orders", Icon: FilePlus2, match: "change-orders", visibility: "staff" },
+  { href: "/admin/recurring", label: "Recurring Services", Icon: Sprout, match: "recurring", visibility: "staff" },
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
   { href: "/admin/equipment", label: "Equipment", Icon: Forklift, match: "equipment" },
@@ -68,6 +72,8 @@ type PlatformFrameProps = {
     | "organizations"
     | "jobs"
     | "quotes"
+    | "change-orders"
+    | "recurring"
     | "invoices"
     | "schedule"
     | "equipment"

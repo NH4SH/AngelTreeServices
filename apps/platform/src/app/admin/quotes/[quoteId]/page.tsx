@@ -81,7 +81,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   <FileSignature aria-hidden="true" size={18} />
                   Quote file
                 </p>
-                <h1>{detail.data.quote_number || "Draft quote"}</h1>
+                <h1>{detail.data.quote_number || `Quote for ${detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "customer"}`}</h1>
                 <p>{detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "Unknown contracting party"} - {formatProposalLabel(detail.data)}</p>
               </div>
               <div className="commerce-header-aside">
@@ -94,6 +94,12 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     <Pencil aria-hidden="true" size={17} />
                     Edit quote
                   </Link>
+                ) : null}
+                {["sent", "change_requested"].includes(detail.data.status) ? (
+                  <a className="primary-action" href="#quote-follow-up">Follow up</a>
+                ) : null}
+                {detail.data.status === "approved" && detail.data.jobs ? (
+                  <Link className="primary-action" href={`/admin/jobs/${detail.data.jobs.id}`}>Open work order</Link>
                 ) : null}
                 <DuplicateRecordButton
                   action={duplicateQuote}
@@ -172,7 +178,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   <EmailHistoryList events={emailEvents.data} />
                 </section>
 
-                <section className="commerce-side-panel">
+                <section className="commerce-side-panel" id="quote-follow-up">
                   <PanelTitle icon={<CalendarDays size={18} />} title="Quote follow-up" />
                   <CommunicationControls
                     automaticEnabled={detail.data.automatic_follow_ups_enabled}

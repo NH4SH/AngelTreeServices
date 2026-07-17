@@ -142,8 +142,8 @@ async function getDocumentLinkOptions(supabase: SupabaseClient<any, "public", an
     customer: (customers.data ?? []).map((row) => ({ id: row.id, label: row.display_name })),
     organization: (organizations.data ?? []).map((row) => ({ id: row.id, label: row.name })),
     job: (jobs.data ?? []).map((row) => ({ id: row.id, label: `${partyLabel(row)} - ${title(row.service_type || "work order")}` })),
-    quote: (quotes.data ?? []).map((row) => ({ id: row.id, label: `${row.quote_number || "Draft quote"} - ${partyLabel(row)}` })),
-    invoice: (invoices.data ?? []).map((row) => ({ id: row.id, label: `${row.invoice_number || "Draft invoice"} - ${partyLabel(row)}` })),
+    quote: (quotes.data ?? []).map((row) => ({ id: row.id, label: `${row.quote_number || `Quote for ${partyLabel(row)}`} - ${partyLabel(row)}` })),
+    invoice: (invoices.data ?? []).map((row) => ({ id: row.id, label: `${row.invoice_number || `Invoice for ${partyLabel(row)}`} - ${partyLabel(row)}` })),
     employee: (employees.data ?? []).map((row) => ({ id: row.id, label: row.preferred_name || row.legal_name })),
     equipment: (equipment.data ?? []).map((row) => ({ id: row.id, label: `${row.asset_number} - ${row.name}` })),
   };

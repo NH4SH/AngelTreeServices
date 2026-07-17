@@ -94,6 +94,10 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     Edit invoice
                   </Link>
                 ) : null}
+                {["sent", "partially_paid", "overdue"].includes(detail.data.status) ? (
+                  <a className="primary-action" href="#invoice-payments">Record payment</a>
+                ) : null}
+                {detail.data.status === "paid" ? <Link className="primary-action" href="/admin/follow-ups">Create follow-up</Link> : null}
                 <DuplicateRecordButton
                   action={duplicateInvoice}
                   buttonClassName="secondary-action"
@@ -258,7 +262,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   </dl>
                 </section>
 
-                <section className="commerce-side-panel">
+                <section className="commerce-side-panel" id="invoice-payments">
                   <PanelTitle icon={<CircleDollarSign size={18} />} title="Payments" />
                   <dl className="record-details">
                     <div><dt>Total</dt><dd>{formatCurrency(detail.data.total_cents)}</dd></div>

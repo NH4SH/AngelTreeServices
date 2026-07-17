@@ -18,6 +18,7 @@ import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, 
 type InvoicesPageProps = {
   searchParams: Promise<{
     new?: string;
+    status?: string;
   }>;
 };
 
@@ -46,6 +47,8 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     getServiceCategories(),
   ]);
   const summary = getInvoiceSummary(invoices.data);
+  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as InvoiceStatus : null;
+  const visibleInvoices = selectedStatus ? invoices.data.filter((invoice) => invoice.status === selectedStatus) : invoices.data;
   const outstandingCents = invoices.data
     .filter((invoice) => !["paid", "void"].includes(invoice.status))
     .reduce((sum, invoice) => sum + invoice.balance_due_cents, 0);
@@ -74,13 +77,13 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
         <section className="commerce-summary-strip" aria-label="Invoice workflow summary">
           {summaryOrder.map((item) => (
-            <SummaryChip key={item.key} label={item.label} value={summary[item.key]} />
+            <SummaryChip active={selectedStatus === item.key} href={`/admin/invoices?status=${item.key}`} key={item.key} label={item.label} value={summary[item.key]} />
           ))}
           <SummaryChip emphasis label="Outstanding" value={formatCurrency(outstandingCents)} />
         </section>
 
-        {invoices.data.length === 0 ? (
-          <EmptyState title="No invoices yet" body="Create an invoice from an accepted quote or a completed job." />
+        {visibleInvoices.length === 0 ? (
+          <EmptyState title={selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} invoices` : "No invoices yet"} body={selectedStatus ? "Choose another invoice status to continue." : "Create an invoice from an accepted quote or a completed job."} />
         ) : (
           <section className="commerce-table-shell" aria-label="Invoices">
             <div className="commerce-table-header invoice-grid" aria-hidden="true">
@@ -92,7 +95,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
               <span>Actions</span>
             </div>
             <div className="commerce-row-list">
-              {invoices.data.map((invoice) => (
+              {visibleInvoices.map((invoice) => (
                 <article className="commerce-row invoice-grid" key={invoice.id}>
                   <div className="commerce-record-title">
                     <Link href={`/admin/invoices/${invoice.id}`}>{getInvoiceDisplayNumber(invoice.invoice_number)}</Link>
@@ -186,18 +189,24 @@ function InvoiceCreateDrawer({
 }
 
 function SummaryChip({
+  active,
   emphasis,
+  href,
   label,
   value,
 }: {
+  active?: boolean;
   emphasis?: boolean;
+  href?: string;
   label: string;
   value: number | string;
 }) {
-  return (
+  const content = <><span>{label}</span><strong>{value}</strong></>;
+  return href ? (
+    <Link aria-current={active ? "page" : undefined} className={emphasis ? "commerce-summary-chip emphasis" : "commerce-summary-chip"} href={href}>{content}</Link>
+  ) : (
     <div className={emphasis ? "commerce-summary-chip emphasis" : "commerce-summary-chip"}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+      {content}
     </div>
   );
 }

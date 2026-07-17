@@ -19,6 +19,7 @@ type QuotesPageProps = {
   searchParams: Promise<{
     customer_id?: string;
     new?: string;
+    status?: string;
   }>;
 };
 
@@ -50,6 +51,12 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     getMaterialCatalogOptions(),
   ]);
   const summary = getQuoteSummary(quotes.data);
+  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteStatus | "awaiting" : null;
+  const visibleQuotes = selectedStatus === "awaiting"
+    ? quotes.data.filter((quote) => ["sent", "change_requested"].includes(quote.status))
+    : selectedStatus
+      ? quotes.data.filter((quote) => quote.status === selectedStatus || (selectedStatus === "expired" && quote.status === "declined"))
+      : quotes.data;
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -77,12 +84,12 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
 
         <section className="commerce-summary-strip" aria-label="Quote workflow summary">
           {summaryOrder.map((item) => (
-            <SummaryChip key={item.key} label={item.label} value={summary[item.key]} />
+            <SummaryChip active={selectedStatus === item.key} href={`/admin/quotes?status=${item.key}`} key={item.key} label={item.label} value={summary[item.key]} />
           ))}
         </section>
 
-        {quotes.data.length === 0 ? (
-          <EmptyState title="No quotes yet" body="Create the first draft quote from a customer and service location." />
+        {visibleQuotes.length === 0 ? (
+          <EmptyState title={selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} quotes` : "No quotes yet"} body={selectedStatus ? "Choose another workflow status to continue." : "Create the first draft quote from a customer and service location."} />
         ) : (
           <section className="commerce-table-shell" aria-label="Quotes">
             <div className="commerce-table-header quote-grid" aria-hidden="true">
@@ -94,10 +101,10 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
               <span>Actions</span>
             </div>
             <div className="commerce-row-list">
-              {quotes.data.map((quote) => (
+              {visibleQuotes.map((quote) => (
                 <article className="commerce-row quote-grid" key={quote.id}>
                   <div className="commerce-record-title">
-                    <Link href={`/admin/quotes/${quote.id}`}>{quote.quote_number || "Draft quote"}</Link>
+                    <Link href={`/admin/quotes/${quote.id}`}>{getQuoteDisplayLabel(quote)}</Link>
                     <span>{quote.quote_line_items?.length ?? 0} line items</span>
                   </div>
                   <div className="commerce-cell">
@@ -216,12 +223,12 @@ function QuoteCreateDrawer({
   );
 }
 
-function SummaryChip({ label, value }: { label: string; value: number }) {
+function SummaryChip({ active, href, label, value }: { active: boolean; href: string; label: string; value: number }) {
   return (
-    <div className="commerce-summary-chip">
+    <Link aria-current={active ? "page" : undefined} className="commerce-summary-chip" href={href}>
       <span>{label}</span>
       <strong>{value}</strong>
-    </div>
+    </Link>
   );
 }
 
@@ -297,4 +304,10 @@ function DataWarning({ message }: { message: string }) {
       <p>{message}</p>
     </section>
   );
+}
+
+function getQuoteDisplayLabel(quote: QuoteWithRelations) {
+  if (quote.quote_number) return quote.quote_number;
+  const party = quote.organizations?.name ?? quote.customers?.display_name;
+  return party ? `Quote for ${party}` : "Untitled quote";
 }

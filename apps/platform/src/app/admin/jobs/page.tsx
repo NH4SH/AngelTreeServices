@@ -29,7 +29,8 @@ const statuses: JobStatus[] = [
   "cancelled",
 ];
 
-export default async function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext("/admin/jobs");
 
   if (!context.configured) {
@@ -43,6 +44,8 @@ export default async function JobsPage() {
     getServiceLocations(),
     getLeadSources(),
   ]);
+  const selectedStatus = statuses.includes(query.status as JobStatus) ? query.status as JobStatus : null;
+  const visibleJobs = selectedStatus ? jobs.data.filter((job) => job.status === selectedStatus) : jobs.data;
 
   return (
     <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
@@ -64,18 +67,19 @@ export default async function JobsPage() {
         ))}
 
         <section className="filter-pills" aria-label="Job statuses">
+          <Link aria-current={!selectedStatus ? "page" : undefined} href="/admin/jobs">All</Link>
           {statuses.map((status) => (
-            <span key={status}>{status.replace("_", " ")}</span>
+            <Link aria-current={selectedStatus === status ? "page" : undefined} href={`/admin/jobs?status=${status}`} key={status}>{status.replaceAll("_", " ")}</Link>
           ))}
         </section>
 
         <section className="crm-layout">
           <div className="crm-main">
-            {jobs.data.length === 0 ? (
-              <EmptyState title="No work orders yet" body="Create and approve a quote first, or add a job for work that is already approved." />
+            {visibleJobs.length === 0 ? (
+              <EmptyState title={selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} jobs` : "No work orders yet"} body={selectedStatus ? "Choose another status or open all jobs." : "Create and approve a quote first, or add a job for work that is already approved."} />
             ) : (
               <div className="record-list">
-                {jobs.data.map((job) => (
+                {visibleJobs.map((job) => (
                   <article className="record-card" key={job.id}>
                     <div className="record-card-header">
                       <div>

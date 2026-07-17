@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AlertTriangle, CalendarClock, MailCheck, MessageSquareMore, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
 import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -27,12 +27,19 @@ export default async function CommunicationsPage() {
       <div className="shell app-content">
         <section className="page-heading">
           <div>
-            <p className="surface-label"><MessageSquareMore aria-hidden="true" size={18} />Customer communications</p>
-            <h1>Reminders and follow-ups</h1>
-            <p>Review scheduled customer email, delivery history, skipped messages, and failures without exposing internal notes.</p>
+            <p className="surface-label"><MessageSquareMore aria-hidden="true" size={18} />Office inbox</p>
+            <h1>Leads &amp; Communications</h1>
+            <p>Move new requests into estimates, callbacks, quotes, and reliable customer communication.</p>
           </div>
           {canManageSettings ? <RunCommunicationWorkerForm /> : null}
         </section>
+
+        <nav className="local-workflow-tabs" aria-label="Lead and communication views">
+          <a aria-current="page" href="#inbox"><MessageSquareMore size={16} />Inbox</a>
+          <Link href="/admin/jobs?status=new_lead"><PhoneCall size={16} />Leads</Link>
+          <Link href="/admin/schedule?event_type=estimate"><CalendarClock size={16} />Estimate appointments</Link>
+          <a href="#history"><MailCheck size={16} />Communication history</a>
+        </nav>
 
         {settings.error ? <Warning message={settings.error} /> : null}
         {communications.error ? <Warning message={communications.error} /> : null}
@@ -43,12 +50,12 @@ export default async function CommunicationsPage() {
           <Metric icon={<MailCheck size={19} />} label="Recently completed" value={recent.length} />
         </section>
 
-        <section className="detail-grid communication-page-grid">
+        <section className="detail-grid communication-page-grid" id="inbox">
           <article className="detail-panel wide-detail-panel">
             <h2 className="panel-title"><CalendarClock size={18} />Scheduled reminders</h2>
             <CommunicationRows rows={pending} empty="No reminders are currently scheduled." />
           </article>
-          <article className="detail-panel">
+          <article className="detail-panel" id="history">
             <h2 className="panel-title"><AlertTriangle size={18} />Failed communications</h2>
             <CommunicationRows rows={failed} empty="No failed communications." />
           </article>

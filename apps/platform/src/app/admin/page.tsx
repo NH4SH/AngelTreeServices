@@ -10,9 +10,11 @@ import {
   MessageSquareMore,
   PhoneCall,
   Truck,
+  Workflow,
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -28,6 +30,7 @@ import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
 import { getDashboardReportingSummary } from "@/lib/data/reports";
 import { getMaterialsDashboardSummary } from "@/lib/data/materials";
+import { getWorkflowPipelineStages } from "@/lib/data/workflow-pipeline";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -37,7 +40,7 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary, materialsSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary, materialsSummary, workflowPipeline] = await Promise.all([
     getDashboardJobSummaries(),
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
@@ -49,6 +52,7 @@ export default async function AdminPage() {
     loadOptionalDashboardModule("Employees", getEmployeeDashboardSummary(), { data: { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] }, error: "Employee readiness is temporarily unavailable." }),
     loadOptionalDashboardModule("Reporting", getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)), { data: { approvedQuoteCents: 0, quoteApprovalRate: null, invoicedCents: 0, collectedCents: 0, outstandingCents: 0, overdueCents: 0 }, error: "Reporting is temporarily unavailable." }),
     loadOptionalDashboardModule("Materials", getMaterialsDashboardSummary(), { data: { items: [] }, error: "Materials are temporarily unavailable." }),
+    getWorkflowPipelineStages(),
   ]);
 
   const lanes: {
@@ -74,7 +78,7 @@ export default async function AdminPage() {
       href: "/admin/quotes",
       items: quoteSummaries.data.drafts.map((quote) => ({
         href: `/admin/quotes/${quote.id}`,
-        title: quote.quote_number ?? "Draft quote",
+        title: quote.quote_number ?? `Quote for ${quote.organizations?.name ?? quote.customers?.display_name ?? "customer"}`,
         meta: quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party",
       })),
     },
@@ -109,7 +113,7 @@ export default async function AdminPage() {
       href: "/admin/quotes",
       items: quoteSummaries.data.awaitingResponse.map((quote) => ({
         href: `/admin/quotes/${quote.id}`,
-        title: quote.quote_number ?? "Sent quote",
+        title: quote.quote_number ?? `Quote for ${quote.organizations?.name ?? quote.customers?.display_name ?? "customer"}`,
         meta: quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party",
       })),
     },
@@ -170,14 +174,6 @@ export default async function AdminPage() {
     },
   ];
   const attentionLanes = [lanes[0], lanes[1], lanes[2], lanes[3], lanes[4], lanes[5], lanes[8]];
-  const pipelineSummary = [
-    { label: "Draft quotes", value: quoteSummaries.data.drafts.length },
-    { label: "New leads", value: jobSummaries.lanes.newLeads.length },
-    { label: "Estimates", value: jobSummaries.lanes.estimatesToSchedule.length },
-    { label: "Quotes waiting", value: quoteSummaries.data.awaitingResponse.length },
-    { label: "Ready to invoice", value: jobSummaries.lanes.completedWorkToInvoice.length },
-    { label: "Open invoices", value: unpaidInvoices.data.length },
-  ];
 
   return (
     <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email}>
@@ -199,6 +195,26 @@ export default async function AdminPage() {
           .map((message) => (
           <DataWarning key={message} message={message} />
         ))}
+
+        <section className="dashboard-workflow-pipeline" aria-labelledby="workflow-pipeline-title">
+          <header>
+            <div>
+              <p className="surface-label"><Workflow aria-hidden="true" size={16} />Daily workflow</p>
+              <h2 id="workflow-pipeline-title">Work moving through Angel Tree</h2>
+            </div>
+            <Link href="/admin/follow-ups">Open follow-ups</Link>
+          </header>
+          <div className="dashboard-workflow-stages">
+            {workflowPipeline.stages.map((stage, index) => (
+              <Link href={stage.href} key={stage.id}>
+                <span>{index + 1}</span>
+                <strong>{stage.count}</strong>
+                <small>{stage.label}</small>
+              </Link>
+            ))}
+          </div>
+          {workflowPipeline.errors.length ? <p className="pipeline-count-notice">Some optional workflow counts are temporarily unavailable. Other dashboard areas remain usable.</p> : null}
+        </section>
 
         <section className="dashboard-grid" aria-label="CRM operational overview">
           <section className="panel dashboard-panel dashboard-reporting-panel">
@@ -241,18 +257,6 @@ export default async function AdminPage() {
             <PanelHeader title="Needs attention" detail="Items most likely to stall" />
             <div className="workflow-list">
               {attentionLanes.map((lane) => <WorkflowLane lane={lane} key={lane.title} />)}
-            </div>
-          </section>
-
-          <section className="panel dashboard-panel">
-            <PanelHeader title="Pipeline" detail="Current office load" />
-            <div className="pipeline-list">
-              {pipelineSummary.map((item) => (
-                <div className="pipeline-row" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
             </div>
           </section>
 

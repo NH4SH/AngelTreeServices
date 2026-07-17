@@ -91,6 +91,9 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               <h1>{job.service_type?.replace("_", " ") || "Service job"}</h1>
               <p>{job.requested_scope || "No requested scope entered yet."}</p>
               <div className="action-row">
+                {job.status === "accepted" ? <a className="primary-action" href="#job-scheduling">Schedule work</a> : null}
+                {["scheduled", "in_progress"].includes(job.status) ? <Link className="primary-action" href={`/admin/schedule?job_id=${job.id}`}>View schedule</Link> : null}
+                {["completed", "ready_to_invoice"].includes(job.status) ? <a className="primary-action" href="#job-status-actions">Generate invoice</a> : null}
                 <Link className="secondary-action" href={`/crew/jobs/${job.id}`}>Crew view</Link>
                 <DuplicateRecordButton
                   action={duplicateJob}
@@ -103,7 +106,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               </div>
             </section>
 
-            <section className="scheduling-workspace">
+            <section className="scheduling-workspace" id="job-scheduling">
               <div className="document-workspace-heading">
                 <div>
                   <p className="surface-label"><CalendarDays aria-hidden="true" size={18} />Scheduling</p>
@@ -128,7 +131,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             </section>
 
             <section className="detail-grid">
-              <article className="detail-panel">
+              <article className="detail-panel" id="job-status-actions">
                 <PanelTitle icon={<ClipboardCheck size={18} />} title="Status" />
                 <span className="status-pill">{job.status.replace("_", " ")}</span>
                 <JobStatusActions jobId={job.id} status={job.status} />

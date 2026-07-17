@@ -68,6 +68,7 @@ export type ReportData = {
   leadSources: LeadSourceRelation[]; serviceCategories: ServiceCategory[];
   jobCosts: ReportJobCost[]; laborRates: ReportLaborRate[]; equipmentUsage: ReportEquipmentUsage[];
   maintenance: any[]; equipmentProblems: any[]; inspections: any[]; assets: any[];
+  materials: any[]; inventoryTransactions: any[]; inventoryBalances: any[]; disposalRecords: any[]; productionBatches: any[]; materialDeliveries: any[];
   employees: { id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string | null; is_active: boolean }[];
   canManageSettings: boolean;
   salesScope: "company" | "own";
@@ -150,7 +151,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   let previousQuoteQuery = supabase.from("quotes").select("id, estimator_user_id, status, total_cents, sent_at, approved_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000);
   if (estimatorOnly) previousQuoteQuery = previousQuoteQuery.eq("estimator_user_id", userId);
 
-  const [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, previousQuotes, previousJobs, previousInvoices, previousPayments] = await Promise.all([
+  const [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult, previousQuotes, previousJobs, previousInvoices, previousPayments] = await Promise.all([
     supabase.from("reporting_settings").select("*").eq("singleton_key", true).maybeSingle(),
     quoteQuery,
     jobQuery,
@@ -170,13 +171,19 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     supabase.from("equipment_inspections").select("id, asset_id, job_id, overall_result, inspected_at, equipment_assets(id, name, asset_number, category)").gte("inspected_at", current.start).lt("inspected_at", current.endExclusive).limit(5000),
     supabase.from("equipment_assets").select("id, name, asset_number, category, status, is_active, updated_at").is("archived_at", null).limit(1000),
     canViewFinancials ? supabase.from("employee_records").select("id, auth_user_id, preferred_name, legal_name, is_active").is("archived_at", null).order("preferred_name").limit(1000) : Promise.resolve({ data: [], error: null }),
+    supabase.from("material_catalog").select("id, name, category, default_unit, stock_tracked, reorder_threshold").eq("is_active", true).is("archived_at", null).order("name"),
+    supabase.from("inventory_transactions").select("id, material_id, transaction_type, quantity, unit, job_id, source_location_id, destination_location_id, is_estimated, occurred_at").gte("occurred_at", current.start).lt("occurred_at", current.endExclusive).order("occurred_at", { ascending: false }).limit(5000),
+    supabase.from("material_stock_balances").select("material_id, location_id, on_hand_quantity, reserved_quantity, available_quantity, latest_transaction_at").limit(5000),
+    supabase.from("disposal_records").select("id, job_id, material_id, destination_type, destination_name, quantity, unit, is_estimated, fee_cents, status, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
+    supabase.from("production_batches").select("id, batch_number, product_material_id, status, estimated_output_quantity, output_unit, direct_cost_cents, cost_per_unit_cents, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
+    supabase.from("customer_deliveries").select("id, material_id, job_id, quantity, unit, status, delivered_at, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     previousQuoteQuery,
     supabase.from("jobs").select("id, status, completed_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
     canViewFinancials ? supabase.from("invoices").select("id, status, total_cents").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
     canViewFinancials ? supabase.from("payments").select("id, amount_cents, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const results = [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult];
+  const results = [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult];
   results.forEach((result) => { if (result.error) warnings.push(result.error.message); });
 
   const settings = (settingsResult.data as ReportingSettings | null) ?? defaultSettings;
@@ -254,6 +261,12 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     equipmentProblems,
     inspections,
     assets,
+    materials: materialsResult.data ?? [],
+    inventoryTransactions: inventoryTransactionsResult.data ?? [],
+    inventoryBalances: inventoryBalancesResult.data ?? [],
+    disposalRecords: disposalResult.data ?? [],
+    productionBatches: productionResult.data ?? [],
+    materialDeliveries: materialDeliveriesResult.data ?? [],
     employees: employeesResult.data ?? [],
     canManageSettings,
     salesScope: estimatorOnly ? "own" : "company",

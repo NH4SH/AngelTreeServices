@@ -829,6 +829,525 @@
   }
 }
 
+/* Materials and inventory operations */
+.materials-page {
+  display: grid;
+  gap: 20px;
+}
+
+.materials-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.materials-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 13px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.materials-tabs a:hover,
+.materials-tabs a[aria-current="page"] {
+  border-color: #a9c9b5;
+  background: #edf7f0;
+  color: var(--color-forest);
+}
+
+.materials-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.materials-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid #2c7a4b;
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 15px;
+}
+
+.materials-summary > span {
+  grid-row: 1 / 4;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  background: #e8f4ec;
+  color: #185d36;
+}
+
+.materials-summary strong {
+  color: var(--color-charcoal);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.materials-summary p,
+.materials-summary small {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.materials-summary.warning {
+  border-left-color: #b86a16;
+  background: #fffaf1;
+}
+
+.materials-overview-grid,
+.materials-workspace-grid,
+.materials-catalog-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(330px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.materials-overview-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.materials-section,
+.materials-side-stack,
+.material-record-list,
+.transaction-list,
+.material-simple-rows {
+  display: grid;
+  gap: 12px;
+}
+
+.materials-section {
+  min-width: 0;
+  border-top: 3px solid #2c7a4b;
+  background: var(--color-surface);
+  padding: 18px 0 4px;
+}
+
+.materials-section-heading {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.materials-section-heading > span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 7px;
+  background: #e8f4ec;
+  color: #185d36;
+}
+
+.materials-section-heading h2,
+.materials-section-heading p {
+  margin: 0;
+}
+
+.materials-section-heading h2 {
+  color: var(--color-charcoal);
+  font-size: 1.18rem;
+}
+
+.materials-section-heading p {
+  margin-top: 4px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.materials-alert-list {
+  display: grid;
+  gap: 9px;
+}
+
+.materials-alert {
+  display: grid;
+  gap: 3px;
+  border: 1px solid #e5c893;
+  border-left: 5px solid #b86a16;
+  border-radius: 7px;
+  background: #fffaf1;
+  padding: 12px 14px;
+  color: #74430c;
+  text-decoration: none;
+}
+
+.materials-alert.danger {
+  border-color: #e1aaa7;
+  border-left-color: #b83a36;
+  background: #fff7f6;
+  color: #842d29;
+}
+
+.materials-alert.info {
+  border-color: #a9cce0;
+  border-left-color: #2876a8;
+  background: #f6fbff;
+  color: #1d5c84;
+}
+
+.materials-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 0.5fr) auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-subtle);
+  padding: 14px;
+}
+
+.materials-filter-bar label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.materials-filter-bar input,
+.materials-filter-bar select {
+  min-height: 46px;
+}
+
+.material-record {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.material-record h2,
+.material-record p {
+  margin: 0;
+}
+
+.material-record h2 {
+  margin-top: 7px;
+  font-size: 1.08rem;
+}
+
+.material-record p {
+  margin-top: 5px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.material-record dl,
+.job-material-comparison dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.material-record dl div,
+.job-material-comparison dl div {
+  min-width: 0;
+  border-left: 3px solid #a9c9b5;
+  padding-left: 9px;
+}
+
+.material-record dt,
+.job-material-comparison dt {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.material-record dd,
+.job-material-comparison dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.material-edit-details {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.material-edit-details summary {
+  min-height: 42px;
+  cursor: pointer;
+  color: var(--color-forest);
+  font-weight: 800;
+}
+
+.material-category,
+.transaction-type {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid #a9c9b5;
+  border-radius: 999px;
+  background: #edf7f0;
+  padding: 4px 9px;
+  color: #185d36;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.material-category.category-disposal,
+.transaction-type.type-disposal,
+.transaction-type.type-loss {
+  border-color: #dfb37e;
+  background: #fff7ea;
+  color: #7d4b0e;
+}
+
+.material-category.category-fuel,
+.material-category.category-chemical {
+  border-color: #a9cce0;
+  background: #f1f8fc;
+  color: #1d5c84;
+}
+
+.transaction-type.type-reversal {
+  border-color: #d2b2d8;
+  background: #faf4fb;
+  color: #6f3477;
+}
+
+.material-form,
+.compact-material-form,
+.crew-material-form {
+  gap: 13px;
+}
+
+.material-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.materials-side-stack .form-panel,
+.materials-workspace-grid > .form-panel,
+.materials-catalog-layout .form-panel {
+  min-width: 0;
+  border-radius: 8px;
+}
+
+.materials-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.materials-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.materials-table th,
+.materials-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px;
+  text-align: left;
+}
+
+.materials-table th {
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+  font-size: 0.78rem;
+}
+
+.materials-table tr.negative {
+  background: #fff4f3;
+  color: #842d29;
+}
+
+.transaction-list > article,
+.material-simple-rows > article {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  min-width: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 0;
+}
+
+.transaction-list > article > div,
+.material-simple-rows > article > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.transaction-list p,
+.transaction-list small,
+.material-simple-rows span {
+  margin: 0;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.transaction-list > article > div:last-child {
+  justify-items: end;
+  text-align: right;
+}
+
+.inline-material-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+
+.inline-material-action input {
+  min-width: 180px;
+  min-height: 40px;
+}
+
+.job-material-comparison,
+.crew-material-plan,
+.crew-material-history {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 15px;
+}
+
+.job-material-comparison > article,
+.crew-material-plan > article,
+.crew-material-history > article {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid #2c7a4b;
+  border-radius: 7px;
+  background: #f7fbf8;
+  padding: 12px;
+}
+
+.job-material-comparison > article > div,
+.crew-material-plan > article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.job-material-comparison span,
+.crew-material-plan span,
+.crew-material-history span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.crew-material-form {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.crew-material-form label,
+.crew-material-disposal label {
+  font-size: 0.96rem;
+}
+
+.crew-material-submit {
+  min-height: 56px !important;
+  width: 100%;
+  justify-content: center;
+  font-size: 1.02rem !important;
+}
+
+.crew-material-disposal {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+}
+
+.crew-material-disposal summary {
+  min-height: 48px;
+  cursor: pointer;
+  color: var(--color-forest);
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .materials-summary-grid,
+  .materials-overview-grid,
+  .materials-workspace-grid,
+  .materials-catalog-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .materials-workspace-grid,
+  .materials-catalog-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .materials-summary-grid,
+  .materials-overview-grid,
+  .materials-filter-bar,
+  .material-record {
+    grid-template-columns: 1fr;
+  }
+
+  .materials-filter-bar button {
+    width: 100%;
+  }
+
+  .material-record dl,
+  .job-material-comparison dl {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-list > article,
+  .material-simple-rows > article,
+  .job-material-comparison > article,
+  .crew-material-plan > article,
+  .crew-material-history > article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .transaction-list > article > div:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .inline-material-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .inline-material-action input,
+  .inline-material-action button {
+    width: 100%;
+  }
+}
+
 .reporting-input-form {
   display: grid;
   gap: 12px;

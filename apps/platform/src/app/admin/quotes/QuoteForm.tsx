@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from 
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
 import type { Customer, Job, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
+import type { MaterialRecord } from "@/lib/data/materials";
 
 const initialState: QuoteActionState = {
   status: "idle",
@@ -19,6 +20,7 @@ type LineItemDraft = {
   name: string;
   description: string;
   serviceCategoryId: string;
+  materialId: string;
   quantity: string;
   unitPrice: string;
 };
@@ -28,6 +30,7 @@ const initialLineItem = (): LineItemDraft => ({
   name: "",
   description: "",
   serviceCategoryId: "",
+  materialId: "",
   quantity: "1",
   unitPrice: "",
 });
@@ -37,6 +40,7 @@ export function AddQuoteForm({
   defaultCustomerId = "",
   estimateScheduleEvents,
   jobs,
+  materials,
   quote,
   serviceCategories,
   serviceLocations,
@@ -45,6 +49,7 @@ export function AddQuoteForm({
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  materials: MaterialRecord[];
   quote?: QuoteDetail;
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
@@ -64,6 +69,7 @@ export function AddQuoteForm({
             name: item.name,
             description: item.description ?? "",
             serviceCategoryId: item.service_category_id ?? "",
+            materialId: item.material_id ?? "",
             quantity: String(item.quantity),
             unitPrice: (item.unit_price_cents / 100).toFixed(2),
           }))
@@ -186,6 +192,24 @@ export function AddQuoteForm({
             rows={4}
           />
         </label>
+        <div className="form-grid-two">
+          <label>
+            Wood and chips plan
+            <select defaultValue={quote?.debris_handling ?? ""} name="debris_handling">
+              <option value="">Not decided</option>
+              <option value="haul_all">Haul all wood and chips</option>
+              <option value="leave_wood">Leave wood onsite</option>
+              <option value="leave_chips">Leave chips onsite</option>
+              <option value="leave_wood_and_chips">Leave wood and chips onsite</option>
+              <option value="partial_haul">Partial haul</option>
+              <option value="other">Other arrangement</option>
+            </select>
+          </label>
+          <label>
+            Wood / chips instructions
+            <textarea defaultValue={quote?.debris_handling_notes ?? ""} name="debris_handling_notes" placeholder="Stack logs by rear fence; leave one chip load near garden." rows={3} />
+          </label>
+        </div>
         <label>
           Expiration date
           <input defaultValue={toDateInputValue(quote?.expires_at)} name="expires_at" type="date" />
@@ -297,6 +321,17 @@ export function AddQuoteForm({
                 >
                   <option value="">Uncategorized</option>
                   {serviceCategories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+                </select>
+              </label>
+              <label>
+                Linked material (internal planning)
+                <select
+                  name="line_item_material_id"
+                  onChange={(event) => updateLineItem(item.id, { materialId: event.target.value }, setLineItems)}
+                  value={item.materialId}
+                >
+                  <option value="">No inventory item</option>
+                  {materials.map((material) => <option key={material.id} value={material.id}>{material.name} ({material.default_unit.replaceAll("_", " ")})</option>)}
                 </select>
               </label>
               <div className="quote-line-money-grid">

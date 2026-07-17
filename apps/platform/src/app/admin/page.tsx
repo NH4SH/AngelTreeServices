@@ -4,6 +4,7 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   Building2,
+  Boxes,
   Clock3,
   Leaf,
   MessageSquareMore,
@@ -26,6 +27,7 @@ import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
 import { getDashboardReportingSummary } from "@/lib/data/reports";
+import { getMaterialsDashboardSummary } from "@/lib/data/materials";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -35,7 +37,7 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary, materialsSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
@@ -46,6 +48,7 @@ export default async function AdminPage() {
     getEquipmentDashboardSummary(),
     getEmployeeDashboardSummary(),
     getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)),
+    getMaterialsDashboardSummary(),
   ]);
 
   const lanes: {
@@ -56,6 +59,14 @@ export default async function AdminPage() {
     items: { href: string; title: string; meta: string }[];
     placeholder?: string;
   }[] = [
+    {
+      title: "Materials attention",
+      description: "Low stock, missing disposal receipts, and due customer deliveries.",
+      Icon: Boxes,
+      href: "/admin/materials",
+      items: materialsSummary.data.items,
+      placeholder: "No material issues need attention.",
+    },
     {
       title: "Draft quotes",
       description: "Proposals that still need scope, pricing, or a deliberate send.",
@@ -183,7 +194,7 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error]
+        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error, materialsSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />

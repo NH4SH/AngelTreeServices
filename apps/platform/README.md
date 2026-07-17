@@ -561,3 +561,13 @@ Apply `supabase/migrations/20260716235514_employee_onboarding_training_complianc
 The migration adds no environment variables and does not enable employee email reminders. Existing profiles with internal roles are backfilled using their existing auth IDs and marked for manual review; legal name, hire date, emergency contact, and credential status are never guessed. A pre-login employee is linked by matching contact email when their internal profile/access request is approved. Review every match after deployment.
 
 Employee contact email remains operational data. Editing it does not silently change the Supabase Auth login email. Owner/admin retain role, access, password-reset, inactive, and archive controls. Other operational staff can manage non-sensitive onboarding/training/safety records, supervisors receive only a narrow crew-readiness RPC, and employees use narrow self-service RPCs without self-approval powers.
+
+## Materials and inventory operations
+
+Materials operations live at `/admin/materials`; assigned crews record job use from `/crew/jobs/[jobId]`. Apply `supabase/migrations/20260717012234_materials_inventory_operations.sql` after the fleet, employee, and reporting migrations.
+
+The migration creates the material catalog, locations, immutable inventory ledger, reservation history, purchases, disposal/load records, deliveries, production batches, stockpile measurements, private cost snapshots, and the private `material-files` bucket. Quote lines may reference catalog materials; quote approval copies a reviewable plan to the work order without reserving or consuming stock. Duplicates retain customer-facing line references but never copy transactions or reservations.
+
+Inventory costing uses `snapshot_at_use`: receiving a purchase updates the current material unit-cost reference, while approved job-use transactions create the direct job cost. This prevents purchase and usage from being counted twice and keeps old jobs from changing when today’s unit cost changes. Crew-recorded usage creates a private pending snapshot for authorized office review.
+
+Stockpile quantities entered from visual or dimensional measurements remain explicitly estimated. Units are never converted automatically. Vendor prices, receipts, internal costs, inventory quantities, and private notes are not exposed through customer portals.

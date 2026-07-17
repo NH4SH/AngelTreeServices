@@ -21,6 +21,7 @@ type QuoteLineItemInput = {
   name: string;
   description: string | null;
   serviceCategoryId: string | null;
+  materialId: string | null;
   quantity: number;
   unitPriceCents: number;
   totalCents: number;
@@ -50,6 +51,8 @@ export async function createQuote(
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
+  const debrisHandling = String(formData.get("debris_handling") ?? "").trim() || null;
+  const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
   const submitIntent = String(formData.get("submit_intent") ?? "save");
   const lineItems = getQuoteLineItems(formData);
@@ -145,6 +148,8 @@ export async function createQuote(
       tax_cents: 0,
       total_cents: subtotalCents,
       customer_message: customerMessage,
+      debris_handling: debrisHandling,
+      debris_handling_notes: debrisHandlingNotes,
       expires_at: expiresAt,
     })
     .select("id")
@@ -161,6 +166,7 @@ export async function createQuote(
         name: item.name,
         description: item.description,
         service_category_id: item.serviceCategoryId,
+        material_id: item.materialId,
         quantity: item.quantity,
         unit_price_cents: item.unitPriceCents,
         total_cents: item.totalCents,
@@ -212,6 +218,8 @@ export async function updateQuote(
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
+  const debrisHandling = String(formData.get("debris_handling") ?? "").trim() || null;
+  const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
   const submitIntent = String(formData.get("submit_intent") ?? "save");
   const lineItems = getQuoteLineItems(formData);
@@ -321,6 +329,8 @@ export async function updateQuote(
       tax_cents: 0,
       total_cents: subtotalCents,
       customer_message: customerMessage,
+      debris_handling: debrisHandling,
+      debris_handling_notes: debrisHandlingNotes,
       expires_at: expiresAt,
     })
     .eq("id", quoteId);
@@ -355,6 +365,7 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
   const names = formData.getAll("line_item_name");
   const descriptions = formData.getAll("line_item_description");
   const serviceCategoryIds = formData.getAll("line_item_service_category_id");
+  const materialIds = formData.getAll("line_item_material_id");
   const quantities = formData.getAll("line_item_quantity");
   const unitPrices = formData.getAll("line_item_unit_price");
   const itemCount = Math.max(names.length, descriptions.length, quantities.length, unitPrices.length);
@@ -377,6 +388,7 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
       name: getLineItemName(name, description, index),
       description,
       serviceCategoryId: String(serviceCategoryIds[index] ?? "").trim() || null,
+      materialId: String(materialIds[index] ?? "").trim() || null,
       quantity,
       unitPriceCents,
       totalCents,
@@ -408,6 +420,7 @@ async function syncQuoteLineItems(
     name: string;
     description: string | null;
     service_category_id: string | null;
+    material_id: string | null;
     quantity: number;
     unit_price_cents: number;
     total_cents: number;
@@ -419,6 +432,7 @@ async function syncQuoteLineItems(
       name: item.name,
       description: item.description,
       service_category_id: item.serviceCategoryId,
+      material_id: item.materialId,
       quantity: item.quantity,
       unit_price_cents: item.unitPriceCents,
       total_cents: item.totalCents,

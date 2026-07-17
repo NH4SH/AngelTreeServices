@@ -266,3 +266,66 @@ supabase db lint --local
 ```
 
 Do not treat the Next.js build as proof that migrations, RLS, Storage, or backfill behavior passed.
+
+## Materials and inventory migration
+
+Review and apply in this order:
+
+```text
+supabase/migrations/20260716232544_equipment_fleet_management.sql
+supabase/migrations/20260716235514_employee_onboarding_training_compliance.sql
+supabase/migrations/20260717005036_business_reporting_profitability.sql
+supabase/migrations/20260717012234_materials_inventory_operations.sql
+```
+
+From the repository root:
+
+```bash
+npx supabase migration list
+npx supabase db push
+```
+
+The materials migration adds no secrets. It creates private inventory tables, fixed-search-path trigger functions, least-privilege RLS, and the private `material-files` bucket. Keep `app_private` out of exposed API schemas. After deployment, refresh the PostgREST schema cache if necessary and run Supabase Security Advisor to confirm no privileged function is publicly callable.
+
+First setup:
+
+1. Open `/admin/materials?view=catalog` and create the main yard location.
+2. Create raw chips, brown mulch, and dump-fee materials with their actual business units.
+3. Enter internal costs only from an owner/admin/payroll-capable account.
+4. Open `/admin/materials?view=movements` and receive opening stock. Do not invent historical stock.
+5. Verify an assigned crew account can see job plans but cannot see costs, vendor pricing, or arbitrary adjustments.
+
+Manual materials smoke test:
+
+1. Receive 20 estimated cubic yards of raw chips at the main yard.
+2. Transfer a load to a truck and confirm source/destination balances.
+3. Add 12 cubic yards of mulch to a work order and reserve it.
+4. Confirm on hand is unchanged while available is reduced.
+5. Record 12 yards loaded, 11 used, and 1 returned from the crew job page.
+6. Confirm the reservation is fulfilled and balances are correct.
+7. Record a disposal load with fee and private receipt.
+8. Confirm approved disposal/material cost appears once in job profitability.
+9. Cancel a test work order and confirm active reservations are released with history.
+10. Complete a batch from raw chips to dyed mulch; confirm input and estimated output movements.
+11. Record a customer delivery with service location and private proof photo.
+12. Double-click a field action and confirm its idempotency key prevents a duplicate.
+13. Attempt a crew negative adjustment and confirm it is denied.
+14. Record an owner/admin negative override with a reason and confirm it is visible in history.
+15. Reverse a transaction and confirm the original row remains immutable.
+16. Duplicate a quote and invoice; confirm no transactions or reservations copy.
+17. Approve a quote with a linked material and confirm a work-order plan is created without stock use.
+18. Confirm wood/chips instructions carry from the approved quote to the work order and crew view.
+19. Confirm customer quote/invoice portals show customer line text but no stock, vendor, cost, receipt, or internal note data.
+20. Confirm bulk visual/dimension measurements say estimated in inventory and reports.
+21. Confirm low stock, missing disposal receipt, and due delivery alerts link to `/admin/materials`.
+22. Confirm unplanned crew use requires an explanation.
+23. Confirm crew-recorded job use creates a pending private cost review.
+24. Approve that cost and confirm one immutable historical unit-cost snapshot and one job-cost entry.
+25. Confirm purchase cost itself was not also counted against job profitability.
+26. Confirm old job cost does not change after editing the current material cost.
+27. Verify `/admin/reports?view=materials` for movement, disposal, stock, production, and restricted cost display.
+28. Re-test work-order closeout, invoice, payment, email, fleet, employee, and time workflows.
+29. Run `npx supabase db lint --local` against a local reset database.
+30. Run Supabase Security Advisor and verify no new anonymous inventory access or public privileged functions.
+
+Known limitation: visual and dimensional bulk stockpile measurements are operational estimates, not survey-grade quantities. The platform does not infer legal load limits, chemical ratios, or unit conversions.

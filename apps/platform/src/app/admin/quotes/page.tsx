@@ -10,6 +10,7 @@ import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getQuotes } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
+import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
 import type { Customer, Job, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
@@ -36,13 +37,14 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     return <SetupRequired title="Configure Supabase before opening quotes" />;
   }
 
-  const [quotes, customers, serviceLocations, jobs, estimateScheduleEvents, serviceCategories] = await Promise.all([
+  const [quotes, customers, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
     getQuotes(),
     getCustomerOptions(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
     getServiceCategories(),
+    getMaterialCatalogOptions(),
   ]);
   const summary = getQuoteSummary(quotes.data);
 
@@ -64,7 +66,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error]
+        {[quotes.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
@@ -142,6 +144,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             defaultCustomerId={params.customer_id}
             estimateScheduleEvents={estimateScheduleEvents.data}
             jobs={jobs.data}
+            materials={materials.data}
             serviceCategories={serviceCategories.data}
             serviceLocations={serviceLocations.data}
           />
@@ -156,6 +159,7 @@ function QuoteCreateDrawer({
   defaultCustomerId,
   estimateScheduleEvents,
   jobs,
+  materials,
   serviceCategories,
   serviceLocations,
 }: {
@@ -163,6 +167,7 @@ function QuoteCreateDrawer({
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  materials: MaterialRecord[];
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
@@ -188,6 +193,7 @@ function QuoteCreateDrawer({
           defaultCustomerId={defaultCustomerId}
           estimateScheduleEvents={estimateScheduleEvents}
           jobs={jobs}
+          materials={materials}
           serviceCategories={serviceCategories}
           serviceLocations={serviceLocations}
         />

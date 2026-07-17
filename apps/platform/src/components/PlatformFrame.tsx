@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   BarChart3,
+  Boxes,
   CalendarDays,
   Building2,
   Clock3,
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/admin/invoices", label: "Invoices", Icon: ReceiptText, match: "invoices" },
   { href: "/admin/schedule", label: "Schedule", Icon: CalendarDays, match: "schedule" },
   { href: "/admin/equipment", label: "Equipment", Icon: Forklift, match: "equipment" },
+  { href: "/admin/materials", label: "Materials", Icon: Boxes, match: "materials", visibility: "staff" },
   { href: "/admin/communications", label: "Communications", Icon: MessageSquareMore, match: "communications" },
   { href: "/admin/time", label: "Time", Icon: Clock3, match: "admin-time", visibility: "review" },
   { href: "/admin/payroll", label: "Payroll", Icon: ReceiptText, match: "payroll", visibility: "review" },
@@ -69,6 +71,7 @@ type PlatformFrameProps = {
     | "invoices"
     | "schedule"
     | "equipment"
+    | "materials"
     | "communications"
     | "admin-time"
     | "payroll"

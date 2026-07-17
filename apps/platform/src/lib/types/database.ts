@@ -208,6 +208,8 @@ export type Job = {
   priority: JobPriority;
   requested_scope: string | null;
   internal_notes: string | null;
+  debris_handling: string | null;
+  debris_handling_notes: string | null;
   scheduled_start_at: string | null;
   scheduled_end_at: string | null;
   completed_at: string | null;
@@ -231,6 +233,8 @@ export type Quote = {
   tax_cents: number;
   total_cents: number;
   customer_message: string | null;
+  debris_handling: string | null;
+  debris_handling_notes: string | null;
   sent_at: string | null;
   sent_method: QuoteSentMethod | null;
   sent_by_user_id: string | null;
@@ -246,6 +250,7 @@ export type QuoteLineItem = {
   id: string;
   quote_id: string;
   service_category_id: string | null;
+  material_id: string | null;
   name: string;
   description: string | null;
   quantity: number;
@@ -309,6 +314,7 @@ export type InvoiceLineItem = {
   id: string;
   invoice_id: string;
   service_category_id: string | null;
+  material_id: string | null;
   name: string;
   description: string | null;
   quantity: number;

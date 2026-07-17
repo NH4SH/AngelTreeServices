@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Camera, ClipboardCheck, FileSignature, Forklift, MapPin, Navigation, ReceiptText, Truck, UsersRound } from "lucide-react";
+import { CalendarDays, Camera, ClipboardCheck, FileSignature, Forklift, MapPin, Navigation, PackageCheck, ReceiptText, Truck, UsersRound } from "lucide-react";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
 import { PrintButton } from "@/components/documents/print-button";
@@ -10,6 +10,7 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { JobCostPanel } from "@/components/job-cost-panel";
+import { JobMaterialPlanForm } from "@/components/materials-forms";
 import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -21,6 +22,7 @@ import { getAssignableUsers } from "@/lib/data/appointments";
 import { getJobDetail } from "@/lib/data/jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
 import { getJobCostEntries } from "@/lib/data/reports";
+import { getJobMaterials } from "@/lib/data/materials";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
@@ -46,12 +48,13 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
     return <SetupRequired title="Configure Supabase before opening job details" />;
   }
 
-  const [detail, assignedUsers, photos, communications, jobCosts] = await Promise.all([
+  const [detail, assignedUsers, photos, communications, jobCosts, materials] = await Promise.all([
     getJobDetail(jobId),
     getAssignableUsers(),
     getJobPhotos(jobId),
     getCustomerCommunications({ jobId, limit: 30 }),
     getJobCostEntries(jobId),
+    getJobMaterials(jobId, context.roles, context.user.id),
   ]);
   const job = detail.data;
   const recipientOptions = job
@@ -70,6 +73,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
         {jobCosts.error ? <DataWarning message={`Job costs: ${jobCosts.error}`} /> : null}
+        {materials.error ? <DataWarning message={`Materials: ${materials.error}`} /> : null}
         {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {query.duplicated === "job" ? (
           <p className="form-message success" role="status">Work order duplicated.</p>
@@ -212,6 +216,20 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                   </div>
                 ) : <EmptyInline>No equipment assigned to this work order yet.</EmptyInline>}
                 <Link className="secondary-action compact-action" href="/admin/equipment">Assign equipment</Link>
+              </article>
+              <article className="detail-panel wide-detail-panel">
+                <PanelTitle icon={<PackageCheck size={18} />} title="Materials plan and actual use" />
+                {materials.data ? <>
+                  <div className="job-material-comparison">
+                    {materials.data.requirements.length ? materials.data.requirements.map((requirement: any) => {
+                      const material = materials.data?.materials.find((item: any) => item.id === requirement.material_id);
+                      const used = materials.data?.transactions.filter((item: any) => item.material_id === requirement.material_id && item.transaction_type === "job_use").reduce((sum: number, item: any) => sum + Number(item.quantity), 0) ?? 0;
+                      return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No planning notes"}</span></div><dl><div><dt>Planned</dt><dd>{requirement.is_estimated ? "Est. " : ""}{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</dd></div><div><dt>Used</dt><dd>{used} {requirement.unit.replaceAll("_", " ")}</dd></div></dl></article>;
+                    }) : <EmptyInline>No materials planned yet.</EmptyInline>}
+                  </div>
+                  <JobMaterialPlanForm jobId={job.id} materials={materials.data.materials as any} />
+                  <Link className="secondary-action compact-action" href="/admin/materials?view=reservations">Reserve or review stock</Link>
+                </> : <EmptyInline>Apply the materials migration to plan inventory.</EmptyInline>}
               </article>
             </section>
 

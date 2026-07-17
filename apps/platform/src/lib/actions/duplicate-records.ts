@@ -65,6 +65,8 @@ export async function duplicateQuote(
       tax_cents: typedQuote.tax_cents,
       total_cents: typedQuote.total_cents,
       customer_message: typedQuote.customer_message,
+      debris_handling: typedQuote.debris_handling,
+      debris_handling_notes: typedQuote.debris_handling_notes,
       sent_at: null,
       sent_method: null,
       sent_by_user_id: null,
@@ -199,7 +201,7 @@ export async function duplicateJob(
 
   const { data: job, error: jobError } = await auth.supabase
     .from("jobs")
-    .select("id, customer_id, service_location_id, service_type, priority, requested_scope")
+    .select("id, customer_id, service_location_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
     .eq("id", jobId)
     .single();
 
@@ -219,6 +221,8 @@ export async function duplicateJob(
       service_type: job.service_type,
       priority: (job.priority ?? "normal") as JobPriority,
       requested_scope: job.requested_scope,
+      debris_handling: job.debris_handling,
+      debris_handling_notes: job.debris_handling_notes,
       internal_notes: null,
       scheduled_start_at: null,
       scheduled_end_at: null,
@@ -284,6 +288,7 @@ async function copyQuoteLineItems(
       name: item.name,
       description: item.description,
       service_category_id: item.service_category_id,
+      material_id: item.material_id,
       quantity: item.quantity,
       unit_price_cents: item.unit_price_cents,
       total_cents: item.total_cents,
@@ -310,6 +315,7 @@ async function copyInvoiceLineItems(
       name: item.name,
       description: item.description,
       service_category_id: item.service_category_id,
+      material_id: item.material_id,
       quantity: item.quantity,
       unit_price_cents: item.unit_price_cents,
       total_cents: item.total_cents,

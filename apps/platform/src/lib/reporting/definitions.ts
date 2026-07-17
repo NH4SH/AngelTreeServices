@@ -10,6 +10,7 @@ export const reportViews = [
   ["sources", "Lead sources"],
   ["services", "Services"],
   ["fleet", "Fleet"],
+  ["materials", "Materials"],
   ["quality", "Data quality"],
 ] as const;
 

@@ -6,13 +6,14 @@ import {
   ClipboardCheck,
   MapPin,
   MessageCircle,
+  PackageCheck,
   Phone,
   ReceiptText,
   Truck,
-  Wrench,
 } from "lucide-react";
 import { CrewJobCloseoutForm } from "@/components/crew-job-closeout-form";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
+import { CrewMaterialMovementForm, DisposalForm } from "@/components/materials-forms";
 import { JobCostEntryForm } from "@/components/reporting-input-forms";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -21,6 +22,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
 import { getJobCloseout } from "@/lib/data/job-closeouts";
+import { getJobMaterials } from "@/lib/data/materials";
 import { getActiveTimeEntryForUser } from "@/lib/data/time-clock";
 import type { CrewJob, SignedJobPhoto } from "@/lib/types/database";
 
@@ -42,14 +44,16 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
     roles: context.roles,
     userId: context.user.id,
   });
-  const [photos, closeout, activeTimer] = job.data
+  const [photos, closeout, activeTimer, materials] = job.data
     ? await Promise.all([
         getJobPhotos(jobId),
         getJobCloseout(jobId),
         getActiveTimeEntryForUser(context.user.id),
+        getJobMaterials(jobId, context.roles, context.user.id),
       ])
     : [
         { data: [], error: null },
+        { data: null, error: null },
         { data: null, error: null },
         { data: null, error: null },
       ];
@@ -65,6 +69,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
         {closeout.error ? <DataWarning message={`Closeout: ${closeout.error}`} /> : null}
         {activeTimer.error ? <DataWarning message={`Time clock: ${activeTimer.error}`} /> : null}
+        {materials.error ? <DataWarning message={`Materials: ${materials.error}`} /> : null}
 
         {!job.data ? (
           <section className="empty-state">
@@ -77,6 +82,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
             assignedCrewLabel={context.user.email ?? "Assigned crew member"}
             closeout={closeout.data}
             job={job.data}
+            materials={materials.data}
             photos={photos.data}
           />
         )}
@@ -90,12 +96,14 @@ function CrewJobDetail({
   assignedCrewLabel,
   closeout,
   job,
+  materials,
   photos,
 }: {
   activeTimerJobId: string | null;
   assignedCrewLabel: string;
   closeout: Awaited<ReturnType<typeof getJobCloseout>>["data"];
   job: CrewJob;
+  materials: Awaited<ReturnType<typeof getJobMaterials>>["data"];
   photos: SignedJobPhoto[];
 }) {
   const phone = job.customers?.phone;
@@ -233,9 +241,20 @@ function CrewJobDetail({
         <p>{assignedCrewLabel}</p>
       </section>
 
-      <section className="crew-panel">
-        <PanelHeading icon={<Wrench size={19} />} title="Equipment needed" subtitle="Placeholder for future planning." />
-        <p>Equipment, materials, and vehicle needs can be added after job detail workflows settle.</p>
+      <section className="crew-panel" id="materials">
+        <PanelHeading icon={<PackageCheck size={19} />} title="Materials" subtitle="Check the plan, then record what was loaded, used, returned, delivered, or disposed." />
+        {materials ? <>
+          <div className="crew-material-plan">
+            <h3>Planned for this job</h3>
+            {materials.requirements.length ? materials.requirements.map((requirement: any) => {
+              const material = materials.materials.find((item: any) => item.id === requirement.material_id);
+              return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No loading notes"}</span></div><b>{requirement.is_estimated ? "Est. " : ""}{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</b></article>;
+            }) : <p className="inline-empty">No materials were planned. You may still record an unplanned item with an explanation.</p>}
+          </div>
+          <CrewMaterialMovementForm jobId={job.id} locations={materials.locations as any} materials={materials.materials as any} />
+          <details className="crew-material-disposal"><summary>Record a dump, donation, or ChipDrop load</summary><DisposalForm equipment={[]} jobs={[{ id: job.id, service_type: job.service_type, status: job.status }]} locations={materials.locations as any} materials={materials.materials as any} showCosts={false} /></details>
+          {materials.transactions.length ? <div className="crew-material-history"><h3>Recorded on this job</h3>{materials.transactions.slice(0, 12).map((transaction: any) => <article key={transaction.id}><span>{transaction.transaction_type.replaceAll("_", " ")}</span><strong>{materials.materials.find((item: any) => item.id === transaction.material_id)?.name ?? "Material"}</strong><b>{transaction.is_estimated ? "Est. " : ""}{transaction.quantity} {transaction.unit.replaceAll("_", " ")}</b></article>)}</div> : null}
+        </> : <p>Apply the materials migration to use field inventory tracking.</p>}
       </section>
 
       <section className="crew-panel">

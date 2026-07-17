@@ -15,10 +15,15 @@ type QuoteForApproval = {
   customer_id: string;
   service_location_id: string | null;
   customer_message: string | null;
+  debris_handling: string | null;
+  debris_handling_notes: string | null;
   status: string;
   quote_line_items?: {
     name: string;
     description: string | null;
+    id: string;
+    material_id: string | null;
+    quantity: number;
     sort_order: number;
   }[];
 };
@@ -31,7 +36,7 @@ export async function approveQuoteAndEnsureWorkOrder(
 ): Promise<QuoteWorkflowResult> {
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
-    .select("id, job_id, customer_id, service_location_id, customer_message, status, quote_line_items(name, description, sort_order)")
+    .select("id, job_id, customer_id, service_location_id, customer_message, debris_handling, debris_handling_notes, status, quote_line_items(id, name, description, material_id, quantity, sort_order)")
     .eq("id", quoteId)
     .single();
 
@@ -89,6 +94,8 @@ export async function approveQuoteAndEnsureWorkOrder(
       service_type: "other",
       priority: "normal",
       requested_scope: getWorkOrderScope(typedQuote),
+      debris_handling: typedQuote.debris_handling,
+      debris_handling_notes: typedQuote.debris_handling_notes,
     })
     .select("id")
     .single();
@@ -148,8 +155,74 @@ async function markQuoteApproved(
   }
 
   await cancelPendingCommunications(supabase, { quoteId }, "Quote was approved and converted to a work order.");
+  const materialSyncError = await syncQuoteOperationsToJob(supabase, quoteId, jobId);
+  if (materialSyncError) {
+    console.error("Approved quote material plan could not fully copy to work order", { quoteId, jobId, error: materialSyncError });
+  }
 
   return { ok: true, jobId, createdJob: false };
+}
+
+async function syncQuoteOperationsToJob(
+  supabase: SupabaseClient<any, "public", any>,
+  quoteId: string,
+  jobId: string,
+) {
+  const { data: quote, error } = await supabase
+    .from("quotes")
+    .select("debris_handling, debris_handling_notes, quote_line_items(id, material_id, quantity)")
+    .eq("id", quoteId)
+    .single();
+  if (error || !quote) return error?.message ?? "Quote operations were unavailable.";
+
+  const { error: jobError } = await supabase.from("jobs").update({
+    debris_handling: quote.debris_handling,
+    debris_handling_notes: quote.debris_handling_notes,
+  }).eq("id", jobId);
+  if (jobError) return jobError.message;
+
+  const lines = (quote.quote_line_items ?? []).filter((line: any) => line.material_id);
+  if (!lines.length) return null;
+  const materialIds = [...new Set(lines.map((line: any) => line.material_id as string))];
+  const { data: materials, error: materialsError } = await supabase.from("material_catalog").select("id, default_unit").in("id", materialIds);
+  if (materialsError) return materialsError.message;
+
+  for (const line of lines as any[]) {
+    const unit = materials?.find((material: any) => material.id === line.material_id)?.default_unit;
+    if (!unit) continue;
+    const { data: existingQuoteRequirement, error: quoteRequirementError } = await supabase
+      .from("quote_material_requirements")
+      .select("id")
+      .eq("quote_id", quoteId)
+      .eq("quote_line_item_id", line.id)
+      .maybeSingle();
+    if (quoteRequirementError) return quoteRequirementError.message;
+    let quoteRequirementId = existingQuoteRequirement?.id;
+    if (!quoteRequirementId) {
+      const { data: created, error: createError } = await supabase.from("quote_material_requirements").insert({
+        quote_id: quoteId,
+        quote_line_item_id: line.id,
+        material_id: line.material_id,
+        planned_quantity: line.quantity,
+        unit,
+        is_estimated: true,
+        notes: "Copied from the approved quote line. Review before reserving inventory.",
+      }).select("id").single();
+      if (createError || !created) return createError?.message ?? "Could not create quote material plan.";
+      quoteRequirementId = created.id;
+    }
+    const { error: jobRequirementError } = await supabase.from("job_material_requirements").upsert({
+      job_id: jobId,
+      material_id: line.material_id,
+      source_quote_requirement_id: quoteRequirementId,
+      planned_quantity: line.quantity,
+      unit,
+      is_estimated: true,
+      notes: "Copied from approved quote; no stock was used or reserved automatically.",
+    }, { onConflict: "job_id,source_quote_requirement_id" });
+    if (jobRequirementError) return jobRequirementError.message;
+  }
+  return null;
 }
 
 async function logQuoteApproval(

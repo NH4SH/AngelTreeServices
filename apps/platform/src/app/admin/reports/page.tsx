@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, CircleDollarSign, Clock3, Download, Filter, Leaf, Minus, ReceiptText, TrendingUp, UsersRound } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Boxes, CircleDollarSign, Clock3, Download, Filter, Leaf, Minus, ReceiptText, TrendingUp, UsersRound } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { LaborCostRateForm, ReportingSettingsForm } from "@/components/reporting-input-forms";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getReportData, getReportingSettings, relation, successfulPaymentTotal, type ReportData, type ReportInvoice, type ReportJob, type ReportQuote } from "@/lib/data/reports";
 import { formatRange, median, metricDefinitions, percentChange, reportViews, resolveReportFilters, safeRate, type ReportFilters, type ReportView } from "@/lib/reporting/definitions";
+import { formatMaterialQuantity, materialLabel } from "@/lib/materials/definitions";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -87,6 +88,7 @@ function ReportContent({ data, filters }: { data: ReportData; filters: ReportFil
     case "sources": return <LeadSourceReport data={data} />;
     case "services": return <ServiceReport data={data} />;
     case "fleet": return <FleetReport data={data} />;
+    case "materials": return <MaterialsReport data={data} />;
     case "quality": return <DataQualityReport data={data} />;
     default: return <ExecutiveReport data={data} />;
   }
@@ -179,6 +181,25 @@ function ServiceReport({ data }: { data: ReportData }) {
 function FleetReport({ data }: { data: ReportData }) {
   const costRows = groupValue(data.maintenance.filter((record) => record.status === "completed"), (record) => relation(record.equipment_assets)?.name || "Unknown asset", (record) => Number(record.cost_cents ?? 0));
   return <><section className="report-metric-grid compact"><MetricCard label="Active assets" value={String(data.assets.filter((asset) => asset.is_active).length)} /><MetricCard label="Out of service" value={String(data.assets.filter((asset) => ["out_of_service", "awaiting_parts", "repair_scheduled"].includes(asset.status)).length)} /><MetricCard label="Problem reports" value={String(data.equipmentProblems.length)} /><MetricCard label="Failed inspections" value={String(data.inspections.filter((inspection) => inspection.overall_result === "failed").length)} /><MetricCard label="Maintenance cost" value={data.canViewFinancials ? money(costRows.reduce((total, row) => total + row.value, 0)) : "Restricted"} /></section><ReportPanel title="Maintenance cost by asset" note="Completed maintenance records only; purchase price is not allocated to jobs."><BarList rows={costRows.map((row) => ({ ...row, display: data.canViewFinancials ? money(row.value) : "Restricted" }))} /></ReportPanel><ReportTable title="Fleet attention" columns={["Asset", "Type", "Status / result", "Date", "Job", "Details"]} rows={[...data.equipmentProblems.map((record) => [assetLink(record), "Problem", title(record.status), formatDate(record.created_at), record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked", record.equipment_stopped ? "Equipment stopped" : title(record.severity)]), ...data.inspections.filter((record) => record.overall_result !== "passed").map((record) => [assetLink(record), "Inspection", title(record.overall_result), formatDate(record.inspected_at), record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked", "Review inspection"])]} /></>;
+}
+
+function MaterialsReport({ data }: { data: ReportData }) {
+  const name = (id: string) => data.materials.find((material) => material.id === id)?.name ?? "Unclassified material";
+  const received = data.inventoryTransactions.filter((transaction) => transaction.transaction_type === "receive");
+  const used = data.inventoryTransactions.filter((transaction) => transaction.transaction_type === "job_use");
+  const adjustments = data.inventoryTransactions.filter((transaction) => ["adjustment", "loss", "reversal"].includes(transaction.transaction_type));
+  const estimatedBalances = data.inventoryBalances.filter((balance) => Number(balance.on_hand_quantity) !== 0);
+  const materialCosts = data.jobCosts.filter((cost) => cost.category === "materials" && cost.review_status === "approved");
+  const disposalCosts = data.jobCosts.filter((cost) => cost.category === "disposal" && cost.review_status === "approved");
+  return <>
+    <section className="report-callout"><Boxes size={22} /><div><strong>Operational inventory</strong><p>Quantities remain in their entered units. Estimated bulk stock is not converted or described as exact, and internal costs appear only for authorized financial roles.</p></div></section>
+    <section className="report-metric-grid compact"><MetricCard label="Materials received" value={String(received.length)} /><MetricCard label="Job-use entries" value={String(used.length)} /><MetricCard label="Disposal loads" value={String(data.disposalRecords.length)} /><MetricCard label="Stock corrections" value={String(adjustments.length)} /><MetricCard label="Customer deliveries" value={String(data.materialDeliveries.length)} /><MetricCard label="Production batches" value={String(data.productionBatches.length)} /></section>
+    {data.canViewFinancials ? <section className="report-metric-grid compact"><MetricCard label="Approved material cost" value={money(sum(materialCosts, "amount_cents"))} /><MetricCard label="Approved disposal cost" value={money(sum(disposalCosts, "amount_cents"))} /></section> : null}
+    <ReportTable title="Material movement" columns={["Material", "Type", "Quantity", "Job", "Date"]} rows={data.inventoryTransactions.map((transaction) => [name(transaction.material_id), materialLabel(transaction.transaction_type), formatMaterialQuantity(transaction.quantity, transaction.unit, transaction.is_estimated), transaction.job_id ? <Link href={`/admin/jobs/${transaction.job_id}`} key="job">Open job</Link> : "Not linked", formatDate(transaction.occurred_at)])} />
+    <ReportTable title="Current stock by location" columns={["Material", "On hand", "Reserved", "Available", "Latest movement"]} rows={estimatedBalances.map((balance) => { const material = data.materials.find((item) => item.id === balance.material_id); const unit = material?.default_unit ?? "each"; return [material?.name ?? "Unknown", formatMaterialQuantity(balance.on_hand_quantity, unit), formatMaterialQuantity(balance.reserved_quantity, unit), formatMaterialQuantity(balance.available_quantity, unit), balance.latest_transaction_at ? formatDate(balance.latest_transaction_at) : "None"]; })} />
+    <ReportTable title="Disposal by destination" columns={["Destination", "Type", "Quantity", "Fee", "Job"]} rows={data.disposalRecords.map((record) => [record.destination_name, materialLabel(record.destination_type), record.quantity ? formatMaterialQuantity(record.quantity, record.unit, record.is_estimated) : "Not measured", data.canViewFinancials && record.fee_cents != null ? money(record.fee_cents) : "Restricted / not entered", record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked"])} />
+    <ReportTable title="Production yield" columns={["Batch", "Product", "Status", "Output", "Direct cost"]} rows={data.productionBatches.map((batch) => [batch.batch_number, name(batch.product_material_id), materialLabel(batch.status), batch.estimated_output_quantity ? formatMaterialQuantity(batch.estimated_output_quantity, batch.output_unit, true) : "Not entered", data.canViewFinancials && batch.direct_cost_cents != null ? money(batch.direct_cost_cents) : "Restricted / not entered"])} />
+  </>;
 }
 
 function DataQualityReport({ data }: { data: ReportData }) {

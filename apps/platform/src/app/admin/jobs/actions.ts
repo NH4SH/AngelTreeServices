@@ -34,6 +34,8 @@ export async function createJob(
   const requestedScope = String(formData.get("requested_scope") ?? "").trim();
   const priority = String(formData.get("priority") ?? "normal") as JobPriority;
   const estimatedDate = String(formData.get("estimated_date") ?? "");
+  const leadSourceId = String(formData.get("lead_source_id") ?? "").trim() || null;
+  const leadCampaign = String(formData.get("lead_campaign") ?? "").trim().slice(0, 240) || null;
 
   if (!customerId || !serviceLocationId || !requestedScope) {
     return { status: "error", message: "Customer, service location, and description are required." };
@@ -65,6 +67,8 @@ export async function createJob(
       requested_scope: requestedScope,
       status,
       priority,
+      lead_source_id: leadSourceId,
+      lead_campaign: leadCampaign,
       scheduled_start_at: scheduledStartAt,
     })
     .select("id")

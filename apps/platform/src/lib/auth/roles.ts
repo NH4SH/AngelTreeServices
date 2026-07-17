@@ -21,6 +21,8 @@ export const platformRoleGroups = {
   organizationPortal: ["owner", "admin", "property_manager"],
   timeClockReview: ["owner", "admin", "payroll_admin"],
   timeClockEligible: ["owner", "admin", "payroll_admin", "estimator", "crew"],
+  reporting: ["owner", "admin", "payroll_admin", "estimator"],
+  financialReporting: ["owner", "admin", "payroll_admin"],
 } as const satisfies Record<string, readonly PlatformRoleName[]>;
 
 type RoleRow = {

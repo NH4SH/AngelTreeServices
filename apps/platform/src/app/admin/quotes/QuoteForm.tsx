@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type Reac
 import { useActionState } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
-import type { Customer, Job, QuoteDetail, ServiceLocation } from "@/lib/types/database";
+import type { Customer, Job, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 
 const initialState: QuoteActionState = {
@@ -18,6 +18,7 @@ type LineItemDraft = {
   persistedId?: string;
   name: string;
   description: string;
+  serviceCategoryId: string;
   quantity: string;
   unitPrice: string;
 };
@@ -26,6 +27,7 @@ const initialLineItem = (): LineItemDraft => ({
   id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
   name: "",
   description: "",
+  serviceCategoryId: "",
   quantity: "1",
   unitPrice: "",
 });
@@ -36,6 +38,7 @@ export function AddQuoteForm({
   estimateScheduleEvents,
   jobs,
   quote,
+  serviceCategories,
   serviceLocations,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
@@ -43,6 +46,7 @@ export function AddQuoteForm({
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
   quote?: QuoteDetail;
+  serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
   const isEditing = Boolean(quote);
@@ -59,6 +63,7 @@ export function AddQuoteForm({
             persistedId: item.id,
             name: item.name,
             description: item.description ?? "",
+            serviceCategoryId: item.service_category_id ?? "",
             quantity: String(item.quantity),
             unitPrice: (item.unit_price_cents / 100).toFixed(2),
           }))
@@ -283,6 +288,17 @@ export function AddQuoteForm({
                 rows={7}
                 value={item.description}
               />
+              <label>
+                Service category
+                <select
+                  name="line_item_service_category_id"
+                  onChange={(event) => updateLineItem(item.id, { serviceCategoryId: event.target.value }, setLineItems)}
+                  value={item.serviceCategoryId}
+                >
+                  <option value="">Uncategorized</option>
+                  {serviceCategories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+                </select>
+              </label>
               <div className="quote-line-money-grid">
                 <label>
                   Quantity

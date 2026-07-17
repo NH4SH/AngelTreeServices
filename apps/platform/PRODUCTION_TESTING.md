@@ -1,5 +1,7 @@
 # Angel Tree Platform Production Testing
 
+Run the reporting and profitability smoke checklist in [REPORTING.md](./REPORTING.md) after applying `20260717005036_business_reporting_profitability.sql`.
+
 Use this checklist after deploying the admin CRM to the live admin domain.
 
 ## 1. Deployed Admin URL Checklist

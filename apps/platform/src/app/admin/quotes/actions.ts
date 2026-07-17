@@ -20,6 +20,7 @@ type QuoteLineItemInput = {
   id: string | null;
   name: string;
   description: string | null;
+  serviceCategoryId: string | null;
   quantity: number;
   unitPriceCents: number;
   totalCents: number;
@@ -138,6 +139,7 @@ export async function createQuote(
       customer_id: customerId,
       service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId,
+      estimator_user_id: user.id,
       status: "draft",
       subtotal_cents: subtotalCents,
       tax_cents: 0,
@@ -158,6 +160,7 @@ export async function createQuote(
         quote_id: quote.id,
         name: item.name,
         description: item.description,
+        service_category_id: item.serviceCategoryId,
         quantity: item.quantity,
         unit_price_cents: item.unitPriceCents,
         total_cents: item.totalCents,
@@ -351,6 +354,7 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
   const ids = formData.getAll("line_item_id");
   const names = formData.getAll("line_item_name");
   const descriptions = formData.getAll("line_item_description");
+  const serviceCategoryIds = formData.getAll("line_item_service_category_id");
   const quantities = formData.getAll("line_item_quantity");
   const unitPrices = formData.getAll("line_item_unit_price");
   const itemCount = Math.max(names.length, descriptions.length, quantities.length, unitPrices.length);
@@ -372,6 +376,7 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
       id: String(ids[index] ?? "").trim() || null,
       name: getLineItemName(name, description, index),
       description,
+      serviceCategoryId: String(serviceCategoryIds[index] ?? "").trim() || null,
       quantity,
       unitPriceCents,
       totalCents,
@@ -402,6 +407,7 @@ async function syncQuoteLineItems(
     quote_id: string;
     name: string;
     description: string | null;
+    service_category_id: string | null;
     quantity: number;
     unit_price_cents: number;
     total_cents: number;
@@ -412,6 +418,7 @@ async function syncQuoteLineItems(
     const values = {
       name: item.name,
       description: item.description,
+      service_category_id: item.serviceCategoryId,
       quantity: item.quantity,
       unit_price_cents: item.unitPriceCents,
       total_cents: item.totalCents,

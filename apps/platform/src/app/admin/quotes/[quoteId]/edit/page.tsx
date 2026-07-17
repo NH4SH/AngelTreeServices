@@ -6,6 +6,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getQuoteDetail } from "@/lib/data/quotes";
+import { getServiceCategories } from "@/lib/data/reports";
 import { getEstimateScheduleEventOptions } from "@/lib/data/schedule";
 import type { QuoteStatus } from "@/lib/types/database";
 import { AddQuoteForm } from "../../QuoteForm";
@@ -24,19 +25,20 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     return <SetupRequired title="Configure Supabase before editing quotes" />;
   }
 
-  const [detail, customers, serviceLocations, jobs, estimateScheduleEvents] = await Promise.all([
+  const [detail, customers, serviceLocations, jobs, estimateScheduleEvents, serviceCategories] = await Promise.all([
     getQuoteDetail(quoteId),
     getCustomerOptions(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
+    getServiceCategories(),
   ]);
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
         <Link className="crew-back-link" href={`/admin/quotes/${quoteId}`}>Back to quote</Link>
-        {[detail.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error]
+        {[detail.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error]
           .filter(Boolean)
           .map((message) => <DataWarning key={message} message={message ?? ""} />)}
 
@@ -77,6 +79,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               estimateScheduleEvents={estimateScheduleEvents.data}
               jobs={jobs.data}
               quote={detail.data}
+              serviceCategories={serviceCategories.data}
               serviceLocations={serviceLocations.data}
             />
           </>

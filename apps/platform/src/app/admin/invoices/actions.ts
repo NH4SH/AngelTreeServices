@@ -127,6 +127,7 @@ export async function createInvoice(
       invoice_id: invoice.id,
       name: item.name,
       description: item.description,
+      service_category_id: item.serviceCategoryId,
       quantity: item.quantity,
       unit_price_cents: item.unitPriceCents,
       total_cents: item.totalCents,
@@ -183,6 +184,7 @@ type InvoiceLineItemInput = {
   id: string | null;
   name: string;
   description: string | null;
+  serviceCategoryId: string | null;
   quantity: number;
   unitPriceCents: number;
   totalCents: number;
@@ -280,6 +282,7 @@ function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {
   const ids = formData.getAll("invoice_line_item_id");
   const names = formData.getAll("invoice_line_item_name");
   const descriptions = formData.getAll("invoice_line_item_description");
+  const serviceCategoryIds = formData.getAll("invoice_line_item_service_category_id");
   const quantities = formData.getAll("invoice_line_item_quantity");
   const unitPrices = formData.getAll("invoice_line_item_unit_price");
   const itemCount = Math.max(names.length, descriptions.length, quantities.length, unitPrices.length);
@@ -301,6 +304,7 @@ function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {
       id: String(ids[index] ?? "").trim() || null,
       name: (name || description?.split("\n").find((line) => line.trim()) || `Line item ${index + 1}`).slice(0, 120),
       description,
+      serviceCategoryId: String(serviceCategoryIds[index] ?? "").trim() || null,
       quantity,
       unitPriceCents,
       totalCents,
@@ -331,6 +335,7 @@ async function syncInvoiceLineItems(
     invoice_id: string;
     name: string;
     description: string | null;
+    service_category_id: string | null;
     quantity: number;
     unit_price_cents: number;
     total_cents: number;
@@ -341,6 +346,7 @@ async function syncInvoiceLineItems(
     const values = {
       name: item.name,
       description: item.description,
+      service_category_id: item.serviceCategoryId,
       quantity: item.quantity,
       unit_price_cents: item.unitPriceCents,
       total_cents: item.totalCents,

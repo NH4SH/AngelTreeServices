@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
+  BarChart3,
   CalendarDays,
   Building2,
   Clock3,
@@ -29,6 +30,7 @@ import {
 
 const navItems = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, match: "admin" },
+  { href: "/admin/reports", label: "Reports", Icon: BarChart3, match: "reports", visibility: "reporting" },
   { href: "/admin/employees", label: "Employees", Icon: UsersRound, match: "employees", visibility: "staff" },
   { href: "/admin/training", label: "Training", Icon: GraduationCap, match: "training", visibility: "staff" },
   { href: "/admin/safety", label: "Safety", Icon: ShieldCheck, match: "safety", visibility: "staff" },
@@ -56,6 +58,7 @@ const navItems = [
 type PlatformFrameProps = {
   active:
     | "admin"
+    | "reports"
     | "employees"
     | "training"
     | "safety"
@@ -90,6 +93,10 @@ export function PlatformFrame({
   userEmail,
 }: PlatformFrameProps) {
   const visibleNavItems = navItems.filter((item) => {
+    if (item.visibility === "reporting") {
+      return hasAllowedRole(roles, platformRoleGroups.reporting);
+    }
+
     if (item.visibility === "review") {
       return hasAllowedRole(roles, platformRoleGroups.timeClockReview);
     }

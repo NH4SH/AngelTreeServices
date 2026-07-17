@@ -1,5 +1,7 @@
 # Angel Tree Platform Deployment Checklist
 
+Reporting deployment: apply `supabase/migrations/20260717005036_business_reporting_profitability.sql` before deploying the reports application changes, then follow [REPORTING.md](./REPORTING.md). No new environment variables are required.
+
 Use this checklist before the first private staging deployment of the platform app.
 
 ## 1. Environment Variables

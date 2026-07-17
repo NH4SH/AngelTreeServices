@@ -1,5 +1,7 @@
 # Angel Tree Platform App
 
+Business reporting, profitability inputs, deployment order, metric definitions, and smoke tests are documented in [REPORTING.md](./REPORTING.md).
+
 This is the separate TypeScript/Next.js foundation for the future Angel Tree Services CRM, customer portal, and crew field app. The existing static public website remains outside this app.
 
 ## Setup

@@ -4,6 +4,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getInvoiceDetail } from "@/lib/data/invoices";
+import { getServiceCategories } from "@/lib/data/reports";
 import { getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { EditInvoiceForm } from "../../InvoiceForm";
 
@@ -21,13 +22,14 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
     return <SetupRequired title="Configure Supabase before editing invoices" />;
   }
 
-  const detail = await getInvoiceDetail(invoiceId);
+  const [detail, serviceCategories] = await Promise.all([getInvoiceDetail(invoiceId), getServiceCategories()]);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
         <Link className="crew-back-link" href={`/admin/invoices/${invoiceId}`}>Back to invoice</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {serviceCategories.error ? <DataWarning message={serviceCategories.error} /> : null}
         {!detail.data ? (
           <section className="empty-state">
             <h2>Invoice not found or no access</h2>
@@ -52,7 +54,7 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
             {query.duplicated === "invoice" ? (
               <p className="form-message success" role="status">Invoice duplicated.</p>
             ) : null}
-            <EditInvoiceForm invoice={detail.data} />
+            <EditInvoiceForm invoice={detail.data} serviceCategories={serviceCategories.data} />
           </>
         )}
       </div>

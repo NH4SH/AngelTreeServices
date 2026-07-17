@@ -506,6 +506,7 @@ async function createInvoiceForCompletedJob({
     : [{
         description: claimedJob.requested_scope,
         name: formatServiceType(claimedJob.service_type),
+        service_category_id: null,
         quantity: 1,
         sort_order: 0,
         total_cents: 0,
@@ -538,6 +539,7 @@ async function createInvoiceForCompletedJob({
   const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
     lines.map((line, index) => ({
       description: line.description,
+      service_category_id: line.service_category_id,
       invoice_id: invoice.id,
       name: line.name,
       quantity: line.quantity,
@@ -591,7 +593,7 @@ async function getInvoiceSourceQuote(
   quoteId: string | null,
   jobId: string,
 ): Promise<
-  | { ok: true; quoteId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
+  | { ok: true; quoteId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "service_category_id" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
   | { ok: false; message: string }
 > {
   if (!quoteId) {
@@ -600,7 +602,7 @@ async function getInvoiceSourceQuote(
 
   const { data: quote, error } = await supabase
     .from("quotes")
-    .select("id, job_id, status, tax_cents, quote_line_items(name, description, quantity, unit_price_cents, total_cents, sort_order)")
+    .select("id, job_id, status, tax_cents, quote_line_items(name, description, service_category_id, quantity, unit_price_cents, total_cents, sort_order)")
     .eq("id", quoteId)
     .maybeSingle();
 

@@ -9,8 +9,9 @@ import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getQuotes } from "@/lib/data/quotes";
+import { getServiceCategories } from "@/lib/data/reports";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
-import type { Customer, Job, QuoteStatus, QuoteWithRelations, ServiceLocation } from "@/lib/types/database";
+import type { Customer, Job, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 type QuotesPageProps = {
   searchParams: Promise<{
@@ -35,12 +36,13 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     return <SetupRequired title="Configure Supabase before opening quotes" />;
   }
 
-  const [quotes, customers, serviceLocations, jobs, estimateScheduleEvents] = await Promise.all([
+  const [quotes, customers, serviceLocations, jobs, estimateScheduleEvents, serviceCategories] = await Promise.all([
     getQuotes(),
     getCustomerOptions(),
     getServiceLocations(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
+    getServiceCategories(),
   ]);
   const summary = getQuoteSummary(quotes.data);
 
@@ -62,7 +64,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error]
+        {[quotes.error, customers.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error]
           .filter(Boolean)
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
@@ -140,6 +142,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             defaultCustomerId={params.customer_id}
             estimateScheduleEvents={estimateScheduleEvents.data}
             jobs={jobs.data}
+            serviceCategories={serviceCategories.data}
             serviceLocations={serviceLocations.data}
           />
         ) : null}
@@ -153,12 +156,14 @@ function QuoteCreateDrawer({
   defaultCustomerId,
   estimateScheduleEvents,
   jobs,
+  serviceCategories,
   serviceLocations,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "label" | "street" | "city" | "state" | "postal_code">[];
 }) {
   return (
@@ -183,6 +188,7 @@ function QuoteCreateDrawer({
           defaultCustomerId={defaultCustomerId}
           estimateScheduleEvents={estimateScheduleEvents}
           jobs={jobs}
+          serviceCategories={serviceCategories}
           serviceLocations={serviceLocations}
         />
         <Link className="secondary-action commerce-cancel-link" href="/admin/quotes">

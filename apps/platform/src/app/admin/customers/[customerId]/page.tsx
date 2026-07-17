@@ -11,6 +11,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerDetail } from "@/lib/data/customers";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCustomerCommunications } from "@/lib/data/communications";
+import { getLeadSources } from "@/lib/data/reports";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
 
 type CustomerDetailPageProps = {
@@ -32,7 +33,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
     return <SetupRequired title="Configure Supabase before opening customer details" />;
   }
 
-  const detail = await getCustomerDetail(customerId);
+  const [detail, leadSources] = await Promise.all([getCustomerDetail(customerId), getLeadSources()]);
   const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
   const communications = detail.data ? await getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null };
 
@@ -41,6 +42,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
       <div className="shell app-content">
         <Link className="crew-back-link" href="/admin/customers">Back to customers</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {leadSources.error ? <DataWarning message={leadSources.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
         {query.updated === "1" ? <SuccessNotice message="Customer changes saved." /> : null}
@@ -192,7 +194,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 <section className="form-panel">
                   <h2>Add job / work order</h2>
                   <p className="inline-empty">Use this after quote approval or for work that already has approval.</p>
-                  <AddJobForm customers={[detail.data.customer]} serviceLocations={detail.data.serviceLocations} />
+                  <AddJobForm customers={[detail.data.customer]} leadSources={leadSources.data} serviceLocations={detail.data.serviceLocations} />
                 </section>
               </aside>
             </section>

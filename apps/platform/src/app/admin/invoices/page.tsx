@@ -10,8 +10,9 @@ import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getInvoices } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
+import { getServiceCategories } from "@/lib/data/reports";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
-import type { Customer, InvoiceStatus, InvoiceWithRelations, Job } from "@/lib/types/database";
+import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, ServiceCategory } from "@/lib/types/database";
 
 type InvoicesPageProps = {
   searchParams: Promise<{
@@ -36,10 +37,11 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     return <SetupRequired title="Configure Supabase before opening invoices" />;
   }
 
-  const [invoices, customers, jobs] = await Promise.all([
+  const [invoices, customers, jobs, serviceCategories] = await Promise.all([
     getInvoices(),
     getCustomerOptions(),
     getJobOptions(),
+    getServiceCategories(),
   ]);
   const summary = getInvoiceSummary(invoices.data);
   const outstandingCents = invoices.data
@@ -64,7 +66,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           </Link>
         </section>
 
-        {[invoices.error, customers.error, jobs.error].filter(Boolean).map((message) => (
+        {[invoices.error, customers.error, jobs.error, serviceCategories.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -138,7 +140,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
-        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} /> : null}
+        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} serviceCategories={serviceCategories.data} /> : null}
       </div>
     </PlatformFrame>
   );
@@ -147,9 +149,11 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 function InvoiceCreateDrawer({
   customers,
   jobs,
+  serviceCategories,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  serviceCategories: ServiceCategory[];
 }) {
   return (
     <div aria-labelledby="new-invoice-title" className="commerce-drawer-overlay" role="dialog">
@@ -168,7 +172,7 @@ function InvoiceCreateDrawer({
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddInvoiceForm customers={customers} jobs={jobs} />
+        <AddInvoiceForm customers={customers} jobs={jobs} serviceCategories={serviceCategories} />
         <Link className="secondary-action commerce-cancel-link" href="/admin/invoices">
           Cancel
         </Link>

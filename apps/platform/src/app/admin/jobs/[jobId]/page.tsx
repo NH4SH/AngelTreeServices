@@ -9,15 +9,18 @@ import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
+import { JobCostPanel } from "@/components/job-cost-panel";
 import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getJobDetail } from "@/lib/data/jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
+import { getJobCostEntries } from "@/lib/data/reports";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
@@ -43,11 +46,12 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
     return <SetupRequired title="Configure Supabase before opening job details" />;
   }
 
-  const [detail, assignedUsers, photos, communications] = await Promise.all([
+  const [detail, assignedUsers, photos, communications, jobCosts] = await Promise.all([
     getJobDetail(jobId),
     getAssignableUsers(),
     getJobPhotos(jobId),
     getCustomerCommunications({ jobId, limit: 30 }),
+    getJobCostEntries(jobId),
   ]);
   const job = detail.data;
   const recipientOptions = job
@@ -65,6 +69,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {jobCosts.error ? <DataWarning message={`Job costs: ${jobCosts.error}`} /> : null}
         {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
         {query.duplicated === "job" ? (
           <p className="form-message success" role="status">Work order duplicated.</p>
@@ -209,6 +214,10 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                 <Link className="secondary-action compact-action" href="/admin/equipment">Assign equipment</Link>
               </article>
             </section>
+
+            {hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? (
+              <JobCostPanel canManage costs={jobCosts.data} jobId={job.id} />
+            ) : null}
 
             <section className="document-workspace">
               <div className="document-workspace-heading print-hidden">

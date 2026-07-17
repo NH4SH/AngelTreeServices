@@ -13,7 +13,7 @@ import {
 } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
-import type { Customer, InvoiceDetail, Job } from "@/lib/types/database";
+import type { Customer, InvoiceDetail, Job, ServiceCategory } from "@/lib/types/database";
 
 const initialState: InvoiceActionState = {
   status: "idle",
@@ -23,9 +23,11 @@ const initialState: InvoiceActionState = {
 export function AddInvoiceForm({
   customers,
   jobs,
+  serviceCategories,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  serviceCategories: ServiceCategory[];
 }) {
   const [state, formAction, pending] = useActionState(createInvoice, initialState);
   const [dirty, setDirty] = useState(false);
@@ -115,6 +117,7 @@ export function AddInvoiceForm({
         <InvoiceLineEditors
           lineItems={lineItems}
           onDirty={() => setDirty(true)}
+          serviceCategories={serviceCategories}
           setLineItems={setLineItems}
         />
 
@@ -147,11 +150,12 @@ type InvoiceLineDraft = {
   persistedId?: string;
   name: string;
   description: string;
+  serviceCategoryId: string;
   quantity: string;
   unitPrice: string;
 };
 
-export function EditInvoiceForm({ invoice }: { invoice: InvoiceDetail }) {
+export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
   const [state, formAction, pending] = useActionState(updateInvoice, initialState);
   const [dirty, setDirty] = useState(false);
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>(
@@ -163,6 +167,7 @@ export function EditInvoiceForm({ invoice }: { invoice: InvoiceDetail }) {
             persistedId: item.id,
             name: item.name,
             description: item.description ?? "",
+            serviceCategoryId: item.service_category_id ?? "",
             quantity: String(item.quantity),
             unitPrice: (item.unit_price_cents / 100).toFixed(2),
           }))
@@ -244,6 +249,7 @@ export function EditInvoiceForm({ invoice }: { invoice: InvoiceDetail }) {
         <InvoiceLineEditors
           lineItems={lineItems}
           onDirty={() => setDirty(true)}
+          serviceCategories={serviceCategories}
           setLineItems={setLineItems}
         />
         <dl className="quote-editor-totals">
@@ -278,10 +284,12 @@ export function EditInvoiceForm({ invoice }: { invoice: InvoiceDetail }) {
 function InvoiceLineEditors({
   lineItems,
   onDirty,
+  serviceCategories,
   setLineItems,
 }: {
   lineItems: InvoiceLineDraft[];
   onDirty?: () => void;
+  serviceCategories: ServiceCategory[];
   setLineItems: Dispatch<SetStateAction<InvoiceLineDraft[]>>;
 }) {
   const markDirty = () => onDirty?.();
@@ -366,6 +374,17 @@ function InvoiceLineEditors({
             rows={7}
             value={item.description}
           />
+          <label>
+            Service category
+            <select
+              name="invoice_line_item_service_category_id"
+              onChange={(event) => updateInvoiceLine(item.clientId, { serviceCategoryId: event.target.value }, setLineItems)}
+              value={item.serviceCategoryId}
+            >
+              <option value="">Uncategorized</option>
+              {serviceCategories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+            </select>
+          </label>
           <div className="quote-line-money-grid">
             <label>
               Quantity
@@ -420,6 +439,7 @@ function newInvoiceLine(): InvoiceLineDraft {
     clientId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
     name: "",
     description: "",
+    serviceCategoryId: "",
     quantity: "1",
     unitPrice: "",
   };

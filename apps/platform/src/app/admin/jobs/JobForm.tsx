@@ -23,9 +23,11 @@ const priorities: JobPriority[] = ["normal", "urgent", "emergency"];
 
 export function AddJobForm({
   customers,
+  leadSources,
   serviceLocations,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
+  leadSources: { id: string; name: string }[];
   serviceLocations: ServiceLocation[];
 }) {
   const [state, formAction, pending] = useActionState(createJob, initialState);
@@ -80,6 +82,19 @@ export function AddJobForm({
               </option>
             ))}
           </select>
+        </label>
+      </div>
+      <div className="form-grid-two">
+        <label>
+          Lead source
+          <select name="lead_source_id">
+            <option value="">Not recorded</option>
+            {leadSources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Campaign detail
+          <input name="lead_campaign" placeholder="Optional campaign, referral, or promotion" />
         </label>
       </div>
       <label>

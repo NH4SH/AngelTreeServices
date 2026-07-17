@@ -165,6 +165,7 @@ export type Customer = {
   id: string;
   organization_id: string | null;
   lead_source_id: string | null;
+  lead_campaign: string | null;
   display_name: string;
   customer_type: CustomerType;
   primary_contact_name: string | null;
@@ -200,6 +201,7 @@ export type Job = {
   service_location_id: string;
   source_quote_id: string | null;
   lead_source_id: string | null;
+  lead_campaign: string | null;
   assigned_crew_user_id: string | null;
   status: JobStatus;
   service_type: JobServiceType | string | null;
@@ -232,6 +234,7 @@ export type Quote = {
   sent_at: string | null;
   sent_method: QuoteSentMethod | null;
   sent_by_user_id: string | null;
+  estimator_user_id: string | null;
   automatic_follow_ups_enabled: boolean;
   approved_at: string | null;
   expires_at: string | null;
@@ -242,6 +245,7 @@ export type Quote = {
 export type QuoteLineItem = {
   id: string;
   quote_id: string;
+  service_category_id: string | null;
   name: string;
   description: string | null;
   quantity: number;
@@ -304,6 +308,7 @@ export type Invoice = {
 export type InvoiceLineItem = {
   id: string;
   invoice_id: string;
+  service_category_id: string | null;
   name: string;
   description: string | null;
   quantity: number;
@@ -1146,6 +1151,60 @@ export type EmployeeRecord = {
   updated_at: string;
   profiles?: AssignableUser | null;
   supervisor?: Pick<EmployeeRecord, "id" | "preferred_name" | "legal_name"> | null;
+};
+export type ServiceCategory = {
+  id: string;
+  category_key: string;
+  label: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+export type ReportingSettings = {
+  singleton_key: boolean;
+  business_timezone: string;
+  draft_quote_stale_days: number;
+  sent_quote_stale_days: number;
+  lead_stale_business_days: number;
+  default_labor_burden_percent: number | null;
+  blended_labor_cost_cents: number | null;
+  updated_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type EmployeeLaborCostRate = {
+  id: string;
+  employee_id: string;
+  hourly_cost_cents: number;
+  burden_percent: number | null;
+  effective_from: string;
+  effective_to: string | null;
+  notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type JobCostCategory = "materials" | "disposal" | "subcontractor" | "equipment_rental" | "crane" | "fuel" | "permit" | "travel" | "other";
+export type JobCostEntry = {
+  id: string;
+  job_id: string;
+  category: JobCostCategory;
+  description: string;
+  vendor_name: string | null;
+  amount_cents: number;
+  incurred_on: string;
+  notes: string | null;
+  receipt_storage_path: string | null;
+  review_status: "pending" | "approved" | "rejected";
+  submitted_by_user_id: string;
+  reviewed_by_user_id: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  supersedes_cost_id: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 export type EmployeeEmergencyContact = { id: string; employee_id: string; full_name: string; relationship: string | null; phone: string; alternate_phone: string | null; is_primary: boolean; created_at: string; updated_at: string };
 export type EmployeeOnboardingItem = { id: string; employee_id: string; item_key: string; label: string; sort_order: number; completion_status: "incomplete" | "complete" | "not_applicable"; notes: string | null; completed_at: string | null; completed_by_user_id: string | null; reopened_at: string | null; reopen_reason: string | null; updated_at: string };

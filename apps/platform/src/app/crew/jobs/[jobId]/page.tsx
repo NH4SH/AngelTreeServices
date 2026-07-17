@@ -7,11 +7,13 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  ReceiptText,
   Truck,
   Wrench,
 } from "lucide-react";
 import { CrewJobCloseoutForm } from "@/components/crew-job-closeout-form";
 import { JobPhotoUploader } from "@/components/job-photo-uploader";
+import { JobCostEntryForm } from "@/components/reporting-input-forms";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -234,6 +236,11 @@ function CrewJobDetail({
       <section className="crew-panel">
         <PanelHeading icon={<Wrench size={19} />} title="Equipment needed" subtitle="Placeholder for future planning." />
         <p>Equipment, materials, and vehicle needs can be added after job detail workflows settle.</p>
+      </section>
+
+      <section className="crew-panel">
+        <PanelHeading icon={<ReceiptText size={19} />} title="Submit a receipt or job cost" subtitle="The office reviews every crew submission before it affects estimated job cost." />
+        <JobCostEntryForm jobId={job.id} />
       </section>
 
       <section className="crew-panel" id="photos">

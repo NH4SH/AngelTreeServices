@@ -15,6 +15,7 @@ import {
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getFollowUpsDue } from "@/lib/data/appointments";
 import { getUnpaidInvoices } from "@/lib/data/invoices";
 import { getDashboardJobSummaries } from "@/lib/data/jobs";
@@ -24,6 +25,7 @@ import { getScheduleDashboardSummary } from "@/lib/data/schedule";
 import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
+import { getDashboardReportingSummary } from "@/lib/data/reports";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 export default async function AdminPage() {
@@ -33,7 +35,7 @@ export default async function AdminPage() {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary] = await Promise.all([
     getDashboardJobSummaries(),
     getQuoteDashboardSummaries(),
     getFollowUpsDue(),
@@ -43,6 +45,7 @@ export default async function AdminPage() {
     getCommunicationDashboardSummary(),
     getEquipmentDashboardSummary(),
     getEmployeeDashboardSummary(),
+    getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)),
   ]);
 
   const lanes: {
@@ -180,13 +183,23 @@ export default async function AdminPage() {
           <p className="dashboard-date">{formatDashboardDate()}</p>
         </section>
 
-        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error]
+        {[jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error]
           .filter(Boolean)
           .map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
         <section className="dashboard-grid" aria-label="CRM operational overview">
+          <section className="panel dashboard-panel dashboard-reporting-panel">
+            <PanelHeader title="This month" detail="Sales, cash, and accounts receivable" />
+            <div className="pipeline-list">
+              <a className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></a>
+              <a className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></a>
+              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></a>
+              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></a>
+              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></a>
+            </div>
+          </section>
           <section className="panel dashboard-panel">
             <PanelHeader title="Today's crew schedule" detail="Who is scheduled where today" />
             <div className="workflow-list schedule-dashboard-list">

@@ -11854,6 +11854,34 @@ body:has(.appointment-overlay) {
   min-height: 76px;
 }
 
+.payment-record-list,
+.payment-record,
+.manual-payment-correction-form {
+  display: grid;
+  gap: 8px;
+}
+
+.payment-record {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.payment-record:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.manual-payment-correction-form .secondary-action {
+  width: fit-content;
+  min-height: 36px;
+  justify-content: center;
+}
+
+.manual-payment-correction-form .form-message {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
 @media (max-width: 960px) {
   .customer-portal-hero,
   .customer-quote-workspace,

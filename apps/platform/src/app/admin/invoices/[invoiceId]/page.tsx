@@ -10,6 +10,7 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { ManualPaymentForm } from "@/components/manual-payment-form";
+import { ManualPaymentCorrectionForm } from "@/components/manual-payment-correction-form";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -264,6 +265,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
                 <section className="commerce-side-panel" id="invoice-payments">
                   <PanelTitle icon={<CircleDollarSign size={18} />} title="Payments" />
+                  <p className="inline-empty">Balance due is calculated from the invoice total minus successful payments. Undo a mistaken manual payment here, then use Edit invoice if its total also needs correction.</p>
                   <dl className="record-details">
                     <div><dt>Total</dt><dd>{formatCurrency(detail.data.total_cents)}</dd></div>
                     <div><dt>Received</dt><dd>{formatCurrency(successfulPaymentCents)}</dd></div>
@@ -272,9 +274,18 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                   {detail.data.payments?.length ? (
                     <div className="payment-record-list">
                       {detail.data.payments.map((payment) => (
-                        <article className="linked-record" key={payment.id}>
-                          <strong>{formatCurrency(payment.amount_cents)} - {payment.status.replace("_", " ")}</strong>
-                          <span>{formatPaymentMeta(payment)}</span>
+                        <article className="payment-record" key={payment.id}>
+                          <div className="linked-record">
+                            <strong>{formatCurrency(payment.amount_cents)} - {payment.status.replace("_", " ")}</strong>
+                            <span>{formatPaymentMeta(payment)}</span>
+                          </div>
+                          {canManageDelivery && payment.provider === "manual" && payment.status === "succeeded" ? (
+                            <ManualPaymentCorrectionForm
+                              amountLabel={formatCurrency(payment.amount_cents)}
+                              invoiceId={invoiceId}
+                              paymentId={payment.id}
+                            />
+                          ) : null}
                         </article>
                       ))}
                     </div>

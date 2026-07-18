@@ -35,7 +35,7 @@ export async function reconcileInvoiceBalance(
 ): Promise<ReconcileResult> {
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .select("id, status, total_cents, paid_at")
+    .select("id, status, total_cents, paid_at, due_at")
     .eq("id", invoiceId)
     .single();
 
@@ -49,11 +49,12 @@ export async function reconcileInvoiceBalance(
   }
 
   const balanceDueCents = Math.max(0, Number(invoice.total_cents) - payments.totalCents);
-  const status: InvoiceStatus = balanceDueCents === 0
-    ? "paid"
-    : payments.totalCents > 0
-      ? "partially_paid"
-      : (invoice.status as InvoiceStatus);
+  const status = resolveInvoicePaymentStatus({
+    balanceDueCents,
+    currentStatus: invoice.status as InvoiceStatus,
+    dueAt: invoice.due_at,
+    paidCents: payments.totalCents,
+  });
   const paidAt = balanceDueCents === 0 ? invoice.paid_at ?? new Date().toISOString() : null;
 
   const { error: updateError } = await supabase
@@ -67,11 +68,50 @@ export async function reconcileInvoiceBalance(
 
   const communicationSupabase = getServiceRoleClient();
   if (communicationSupabase) {
-    if (balanceDueCents === 0) {
-      await cancelPendingCommunications(communicationSupabase, { invoiceId }, "Invoice was paid in full.");
+    try {
+      if (balanceDueCents === 0) {
+        await cancelPendingCommunications(communicationSupabase, { invoiceId }, "Invoice was paid in full.");
+      }
+      await syncAutomatedCommunications(communicationSupabase);
+    } catch (error) {
+      // Notification scheduling must not invalidate a successfully reconciled balance.
+      console.error("Invoice balance reconciled, but communication sync failed.", { error, invoiceId });
     }
-    await syncAutomatedCommunications(communicationSupabase);
   }
 
   return { ok: true, balanceDueCents, paidCents: payments.totalCents, status };
+}
+
+function resolveInvoicePaymentStatus({
+  balanceDueCents,
+  currentStatus,
+  dueAt,
+  paidCents,
+}: {
+  balanceDueCents: number;
+  currentStatus: InvoiceStatus;
+  dueAt: string | null;
+  paidCents: number;
+}): InvoiceStatus {
+  if (currentStatus === "void") {
+    return "void";
+  }
+
+  if (balanceDueCents === 0) {
+    return "paid";
+  }
+
+  if (paidCents > 0) {
+    return "partially_paid";
+  }
+
+  if (currentStatus === "draft") {
+    return "draft";
+  }
+
+  if (currentStatus === "overdue" || (dueAt && new Date(dueAt).getTime() < Date.now())) {
+    return "overdue";
+  }
+
+  return "sent";
 }

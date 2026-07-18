@@ -467,7 +467,8 @@ class Validator:
             return
 
         expected_title = "Tree Service in Fredericksburg, VA | Angel Tree Services"
-        expected_heading = "Fredericksburg Tree Service You Can Depend On"
+        expected_heading = "Your yard’s best friend."
+        expected_eyebrow = "Fredericksburg Tree Service"
         expected_description = (
             "Certified-arborist-led tree care in Fredericksburg, including tree removal, pruning, "
             "stump grinding, storm cleanup, landscaping, and lawn care. Request a free estimate."
@@ -479,8 +480,20 @@ class Validator:
             self.error("/: homepage description must align tree care services with Fredericksburg")
         if f'<link rel="canonical" href="{SITE}/">' not in homepage:
             self.error("/: homepage canonical must remain the root public URL")
-        if expected_heading not in homepage:
-            self.error("/: mobile homepage heading does not match the approved search-focused H1")
+        mobile_heading_match = re.search(
+            r'<p\b[^>]*class="[^"]*ats-mobile-hero-title[^"]*"[^>]*>(.*?)</p>',
+            homepage,
+            re.IGNORECASE | re.DOTALL,
+        )
+        mobile_heading = (
+            " ".join(re.sub(r"<[^>]+>", " ", mobile_heading_match.group(1)).split())
+            if mobile_heading_match
+            else ""
+        )
+        if mobile_heading != expected_heading:
+            self.error("/: mobile homepage heading does not match the approved brand H1")
+        if homepage.count(expected_eyebrow) < 2:
+            self.error("/: Fredericksburg Tree Service must remain visible near both responsive hero headings")
 
         h1_match = re.search(r"<h1\b[^>]*>(.*?)</h1>", homepage, re.IGNORECASE | re.DOTALL)
         if not h1_match:

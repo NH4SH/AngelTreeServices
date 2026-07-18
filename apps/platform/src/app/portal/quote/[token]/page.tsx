@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock3, FileSignature, Leaf, MapPin, ShieldCheck } from "lucide-react";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
+import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 
 type CustomerQuotePortalPageProps = {
@@ -28,6 +29,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
 
   return (
     <main className="customer-portal-page customer-quote-page">
+      <PortalViewTracker documentType="quote" token={token} />
       <header className="customer-portal-header">
         <div className="customer-portal-brand">
           <span><Leaf aria-hidden="true" size={22} /></span>

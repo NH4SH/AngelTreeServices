@@ -299,6 +299,9 @@ export type Quote = {
   automatic_follow_ups_enabled: boolean;
   approved_at: string | null;
   expires_at: string | null;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  view_count: number;
   created_at: string;
   updated_at: string;
 };
@@ -373,6 +376,9 @@ export type Invoice = {
   due_at: string | null;
   sent_at: string | null;
   paid_at: string | null;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  view_count: number;
   automatic_reminders_enabled: boolean;
   created_at: string;
   updated_at: string;

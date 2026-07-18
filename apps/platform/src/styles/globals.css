@@ -10458,6 +10458,42 @@ body {
   white-space: nowrap;
 }
 
+.commerce-cell .portal-view-status {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 5px;
+  overflow: visible;
+  font-size: 0.76rem;
+  font-weight: 760;
+  line-height: 1.3;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.commerce-cell .portal-view-status svg {
+  flex: 0 0 auto;
+}
+
+.commerce-cell .portal-view-status.not-viewed {
+  color: var(--color-muted);
+}
+
+.commerce-cell .portal-view-status.viewed {
+  color: var(--color-forest);
+}
+
+.portal-engagement-details {
+  grid-template-columns: 1fr;
+}
+
+.portal-engagement-note {
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .commerce-money {
   justify-items: start;
   color: var(--color-charcoal);

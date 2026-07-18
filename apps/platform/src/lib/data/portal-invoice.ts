@@ -18,7 +18,7 @@ import type {
 
 export type InvoicePortalTokenSummary = Pick<
   InvoicePortalToken,
-  "id" | "invoice_id" | "token_hint" | "expires_at" | "viewed_at" | "revoked_at" | "created_at"
+  "id" | "invoice_id" | "token_hint" | "expires_at" | "revoked_at" | "created_at"
 > & {
   portalUrl: string | null;
 };
@@ -47,7 +47,7 @@ export async function getInvoicePortalTokens(
 
   const { data, error } = await supabase
     .from("invoice_portal_tokens")
-    .select("id, invoice_id, token_hint, token_encrypted, expires_at, viewed_at, revoked_at, created_at")
+    .select("id, invoice_id, token_hint, token_encrypted, expires_at, revoked_at, created_at")
     .eq("invoice_id", invoiceId)
     .order("created_at", { ascending: false });
 
@@ -84,7 +84,7 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
 
   const { data: token, error: tokenError } = await supabase
     .from("invoice_portal_tokens")
-    .select("id, invoice_id, expires_at, viewed_at, revoked_at")
+    .select("invoice_id, expires_at, revoked_at")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -120,14 +120,6 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
 
   if (invoiceError || !invoice) {
     return portalLookup("invalid", "This invoice is not available.");
-  }
-
-  if (!token.viewed_at) {
-    await supabase
-      .from("invoice_portal_tokens")
-      .update({ viewed_at: new Date().toISOString() })
-      .eq("id", token.id)
-      .is("viewed_at", null);
   }
 
   return {

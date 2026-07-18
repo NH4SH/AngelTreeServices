@@ -160,7 +160,6 @@ export function InvoicePortalLinkPanel({
                   <strong>Link ending in {token.token_hint ?? "hidden"}</strong>
                   <span>
                     {getTokenState(token)}
-                    {token.viewed_at ? ` · Viewed ${formatDate(token.viewed_at)}` : ""}
                     {token.expires_at ? ` · Expires ${formatDate(token.expires_at)}` : ""}
                   </span>
                 </div>

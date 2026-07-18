@@ -1,6 +1,7 @@
 import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { PortalViewStatus } from "@/components/portal-engagement";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
@@ -120,6 +121,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                   <div className="commerce-cell">
                     <span>Created {formatDate(quote.created_at)}</span>
                     <span>Expires {formatDate(quote.expires_at)}</span>
+                    <PortalViewStatus engagement={quote} />
                   </div>
                   <div className="commerce-actions">
                     <Link className="secondary-action" href={`/admin/quotes/${quote.id}`}>

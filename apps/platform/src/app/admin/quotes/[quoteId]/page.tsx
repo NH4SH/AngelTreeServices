@@ -16,6 +16,7 @@ import { CommunicationControls } from "@/components/communication-controls";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
+import { PortalEngagementPanel } from "@/components/portal-engagement";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
@@ -300,6 +301,8 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                     tokens={portalTokens.data}
                   />
                 </section>
+
+                <PortalEngagementPanel engagement={detail.data} />
 
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<CalendarDays size={18} />} title="Follow-up" />

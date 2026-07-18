@@ -6,6 +6,7 @@ import { AttachApprovedChangeOrdersButton } from "@/components/change-order-form
 import { CommunicationControls } from "@/components/communication-controls";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
+import { PortalEngagementPanel } from "@/components/portal-engagement";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
@@ -262,6 +263,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     <div><dt>Payments</dt><dd>{detail.data.payments?.length ?? 0}</dd></div>
                   </dl>
                 </section>
+
+                <PortalEngagementPanel engagement={detail.data} />
 
                 <section className="commerce-side-panel" id="invoice-payments">
                   <PanelTitle icon={<CircleDollarSign size={18} />} title="Payments" />

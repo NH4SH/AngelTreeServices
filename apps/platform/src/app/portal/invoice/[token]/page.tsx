@@ -2,6 +2,7 @@ import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { InvoicePortalPaymentButton } from "@/components/invoice-portal-payment-button";
+import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
@@ -33,6 +34,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
+      <PortalViewTracker documentType="invoice" token={token} />
       <header className="customer-portal-header print-hidden">
         <div className="customer-portal-brand">
           <img alt="" aria-hidden="true" src="/angel-tree-services-logo.jpg" />

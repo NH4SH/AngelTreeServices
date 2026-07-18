@@ -2,6 +2,7 @@ import { CircleDollarSign, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { InvoiceStatusActions } from "@/components/workflow-actions";
+import { PortalViewStatus } from "@/components/portal-engagement";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddInvoiceForm } from "./InvoiceForm";
@@ -117,6 +118,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                   <div className="commerce-cell">
                     <span>Due {formatDate(invoice.due_at)}</span>
                     <span>{invoice.sent_at ? `Sent ${formatDate(invoice.sent_at)}` : `Created ${formatDate(invoice.created_at)}`}</span>
+                    <PortalViewStatus engagement={invoice} />
                   </div>
                   <div className="commerce-actions">
                     <Link className="secondary-action" href={`/admin/invoices/${invoice.id}`}>

@@ -1025,6 +1025,56 @@ export type JobWithRelations = Job & {
   assigned_crew?: { id: string; full_name: string | null; email: string | null } | null;
 };
 
+export type JobOperationsIndexRow = {
+  id: string;
+  customer_id: string | null;
+  organization_id: string | null;
+  service_location_id: string;
+  assigned_crew_user_id: string | null;
+  source_quote_id: string | null;
+  job_status: JobStatus;
+  operational_state: "to_be_scheduled" | "scheduled" | "in_progress" | "work_complete" | "invoiced" | "paid" | "needs_attention" | "cancelled";
+  priority: JobPriority;
+  service_type: string | null;
+  display_title: string;
+  requested_scope: string | null;
+  contracting_party_name: string;
+  customer_name: string | null;
+  organization_name: string | null;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  assigned_crew_name: string | null;
+  assigned_crew_email: string | null;
+  appointment_id: string | null;
+  appointment_status: AppointmentStatus | null;
+  appointment_starts_at: string | null;
+  appointment_ends_at: string | null;
+  appointment_local_date: string | null;
+  quote_id: string | null;
+  quote_number: string | null;
+  quote_status: QuoteStatus | null;
+  quote_total_cents: number | null;
+  invoice_id: string | null;
+  invoice_number: string | null;
+  invoice_status: InvoiceStatus | null;
+  invoice_total_cents: number | null;
+  invoice_balance_due_cents: number | null;
+  invoice_due_at: string | null;
+  approved_unbilled_change_order_count: number;
+  failed_communication_count: number;
+  has_cancelled_appointment: boolean;
+  needs_attention: boolean;
+  is_today: boolean;
+  is_billing: boolean;
+  awaiting_invoice: boolean;
+  action_rank: number;
+  search_text: string;
+  updated_at: string;
+  created_at: string;
+};
+
 export type CrewJob = Pick<
   Job,
   | "id"

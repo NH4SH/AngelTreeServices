@@ -364,3 +364,21 @@ Apply the reviewed `supabase/migrations/20260718210235_simplify_job_workflow.sql
 11. Confirm sent/partially paid invoices display the work order as **Invoiced**, and a paid invoice displays **Paid**, without rewriting physical completion status.
 12. With both closeout flags unset or false, confirm the optional progress checklist and closeout controls do not appear in admin or crew views.
 13. Test the work order page at desktop, tablet, and phone widths. Confirm disclosures, actions, long scope text, appointments, and photos remain reachable without horizontal page overflow.
+
+## Jobs operations index regression
+
+Apply the reviewed `supabase/migrations/20260718214709_jobs_operations_index.sql` migration before deploying the redesigned `/admin/jobs` page. Use controlled records and separate financial staff and crew accounts.
+
+1. Open `/admin/jobs` without query parameters. Confirm **Active** is selected and old paid or cancelled jobs do not dominate the results.
+2. Confirm active rows sort with in-progress work first, then today's work, overdue starts, unscheduled work, future work, and billing follow-up.
+3. Open **To be scheduled**, **Scheduled**, **In progress**, **Billing**, **Completed**, **Needs attention**, and **All**. Confirm each URL is bookmarkable and uses business-facing labels rather than raw statuses.
+4. Search by contracting party, service address, scope, quote number, and invoice number. Confirm the query remains in the URL and returns the expected job.
+5. Apply date, crew, city, priority, and invoice-state filters, change the sort, and move between pagination pages. Confirm all selected state persists.
+6. Confirm a generic `other` service type uses a concise quote-line or scope title and long scope text remains clamped.
+7. Confirm rows show the current active work appointment only, with correct Eastern date/time, city, crew, quote, invoice, and actionable warnings.
+8. Confirm no-invoice jobs offer **Create invoice** only when allowed; existing invoices offer **Open invoice** or **View payment** and are not duplicated.
+9. Create a draft invoice from an eligible row and confirm the job's physical status is unchanged and no customer email is sent.
+10. Confirm **Duplicate work order** and **Crew view** are under **More**, the manual job form is absent from the list, and **Add job** opens `/admin/jobs/new` with the quote-first explanation.
+11. With closeout disabled, confirm no closeout queue action appears. With it intentionally enabled, confirm the action remains secondary.
+12. Sign in as crew and confirm only RLS-permitted assigned jobs are readable and quote/invoice amounts remain hidden. Confirm anonymous access is denied.
+13. Test at 1440, 1280, 1024, 768, 430, 390, 375, and 320 pixels. Confirm there is no horizontal overflow, primary actions remain reachable, and filters and row menus remain usable.

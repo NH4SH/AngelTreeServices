@@ -1,5 +1,118 @@
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobPhoto, JobWithRelations, Note, QuoteWithRelations } from "@/lib/types/database";
+import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations } from "@/lib/types/database";
+
+export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "in_progress" | "billing" | "completed" | "needs_attention" | "all";
+export type JobsIndexSort = "action" | "scheduled" | "updated" | "customer" | "value";
+
+export type JobsIndexFilters = {
+  view: JobsOperationalView;
+  search?: string;
+  scheduledDate?: string;
+  assignedCrewId?: string;
+  city?: string;
+  priority?: string;
+  invoiceStatus?: string;
+  sort: JobsIndexSort;
+  page: number;
+  pageSize: number;
+};
+
+const activeJobStatuses = ["accepted", "scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"];
+
+export async function getJobsOperationsPage(filters: JobsIndexFilters): Promise<{
+  data: JobOperationsIndexRow[];
+  count: number;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
+
+  let query = supabase.from("job_operations_index").select("*", { count: "exact" });
+  query = applyJobsIndexFilters(query, filters, true);
+
+  if (filters.sort === "scheduled") {
+    query = query.order("appointment_starts_at", { ascending: true, nullsFirst: false }).order("updated_at", { ascending: false });
+  } else if (filters.sort === "updated") {
+    query = query.order("updated_at", { ascending: false });
+  } else if (filters.sort === "customer") {
+    query = query.order("contracting_party_name", { ascending: true }).order("updated_at", { ascending: false });
+  } else if (filters.sort === "value") {
+    query = query.order("quote_total_cents", { ascending: false, nullsFirst: false }).order("updated_at", { ascending: false });
+  } else {
+    query = query.order("action_rank", { ascending: true }).order("appointment_starts_at", { ascending: true, nullsFirst: false }).order("updated_at", { ascending: false });
+  }
+
+  const from = (filters.page - 1) * filters.pageSize;
+  const { data, error, count } = await query.range(from, from + filters.pageSize - 1);
+  return {
+    data: (data ?? []) as JobOperationsIndexRow[],
+    count: count ?? 0,
+    error: error?.message ?? null,
+  };
+}
+
+export async function getJobsIndexMetrics(filters: JobsIndexFilters) {
+  const supabase = await createClient();
+  if (!supabase) return { data: { toBeScheduled: 0, today: 0, inProgress: 0, awaitingInvoice: 0, unpaidInvoices: 0 }, error: "Supabase is not configured." };
+
+  const metricQuery = () => applyJobsIndexFilters(
+    supabase.from("job_operations_index").select("id", { count: "exact", head: true }),
+    filters,
+    false,
+  );
+  const [toBeScheduled, today, inProgress, awaitingInvoice, unpaidInvoices] = await Promise.all([
+    metricQuery().eq("job_status", "accepted").eq("operational_state", "to_be_scheduled"),
+    metricQuery().in("job_status", activeJobStatuses).eq("is_today", true),
+    metricQuery().in("job_status", activeJobStatuses).eq("operational_state", "in_progress"),
+    metricQuery().eq("awaiting_invoice", true),
+    metricQuery().in("invoice_status", ["draft", "sent", "partially_paid", "overdue"]),
+  ]);
+
+  return {
+    data: {
+      toBeScheduled: toBeScheduled.count ?? 0,
+      today: today.count ?? 0,
+      inProgress: inProgress.count ?? 0,
+      awaitingInvoice: awaitingInvoice.count ?? 0,
+      unpaidInvoices: unpaidInvoices.count ?? 0,
+    },
+    error: toBeScheduled.error?.message ?? today.error?.message ?? inProgress.error?.message ?? awaitingInvoice.error?.message ?? unpaidInvoices.error?.message ?? null,
+  };
+}
+
+export async function getJobsIndexCities(): Promise<DataResult<string[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+  const { data, error } = await supabase.from("service_locations").select("city").not("city", "is", null).order("city").limit(1000);
+  return {
+    data: [...new Set((data ?? []).map((item) => item.city?.trim()).filter((city): city is string => Boolean(city)))],
+    error: error?.message ?? null,
+  };
+}
+
+function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeView: boolean) {
+  if (includeView) {
+    if (filters.view === "active") query = query.in("job_status", activeJobStatuses).neq("operational_state", "paid").neq("operational_state", "cancelled");
+    if (filters.view === "to_be_scheduled") query = query.eq("job_status", "accepted").eq("operational_state", "to_be_scheduled");
+    if (filters.view === "scheduled") query = query.in("job_status", ["accepted", "scheduled"]).eq("operational_state", "scheduled");
+    if (filters.view === "in_progress") query = query.in("job_status", activeJobStatuses).eq("operational_state", "in_progress");
+    if (filters.view === "billing") query = query.eq("is_billing", true);
+    if (filters.view === "completed") query = query.in("operational_state", ["work_complete", "invoiced", "paid"]);
+    if (filters.view === "needs_attention") query = query.eq("needs_attention", true);
+  }
+
+  const search = filters.search?.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
+  if (search) query = query.ilike("search_text", `%${search}%`);
+  if (filters.assignedCrewId === "unassigned") query = query.is("assigned_crew_user_id", null);
+  else if (filters.assignedCrewId) query = query.eq("assigned_crew_user_id", filters.assignedCrewId);
+  if (filters.city) query = query.eq("city", filters.city);
+  if (filters.priority) query = query.eq("priority", filters.priority);
+  if (filters.invoiceStatus === "none") query = query.is("invoice_id", null);
+  else if (filters.invoiceStatus === "unpaid") query = query.in("invoice_status", ["draft", "sent", "partially_paid", "overdue"]);
+  else if (filters.invoiceStatus) query = query.eq("invoice_status", filters.invoiceStatus);
+  if (filters.scheduledDate) query = query.eq("appointment_local_date", filters.scheduledDate);
+  return query;
+}
 
 export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
   const supabase = await createClient();

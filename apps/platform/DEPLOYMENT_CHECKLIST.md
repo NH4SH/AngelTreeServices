@@ -486,3 +486,15 @@ Before deployment:
 The worker only advances accepted or scheduled jobs whose latest active job/maintenance appointment has started. It does not move billed, cancelled, completed, or correction-review records backward. Draft invoice creation does not change the job's physical status and does not send the invoice.
 
 Rollback the application before removing a database function it calls. The migration is additive and can remain safely in place while an application rollback is investigated.
+
+## Jobs operations index
+
+The compact `/admin/jobs` workspace depends on this additive, RLS-aware read-model migration:
+
+```text
+supabase/migrations/20260718214709_jobs_operations_index.sql
+```
+
+Review and apply it only after `20260718210235_simplify_job_workflow.sql`. The migration adds supporting partial indexes and the `public.job_operations_index` security-invoker view; it does not rewrite jobs, appointments, quotes, invoices, or change orders. Deploy the compatible platform build after the migration succeeds, refresh the PostgREST schema cache only if the view is not immediately visible, and complete the jobs operations index checks in `PRODUCTION_TESTING.md`.
+
+Financial quote and invoice values in the view are masked through the existing financial-reporting role helper. Keep `app_private` out of exposed Data API schemas. Roll back the application before removing the view; leaving the additive indexes in place is safe during an application rollback.

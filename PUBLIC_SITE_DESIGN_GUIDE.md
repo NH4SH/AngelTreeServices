@@ -27,7 +27,7 @@ The current public-site tokens in `overrides.css` are the source of truth:
 | Deep green | `--ats-green-deep: #163f19` | Strong text and dark supporting surfaces |
 | Soft cream-green | `--ats-green-soft: #f6fbf2` | Form cards and quiet supporting surfaces |
 | White | `#ffffff` | Hero copy, action surfaces, dividers |
-| Yellow | Existing logo/badge artwork only | Brand accent; do not spread into unrelated UI |
+| Yellow | Existing logo/badge artwork and restrained verified-rating stars | Small trust accent; do not spread into unrelated UI |
 
 Use white and cream to create relief from the green. Keep body copy contrast high. Do not mute the core green into gray-green or introduce unrelated blues/purples.
 
@@ -81,6 +81,14 @@ The exported Squarespace grid is not a reusable page-layout system. New static s
 - Centered beneath the primary hero CTA.
 - One concise verified heading, then the existing ISA Member and ISA Certified Arborist images.
 - No unverified qualification text, no fabricated badge, and no badge wall.
+
+### Reviews, Recognition, and Press
+
+- Present customer reviews, local recognition, and media coverage as distinct evidence within one restrained editorial system.
+- Use aligned columns, typographic scale, and quiet separators rather than a logo strip or a grid of generic cards.
+- A small yellow star line may support a verified aggregate rating, but the numerical rating and review threshold must also be written in text.
+- Finalist language must remain visibly qualified; media coverage must never be styled or described as an endorsement.
+- Video uses a responsive click-to-load facade and privacy-enhanced embed. Do not autoplay or load a full third-party player before interaction.
 
 ### Service Cards
 
@@ -153,6 +161,9 @@ Allowed only when currently verified:
 - 30+ years of industry experience.
 - Current Chamber membership.
 - Local service-area statements supported by operations.
+- Google rating and durable review-count threshold recorded in `PUBLIC_RECOGNITION_SOURCES.md`.
+- Best of the Burg finalist status and category recorded in `PUBLIC_RECOGNITION_SOURCES.md`.
+- Factual NBC4 Responds coverage recorded in `PUBLIC_RECOGNITION_SOURCES.md`.
 
 Do not publish TRAQ, ratings, review counts, hours, licensing, insurance, guarantees, awards, or 24/7 availability without current evidence and owner approval.
 

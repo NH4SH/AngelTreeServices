@@ -37,8 +37,35 @@
     });
   }
 
+  function enablePrivacyEnhancedVideos() {
+    document.querySelectorAll(".ats-video-facade[data-video-id]").forEach(function (facade) {
+      var button = facade.querySelector(".ats-video-facade__button");
+      var videoId = facade.dataset.videoId;
+
+      if (!button || !/^[A-Za-z0-9_-]{11}$/.test(videoId || "")) {
+        return;
+      }
+
+      button.addEventListener(
+        "click",
+        function () {
+          var iframe = document.createElement("iframe");
+          iframe.className = "ats-video-facade__iframe";
+          iframe.src = "https://www.youtube-nocookie.com/embed/" + videoId;
+          iframe.title = "NBC4 Responds report about Angel Tree Services";
+          iframe.allow = "encrypted-media; picture-in-picture; web-share";
+          iframe.allowFullscreen = true;
+          iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          facade.replaceChildren(iframe);
+        },
+        { once: true }
+      );
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     preserveCampaignParameters();
     closeMobileMenuAfterNavigation();
+    enablePrivacyEnhancedVideos();
   });
 })();

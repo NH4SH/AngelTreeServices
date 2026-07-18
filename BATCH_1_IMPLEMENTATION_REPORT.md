@@ -2,9 +2,9 @@
 
 ## Status
 
-Batch 1 is implemented locally and ready for visual approval. It has not been deployed.
+Batch 1 was visually approved and is part of the current production baseline. The production site was serving commit `73358a371d221d81770467bd49f2b9f3a3fc33ad` when the controlled release review was performed on July 17, 2026.
 
-The Batch 2 brief explicitly requires this approval before new public pages are created, so no Batch 2 routes have been added yet.
+The deterministic build, validation, and repository-controlled Netlify configuration added during the release review remain local pending explicit deployment approval. Batch 2 routes now exist and are documented separately in `BATCH_2_IMPLEMENTATION_REPORT.md`.
 
 ## Implemented
 
@@ -115,7 +115,7 @@ The worktree also contains earlier CRM lead-intake work documented separately. T
 - The homepage still carries a substantial Squarespace-derived runtime and CSS payload. Removing it wholesale is intentionally deferred because the current header, section geometry, and animations still depend on portions of it.
 - Local static-server testing still reports legacy Squarespace cookie/census errors that are unrelated to the Batch 1 code. The new missing performance script, extension-script, and Chamber widget errors were removed.
 - The mobile and desktop hero still use parallel markup. Consolidation remains a controlled later task because prior changes to this area caused visible regressions.
-- Production still needs deployment and a post-deploy source scan before the credential correction can be considered live.
+- The July 17, 2026 production-source scan found no public TRAQ reference across the homepage, all eight generated routes, `sitemap.xml`, or `robots.txt`.
 
 ## Deferred for Missing Verified Material
 

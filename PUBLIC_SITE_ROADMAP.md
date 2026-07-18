@@ -8,6 +8,14 @@
 - Publish only verified claims and real project material.
 - Measure before removing Squarespace-port dependencies.
 
+## Current Release Status
+
+As of July 17, 2026, Batch 1 is visually approved and Batch 2 content is present on the production domain at commit `73358a371d221d81770467bd49f2b9f3a3fc33ad`. A production-source scan found no TRAQ language on any of the nine approved pages, in sitemap/robots, or in emitted metadata.
+
+The controlled release review has prepared a deterministic `dist-public/` build, automated validation, and repository-controlled Netlify settings. These release-hardening changes remain local pending explicit approval; nothing was deployed during the review. Manual gates and rollback instructions are in `PUBLIC_SITE_RELEASE_CHECKLIST.md`.
+
+A style-preserving reviews, recognition, and media layer is now prepared locally for the same controlled release. It adds `/recognition/`, a restrained homepage trust section, verified Best of the Burg finalist wording, factual NBC4 Responds coverage, and a click-to-load official video. It has not been deployed.
+
 ## Ranked Implementation Matrix
 
 | Rank | Work item | Expected impact | Change risk | Assets/content needed | CRM/data impact | Visual effect | Dependency |
@@ -25,18 +33,20 @@
 | P2 | Consolidate hero/runtime dependencies | Maintainability and performance | High | Complete visual baselines | None | Must remain visually equivalent | Stable approved homepage |
 | P3 | Commercial/HOA service depth | Better property-manager conversion | Medium | Verified service capabilities and proof | Additional organization/property context if useful | Homeowner system with denser detail | Commercial workflow approval |
 | P3 | Learning center | Sustainable informational discovery | Low per page | Reviewed expert content and media | Content attribution only | Quieter editorial pattern | Editorial cadence |
-| P3 | Review-proof system | Stronger third-party trust | Medium | Approved source and update owner | Optional review-source metadata | Small proof modules | Reliable maintainable review source |
+| P2 | Reviews, recognition, and media layer | Stronger third-party trust and entity corroboration | Medium | Maintained official-source record | No customer data | Restrained editorial proof modules | Quarterly source review |
 
 Risk labels describe regression or claim risk, not implementation effort. Any credential, licensing, insurance, availability, review-count, or customer claim remains blocked until evidence and owner approval are recorded.
 
 ## P0 — Credential and Lead Safety
 
 - [x] Remove TRAQ references from local public source.
-- [ ] Deploy the corrected source and verify the production HTML no longer contains TRAQ.
+- [x] Verify the production HTML, metadata, sitemap, and robots no longer contain TRAQ.
 - [x] Save website leads before attempting secondary notifications.
 - [x] Treat successful `2xx` responses safely on the frontend.
 - [x] Preserve submission IDs, UTM fields, page URL, referrer, honeypot handling, and duplicate-click protection.
 - [ ] Complete production smoke testing with a controlled test lead and verify one CRM record.
+- [ ] Verify Netlify dashboard overrides/redirects match repository `netlify.toml`, then publish the deterministic release package with explicit approval.
+- [ ] Replace or explicitly accept the CRM's best-effort in-memory lead rate limiter before intentional high-volume traffic.
 
 ## P1 — Batch 1 Foundations
 
@@ -65,7 +75,8 @@ Risk labels describe regression or claim risk, not implementation effort. Any cr
 - [ ] Select one canonical asset directory and remove duplicate payloads in a controlled migration.
 - [ ] Remove verified-unused Squarespace runtime/CSS only after baseline comparison.
 - [ ] Generate modern responsive image derivatives while preserving originals.
-- [ ] Establish a maintainable review-proof source.
+- [x] Establish a maintainable review, recognition, and media source record and permanent page.
+- [ ] Reverify the Google rating/count threshold and all official recognition sources quarterly or before a major release.
 
 ## P3 — Ongoing Growth
 

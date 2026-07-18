@@ -1,6 +1,11 @@
 # Local Netlify folder
 .netlify
 
+# Generated public-site release artifact
+dist-public
+__pycache__/
+*.py[cod]
+
 # Dependencies and framework output
 node_modules
 .next

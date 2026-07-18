@@ -2,7 +2,9 @@
 
 ## Status
 
-Batch 2 is implemented and validated locally. It has not been deployed.
+Batch 2 content is present on the production site at commit `73358a371d221d81770467bd49f2b9f3a3fc33ad`. Netlify's public site record reported production deploy `6a5ab6d61cf11300081138b1`, published July 17, 2026.
+
+The controlled release review added a deterministic build artifact, a repository-controlled Netlify contract, and automated validation. Those release-hardening changes remain local and have not been deployed. Release approval is therefore conditional on the gates in `PUBLIC_SITE_RELEASE_CHECKLIST.md`.
 
 The approved homepage remains the conversion hub. The new routes use a lightweight shared static-page system and the same green, cream, white, Poppins, rounded-button, real-photography, and organic-wave language as the homepage.
 
@@ -46,11 +48,13 @@ The shared system includes:
 - Reusable content, process, FAQ, callout, related-link, final-CTA, footer, and mobile-action patterns.
 - Centralized metadata and JSON-LD generation.
 
-To regenerate the routes locally:
+The generated pages are build artifacts and are not committed. A clean checkout uses the same command locally and on Netlify:
 
 ```bash
-python3 scripts/build-public-pages.py
+npm run test:public
 ```
+
+This creates a fresh `dist-public/` artifact, generates the eight Batch 2 routes plus the homepage, and validates the complete public package. `scripts/build-public-pages.py` writes only inside the configured build output; it does not overwrite the hand-maintained homepage.
 
 ## Homepage Integration
 
@@ -121,36 +125,39 @@ Current insurance, workers’ compensation, licensing, hours, response-time, cus
 - `index.html`
 - `overrides.css`
 - `ats-form-enhancements.js`
-- `sitemap.xml`
 - `site-pages.css`
 - `site-pages.js`
+- `.gitignore`
+- `package.json`
+- `netlify.toml`
+- `scripts/build-public-site.py`
 - `scripts/build-public-pages.py`
-- `services/index.html`
-- `services/tree-removal/index.html`
-- `services/tree-pruning/index.html`
-- `services/stump-grinding/index.html`
-- `services/emergency-tree-service/index.html`
-- `services/commercial-hoa-tree-care/index.html`
-- `credentials-safety/index.html`
-- `projects/index.html`
+- `scripts/validate-public-site.py`
 - `PUBLIC_SITE_CONTENT_ARCHITECTURE.md`
 - `PUBLIC_SITE_DESIGN_GUIDE.md`
 - `PUBLIC_SITE_ROADMAP.md`
+- `PUBLIC_SITE_RELEASE_CHECKLIST.md`
 - `BATCH_2_IMPLEMENTATION_REPORT.md`
+
+The previously committed generated route files, `sitemap.xml`, and `robots.txt` are intentionally removed from source control. They are now created in `dist-public/` during every build, leaving one source of truth instead of mixing committed and generated output.
 
 ## Verification Completed
 
-- Regenerated all static routes from the shared builder.
+- `npm run test:public`: passed; generated and validated exactly nine indexable pages.
+- `netlify build --offline`: passed using repository `netlify.toml`.
+- Clean prospective checkout with no `node_modules`: passed twice; source hashes remained unchanged and artifact hashes matched.
+- Second consecutive build: byte-identical public artifact and no unexpected source diff.
 - `python3 -m py_compile scripts/build-public-pages.py`: passed.
 - `node --check site-pages.js`: passed.
 - `node --check ats-form-enhancements.js`: passed.
-- Local internal-link and asset-reference check across all nine indexable HTML files: passed.
+- Automated internal-link, asset-reference, route-inventory, sitemap, robots, metadata, canonical, Open Graph, JSON-LD, duplicate-ID, form, and publish-boundary checks: passed.
 - Unique title and description check: passed.
 - One-H1 and heading-presence check: passed.
 - JSON-LD parse check: passed.
 - `sitemap.xml` parse check: passed.
 - Public HTML/CSS/JavaScript/JSON/XML TRAQ scan: zero matches.
-- Browser matrix for every new route at 1440px, 1024px, and 390px: all returned `200`, had one H1, and matched document width to viewport width.
+- Production-source TRAQ scan on July 17, 2026: zero matches across all nine pages, sitemap, and robots.
+- Browser matrix for every new route at 1440px, 1024px, 768px, 390px, and 360px: all returned `200`, had one H1, and matched document width to viewport width.
 - New-route browser console/page-error check: zero errors.
 - Keyboard skip-link check: passed.
 - Mobile menu open/touch-width/overflow check: passed.
@@ -158,18 +165,22 @@ Current insurance, workers’ compensation, licensing, hours, response-time, cus
 - Homepage visual check at 1440px, 1024px, and 390px: passed with no horizontal overflow.
 - `git diff --check`: passed.
 
-The homepage still emits known legacy Squarespace local-server warnings/errors that predate this static-page system. New pages do not load that runtime and produced no console errors.
+The homepage still emits known legacy Squarespace local-server warnings/errors that predate this static-page system. New pages do not load that runtime and produced no console errors. The release review also changed the hidden legacy hero image from eager to lazy loading, preventing an unnecessary duplicate hero download without changing the visible hero.
+
+## Release-Readiness Findings
+
+- **Build contract:** repository root, `npm run test:public`, publish `dist-public/`.
+- **Build dependencies:** Node.js/npm and Python 3; the public static build requires no environment variables.
+- **Public artifact boundary:** only curated HTML, CSS, JavaScript, image assets, `robots.txt`, and `sitemap.xml` enter `dist-public/`. Audit Markdown, screenshots, application source, scripts, local files, and environment files are rejected by validation.
+- **Admin separation:** the public static site posts to the separate CRM at `https://admin.angeltreeservices.org/api/leads`; the CRM build and database are outside this release package.
+- **Claims requiring owner evidence:** active ISA Certified Arborist status and the published `30+ years` experience statement should remain release approval items. No licensing, insurance, bonded, workers' compensation, family-operated, or 24/7 claim was added.
+- **Lead compatibility:** simulated `2xx`, empty-body, explicit failure, server-failure, and repeated-click cases passed. No real production lead was submitted.
+- **Known platform hardening item:** the CRM lead route currently uses a process-memory IP rate limiter. It is best-effort across serverless instances and should be replaced with a durable shared limiter before a campaign or other intentional traffic increase.
+- **Netlify dashboard visibility:** repository configuration is unambiguous, but dashboard-only base/build/publish overrides and redirects could not be authenticated from the local CLI. They must be checked manually before publishing.
 
 ## Deployment Steps
 
-1. Review the local homepage and new-page screenshots at 1440px, 1024px, and 390px.
-2. Run `python3 scripts/build-public-pages.py` and confirm no unexpected generated diff.
-3. Deploy the static site through the existing Netlify release path; do not deploy an incomplete subset of the generated pages and shared assets.
-4. Confirm each route returns `200` on the canonical HTTPS host.
-5. Confirm `/sitemap.xml` includes only the completed routes in this report.
-6. Confirm canonical and Open Graph URLs use `https://angeltreeservices.org`.
-7. Submit controlled homeowner, emergency, and commercial estimate tests and verify one correctly attributed CRM lead per submission.
-8. Re-run the production TRAQ scan before announcing the release.
+Use the exact gated steps in `PUBLIC_SITE_RELEASE_CHECKLIST.md`. Do not deploy an incomplete subset of the generated pages and shared assets, and do not submit a real production lead without explicit approval.
 
 ## Search Console Recommendations
 

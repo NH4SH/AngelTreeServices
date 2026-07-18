@@ -25,6 +25,7 @@ The `www` host may redirect at Netlify. Email addresses on `angeltreeservice.org
 | `/services/commercial-hoa-tree-care/` | Commercial, HOA, and property-management service path | Index |
 | `/credentials-safety/` | Verified credentials, planning, and safety practices | Index |
 | `/projects/` | Real-work image library and future case-study hub | Index |
+| `/recognition/` | Verified Google review proof, 2026 finalist recognition, and NBC4 coverage | Index |
 | `/landing-clean/` | Alternate design experiment | Noindex |
 | `/localbuild/` | Older static alternate/source | Noindex |
 | `/admin/` | Legacy placeholder; internal platform now lives separately | Noindex |
@@ -125,6 +126,20 @@ Include:
 
 `/contact/` may eventually provide a dedicated version of the existing estimate flow. Until then, `/#contact` remains the canonical action target.
 
+### Reviews, Recognition, and Media Coverage
+
+`/recognition/`
+
+Purpose: corroborate Angel Tree Services through current customer review proof, exact local finalist recognition, and factual independent media coverage without presenting any source as an endorsement.
+
+Maintenance rules:
+
+- Keep the Google rating and durable count threshold synchronized with `PUBLIC_RECOGNITION_SOURCES.md`.
+- Publish individual review excerpts only when the exact public review, reviewer display name, rating, and source link can be verified.
+- Keep Best of the Burg language qualified as finalist status in the exact verified category.
+- Describe NBC4 as coverage of the business-profile issue, never as a recommendation or workmanship award.
+- Use no `AggregateRating` or `Review` structured data for this self-serving local-business review proof.
+
 ## Homepage Evolution
 
 Preserve the existing hero and visual identity. Recommended content order:
@@ -204,6 +219,7 @@ Do not turn educational pages into diagnoses from photographs. Recommended schem
 ### Structured Data
 
 - Homepage: one maintainable LocalBusiness/Organization graph and WebSite identity.
+- Recognition page: WebPage and BreadcrumbList tied to the existing business entity; verified finalist text may be represented by `award`, and official coverage may be referenced through `subjectOf` on the canonical business entity.
 - Service page: Service only for visibly offered, truthful services.
 - Project page: Article/CreativeWork only when content supports it; no fabricated review markup.
 - Deep pages: BreadcrumbList reflecting visible navigation.
@@ -211,10 +227,11 @@ Do not turn educational pages into diagnoses from photographs. Recommended schem
 
 ## Internal Linking
 
-- Homepage links to the service hub, projects, commercial/HOA, credentials/safety, and the shared estimate flow.
+- Homepage links to the service hub, projects, commercial/HOA, credentials/safety, recognition, and the shared estimate flow.
 - Service pages link to relevant adjacent services, the project library, credentials/safety, and the shared estimate flow.
 - Project pages link back to the performed service and estimate action.
 - Commercial/HOA content links to relevant services, credentials/safety, and an organization-prefilled estimate path.
+- Credentials/safety and the restrained static-page footer link to recognition; recognition links back to services, credentials/safety, projects, and the shared estimate flow.
 - Service-area content links to services, not to duplicate city variants.
 - Use descriptive link labels; avoid generic “learn more” where context is unclear.
 
@@ -341,7 +358,7 @@ The shared estimate path accepts only exact existing `service` and `customer_typ
 | Service detail | Current service cards | Match specific needs to services | Short homepage overview; depth on service pages |
 | Regional coverage | Existing subheading style | Confirm local relevance | Short homepage statement; depth on `/service-area/` |
 | Why Angel Tree | Current editorial heading and real imagery | Explain verified process and property care | Concise homepage proof; full credentials/safety page |
-| Customer review | Existing centered editorial rhythm | Add third-party reassurance | One verified homepage quote; maintained proof elsewhere |
+| Reviews, recognition, and press | Existing centered editorial rhythm with quiet separators | Add third-party reassurance without a badge wall | Durable aggregate proof on the homepage; maintained sources and full context on `/recognition/` |
 | Residential/commercial paths | Existing rounded controls | Route distinct customer needs | Compact homepage choice; depth on service pages |
 | Service-area entry points | Existing service-card pattern | Help genuine local visitors orient | Small homepage list; regional page for depth |
 | Practical FAQs | Existing text hierarchy | Resolve final estimate objections | A short homepage set; service-specific answers on deeper pages |

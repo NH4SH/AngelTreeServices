@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "build:public": "python3 scripts/build-public-site.py",
+    "validate:public": "python3 scripts/validate-public-site.py --site-dir dist-public",
+    "test:public": "npm run build:public && npm run validate:public"
+  },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2"

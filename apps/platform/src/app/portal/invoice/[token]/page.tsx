@@ -109,7 +109,8 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
             </>
           ) : canPay ? (
             <>
-              <strong>Pay securely online</strong>
+              <strong>How would you like to pay?</strong>
+              <p>Choose a secure online option or let our office know that you plan to pay by cash or check.</p>
               {payment === "success" ? <p>Payment submitted. This invoice will update as soon as Stripe confirms it.</p> : null}
               {payment === "cancelled" ? <p>Checkout was cancelled. No payment was made.</p> : null}
               <InvoicePortalPaymentButton token={token} />

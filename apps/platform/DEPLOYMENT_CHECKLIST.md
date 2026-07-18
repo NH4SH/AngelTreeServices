@@ -465,3 +465,24 @@ Rollback considerations:
 - The Documents migration is additive; leaving its table and private bucket in place is safer than dropping uploaded metadata or files.
 - Do not restore legacy customer requirements or remove organization ownership columns while organization-owned records exist.
 - If a migration fails, stop and inspect the exact statement and production history. Do not mark it applied manually or continue with later migrations.
+
+## Simplified job workflow
+
+The simplified job command center depends on the reviewed migration below. Do not apply it automatically from a Netlify deploy:
+
+```text
+supabase/migrations/20260718210235_simplify_job_workflow.sql
+```
+
+Before deployment:
+
+1. Back up production and compare local/remote migration history with `npx supabase migration list`.
+2. Review and apply `20260718210235_simplify_job_workflow.sql` to the intended Supabase project.
+3. Keep `COMMUNICATION_WORKER_SECRET` configured in Netlify. The scheduled `advance-scheduled-jobs` function uses the same secret to call the protected internal route every five minutes.
+4. Leave `CREW_JOB_CLOSEOUT_ENABLED=false` and `CREW_JOB_PROGRESS_CHECKLIST_ENABLED=false` unless the optional crew closeout workflow is intentionally enabled and tested.
+5. Deploy the compatible platform build after the migration succeeds.
+6. Complete the simplified job workflow checks in `PRODUCTION_TESTING.md` with controlled records.
+
+The worker only advances accepted or scheduled jobs whose latest active job/maintenance appointment has started. It does not move billed, cancelled, completed, or correction-review records backward. Draft invoice creation does not change the job's physical status and does not send the invoice.
+
+Rollback the application before removing a database function it calls. The migration is additive and can remain safely in place while an application rollback is investigated.

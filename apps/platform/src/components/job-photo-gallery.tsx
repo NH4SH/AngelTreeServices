@@ -11,9 +11,18 @@ const galleryGroups: { photoType: JobPhotoType; title: string }[] = [
 ];
 
 export function JobPhotoGallery({ photos }: { photos: SignedJobPhoto[] }) {
+  if (photos.length === 0) {
+    return (
+      <div className="job-photo-empty">
+        <ImageOff aria-hidden="true" size={22} />
+        <div><strong>No photos yet.</strong><span>Add photos from the crew work order when they are useful.</span></div>
+      </div>
+    );
+  }
+
   return (
     <div className="job-photo-gallery">
-      {galleryGroups.map((group) => (
+      {galleryGroups.filter((group) => photos.some((photo) => photo.photo_type === group.photoType)).map((group) => (
         <PhotoGroup
           key={group.photoType}
           photos={photos.filter((photo) => photo.photo_type === group.photoType)}

@@ -1,43 +1,56 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Camera, ClipboardCheck, FilePlus2, FileSignature, Forklift, MapPin, Navigation, PackageCheck, ReceiptText, Truck, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  Camera,
+  ChevronDown,
+  CircleDollarSign,
+  ClipboardCheck,
+  FilePlus2,
+  FileSignature,
+  Forklift,
+  MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  Navigation,
+  PackageCheck,
+  ReceiptText,
+  Truck,
+  UserRound,
+} from "lucide-react";
+import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
+import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
 import { PrintButton } from "@/components/documents/print-button";
 import { WorkOrderDocument } from "@/components/documents/work-order-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
-import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
-import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { JobCostPanel } from "@/components/job-cost-panel";
+import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { JobMaterialPlanForm } from "@/components/materials-forms";
-import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
+import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
+import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAssignableUsers } from "@/lib/data/appointments";
-import { getJobDetail } from "@/lib/data/jobs";
-import { getJobPhotos } from "@/lib/data/job-photos";
-import { getJobCostEntries } from "@/lib/data/reports";
-import { getJobMaterials } from "@/lib/data/materials";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
+import { getJobPhotos } from "@/lib/data/job-photos";
+import { getJobDetail } from "@/lib/data/jobs";
+import { getJobMaterials } from "@/lib/data/materials";
+import { getJobCostEntries } from "@/lib/data/reports";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
 import { generateEstimateScheduledMessage, generateJobScheduledMessage, generatePostJobFollowUpMessage } from "@/lib/documents/scheduling-drafts";
-import { getDirectionsUrl } from "@/lib/maps";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
+import { formatJobOperationalState, getCurrentWorkAppointment, getJobOperationalState } from "@/lib/jobs/operational-status";
+import { getDirectionsUrl } from "@/lib/maps";
 
 type JobDetailPageProps = {
-  params: Promise<{
-    jobId: string;
-  }>;
-  searchParams: Promise<{
-    contact_warning?: string;
-    duplicated?: string;
-  }>;
+  params: Promise<{ jobId: string }>;
+  searchParams: Promise<{ contact_warning?: string; duplicated?: string }>;
 };
 
 export default async function JobDetailPage({ params, searchParams }: JobDetailPageProps) {
@@ -45,9 +58,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/jobs/${jobId}`);
 
-  if (!context.configured) {
-    return <SetupRequired title="Configure Supabase before opening job details" />;
-  }
+  if (!context.configured) return <SetupRequired title="Configure Supabase before opening job details" />;
 
   const [detail, assignedUsers, photos, communications, jobCosts, materials] = await Promise.all([
     getJobDetail(jobId),
@@ -61,286 +72,198 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   const recipientOptions = job
     ? await getCommunicationRecipientOptions({ customerId: job.customer_id, organizationId: job.organization_id })
     : { data: [], error: null };
-  const nextAppointment = job?.appointments
-    ?.filter((appointment) => ["estimate", "job", "maintenance"].includes(appointment.appointment_type) && ["scheduled", "confirmed"].includes(appointment.status))
-    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime())[0] ?? null;
+
+  if (!job) {
+    return (
+      <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
+        <div className="shell app-content"><EmptyState title="Job not found or no access" body="This record is unavailable to the current account." /></div>
+      </PlatformFrame>
+    );
+  }
+
+  const currentAppointment = getCurrentWorkAppointment(job.appointments ?? []);
+  const operationalState = getJobOperationalState({ appointments: job.appointments, invoices: job.invoices, jobStatus: job.status });
+  const operationalLabel = formatJobOperationalState(operationalState);
+  const approvedQuote = (job.quotes ?? []).find((quote) => quote.status === "approved") ?? job.quotes?.[0] ?? null;
+  const invoice = (job.invoices ?? []).find((item) => item.status !== "void") ?? job.invoices?.[0] ?? null;
+  const approvedChanges = (job.change_orders ?? []).filter((order) => order.status === "approved");
+  const pendingChanges = (job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status));
+  const unbilledChanges = approvedChanges.filter((order) => !order.invoice_id);
+  const canManageBilling = hasAllowedRole(context.roles, platformRoleGroups.internalStaff);
+  const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
+  const canCreateInvoice = canManageBilling && !invoice && ["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status);
+  const directionsUrl = getDirectionsUrl(job.service_locations);
 
   return (
     <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content">
+      <div className="shell app-content job-command-page">
         <Link className="crew-back-link" href="/admin/jobs">Back to jobs</Link>
-        {detail.error ? <DataWarning message={detail.error} /> : null}
-        {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
-        {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
-        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
-        {jobCosts.error ? <DataWarning message={`Job costs: ${jobCosts.error}`} /> : null}
-        {materials.error ? <DataWarning message={`Materials: ${materials.error}`} /> : null}
-        {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
-        {query.duplicated === "job" ? (
-          <p className="form-message success" role="status">Work order duplicated.</p>
-        ) : null}
-        {query.contact_warning === "1" ? (
-          <p className="form-message error" role="alert">One or more selected organization contacts were inactive and were not copied. Review the work order contacts before scheduling.</p>
-        ) : null}
-        {!job ? (
-          <EmptyState title="Job not found or no access" body="This record is unavailable to the current account." />
-        ) : (
-          <>
-            <section className="page-heading">
-              <p className="surface-label"><ClipboardCheck aria-hidden="true" size={18} />Job File</p>
-              <h1>{job.service_type?.replace("_", " ") || "Service job"}</h1>
-              <p>{job.requested_scope || "No requested scope entered yet."}</p>
-              <div className="action-row">
-                {job.status === "accepted" ? <a className="primary-action" href="#job-scheduling">Schedule work</a> : null}
-                {["scheduled", "in_progress"].includes(job.status) ? <Link className="primary-action" href={`/admin/schedule?job_id=${job.id}`}>View schedule</Link> : null}
-                {["completed", "ready_to_invoice"].includes(job.status) ? <a className="primary-action" href="#job-status-actions">Generate invoice</a> : null}
-                <Link className="secondary-action" href={`/crew/jobs/${job.id}`}>Crew view</Link>
-                <DuplicateRecordButton
-                  action={duplicateJob}
-                  buttonClassName="secondary-action"
-                  hiddenFieldName="job_id"
-                  hiddenFieldValue={job.id}
-                  label="Duplicate work order"
-                  pendingLabel="Copying work order..."
-                />
-              </div>
-            </section>
+        <PageNotices
+          errors={[detail.error, assignedUsers.error, photos.error, communications.error, jobCosts.error, materials.error, recipientOptions.error]}
+          query={query}
+        />
 
-            <section className="scheduling-workspace" id="job-scheduling">
-              <div className="document-workspace-heading">
-                <div>
-                  <p className="surface-label"><CalendarDays aria-hidden="true" size={18} />Scheduling</p>
-                  <h2>Add an estimate, job visit, or follow-up</h2>
-                </div>
-                <Link className="secondary-action" href="/admin/schedule">Open schedule</Link>
-              </div>
-              <div className="scheduling-form-grid">
-                <section>
-                  <h3>Schedule estimate</h3>
-                  <AddAppointmentForm assignedUsers={assignedUsers.data} defaultAppointmentType="estimate" jobId={job.id} jobs={[]} lockedAppointmentType="estimate" />
-                </section>
-                <section>
-                  <h3>Schedule job</h3>
-                  <AddAppointmentForm assignedUsers={assignedUsers.data} defaultAppointmentType="job" jobId={job.id} jobs={[]} lockedAppointmentType="job" />
-                </section>
-                <section>
-                  <h3>Add follow-up</h3>
-                  <AddAppointmentForm assignedUsers={assignedUsers.data} defaultAppointmentType="follow_up" jobId={job.id} jobs={[]} lockedAppointmentType="follow_up" />
-                </section>
-              </div>
-            </section>
+        <header className="job-command-header">
+          <div className="job-command-title">
+            <div>
+              <p className="surface-label"><ClipboardCheck aria-hidden="true" size={18} />Work order</p>
+              <h1>{title(job.service_type || "Service job")}</h1>
+              <p className="job-command-scope">{job.requested_scope || "No approved scope entered yet."}</p>
+            </div>
+            <span className={`job-operational-status state-${operationalState}`}>{operationalLabel}</span>
+          </div>
 
-            <section className="detail-grid">
-              <article className="detail-panel" id="job-status-actions">
-                <PanelTitle icon={<ClipboardCheck size={18} />} title="Status" />
-                <span className="status-pill">{job.status.replace("_", " ")}</span>
-                <JobStatusActions jobId={job.id} status={job.status} />
-                {["completed", "ready_to_invoice"].includes(job.status) ? <CreateInvoiceFromJobAction jobId={job.id} /> : null}
-                {["returned_for_correction", "completed_pending_review", "ready_to_invoice"].includes(job.status) ? (
-                  <Link className="secondary-action compact-action" href={`/admin/jobs/${job.id}/closeout`}>Review closeout</Link>
-                ) : null}
-              </article>
-              <article className="detail-panel">
-                <PanelTitle icon={<UsersRound size={18} />} title="Contracting party" />
-                <Link className="linked-record" href={job.organization_id ? `/admin/organizations/${job.organization_id}` : `/admin/customers/${job.customer_id}`}>
-                  <strong>{job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party"}</strong>
-                  <span>{job.organizations?.billing_phone || job.organizations?.billing_email || job.customers?.phone || job.customers?.email || "No contact set"}</span>
-                </Link>
-              </article>
-              <article className="detail-panel">
-                <PanelTitle icon={<MapPin size={18} />} title="Service location" />
-                <p>{job.service_locations ? `${job.service_locations.street}, ${job.service_locations.city}, ${job.service_locations.state}` : "No service location"}</p>
-                <p>{job.service_locations?.access_notes || job.service_locations?.service_notes || "No access or service notes."}</p>
-                {getDirectionsUrl(job.service_locations) ? (
-                  <a className="primary-action compact-action" href={getDirectionsUrl(job.service_locations) ?? undefined} rel="noreferrer" target="_blank">
-                    <Navigation aria-hidden="true" size={17} />
-                    Directions
-                  </a>
-                ) : null}
-              </article>
-              <article className="detail-panel">
-                <PanelTitle icon={<CalendarDays size={18} />} title="Schedule" />
-                {job.appointments?.length ? job.appointments.map((appointment) => (
-                  <article className="linked-record" key={appointment.id}>
-                    <strong>{appointment.appointment_type.replace("_", " ")}</strong>
-                    <span>{new Date(appointment.starts_at).toLocaleString()} - {appointment.status.replace("_", " ")}</span>
-                    <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={job.id} />
-                  </article>
-                )) : <EmptyInline>No appointments yet.</EmptyInline>}
-              </article>
-              {(nextAppointment || job.scheduled_start_at) ? (
-                <article className="detail-panel wide-detail-panel">
-                  <PanelTitle icon={<CalendarDays size={18} />} title="Customer appointment communication" />
-                  <p className="inline-empty">Customer messages use the current schedule and service location. Internal calendar, access, gate, crew, and service notes are never included.</p>
-                  <CommunicationControls
-                    communicationType={nextAppointment?.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
-                    communications={communications.data.filter((item) => nextAppointment ? item.appointment_id === nextAppointment.id : item.job_id === job.id)}
-                    recipientOptions={recipientOptions.data}
-                    recordId={nextAppointment?.id ?? job.id}
-                    recordType={nextAppointment ? "appointment" : "job"}
-                  />
-                </article>
-              ) : null}
-              <RecordLinks
-                empty="No quotes yet."
-                icon={<FileSignature size={18} />}
-                items={(job.quotes ?? []).map((quote) => ({
-                  href: `/admin/quotes/${quote.id}`,
-                  meta: `${quote.status.replace("_", " ")} - ${formatCurrency(quote.total_cents)}`,
-                  title: quote.quote_number || "Quote",
-                }))}
-                title="Related quote"
-              />
-              <article className="detail-panel wide-detail-panel change-order-job-panel">
-                <div className="panel-heading-row">
-                  <PanelTitle icon={<FilePlus2 size={18} />} title="Additional work and change orders" />
-                  <Link className="primary-action compact-action" href={`/admin/change-orders?new=1&jobId=${job.id}`}>
-                    <FilePlus2 size={17} /> Create change order
-                  </Link>
-                </div>
-                <div className="job-scope-groups">
-                  <section>
-                    <h3>Original approved scope</h3>
-                    <p className="pre-wrap-copy">{job.requested_scope || "Open the approved quote for original scope details."}</p>
-                  </section>
-                  <section>
-                    <h3>Approved change orders</h3>
-                    {(job.change_orders ?? []).filter((order) => order.status === "approved").length ? (job.change_orders ?? []).filter((order) => order.status === "approved").map((order) => (
-                      <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}>
-                        <strong>{order.change_order_number} - {order.title}</strong>
-                        <span>{formatCurrency(order.total_cents)} additional - {order.invoice_id ? "billed" : "not yet billed"}</span>
-                      </Link>
-                    )) : <EmptyInline>No approved additions.</EmptyInline>}
-                  </section>
-                  <section>
-                    <h3>Pending change orders</h3>
-                    {(job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status)).length ? (job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status)).map((order) => (
-                      <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number} - {order.title}</strong><span>{order.status.replaceAll("_", " ")} - not part of crew scope or billing</span></Link>
-                    )) : <EmptyInline>No pending additions.</EmptyInline>}
-                  </section>
-                  {(job.change_orders ?? []).some((order) => ["declined", "cancelled", "expired"].includes(order.status)) ? <section><h3>Declined or cancelled</h3>{(job.change_orders ?? []).filter((order) => ["declined", "cancelled", "expired"].includes(order.status)).map((order) => <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}</strong><span>{order.status}</span></Link>)}</section> : null}
-                </div>
-              </article>
-              <RecordLinks
-                empty="No invoices yet."
-                icon={<ReceiptText size={18} />}
-                items={(job.invoices ?? []).map((invoice) => ({
-                  href: `/admin/invoices/${invoice.id}`,
-                  meta: `${formatInvoiceStatus(invoice.status)} - ${formatCurrency(invoice.balance_due_cents)} due`,
-                  title: invoice.invoice_number || "Invoice",
-                }))}
-                title="Related invoice"
-              />
-              <article className="detail-panel wide-detail-panel">
-                <PanelTitle icon={<Camera size={18} />} title="Job photos" />
-                <JobPhotoGallery photos={photos.data} />
-              </article>
-              <article className="detail-panel">
-                <PanelTitle icon={<Truck size={18} />} title="Crew work order" />
-                <p>Scope, service location, access notes, crew notes, checklist, and photo needs are available in the crew view.</p>
-                <Link className="primary-action compact-action" href={`/crew/jobs/${job.id}`}>Open work order</Link>
-              </article>
-              <article className="detail-panel wide-detail-panel">
-                <PanelTitle icon={<Forklift size={18} />} title="Assigned equipment" />
-                {job.equipment_assignments?.length ? (
-                  <div className="linked-record-list">
-                    {job.equipment_assignments.map((assignment) => (
-                      <Link className="linked-record" href={`/admin/equipment/${assignment.asset_id}`} key={assignment.id}>
-                        <strong>{assignment.equipment_assets?.name ?? "Equipment"}</strong>
-                        <span>{assignment.equipment_assets?.asset_number ?? "No asset number"} - {assignment.equipment_assets?.status.replaceAll("_", " ") ?? "Unknown status"}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : <EmptyInline>No equipment assigned to this work order yet.</EmptyInline>}
-                <Link className="secondary-action compact-action" href="/admin/equipment">Assign equipment</Link>
-              </article>
-              <article className="detail-panel wide-detail-panel">
-                <PanelTitle icon={<PackageCheck size={18} />} title="Materials plan and actual use" />
-                {materials.data ? <>
-                  <div className="job-material-comparison">
-                    {materials.data.requirements.length ? materials.data.requirements.map((requirement: any) => {
-                      const material = materials.data?.materials.find((item: any) => item.id === requirement.material_id);
-                      const used = materials.data?.transactions.filter((item: any) => item.material_id === requirement.material_id && item.transaction_type === "job_use").reduce((sum: number, item: any) => sum + Number(item.quantity), 0) ?? 0;
-                      return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No planning notes"}</span></div><dl><div><dt>Planned</dt><dd>{requirement.is_estimated ? "Est. " : ""}{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</dd></div><div><dt>Used</dt><dd>{used} {requirement.unit.replaceAll("_", " ")}</dd></div></dl></article>;
-                    }) : <EmptyInline>No materials planned yet.</EmptyInline>}
-                  </div>
-                  <JobMaterialPlanForm jobId={job.id} materials={materials.data.materials as any} />
-                  <Link className="secondary-action compact-action" href="/admin/materials?view=reservations">Reserve or review stock</Link>
-                </> : <EmptyInline>Apply the materials migration to plan inventory.</EmptyInline>}
-              </article>
-            </section>
+          <dl className="job-command-facts">
+            <SummaryFact icon={<UserRound size={18} />} label="Customer" value={job.organizations?.name ?? job.customers?.display_name ?? "Not attached"} />
+            <SummaryFact icon={<MapPin size={18} />} label="Service location" value={formatLocation(job.service_locations)} />
+            <SummaryFact icon={<CalendarDays size={18} />} label="Scheduled" value={currentAppointment ? formatDateTime(currentAppointment.starts_at) : "Not scheduled"} />
+            <SummaryFact icon={<Truck size={18} />} label="Assigned crew" value={job.assigned_crew?.full_name ?? job.assigned_crew?.email ?? "Not assigned"} />
+            <SummaryFact icon={<FileSignature size={18} />} label="Approved quote" value={approvedQuote ? formatCurrency(approvedQuote.total_cents) : "Not linked"} />
+            <SummaryFact icon={<ReceiptText size={18} />} label="Invoice" value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Not created"} />
+          </dl>
 
-            {hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? (
-              <JobCostPanel canManage costs={jobCosts.data} jobId={job.id} />
-            ) : null}
+          <div className="job-command-actions">
+            {operationalState === "to_be_scheduled" ? <a className="primary-action" href="#job-schedule">Schedule job</a> : null}
+            {operationalState === "scheduled" ? <Link className="primary-action" href={`/admin/schedule?job_id=${job.id}`}>View or change schedule</Link> : null}
+            {invoice ? <Link className="primary-action" href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : null}
+            {canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={operationalState === "work_complete" ? undefined : operationalLabel} /> : null}
+            <Link className="secondary-action" href={`/crew/jobs/${job.id}`}>Crew view</Link>
+            {approvedQuote ? <Link className="secondary-action" href={`/admin/quotes/${approvedQuote.id}`}>Open quote</Link> : null}
+            {operationalState === "in_progress" ? <Link className="secondary-action" href={`/admin/schedule?job_id=${job.id}`}>Change schedule</Link> : null}
+            <a className="secondary-action" href="#job-photos"><Camera aria-hidden="true" size={17} />Photos</a>
+            {job.status === "in_progress" ? <JobStatusActions jobId={job.id} status={job.status} /> : null}
+            <a className="secondary-action" href="#job-more"><MoreHorizontal aria-hidden="true" size={17} />More</a>
+          </div>
+        </header>
 
-            <section className="document-workspace">
-              <div className="document-workspace-heading print-hidden">
-                <div>
-                  <p className="surface-label"><Truck aria-hidden="true" size={18} />Printable work order</p>
-                  <h2>Crew work order preview</h2>
-                </div>
-                <PrintButton label="Print work order" />
-              </div>
-              <WorkOrderDocument job={job} />
-            </section>
+        <section className="job-billing-summary" aria-labelledby="job-billing-title">
+          <div className="job-section-heading">
+            <div><p className="surface-label"><CircleDollarSign size={17} />Billing</p><h2 id="job-billing-title">Quote and invoice</h2></div>
+          </div>
+          <div className="job-billing-records">
+            <BillingRecord
+              action={approvedQuote ? <Link href={`/admin/quotes/${approvedQuote.id}`}>Open quote</Link> : null}
+              label="Quote"
+              title={approvedQuote?.quote_number ?? "No approved quote"}
+              value={approvedQuote ? `${title(approvedQuote.status)} · ${formatCurrency(approvedQuote.total_cents)}` : "Create or approve a quote when pricing is needed."}
+            />
+            <BillingRecord
+              action={invoice ? <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={operationalLabel} /> : null}
+              label="Invoice"
+              title={invoice ? invoice.invoice_number ?? "Invoice draft" : "Not created"}
+              value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "A draft can be created without completing or closing the job."}
+            />
+          </div>
+          {invoice && unbilledChanges.length ? <p className="job-attention-note">{unbilledChanges.length} approved {unbilledChanges.length === 1 ? "addition has" : "additions have"} not been added to this invoice.</p> : null}
+        </section>
 
-            <section className="email-draft-grid">
-              {(job.appointments ?? []).slice(0, 3).map((appointment) => (
-                <EmailDraftCard
-                  draft={appointment.appointment_type === "estimate"
-                    ? generateEstimateScheduledMessage(job, appointment)
-                    : appointment.appointment_type === "job"
-                      ? generateJobScheduledMessage(job, appointment)
-                      : generatePostJobFollowUpMessage(job)}
-                  key={appointment.id}
-                  label={`${appointment.appointment_type.replace("_", " ")} message draft`}
-                />
-              ))}
-              <EmailDraftCard draft={generateWorkOrderCrewMessage(job)} label="Crew message draft" />
-            </section>
+        <section className="job-core-section" id="job-scope">
+          <div className="job-section-heading">
+            <div><p className="surface-label"><FileSignature size={17} />Approved work</p><h2>Scope and additions</h2></div>
+            <Link className="secondary-action compact-action" href={`/admin/change-orders?new=1&jobId=${job.id}`}><FilePlus2 size={16} />Add work</Link>
+          </div>
+          <div className="job-scope-copy"><h3>Original scope</h3><p className="pre-wrap-copy">{job.requested_scope || "Open the approved quote for scope details."}</p></div>
+          {approvedChanges.length ? <div className="job-compact-list"><h3>Approved additions</h3>{approvedChanges.map((order) => <Link href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}: {order.title}</strong><span>{formatCurrency(order.total_cents)} · {order.invoice_id ? "Billed" : "Not yet billed"}</span></Link>)}</div> : null}
+          {pendingChanges.length ? <div className="job-compact-list"><h3>Pending additions</h3>{pendingChanges.map((order) => <Link href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}: {order.title}</strong><span>{title(order.status)} · not approved for billing</span></Link>)}</div> : null}
+        </section>
 
-            {["completed", "ready_to_invoice", "invoiced", "paid"].includes(job.status) ? (
-              <CompletedJobMarketingWorkspace
-                googleReviewUrl={getGoogleReviewUrl()}
-                job={job}
-                photos={photos.data}
-              />
-            ) : null}
-          </>
-        )}
+        <section className="job-core-section" id="job-schedule">
+          <div className="job-section-heading">
+            <div><p className="surface-label"><CalendarDays size={17} />Schedule and crew</p><h2>Appointments</h2></div>
+            <Link className="secondary-action compact-action" href={`/admin/schedule?job_id=${job.id}`}>Open calendar</Link>
+          </div>
+          {(job.appointments ?? []).length ? <div className="job-appointment-list">{(job.appointments ?? []).map((appointment) => (
+            <article key={appointment.id}>
+              <div><strong>{appointment.appointment_type === "job" ? "Job visit" : title(appointment.appointment_type)}</strong><span>{formatDateTime(appointment.starts_at)} · {title(appointment.status)}{appointment.profiles ? ` · ${appointment.profiles.full_name ?? appointment.profiles.email ?? "Assigned staff"}` : " · Unassigned"}</span></div>
+              <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={job.id} />
+            </article>
+          ))}</div> : <CompactEmpty>No appointments yet.</CompactEmpty>}
+          <details className="job-inline-disclosure">
+            <summary><CalendarDays size={17} />Add appointment<ChevronDown size={17} /></summary>
+            <div className="job-inline-form"><AddAppointmentForm assignedUsers={assignedUsers.data} defaultAppointmentType="job" jobId={job.id} jobs={[]} /></div>
+          </details>
+        </section>
+
+        <section className="job-core-section" id="job-photos">
+          <div className="job-section-heading">
+            <div><p className="surface-label"><Camera size={17} />Photos</p><h2>{photos.data.length ? `${photos.data.length} job ${photos.data.length === 1 ? "photo" : "photos"}` : "Job photos"}</h2></div>
+            <Link className="secondary-action compact-action" href={`/crew/jobs/${job.id}#photos`}>Add photos</Link>
+          </div>
+          <JobPhotoGallery photos={photos.data} />
+        </section>
+
+        <details className="job-disclosure">
+          <summary><span><MessageSquare size={19} /><strong>Customer communication</strong><small>{communications.data.length ? `${communications.data.length} recent records` : "No communication history"}</small></span><ChevronDown size={19} /></summary>
+          <div className="job-disclosure-content">
+            <CommunicationControls
+              communicationType={currentAppointment?.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
+              communications={communications.data.filter((item) => currentAppointment ? item.appointment_id === currentAppointment.id : item.job_id === job.id)}
+              recipientOptions={recipientOptions.data}
+              recordId={currentAppointment?.id ?? job.id}
+              recordType={currentAppointment ? "appointment" : "job"}
+            />
+          </div>
+        </details>
+
+        <details className="job-disclosure">
+          <summary><span><Truck size={19} /><strong>Operations</strong><small>Crew, equipment, materials, and access</small></span><ChevronDown size={19} /></summary>
+          <div className="job-disclosure-content job-operations-grid">
+            <section><h3>Crew work order</h3><p>Field scope, access notes, materials, and photos remain available to assigned crew.</p><Link className="secondary-action compact-action" href={`/crew/jobs/${job.id}`}>Open crew view</Link></section>
+            <section><h3>Access</h3><p>{job.service_locations?.access_notes || job.service_locations?.service_notes || "No access instructions recorded."}</p>{directionsUrl ? <a className="secondary-action compact-action" href={directionsUrl} rel="noreferrer" target="_blank"><Navigation size={16} />Directions</a> : null}</section>
+            <section><h3>Equipment</h3>{job.equipment_assignments?.length ? job.equipment_assignments.map((assignment) => <Link className="linked-record" href={`/admin/equipment/${assignment.asset_id}`} key={assignment.id}><strong>{assignment.equipment_assets?.name ?? "Equipment"}</strong><span>{assignment.equipment_assets?.asset_number ?? "No asset number"} · {title(assignment.equipment_assets?.status ?? "unknown")}</span></Link>) : <CompactEmpty>No equipment assigned.</CompactEmpty>}<Link className="secondary-action compact-action" href="/admin/equipment">Manage equipment</Link></section>
+            <section className="job-operations-wide"><h3>Materials</h3>{materials.data ? <><div className="job-material-comparison">{materials.data.requirements.length ? materials.data.requirements.map((requirement: any) => { const material = materials.data?.materials.find((item: any) => item.id === requirement.material_id); return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No planning notes"}</span></div><b>{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</b></article>; }) : <CompactEmpty>No materials planned.</CompactEmpty>}</div><JobMaterialPlanForm jobId={job.id} materials={materials.data.materials as any} /></> : <CompactEmpty>Materials tracking is unavailable.</CompactEmpty>}</section>
+          </div>
+        </details>
+
+        {canViewFinancials ? <details className="job-disclosure"><summary><span><CircleDollarSign size={19} /><strong>Financials</strong><small>Private costs and profitability inputs</small></span><ChevronDown size={19} /></summary><div className="job-disclosure-content"><JobCostPanel canManage costs={jobCosts.data} jobId={job.id} /></div></details> : null}
+
+        <details className="job-disclosure" id="job-more">
+          <summary><span><MoreHorizontal size={19} /><strong>Advanced and more</strong><small>Print, drafts, marketing, and duplication</small></span><ChevronDown size={19} /></summary>
+          <div className="job-disclosure-content job-advanced-stack">
+            <section className="document-workspace"><div className="document-workspace-heading print-hidden"><div><p className="surface-label"><Truck size={17} />Printable work order</p><h2>Crew work order preview</h2></div><PrintButton label="Print work order" /></div><WorkOrderDocument job={job} /></section>
+            <section className="email-draft-grid">{(job.appointments ?? []).slice(0, 3).map((appointment) => <EmailDraftCard draft={appointment.appointment_type === "estimate" ? generateEstimateScheduledMessage(job, appointment) : appointment.appointment_type === "job" ? generateJobScheduledMessage(job, appointment) : generatePostJobFollowUpMessage(job)} key={appointment.id} label={`${title(appointment.appointment_type)} message draft`} />)}<EmailDraftCard draft={generateWorkOrderCrewMessage(job)} label="Crew message draft" /></section>
+            {operationalState === "work_complete" || operationalState === "invoiced" || operationalState === "paid" ? <CompletedJobMarketingWorkspace googleReviewUrl={getGoogleReviewUrl()} job={job} photos={photos.data} /> : null}
+            <div className="job-more-actions"><DuplicateRecordButton action={duplicateJob} buttonClassName="secondary-action" hiddenFieldName="job_id" hiddenFieldValue={job.id} label="Duplicate work order" pendingLabel="Copying work order..." /></div>
+          </div>
+        </details>
       </div>
     </PlatformFrame>
   );
 }
 
-function RecordLinks({ empty, icon, items, title }: { empty: string; icon: ReactNode; items: { href: string; meta: string; title: string }[]; title: string }) {
-  return (
-    <article className="detail-panel">
-      <PanelTitle icon={icon} title={title} />
-      {items.length ? items.map((item) => (
-        <Link className="linked-record" href={item.href} key={item.href}><strong>{item.title}</strong><span>{item.meta}</span></Link>
-      )) : <EmptyInline>{empty}</EmptyInline>}
-    </article>
-  );
+function SummaryFact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return <div><dt>{icon}{label}</dt><dd>{value}</dd></div>;
 }
 
-function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
-  return <h2 className="panel-title">{icon}{title}</h2>;
+function BillingRecord({ action, label, title: recordTitle, value }: { action: ReactNode; label: string; title: string; value: string }) {
+  return <article><span>{label}</span><div><strong>{recordTitle}</strong><p>{value}</p></div>{action}</article>;
 }
 
-function EmptyInline({ children }: { children: ReactNode }) {
-  return <p className="inline-empty">{children}</p>;
+function CompactEmpty({ children }: { children: ReactNode }) {
+  return <p className="job-compact-empty">{children}</p>;
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return <section className="empty-state"><h2>{title}</h2><p>{body}</p></section>;
+function PageNotices({ errors, query }: { errors: (string | null)[]; query: { contact_warning?: string; duplicated?: string } }) {
+  const messages = [...new Set(errors.filter((error): error is string => Boolean(error)))];
+  return <>{messages.map((message) => <section className="data-warning" key={message} role="status"><strong>Database notice</strong><p>{message}</p></section>)}{query.duplicated === "job" ? <p className="form-message success" role="status">Work order duplicated.</p> : null}{query.contact_warning === "1" ? <p className="form-message error" role="alert">One or more inactive organization contacts were not copied. Review contacts before scheduling.</p> : null}</>;
 }
 
-function DataWarning({ message }: { message: string }) {
-  return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
+function EmptyState({ title: emptyTitle, body }: { title: string; body: string }) {
+  return <section className="empty-state"><h2>{emptyTitle}</h2><p>{body}</p></section>;
+}
+
+function formatLocation(location: { street: string; city: string; state: string; postal_code?: string | null } | null | undefined) {
+  return location ? [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ") : "No service location";
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function title(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

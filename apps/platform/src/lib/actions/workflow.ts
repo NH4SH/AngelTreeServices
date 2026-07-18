@@ -44,6 +44,7 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     estimate_scheduled: ["quoted"],
     accepted: ["scheduled"],
     scheduled: ["in_progress"],
+    in_progress: ["completed"],
   };
 
   const { data: job, error: jobError } = await supabase
@@ -338,6 +339,11 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
     return { status: "error", message: "Sign in before creating invoices." };
   }
 
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only authorized office staff can create invoices." };
+  }
+
   const quoteId = getString(formData, "quote_id");
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
@@ -359,7 +365,7 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
     return { status: "error", message: approvalResult.message };
   }
 
-  const result = await createInvoiceForCompletedJob({
+  const result = await createInvoiceForJob({
     actorUserId: user.id,
     jobId: approvalResult.jobId,
     sourceQuoteId: quote.id,
@@ -393,12 +399,17 @@ export async function createInvoiceFromJob(_previousState: WorkflowActionState, 
     return { status: "error", message: "Sign in before generating an invoice." };
   }
 
-  const jobId = getString(formData, "job_id");
-  if (!jobId) {
-    return { status: "error", message: "Choose a completed work order before generating an invoice." };
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only authorized office staff can create invoices." };
   }
 
-  const result = await createInvoiceForCompletedJob({ actorUserId: user.id, jobId, supabase });
+  const jobId = getString(formData, "job_id");
+  if (!jobId) {
+    return { status: "error", message: "Choose a work order before creating an invoice." };
+  }
+
+  const result = await createInvoiceForJob({ actorUserId: user.id, jobId, supabase });
   if (!result.ok) {
     return { status: "error", message: result.message };
   }
@@ -424,7 +435,7 @@ type InvoiceGenerationResult =
   | { ok: true; invoiceId: string; existing: boolean }
   | { ok: false; message: string };
 
-async function createInvoiceForCompletedJob({
+async function createInvoiceForJob({
   actorUserId,
   jobId,
   sourceQuoteId,
@@ -446,7 +457,7 @@ async function createInvoiceForCompletedJob({
 
   const { data: invoiceableJob, error: invoiceableJobError } = await supabase
     .from("jobs")
-    .select("status")
+    .select("id, status, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
     .eq("id", jobId)
     .single();
 
@@ -454,49 +465,29 @@ async function createInvoiceForCompletedJob({
     return { ok: false, message: invoiceableJobError?.message ?? "Could not find this work order." };
   }
 
-  if (!["completed", "ready_to_invoice"].includes(invoiceableJob.status)) {
-    return { ok: false, message: "Complete office closeout review before generating an invoice." };
+  const invoiceableStatuses: JobStatus[] = [
+    "accepted",
+    "scheduled",
+    "in_progress",
+    "completed",
+    "completed_pending_review",
+    "ready_to_invoice",
+  ];
+  if (!invoiceableStatuses.includes(invoiceableJob.status as JobStatus)) {
+    return { ok: false, message: "This work order is not available for draft invoicing." };
   }
 
-  const previousJobStatus = invoiceableJob.status as JobStatus;
-
-  const { data: claimedJob, error: claimError } = await supabase
-    .from("jobs")
-    .update({ status: "invoiced" })
-    .eq("id", jobId)
-    .eq("status", previousJobStatus)
-    .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
-    .maybeSingle();
-
-  if (claimError) {
-    return { ok: false, message: claimError.message };
-  }
-
-  if (!claimedJob) {
-    const claimedInvoice = await findInvoiceForJob(supabase, jobId);
-    if (claimedInvoice.error) {
-      return { ok: false, message: claimedInvoice.error };
-    }
-
-    if (claimedInvoice.invoiceId) {
-      return { ok: true, invoiceId: claimedInvoice.invoiceId, existing: true };
-    }
-
-    return { ok: false, message: "Complete this work order before generating an invoice." };
-  }
-
-  const linkedQuoteId = sourceQuoteId ?? claimedJob.source_quote_id ?? null;
+  const linkedQuoteId = sourceQuoteId ?? invoiceableJob.source_quote_id ?? null;
   const quoteResult = await getInvoiceSourceQuote(supabase, linkedQuoteId, jobId);
   if (!quoteResult.ok) {
-    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return quoteResult;
   }
 
   const lines = quoteResult.lineItems.length > 0
     ? quoteResult.lineItems
     : [{
-        description: claimedJob.requested_scope,
-        name: formatServiceType(claimedJob.service_type),
+        description: invoiceableJob.requested_scope,
+        name: formatServiceType(invoiceableJob.service_type),
         service_category_id: null,
         material_id: null,
         quantity: 1,
@@ -512,15 +503,15 @@ async function createInvoiceForCompletedJob({
     .from("invoices")
     .insert({
       balance_due_cents: totalCents,
-      customer_id: claimedJob.customer_id,
-      organization_id: claimedJob.organization_id,
-      billing_contact_id: quoteResult.billingContactId ?? claimedJob.property_manager_contact_id,
-      accounts_payable_contact_id: quoteResult.billingContactId ?? claimedJob.property_manager_contact_id,
-      service_location_id: claimedJob.service_location_id,
-      job_id: claimedJob.id,
+      customer_id: invoiceableJob.customer_id,
+      organization_id: invoiceableJob.organization_id,
+      billing_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
+      accounts_payable_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
+      service_location_id: invoiceableJob.service_location_id,
+      job_id: invoiceableJob.id,
       quote_id: quoteResult.quoteId,
-      recurring_service_plan_id: claimedJob.recurring_service_plan_id,
-      recurring_occurrence_id: claimedJob.recurring_occurrence_id,
+      recurring_service_plan_id: invoiceableJob.recurring_service_plan_id,
+      recurring_occurrence_id: invoiceableJob.recurring_occurrence_id,
       status: "draft",
       subtotal_cents: subtotalCents,
       tax_cents: taxCents,
@@ -530,7 +521,6 @@ async function createInvoiceForCompletedJob({
     .single();
 
   if (invoiceError || !invoice) {
-    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { ok: false, message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -550,21 +540,30 @@ async function createInvoiceForCompletedJob({
 
   if (lineItemError) {
     await supabase.from("invoices").delete().eq("id", invoice.id);
-    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { ok: false, message: `Invoice was not created because line items failed: ${lineItemError.message}` };
+  }
+
+  const { error: changeOrderError } = await supabase
+    .rpc("attach_approved_change_orders_to_invoice", { p_invoice_id: invoice.id });
+  if (changeOrderError) {
+    console.error("Draft invoice created, but approved additions could not be attached", {
+      invoiceId: invoice.id,
+      jobId,
+      error: changeOrderError,
+    });
   }
 
   await recordActivity(supabase, {
     actorUserId,
-    eventType: "invoice_generated",
+    eventType: "invoice_draft_created",
     metadata: { source_quote_id: quoteResult.quoteId },
     subjectId: invoice.id,
     subjectType: "invoice",
   });
   await recordActivity(supabase, {
     actorUserId,
-    eventType: "work_order_invoiced",
-    metadata: { invoice_id: invoice.id },
+    eventType: "invoice_draft_created_from_job",
+    metadata: { invoice_id: invoice.id, job_status_preserved: invoiceableJob.status },
     subjectId: jobId,
     subjectType: "job",
   });
@@ -621,14 +620,6 @@ async function getInvoiceSourceQuote(
     lineItems: ((quote.quote_line_items ?? []) as QuoteLineItem[])
       .sort((left, right) => left.sort_order - right.sort_order),
   };
-}
-
-async function restoreInvoiceableJob(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  jobId: string,
-  status: JobStatus,
-) {
-  await supabase.from("jobs").update({ status }).eq("id", jobId).eq("status", "invoiced");
 }
 
 function formatServiceType(serviceType: string | null) {

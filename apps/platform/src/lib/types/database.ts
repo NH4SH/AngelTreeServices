@@ -1022,6 +1022,7 @@ export type JobWithRelations = Job & {
     ServiceLocation,
     "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
   > | null;
+  assigned_crew?: { id: string; full_name: string | null; email: string | null } | null;
 };
 
 export type CrewJob = Pick<

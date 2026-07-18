@@ -346,3 +346,21 @@ Apply the reviewed migrations in `DEPLOYMENT_CHECKLIST.md` before this test. Use
 9. Confirm crew and anonymous sessions cannot query `documents` or `pay_periods`; crew can still read only its permitted time and assigned work.
 10. Confirm anonymous requests cannot query internal jobs, follow-up tasks, review items, or documents. Confirm no new `SECURITY DEFINER` function is exposed publicly.
 11. Run `npx supabase db lint --local`, Supabase Security Advisor, platform typecheck/build, and `git diff --check`.
+
+## Simplified job workflow regression
+
+Apply the reviewed `supabase/migrations/20260718210235_simplify_job_workflow.sql` migration before testing the scheduled transition. Use controlled records and do not send a real customer invoice.
+
+1. Approve a quote and confirm exactly one linked work order exists after refreshing or repeating the approval action.
+2. Open the work order and confirm the status, contracting party, service location, schedule, crew, quote, invoice, scope, and main actions are visible without expanding secondary sections.
+3. Add one job appointment from the single expandable scheduling form and confirm the calendar and work order show the same appointment.
+4. Confirm an accepted job with no active future work appointment displays **To be scheduled**.
+5. Confirm a job with a future active work appointment displays **Scheduled**.
+6. Run the scheduled transition after the appointment start and confirm the job displays **In progress**. Run it again and confirm no second transition or duplicate activity event occurs.
+7. Confirm cancelled appointments, a newer rescheduled future appointment, and jobs with sent/paid invoices are not advanced by the worker.
+8. From accepted, scheduled, and in-progress test jobs, create a draft invoice. Confirm the job status is preserved and no email is sent.
+9. Repeat invoice creation for the same work order and confirm the existing invoice opens instead of creating another invoice.
+10. Add and approve a change order before creating the invoice. Confirm its unbilled line items are attached once and the invoice total is recalculated.
+11. Confirm sent/partially paid invoices display the work order as **Invoiced**, and a paid invoice displays **Paid**, without rewriting physical completion status.
+12. With both closeout flags unset or false, confirm the optional progress checklist and closeout controls do not appear in admin or crew views.
+13. Test the work order page at desktop, tablet, and phone widths. Confirm disclosures, actions, long scope text, appointments, and photos remain reachable without horizontal page overflow.

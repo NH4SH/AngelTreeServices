@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 
@@ -34,6 +35,11 @@ export async function createInvoice(
     return { status: "error", message: "Sign in before adding invoice records." };
   }
 
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only authorized office staff can create invoices." };
+  }
+
   const jobId = String(formData.get("job_id") ?? "");
   const party = parseContractingParty(formData.get("contracting_party"));
   const dueDate = String(formData.get("due_date") ?? "");
@@ -63,11 +69,9 @@ export async function createInvoice(
     return { status: "error", message: "Selected job does not belong to the selected contracting party." };
   }
 
-  if (!["completed", "ready_to_invoice"].includes(job.status)) {
-    return { status: "error", message: "Complete office closeout review before creating an invoice." };
+  if (!["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status)) {
+    return { status: "error", message: "This work order is not available for draft invoicing." };
   }
-
-  const previousJobStatus = job.status;
 
   const { data: existingInvoice, error: existingInvoiceError } = await supabase
     .from("invoices")
@@ -82,23 +86,7 @@ export async function createInvoice(
   }
 
   if (existingInvoice) {
-    return { status: "error", message: "An invoice already exists for this work order. Open it or use Duplicate for an additional draft." };
-  }
-
-  const { data: claimedJob, error: claimError } = await supabase
-    .from("jobs")
-    .update({ status: "invoiced" })
-    .eq("id", jobId)
-    .eq("status", previousJobStatus)
-    .select("id")
-    .maybeSingle();
-
-  if (claimError) {
-    return { status: "error", message: claimError.message };
-  }
-
-  if (!claimedJob) {
-    return { status: "error", message: "Complete this work order before creating an invoice." };
+    redirect(`/admin/invoices/${existingInvoice.id}`);
   }
 
   const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
@@ -125,7 +113,6 @@ export async function createInvoice(
     .single();
 
   if (invoiceError || !invoice) {
-    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -144,11 +131,20 @@ export async function createInvoice(
 
   if (lineItemError) {
     await supabase.from("invoices").delete().eq("id", invoice.id);
-    await restoreInvoiceableJob(supabase, jobId, previousJobStatus);
     return {
       status: "error",
       message: `Invoice was not created because line items failed: ${lineItemError.message}`,
     };
+  }
+
+  const { error: changeOrderError } = await supabase
+    .rpc("attach_approved_change_orders_to_invoice", { p_invoice_id: invoice.id });
+  if (changeOrderError) {
+    console.error("Draft invoice created, but approved additions could not be attached", {
+      invoiceId: invoice.id,
+      jobId,
+      error: changeOrderError,
+    });
   }
 
   let noteWarning = "";
@@ -169,15 +165,15 @@ export async function createInvoice(
 
   await recordActivity(supabase, {
     actorUserId: user.id,
-    eventType: "invoice_generated",
+    eventType: "invoice_draft_created",
     metadata: { source_quote_id: null },
     subjectId: invoice.id,
     subjectType: "invoice",
   });
   await recordActivity(supabase, {
     actorUserId: user.id,
-    eventType: "work_order_invoiced",
-    metadata: { invoice_id: invoice.id },
+    eventType: "invoice_draft_created_from_job",
+    metadata: { invoice_id: invoice.id, job_status_preserved: job.status },
     subjectId: jobId,
     subjectType: "job",
   });
@@ -402,12 +398,4 @@ async function syncInvoiceLineItems(
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
-
-async function restoreInvoiceableJob(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  jobId: string,
-  status: string,
-) {
-  await supabase.from("jobs").update({ status }).eq("id", jobId).eq("status", "invoiced");
 }

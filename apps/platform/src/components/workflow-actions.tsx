@@ -30,14 +30,18 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
   const [state, formAction, pending] = useActionState(updateJobStatus, initialState);
   const next = getNextJobStatus(status);
 
+  if (!next) {
+    return null;
+  }
+
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <form action={formAction} className="inline-action-form">
         <input name="job_id" type="hidden" value={jobId} />
         <input name="next_status" type="hidden" value={next ?? ""} />
-        <button disabled={pending || !next} type="submit">
+        <button disabled={pending} type="submit">
           <CheckCircle2 aria-hidden="true" size={18} />
-          {next ? `Move to ${next.replace("_", " ")}` : "No status action"}
+          {next === "completed" ? "Mark work complete" : `Move to ${next.replace("_", " ")}`}
         </button>
       </form>
     </WorkflowActionPanel>
@@ -125,16 +129,24 @@ export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
   );
 }
 
-export function CreateInvoiceFromJobAction({ jobId }: { jobId: string }) {
+export function CreateInvoiceFromJobAction({ jobId, operationalStatus }: { jobId: string; operationalStatus?: string }) {
   const [state, formAction, pending] = useActionState(createInvoiceFromJob, initialState);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
-      <form action={formAction} className="inline-action-form">
+      <form
+        action={formAction}
+        className="inline-action-form"
+        onSubmit={(event) => {
+          if (operationalStatus && !window.confirm(`This job is currently ${operationalStatus.toLowerCase()}. Create a draft invoice now? The invoice will not be sent automatically.`)) {
+            event.preventDefault();
+          }
+        }}
+      >
         <input name="job_id" type="hidden" value={jobId} />
         <button disabled={pending} type="submit">
           <FilePlus2 aria-hidden="true" size={18} />
-          {pending ? "Generating invoice..." : "Generate invoice"}
+          {pending ? "Creating invoice..." : "Create invoice"}
         </button>
       </form>
       {state.invoiceId ? (
@@ -304,6 +316,7 @@ function getNextJobStatus(status: JobStatus) {
     estimate_scheduled: "quoted",
     accepted: "scheduled",
     scheduled: "in_progress",
+    in_progress: "completed",
   };
 
   return transitions[status] ?? null;

@@ -38,6 +38,8 @@ type CrewJobDetailPageProps = {
 export default async function CrewJobDetailPage({ params }: CrewJobDetailPageProps) {
   const { jobId } = await params;
   const context = await getAuthenticatedPlatformContext(`/crew/jobs/${jobId}`);
+  const closeoutEnabled = process.env.CREW_JOB_CLOSEOUT_ENABLED === "true"
+    && process.env.CREW_JOB_PROGRESS_CHECKLIST_ENABLED === "true";
 
   if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening crew job details" />;
@@ -50,7 +52,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
   const [photos, closeout, activeTimer, materials, approvedAdditions] = job.data
     ? await Promise.all([
         getJobPhotos(jobId),
-        getJobCloseout(jobId),
+        closeoutEnabled ? getJobCloseout(jobId) : Promise.resolve({ data: null, error: null }),
         getActiveTimeEntryForUser(context.user.id),
         getJobMaterials(jobId, context.roles, context.user.id),
         getCrewApprovedChangeOrderScope(jobId, { roles: context.roles, userId: context.user.id }),
@@ -87,6 +89,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
             activeTimerJobId={activeTimer.data?.job_id ?? null}
             assignedCrewLabel={context.user.email ?? "Assigned crew member"}
             closeout={closeout.data}
+            closeoutEnabled={closeoutEnabled}
             job={job.data}
             materials={materials.data}
             approvedAdditions={approvedAdditions.data}
@@ -102,6 +105,7 @@ function CrewJobDetail({
   activeTimerJobId,
   assignedCrewLabel,
   closeout,
+  closeoutEnabled,
   job,
   materials,
   approvedAdditions,
@@ -110,6 +114,7 @@ function CrewJobDetail({
   activeTimerJobId: string | null;
   assignedCrewLabel: string;
   closeout: Awaited<ReturnType<typeof getJobCloseout>>["data"];
+  closeoutEnabled: boolean;
   job: CrewJob;
   materials: Awaited<ReturnType<typeof getJobMaterials>>["data"];
   approvedAdditions: Awaited<ReturnType<typeof getCrewApprovedChangeOrderScope>>["data"];
@@ -182,10 +187,7 @@ function CrewJobDetail({
           <Camera aria-hidden="true" size={20} />
           Photos
         </Link>
-        <Link href="#complete">
-          <CheckCircle2 aria-hidden="true" size={20} />
-          Complete
-        </Link>
+        {closeoutEnabled ? <Link href="#complete"><CheckCircle2 aria-hidden="true" size={20} />Complete</Link> : null}
       </section>
 
       {approvedAdditions.length ? (
@@ -341,7 +343,7 @@ function CrewJobDetail({
         </p>
       </section>
 
-      <section id="complete">
+      {closeoutEnabled ? <section id="complete">
         {closeout ? (
           <CrewJobCloseoutForm
             bundle={closeout}
@@ -354,7 +356,7 @@ function CrewJobDetail({
             <PanelHeading icon={<CheckCircle2 size={19} />} title="Job closeout unavailable" subtitle="The closeout migration must be applied before this workflow can be used." />
           </section>
         )}
-      </section>
+      </section> : null}
     </>
   );
 }

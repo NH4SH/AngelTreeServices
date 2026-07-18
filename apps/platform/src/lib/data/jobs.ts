@@ -11,7 +11,7 @@ export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
     )
     .order("created_at", { ascending: false });
 
@@ -55,7 +55,7 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
     )
     .eq("customer_id", customerId)
     .is("organization_id", null)
@@ -78,7 +78,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
     )
     .eq("id", jobId)
     .single();
@@ -113,7 +113,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     supabase
       .from("appointments")
       .select(
-        "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code)",
+        "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles:profiles!appointments_assigned_user_id_fkey(id, full_name, email)",
       )
       .eq("job_id", jobId)
       .order("starts_at", { ascending: true }),

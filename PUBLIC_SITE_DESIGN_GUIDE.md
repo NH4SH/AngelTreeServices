@@ -39,7 +39,14 @@ Use white and cream to create relief from the green. Keep body copy contrast hig
 - Labels and action text: medium or bold where scannability matters.
 - Navigation: lighter weight, restrained size.
 
-Preserve “Your yard’s best friends.” as the visible brand line. SEO/service context should come from nearby supporting copy and page metadata rather than replacing the brand voice.
+Preserve “Your yard’s best friend.” as the visible brand line. SEO/service context should come from nearby supporting copy and page metadata rather than replacing the brand voice.
+
+## Logo Roles
+
+- Use `/assets/angel-tree-logo-transparent.webp` for headers and other in-site layout branding on an existing page background.
+- Use `/assets/angel-tree-logo-square.webp` as the self-contained search-facing logo source and for favicon, touch-icon, and structured-data logo contexts.
+- Control header display size in CSS; do not depend on either source asset's intrinsic dimensions.
+- Do not substitute the green square into the site header without a context-specific visual review.
 
 ## Layout Rhythm
 

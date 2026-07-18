@@ -409,6 +409,104 @@ class Validator:
                 if route not in graph.get("/services/", set()):
                     self.error(f"/services/: service page is not linked from the hub: {route}")
 
+    def validate_shared_navigation(self) -> None:
+        desktop_keys = ["about", "services", "projects", "commercial"]
+        mobile_keys = [
+            "about",
+            "services",
+            "projects",
+            "commercial",
+            "credentials",
+            "recognition",
+            "contact",
+        ]
+
+        def keys_in(block: str) -> list[str]:
+            return re.findall(r'data-ats-nav="([^"]+)"', block, re.IGNORECASE)
+
+        for route, source in self.page_sources.items():
+            if route == "/":
+                desktop_blocks = re.findall(
+                    r'<nav\b[^>]*class="[^"]*header-nav-list[^"]*"[^>]*>(.*?)</nav>',
+                    source,
+                    re.IGNORECASE | re.DOTALL,
+                )
+                if not desktop_blocks:
+                    self.error("/: desktop navigation is missing")
+                for block in desktop_blocks:
+                    if keys_in(block) != desktop_keys:
+                        self.error("/: desktop navigation must be About, Services, Projects, Commercial")
+
+                mobile_match = re.search(
+                    r'<details\b[^>]*class="[^"]*ats-home-mobile-menu[^"]*"[^>]*>.*?'
+                    r'<nav\b[^>]*>(.*?)</nav>.*?</details>',
+                    source,
+                    re.IGNORECASE | re.DOTALL,
+                )
+                if not mobile_match or keys_in(mobile_match.group(1)) != mobile_keys:
+                    self.error("/: mobile navigation does not match the approved expanded order")
+            else:
+                desktop_match = re.search(
+                    r'<nav\b[^>]*class="[^"]*ats-page-nav[^"]*"[^>]*>(.*?)</nav>',
+                    source,
+                    re.IGNORECASE | re.DOTALL,
+                )
+                if not desktop_match or keys_in(desktop_match.group(1)) != desktop_keys:
+                    self.error(f"{route}: shared desktop navigation order is incorrect")
+
+                mobile_match = re.search(
+                    r'<details\b[^>]*class="[^"]*ats-mobile-menu[^"]*"[^>]*>.*?'
+                    r'<nav\b[^>]*>(.*?)</nav>.*?</details>',
+                    source,
+                    re.IGNORECASE | re.DOTALL,
+                )
+                if not mobile_match or keys_in(mobile_match.group(1)) != mobile_keys:
+                    self.error(f"{route}: shared mobile navigation order is incorrect")
+
+            if re.search(r'data-ats-nav="home"', source, re.IGNORECASE):
+                self.error(f"{route}: Home must remain the brand link rather than a navigation label")
+
+        for route, page in self.pages.items():
+            if page.link_value("apple-touch-icon") != "/assets/apple-touch-icon.png":
+                self.error(f"{route}: Apple touch icon reference is missing")
+            icon_links = {
+                item.get("href", "")
+                for item in page.links
+                if "icon" in item.get("rel", "").lower().split()
+            }
+            for expected_icon in ("/assets/favicon-32.png", "/assets/favicon-192.png"):
+                if expected_icon not in icon_links:
+                    self.error(f"{route}: favicon reference is missing: {expected_icon}")
+
+        expected_pngs = {
+            "assets/favicon-32.png": (32, 32),
+            "assets/favicon-192.png": (192, 192),
+            "assets/apple-touch-icon.png": (180, 180),
+        }
+        for relative, expected_size in expected_pngs.items():
+            icon = self.site_dir / relative
+            if not icon.is_file():
+                self.error(f"Icon asset is missing: {relative}")
+                continue
+            header = icon.read_bytes()[:24]
+            if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+                self.error(f"Icon asset must be a PNG: {relative}")
+            else:
+                width = int.from_bytes(header[16:20], "big")
+                height = int.from_bytes(header[20:24], "big")
+                if (width, height) != expected_size:
+                    self.error(f"{relative} must be {expected_size[0]}x{expected_size[1]}, found {width}x{height}")
+
+        homepage = self.page_sources.get("/", "")
+        expected_structured_logo = "https://angeltreeservices.org/assets/angel-tree-logo-square.webp"
+        if expected_structured_logo not in homepage:
+            self.error("/: LocalBusiness logo must use the self-contained green-square asset")
+        if homepage.count('/assets/angel-tree-logo-transparent.webp') < 3:
+            self.error("/: responsive layout headers must use the transparent logo asset")
+        for route, source in self.page_sources.items():
+            if route != "/" and '/assets/angel-tree-logo-transparent.webp' not in source:
+                self.error(f"{route}: shared header must use the transparent logo asset")
+
     def validate_homepage_form(self) -> None:
         page = self.pages.get("/")
         if not page:
@@ -470,8 +568,8 @@ class Validator:
         expected_heading = "Your yard’s best friend."
         expected_eyebrow = "Fredericksburg Tree Service"
         expected_description = (
-            "Certified-arborist-led tree care in Fredericksburg, including tree removal, pruning, "
-            "stump grinding, storm cleanup, landscaping, and lawn care. Request a free estimate."
+            "Certified-arborist-led tree service in Fredericksburg for removal, pruning, storm "
+            "cleanup, stump grinding, landscaping, and lawn care. Free estimates."
         )
 
         if page.title != expected_title:
@@ -480,28 +578,16 @@ class Validator:
             self.error("/: homepage description must align tree care services with Fredericksburg")
         if f'<link rel="canonical" href="{SITE}/">' not in homepage:
             self.error("/: homepage canonical must remain the root public URL")
-        mobile_heading_match = re.search(
-            r'<p\b[^>]*class="[^"]*ats-mobile-hero-title[^"]*"[^>]*>(.*?)</p>',
-            homepage,
-            re.IGNORECASE | re.DOTALL,
-        )
-        mobile_heading = (
-            " ".join(re.sub(r"<[^>]+>", " ", mobile_heading_match.group(1)).split())
-            if mobile_heading_match
-            else ""
-        )
-        if mobile_heading != expected_heading:
-            self.error("/: mobile homepage heading does not match the approved brand H1")
-        if homepage.count(expected_eyebrow) < 2:
-            self.error("/: Fredericksburg Tree Service must remain visible near both responsive hero headings")
+        if homepage.count(expected_eyebrow) != 1:
+            self.error("/: Fredericksburg Tree Service must appear once beside the shared responsive hero H1")
 
         h1_match = re.search(r"<h1\b[^>]*>(.*?)</h1>", homepage, re.IGNORECASE | re.DOTALL)
         if not h1_match:
-            self.error("/: desktop homepage H1 is missing")
+            self.error("/: homepage H1 is missing")
         else:
             h1_text = " ".join(re.sub(r"<[^>]+>", " ", h1_match.group(1)).split())
             if h1_text != expected_heading:
-                self.error(f"/: desktop homepage H1 must be {expected_heading!r}")
+                self.error(f"/: homepage H1 must be {expected_heading!r}")
 
     def validate_recognition_layer(self) -> None:
         homepage = self.page_sources.get("/", "")
@@ -718,6 +804,7 @@ class Validator:
             self.validate_references()
             self.validate_prefill_links()
             self.validate_navigation_graph()
+            self.validate_shared_navigation()
             self.validate_homepage_form()
             self.validate_homepage_search_alignment()
             self.validate_recognition_layer()

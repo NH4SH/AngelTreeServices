@@ -1,6 +1,28 @@
 (function () {
   var trackedParameters = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
 
+  function trackEvent(name, parameters) {
+    if (typeof window.gtag !== "function") {
+      return;
+    }
+
+    window.gtag("event", name, parameters || {});
+  }
+
+  function trackPrimaryNavigation() {
+    document.addEventListener("click", function (event) {
+      var link = event.target.closest("a[data-ats-nav]");
+      if (!link) {
+        return;
+      }
+
+      trackEvent("navigation_link_click", {
+        destination: link.dataset.atsNav,
+        navigation: link.closest(".ats-mobile-menu") ? "mobile_menu" : "desktop_header",
+      });
+    });
+  }
+
   function preserveCampaignParameters() {
     var currentParameters = new URLSearchParams(window.location.search);
 
@@ -64,6 +86,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    trackPrimaryNavigation();
     preserveCampaignParameters();
     closeMobileMenuAfterNavigation();
     enablePrivacyEnhancedVideos();

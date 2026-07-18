@@ -16,6 +16,13 @@
         return;
       }
 
+      if (link.dataset.atsNav) {
+        trackEvent("navigation_link_click", {
+          destination: link.dataset.atsNav,
+          navigation: link.closest(".ats-home-mobile-menu") ? "mobile_menu" : "desktop_header",
+        });
+      }
+
       if (link.classList.contains("ats-emergency-call")) {
         trackEvent("emergency_cta_click", { location: "homepage_guidance" });
         return;

@@ -82,7 +82,7 @@
   }
 
   #header .header-actions-action--social {
-    display: none;
+    display: flex !important;
   }
 
   #header .header-nav-item a {
@@ -1665,7 +1665,7 @@ body.ats-form-submitted .ats-form-success {
   }
 
   body {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
 
   .ats-mobile-actions {

@@ -120,7 +120,7 @@ img {
   text-decoration: none;
 }
 
-.ats-page-nav a:not(.ats-page-call)::after {
+.ats-page-nav a:not(.ats-page-call):not(.ats-page-instagram)::after {
   content: "";
   position: absolute;
   right: 0;
@@ -151,6 +151,30 @@ img {
 .ats-page-call:focus-visible {
   background: var(--ats-white);
   color: var(--ats-green-deep);
+}
+
+.ats-page-instagram {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.ats-page-instagram svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.ats-page-instagram:hover,
+.ats-page-instagram:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--ats-white);
 }
 
 .ats-mobile-menu {

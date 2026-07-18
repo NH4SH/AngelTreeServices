@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://angeltreeservices.org"
 PHONE_DISPLAY = "(540) 388-8715"
 PHONE_LINK = "+15403888715"
+INSTAGRAM_URL = "https://www.instagram.com/angeltreeservices/"
 SOCIAL_IMAGE = f"{SITE}/assets/hero-grass-1600.webp"
 GOOGLE_MAPS_URL = (
     "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services"
@@ -67,16 +68,25 @@ def wave() -> str:
 
 
 def header(active: str) -> str:
-    links = [
+    primary_links = [
+        ("about", "/about/", "About"),
         ("services", "/services/", "Services"),
         ("projects", "/projects/", "Projects"),
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial"),
+    ]
+    mobile_links = [
         ("about", "/about/", "About"),
+        ("services", "/services/", "Services"),
+        ("projects", "/projects/", "Projects"),
+        ("commercial", "/services/commercial-hoa-tree-care/", "Commercial & HOA"),
+        ("credentials", "/credentials-safety/", "Credentials & Safety"),
+        ("recognition", "/recognition/", "Reviews & Recognition"),
+        ("contact", "/#contact", "Contact"),
     ]
 
-    def nav_links() -> str:
+    def nav_links(links: list[tuple[str, str, str]]) -> str:
         return "\n".join(
-            f'<a href="{href}"{(" aria-current=\"page\"" if key == active else "")}>{label}</a>'
+            f'<a href="{href}" data-ats-nav="{key}"{(" aria-current=\"page\"" if key == active else "")}>{label}</a>'
             for key, href, label in links
         )
 
@@ -85,20 +95,20 @@ def header(active: str) -> str:
   <header class="ats-page-header">
     <div class="ats-page-header__inner">
       <a class="ats-page-brand" href="/" aria-label="Angel Tree Services home">
-        <img src="/assets/SquooshedAngelTreeTransparent.png" width="1500" height="1275" alt="">
+        <img src="/assets/angel-tree-logo-transparent.webp" width="512" height="512" alt="">
         <span>Angel Tree Services</span>
       </a>
       <nav class="ats-page-nav" aria-label="Primary navigation">
-        {nav_links()}
+        {nav_links(primary_links)}
+        <a class="ats-page-instagram" href="{INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4.25"></circle><circle cx="17.4" cy="6.7" r="1"></circle></svg>
+        </a>
         <a class="ats-page-call" href="tel:{PHONE_LINK}">Call Us</a>
       </nav>
       <details class="ats-mobile-menu">
         <summary>Menu</summary>
         <nav aria-label="Mobile navigation">
-          <a href="/">Home</a>
-          {nav_links()}
-          <a href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>
-          <a class="ats-estimate-link" href="/#contact">Free Estimate</a>
+          {nav_links(mobile_links)}
         </nav>
       </details>
     </div>
@@ -237,7 +247,9 @@ def page_document(page: dict) -> str:
   <meta name="twitter:title" content="{html_attr(page['title'])}">
   <meta name="twitter:description" content="{html_attr(page['description'])}">
   <meta name="twitter:image" content="{html_attr(image)}">
-  <link rel="icon" href="/assets/SquooshedAngelTreeTransparent.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/css2.css">
   <link rel="stylesheet" href="/site-pages.css?v=about1">
   <script type="application/ld+json">{schema}</script>
@@ -968,7 +980,7 @@ PAGES = [
     },
     {
         "path": "/recognition/",
-        "active": "",
+        "active": "recognition",
         "type": "page",
         "schema_type": "WebPage",
         "about_business": True,

@@ -38,13 +38,14 @@ Individual project pages remain withheld until factual project notes and media p
 ### Primary Navigation
 
 - Brand link to Home
+- About
 - Services
 - Projects
 - Commercial
-- About
-- Call / Free Estimate
+- Instagram
+- Call Us
 
-This compact structure is now shared by the homepage and Batch 2 pages. Keep “Call” and “Free Estimate” visually available, particularly on mobile.
+This compact order is shared by the homepage and generated public pages. The expanded mobile menu continues with Credentials & Safety, Reviews & Recognition, and Contact; persistent mobile actions provide Call now and Free estimate. The order should be evaluated using the existing privacy-conscious `navigation_link_click` event rather than competitor convention alone.
 
 ### Service Hub
 

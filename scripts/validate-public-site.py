@@ -460,6 +460,36 @@ class Validator:
         if 'credentials: "omit"' not in script:
             self.error("/: cross-origin lead request must omit credentials")
 
+    def validate_homepage_search_alignment(self) -> None:
+        homepage = self.page_sources.get("/", "")
+        page = self.pages.get("/")
+        if not homepage or not page:
+            return
+
+        expected_title = "Tree Service in Fredericksburg, VA | Angel Tree Services"
+        expected_heading = "Fredericksburg Tree Service You Can Depend On"
+        expected_description = (
+            "Certified-arborist-led tree care in Fredericksburg, including tree removal, pruning, "
+            "stump grinding, storm cleanup, landscaping, and lawn care. Request a free estimate."
+        )
+
+        if page.title != expected_title:
+            self.error(f"/: homepage title must remain {expected_title!r}")
+        if page.meta_value("name", "description") != expected_description:
+            self.error("/: homepage description must align tree care services with Fredericksburg")
+        if f'<link rel="canonical" href="{SITE}/">' not in homepage:
+            self.error("/: homepage canonical must remain the root public URL")
+        if expected_heading not in homepage:
+            self.error("/: mobile homepage heading does not match the approved search-focused H1")
+
+        h1_match = re.search(r"<h1\b[^>]*>(.*?)</h1>", homepage, re.IGNORECASE | re.DOTALL)
+        if not h1_match:
+            self.error("/: desktop homepage H1 is missing")
+        else:
+            h1_text = " ".join(re.sub(r"<[^>]+>", " ", h1_match.group(1)).split())
+            if h1_text != expected_heading:
+                self.error(f"/: desktop homepage H1 must be {expected_heading!r}")
+
     def validate_recognition_layer(self) -> None:
         homepage = self.page_sources.get("/", "")
         recognition = self.page_sources.get("/recognition/", "")
@@ -676,6 +706,7 @@ class Validator:
             self.validate_prefill_links()
             self.validate_navigation_graph()
             self.validate_homepage_form()
+            self.validate_homepage_search_alignment()
             self.validate_recognition_layer()
             self.validate_about_page()
             self.validate_artifact_contents()

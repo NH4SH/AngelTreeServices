@@ -209,8 +209,16 @@
 #top .sqsrte-scaled-text {
   position: relative;
   display: inline-block;
+  width: max-content;
+  max-width: min(94vw, 1360px);
   padding-bottom: 0.15em;
-  font-size: clamp(56px, 7.8vw, 112px) !important;
+  box-sizing: border-box;
+  font-size: clamp(48px, 5.6vw, 82px) !important;
+}
+
+#top h1 {
+  white-space: normal !important;
+  line-height: 1.05;
 }
 
 #top .sqsrte-scaled-text::after {

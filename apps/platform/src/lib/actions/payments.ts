@@ -65,6 +65,7 @@ export async function recordManualPayment(
 
   const { error: paymentError } = await supabase.from("payments").insert({
     amount_cents: amountCents,
+    total_collected_cents: amountCents,
     customer_id: invoice.customer_id,
     organization_id: invoice.organization_id,
     currency: "usd",

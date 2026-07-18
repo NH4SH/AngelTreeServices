@@ -97,7 +97,8 @@ export type EmailEventType =
   | "work_reminder"
   | "invoice_payment_reminder"
   | "overdue_invoice_reminder"
-  | "payment_confirmation";
+  | "payment_confirmation"
+  | "payment_preference_notice";
 export type EmailEventStatus = "sent" | "failed";
 export type CommunicationType = Extract<
   EmailEventType,
@@ -376,6 +377,8 @@ export type Invoice = {
   due_at: string | null;
   sent_at: string | null;
   paid_at: string | null;
+  payment_preference: "ach" | "card" | "cash_check_pickup" | "check_mail" | null;
+  payment_preference_selected_at: string | null;
   first_viewed_at: string | null;
   last_viewed_at: string | null;
   view_count: number;
@@ -679,12 +682,20 @@ export type Payment = {
   customer_id: string | null;
   organization_id: string | null;
   amount_cents: number;
+  surcharge_cents: number;
+  total_collected_cents: number;
   currency: string;
   payment_method: string | null;
   provider: string | null;
   provider_payment_id: string | null;
   provider_checkout_session_id: string | null;
   provider_charge_id: string | null;
+  card_funding_type: "credit" | "debit" | "prepaid" | "unknown" | null;
+  card_brand: string | null;
+  stripe_fee_cents: number | null;
+  net_received_cents: number | null;
+  refunded_principal_cents: number;
+  refunded_surcharge_cents: number;
   reference: string | null;
   notes: string | null;
   status: PaymentStatus;

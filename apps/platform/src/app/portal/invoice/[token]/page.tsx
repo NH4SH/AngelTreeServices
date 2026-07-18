@@ -1,11 +1,12 @@
 import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
-import { InvoicePortalPaymentButton } from "@/components/invoice-portal-payment-button";
+import { InvoicePortalPaymentChooser } from "@/components/invoice-portal-payment-button";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
+import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
 
 type CustomerInvoicePortalPageProps = {
   params: Promise<{
@@ -27,10 +28,12 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
   const scopeSummary = getInvoiceScopeSummary(invoice);
   const paymentTotalCents = (invoice.payments ?? [])
     .filter((paymentRecord) => paymentRecord.status === "succeeded")
-    .reduce((sum, paymentRecord) => sum + paymentRecord.amount_cents, 0);
+    .reduce((sum, paymentRecord) => sum + Math.max(0, paymentRecord.amount_cents - paymentRecord.refunded_principal_cents), 0);
   const amountDueCents = Math.max(0, invoice.total_cents - paymentTotalCents);
   const stripeConfigured = getStripeServerConfig().configured;
-  const canPay = stripeConfigured && amountDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(invoice.status);
+  const paymentConfig = getInvoicePaymentConfiguration();
+  const canChoosePayment = amountDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(invoice.status);
+  const hasProcessingPayment = (invoice.payments ?? []).some((paymentRecord) => paymentRecord.status === "pending" && paymentRecord.provider === "stripe");
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
@@ -107,12 +110,21 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
                   : `Thank you. ${formatCurrency(paymentTotalCents)} has been paid in full.`}
               </p>
             </>
-          ) : canPay ? (
+          ) : canChoosePayment ? (
             <>
-              <strong>Pay securely online</strong>
+              <strong>{hasProcessingPayment ? "Bank payment processing" : "Payment options"}</strong>
               {payment === "success" ? <p>Payment submitted. This invoice will update as soon as Stripe confirms it.</p> : null}
+              {payment === "processing" || hasProcessingPayment ? <p>Your bank payment is processing. The invoice will remain open until Stripe confirms that the payment cleared.</p> : null}
               {payment === "cancelled" ? <p>Checkout was cancelled. No payment was made.</p> : null}
-              <InvoicePortalPaymentButton token={token} />
+              {!hasProcessingPayment ? (
+                <InvoicePortalPaymentChooser
+                  cardEnabled={paymentConfig.cardEnabled}
+                  mailingAddress={paymentConfig.businessCheckMailingAddress}
+                  onlinePaymentEnabled={stripeConfigured}
+                  selectedPreference={invoice.payment_preference}
+                  token={token}
+                />
+              ) : null}
             </>
           ) : (
             <>

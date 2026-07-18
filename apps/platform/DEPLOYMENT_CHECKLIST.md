@@ -21,6 +21,10 @@ EMAIL_REPLY_TO=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+STRIPE_CREDIT_SURCHARGE_BPS=300
+STRIPE_SURCHARGE_ENABLED=false
+STRIPE_UNSURCHARGED_CARD_ENABLED=false
+BUSINESS_CHECK_MAILING_ADDRESS=
 APP_BASE_URL=https://admin.angeltreeservices.org
 COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
@@ -39,6 +43,9 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It is used for secure quote-token lookup and public lead intake writes. Never expose it in client components, browser bundles, or public logs.
 - `PORTAL_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, and the email settings are server-only. Do not prefix them with `NEXT_PUBLIC_`.
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are server-only. Use Stripe test keys first and never prefix either value with `NEXT_PUBLIC_`.
+- Apply `supabase/migrations/20260718200940_invoice_payment_options.sql` before deploying the payment chooser. Keep `STRIPE_SURCHARGE_ENABLED=false`; the current build does not activate Stripe's account-gated automatic Checkout surcharge preview.
+- `STRIPE_UNSURCHARGED_CARD_ENABLED=false` keeps card Checkout unavailable until an owner explicitly approves accepting cards without a surcharge. ACH and offline preferences do not depend on this setting.
+- `BUSINESS_CHECK_MAILING_ADDRESS` is optional and server-only. When blank, the portal tells customers to call for the current mailing address.
 - `APP_BASE_URL` is the canonical platform origin used for Stripe Checkout return URLs. It must be the deployed admin origin, without a path.
 - `COMMUNICATION_WORKER_SECRET` is server-only and authenticates the hourly Netlify function to the internal communication processor. Generate at least 32 random characters with `openssl rand -hex 32`.
 - `SUPABASE_DB_URL` is not required for normal runtime page rendering. Keep it for migrations and server-side tooling only.
@@ -126,6 +133,9 @@ Subscribe it to:
 - `checkout.session.async_payment_succeeded`
 - `checkout.session.async_payment_failed`
 - `payment_intent.payment_failed`
+- `charge.refunded`
+- `charge.dispute.created`
+- `charge.dispute.closed`
 
 Copy that endpoint's signing secret to `STRIPE_WEBHOOK_SECRET`, redeploy the platform, and complete the test-mode smoke test before using live-mode keys. The portal uses hosted Stripe Checkout; no publishable key is needed.
 

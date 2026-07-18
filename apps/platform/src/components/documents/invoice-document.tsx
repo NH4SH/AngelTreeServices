@@ -58,6 +58,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       />
       <section className="business-document-payment-note">
         <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
+        <p>Pay securely online by bank account or card. Eligible credit-card payments may include a disclosed card-processing surcharge. Debit cards, checks, and bank payments are not subject to the credit-card surcharge.</p>
         <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
       </section>
     </DocumentShell>

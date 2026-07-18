@@ -5,11 +5,13 @@ import type Stripe from "stripe";
 
 type CheckoutReservation = {
   amount_cents: number;
+  invoice_principal_cents: number;
   checkout_url: string | null;
   created_at: string;
   currency: string;
   expires_at: string | null;
   id: string;
+  payment_channel: "ach" | "card";
   status: "creating" | "open" | "completed" | "expired" | "failed" | "cancelled";
   stripe_checkout_session_id: string | null;
 };
@@ -18,10 +20,12 @@ type CheckoutInput = {
   amountCents: number;
   currency?: string;
   customerId: string | null;
+  customerEmail?: string | null;
   invoiceId: string;
   invoiceNumber: string | null;
   organizationId?: string | null;
   portalUrl: string;
+  paymentChannel: "ach" | "card";
   serviceLocationId?: string | null;
   stripe: Stripe;
   supabase: SupabaseClient<any, "public", any>;
@@ -39,14 +43,14 @@ const reservationTimeoutMs = 5 * 60 * 1000;
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const currency = (input.currency ?? "usd").toLowerCase();
-  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency);
+  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency, input.paymentChannel);
 
   if (!reservationResult.ok) {
     return reservationResult;
   }
 
   const reservation = reservationResult.reservation;
-  if (reservation.amount_cents !== input.amountCents) {
+  if (reservation.invoice_principal_cents !== input.amountCents || reservation.payment_channel !== input.paymentChannel) {
     await expireReservation(input.supabase, input.stripe, reservation);
     return createOrReuseInvoiceCheckout(input);
   }
@@ -86,20 +90,22 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
       {
         cancel_url: `${input.portalUrl}?payment=cancelled`,
         client_reference_id: input.invoiceId,
+        customer_email: input.customerEmail || undefined,
         line_items: [
           {
             price_data: {
               currency,
               product_data: { name: `Angel Tree Services invoice ${input.invoiceNumber ?? ""}`.trim() },
-              unit_amount: reservation.amount_cents,
+              unit_amount: reservation.invoice_principal_cents,
             },
             quantity: 1,
           },
         ],
         metadata,
         mode: "payment",
+        payment_method_types: input.paymentChannel === "ach" ? ["us_bank_account"] : ["card"],
         payment_intent_data: { metadata },
-        success_url: `${input.portalUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${input.portalUrl}?payment=${input.paymentChannel === "ach" ? "processing" : "success"}&session_id={CHECKOUT_SESSION_ID}`,
       },
       { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}` },
     );
@@ -141,10 +147,11 @@ async function reserveCheckout(
   organizationId: string | null,
   amountCents: number,
   currency: string,
+  paymentChannel: "ach" | "card",
 ): Promise<{ ok: true; reservation: CheckoutReservation } | { ok: false; message: string }> {
   const { data: active, error: activeError } = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .select("id, amount_cents, invoice_principal_cents, payment_channel, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
     .eq("invoice_id", invoiceId)
     .in("status", ["creating", "open"])
     .order("created_at", { ascending: false })
@@ -160,7 +167,7 @@ async function reserveCheckout(
     const reservation = active as CheckoutReservation;
     if (reservation.status === "creating" && Date.now() - new Date(reservation.created_at).getTime() > reservationTimeoutMs) {
       await supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id).eq("status", "creating");
-      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentChannel);
     }
 
     return { ok: true, reservation };
@@ -168,8 +175,19 @@ async function reserveCheckout(
 
   const { data, error } = await supabase
     .from("invoice_checkout_sessions")
-    .insert({ amount_cents: amountCents, currency, customer_id: customerId, organization_id: organizationId, invoice_id: invoiceId, status: "creating" })
-    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .insert({
+      amount_cents: amountCents,
+      currency,
+      customer_id: customerId,
+      invoice_id: invoiceId,
+      invoice_principal_cents: amountCents,
+      organization_id: organizationId,
+      payment_channel: paymentChannel,
+      status: "creating",
+      surcharge_cents: 0,
+      total_charge_cents: amountCents,
+    })
+    .select("id, amount_cents, invoice_principal_cents, payment_channel, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
     .single();
 
   if (!error && data) {
@@ -177,7 +195,7 @@ async function reserveCheckout(
   }
 
   if (error?.code === "23505") {
-    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentChannel);
   }
 
   console.error("Stripe Checkout reservation failed", error);

@@ -15,7 +15,7 @@ export async function getSuccessfulPaymentTotal(
 ) {
   const { data, error } = await supabase
     .from("payments")
-    .select("amount_cents")
+    .select("amount_cents, refunded_principal_cents")
     .eq("invoice_id", invoiceId)
     .eq("status", "succeeded");
 
@@ -25,7 +25,10 @@ export async function getSuccessfulPaymentTotal(
 
   return {
     error: null,
-    totalCents: (data ?? []).reduce((sum, payment) => sum + Number(payment.amount_cents ?? 0), 0),
+    totalCents: (data ?? []).reduce(
+      (sum, payment) => sum + Math.max(0, Number(payment.amount_cents ?? 0) - Number(payment.refunded_principal_cents ?? 0)),
+      0,
+    ),
   };
 }
 

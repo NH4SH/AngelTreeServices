@@ -57,7 +57,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   const stripeSetup = getStripeServerConfig();
   const successfulPaymentCents = (detail.data?.payments ?? [])
     .filter((payment) => payment.status === "succeeded")
-    .reduce((sum, payment) => sum + payment.amount_cents, 0);
+    .reduce((sum, payment) => sum + Math.max(0, payment.amount_cents - payment.refunded_principal_cents), 0);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
@@ -261,7 +261,12 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                     <div><dt>Balance</dt><dd>{formatCurrency(detail.data.balance_due_cents)}</dd></div>
                     <div><dt>Due date</dt><dd>{formatDate(detail.data.due_at)}</dd></div>
                     <div><dt>Payments</dt><dd>{detail.data.payments?.length ?? 0}</dd></div>
+                    <div><dt>Payment preference</dt><dd>{formatPaymentPreference(detail.data.payment_preference)}</dd></div>
+                    <div><dt>Selected</dt><dd>{detail.data.payment_preference_selected_at ? formatDateTime(detail.data.payment_preference_selected_at) : "Not selected"}</dd></div>
                   </dl>
+                  {detail.data.payment_preference === "cash_check_pickup" || detail.data.payment_preference === "check_mail" ? (
+                    <p className="inline-empty">Customer selected this method; payment has not yet been received.</p>
+                  ) : null}
                 </section>
 
                 <PortalEngagementPanel engagement={detail.data} />
@@ -279,8 +284,22 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                       {detail.data.payments.map((payment) => (
                         <article className="payment-record" key={payment.id}>
                           <div className="linked-record">
-                            <strong>{formatCurrency(payment.amount_cents)} - {payment.status.replace("_", " ")}</strong>
+                            <strong>{formatCurrency(payment.amount_cents)} principal - {payment.status.replace("_", " ")}</strong>
                             <span>{formatPaymentMeta(payment)}</span>
+                            {payment.provider === "stripe" ? (
+                              <dl className="payment-provider-details">
+                                <div><dt>Invoice principal</dt><dd>{formatCurrency(payment.amount_cents)}</dd></div>
+                                <div><dt>Surcharge</dt><dd>{formatCurrency(payment.surcharge_cents)}</dd></div>
+                                <div><dt>Total charged</dt><dd>{formatCurrency(payment.total_collected_cents)}</dd></div>
+                                <div><dt>Method</dt><dd>{payment.payment_method?.toUpperCase() ?? "Stripe"}</dd></div>
+                                <div><dt>Funding type</dt><dd>{payment.card_funding_type ?? "Not applicable"}</dd></div>
+                                <div><dt>Stripe fee</dt><dd>{payment.stripe_fee_cents == null ? "Pending" : formatCurrency(payment.stripe_fee_cents)}</dd></div>
+                                <div><dt>Net received</dt><dd>{payment.net_received_cents == null ? "Pending" : formatCurrency(payment.net_received_cents)}</dd></div>
+                                {payment.refunded_principal_cents || payment.refunded_surcharge_cents ? (
+                                  <div><dt>Refunded</dt><dd>{formatCurrency(payment.refunded_principal_cents + payment.refunded_surcharge_cents)}</dd></div>
+                                ) : null}
+                              </dl>
+                            ) : null}
                           </div>
                           {canManageDelivery && payment.provider === "manual" && payment.status === "succeeded" ? (
                             <ManualPaymentCorrectionForm
@@ -356,4 +375,21 @@ function formatPaymentMeta(payment: Payment) {
   const method = payment.provider === "stripe" ? "Stripe Checkout" : payment.payment_method?.replace("_", " ") || "Manual payment";
   const reference = payment.reference || payment.provider_payment_id || "No reference";
   return `${method} - ${formatDate(payment.paid_at)} - ${reference}`;
+}
+
+function formatPaymentPreference(value: string | null) {
+  if (!value) return "Not selected";
+  return {
+    ach: "ACH",
+    card: "Card",
+    cash_check_pickup: "Pickup",
+    check_mail: "Mail",
+  }[value] ?? value;
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

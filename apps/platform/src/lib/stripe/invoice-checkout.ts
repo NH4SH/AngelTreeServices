@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import type { OnlinePortalPaymentMethod } from "@/lib/payments/portal-methods";
 
 type CheckoutReservation = {
   amount_cents: number;
@@ -10,7 +11,8 @@ type CheckoutReservation = {
   currency: string;
   expires_at: string | null;
   id: string;
-  status: "creating" | "open" | "completed" | "expired" | "failed" | "cancelled";
+  payment_method: OnlinePortalPaymentMethod;
+  status: "creating" | "open" | "completed" | "expired" | "failed" | "cancelled" | "processing";
   stripe_checkout_session_id: string | null;
 };
 
@@ -21,6 +23,7 @@ type CheckoutInput = {
   invoiceId: string;
   invoiceNumber: string | null;
   organizationId?: string | null;
+  paymentMethod: OnlinePortalPaymentMethod;
   portalUrl: string;
   serviceLocationId?: string | null;
   stripe: Stripe;
@@ -39,14 +42,22 @@ const reservationTimeoutMs = 5 * 60 * 1000;
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const currency = (input.currency ?? "usd").toLowerCase();
-  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency);
+  const reservationResult = await reserveCheckout(
+    input.supabase,
+    input.invoiceId,
+    input.customerId,
+    input.organizationId ?? null,
+    input.amountCents,
+    currency,
+    input.paymentMethod,
+  );
 
   if (!reservationResult.ok) {
     return reservationResult;
   }
 
   const reservation = reservationResult.reservation;
-  if (reservation.amount_cents !== input.amountCents) {
+  if (reservation.amount_cents !== input.amountCents || reservation.payment_method !== input.paymentMethod) {
     await expireReservation(input.supabase, input.stripe, reservation);
     return createOrReuseInvoiceCheckout(input);
   }
@@ -80,6 +91,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
       invoice_id: input.invoiceId,
       invoice_number: input.invoiceNumber ?? "",
       organization_id: input.organizationId ?? "",
+      payment_preference: input.paymentMethod,
       service_location_id: input.serviceLocationId ?? "",
     });
     const session = await input.stripe.checkout.sessions.create(
@@ -99,6 +111,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
         metadata,
         mode: "payment",
         payment_intent_data: { metadata },
+        payment_method_types: input.paymentMethod === "ach" ? ["us_bank_account"] : ["card"],
         success_url: `${input.portalUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       },
       { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}` },
@@ -141,10 +154,11 @@ async function reserveCheckout(
   organizationId: string | null,
   amountCents: number,
   currency: string,
+  paymentMethod: OnlinePortalPaymentMethod,
 ): Promise<{ ok: true; reservation: CheckoutReservation } | { ok: false; message: string }> {
   const { data: active, error: activeError } = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, payment_method, status, stripe_checkout_session_id")
     .eq("invoice_id", invoiceId)
     .in("status", ["creating", "open"])
     .order("created_at", { ascending: false })
@@ -160,7 +174,7 @@ async function reserveCheckout(
     const reservation = active as CheckoutReservation;
     if (reservation.status === "creating" && Date.now() - new Date(reservation.created_at).getTime() > reservationTimeoutMs) {
       await supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id).eq("status", "creating");
-      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentMethod);
     }
 
     return { ok: true, reservation };
@@ -168,8 +182,16 @@ async function reserveCheckout(
 
   const { data, error } = await supabase
     .from("invoice_checkout_sessions")
-    .insert({ amount_cents: amountCents, currency, customer_id: customerId, organization_id: organizationId, invoice_id: invoiceId, status: "creating" })
-    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .insert({
+      amount_cents: amountCents,
+      currency,
+      customer_id: customerId,
+      organization_id: organizationId,
+      invoice_id: invoiceId,
+      payment_method: paymentMethod,
+      status: "creating",
+    })
+    .select("id, amount_cents, checkout_url, created_at, currency, expires_at, payment_method, status, stripe_checkout_session_id")
     .single();
 
   if (!error && data) {
@@ -177,7 +199,7 @@ async function reserveCheckout(
   }
 
   if (error?.code === "23505") {
-    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentMethod);
   }
 
   console.error("Stripe Checkout reservation failed", error);
@@ -217,7 +239,7 @@ export async function cancelOutstandingInvoiceCheckouts({
     .from("invoice_checkout_sessions")
     .select("id, stripe_checkout_session_id")
     .eq("invoice_id", invoiceId)
-    .in("status", ["creating", "open"]);
+    .in("status", ["creating", "open", "processing"]);
 
   if (error) {
     return { ok: false, message: error.message };
@@ -246,7 +268,7 @@ export async function cancelOutstandingInvoiceCheckouts({
     .from("invoice_checkout_sessions")
     .update({ status: "cancelled" })
     .eq("invoice_id", invoiceId)
-    .in("status", ["creating", "open"]);
+    .in("status", ["creating", "open", "processing"]);
 
   return updateError ? { ok: false, message: updateError.message } : { ok: true };
 }

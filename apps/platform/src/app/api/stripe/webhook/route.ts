@@ -26,6 +26,8 @@ export async function POST(request: Request) {
   try {
     switch (event.type) {
       case "checkout.session.completed":
+        await handleCheckoutCompleted(config.stripe, event.data.object as Stripe.Checkout.Session);
+        break;
       case "checkout.session.async_payment_succeeded":
         await handleSuccessfulCheckout(config.stripe, event.data.object as Stripe.Checkout.Session);
         break;
@@ -44,6 +46,46 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ received: true });
+}
+
+async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.Session) {
+  if (session.payment_status === "paid") {
+    await handleSuccessfulCheckout(stripe, session);
+    return;
+  }
+
+  const supabase = getServiceRoleClient();
+  if (!supabase) {
+    throw new Error("Server configuration is unavailable for Stripe payment reconciliation.");
+  }
+
+  const { data: checkout, error } = await supabase
+    .from("invoice_checkout_sessions")
+    .update({
+      status: "processing",
+      stripe_payment_intent_id: getStripeId(session.payment_intent),
+    })
+    .eq("stripe_checkout_session_id", session.id)
+    .in("status", ["creating", "open"])
+    .select("invoice_id, payment_method")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (checkout) {
+    await recordActivity(supabase, {
+      actorUserId: null,
+      eventType: "stripe_payment_processing",
+      metadata: {
+        checkout_session_id: session.id,
+        payment_method: checkout.payment_method,
+      },
+      subjectId: checkout.invoice_id,
+      subjectType: "invoice",
+    });
+  }
 }
 
 async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Checkout.Session) {
@@ -67,7 +109,7 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
 
   const { data: checkout, error: checkoutError } = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, invoice_id, customer_id, organization_id, amount_cents, currency, status")
+    .select("id, invoice_id, customer_id, organization_id, amount_cents, currency, payment_method, status")
     .eq("stripe_checkout_session_id", session.id)
     .maybeSingle();
 
@@ -90,13 +132,13 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
   const paymentIntentId = getStripeId(session.payment_intent);
   const chargeId = getStripeId(charge);
   const { error: paymentError } = await supabase.from("payments").insert({
-    amount_cents: session.amount_total,
+    amount_cents: checkout.amount_cents,
     currency: session.currency.toLowerCase(),
     customer_id: checkout.customer_id,
     organization_id: checkout.organization_id,
     invoice_id: checkout.invoice_id,
     paid_at: new Date().toISOString(),
-    payment_method: "stripe_checkout",
+    payment_method: checkout.payment_method === "ach" ? "ach" : "card",
     provider: "stripe",
     provider_charge_id: chargeId,
     provider_checkout_session_id: session.id,
@@ -132,9 +174,10 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
       actorUserId: null,
       eventType: "stripe_payment_recorded",
       metadata: {
-        amount_cents: session.amount_total,
+        amount_cents: checkout.amount_cents,
         checkout_session_id: session.id,
         payment_intent_id: paymentIntentId,
+        payment_method: checkout.payment_method,
       },
       subjectId: checkout.invoice_id,
       subjectType: "invoice",
@@ -144,28 +187,36 @@ async function handleSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Che
 
 async function markCheckoutFailed(session: Stripe.Checkout.Session) {
   const supabase = getServiceRoleClient();
-  if (!supabase) {
-    return;
-  }
+  if (!supabase) return;
 
-  await supabase
+  const { data } = await supabase
     .from("invoice_checkout_sessions")
     .update({ status: "failed" })
     .eq("stripe_checkout_session_id", session.id)
-    .in("status", ["creating", "open"]);
+    .in("status", ["creating", "open", "processing"])
+    .select("invoice_id, payment_method")
+    .maybeSingle();
+
+  if (data) {
+    await recordActivity(supabase, {
+      actorUserId: null,
+      eventType: "stripe_payment_failed",
+      metadata: { checkout_session_id: session.id, payment_method: data.payment_method },
+      subjectId: data.invoice_id,
+      subjectType: "invoice",
+    });
+  }
 }
 
 async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   const supabase = getServiceRoleClient();
-  if (!supabase) {
-    return;
-  }
+  if (!supabase) return;
 
   await supabase
     .from("invoice_checkout_sessions")
     .update({ status: "failed" })
     .eq("stripe_payment_intent_id", paymentIntent.id)
-    .in("status", ["creating", "open"]);
+    .in("status", ["creating", "open", "processing"]);
 }
 
 function getStripeObject<T>(value: string | T | null) {

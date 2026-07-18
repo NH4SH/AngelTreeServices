@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
+import { isOnlinePortalPaymentMethod } from "@/lib/payments/portal-methods";
 import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
 import { createOrReuseInvoiceCheckout } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+
+const maxBodyBytes = 2_048;
 
 type CheckoutRouteProps = {
   params: Promise<{ token: string }>;
@@ -20,6 +23,25 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   const origin = request.headers.get("origin");
   if (origin && origin !== stripeConfig.appBaseUrl) {
     return paymentError("Online payment is not available for this invoice.", 403);
+  }
+
+  if (Number(request.headers.get("content-length") ?? 0) > maxBodyBytes) {
+    return paymentError("Online payment is not available for this invoice.", 413);
+  }
+
+  if (!request.headers.get("content-type")?.includes("application/json")) {
+    return paymentError("Choose a payment method and try again.", 415);
+  }
+
+  let body: { paymentMethod?: unknown };
+  try {
+    body = await request.json() as { paymentMethod?: unknown };
+  } catch {
+    return paymentError("Choose a payment method and try again.", 400);
+  }
+
+  if (!isOnlinePortalPaymentMethod(body.paymentMethod)) {
+    return paymentError("Choose bank account or debit/credit card.", 400);
   }
 
   const { token } = await params;
@@ -67,6 +89,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoice_number,
     organizationId: invoice.organization_id,
+    paymentMethod: body.paymentMethod,
     portalUrl,
     serviceLocationId: job?.service_location_id ?? null,
     stripe: stripeConfig.stripe,
@@ -85,5 +108,5 @@ function asOne<T>(value: T | T[] | null | undefined) {
 }
 
 function paymentError(message: string, status: number) {
-  return NextResponse.json({ ok: false, message }, { status });
+  return NextResponse.json({ ok: false, message }, { status, headers: { "Cache-Control": "no-store" } });
 }

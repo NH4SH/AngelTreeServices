@@ -158,7 +158,10 @@ Allowed only when currently verified:
 
 - ISA Certified Arborist.
 - ISA membership.
-- 30+ years of industry experience.
+- More than 30 years of tree-industry experience behind the company.
+- Angel Tree Services founded in 2015.
+- Serving the Fredericksburg region since 2015.
+- Founder with more than 20 years in the tree industry before establishing Angel Tree Services.
 - Current Chamber membership.
 - Local service-area statements supported by operations.
 - Google rating and durable review-count threshold recorded in `PUBLIC_RECOGNITION_SOURCES.md`.

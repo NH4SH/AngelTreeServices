@@ -16,6 +16,8 @@ The controlled release review has prepared a deterministic `dist-public/` build,
 
 A style-preserving reviews, recognition, and media layer is now prepared locally for the same controlled release. It adds `/recognition/`, a restrained homepage trust section, verified Best of the Burg finalist wording, factual NBC4 Responds coverage, and a click-to-load official video. It has not been deployed.
 
+A style-preserving About page is now prepared locally for visual approval. It explains the verified continuous history behind the company: more than 20 years of founder experience before 2015, followed by Angel Tree Services serving the Fredericksburg region since 2015, together representing more than 30 years of tree-industry experience. It also explains the progression from crew leader to General Foreman and links concise community and recognition summaries to the source-rich Recognition page. It has not been deployed.
+
 ## Ranked Implementation Matrix
 
 | Rank | Work item | Expected impact | Change risk | Assets/content needed | CRM/data impact | Visual effect | Dependency |
@@ -34,6 +36,7 @@ A style-preserving reviews, recognition, and media layer is now prepared locally
 | P3 | Commercial/HOA service depth | Better property-manager conversion | Medium | Verified service capabilities and proof | Additional organization/property context if useful | Homeowner system with denser detail | Commercial workflow approval |
 | P3 | Learning center | Sustainable informational discovery | Low per page | Reviewed expert content and media | Content attribution only | Quieter editorial pattern | Editorial cadence |
 | P2 | Reviews, recognition, and media layer | Stronger third-party trust and entity corroboration | Medium | Maintained official-source record | No customer data | Restrained editorial proof modules | Quarterly source review |
+| P2 | About and company story | Clarify company history, founder experience, family operation, and local roots | Medium | Verified founder facts and permission-safe field imagery | No customer data | Warm editorial narrative in the shared static system | Recognition approval and responsive preview |
 
 Risk labels describe regression or claim risk, not implementation effort. Any credential, licensing, insurance, availability, review-count, or customer claim remains blocked until evidence and owner approval are recorded.
 
@@ -76,6 +79,7 @@ Risk labels describe regression or claim risk, not implementation effort. Any cr
 - [ ] Remove verified-unused Squarespace runtime/CSS only after baseline comparison.
 - [ ] Generate modern responsive image derivatives while preserving originals.
 - [x] Establish a maintainable review, recognition, and media source record and permanent page.
+- [x] Prepare a generated About page that distinguishes the 2015 company founding from, and connects it truthfully to, the founder’s earlier tree-industry experience.
 - [ ] Reverify the Google rating/count threshold and all official recognition sources quarterly or before a major release.
 
 ## P3 — Ongoing Growth

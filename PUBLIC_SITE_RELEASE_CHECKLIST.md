@@ -116,12 +116,12 @@ netlify build --offline
 git diff --check
 ```
 
-Expected result: ten page files, two matching artifact hash manifests, no source mutation, a successful local Netlify build, and no whitespace errors.
+Expected result: eleven page files, two matching artifact hash manifests, no source mutation, a successful local Netlify build, and no whitespace errors.
 
 ## Approval Gates
 
 - [ ] **Business claim evidence:** confirm the public `ISA Certified Arborist` credential is active and verifiable.
-- [ ] **Business claim evidence:** confirm the public `30+ years of industry experience` statement is accurate and approved.
+- [ ] **Business claim evidence:** confirm the verified public hierarchy: `30+ years of tree-industry experience`, `founded in 2015`, and `founder with more than 20 years in the industry before 2015`.
 - [ ] **Recognition source freshness:** reverify the live Google rating, review-count threshold, profile URL, exact Best of the Burg finalist listing, and NBC4 links immediately before publishing.
 - [ ] **Netlify dashboard:** verify there is no dashboard base-directory, build-command, or publish-directory override that conflicts with repository `netlify.toml`.
 - [ ] **Netlify redirects:** inspect dashboard-controlled redirects before adding or changing repository redirects. Do not run redirect changes blindly.

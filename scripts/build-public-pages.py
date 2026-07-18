@@ -33,6 +33,9 @@ NBC4_VIDEO_URL = (
 )
 YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=QwfdLmPTQAk"
 GOOGLE_REVIEW_PROOF = "4.9 stars from 120+ Google reviews"
+COMPANY_EXPERIENCE_PROOF = "more than 30 years of tree-industry experience"
+COMPANY_SERVICE_SINCE = "serving the Fredericksburg region since 2015"
+FOUNDER_PRIOR_EXPERIENCE = "more than 20 years in the tree industry before founding Angel Tree Services"
 CHAMBER_MEMBER_URL = (
     "https://members.fredericksburgchamber.org/list/member/"
     "angel-tree-services-llc-29385"
@@ -68,7 +71,7 @@ def header(active: str) -> str:
         ("services", "/services/", "Services"),
         ("projects", "/projects/", "Projects"),
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial"),
-        ("credentials", "/credentials-safety/", "Credentials"),
+        ("about", "/about/", "About"),
     ]
 
     def nav_links() -> str:
@@ -108,16 +111,16 @@ def footer() -> str:
     <div class="ats-page-footer__inner">
       <div>
         <h2>Angel Tree Services</h2>
-        <p>Tree care, landscaping, and lawn care for the Fredericksburg region, backed by 30+ years of industry experience.</p>
-        <p class="ats-page-footer__trust"><a href="/recognition/">Reviews, recognition, and media coverage</a></p>
+        <p>Family-operated tree care backed by {COMPANY_EXPERIENCE_PROOF}, {COMPANY_SERVICE_SINCE}.</p>
+        <p class="ats-page-footer__trust"><a href="/recognition/">Reviews, Recognition &amp; Media</a></p>
       </div>
       <div>
         <h3>Plan your service</h3>
         <ul>
+          <li><a href="/about/">About our family business</a></li>
+          <li><a href="/credentials-safety/">Credentials and safety</a></li>
           <li><a href="/services/tree-removal/">Tree removal</a></li>
           <li><a href="/services/tree-pruning/">Tree pruning</a></li>
-          <li><a href="/services/stump-grinding/">Stump grinding</a></li>
-          <li><a href="/services/emergency-tree-service/">Storm and emergency guidance</a></li>
         </ul>
       </div>
       <div>
@@ -236,12 +239,12 @@ def page_document(page: dict) -> str:
   <meta name="twitter:image" content="{html_attr(image)}">
   <link rel="icon" href="/assets/SquooshedAngelTreeTransparent.png">
   <link rel="stylesheet" href="/assets/css2.css">
-  <link rel="stylesheet" href="/site-pages.css?v=recognition1">
+  <link rel="stylesheet" href="/site-pages.css?v=about1">
   <script type="application/ld+json">{schema}</script>
 </head>
 <body>
 {header(page['active'])}
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
     <section class="ats-page-hero">
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
@@ -609,7 +612,7 @@ def credentials_body() -> str:
           <p class="ats-eyebrow">Verified public credentials</p>
           <h2>ISA member and ISA Certified Arborist</h2>
           <p>Angel Tree Services publicly identifies an active ISA membership and an ISA Certified Arborist credential. Certification belongs to the credentialed individual; it does not imply that every employee holds the same credential.</p>
-          <p>The company also states 30+ years of industry experience. No additional qualification should be inferred from these badges.</p>
+          <p>Angel Tree Services was founded in 2015 after its founder had already spent more than 20 years in the tree industry. Together with the company’s local service since 2015, that continuous history represents {COMPANY_EXPERIENCE_PROOF}. No additional qualification should be inferred from these badges.</p>
         </div>
         <div class="ats-badges" aria-label="ISA credentials">
           <img src="/assets/isamember1_004.jpg" width="190" height="299" alt="ISA Member">
@@ -626,7 +629,7 @@ def credentials_body() -> str:
             <li><a href="{html_attr(CHAMBER_MEMBER_URL)}" target="_blank" rel="noopener noreferrer">Member of the Fredericksburg Regional Chamber of Commerce</a></li>
             <li><a href="{html_attr(FABA_MEMBER_URL)}" target="_blank" rel="noopener noreferrer">Member of the Fredericksburg Area Builders Association</a></li>
           </ul>
-          <p class="ats-affiliations__note">These are professional memberships, not awards or endorsements. <a href="/recognition/#community">Read our fuller community story.</a></p>
+          <p class="ats-affiliations__note">These are professional memberships, not awards or endorsements. <a href="/about/">Read our company story</a>, or <a href="/recognition/#community">review the source-backed community details</a>.</p>
         </div>
       </div>
     </section>
@@ -676,6 +679,111 @@ def projects_body() -> str:
       </div>
     </section>
     {final_cta('Let’s talk about your property.', 'Share the service, address, and a short description. We’ll follow up about the next step for a free estimate.', '/#contact', 'Request a free estimate')}"""
+
+
+def about_body() -> str:
+    return f"""
+    <section class="ats-content-section ats-about-origin" aria-labelledby="about-origin-title">
+      <div class="ats-section-inner ats-about-origin__grid">
+        <div class="ats-prose">
+          <p class="ats-eyebrow">Serving the Fredericksburg region since 2015</p>
+          <h2 id="about-origin-title">The business began in 2015. The field experience began much earlier.</h2>
+          <p>Angel Tree Services has served the Fredericksburg region since 2015, but the experience behind the company reaches back more than 30 years. Before founding the family business, the founder had already spent more than 20 years working in tree care and utility vegetation management.</p>
+          <p>That background became a company centered on professional service, clear communication, property protection, and dependable cleanup. Angel Tree Services was founded in 2015, while the experience guiding its work began decades earlier.</p>
+        </div>
+        <aside class="ats-about-origin__note" aria-label="Company history clarification">
+          <strong>Founded in 2015</strong>
+          <p>Angel Tree Services has operated as a company since 2015.</p>
+          <strong>More than 30 years in the industry</strong>
+          <p>The founder’s earlier career and the company’s service since 2015 form one continuous tree-industry history.</p>
+        </aside>
+      </div>
+    </section>
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="founder-experience-title">
+      <div class="ats-section-inner ats-about-history">
+        <div class="ats-prose">
+          <p class="ats-eyebrow">Built on decades in the field</p>
+          <h2 id="founder-experience-title">More than 30 years in the tree industry</h2>
+          <p>Before founding Angel Tree Services in 2015, the company’s founder had already spent more than 20 years working in tree care and utility vegetation management. He served as a crew leader with Asplundh before joining Lewis Tree Service, where he advanced to General Foreman.</p>
+          <p>In that leadership role, he supervised approximately 40 employees and helped oversee crews across multiple Virginia service territories. Those areas included the Fredericksburg region, Leesburg and Northern Virginia, the Shenandoah Valley, and Tappahannock and eastern Virginia.</p>
+          <p>Since founding Angel Tree Services, he has brought that background into more than a decade of operating a local family business. Together, that continuous history represents {COMPANY_EXPERIENCE_PROOF}.</p>
+          <p class="ats-about-history__disclaimer">These former roles are part of the founder’s work history. They do not imply endorsement of Angel Tree Services by either former employer or any current utility affiliation.</p>
+        </div>
+        <div class="ats-about-territories" aria-label="Virginia service territories from the founder's prior leadership experience">
+          <p>Leadership experience across Virginia</p>
+          <ul>
+            <li>Fredericksburg area</li>
+            <li>Leesburg and Northern Virginia</li>
+            <li>Shenandoah Valley</li>
+            <li>Tappahannock and eastern Virginia</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <section class="ats-content-section" aria-labelledby="experience-today-title">
+      <div class="ats-section-inner ats-about-practices">
+        <div>
+          <p class="ats-eyebrow">Experience put to work</p>
+          <h2 class="ats-section-heading" id="experience-today-title">What that background means on your property today</h2>
+          <p class="ats-section-intro">More than 30 years in the industry have shaped how Angel Tree Services plans each job, leads its crews, protects customer property, and communicates throughout the work.</p>
+        </div>
+        <ol class="ats-about-practices__list">
+          <li><strong>Plan around the site</strong><span>Access, nearby structures, equipment movement, and the requested outcome all affect the practical work plan.</span></li>
+          <li><strong>Keep crews coordinated</strong><span>Clear roles, work-zone organization, and active supervision help complicated tree projects move with purpose.</span></li>
+          <li><strong>Protect the property</strong><span>Lawns, drives, fences, neighboring areas, and cleanup expectations are considered before the agreed work begins.</span></li>
+          <li><strong>Communicate the next step</strong><span>A written scope and dependable follow-up help customers understand what is included and what happens next.</span></li>
+        </ol>
+      </div>
+    </section>
+    <section class="ats-content-section ats-about-family" aria-labelledby="family-business-title">
+      <div class="ats-section-inner ats-two-column">
+        <div class="ats-prose">
+          <p class="ats-eyebrow">Family operated and locally grounded</p>
+          <h2 id="family-business-title">Field knowledge carried into a connected customer experience</h2>
+          <p>As Angel Tree Services grew, it developed as a family-operated business. Customers may interact with different people during estimates, scheduling, field work, and follow-up, but the goal is a coordinated experience from the first conversation through cleanup.</p>
+          <p>The company serves homeowners and property professionals throughout Fredericksburg, Spotsylvania, Stafford, King George, and Caroline.</p>
+        </div>
+        <nav class="ats-about-links" aria-label="Learn more about Angel Tree Services">
+          <a href="/services/">Explore services</a>
+          <a href="/credentials-safety/">Review credentials and safety</a>
+          <a href="/projects/">See real project imagery</a>
+          <a href="/services/commercial-hoa-tree-care/">Commercial and HOA tree care</a>
+        </nav>
+      </div>
+    </section>
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="about-community-title">
+      <div class="ats-section-inner ats-about-community">
+        <div>
+          <p class="ats-eyebrow">Community involvement</p>
+          <h2 class="ats-section-heading" id="about-community-title">Connected through business, service, and material reuse</h2>
+        </div>
+        <div class="ats-prose">
+          <ul class="ats-about-community__memberships">
+            <li>Member of the Fredericksburg Regional Chamber of Commerce</li>
+            <li>Member of the Fredericksburg Area Builders Association</li>
+          </ul>
+          <p>The company also regularly donates arborist wood chips to Tree Fredericksburg and uses ChipDrop to connect reusable arborist chips with local recipients.</p>
+          <p>This is a concise company-story summary. The current source links and full relationship wording remain on the Recognition page.</p>
+          <p><a class="ats-text-link" href="/recognition/#community">Read the verified community details</a></p>
+        </div>
+      </div>
+    </section>
+    <section class="ats-content-section ats-about-recognition" aria-labelledby="about-recognition-title">
+      <div class="ats-section-inner">
+        <div class="ats-about-recognition__heading">
+          <p class="ats-eyebrow">Independent proof</p>
+          <h2 class="ats-section-heading" id="about-recognition-title">Trusted locally. Recognized regionally.</h2>
+          <p class="ats-section-intro">The company story belongs here. Current customer review proof, official finalist recognition, media sources, affiliations, and community details remain documented on the Recognition page.</p>
+        </div>
+        <div class="ats-about-recognition__facts">
+          <p><strong>{GOOGLE_REVIEW_PROOF}</strong><span>Current durable wording linked to the official Google Business Profile.</span></p>
+          <p><strong>2026 Best of the Burg finalist</strong><span>Finalist in the Best Tree Trim/Removal Services category.</span></p>
+          <p><strong>NBC4 Responds coverage</strong><span>Independent regional coverage of the company’s 2024 Google Business Profile issue.</span></p>
+        </div>
+        <div class="ats-actions"><a class="ats-button ats-button--green" href="/recognition/">View Reviews, Recognition &amp; Media</a></div>
+      </div>
+    </section>
+    {final_cta('Tell us what your property needs.', 'Share the service, property address, and a few project details. We’ll follow up about the next step for your free estimate.', '/#contact', 'Request a free estimate')}"""
 
 
 def recognition_body() -> str:
@@ -767,6 +875,7 @@ def recognition_body() -> str:
           <h2 class="ats-section-heading">Trust signals are one part of a good service decision.</h2>
         </div>
         <ul class="ats-related-links">
+          <li><a href="/about/">Read our company story</a></li>
           <li><a href="/services/">Explore services</a></li>
           <li><a href="/credentials-safety/">Credentials and safety</a></li>
           <li><a href="/projects/">View real project imagery</a></li>
@@ -816,7 +925,7 @@ PAGES = [
         "type": "page",
         "schema_type": "AboutPage",
         "title": "Credentials & Safety | Angel Tree Services",
-        "description": "Review Angel Tree Services’ verified ISA credentials, experience statement, project-scope expectations, and urgent safety guidance.",
+        "description": "Review Angel Tree Services’ verified ISA credentials, company experience, project-scope expectations, and urgent safety guidance.",
         "h1": "Verified credentials. Clear expectations.",
         "lead": "Trust should come from current credentials, a written scope, honest limits, and a practical plan for the property—not from inflated claims.",
         "breadcrumbs": [("Home", "/"), ("Credentials and Safety", "/credentials-safety/")],
@@ -837,6 +946,25 @@ PAGES = [
         "estimate_href": "/#contact",
         "estimate_label": "Request a free estimate",
         "body": projects_body(),
+    },
+    {
+        "path": "/about/",
+        "active": "about",
+        "type": "page",
+        "schema_type": "AboutPage",
+        "about_business": True,
+        "title": "About Angel Tree Services | Fredericksburg Tree Care",
+        "description": "Learn how more than 30 years of tree-industry experience shaped Angel Tree Services, a family-operated company serving the Fredericksburg region since 2015.",
+        "h1": "A family tree service built on decades in the field",
+        "lead": "Serving the Fredericksburg region since 2015, Angel Tree Services carries forward more than 30 years of tree-industry experience in a locally operated family business.",
+        "breadcrumbs": [("Home", "/"), ("About", "/about/")],
+        "estimate_href": "/#contact",
+        "estimate_label": "Request a free estimate",
+        "hero_image": "/assets/AngelChainsawSquooshed_008.jpg",
+        "image_width": 1080,
+        "image_height": 1080,
+        "hero_alt": "Angel Tree Services field worker beside cut tree sections",
+        "body": about_body(),
     },
     {
         "path": "/recognition/",

@@ -28,6 +28,7 @@ EXPECTED_PATHS = (
     "/services/commercial-hoa-tree-care/",
     "/credentials-safety/",
     "/projects/",
+    "/about/",
     "/recognition/",
 )
 
@@ -543,6 +544,53 @@ class Validator:
         if "autoplay" in script.lower():
             self.error("/recognition/: video loader must not enable autoplay")
 
+    def validate_about_page(self) -> None:
+        about = self.page_sources.get("/about/", "")
+        if not about:
+            return
+
+        required_terms = (
+            "Angel Tree Services has served the Fredericksburg region since 2015",
+            "more than 30 years of tree-industry experience",
+            "more than 20 years working in tree care and utility vegetation management",
+            "crew leader with Asplundh",
+            "advanced to General Foreman",
+            "approximately 40 employees",
+            "multiple Virginia service territories",
+            "family-operated business",
+            "Member of the Fredericksburg Regional Chamber of Commerce",
+            "Member of the Fredericksburg Area Builders Association",
+            "4.9 stars from 120+ Google reviews",
+            "View Reviews, Recognition &amp; Media",
+            "/recognition/",
+        )
+        for term in required_terms:
+            if term not in about:
+                self.error(f"/about/: required company-story invariant is missing: {term}")
+
+        if "General Regional Foreman" in about:
+            self.error("/about/: unconfirmed General Regional Foreman title must not be published")
+
+        combined_public_html = "\n".join(self.page_sources.values())
+        if "30+ years of tree-industry experience" not in combined_public_html:
+            self.error("Public pages must preserve the verified 30+ years tree-industry experience claim")
+        if re.search(r"\bcombined (?:staff |team )?experience\b", combined_public_html, re.IGNORECASE):
+            self.error("The verified 30+ years claim must not be mislabeled as combined staff experience")
+        if re.search(
+            r"(?:founded|established|operating|in business) (?:for )?(?:more than )?30\+? years",
+            combined_public_html,
+            re.IGNORECASE,
+        ):
+            self.error("Public wording must not imply Angel Tree Services was founded more than 30 years ago")
+
+        if re.search(
+            r"(?:Asplundh|Lewis Tree Service).{0,80}\b(?:endorses?|partner|affiliate|authorized)\b|"
+            r"\b(?:endorses?|partner|affiliate|authorized).{0,80}(?:Asplundh|Lewis Tree Service)",
+            about,
+            re.IGNORECASE | re.DOTALL,
+        ):
+            self.error("/about/: former-employer wording implies a current affiliation or endorsement")
+
     def validate_artifact_contents(self) -> None:
         for path in self.site_dir.rglob("*"):
             if not path.is_file():
@@ -629,6 +677,7 @@ class Validator:
             self.validate_navigation_graph()
             self.validate_homepage_form()
             self.validate_recognition_layer()
+            self.validate_about_page()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
 

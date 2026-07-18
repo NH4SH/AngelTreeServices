@@ -25,6 +25,7 @@ The `www` host may redirect at Netlify. Email addresses on `angeltreeservice.org
 | `/services/commercial-hoa-tree-care/` | Commercial, HOA, and property-management service path | Index |
 | `/credentials-safety/` | Verified credentials, planning, and safety practices | Index |
 | `/projects/` | Real-work image library and future case-study hub | Index |
+| `/about/` | Company story, founder experience, family operation, and community overview | Index |
 | `/recognition/` | Verified Google review proof, 2026 finalist recognition, and NBC4 coverage | Index |
 | `/landing-clean/` | Alternate design experiment | Noindex |
 | `/localbuild/` | Older static alternate/source | Noindex |
@@ -40,7 +41,7 @@ Individual project pages remain withheld until factual project notes and media p
 - Services
 - Projects
 - Commercial
-- Credentials
+- About
 - Call / Free Estimate
 
 This compact structure is now shared by the homepage and Batch 2 pages. Keep “Call” and “Free Estimate” visually available, particularly on mobile.
@@ -121,6 +122,15 @@ Include:
 - Service area.
 - What customers can expect.
 - Chamber/community relationships while current.
+
+Published structure:
+
+- More than 30 years of continuous tree-industry experience behind the company.
+- Company founded in 2015 and serving the Fredericksburg region since 2015.
+- Founder’s progression from crew leader with Asplundh to General Foreman with Lewis Tree Service.
+- More than 20 years of founder experience before 2015, connected to the company’s subsequent local service and present-day planning, crew coordination, property protection, and communication.
+- Family-operated identity without publishing unverified names, titles, or private biographies.
+- Concise community and recognition summaries that link to `/recognition/` for source-backed detail.
 
 ### Contact
 

@@ -908,8 +908,14 @@ img {
   border-right: 0;
 }
 
-.ats-testimonial:nth-last-child(-n + 2) {
+.ats-testimonial:last-child,
+.ats-testimonial:nth-last-child(2):nth-child(odd) {
   border-bottom: 0;
+}
+
+.ats-testimonial:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  border-right: 0;
 }
 
 .ats-testimonial > p {
@@ -1698,6 +1704,10 @@ img {
   .ats-testimonial:last-child,
   .ats-recognition-history__grid article:last-child {
     border-bottom: 0;
+  }
+
+  .ats-testimonial:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 
   .ats-review-metrics__platform {

@@ -6,7 +6,7 @@ This pass improves the static public website only. It does not modify `apps/plat
 
 Pages and shared surfaces changed:
 
-- Homepage hero, review proof, testimonial, estimate-form trust line, and footer links
+- Homepage hero credential card, immediate recognition strip, deeper review proof, testimonial, estimate-form trust line, and footer links
 - `/recognition/`
 - Generated service-page heroes and tree-removal testimonial
 - `/credentials-safety/`
@@ -19,7 +19,9 @@ The operational trust line is:
 
 > Certified Arborist-led · Insured · 30+ years of tree-industry experience
 
-Supporting copy identifies Angel Tree Services as family-operated and serving the Fredericksburg region since 2015. Certified Arborist wording remains singular. Because active policy types were not confirmed for publication, insurance wording is limited to `Insured` and certificates being available upon request.
+The homepage retains its professional credential card with the existing ISA Member and ISA Certified Arborist marks. Supporting copy identifies Angel Tree Services as family-operated and serving the Fredericksburg region since 2015. Certified Arborist wording remains singular. Because active policy types were not confirmed for publication, insurance wording is limited to `Insured` and certificates being available upon request.
+
+The approved homepage order is hero, estimate action, ISA credential card, immediate Best of the Burg/Google/NBC4 recognition, services, then deeper Angi/BBB proof and a customer testimonial.
 
 ## Review Proof
 
@@ -48,7 +50,7 @@ The exact brief excerpts used are:
 5. **JOHN P. · Angi · 2019**  
    “They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...”
 
-Tim S. is labeled `Google Review` on the Angi source page and is therefore attributed to Google. The other four are attributed to Angi. The homepage uses Tim S.; the recognition page uses four Angi excerpts; the tree-removal page uses JOHN P. because that excerpt explicitly describes removal.
+Tim S. is labeled `Google Review` on the Angi source page and is therefore attributed to Google. The other four are attributed to Angi. The homepage features Carolyn K. from October 2024 because it is the newest substantive review on the verified profile and provides concrete cleanup and repeat-use proof. Tim S.'s 2023 review remains on the recognition page; the tree-removal page uses JOHN P. because that excerpt explicitly describes removal.
 
 ## Recognition and Community
 
@@ -91,13 +93,23 @@ Responsive screenshots are stored under `output/playwright/public-trust/`:
 - `recognition-desktop.png`
 - `recognition-mobile.png`
 
+The hierarchy-correction screenshots are stored under `output/playwright/public-trust-restoration/`:
+
+- `homepage-hero-recognition-desktop.png`
+- `homepage-review-desktop.png`
+- `homepage-hero-mobile.png`
+- `homepage-recognition-mobile.png`
+- `homepage-review-mobile.png`
+- `homepage-restored-desktop.png`
+- `homepage-restored-mobile.png`
+
 Validation results:
 
 - `npm run test:public`: passed, with 11 approved pages generated and validated
 - Responsive matrix: 55 route/viewport checks passed across all 11 pages at 1440, 1024, 768, 390, and 320 pixels; no horizontal overflow or H1 errors
-- Recognition semantics: four blockquotes, each with a cite and descriptive source link; all 21 external links use `noopener noreferrer`
-- Lighthouse homepage: Accessibility 100, Best Practices 96, SEO 100, Performance 45
-- Lighthouse recognition page: Accessibility 100, Best Practices 100, SEO 100, Performance 99
+- Recognition semantics: five blockquotes, including Tim S.'s Google-labeled 2023 review; each has a cite and descriptive source link
+- Latest hierarchy-correction Lighthouse homepage: Accessibility 100, Best Practices 96, SEO 100, Performance 34
+- Latest hierarchy-correction Lighthouse recognition page: Accessibility 100, Best Practices 100, SEO 100, Performance 98
 - External source check: Google, NBC4, Chamber, FABA, and ChipDrop returned `200`; Angi, BBB, and Tree Fredericksburg rejected command-line requests with `403` but were verified in a browser; the Best of the Burg redirect timed out in the command-line pass but had already been verified interactively
 - `git diff --check`: passed
 

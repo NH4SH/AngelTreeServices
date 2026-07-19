@@ -598,14 +598,21 @@ class Validator:
 
         required_homepage_terms = (
             "Certified Arborist-led &middot; Insured &middot; 30+ years of tree-industry experience",
+            "ISA Member and Certified Arborist",
+            "angeltreeservices_backup_files/isamember1_004.jpg",
+            "angeltreeservices_backup_files/certified-arborist.png",
+            "Insured &middot; 30+ years of tree-industry experience",
             "120+",
             "4.9 average",
+            "Best of the Burg",
+            "2026 Finalist",
+            "Featured by NBC4",
             "44",
             "5.0 rating",
             "A+",
             "Not BBB Accredited",
-            "Tim S.",
-            "Google Review &middot; 2023",
+            "Carolyn K.",
+            "Angi &middot; October 2024",
             "/recognition/",
             "2026 Best of the Burg Finalist, Best Tree Trim/Removal Services",
             '"@type": "NewsArticle"',
@@ -614,6 +621,16 @@ class Validator:
         for term in required_homepage_terms:
             if term not in homepage:
                 self.error(f"/: recognition invariant is missing: {term}")
+
+        hierarchy_positions = (
+            homepage.find("ats-mobile-hero"),
+            homepage.find("ats-mobile-trust"),
+            homepage.find("ats-home-recognition-strip"),
+            homepage.find('id="about"'),
+            homepage.find("ats-home-testimonial"),
+        )
+        if any(position < 0 for position in hierarchy_positions) or hierarchy_positions != tuple(sorted(hierarchy_positions)):
+            self.error("/: hero, credential card, immediate recognition, services, and testimonial must retain the approved order")
 
         required_recognition_terms = (
             "120+",
@@ -627,6 +644,8 @@ class Validator:
             "Certificates of insurance are available upon request",
             "Previously recognized with Angi’s Super Service Award",
             "Carolyn K.",
+            "Tim S.",
+            "Google · 2023",
             "Anne L.",
             "Louis F.",
             "JOHN P.",

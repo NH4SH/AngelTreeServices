@@ -54,7 +54,7 @@ All quotation text below is brief, attributed to the source label displayed publ
 | Louis F. | Angi, 2020 | `No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.` |
 | JOHN P. | Angi, 2019 | `They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...` |
 
-Only the JOHN P. excerpt is placed on a service page because it explicitly describes tree removal. The other excerpts are not assigned to services that the quoted text does not name.
+Carolyn K.'s October 2024 excerpt is the homepage feature because it is the newest substantive review on the verified Angi profile and specifically supports cleanup and repeat-customer trust. Tim S.'s 2023 Google-labeled review remains on the Recognition page as detailed near-home removal proof. Only the JOHN P. excerpt is placed on a service page because it explicitly describes tree removal. The other excerpts are not assigned to services that the quoted text does not name.
 
 ## Yelp, Facebook, and Apple Maps
 

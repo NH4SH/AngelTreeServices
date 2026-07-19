@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "dist-public"
 
 STATIC_FILES = (
+    "_redirects",
     "index.html",
     "overrides.css",
     "ats-form-enhancements.js",

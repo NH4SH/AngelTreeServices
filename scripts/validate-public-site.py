@@ -589,6 +589,60 @@ class Validator:
             if h1_text != expected_heading:
                 self.error(f"/: homepage H1 must be {expected_heading!r}")
 
+    def validate_homepage_faq(self) -> None:
+        homepage = self.page_sources.get("/", "")
+        if not homepage:
+            return
+
+        faq_match = re.search(
+            r'<section class="ats-home-faq".*?</section>',
+            homepage,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not faq_match:
+            self.error("/: pre-hire FAQ section is missing")
+            return
+
+        faq = faq_match.group(0)
+        required_terms = (
+            "Before You Hire a Tree Service",
+            "Straight answers about qualifications, tree-removal pricing, property protection, cleanup, and deciding whether a tree should be removed at all.",
+            "Why should I hire a Certified Arborist-led tree service?",
+            "How much does tree removal cost in Fredericksburg, Virginia?",
+            "Can a damaged, leaning, or declining tree be saved instead of removed?",
+            "Can you remove a large tree close to a house, fence, driveway, or landscaping?",
+            "What should be included in a professional tree-service estimate?",
+            "Is stump grinding included with tree removal?",
+            "How do you protect my lawn and clean up after the work?",
+            "Is Angel Tree Services insured, and can I request proof?",
+            'href="/credentials-safety/"',
+            'href="/services/tree-removal/"',
+            'href="/services/tree-pruning/"',
+            'href="/projects/"',
+            'href="/services/stump-grinding/"',
+            'href="#contact"',
+        )
+        for term in required_terms:
+            if term not in faq:
+                self.error(f"/: FAQ invariant is missing: {term}")
+
+        if len(re.findall(r"<details\b", faq, re.IGNORECASE)) != 8:
+            self.error("/: homepage FAQ must contain exactly eight native disclosures")
+        if len(re.findall(r"<summary\b", faq, re.IGNORECASE)) != 8:
+            self.error("/: every homepage FAQ disclosure must have a native summary")
+        if faq.count('name="ats-home-faq"') != 8:
+            self.error("/: FAQ disclosures must share the single-open native group name")
+        if '"FAQPage"' in homepage or "'FAQPage'" in homepage:
+            self.error("/: homepage must not add FAQPage structured data")
+
+        contact_position = homepage.find('id="contact"')
+        faq_position = homepage.find('class="ats-home-faq"')
+        footer_position = homepage.find('class="ats-home-footer-trust"')
+        if min(contact_position, faq_position, footer_position) < 0 or not (
+            contact_position < faq_position < footer_position
+        ):
+            self.error("/: FAQ must remain after the estimate form and before the footer trust area")
+
     def validate_recognition_layer(self) -> None:
         homepage = self.page_sources.get("/", "")
         recognition = self.page_sources.get("/recognition/", "")
@@ -886,6 +940,33 @@ class Validator:
             if re.search(r"Disallow:\s*/(?:assets|site-pages|angeltreeservices_backup_files)", source, re.IGNORECASE):
                 self.error("robots.txt blocks required public assets")
 
+    def validate_domain_redirects(self) -> None:
+        redirects = self.site_dir / "_redirects"
+        expected_rules = [
+            "http://angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
+            "https://angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
+            "http://www.angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
+            "https://www.angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
+        ]
+
+        if not redirects.is_file():
+            self.error("_redirects is missing from the public artifact")
+            return
+
+        rules = [
+            line.strip()
+            for line in redirects.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        if rules != expected_rules:
+            self.error("_redirects must contain only the approved singular-domain 301 rules in order")
+
+        for rule in rules:
+            if "admin.angeltreeservices.org" in rule:
+                self.error("_redirects must not target the admin application")
+            if rule.startswith(("http://angeltreeservices.org/", "https://angeltreeservices.org/")):
+                self.error("_redirects must not redirect the canonical plural domain")
+
     def run(self) -> None:
         if not self.site_dir.is_dir():
             self.error(f"Public artifact does not exist: {self.site_dir}")
@@ -898,10 +979,12 @@ class Validator:
             self.validate_shared_navigation()
             self.validate_homepage_form()
             self.validate_homepage_search_alignment()
+            self.validate_homepage_faq()
             self.validate_recognition_layer()
             self.validate_about_page()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
+            self.validate_domain_redirects()
 
         if self.errors:
             print(f"Public-site validation failed with {len(self.errors)} error(s):", file=sys.stderr)

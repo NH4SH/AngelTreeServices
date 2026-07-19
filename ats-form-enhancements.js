@@ -596,9 +596,30 @@
     });
   }
 
+  function initFaqAccordions() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ats-faq]"), function (faq) {
+      var disclosures = Array.prototype.slice.call(faq.querySelectorAll("details"));
+
+      disclosures.forEach(function (disclosure) {
+        disclosure.addEventListener("toggle", function () {
+          if (!disclosure.open) {
+            return;
+          }
+
+          disclosures.forEach(function (otherDisclosure) {
+            if (otherDisclosure !== disclosure) {
+              otherDisclosure.open = false;
+            }
+          });
+        });
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initPublicSiteAnalytics();
     initMobileActions();
+    initFaqAccordions();
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), initForm);
   });
 

@@ -97,6 +97,7 @@ These formerly committed outputs must remain deleted from source control because
 - `dist-public/site-pages.js`
 - `dist-public/sitemap.xml`
 - `dist-public/robots.txt`
+- `dist-public/_redirects`
 - `dist-public/assets/`
 - `dist-public/angeltreeservices_backup_files/`
 
@@ -125,7 +126,7 @@ Expected result: eleven page files, two matching artifact hash manifests, no sou
 - [ ] **Recognition source freshness:** reverify the live Google rating, review-count threshold, profile URL, exact Best of the Burg finalist listing, and NBC4 links immediately before publishing.
 - [ ] **Netlify dashboard:** verify there is no dashboard base-directory, build-command, or publish-directory override that conflicts with repository `netlify.toml`.
 - [ ] **Netlify redirects:** inspect dashboard-controlled redirects before adding or changing repository redirects. Do not run redirect changes blindly.
-- [ ] **Domain decision:** confirm whether `angeltreeservice.org` and `www.angeltreeservice.org` should continue returning canonicalized `200` pages or should be approved for a future `301` redirect to `https://angeltreeservices.org/`.
+- [x] **Domain decision:** redirect `angeltreeservice.org` and `www.angeltreeservice.org` to matching paths on `https://angeltreeservices.org/` with forced `301` rules. Approved July 19, 2026; production deployment remains a separate approval gate.
 - [ ] **CRM compatibility:** verify the separate admin application still allows the public origins and exposes `https://admin.angeltreeservices.org/api/leads`.
 - [ ] **Rate-limit decision:** replace the CRM's process-memory public-lead limiter with durable shared storage, or explicitly accept it as best-effort for this low-volume release. Replace it before intentional high-volume traffic.
 - [ ] **Real lead approval:** obtain explicit permission before submitting one controlled production lead.

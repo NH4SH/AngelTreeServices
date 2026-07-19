@@ -1501,6 +1501,156 @@ body.ats-form-submitted .ats-form-success {
   text-underline-offset: 4px;
 }
 
+/* Pre-hire FAQ: calm, readable disclosures that keep the form as the main CTA. */
+.ats-home-faq {
+  position: relative;
+  z-index: 4;
+  padding: clamp(72px, 8vw, 116px) max(24px, 5vw) clamp(76px, 8vw, 112px);
+  border-top: 1px solid rgba(47, 125, 50, 0.16);
+  background: var(--ats-green-soft);
+  color: var(--ats-green-deep);
+}
+
+.ats-home-faq__inner {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+.ats-home-faq__header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+  gap: clamp(30px, 6vw, 84px);
+  align-items: end;
+  margin-bottom: clamp(36px, 5vw, 58px);
+}
+
+.ats-home-faq__header h2 {
+  max-width: 620px;
+  margin: 0;
+  color: var(--ats-green-deep);
+  font-size: clamp(2.5rem, 4.8vw, 4.8rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.ats-home-faq__header p {
+  max-width: 62ch;
+  margin: 0;
+  color: #3f6542;
+  font-size: clamp(1rem, 1.25vw, 1.18rem);
+  line-height: 1.65;
+}
+
+.ats-home-faq__list {
+  counter-reset: ats-faq;
+  border-bottom: 1px solid rgba(47, 125, 50, 0.24);
+}
+
+.ats-home-faq details {
+  counter-increment: ats-faq;
+  border-top: 1px solid rgba(47, 125, 50, 0.24);
+  background: transparent;
+  transition: background-color 180ms ease;
+}
+
+.ats-home-faq details[open] {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.ats-home-faq summary {
+  min-height: 80px;
+  padding: 20px clamp(8px, 1.4vw, 18px);
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 28px;
+  gap: clamp(12px, 2vw, 24px);
+  align-items: center;
+  color: var(--ats-green-deep);
+  cursor: pointer;
+  font-size: clamp(1.05rem, 1.45vw, 1.28rem);
+  font-weight: 700;
+  line-height: 1.35;
+  list-style: none;
+}
+
+.ats-home-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.ats-home-faq summary::before {
+  content: "0" counter(ats-faq);
+  color: var(--ats-green);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ats-home-faq__indicator {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  color: var(--ats-green);
+  justify-self: center;
+}
+
+.ats-home-faq__indicator::before,
+.ats-home-faq__indicator::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.ats-home-faq__indicator::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.ats-home-faq details[open] .ats-home-faq__indicator::after {
+  transform: translate(-50%, -50%) rotate(90deg) scaleX(0);
+}
+
+.ats-home-faq summary:hover {
+  color: var(--ats-green);
+}
+
+.ats-home-faq summary:focus-visible {
+  border-radius: 10px;
+  outline: 3px solid rgba(47, 142, 47, 0.42);
+  outline-offset: -3px;
+}
+
+.ats-home-faq__answer {
+  max-width: 82ch;
+  padding: 0 clamp(54px, 6vw, 80px) clamp(26px, 3vw, 36px);
+}
+
+.ats-home-faq__answer p {
+  margin: 0;
+  color: #3f6542;
+  font-size: 1rem;
+  line-height: 1.72;
+}
+
+.ats-home-faq__answer a {
+  color: var(--ats-green-dark);
+  font-weight: 700;
+  text-decoration-color: rgba(47, 125, 50, 0.46);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.ats-home-faq__answer a:hover,
+.ats-home-faq__answer a:focus-visible {
+  color: var(--ats-green);
+  text-decoration-color: currentColor;
+}
+
 .ats-home-footer-trust {
   padding: 28px max(24px, calc((100vw - 1200px) / 2));
   border-top: 1px solid rgba(47, 125, 50, 0.24);
@@ -1828,6 +1978,43 @@ body.ats-form-submitted .ats-form-success {
   .ats-home-footer-trust > div {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .ats-home-faq {
+    padding: 64px 20px 72px;
+  }
+
+  .ats-home-faq__header {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-bottom: 34px;
+  }
+
+  .ats-home-faq__header h2 {
+    font-size: clamp(2.35rem, 11vw, 3.35rem);
+    line-height: 1;
+  }
+
+  .ats-home-faq__header p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .ats-home-faq summary {
+    min-height: 76px;
+    padding: 18px 4px;
+    grid-template-columns: 30px minmax(0, 1fr) 24px;
+    gap: 10px;
+    font-size: 1.02rem;
+  }
+
+  .ats-home-faq__answer {
+    padding: 0 38px 28px;
+  }
+
+  .ats-home-faq__answer p {
+    font-size: 0.97rem;
+    line-height: 1.68;
   }
 
   .ats-process__steps li,

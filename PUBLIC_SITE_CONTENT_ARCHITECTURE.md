@@ -375,6 +375,50 @@ The shared estimate path accepts only exact existing `service` and `customer_typ
 | Practical FAQs | Existing text hierarchy | Resolve final estimate objections | A short homepage set; service-specific answers on deeper pages |
 | Trust-heavy footer | Existing green/white footer language | Reinforce contact and verified proof | Homepage and every future page |
 
+## Service-Page FAQ Roadmap
+
+The homepage pre-hire FAQ answers broad comparison questions once. Deeper service pages should use only questions specific to that service, placed after the core service/process content and before the closing estimate action. Emergency guidance should follow the immediate call and utility-safety instructions rather than delaying them. These sets are documented for later implementation and must not be copied wholesale across pages.
+
+### Tree Removal
+
+- How do you know when a tree should be removed?
+- How is a tree removed when there is no open drop zone?
+- What happens to the wood and branches?
+- Can you remove a tree beside a neighboring property?
+- Do I need HOA approval before removing a tree?
+
+### Tree Pruning
+
+- What is the difference between proper pruning and topping?
+- Can pruning reduce weight over a house or driveway?
+- Can dead branches be removed without removing the whole tree?
+- When is the best time to prune common Virginia trees?
+- How much canopy can safely be removed at one time?
+
+### Stump Grinding
+
+- How deep is a stump normally ground?
+- Are underground roots also removed?
+- What happens to the stump grindings?
+- Can grass be planted afterward?
+- Do underground utilities need to be marked?
+
+### Storm Cleanup
+
+- What should I do if a tree falls on my house?
+- What should I do if a tree is touching a power line?
+- Can a storm-damaged tree be saved?
+- How are hanging or partially detached limbs handled?
+- Can you provide photos and written documentation?
+
+### Commercial and HOA
+
+- Can you work around occupied homes and common areas?
+- How do you plan removals between houses?
+- Can you provide certificates of insurance and written scopes?
+- Can you prioritize multiple hazardous trees?
+- How do you communicate scheduling with property managers and residents?
+
 ## Competitive Advantage to Preserve
 
 - A distinctive, locally recognizable visual identity rather than a generic contractor template.

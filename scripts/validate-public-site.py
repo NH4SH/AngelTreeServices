@@ -605,16 +605,17 @@ class Validator:
 
         faq = faq_match.group(0)
         required_terms = (
-            "Before You Hire a Tree Service",
-            "Straight answers about qualifications, tree-removal pricing, property protection, cleanup, and deciding whether a tree should be removed at all.",
-            "Why should I hire a Certified Arborist-led tree service?",
-            "How much does tree removal cost in Fredericksburg, Virginia?",
-            "Can a damaged, leaning, or declining tree be saved instead of removed?",
-            "Can you remove a large tree close to a house, fence, driveway, or landscaping?",
-            "What should be included in a professional tree-service estimate?",
+            "What homeowners ask",
+            "Straight answers before you book.",
+            "Learn what affects tree-removal pricing, why arborist credentials matter, and what to expect from your estimate, property protection, and cleanup.",
+            "Why hire an ISA Certified Arborist?",
+            "How much does tree removal cost?",
+            "Can a damaged or leaning tree be saved?",
+            "Can you remove trees close to homes and landscaping?",
+            "What does your written estimate include?",
             "Is stump grinding included with tree removal?",
-            "How do you protect my lawn and clean up after the work?",
-            "Is Angel Tree Services insured, and can I request proof?",
+            "How do you protect my property and handle cleanup?",
+            "Are you insured, and can I request proof?",
             'href="/credentials-safety/"',
             'href="/services/tree-removal/"',
             'href="/services/tree-pruning/"',
@@ -635,13 +636,13 @@ class Validator:
         if '"FAQPage"' in homepage or "'FAQPage'" in homepage:
             self.error("/: homepage must not add FAQPage structured data")
 
-        contact_position = homepage.find('id="contact"')
+        recognition_position = homepage.find('class="ats-home-recognition"')
         faq_position = homepage.find('class="ats-home-faq"')
-        footer_position = homepage.find('class="ats-home-footer-trust"')
-        if min(contact_position, faq_position, footer_position) < 0 or not (
-            contact_position < faq_position < footer_position
+        contact_position = homepage.find('id="contact"')
+        if min(recognition_position, faq_position, contact_position) < 0 or not (
+            recognition_position < faq_position < contact_position
         ):
-            self.error("/: FAQ must remain after the estimate form and before the footer trust area")
+            self.error("/: FAQ must remain after recognition and before the estimate form")
 
     def validate_recognition_layer(self) -> None:
         homepage = self.page_sources.get("/", "")
@@ -660,10 +661,10 @@ class Validator:
             "4.9 average",
             "Voted a 2026 Best of the Burg Finalist",
             "Featured by NBC4",
-            "44",
-            "5.0 rating",
+            "5.0 out of 5 stars",
+            "44 customer reviews",
             "A+",
-            "Not BBB Accredited",
+            "BBB rating",
             "Mark Mayer",
             "I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!",
             "Google Review &middot; July 2026",
@@ -675,6 +676,8 @@ class Validator:
         for term in required_homepage_terms:
             if term not in homepage:
                 self.error(f"/: recognition invariant is missing: {term}")
+        if "Not BBB Accredited" in homepage:
+            self.error("/: homepage BBB card must not include the negative accreditation qualifier")
 
         homepage_images = {
             image.get("src", ""): image for image in self.pages["/"].images
@@ -712,10 +715,10 @@ class Validator:
         required_recognition_terms = (
             "120+",
             "4.9 average",
-            "44",
-            "5.0 rating",
+            "5.0 out of 5 stars",
+            "44 customer reviews",
             "A+",
-            "Not BBB Accredited",
+            "BBB rating",
             "Independent platforms, shown separately.",
             "Certified Arborist-led",
             "Certificates of insurance are available upon request",
@@ -753,6 +756,8 @@ class Validator:
         for term in required_recognition_terms:
             if term not in recognition:
                 self.error(f"/recognition/: required source or claim is missing: {term}")
+        if "Not BBB Accredited" in recognition:
+            self.error("/recognition/: BBB metric must not include the negative accreditation qualifier")
 
         if "youtube.com/embed" in recognition or "youtube-nocookie.com/embed" in recognition:
             self.error("/recognition/: the initial HTML must not contain a YouTube iframe")

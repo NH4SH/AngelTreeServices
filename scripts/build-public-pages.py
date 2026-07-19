@@ -889,14 +889,14 @@ def recognition_body() -> str:
           </article>
           <article>
             <p class="ats-review-metrics__platform">Angi</p>
-            <p class="ats-review-metrics__value">44</p>
-            <p><strong>customer reviews</strong> · 5.0 rating</p>
+            <p class="ats-review-metrics__value" aria-label="5.0 out of 5 stars">5.0 <span aria-hidden="true">★</span></p>
+            <p><strong>44 customer reviews</strong></p>
             <a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a>
           </article>
           <article>
             <p class="ats-review-metrics__platform">Better Business Bureau</p>
             <p class="ats-review-metrics__value">A+</p>
-            <p><strong>BBB rating</strong> · Not BBB Accredited</p>
+            <p><strong>BBB rating</strong></p>
             <a href="{html_attr(BBB_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on BBB</a>
           </article>
         </div>

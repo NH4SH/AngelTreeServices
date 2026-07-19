@@ -12,14 +12,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://angeltreeservices.org"
+TRUST_DATA = json.loads((ROOT / "public-trust-data.json").read_text(encoding="utf-8"))
 PHONE_DISPLAY = "(540) 388-8715"
 PHONE_LINK = "+15403888715"
 INSTAGRAM_URL = "https://www.instagram.com/angeltreeservices/"
 SOCIAL_IMAGE = f"{SITE}/assets/hero-grass-1600.webp"
-GOOGLE_MAPS_URL = (
-    "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services"
-    "&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o"
-)
+GOOGLE_MAPS_URL = TRUST_DATA["platforms"]["google"]["publicProfileUrl"]
+ANGI_URL = TRUST_DATA["platforms"]["angi"]["publicProfileUrl"]
+BBB_URL = TRUST_DATA["platforms"]["bbb"]["publicProfileUrl"]
+TRUST_LINE = TRUST_DATA["trustLine"]
 BEST_OF_BURG_URL = (
     "https://fredericksburgfreelance-star.secondstreetapp.com/og/"
     "1330302d-61d4-4411-bb5b-f84e5e2b593b/gallery/529160741"
@@ -55,6 +56,27 @@ def html_text(value: object) -> str:
 
 def html_attr(value: object) -> str:
     return escape(str(value), quote=True)
+
+
+def review_by_id(review_id: str) -> dict:
+    return next(review for review in TRUST_DATA["reviews"] if review["id"] == review_id)
+
+
+def testimonial(review_id: str, class_name: str = "ats-testimonial") -> str:
+    review = review_by_id(review_id)
+    return f"""
+      <blockquote class="{html_attr(class_name)}">
+        <p>“{html_text(review['excerpt'])}”</p>
+        <footer>
+          <cite>{html_text(review['reviewerDisplayName'])}</cite>
+          <span>{html_text(review['platform'])} · {int(review['reviewYear'])}</span>
+          <a href="{html_attr(review['publicProfileUrl'])}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on {html_text(review['platform'])}</a>
+        </footer>
+      </blockquote>"""
+
+
+def trust_line(class_name: str = "ats-trust-line") -> str:
+    return f'<p class="{html_attr(class_name)}"><a href="/credentials-safety/">{html_text(TRUST_LINE)}</a></p>'
 
 
 def wave() -> str:
@@ -122,7 +144,7 @@ def footer() -> str:
       <div>
         <h2>Angel Tree Services</h2>
         <p>Family-operated tree care backed by {COMPANY_EXPERIENCE_PROOF}, {COMPANY_SERVICE_SINCE}.</p>
-        <p class="ats-page-footer__trust"><a href="/recognition/">Reviews, Recognition &amp; Media</a></p>
+        <p class="ats-page-footer__trust"><a href="/credentials-safety/">{html_text(TRUST_LINE)}</a></p>
       </div>
       <div>
         <h3>Plan your service</h3>
@@ -139,6 +161,15 @@ def footer() -> str:
           <li><a href="tel:{PHONE_LINK}">{PHONE_DISPLAY}</a></li>
           <li><a href="mailto:info@angeltreeservice.org">info@angeltreeservice.org</a></li>
           <li><a class="ats-estimate-link" href="/#contact">Request a free estimate</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Find us online</h3>
+        <ul>
+          <li><a href="{html_attr(GOOGLE_MAPS_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Google</a></li>
+          <li><a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a></li>
+          <li><a href="{html_attr(BBB_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on BBB</a></li>
+          <li><a href="{html_attr(INSTAGRAM_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Instagram</a></li>
         </ul>
       </div>
     </div>
@@ -263,6 +294,7 @@ def page_document(page: dict) -> str:
           {breadcrumbs(page)}
           <h1>{html_text(page['h1'])}</h1>
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
+          {trust_line('ats-page-hero__trust')}
           <div class="ats-actions">
             <a class="ats-button ats-button--primary ats-estimate-link" href="{html_attr(page['estimate_href'])}">{html_text(page['estimate_label'])}</a>
             <a class="ats-button ats-button--secondary" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>
@@ -322,6 +354,7 @@ def final_cta(title: str, copy: str, href: str, label: str) -> str:
       <div class="ats-final-cta__inner">
         <h2>{title}</h2>
         <p>{copy}</p>
+        {trust_line('ats-final-cta__trust')}
         <div class="ats-actions">
           <a class="ats-button ats-button--primary ats-estimate-link" href="{href}">{label}</a>
           <a class="ats-button ats-button--secondary" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>
@@ -339,6 +372,15 @@ def cards(items: list[tuple[str, str]], start: int = 1) -> str:
 
 def service_body(data: dict) -> str:
     related = "".join(f'<li><a href="{href}">{label}</a></li>' for href, label in data["related"])
+    service_review = ""
+    if data.get("review_id"):
+        service_review = f"""
+    <section class="ats-content-section ats-content-section--white ats-service-review" aria-label="Customer experience">
+      <div class="ats-section-inner ats-section-inner--narrow">
+        <p class="ats-eyebrow">A customer experience</p>
+        {testimonial(data['review_id'], 'ats-testimonial ats-testimonial--service')}
+      </div>
+    </section>"""
     return f"""
     <section class="ats-content-section">
       <div class="ats-section-inner">
@@ -371,6 +413,7 @@ def service_body(data: dict) -> str:
         <ul class="ats-related-links">{related}<li><a href="/credentials-safety/">Credentials and safety</a></li></ul>
       </div>
     </section>
+    {service_review}
     {faq_section(data['faqs'])}
     {final_cta(data['cta_title'], data['cta_copy'], data['estimate_href'], data['estimate_label'])}"""
 
@@ -381,6 +424,7 @@ SERVICE_PAGES = [
         "active": "services",
         "type": "service",
         "service_name": "Tree Removal",
+        "review_id": "john-p-angi-2019",
         "title": "Tree Removal in Fredericksburg, VA | Angel Tree Services",
         "description": "Plan tree removal with a property visit, written scope, and method selected for the site. Request an estimate from Angel Tree Services.",
         "h1": "Tree removal planned around your property.",
@@ -580,6 +624,7 @@ def commercial_body() -> str:
         <p class="ats-eyebrow">Built for managed properties</p>
         <h2 class="ats-section-heading">One clear scope for everyone who needs to approve it</h2>
         <p class="ats-section-intro">The request can begin with a site walk, a defined property or phase, and the contacts who need to review next steps.</p>
+        {trust_line()}
         <div class="ats-card-grid">{cards([
             ('Site and portfolio context', 'Identify the property, service location, site contact, and whether the request covers one area or several managed locations.'),
             ('Proposal and approval needs', 'Share whether a manager, board, owner, or another stakeholder must review the written scope.'),
@@ -589,7 +634,7 @@ def commercial_body() -> str:
     </section>
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
-        <div class="ats-prose"><p class="ats-eyebrow">A practical workflow</p><h2>Keep the property and the decision path clear.</h2><p>Angel Tree Services can record organization and property context with the estimate request, then provide a written scope for review. Digital quote, approval, and invoice tools support a cleaner handoff without exposing internal systems.</p><p>If your organization needs documentation such as a certificate of insurance, tell the office during the estimate process so current availability and requirements can be confirmed.</p></div>
+        <div class="ats-prose"><p class="ats-eyebrow">A practical workflow</p><h2>Keep the property and the decision path clear.</h2><p>Angel Tree Services can record organization and property context with the estimate request, then provide a written scope for review. Digital quote, approval, and invoice tools support a cleaner handoff without exposing internal systems.</p><p>Angel Tree Services is insured. Certificates of insurance are available upon request; ask the office to coordinate current documentation for your organization.</p></div>
         <aside class="ats-callout"><h2>No customer list without permission</h2><p>We do not publish organization names, partnerships, or property relationships without authorization. Project proof will be added only when the underlying facts and media are approved.</p></aside>
       </div>
     </section>
@@ -625,6 +670,7 @@ def credentials_body() -> str:
           <h2>ISA member and ISA Certified Arborist</h2>
           <p>Angel Tree Services publicly identifies an active ISA membership and an ISA Certified Arborist credential. Certification belongs to the credentialed individual; it does not imply that every employee holds the same credential.</p>
           <p>Angel Tree Services was founded in 2015 after its founder had already spent more than 20 years in the tree industry. Together with the company’s local service since 2015, that continuous history represents {COMPANY_EXPERIENCE_PROOF}. No additional qualification should be inferred from these badges.</p>
+          <p><strong>Angel Tree Services is insured.</strong> Certificates of insurance are available upon request. Specific policy details remain available directly from the office rather than being published as a blanket guarantee.</p>
         </div>
         <div class="ats-badges" aria-label="ISA credentials">
           <img src="/assets/isamember1_004.jpg" width="190" height="299" alt="ISA Member">
@@ -799,34 +845,91 @@ def about_body() -> str:
 
 
 def recognition_body() -> str:
+    customer_experiences = "".join(
+        testimonial(review_id)
+        for review_id in (
+            "carolyn-k-angi-2024",
+            "anne-l-angi-2023",
+            "louis-f-angi-2020",
+            "john-p-angi-2019",
+        )
+    )
     return f"""
-    <section class="ats-content-section ats-recognition-overview" aria-labelledby="google-reviews-title">
-      <div class="ats-section-inner ats-recognition-proof">
-        <div class="ats-recognition-proof__metric" aria-label="4.9 out of 5 stars from more than 120 Google reviews">
-          <p class="ats-eyebrow">Google customer reviews</p>
-          <p class="ats-recognition-proof__rating">4.9</p>
-          <p class="ats-recognition-proof__stars" aria-hidden="true">★★★★★</p>
-          <p>{GOOGLE_REVIEW_PROOF}</p>
+    <section class="ats-content-section ats-recognition-overview" aria-labelledby="review-proof-title">
+      <div class="ats-section-inner">
+        <div class="ats-recognition-intro">
+          <div>
+            <p class="ats-eyebrow">Customer review proof</p>
+            <h2 class="ats-section-heading" id="review-proof-title">Independent platforms, shown separately.</h2>
+          </div>
+          <p>Google remains the primary review signal. Angi adds a longer project-history view, while BBB publishes a separate business rating. No scores or review counts are combined.</p>
         </div>
-        <div class="ats-prose">
-          <h2 id="google-reviews-title">Customer trust you can verify directly.</h2>
-          <p>Angel Tree Services serves homeowners and property professionals across the Fredericksburg region. The official Google profile currently displays a 4.9 rating, with more than 120 public customer reviews.</p>
-          <p>Visit the official profile to see the latest rating, review count, and customer feedback directly on Google.</p>
-          <div class="ats-actions"><a class="ats-button ats-button--green" href="{html_attr(GOOGLE_MAPS_URL)}" target="_blank" rel="noopener noreferrer">Read our Google reviews</a></div>
+        <div class="ats-review-metrics" aria-label="Current third-party review and rating information">
+          <article>
+            <p class="ats-review-metrics__platform">Google</p>
+            <p class="ats-review-metrics__value">120+</p>
+            <p><strong>reviews</strong> · 4.9 average</p>
+            <a href="{html_attr(GOOGLE_MAPS_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Google</a>
+          </article>
+          <article>
+            <p class="ats-review-metrics__platform">Angi</p>
+            <p class="ats-review-metrics__value">44</p>
+            <p><strong>customer reviews</strong> · 5.0 rating</p>
+            <a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a>
+          </article>
+          <article>
+            <p class="ats-review-metrics__platform">Better Business Bureau</p>
+            <p class="ats-review-metrics__value">A+</p>
+            <p><strong>BBB rating</strong> · Not BBB Accredited</p>
+            <a href="{html_attr(BBB_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on BBB</a>
+          </article>
         </div>
       </div>
     </section>
-    <section class="ats-content-section ats-content-section--white" id="best-of-burg" aria-labelledby="best-of-burg-title">
-      <div class="ats-section-inner ats-recognition-editorial">
-        <div>
-          <p class="ats-eyebrow">Fredericksburg-area recognition</p>
-          <p class="ats-recognition-editorial__year">2026</p>
+    <section class="ats-content-section ats-content-section--white ats-customer-experiences" aria-labelledby="customer-experiences-title">
+      <div class="ats-section-inner">
+        <div class="ats-customer-experiences__heading">
+          <div>
+            <p class="ats-eyebrow">Customer experiences</p>
+            <h2 class="ats-section-heading" id="customer-experiences-title">The details behind the ratings.</h2>
+          </div>
+          <p>These brief excerpts preserve the customers’ published words. Each is attributed to the platform identified on the source page.</p>
         </div>
-        <div class="ats-prose">
-          <h2 id="best-of-burg-title">Best of the Burg finalist</h2>
-          <p>Angel Tree Services was named a 2026 Best of the Burg finalist in the <strong>Best Tree Trim/Removal Services</strong> category through Fredericksburg.com and The Free Lance-Star.</p>
-          <p>This is finalist recognition, not a winner or ranking claim. The official listing remains the source of record.</p>
-          <div class="ats-actions"><a class="ats-button ats-button--green" href="{html_attr(BEST_OF_BURG_URL)}" target="_blank" rel="noopener noreferrer">View the finalist listing</a></div>
+        <div class="ats-testimonial-grid">{customer_experiences}</div>
+        <p class="ats-customer-experiences__summary">Across these reviews, customers specifically describe repeat use, prompt communication, careful work around homes and landscaping, and thorough cleanup.</p>
+      </div>
+    </section>
+    <section class="ats-content-section ats-professional-trust" aria-labelledby="professional-trust-title">
+      <div class="ats-section-inner ats-professional-trust__grid">
+        <div>
+          <p class="ats-eyebrow">Professional trust</p>
+          <h2 class="ats-section-heading" id="professional-trust-title">Experience and accountability before the work begins.</h2>
+        </div>
+        <div class="ats-professional-trust__facts">
+          <p><strong>Certified Arborist-led</strong><span>Certification belongs to the credentialed individual and does not imply every employee holds it.</span></p>
+          <p><strong>Insured</strong><span>Certificates of insurance are available upon request. Specific policy types are confirmed directly with the office.</span></p>
+          <p><strong>30+ years</strong><span>Tree-industry experience, with local service in the Fredericksburg region since 2015.</span></p>
+          <p><strong>Family-operated</strong><span>A local service business built around clear scopes, careful work, and direct communication.</span></p>
+        </div>
+      </div>
+    </section>
+    <section class="ats-content-section ats-content-section--white ats-recognition-history" id="best-of-burg" aria-labelledby="recognition-history-title">
+      <div class="ats-section-inner">
+        <p class="ats-eyebrow">Recognition</p>
+        <h2 class="ats-section-heading" id="recognition-history-title">Local recognition, stated precisely.</h2>
+        <div class="ats-recognition-history__grid">
+          <article>
+            <p class="ats-recognition-history__year">2026</p>
+            <h3>Best of the Burg finalist</h3>
+            <p>Angel Tree Services was named a 2026 finalist in the <strong>Best Tree Trim/Removal Services</strong> category through Fredericksburg.com and The Free Lance-Star.</p>
+            <a href="{html_attr(BEST_OF_BURG_URL)}" target="_blank" rel="noopener noreferrer">View the finalist listing</a>
+          </article>
+          <article>
+            <p class="ats-recognition-history__label">Historical recognition</p>
+            <h3>Previously recognized with Angi’s Super Service Award</h3>
+            <p>This is past recognition. It is not presented as a current award, endorsement, certification, or annual distinction.</p>
+            <a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a>
+          </article>
         </div>
       </div>
     </section>
@@ -834,7 +937,7 @@ def recognition_body() -> str:
       <div class="ats-section-inner ats-recognition-media__grid">
         <div class="ats-prose">
           <p class="ats-eyebrow">Independent regional coverage</p>
-          <h2 id="nbc4-title">Covered by NBC4 Responds</h2>
+          <h2 id="nbc4-title">Featured by NBC4</h2>
           <p>On September 19, 2024, NBC4 Responds reported on Angel Tree Services after its Google Business Profile was disabled. The report described the company as a family business and documented that Google reinstated the profile after NBC4 Responds contacted Google.</p>
           <p>The coverage concerned the business-profile issue and its effect on the company. It was not an endorsement, ranking, or workmanship award.</p>
           <ul class="ats-source-links">
@@ -844,7 +947,7 @@ def recognition_body() -> str:
           </ul>
         </div>
         <div class="ats-video-facade" data-video-id="QwfdLmPTQAk">
-          <button class="ats-video-facade__button" type="button" aria-label="Load the NBC4 Responds video about Angel Tree Services">
+          <button class="ats-video-facade__button" type="button" aria-label="Watch the NBC4 Responds report">
             <img src="https://i.ytimg.com/vi/QwfdLmPTQAk/maxresdefault.jpg" width="1280" height="720" alt="" loading="lazy" decoding="async">
             <span class="ats-video-facade__play" aria-hidden="true"></span>
             <span class="ats-video-facade__label">Watch the NBC4 Responds report</span>
@@ -984,10 +1087,10 @@ PAGES = [
         "type": "page",
         "schema_type": "WebPage",
         "about_business": True,
-        "title": "Angel Tree Services Reviews, Recognition & NBC4 Coverage",
-        "description": "Read about Angel Tree Services’ Google customer reviews, 2026 Best of the Burg finalist recognition, and NBC4 Responds coverage.",
-        "h1": "Trusted locally. Recognized regionally.",
-        "lead": "See current customer review proof, verified Fredericksburg-area finalist recognition, and independent regional media coverage concerning Angel Tree Services.",
+        "title": "Reviews, Recognition & Community | Angel Tree Services",
+        "description": "Review verified customer feedback, professional trust details, local recognition, community connections, and NBC4 coverage for Angel Tree Services.",
+        "h1": "Reviews, recognition, and community.",
+        "lead": "Trust is built one property at a time. Review current third-party ratings, published customer experiences, professional credentials, and community connections.",
         "breadcrumbs": [("Home", "/"), ("Recognition", "/recognition/")],
         "estimate_href": "/#contact",
         "estimate_label": "Request a free estimate",

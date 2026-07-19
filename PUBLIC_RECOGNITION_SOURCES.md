@@ -2,9 +2,9 @@
 
 ## Maintenance Rule
 
-Reverify every source quarterly and immediately before a major public release. The Google rating and count can change without notice. Update the source constant in `scripts/build-public-pages.py`, the matching homepage sentence in `index.html`, this record, and the validator together.
+Reverify every source quarterly and immediately before a major public release. Ratings and review counts can change without notice. Update `public-trust-data.json`, the matching homepage presentation in `index.html`, this record, and the validator together.
 
-Last verification pass: July 17, 2026.
+Last verification pass: July 18, 2026.
 
 ## Google Business Profile
 
@@ -19,7 +19,50 @@ Last verification pass: July 17, 2026.
 
 The live public profile confirmed the business name, address at 5802 Ford Road in Fredericksburg, website, phone number, and `4.9` rating. Google's limited unauthenticated public view did not expose the live review count or stable, attributable individual-review links during implementation. The `123` count therefore comes from the owner-supplied same-day snapshot, and the public site uses the more durable `120+` threshold.
 
-No individual review excerpt, reviewer name, rating, or inferred review theme is published in this implementation. The official profile link is the source of current customer feedback.
+One short Google-labeled review excerpt is published. It appears on Angi with the source label `Google Review`, so the site attributes it to Google rather than Angi. The official Google profile remains the public destination link.
+
+## Angi
+
+| Field | Verified value |
+| --- | --- |
+| Public profile | `https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm` |
+| Live displayed rating | `5.0` |
+| Live displayed count | `44 customer reviews` |
+| Historical recognition | `Previously recognized with Angi’s Super Service Award` |
+
+The public profile was opened directly and showed the rating, count, and review source labels used below. The site does not combine Angi and Google counts, does not use an Angi widget or logo, and does not present the historical award as current.
+
+## Better Business Bureau
+
+| Field | Verified value |
+| --- | --- |
+| Public profile | `https://www.bbb.org/us/va/fredericksburg/profile/tree-service/angel-tree-services-llc-0603-63424263` |
+| Live displayed rating | `A+` |
+| Accreditation status | `Not BBB Accredited` |
+
+The public site states both the rating and non-accredited status. It uses linked text only and does not use an Accredited Business seal or imply approval, certification, membership, or endorsement.
+
+## Selected Review Excerpts
+
+All quotation text below is brief, attributed to the source label displayed publicly, and linked to the relevant profile. Ellipses identify removed text.
+
+| Reviewer | Attribution | Exact excerpt used |
+| --- | --- | --- |
+| Tim S. | Google Review, 2023; displayed and labeled by Angi | `I’ve had several very large trees taken down which were immediately adjacent to our house, and everything went perfectly.` |
+| Carolyn K. | Angi, 2024 | `They did a great job and left the work site very clean... I’ll be using Angel Tree Service for all my tree work.` |
+| Anne L. | Angi, 2023 | `I have used this company twice and was so pleased. They respond promptly and definitely knows the business well.` |
+| Louis F. | Angi, 2020 | `No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.` |
+| JOHN P. | Angi, 2019 | `They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...` |
+
+Only the JOHN P. excerpt is placed on a service page because it explicitly describes tree removal. The other excerpts are not assigned to services that the quoted text does not name.
+
+## Yelp, Facebook, and Apple Maps
+
+The supplied Yelp URL was `https://biz.yelp.com/biz_info/rDdBkEPusAMSgia4ODUe_w`, which is an owner-management URL and must never be public. A customer-facing Yelp listing could not be confidently verified without guessing, so Yelp is not linked in this release. A verified public Facebook business URL and Apple Maps business listing were also not established, so neither is added yet.
+
+## Insurance Wording
+
+The exact active policy types were not confirmed for public release. The site therefore uses only `Insured`, plus the conservative statement that certificates of insurance are available upon request. It does not say `fully insured`, name policy types, or publish coverage limits, carriers, policy numbers, or dates.
 
 ## 2026 Best of the Burg
 
@@ -101,9 +144,12 @@ No ChipDrop logo, recipient information, tonnage, cubic-yard total, diversion pe
 Before publishing or after a quarterly review:
 
 1. Open the exact Google Place ID link and confirm the business, rating, and whether the public count remains at or above 120.
-2. If the Google count falls below the public threshold or the rating changes, update all maintained wording before release.
-3. Confirm the Best of the Burg listing still shows `Finalist`, `2026`, and `Best Tree Trim/Removal Services`.
-4. Confirm the NBC4 article, NBC4 video page, official YouTube upload, and thumbnail still resolve.
-5. Confirm both professional-affiliation member pages still identify `Angel Tree Services LLC`.
-6. Confirm the Tree Fredericksburg and three ChipDrop source pages still resolve before changing the approved wording.
-7. Run `npm run test:public` and the recognition-specific checks in `scripts/validate-public-site.py`.
+2. Open the Angi profile and confirm the `5.0` rating, `44` count, review text, and each selected review's displayed source label.
+3. Open the BBB profile and confirm both the `A+` rating and current accreditation status.
+4. If any metric, threshold, excerpt, or source label changes, update `public-trust-data.json`, visible copy, documentation, and validation together.
+5. Confirm the Best of the Burg listing still shows `Finalist`, `2026`, and `Best Tree Trim/Removal Services`.
+6. Confirm the NBC4 article, NBC4 video page, official YouTube upload, and thumbnail still resolve.
+7. Confirm both professional-affiliation member pages still identify `Angel Tree Services LLC`.
+8. Confirm the Tree Fredericksburg and three ChipDrop source pages still resolve before changing the approved wording.
+9. Do not add Yelp until a customer-facing public URL is confirmed; never use a `biz.yelp.com` management link.
+10. Run `npm run test:public` and the recognition-specific checks in `scripts/validate-public-site.py`.

@@ -597,9 +597,16 @@ class Validator:
         combined_public_html = "\n".join(self.page_sources.values())
 
         required_homepage_terms = (
-            "4.9 stars from 120+ Google reviews",
+            "Certified Arborist-led &middot; Insured &middot; 30+ years of tree-industry experience",
+            "120+",
+            "4.9 average",
+            "44",
+            "5.0 rating",
+            "A+",
+            "Not BBB Accredited",
+            "Tim S.",
+            "Google Review &middot; 2023",
             "/recognition/",
-            "Connected with local business organizations and community tree-planting efforts.",
             "2026 Best of the Burg Finalist, Best Tree Trim/Removal Services",
             '"@type": "NewsArticle"',
             '"@type": "VideoObject"',
@@ -609,13 +616,29 @@ class Validator:
                 self.error(f"/: recognition invariant is missing: {term}")
 
         required_recognition_terms = (
-            "4.9 stars from 120+ Google reviews",
+            "120+",
+            "4.9 average",
+            "44",
+            "5.0 rating",
+            "A+",
+            "Not BBB Accredited",
+            "Independent platforms, shown separately.",
+            "Certified Arborist-led",
+            "Certificates of insurance are available upon request",
+            "Previously recognized with Angi’s Super Service Award",
+            "Carolyn K.",
+            "Anne L.",
+            "Louis F.",
+            "JOHN P.",
+            "Angi · 2024",
             "Best Tree Trim/Removal Services",
             "Best of the Burg finalist",
             "September 19, 2024",
             "NBC4 Responds",
             "data-video-id=\"QwfdLmPTQAk\"",
             "https://www.google.com/maps/search/?api=1",
+            "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+            "https://www.bbb.org/us/va/fredericksburg/profile/tree-service/angel-tree-services-llc-0603-63424263",
             "https://fredericksburgfreelance-star.secondstreetapp.com/",
             "https://www.nbcwashington.com/news/consumer/nbc4-responds/",
             "https://www.nbcwashington.com/video/news/consumer/nbc4-responds/",
@@ -662,6 +685,18 @@ class Validator:
 
         if re.search(r"\b212\s+(?:referral|referrals)\b", combined_public_html, re.IGNORECASE):
             self.error("Public pages must not include the unsupported 212 referrals claim")
+
+        if "biz.yelp.com" in combined_public_html:
+            self.error("Public pages must not link to the Yelp owner-management interface")
+
+        if re.search(r"(?<!Not )BBB Accredited", combined_public_html, re.IGNORECASE):
+            self.error("Public pages must not claim BBB Accreditation")
+
+        if re.search(r"\b(?:fully insured|Certified Arborists|ISA-certified company|ISA-approved)\b", combined_public_html, re.IGNORECASE):
+            self.error("Public pages contain an unsupported credential or insurance phrase")
+
+        if re.search(r"\b165\+ five-star reviews\b", combined_public_html, re.IGNORECASE):
+            self.error("Public pages must not combine review-platform counts")
 
         if "AggregateRating" in combined_public_html or '"@type":"Review"' in combined_public_html:
             self.error("Public pages must not add AggregateRating or Review structured data for this release")

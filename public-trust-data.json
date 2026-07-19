@@ -1,0 +1,101 @@
+{
+  "lastVerifiedAt": "2026-07-18",
+  "trustLine": "Certified Arborist-led · Insured · 30+ years of tree-industry experience",
+  "insurance": {
+    "publicWording": "Insured",
+    "policyTypesConfirmedForPublication": false
+  },
+  "platforms": {
+    "google": {
+      "name": "Google",
+      "rating": "4.9",
+      "reviewCount": 123,
+      "publicCountWording": "120+ reviews",
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "verificationNote": "The live Maps listing confirmed the business and 4.9 rating. The count is from the owner-supplied July 17, 2026 snapshot because Google's limited signed-out view did not expose it."
+    },
+    "angi": {
+      "name": "Angi",
+      "rating": "5.0",
+      "reviewCount": 44,
+      "publicCountWording": "44 customer reviews",
+      "publicProfileUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    },
+    "bbb": {
+      "name": "Better Business Bureau",
+      "rating": "A+",
+      "accredited": false,
+      "publicProfileUrl": "https://www.bbb.org/us/va/fredericksburg/profile/tree-service/angel-tree-services-llc-0603-63424263"
+    },
+    "yelp": {
+      "name": "Yelp",
+      "publicProfileUrl": null,
+      "verificationNote": "The supplied URL is an owner-management URL. No customer-facing listing was confidently verified, so Yelp is not linked publicly."
+    },
+    "facebook": {
+      "name": "Facebook",
+      "publicProfileUrl": null
+    },
+    "appleMaps": {
+      "name": "Apple Maps",
+      "publicProfileUrl": null
+    }
+  },
+  "reviews": [
+    {
+      "id": "tim-s-google-2023",
+      "platform": "Google",
+      "reviewerDisplayName": "Tim S.",
+      "excerpt": "I’ve had several very large trees taken down which were immediately adjacent to our house, and everything went perfectly.",
+      "reviewYear": 2023,
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "sourceType": "Google Review displayed and labeled by Angi",
+      "sourceEvidenceUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    },
+    {
+      "id": "carolyn-k-angi-2024",
+      "platform": "Angi",
+      "reviewerDisplayName": "Carolyn K.",
+      "excerpt": "They did a great job and left the work site very clean... I’ll be using Angel Tree Service for all my tree work.",
+      "reviewYear": 2024,
+      "publicProfileUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+      "sourceType": "Angi-origin review",
+      "sourceEvidenceUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    },
+    {
+      "id": "anne-l-angi-2023",
+      "platform": "Angi",
+      "reviewerDisplayName": "Anne L.",
+      "excerpt": "I have used this company twice and was so pleased. They respond promptly and definitely knows the business well.",
+      "reviewYear": 2023,
+      "publicProfileUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+      "sourceType": "Angi-origin review",
+      "sourceEvidenceUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    },
+    {
+      "id": "louis-f-angi-2020",
+      "platform": "Angi",
+      "reviewerDisplayName": "Louis F.",
+      "excerpt": "No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.",
+      "reviewYear": 2020,
+      "publicProfileUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+      "sourceType": "Angi-origin review",
+      "sourceEvidenceUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    },
+    {
+      "id": "john-p-angi-2019",
+      "platform": "Angi",
+      "reviewerDisplayName": "JOHN P.",
+      "excerpt": "They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...",
+      "reviewYear": 2019,
+      "publicProfileUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+      "sourceType": "Angi-origin review",
+      "sourceEvidenceUrl": "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm"
+    }
+  ],
+  "recognition": {
+    "bestOfBurg": "Best of the Burg 2026 Finalist",
+    "angiAward": "Previously recognized with Angi’s Super Service Award",
+    "nbc4": "Featured by NBC4"
+  }
+}

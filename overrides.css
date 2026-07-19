@@ -1299,7 +1299,7 @@ body.ats-form-submitted .ats-form-success {
   text-underline-offset: 5px;
 }
 
-.ats-home-recognition__grid {
+.ats-home-recognition__metrics {
   margin-top: clamp(30px, 4vw, 44px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1307,35 +1307,43 @@ body.ats-form-submitted .ats-form-success {
   border-bottom: 1px solid rgba(47, 125, 50, 0.22);
 }
 
-.ats-home-recognition__grid article {
+.ats-home-recognition__metrics article {
   min-width: 0;
   padding: clamp(24px, 3vw, 34px);
   border-right: 1px solid rgba(47, 125, 50, 0.18);
 }
 
-.ats-home-recognition__grid article:last-child {
+.ats-home-recognition__metrics article:last-child {
   border-right: 0;
 }
 
-.ats-home-recognition__grid p,
-.ats-home-recognition__grid h3 {
+.ats-home-recognition__metrics p {
   margin: 0;
 }
 
-.ats-home-recognition__grid h3 {
-  margin-top: 9px;
-  color: var(--ats-green-deep);
-  font-size: 1.15rem;
-  line-height: 1.3;
+.ats-home-recognition__platform {
+  color: #237223;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
-.ats-home-recognition__grid h3 + p {
-  margin-top: 10px;
+.ats-home-recognition__value {
+  margin-top: 10px !important;
+  color: var(--ats-green-deep);
+  font-size: clamp(2.7rem, 5vw, 4.7rem);
+  font-weight: 650;
+  line-height: 1;
+}
+
+.ats-home-recognition__value + p {
+  margin-top: 8px !important;
   color: #466748;
   line-height: 1.55;
 }
 
-.ats-home-recognition__grid a {
+.ats-home-recognition__metrics a {
   display: inline-block;
   margin-top: 18px;
   color: var(--ats-green-dark);
@@ -1345,19 +1353,52 @@ body.ats-form-submitted .ats-form-success {
   text-underline-offset: 5px;
 }
 
-.ats-home-recognition__stars {
-  color: #c89900;
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-  line-height: 1;
+.ats-home-testimonial {
+  margin-top: clamp(30px, 4vw, 46px);
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  align-items: stretch;
+  background: var(--ats-green-deep);
+  color: #fff;
 }
 
-.ats-home-recognition__marker {
-  color: var(--ats-green);
-  font-size: 0.76rem;
+.ats-home-testimonial img {
+  width: 100%;
+  height: 100%;
+  min-height: 310px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.ats-home-testimonial blockquote {
+  margin: 0;
+  padding: clamp(30px, 5vw, 64px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ats-home-testimonial blockquote > p {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.45rem, 2.8vw, 2.45rem);
+  font-weight: 520;
+  line-height: 1.35;
+}
+
+.ats-home-testimonial blockquote footer {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.92rem;
+}
+
+.ats-home-testimonial cite {
+  color: #fff;
+  font-style: normal;
   font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
 }
 
 .ats-home-recognition__community {
@@ -1372,6 +1413,52 @@ body.ats-form-submitted .ats-form-success {
   color: var(--ats-green-dark);
   font-weight: 700;
   text-decoration-color: rgba(31, 90, 34, 0.38);
+  text-underline-offset: 5px;
+}
+
+.ats-form-trust {
+  margin: 18px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.ats-form-trust a {
+  color: inherit;
+  font-weight: 750;
+  text-decoration-color: currentColor;
+  text-underline-offset: 4px;
+}
+
+.ats-home-footer-trust {
+  padding: 28px max(24px, calc((100vw - 1200px) / 2));
+  border-top: 1px solid rgba(47, 125, 50, 0.24);
+  border-bottom: 1px solid rgba(47, 125, 50, 0.2);
+  background: #f4f8ee;
+  color: var(--ats-green-deep);
+}
+
+.ats-home-footer-trust > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.ats-home-footer-trust p {
+  margin: 0;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.ats-home-footer-trust nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.ats-home-footer-trust a {
+  color: inherit;
+  text-decoration-color: rgba(31, 90, 34, 0.4);
   text-underline-offset: 5px;
 }
 
@@ -1618,21 +1705,35 @@ body.ats-form-submitted .ats-form-success {
     gap: 18px;
   }
 
-  .ats-home-recognition__grid {
+  .ats-home-recognition__metrics {
     grid-template-columns: 1fr;
   }
 
-  .ats-home-recognition__grid article {
+  .ats-home-recognition__metrics article {
     border-right: 0;
     border-bottom: 1px solid rgba(47, 125, 50, 0.18);
   }
 
-  .ats-home-recognition__grid article:last-child {
+  .ats-home-recognition__metrics article:last-child {
     border-bottom: 0;
   }
 
   .ats-home-recognition__community {
     text-align: left;
+  }
+
+  .ats-home-testimonial {
+    grid-template-columns: 1fr;
+  }
+
+  .ats-home-testimonial img {
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+  }
+
+  .ats-home-footer-trust > div {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .ats-process__steps li,

@@ -184,7 +184,9 @@ Do not deploy with `netlify deploy --prod` from an unreviewed working directory.
 - [ ] Tree removal, tree pruning, stump grinding, emergency, and commercial CTA preselection is correct.
 - [ ] Canonical and Open Graph URLs use `https://angeltreeservices.org`.
 - [ ] `https://angeltreeservices.org/sitemap.xml` contains all and only the ten approved URLs.
-- [ ] `/recognition/` shows `4.9 stars from 120+ Google reviews`, finalist status in `Best Tree Trim/Removal Services`, and factual NBC4 coverage without endorsement language.
+- [ ] `/recognition/` keeps Google (`120+`, `4.9`), Angi (`44`, `5.0`), and BBB (`A+`, not accredited) unmistakably separate; it also shows finalist status in `Best Tree Trim/Removal Services` and factual NBC4 coverage without endorsement language.
+- [ ] Homepage and recognition testimonials match the brief excerpts and displayed source labels in `PUBLIC_RECOGNITION_SOURCES.md`.
+- [ ] No `biz.yelp.com` URL, positive BBB Accreditation claim, combined review total, review widget, `AggregateRating`, or `Review` schema is present.
 - [ ] The recognition video loads an official `youtube-nocookie.com` iframe only after a keyboard- or pointer-initiated click and does not autoplay.
 - [ ] Official Google, Best of the Burg, NBC4 article, NBC4 video, and YouTube links reach the verified sources recorded in `PUBLIC_RECOGNITION_SOURCES.md`.
 - [ ] `https://angeltreeservices.org/robots.txt` references the production sitemap and does not block required assets.

@@ -336,6 +336,28 @@ img {
   margin-left: auto;
 }
 
+.ats-page-hero__trust {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: var(--ats-white);
+  font-size: 0.94rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.ats-page-hero__inner--single .ats-page-hero__trust {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.ats-page-hero__trust a,
+.ats-final-cta__trust a,
+.ats-trust-line a {
+  color: inherit;
+  text-decoration-color: currentColor;
+  text-underline-offset: 5px;
+}
+
 .ats-actions {
   margin-top: 32px;
   display: flex;
@@ -470,7 +492,7 @@ img {
 
 .ats-eyebrow {
   margin: 0 0 10px;
-  color: var(--ats-green);
+  color: var(--ats-green-dark);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -798,6 +820,205 @@ img {
   margin: 20px 0 0;
   color: var(--ats-muted);
   font-size: 0.92rem;
+}
+
+.ats-recognition-intro,
+.ats-customer-experiences__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  align-items: end;
+  gap: clamp(32px, 7vw, 92px);
+}
+
+.ats-recognition-intro > p,
+.ats-customer-experiences__heading > p {
+  margin: 0;
+  color: var(--ats-muted);
+}
+
+.ats-review-metrics {
+  margin-top: clamp(38px, 6vw, 66px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--ats-border);
+  border-bottom: 1px solid var(--ats-border);
+}
+
+.ats-review-metrics article {
+  min-width: 0;
+  padding: clamp(26px, 4vw, 42px);
+  border-right: 1px solid var(--ats-border);
+}
+
+.ats-review-metrics article:last-child {
+  border-right: 0;
+}
+
+.ats-review-metrics p {
+  margin: 0;
+}
+
+.ats-review-metrics__platform {
+  min-height: 2.8em;
+  color: var(--ats-green-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.ats-review-metrics__value {
+  margin: 12px 0 8px !important;
+  color: var(--ats-green-deep);
+  font-size: clamp(3.3rem, 7vw, 6.5rem);
+  font-weight: 620;
+  line-height: 0.95;
+}
+
+.ats-review-metrics a,
+.ats-recognition-history a,
+.ats-testimonial a {
+  display: inline-block;
+  margin-top: 18px;
+  color: var(--ats-green-dark);
+  font-size: 0.9rem;
+  font-weight: 750;
+  text-decoration-color: rgba(31, 90, 34, 0.4);
+  text-underline-offset: 5px;
+}
+
+.ats-testimonial-grid {
+  margin-top: clamp(38px, 6vw, 64px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--ats-border);
+  border-bottom: 1px solid var(--ats-border);
+}
+
+.ats-testimonial {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(28px, 4vw, 46px);
+  border-right: 1px solid var(--ats-border);
+  border-bottom: 1px solid var(--ats-border);
+}
+
+.ats-testimonial:nth-child(2n) {
+  border-right: 0;
+}
+
+.ats-testimonial:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.ats-testimonial > p {
+  margin: 0;
+  color: var(--ats-green-deep);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 540;
+  line-height: 1.55;
+}
+
+.ats-testimonial footer {
+  margin-top: 24px;
+  display: grid;
+  gap: 2px;
+  color: var(--ats-muted);
+  font-size: 0.88rem;
+}
+
+.ats-testimonial cite {
+  color: var(--ats-green-deep);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.ats-testimonial footer a {
+  width: fit-content;
+  margin-top: 9px;
+}
+
+.ats-customer-experiences__summary {
+  max-width: 920px;
+  margin: 30px auto 0;
+  color: var(--ats-muted);
+  text-align: center;
+}
+
+.ats-service-review .ats-testimonial {
+  padding: clamp(28px, 5vw, 54px) 0;
+  border: 0;
+}
+
+.ats-professional-trust__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(38px, 8vw, 104px);
+}
+
+.ats-professional-trust__facts {
+  border-top: 1px solid var(--ats-border);
+}
+
+.ats-professional-trust__facts p {
+  margin: 0;
+  padding: 23px 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1fr);
+  gap: 22px;
+  border-bottom: 1px solid var(--ats-border);
+}
+
+.ats-professional-trust__facts strong {
+  color: var(--ats-green-deep);
+}
+
+.ats-professional-trust__facts span {
+  color: var(--ats-muted);
+  font-size: 0.94rem;
+}
+
+.ats-recognition-history__grid {
+  margin-top: clamp(34px, 5vw, 54px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--ats-border);
+  border-bottom: 1px solid var(--ats-border);
+}
+
+.ats-recognition-history__grid article {
+  padding: clamp(28px, 5vw, 52px);
+  border-right: 1px solid var(--ats-border);
+}
+
+.ats-recognition-history__grid article:last-child {
+  border-right: 0;
+}
+
+.ats-recognition-history__grid h3,
+.ats-recognition-history__grid p {
+  margin: 0;
+}
+
+.ats-recognition-history__grid h3 {
+  margin-top: 12px;
+  color: var(--ats-green-deep);
+  font-size: clamp(1.45rem, 2.6vw, 2.2rem);
+  line-height: 1.25;
+}
+
+.ats-recognition-history__grid h3 + p {
+  margin-top: 16px;
+}
+
+.ats-recognition-history__year,
+.ats-recognition-history__label {
+  color: var(--ats-green-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .ats-recognition-proof {
@@ -1250,7 +1471,7 @@ img {
 
 .ats-final-cta {
   padding: clamp(66px, 9vw, 120px) 24px;
-  background: var(--ats-green);
+  background: #267528;
   color: var(--ats-white);
   text-align: center;
 }
@@ -1271,7 +1492,12 @@ img {
 
 .ats-final-cta p {
   margin: 18px auto 0;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--ats-white);
+}
+
+.ats-final-cta .ats-final-cta__trust {
+  font-size: 0.92rem;
+  font-weight: 750;
 }
 
 .ats-final-cta .ats-actions {
@@ -1288,7 +1514,7 @@ img {
   width: min(var(--ats-content), 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.8fr;
+  grid-template-columns: 1.25fr repeat(3, minmax(150px, 0.75fr));
   gap: 36px;
 }
 
@@ -1364,6 +1590,10 @@ img {
   .ats-project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .ats-page-footer__inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -1402,6 +1632,9 @@ img {
   .ats-page-hero__inner--single,
   .ats-two-column,
   .ats-credential-panel,
+  .ats-recognition-intro,
+  .ats-customer-experiences__heading,
+  .ats-professional-trust__grid,
   .ats-recognition-proof,
   .ats-recognition-editorial,
   .ats-recognition-media__grid,
@@ -1442,6 +1675,38 @@ img {
 
   .ats-recognition-media__grid {
     gap: 34px;
+  }
+
+  .ats-review-metrics,
+  .ats-testimonial-grid,
+  .ats-recognition-history__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ats-review-metrics article,
+  .ats-review-metrics article:last-child,
+  .ats-testimonial,
+  .ats-testimonial:nth-child(2n),
+  .ats-testimonial:nth-last-child(-n + 2),
+  .ats-recognition-history__grid article,
+  .ats-recognition-history__grid article:last-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--ats-border);
+  }
+
+  .ats-review-metrics article:last-child,
+  .ats-testimonial:last-child,
+  .ats-recognition-history__grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .ats-review-metrics__platform {
+    min-height: 0;
+  }
+
+  .ats-professional-trust__facts p {
+    grid-template-columns: 1fr;
+    gap: 7px;
   }
 
   .ats-affiliations,

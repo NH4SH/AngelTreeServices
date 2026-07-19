@@ -80,7 +80,7 @@ export async function createChangeOrder(_state: ChangeOrderActionState, formData
   if (error || !changeOrder) return failure(error?.message ?? "Could not create the change order.");
 
   const { error: linesError } = await auth.supabase.from("change_order_line_items").insert(
-    lineItems.map((item) => ({ ...item, change_order_id: changeOrder.id })),
+    lineItems.map(({ id: _id, ...item }) => ({ ...item, change_order_id: changeOrder.id })),
   );
   if (linesError) {
     await auth.supabase.from("change_orders").delete().eq("id", changeOrder.id);

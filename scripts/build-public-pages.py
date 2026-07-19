@@ -64,12 +64,13 @@ def review_by_id(review_id: str) -> dict:
 
 def testimonial(review_id: str, class_name: str = "ats-testimonial") -> str:
     review = review_by_id(review_id)
+    date_label = review.get("reviewDateLabel", str(review["reviewYear"]))
     return f"""
       <blockquote class="{html_attr(class_name)}">
         <p>“{html_text(review['excerpt'])}”</p>
         <footer>
           <cite>{html_text(review['reviewerDisplayName'])}</cite>
-          <span>{html_text(review['platform'])} · {int(review['reviewYear'])}</span>
+          <span>{html_text(review['platform'])} · {html_text(date_label)}</span>
           <a href="{html_attr(review['publicProfileUrl'])}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on {html_text(review['platform'])}</a>
         </footer>
       </blockquote>"""
@@ -638,6 +639,13 @@ def commercial_body() -> str:
         <aside class="ats-callout"><h2>No customer list without permission</h2><p>We do not publish organization names, partnerships, or property relationships without authorization. Project proof will be added only when the underlying facts and media are approved.</p></aside>
       </div>
     </section>
+    <section class="ats-content-section" aria-labelledby="commercial-review-title">
+      <div class="ats-section-inner ats-section-inner--narrow">
+        <p class="ats-eyebrow">Commercial property experience</p>
+        <h2 class="ats-section-heading" id="commercial-review-title">Careful work around neighboring properties.</h2>
+        {testimonial('donnysmooth-google-2026', 'ats-testimonial ats-testimonial--service')}
+      </div>
+    </section>
     {process_section()}
     <section class="ats-content-section">
       <div class="ats-section-inner">
@@ -691,7 +699,14 @@ def credentials_body() -> str:
         </div>
       </div>
     </section>
-    <section class="ats-content-section ats-content-section--white">
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="tree-health-review-title">
+      <div class="ats-section-inner ats-section-inner--narrow">
+        <p class="ats-eyebrow">Tree-health guidance</p>
+        <h2 class="ats-section-heading" id="tree-health-review-title">Knowledge customers can use beyond today’s work.</h2>
+        {testimonial('kathleen-humphries-google-2026', 'ats-testimonial ats-testimonial--service')}
+      </div>
+    </section>
+    <section class="ats-content-section">
       <div class="ats-section-inner">
         <p class="ats-eyebrow">Before work begins</p>
         <h2 class="ats-section-heading">What customers should expect to clarify</h2>
@@ -848,10 +863,10 @@ def recognition_body() -> str:
     customer_experiences = "".join(
         testimonial(review_id)
         for review_id in (
+            "kp-google-2026",
             "tim-s-google-2023",
             "carolyn-k-angi-2024",
             "anne-l-angi-2023",
-            "louis-f-angi-2020",
             "john-p-angi-2019",
         )
     )

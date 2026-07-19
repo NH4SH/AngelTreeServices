@@ -1,5 +1,5 @@
 {
-  "lastVerifiedAt": "2026-07-18",
+  "lastVerifiedAt": "2026-07-19",
   "trustLine": "Certified Arborist-led · Insured · 30+ years of tree-industry experience",
   "insurance": {
     "publicWording": "Insured",
@@ -42,6 +42,48 @@
     }
   },
   "reviews": [
+    {
+      "id": "mark-mayer-google-2026",
+      "platform": "Google",
+      "reviewerDisplayName": "Mark Mayer",
+      "excerpt": "I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!",
+      "reviewYear": 2026,
+      "reviewDateLabel": "July 2026",
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "sourceType": "Google Review",
+      "sourceEvidence": "Owner-supplied Google screenshot captured July 19, 2026"
+    },
+    {
+      "id": "donnysmooth-google-2026",
+      "platform": "Google",
+      "reviewerDisplayName": "donnysmooth",
+      "excerpt": "Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.",
+      "reviewYear": 2026,
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "sourceType": "Google Review",
+      "sourceEvidence": "Owner-supplied Google screenshot"
+    },
+    {
+      "id": "kathleen-humphries-google-2026",
+      "platform": "Google",
+      "reviewerDisplayName": "Kathleen Humphries",
+      "excerpt": "Saul was extremely knowledgeable... assessed the health of our trees and offered guidance for future work.",
+      "reviewYear": 2026,
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "sourceType": "Google Review",
+      "sourceEvidence": "Owner-supplied Google screenshot"
+    },
+    {
+      "id": "kp-google-2026",
+      "platform": "Google",
+      "reviewerDisplayName": "K P",
+      "excerpt": "2nd 5 star review from me... They literally left no ‘tree/leaf crumbs.’ Would hire again!",
+      "reviewYear": 2026,
+      "reviewDateLabel": "Updated July 2026",
+      "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+      "sourceType": "Google Review",
+      "sourceEvidence": "Owner-supplied Google screenshot"
+    },
     {
       "id": "tim-s-google-2023",
       "platform": "Google",

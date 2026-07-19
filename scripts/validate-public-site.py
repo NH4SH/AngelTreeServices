@@ -604,15 +604,15 @@ class Validator:
             "Insured &middot; 30+ years of tree-industry experience",
             "120+",
             "4.9 average",
-            "Best of the Burg",
-            "2026 Finalist",
+            "Voted a 2026 Best of the Burg Finalist",
             "Featured by NBC4",
             "44",
             "5.0 rating",
             "A+",
             "Not BBB Accredited",
-            "Carolyn K.",
-            "Angi &middot; October 2024",
+            "Mark Mayer",
+            "I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!",
+            "Google Review &middot; July 2026",
             "/recognition/",
             "2026 Best of the Burg Finalist, Best Tree Trim/Removal Services",
             '"@type": "NewsArticle"',
@@ -621,6 +621,29 @@ class Validator:
         for term in required_homepage_terms:
             if term not in homepage:
                 self.error(f"/: recognition invariant is missing: {term}")
+
+        homepage_images = {
+            image.get("src", ""): image for image in self.pages["/"].images
+        }
+        for source in (
+            "angeltreeservices_backup_files/isamember1_004.jpg",
+            "angeltreeservices_backup_files/certified-arborist.png",
+        ):
+            image = homepage_images.get(source)
+            if image is None:
+                self.error(f"/: static homepage credential image is missing: {source}")
+                continue
+            if image.get("loading", "").lower() == "lazy":
+                self.error(f"/: homepage credential image must load on first paint, not lazily: {source}")
+            if not image.get("width") or not image.get("height"):
+                self.error(f"/: homepage credential image must reserve explicit dimensions: {source}")
+
+        public_scripts = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in self.site_dir.rglob("*.js")
+        )
+        if "ats-mobile-trust" in public_scripts or "isamember1_004.jpg" in public_scripts or "certified-arborist.png" in public_scripts:
+            self.error("/: homepage credential card must remain static HTML and must not be injected by JavaScript")
 
         hierarchy_positions = (
             homepage.find("ats-mobile-hero"),
@@ -643,11 +666,13 @@ class Validator:
             "Certified Arborist-led",
             "Certificates of insurance are available upon request",
             "Previously recognized with Angi’s Super Service Award",
+            "K P",
+            "2nd 5 star review from me... They literally left no ‘tree/leaf crumbs.’ Would hire again!",
+            "Google · Updated July 2026",
             "Carolyn K.",
             "Tim S.",
             "Google · 2023",
             "Anne L.",
-            "Louis F.",
             "JOHN P.",
             "Angi · 2024",
             "Best Tree Trim/Removal Services",
@@ -698,9 +723,21 @@ class Validator:
             "Member of the Fredericksburg Regional Chamber of Commerce",
             "Member of the Fredericksburg Area Builders Association",
             "/recognition/#community",
+            "Kathleen Humphries",
+            "Saul was extremely knowledgeable... assessed the health of our trees and offered guidance for future work.",
+            "Google · 2026",
         ):
             if term not in credentials:
                 self.error(f"/credentials-safety/: professional-affiliation invariant is missing: {term}")
+
+        commercial = self.page_sources.get("/services/commercial-hoa-tree-care/", "")
+        for term in (
+            "donnysmooth",
+            "Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.",
+            "Google · 2026",
+        ):
+            if term not in commercial:
+                self.error(f"/services/commercial-hoa-tree-care/: customer-proof invariant is missing: {term}")
 
         if re.search(r"\b212\s+(?:referral|referrals)\b", combined_public_html, re.IGNORECASE):
             self.error("Public pages must not include the unsupported 212 referrals claim")

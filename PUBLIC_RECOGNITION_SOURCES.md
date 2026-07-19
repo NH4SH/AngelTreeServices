@@ -4,7 +4,7 @@
 
 Reverify every source quarterly and immediately before a major public release. Ratings and review counts can change without notice. Update `public-trust-data.json`, the matching homepage presentation in `index.html`, this record, and the validator together.
 
-Last verification pass: July 18, 2026.
+Last verification pass: July 19, 2026.
 
 ## Google Business Profile
 
@@ -19,7 +19,7 @@ Last verification pass: July 18, 2026.
 
 The live public profile confirmed the business name, address at 5802 Ford Road in Fredericksburg, website, phone number, and `4.9` rating. Google's limited unauthenticated public view did not expose the live review count or stable, attributable individual-review links during implementation. The `123` count therefore comes from the owner-supplied same-day snapshot, and the public site uses the more durable `120+` threshold.
 
-One short Google-labeled review excerpt is published. It appears on Angi with the source label `Google Review`, so the site attributes it to Google rather than Angi. The official Google profile remains the public destination link.
+The July 19 review selection uses exact excerpts and display names from owner-supplied Google screenshots. The official Google profile remains the public destination link. Tim S. is an earlier Google-labeled review displayed on Angi and remains attributed to Google rather than Angi.
 
 ## Angi
 
@@ -48,13 +48,17 @@ All quotation text below is brief, attributed to the source label displayed publ
 
 | Reviewer | Attribution | Exact excerpt used |
 | --- | --- | --- |
+| Mark Mayer | Google Review, July 2026 | `I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!` |
+| donnysmooth | Google Review, 2026 | `Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.` |
+| Kathleen Humphries | Google Review, 2026 | `Saul was extremely knowledgeable... assessed the health of our trees and offered guidance for future work.` |
+| K P | Google Review, updated July 2026 | `2nd 5 star review from me... They literally left no ‘tree/leaf crumbs.’ Would hire again!` |
 | Tim S. | Google Review, 2023; displayed and labeled by Angi | `I’ve had several very large trees taken down which were immediately adjacent to our house, and everything went perfectly.` |
 | Carolyn K. | Angi, 2024 | `They did a great job and left the work site very clean... I’ll be using Angel Tree Service for all my tree work.` |
 | Anne L. | Angi, 2023 | `I have used this company twice and was so pleased. They respond promptly and definitely knows the business well.` |
 | Louis F. | Angi, 2020 | `No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.` |
 | JOHN P. | Angi, 2019 | `They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...` |
 
-Carolyn K.'s October 2024 excerpt is the homepage feature because it is the newest substantive review on the verified Angi profile and specifically supports cleanup and repeat-customer trust. Tim S.'s 2023 Google-labeled review remains on the Recognition page as detailed near-home removal proof. Only the JOHN P. excerpt is placed on a service page because it explicitly describes tree removal. The other excerpts are not assigned to services that the quoted text does not name.
+Mark Mayer's July 2026 excerpt is the homepage feature because it covers the quote, crew execution, repeat use, and referral intent. The donnysmooth excerpt appears only on the Commercial/HOA page because it describes complex work between houses. Kathleen Humphries appears on Credentials and Safety because the excerpt specifically describes tree-health assessment and future guidance. K P appears on Recognition as repeat-customer and cleanup proof. Tim S. remains on Recognition, and JOHN P. remains on tree removal because that excerpt explicitly describes removal. Customer wording is not reassigned to services it does not support.
 
 ## Yelp, Facebook, and Apple Maps
 

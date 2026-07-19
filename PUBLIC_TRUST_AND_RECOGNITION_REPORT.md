@@ -25,7 +25,7 @@ The approved homepage order is hero, estimate action, ISA credential card, immed
 
 ## Review Proof
 
-Metrics were verified on July 18, 2026 and remain separated by platform:
+Metrics were verified on July 19, 2026 and remain separated by platform:
 
 | Platform | Public presentation | Public source |
 | --- | --- | --- |
@@ -37,20 +37,30 @@ Google's signed-out view confirmed the live `4.9` rating but did not expose the 
 
 ## Selected Excerpts
 
-The exact brief excerpts used are:
+The current exact brief excerpts include:
 
-1. **Tim S. · Google Review · 2023**  
+1. **Mark Mayer · Google Review · July 2026**
+   “I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!”
+2. **donnysmooth · Google Review · 2026**
+   “Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.”
+3. **Kathleen Humphries · Google Review · 2026**
+   “Saul was extremely knowledgeable... assessed the health of our trees and offered guidance for future work.”
+4. **K P · Google Review · Updated July 2026**
+   “2nd 5 star review from me... They literally left no ‘tree/leaf crumbs.’ Would hire again!”
+5. **Tim S. · Google Review · 2023**
    “I’ve had several very large trees taken down which were immediately adjacent to our house, and everything went perfectly.”
-2. **Carolyn K. · Angi · 2024**  
+6. **Carolyn K. · Angi · 2024**
    “They did a great job and left the work site very clean... I’ll be using Angel Tree Service for all my tree work.”
-3. **Anne L. · Angi · 2023**  
+7. **Anne L. · Angi · 2023**
    “I have used this company twice and was so pleased. They respond promptly and definitely knows the business well.”
-4. **Louis F. · Angi · 2020**  
-   “No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.”
-5. **JOHN P. · Angi · 2019**  
+8. **JOHN P. · Angi · 2019**
    “They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...”
 
-Tim S. is labeled `Google Review` on the Angi source page and is therefore attributed to Google. The other four are attributed to Angi. The homepage features Carolyn K. from October 2024 because it is the newest substantive review on the verified profile and provides concrete cleanup and repeat-use proof. Tim S.'s 2023 review remains on the recognition page; the tree-removal page uses JOHN P. because that excerpt explicitly describes removal.
+The homepage features Mark Mayer. The Commercial/HOA page uses donnysmooth, Credentials and Safety uses Kathleen Humphries, and Recognition opens with K P. Tim S. remains on Recognition; the tree-removal page uses JOHN P. because that excerpt explicitly describes removal. The July 2026 Google excerpts come from owner-supplied screenshots and link to the verified public Google profile.
+
+## Immediate Homepage Rendering
+
+The ISA credential card is present in the original homepage HTML immediately below the estimate action. Its existing images are `angeltreeservices_backup_files/isamember1_004.jpg` and `angeltreeservices_backup_files/certified-arborist.png`, with explicit dimensions and no lazy-loading attribute. No JavaScript injects, reveals, or replaces the card. The prior first-visit gap was caused by lazy image loading, not by missing markup or a JavaScript visibility toggle.
 
 ## Recognition and Community
 
@@ -103,9 +113,20 @@ The hierarchy-correction screenshots are stored under `output/playwright/public-
 - `homepage-restored-desktop.png`
 - `homepage-restored-mobile.png`
 
+The July 19 first-paint correction screenshots are stored under `output/playwright/public-trust-first-paint/`:
+
+- `desktop-1536x864.png`, `desktop-1440x900.png`, and `desktop-1366x768.png`
+- `mobile-430x932.png`, `mobile-390x844.png`, and `mobile-375x812.png`
+- `phase-initial-html-1440x900.png`, `phase-domcontentloaded-1440x900.png`, and `phase-network-idle-1440x900.png`
+- `javascript-disabled-1440x900.png` and `javascript-disabled-390x844.png`
+- Contextual review captures for Mark Mayer, donnysmooth, Kathleen Humphries, and K P
+
 Validation results:
 
 - `npm run test:public`: passed, with 11 approved pages generated and validated
+- Throttled initial-render checks: estimate action, static credential card, both ISA images, and immediate recognition were present by `DOMContentLoaded`; measured cumulative layout shift was `0.084`
+- JavaScript-disabled checks: credential card visible at 1440 × 900 and 390 × 844, with no horizontal overflow at the mobile viewport
+- Required homepage screenshots: passed at 1536 × 864, 1440 × 900, 1366 × 768, 430 × 932, 390 × 844, and 375 × 812
 - Responsive matrix: 55 route/viewport checks passed across all 11 pages at 1440, 1024, 768, 390, and 320 pixels; no horizontal overflow or H1 errors
 - Recognition semantics: five blockquotes, including Tim S.'s Google-labeled 2023 review; each has a cite and descriptive source link
 - Latest hierarchy-correction Lighthouse homepage: Accessibility 100, Best Practices 96, SEO 100, Performance 34

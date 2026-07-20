@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
-import { getInvoicePaymentConfiguration, isOnlinePaymentChannel } from "@/lib/payments/payment-options";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { createOrReuseInvoiceCheckout } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
@@ -25,13 +24,8 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   }
 
   const body = await request.json().catch(() => null) as { method?: unknown } | null;
-  if (!body || Object.keys(body).some((key) => key !== "method") || !isOnlinePaymentChannel(body.method)) {
-    return paymentError("Choose bank account or card payment.", 400);
-  }
-
-  const paymentConfig = getInvoicePaymentConfiguration();
-  if (body.method === "card" && !paymentConfig.cardEnabled) {
-    return paymentError("Card payment is temporarily unavailable. Please choose bank account or contact our office.", 409);
+  if (!body || Object.keys(body).some((key) => key !== "method") || body.method !== "ach") {
+    return paymentError("Choose bank account payment to continue.", 400);
   }
 
   const { token } = await params;
@@ -66,19 +60,25 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     return paymentError("Online payment is not available right now. Please try again later.", 503);
   }
 
-  const amountCents = Math.max(0, Number(invoice.total_cents) - payments.totalCents);
-  if (amountCents <= 0) {
+  const amountCents = Number(invoice.total_cents) - payments.totalCents;
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
     return paymentError("This invoice no longer has a balance due.", 409);
   }
+  if (amountCents > 99_999_999) {
+    return paymentError("This invoice amount cannot be paid online. Please contact Angel Tree Services.", 409);
+  }
 
-
-  const { data: processingCheckout } = await supabase
+  const { data: processingCheckout, error: processingError } = await supabase
     .from("invoice_checkout_sessions")
     .select("id")
     .eq("invoice_id", invoice.id)
     .eq("status", "processing")
     .limit(1)
     .maybeSingle();
+  if (processingError) {
+    console.error("Stripe Checkout processing-payment lookup failed", processingError);
+    return paymentError("Online payment is not available right now. Please try again later.", 503);
+  }
   if (processingCheckout) {
     return paymentError("A bank payment is already processing for this invoice.", 409);
   }
@@ -88,7 +88,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     return paymentError("This invoice link is not available.", 404);
   }
   const { error: preferenceError } = await supabase.rpc("record_invoice_payment_preference", {
-    p_preference: body.method,
+    p_preference: "ach",
     p_token_hash: tokenHash,
   });
   if (preferenceError) {
@@ -106,7 +106,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     invoiceNumber: invoice.invoice_number,
     organizationId: invoice.organization_id,
     portalUrl,
-    paymentChannel: body.method,
+    paymentChannel: "ach",
     serviceLocationId: job?.service_location_id ?? null,
     stripe: stripeConfig.stripe,
     supabase,

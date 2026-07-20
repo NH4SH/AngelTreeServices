@@ -34,6 +34,9 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
   const paymentConfig = getInvoicePaymentConfiguration();
   const canChoosePayment = amountDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(invoice.status);
   const hasProcessingPayment = (invoice.payments ?? []).some((paymentRecord) => paymentRecord.status === "pending" && paymentRecord.provider === "stripe");
+  const failedStripePayment = [...(invoice.payments ?? [])]
+    .filter((paymentRecord) => paymentRecord.status === "failed" && paymentRecord.provider === "stripe")
+    .sort((left, right) => new Date(right.failed_at ?? right.updated_at).getTime() - new Date(left.failed_at ?? left.updated_at).getTime())[0] ?? null;
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
@@ -112,16 +115,26 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
             </>
           ) : canChoosePayment ? (
             <>
-              <strong>{hasProcessingPayment ? "Bank payment processing" : "Payment options"}</strong>
+              {hasProcessingPayment || failedStripePayment || payment === "processing" ? (
+                <strong>{hasProcessingPayment ? "Bank payment submitted" : failedStripePayment ? "Payment needs attention" : "Payment processing"}</strong>
+              ) : null}
               {payment === "success" ? <p>Payment submitted. This invoice will update as soon as Stripe confirms it.</p> : null}
-              {payment === "processing" || hasProcessingPayment ? <p>Your bank payment is processing. The invoice will remain open until Stripe confirms that the payment cleared.</p> : null}
+              {payment === "processing" && !hasProcessingPayment && !failedStripePayment ? <p>Your payment was submitted. The invoice will update after Stripe securely confirms the result.</p> : null}
+              {hasProcessingPayment ? <p>Your bank payment is processing. The invoice will remain open until Stripe confirms that the payment cleared. Settlement may take several business days.</p> : null}
+              {!hasProcessingPayment && failedStripePayment?.payment_method === "ach" ? <p>Your bank payment could not be completed. Please try again or contact Angel Tree Services.</p> : null}
+              {!hasProcessingPayment && failedStripePayment?.payment_method === "card" ? <p>Your card payment could not be completed. Please try again or contact Angel Tree Services.</p> : null}
               {payment === "cancelled" ? <p>Checkout was cancelled. No payment was made.</p> : null}
               {!hasProcessingPayment ? (
                 <InvoicePortalPaymentChooser
+                  amountDueCents={amountDueCents}
                   cardEnabled={paymentConfig.cardEnabled}
+                  invoiceNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
                   mailingAddress={paymentConfig.businessCheckMailingAddress}
                   onlinePaymentEnabled={stripeConfigured}
                   selectedPreference={invoice.payment_preference}
+                  stripePublishableKey={paymentConfig.stripePublishableKey}
+                  surchargeBps={paymentConfig.surchargeBps}
+                  surchargeEnabled={paymentConfig.surchargeEnabled}
                   token={token}
                 />
               ) : null}

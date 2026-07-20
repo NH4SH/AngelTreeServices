@@ -263,7 +263,7 @@ Implemented actions:
 - Quote workflow actions: approve and create/link one accepted work order, mark change requested, or mark declined.
 - Generate invoice from completed work order: atomically claims a completed work order for invoicing, copies quote line items into invoice line items, links the invoice to quote, job, and customer, and reuses the existing invoice if staff repeat the action.
 - Invoice delivery actions: generate/revoke secure customer links, send by configured email, record manual sent delivery, and mark void.
-- Invoice payments: sent invoices can use Stripe-hosted Checkout from a valid customer portal link. Signed Stripe webhooks create idempotent payment records and reconcile the remaining balance; owner/admin users can record manual check, cash, ACH, or other payments.
+- Invoice payments: sent invoices can use Stripe-hosted ACH Checkout or a gated two-step Stripe Payment Element card review from a valid customer portal link. Signed Stripe webhooks create idempotent payment records and reconcile principal separately from any eligible credit-card surcharge; owner/admin users can also record manual payments.
 
 Scaffolded only:
 
@@ -307,7 +307,7 @@ The public route performs a narrow server-side lookup and exposes only the linke
 
 ## Secure Customer Invoice Links
 
-Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, `supabase/migrations/20260716165828_add_recoverable_portal_links.sql`, and `supabase/migrations/20260716210754_stripe_invoice_payments.sql` before testing invoice links and payments. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, add encrypted staff-only recovery for newly generated links, and add private, service-role-only Stripe Checkout session tracking. If production shows a schema-cache error, apply the pending migrations and refresh/wait for the Supabase schema cache.
+Apply `supabase/migrations/20260709132222_invoice_portal_tokens.sql`, `supabase/migrations/20260710150434_ensure_invoice_portal_tokens.sql`, `supabase/migrations/20260716165828_add_recoverable_portal_links.sql`, `supabase/migrations/20260716210754_stripe_invoice_payments.sql`, `supabase/migrations/20260718200940_invoice_payment_options.sql`, and `supabase/migrations/20260720074140_stripe_card_confirmation_flow.sql` before testing invoice links and payments. The migrations create or repair `public.invoice_portal_tokens`, enable RLS, grant management only to authenticated owner/admin accounts, add encrypted staff-only recovery, and add private service-role payment reservations and webhook event receipts. If production shows a schema-cache error, apply the pending migrations and refresh/wait for the Supabase schema cache.
 
 From `/admin/invoices/[invoiceId]`, an owner or admin can generate a 30-day customer link, copy or open it after refresh, intentionally regenerate the link, or revoke it. New tokens are SHA-256 hashed for portal validation and encrypted at rest with `PORTAL_TOKEN_ENCRYPTION_KEY` for staff-only recovery. Editing an invoice does not revoke an existing customer link; the link resolves the latest saved invoice details. Regenerate link creates a replacement link before revoking the previous active link. Links created before this recovery migration remain valid but cannot be reconstructed from their hash; regenerate them only when intentionally replacing the old link. Resending email reuses the active recoverable link when available.
 
@@ -317,19 +317,23 @@ The customer opens:
 http://localhost:3000/portal/invoice/{token}
 ```
 
-The signed-out route performs a server-only lookup and renders one invoice with customer, location, line items, totals, print support, and eligible Stripe Checkout payment. Invalid, expired, and revoked links fail cleanly. Checkout always revalidates the token and calculates the current remaining balance server-side; Stripe webhooks, not the return redirect, create payment records and mark invoices paid.
+The signed-out route performs a server-only lookup and renders one invoice with customer, location, line items, totals, print support, and eligible payment methods. Invalid, expired, and revoked links fail cleanly. Every online payment revalidates the token and current balance server-side; Stripe webhooks, not the return redirect, create payment records and mark invoices paid.
 
-## Stripe Checkout Payments
+## Stripe Invoice Payments
 
 Set these server-only values for the platform deployment:
 
 ```env
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_CREDIT_SURCHARGE_BPS=300
+STRIPE_SURCHARGE_ENABLED=false
+STRIPE_UNSURCHARGED_CARD_ENABLED=false
 APP_BASE_URL=https://admin.angeltreeservices.org
 ```
 
-Configure Stripe test mode to POST `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `payment_intent.payment_failed` to `/api/stripe/webhook`. Do not use `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: the customer is redirected to Stripe-hosted Checkout and no Stripe.js client is loaded. `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` must remain server-only.
+Configure Stripe test mode to send `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed` to `/api/stripe/webhook`. ACH is redirected to hosted Checkout. Cards use Stripe.js Payment Element and a ConfirmationToken review; only the publishable key reaches Stripe.js. `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and Supabase service-role credentials remain server-only.
 
 `SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
 

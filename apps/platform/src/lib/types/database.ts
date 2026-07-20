@@ -696,6 +696,13 @@ export type Payment = {
   net_received_cents: number | null;
   refunded_principal_cents: number;
   refunded_surcharge_cents: number;
+  submitted_at: string | null;
+  authorized_at: string | null;
+  succeeded_at: string | null;
+  failed_at: string | null;
+  refunded_at: string | null;
+  dispute_status: "warning_needs_response" | "warning_under_review" | "warning_closed" | "needs_response" | "under_review" | "won" | "lost" | null;
+  disputed_at: string | null;
   reference: string | null;
   notes: string | null;
   status: PaymentStatus;

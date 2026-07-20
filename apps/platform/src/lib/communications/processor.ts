@@ -499,7 +499,7 @@ async function preparePaymentConfirmation(
   }
   const { data: payment, error } = await supabase
     .from("payments")
-    .select("id, amount_cents, paid_at, provider, reference, status, invoices(id, invoice_number, total_cents)")
+    .select("id, amount_cents, surcharge_cents, total_collected_cents, paid_at, provider, reference, status, invoices(id, invoice_number, total_cents)")
     .eq("id", communication.payment_id)
     .maybeSingle();
 
@@ -522,6 +522,8 @@ async function preparePaymentConfirmation(
         invoiceNumber: invoice.invoice_number || "Draft",
         paidAt: payment.paid_at || new Date().toISOString(),
         reference: payment.provider === "manual" ? payment.reference : null,
+        surchargeCents: Number(payment.surcharge_cents ?? 0),
+        totalCollectedCents: Number(payment.total_collected_cents ?? payment.amount_cents),
       }),
     },
   };
@@ -530,10 +532,13 @@ async function preparePaymentConfirmation(
 async function getCurrentInvoiceBalance(supabase: SupabaseClient, invoiceId: string, totalCents: number) {
   const { data } = await supabase
     .from("payments")
-    .select("amount_cents")
+    .select("amount_cents, refunded_principal_cents")
     .eq("invoice_id", invoiceId)
     .eq("status", "succeeded");
-  const paidCents = (data ?? []).reduce((sum, payment) => sum + Number(payment.amount_cents ?? 0), 0);
+  const paidCents = (data ?? []).reduce(
+    (sum, payment) => sum + Math.max(0, Number(payment.amount_cents ?? 0) - Number(payment.refunded_principal_cents ?? 0)),
+    0,
+  );
   return Math.max(0, totalCents - paidCents);
 }
 

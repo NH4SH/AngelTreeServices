@@ -293,8 +293,12 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                                 <div><dt>Total charged</dt><dd>{formatCurrency(payment.total_collected_cents)}</dd></div>
                                 <div><dt>Method</dt><dd>{payment.payment_method?.toUpperCase() ?? "Stripe"}</dd></div>
                                 <div><dt>Funding type</dt><dd>{payment.card_funding_type ?? "Not applicable"}</dd></div>
+                                <div><dt>Submitted</dt><dd>{payment.submitted_at ? formatDateTime(payment.submitted_at) : "Not recorded"}</dd></div>
+                                <div><dt>Paid</dt><dd>{payment.succeeded_at || payment.paid_at ? formatDateTime(payment.succeeded_at ?? payment.paid_at!) : "Pending"}</dd></div>
                                 <div><dt>Stripe fee</dt><dd>{payment.stripe_fee_cents == null ? "Pending" : formatCurrency(payment.stripe_fee_cents)}</dd></div>
                                 <div><dt>Net received</dt><dd>{payment.net_received_cents == null ? "Pending" : formatCurrency(payment.net_received_cents)}</dd></div>
+                                <div><dt>Provider reference</dt><dd>{payment.provider_charge_id ?? payment.provider_payment_id ?? "Pending"}</dd></div>
+                                {payment.dispute_status ? <div><dt>Dispute</dt><dd>{payment.dispute_status.replaceAll("_", " ")}</dd></div> : null}
                                 {payment.refunded_principal_cents || payment.refunded_surcharge_cents ? (
                                   <div><dt>Refunded</dt><dd>{formatCurrency(payment.refunded_principal_cents + payment.refunded_surcharge_cents)}</dd></div>
                                 ) : null}

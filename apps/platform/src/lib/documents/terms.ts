@@ -33,7 +33,7 @@ export const invoiceTerms: readonly DocumentTerm[] = [
   },
   {
     label: "Accepted Forms of Payment",
-    text: "Checks, ACH transfers, major credit/debit cards, and approved digital wallets are accepted. A 3% processing fee applies to card transactions.",
+    text: "Checks, ACH transfers, and major credit/debit cards are accepted. A 3% credit-card surcharge applies only to eligible credit-card payments; debit and prepaid cards are not surcharged.",
   },
   {
     label: "Late Fees & Interest",

@@ -107,12 +107,17 @@ export function paymentConfirmationTemplate(input: {
   invoiceNumber: string;
   paidAt: string;
   reference: string | null;
+  surchargeCents: number;
+  totalCollectedCents: number;
 }) {
   const subject = `${companyName}: payment received for Invoice #${input.invoiceNumber}`;
   const text = [
     `Hi ${input.customerName},`,
     "",
-    `We received your payment of ${money(input.amountCents)} for Invoice #${input.invoiceNumber}.`,
+    `We received your payment for Invoice #${input.invoiceNumber}.`,
+    `Invoice principal: ${money(input.amountCents)}`,
+    input.surchargeCents > 0 ? `Credit-card surcharge: ${money(input.surchargeCents)}` : "",
+    `Total charged: ${money(input.totalCollectedCents)}`,
     `Payment date: ${formatDate(input.paidAt)}`,
     input.reference ? `Reference: ${input.reference}` : "",
     `Remaining balance: ${money(input.balanceDueCents)}`,

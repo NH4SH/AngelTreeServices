@@ -15,15 +15,24 @@ export function isOnlinePaymentChannel(value: unknown): value is OnlinePaymentCh
 
 export function getInvoicePaymentConfiguration() {
   const surchargeBps = parseSurchargeBps(process.env.STRIPE_CREDIT_SURCHARGE_BPS);
-  const surchargeRequested = process.env.STRIPE_SURCHARGE_ENABLED === "true";
+  const surchargeEnabled = process.env.STRIPE_SURCHARGE_ENABLED === "true";
+  const unsurchargedCardEnabled = process.env.STRIPE_UNSURCHARGED_CARD_ENABLED === "true";
+  const configuredPublishableKey = process.env.STRIPE_PUBLISHABLE_KEY?.trim()
+    || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()
+    || null;
+  const stripePublishableKey = configuredPublishableKey && /^pk_(test|live)_/.test(configuredPublishableKey)
+    ? configuredPublishableKey
+    : null;
 
   return {
     achEnabled: true,
     businessCheckMailingAddress: process.env.BUSINESS_CHECK_MAILING_ADDRESS?.trim() || null,
-    cardEnabled: !surchargeRequested && process.env.STRIPE_UNSURCHARGED_CARD_ENABLED === "true",
+    cardEnabled: Boolean(stripePublishableKey) && (surchargeEnabled || unsurchargedCardEnabled),
+    stripePublishableKey,
     surchargeBps,
-    surchargeEnabled: false,
-    surchargeRequested,
+    surchargeEnabled,
+    surchargeRequested: surchargeEnabled,
+    unsurchargedCardEnabled,
   };
 }
 

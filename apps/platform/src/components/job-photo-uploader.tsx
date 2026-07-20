@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Camera } from "lucide-react";
 import { uploadJobPhoto } from "@/lib/storage/job-photos";
 import type { JobPhotoUploadCategory } from "@/lib/types/database";
@@ -28,7 +28,7 @@ export function JobPhotoUploader({
   photoCategory,
   title,
 }: JobPhotoUploaderProps) {
-  const [state, formAction, pending] = useActionState(uploadJobPhoto, initialState);
+  const [state, formAction, pending] = useReliableActionState(uploadJobPhoto, initialState);
   const actionLabel = pending ? "Uploading..." : `Add ${title.toLowerCase()}`;
 
   return (

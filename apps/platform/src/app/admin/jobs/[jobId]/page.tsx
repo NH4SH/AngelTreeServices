@@ -17,7 +17,6 @@ import {
   Truck,
   UserRound,
 } from "lucide-react";
-import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
 import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
@@ -28,6 +27,7 @@ import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { JobCostPanel } from "@/components/job-cost-panel";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
+import { JobScheduleManager } from "@/components/job-schedule-manager";
 import { JobMaterialPlanForm } from "@/components/materials-forms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -45,7 +45,7 @@ import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
 import { generateEstimateScheduledMessage, generateJobScheduledMessage, generatePostJobFollowUpMessage } from "@/lib/documents/scheduling-drafts";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
-import { formatJobOperationalState, getCurrentWorkAppointment, getJobOperationalState } from "@/lib/jobs/operational-status";
+import { formatJobOperationalState, getCurrentWorkAppointment, getCurrentWorkSession, getJobOperationalState } from "@/lib/jobs/operational-status";
 import { getDirectionsUrl } from "@/lib/maps";
 
 type JobDetailPageProps = {
@@ -82,7 +82,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   }
 
   const currentAppointment = getCurrentWorkAppointment(job.appointments ?? []);
-  const operationalState = getJobOperationalState({ appointments: job.appointments, invoices: job.invoices, jobStatus: job.status });
+  const currentWorkSession = getCurrentWorkSession(job.schedule_events ?? []);
+  const operationalState = getJobOperationalState({ appointments: job.appointments, scheduleEvents: job.schedule_events, invoices: job.invoices, jobStatus: job.status });
   const operationalLabel = formatJobOperationalState(operationalState);
   const approvedQuote = (job.quotes ?? []).find((quote) => quote.status === "approved") ?? job.quotes?.[0] ?? null;
   const invoice = (job.invoices ?? []).find((item) => item.status !== "void") ?? job.invoices?.[0] ?? null;
@@ -122,7 +123,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
           <dl className="job-command-facts">
             <SummaryFact icon={<UserRound size={18} />} label="Customer" value={job.organizations?.name ?? job.customers?.display_name ?? "Not attached"} />
             <SummaryFact icon={<MapPin size={18} />} label="Service location" value={formatLocation(job.service_locations)} />
-            <SummaryFact icon={<CalendarDays size={18} />} label="Scheduled" value={currentAppointment ? formatDateTime(currentAppointment.starts_at) : "Not scheduled"} />
+            <SummaryFact icon={<CalendarDays size={18} />} label="Scheduled" value={currentWorkSession ? formatDateTime(currentWorkSession.starts_at) : currentAppointment ? formatDateTime(currentAppointment.starts_at) : "Not scheduled"} />
             <SummaryFact icon={<Truck size={18} />} label="Assigned crew" value={job.assigned_crew?.full_name ?? job.assigned_crew?.email ?? "Not assigned"} />
             <SummaryFact icon={<FileSignature size={18} />} label="Approved quote" value={approvedQuote ? formatCurrency(approvedQuote.total_cents) : "Not linked"} />
             <SummaryFact icon={<ReceiptText size={18} />} label="Invoice" value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Not created"} />
@@ -197,20 +198,14 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
         </section>
 
         <section className="job-core-section" id="job-schedule">
-          <div className="job-section-heading">
-            <div><p className="surface-label"><CalendarDays size={17} />Schedule and crew</p><h2>Appointments</h2></div>
-            <Link className="secondary-action compact-action" href={`/admin/schedule?job_id=${job.id}`}>Open calendar</Link>
-          </div>
-          {(job.appointments ?? []).length ? <div className="job-appointment-list">{(job.appointments ?? []).map((appointment) => (
+          <JobScheduleManager events={job.schedule_events ?? []} jobId={job.id} users={assignedUsers.data} />
+          <div className="job-schedule-calendar-link"><Link className="secondary-action compact-action" href={`/admin/schedule?job_id=${job.id}`}>Open full calendar</Link></div>
+          {(job.appointments ?? []).filter((appointment) => appointment.appointment_type !== "job").length ? <div className="job-appointment-list legacy-appointment-list">{(job.appointments ?? []).filter((appointment) => appointment.appointment_type !== "job").map((appointment) => (
             <article key={appointment.id}>
-              <div><strong>{appointment.appointment_type === "job" ? "Job visit" : title(appointment.appointment_type)}</strong><span>{formatDateTime(appointment.starts_at)} · {title(appointment.status)}{appointment.profiles ? ` · ${appointment.profiles.full_name ?? appointment.profiles.email ?? "Assigned staff"}` : " · Unassigned"}</span></div>
+              <div><strong>{title(appointment.appointment_type)}</strong><span>{formatDateTime(appointment.starts_at)} · {title(appointment.status)}{appointment.profiles ? ` · ${appointment.profiles.full_name ?? appointment.profiles.email ?? "Assigned staff"}` : " · Unassigned"}</span></div>
               <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={job.id} />
             </article>
-          ))}</div> : <CompactEmpty>No appointments yet.</CompactEmpty>}
-          <details className="job-inline-disclosure">
-            <summary><CalendarDays size={17} />Add appointment<ChevronDown size={17} /></summary>
-            <div className="job-inline-form"><AddAppointmentForm assignedUsers={assignedUsers.data} defaultAppointmentType="job" jobId={job.id} jobs={[]} /></div>
-          </details>
+          ))}</div> : null}
         </section>
 
         <section className="job-core-section" id="job-photos">

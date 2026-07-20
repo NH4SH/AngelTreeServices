@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   Camera,
+  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   FilePlus2,
@@ -124,6 +125,12 @@ function CrewJobDetail({
   const directionsUrl = getDirectionsUrl(job);
   const crewNotes = (job.notes ?? []).filter((note) => note.visibility === "crew_visible");
   const customerNotes = (job.notes ?? []).filter((note) => note.visibility === "customer_visible");
+  const workSessions = (job.schedule_events ?? [])
+    .filter((session) => ["scheduled", "confirmed", "in_progress"].includes(session.status))
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+  const todayKey = localScheduleDate(new Date().toISOString());
+  const todaySession = workSessions.find((session) => localScheduleDate(session.starts_at) === todayKey);
+  const nextSession = workSessions.find((session) => new Date(session.ends_at ?? session.starts_at).getTime() >= Date.now());
 
   return (
     <>
@@ -139,6 +146,18 @@ function CrewJobDetail({
           <span>{formatStatus(job.status)}</span>
         </div>
       </section>
+
+      {workSessions.length ? (
+        <section className="crew-panel crew-work-schedule">
+          <PanelHeading
+            icon={<CalendarDays size={19} />}
+            subtitle={`${workSessions.length} scheduled ${workSessions.length === 1 ? "workday" : "workdays"}. Completing one day does not complete the whole job.`}
+            title={todaySession ? "Today's work session" : "Work schedule"}
+          />
+          {todaySession ? <article className="crew-today-session"><strong>Today</strong><span>{formatSessionWindow(todaySession.starts_at, todaySession.ends_at)}</span><small>{workSessions.indexOf(todaySession) + 1} of {workSessions.length} scheduled workdays</small></article> : nextSession ? <article className="crew-next-session"><strong>Next scheduled session</strong><span>{formatSessionWindow(nextSession.starts_at, nextSession.ends_at)}</span></article> : null}
+          <div className="crew-workday-list">{workSessions.map((session, index) => <div className={session.id === todaySession?.id ? "today" : ""} key={session.id}><strong>{formatSessionWindow(session.starts_at, session.ends_at)}</strong><span>Day {index + 1} of {workSessions.length}</span></div>)}</div>
+        </section>
+      ) : null}
 
       <section className="crew-action-row primary-crew-actions" aria-label="Job actions">
         {directionsUrl ? (
@@ -387,6 +406,19 @@ function formatDateTime(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function localScheduleDate(value: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/New_York" }).formatToParts(new Date(value));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function formatSessionWindow(startsAt: string, endsAt: string | null) {
+  const start = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(new Date(startsAt));
+  if (!endsAt) return start;
+  const end = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).format(new Date(endsAt));
+  return `${start}–${end}`;
 }
 
 function formatLocation(job: CrewJob) {

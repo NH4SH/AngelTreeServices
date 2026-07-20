@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -27,7 +27,7 @@ const initialState: ActionState = {
 };
 
 export function JobStatusActions({ jobId, status }: { jobId: string; status: JobStatus }) {
-  const [state, formAction, pending] = useActionState(updateJobStatus, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateJobStatus, initialState);
   const next = getNextJobStatus(status);
 
   if (!next) {
@@ -49,7 +49,7 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
 }
 
 export function QuoteStatusActions({ quoteId, status }: { quoteId: string; status: QuoteStatus }) {
-  const [state, formAction, pending] = useActionState(updateQuoteStatus, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateQuoteStatus, initialState);
   const isClosed = ["approved", "declined", "expired", "cancelled"].includes(status);
 
   return (
@@ -79,7 +79,7 @@ export function ManualQuoteSentAction({
   quoteId: string;
   status: QuoteStatus;
 }) {
-  const [state, formAction, pending] = useActionState(markQuoteSentManually, initialState);
+  const [state, formAction, pending] = useReliableActionState(markQuoteSentManually, initialState);
   const canMarkSent = status === "draft" || status === "change_requested";
 
   if (!canMarkSent) {
@@ -114,7 +114,7 @@ export function ManualQuoteSentAction({
 }
 
 export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
-  const [state, formAction, pending] = useActionState(createInvoiceFromQuote, initialState);
+  const [state, formAction, pending] = useReliableActionState(createInvoiceFromQuote, initialState);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
@@ -130,7 +130,7 @@ export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
 }
 
 export function CreateInvoiceFromJobAction({ jobId, operationalStatus }: { jobId: string; operationalStatus?: string }) {
-  const [state, formAction, pending] = useActionState(createInvoiceFromJob, initialState);
+  const [state, formAction, pending] = useReliableActionState(createInvoiceFromJob, initialState);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
@@ -165,7 +165,7 @@ export function InvoiceStatusActions({
   invoiceId: string;
   status: InvoiceStatus;
 }) {
-  const [state, formAction, pending] = useActionState(updateInvoiceStatus, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateInvoiceStatus, initialState);
 
   if (["paid", "void"].includes(status)) {
     return null;
@@ -190,7 +190,7 @@ export function ManualInvoiceSentAction({
   invoiceId: string;
   status: InvoiceStatus;
 }) {
-  const [state, formAction, pending] = useActionState(markInvoiceSentManually, initialState);
+  const [state, formAction, pending] = useReliableActionState(markInvoiceSentManually, initialState);
 
   if (status !== "draft") {
     return null;

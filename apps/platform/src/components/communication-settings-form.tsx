@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Play, Save } from "lucide-react";
 import {
   runCommunicationWorkerNow,
@@ -12,7 +12,7 @@ import type { CommunicationSettings } from "@/lib/types/database";
 const initialState: CommunicationActionState = { status: "idle", message: "" };
 
 export function CommunicationSettingsForm({ settings }: { settings: CommunicationSettings }) {
-  const [state, formAction, pending] = useActionState(updateCommunicationSettings, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateCommunicationSettings, initialState);
 
   return (
     <form action={formAction} className="communication-settings-form crm-form">
@@ -80,7 +80,7 @@ export function CommunicationSettingsForm({ settings }: { settings: Communicatio
 }
 
 export function RunCommunicationWorkerForm() {
-  const [state, formAction, pending] = useActionState(runCommunicationWorkerNow, initialState);
+  const [state, formAction, pending] = useReliableActionState(runCommunicationWorkerNow, initialState);
   return (
     <form action={formAction} className="run-communication-worker-form">
       <button className="secondary-action" disabled={pending} type="submit">

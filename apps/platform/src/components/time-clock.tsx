@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
@@ -49,7 +50,7 @@ export function CrewClockInForm({
   jobs: CrewJob[];
   scheduleEvents: ScheduleEventWithRelations[];
 }) {
-  const [state, formAction, pending] = useActionState(clockIn, initialState);
+  const [state, formAction, pending] = useReliableActionState(clockIn, initialState);
   const [selectedEntryType, setSelectedEntryType] = useState<string>("job");
   const [selectedJobId, setSelectedJobId] = useState("");
   const [selectedScheduleEventId, setSelectedScheduleEventId] = useState("");
@@ -138,7 +139,7 @@ export function CrewClockInForm({
 }
 
 export function QuickClockInEventForm({ event }: { event: ScheduleEventWithRelations }) {
-  const [state, formAction, pending] = useActionState(clockIn, initialState);
+  const [state, formAction, pending] = useReliableActionState(clockIn, initialState);
   const customer = event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name;
 
   return (
@@ -167,7 +168,7 @@ export function QuickClockInEventForm({ event }: { event: ScheduleEventWithRelat
 }
 
 export function CrewClockOutForm({ activeEntry }: { activeEntry: TimeEntryWithRelations }) {
-  const [state, formAction, pending] = useActionState(clockOut, initialState);
+  const [state, formAction, pending] = useReliableActionState(clockOut, initialState);
 
   return (
     <form action={formAction} className="crm-form time-clock-form">
@@ -254,7 +255,7 @@ export function PermissionToggleForm({
   permission: TimeClockPermission | null | undefined;
   user: TimeClockUserSummary;
 }) {
-  const [state, formAction, pending] = useActionState(setTimeClockPermission, initialState);
+  const [state, formAction, pending] = useReliableActionState(setTimeClockPermission, initialState);
   const nextEnabled = !(permission?.is_enabled ?? false);
 
   return (
@@ -287,7 +288,7 @@ export function TimeEntryApprovalForm({
   timeEntry: TimeEntryWithRelations;
   userId: string;
 }) {
-  const [state, formAction, pending] = useActionState(reviewTimeEntry, initialState);
+  const [state, formAction, pending] = useReliableActionState(reviewTimeEntry, initialState);
 
   return (
     <form action={formAction} className="crm-form compact-form time-review-form">
@@ -323,7 +324,7 @@ export function TimeEntryAdjustmentForm({
   timeEntry: TimeEntryWithRelations;
   userId: string;
 }) {
-  const [state, formAction, pending] = useActionState(adjustTimeEntry, initialState);
+  const [state, formAction, pending] = useReliableActionState(adjustTimeEntry, initialState);
 
   return (
     <form action={formAction} className="crm-form compact-form time-review-form">

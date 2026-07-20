@@ -1,4 +1,3 @@
-import { canViewAllCrewJobs } from "@/lib/auth/crewAccess";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
@@ -20,7 +19,8 @@ const crewJobSelect = `
   organizations(name, billing_phone),
   service_locations(label, street, city, state, postal_code, access_notes, gate_code, service_notes),
   job_photos(photo_type),
-  notes(id, visibility, body, created_at)
+  notes(id, visibility, body, created_at),
+  schedule_events(id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))
 `;
 
 type CrewAccessContext = {
@@ -42,9 +42,7 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
     .in("status", ["scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"])
     .order("scheduled_start_at", { ascending: true, nullsFirst: false });
 
-  if (access && !canViewAllCrewJobs(access.roles)) {
-    query = query.eq("assigned_crew_user_id", access.userId);
-  }
+  // Crew row visibility is enforced by jobs RLS, including normalized work-session assignments.
 
   const { data, error } = await query;
 
@@ -77,9 +75,7 @@ export async function getCrewJobById(
     .select(crewJobSelect)
     .eq("id", jobId);
 
-  if (access && !canViewAllCrewJobs(access.roles)) {
-    query = query.eq("assigned_crew_user_id", access.userId);
-  }
+  // Crew row visibility is enforced by jobs RLS, including normalized work-session assignments.
 
   const { data, error } = await query.single();
 

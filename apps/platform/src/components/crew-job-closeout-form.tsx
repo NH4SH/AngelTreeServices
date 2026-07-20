@@ -1,8 +1,9 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -66,9 +67,9 @@ export function CrewJobCloseoutForm({
   jobStatus: JobStatus;
 }) {
   const router = useRouter();
-  const [startState, startAction, startPending] = useActionState(startCrewJob, initialActionState);
-  const [saveState, saveAction, savePending] = useActionState(saveCrewCloseout, initialActionState);
-  const [submitState, submitAction, submitPending] = useActionState(submitCrewCloseout, initialActionState);
+  const [startState, startAction, startPending] = useReliableActionState(startCrewJob, initialActionState);
+  const [saveState, saveAction, savePending] = useReliableActionState(saveCrewCloseout, initialActionState);
+  const [submitState, submitAction, submitPending] = useReliableActionState(submitCrewCloseout, initialActionState);
   const [draft, setDraft] = useState<CloseoutDraft>(() => makeInitialDraft(bundle));
   const [dirty, setDirty] = useState(false);
   const storageKey = `crew-closeout:${jobId}`;

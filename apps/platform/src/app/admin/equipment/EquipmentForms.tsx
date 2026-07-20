@@ -1,7 +1,7 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState } from "react";
 import { AlertTriangle, CalendarPlus, Gauge, Save, ShieldCheck, Truck, Wrench } from "lucide-react";
 import { equipmentInspectionTemplates } from "@/lib/equipment/inspection-templates";
 import type { AssignableUser, EquipmentAsset } from "@/lib/types/database";
@@ -22,7 +22,7 @@ const categories = ["vehicle", "chipper", "stump_grinder", "skid_steer", "crane"
 
 export function EquipmentAssetForm({ asset, canSeeCosts, purchasePriceCents }: { asset?: EquipmentAsset; canSeeCosts: boolean; purchasePriceCents?: number | null }) {
   const action = asset ? updateEquipmentAsset : createEquipmentAsset;
-  const [state, formAction, pending] = useActionState(action, equipmentInitialState);
+  const [state, formAction, pending] = useReliableActionState(action, equipmentInitialState);
   return (
     <form action={formAction} className="crm-form equipment-form">
       {asset ? <input name="asset_id" type="hidden" value={asset.id} /> : null}
@@ -76,7 +76,7 @@ export function EquipmentAssetForm({ asset, canSeeCosts, purchasePriceCents }: {
 }
 
 export function ReadingForm({ asset }: { asset: EquipmentAsset }) {
-  const [state, action, pending] = useActionState(addEquipmentReading, equipmentInitialState);
+  const [state, action, pending] = useReliableActionState(addEquipmentReading, equipmentInitialState);
   return <form action={action} className="crm-form compact-equipment-form">
     <input name="asset_id" type="hidden" value={asset.id} /><FormMessage state={state} />
     <div className="form-grid-two"><label>Reading type<select name="reading_type"><option value="mileage">Mileage</option><option value="hours">Engine hours</option></select></label><label>Current reading<input min="0" name="reading_value" required step="0.1" type="number" /></label></div>
@@ -87,7 +87,7 @@ export function ReadingForm({ asset }: { asset: EquipmentAsset }) {
 }
 
 export function AssignmentForm({ asset, users, jobs, events, canOverride }: { asset: EquipmentAsset; users: AssignableUser[]; jobs: { id: string; service_type: string | null; status: string }[]; events: { id: string; title: string; starts_at: string; ends_at: string | null }[]; canOverride: boolean }) {
-  const [state, action, pending] = useActionState(assignEquipment, equipmentInitialState);
+  const [state, action, pending] = useReliableActionState(assignEquipment, equipmentInitialState);
   return <form action={action} className="crm-form compact-equipment-form"><input name="asset_id" type="hidden" value={asset.id} /><FormMessage state={state} />
     <label>Employee<select name="assigned_user_id"><option value="">Choose employee</option>{users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Employee"}</option>)}</select></label>
     <div className="form-grid-two"><label>Work order<select name="job_id"><option value="">No linked work order</option>{jobs.map((job) => <option key={job.id} value={job.id}>{label(job.service_type ?? "work")} - {job.status.replaceAll("_", " ")}</option>)}</select></label><label>Schedule event<select name="schedule_event_id"><option value="">No linked event</option>{events.map((event) => <option key={event.id} value={event.id}>{event.title} - {formatDate(event.starts_at)}</option>)}</select></label></div>
@@ -99,7 +99,7 @@ export function AssignmentForm({ asset, users, jobs, events, canOverride }: { as
 }
 
 export function MaintenanceScheduleForm({ assetId }: { assetId: string }) {
-  const [state, action, pending] = useActionState(addMaintenanceSchedule, equipmentInitialState);
+  const [state, action, pending] = useReliableActionState(addMaintenanceSchedule, equipmentInitialState);
   return <form action={action} className="crm-form compact-equipment-form"><input name="asset_id" type="hidden" value={assetId} /><FormMessage state={state} />
     <div className="form-grid-two"><label>Maintenance item<input name="title" placeholder="Oil and filter service" required /></label><label>Type<select name="maintenance_type"><option value="preventive">Preventive</option><option value="inspection">Inspection</option><option value="repair">Repair</option><option value="registration">Registration</option><option value="other">Other</option></select></label></div>
     <div className="form-grid-three"><label>Every days<input min="1" name="interval_days" type="number" /></label><label>Every miles<input min="1" name="interval_miles" step="0.1" type="number" /></label><label>Every hours<input min="1" name="interval_hours" step="0.1" type="number" /></label></div>
@@ -109,7 +109,7 @@ export function MaintenanceScheduleForm({ assetId }: { assetId: string }) {
 }
 
 export function EquipmentStatusForm({ asset }: { asset: EquipmentAsset }) {
-  const [state, action, pending] = useActionState(changeEquipmentStatus, equipmentInitialState);
+  const [state, action, pending] = useReliableActionState(changeEquipmentStatus, equipmentInitialState);
   return <form action={action} className="crm-form compact-equipment-form"><input name="asset_id" type="hidden" value={asset.id} /><FormMessage state={state} />
     <label>New status<select defaultValue={asset.status} name="next_status"><option value="available">Available / return to service</option><option value="maintenance_due">Maintenance due</option><option value="out_of_service">Out of service</option><option value="awaiting_parts">Awaiting parts</option><option value="repair_scheduled">Repair scheduled</option><option value="retired">Retired</option></select></label>
     <label>Reason<textarea name="reason" placeholder="Required for out-of-service and return-to-service changes" rows={2} /></label>
@@ -118,7 +118,7 @@ export function EquipmentStatusForm({ asset }: { asset: EquipmentAsset }) {
 }
 
 export function EquipmentDocumentForm({ assetId }: { assetId: string }) {
-  const [state, action, pending] = useActionState(uploadEquipmentDocument, equipmentInitialState);
+  const [state, action, pending] = useReliableActionState(uploadEquipmentDocument, equipmentInitialState);
   return <form action={action} className="crm-form compact-equipment-form"><input name="asset_id" type="hidden" value={assetId} /><FormMessage state={state} />
     <div className="form-grid-two"><label>Document title<input name="title" placeholder="2026 registration" required /></label><label>Document type<select name="document_type"><option value="registration">Registration</option><option value="insurance">Insurance</option><option value="inspection">Inspection certificate</option><option value="manual">Manual</option><option value="warranty">Warranty</option><option value="receipt">Receipt</option><option value="photo">Photo</option><option value="other">Other</option></select></label></div>
     <label>Expiration, if applicable<input name="expires_at" type="datetime-local" /></label><label>Private file<input accept="application/pdf,image/jpeg,image/png,image/webp" name="file" required type="file" /></label>

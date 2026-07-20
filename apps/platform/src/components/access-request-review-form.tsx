@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, ShieldCheck, UserX } from "lucide-react";
 import {
   approveEmployeeAccessRequest,
@@ -29,11 +29,11 @@ export function AccessRequestReviewForm({
 }: {
   request: EmployeeAccessRequestWithReviewer;
 }) {
-  const [approveState, approveAction, approvePending] = useActionState(
+  const [approveState, approveAction, approvePending] = useReliableActionState(
     approveEmployeeAccessRequest,
     initialState,
   );
-  const [rejectState, rejectAction, rejectPending] = useActionState(
+  const [rejectState, rejectAction, rejectPending] = useReliableActionState(
     rejectEmployeeAccessRequest,
     initialState,
   );

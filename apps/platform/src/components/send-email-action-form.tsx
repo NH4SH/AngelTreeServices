@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Send } from "lucide-react";
 import {
   sendInvoiceEmail,
@@ -22,7 +22,7 @@ export function SendQuoteEmailForm({
   portalUrl?: string;
   quoteId: string;
 }) {
-  const [state, formAction, pending] = useActionState(sendQuoteEmail, initialState);
+  const [state, formAction, pending] = useReliableActionState(sendQuoteEmail, initialState);
 
   return (
     <form action={formAction} className="send-email-action-form">
@@ -46,7 +46,7 @@ export function SendInvoiceEmailForm({
   invoiceId: string;
   portalUrl?: string;
 }) {
-  const [state, formAction, pending] = useActionState(sendInvoiceEmail, initialState);
+  const [state, formAction, pending] = useReliableActionState(sendInvoiceEmail, initialState);
 
   return (
     <form action={formAction} className="send-email-action-form">

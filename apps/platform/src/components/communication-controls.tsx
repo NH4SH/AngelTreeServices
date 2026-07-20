@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useMemo, useState } from "react";
 import { CalendarClock, MailCheck, MailPlus, PauseCircle, Send } from "lucide-react";
 import {
   cancelScheduledCommunication,
@@ -34,9 +35,9 @@ export function CommunicationControls({
   recordType: "appointment" | "invoice" | "job" | "quote" | "schedule_event";
   recipientOptions: RecipientOption[];
 }) {
-  const [sendState, sendAction, sending] = useActionState(sendCommunicationNow, initialState);
-  const [scheduleState, scheduleAction, scheduling] = useActionState(scheduleCommunication, initialState);
-  const [automationState, automationAction, changingAutomation] = useActionState(updateRecordAutomation, initialState);
+  const [sendState, sendAction, sending] = useReliableActionState(sendCommunicationNow, initialState);
+  const [scheduleState, scheduleAction, scheduling] = useReliableActionState(scheduleCommunication, initialState);
+  const [automationState, automationAction, changingAutomation] = useReliableActionState(updateRecordAutomation, initialState);
   const availableRecipients = useMemo(
     () => recipientOptions.filter((option, index, all) => option.email && all.findIndex((candidate) => candidate.email === option.email) === index),
     [recipientOptions],

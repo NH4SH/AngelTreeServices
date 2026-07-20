@@ -1,8 +1,8 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import {
-  useActionState,
   useEffect,
   useMemo,
   useState,
@@ -32,7 +32,7 @@ export function AddInvoiceForm({
   organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
 }) {
-  const [state, formAction, pending] = useActionState(createInvoice, initialState);
+  const [state, formAction, pending] = useReliableActionState(createInvoice, initialState);
   const [dirty, setDirty] = useState(false);
   const [selectedPartyValue, setSelectedPartyValue] = useState("");
   const selectedParty = parseContractingParty(selectedPartyValue);
@@ -157,7 +157,7 @@ type InvoiceLineDraft = {
 };
 
 export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
-  const [state, formAction, pending] = useActionState(updateInvoice, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateInvoice, initialState);
   const [dirty, setDirty] = useState(false);
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>(
     invoice.invoice_line_items?.length

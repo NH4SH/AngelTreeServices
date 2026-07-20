@@ -1,7 +1,8 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   createChangeOrder,
@@ -56,7 +57,7 @@ export function ChangeOrderEditor({
   sourceCloseoutId?: string;
 }) {
   const action = order ? updateChangeOrder : createChangeOrder;
-  const [state, formAction, pending] = useActionState(action, initialChangeOrderActionState);
+  const [state, formAction, pending] = useReliableActionState(action, initialChangeOrderActionState);
   const [selectedJobId, setSelectedJobId] = useState(order?.job_id ?? defaultJobId);
   const [lines, setLines] = useState<LineDraft[]>(order?.change_order_line_items?.length
     ? [...order.change_order_line_items].sort((a, b) => a.sort_order - b.sort_order).map((line) => ({
@@ -188,7 +189,7 @@ export function ChangeOrderEditor({
 }
 
 export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
-  const [state, action, pending] = useActionState(createChangeOrder, initialChangeOrderActionState);
+  const [state, action, pending] = useReliableActionState(createChangeOrder, initialChangeOrderActionState);
   const [title, setTitle] = useState("");
 
   return (
@@ -225,9 +226,9 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
 }
 
 export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
-  const [workflowState, workflowAction, workflowPending] = useActionState(updateChangeOrderWorkflow, initialChangeOrderActionState);
-  const [emailState, emailAction, emailPending] = useActionState(sendChangeOrderEmail, initialChangeOrderActionState);
-  const [manualState, manualAction, manualPending] = useActionState(manuallyApproveChangeOrder, initialChangeOrderActionState);
+  const [workflowState, workflowAction, workflowPending] = useReliableActionState(updateChangeOrderWorkflow, initialChangeOrderActionState);
+  const [emailState, emailAction, emailPending] = useReliableActionState(sendChangeOrderEmail, initialChangeOrderActionState);
+  const [manualState, manualAction, manualPending] = useReliableActionState(manuallyApproveChangeOrder, initialChangeOrderActionState);
   const open = ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status);
   return (
     <div className="change-order-workflow-stack">
@@ -245,9 +246,9 @@ export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRela
 }
 
 export function ChangeOrderPortalPanel({ changeOrderId, tokens }: { changeOrderId: string; tokens: ChangeOrderTokenSummary[] }) {
-  const [createState, createAction, createPending] = useActionState(createChangeOrderPortalLink, initialChangeOrderActionState);
-  const [regenerateState, regenerateAction, regeneratePending] = useActionState(regenerateChangeOrderPortalLink, initialChangeOrderActionState);
-  const [revokeState, revokeAction, revokePending] = useActionState(revokeChangeOrderPortalLink, initialChangeOrderActionState);
+  const [createState, createAction, createPending] = useReliableActionState(createChangeOrderPortalLink, initialChangeOrderActionState);
+  const [regenerateState, regenerateAction, regeneratePending] = useReliableActionState(regenerateChangeOrderPortalLink, initialChangeOrderActionState);
+  const [revokeState, revokeAction, revokePending] = useReliableActionState(revokeChangeOrderPortalLink, initialChangeOrderActionState);
   const active = tokens.find((token) => !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now()));
   const portalUrl = createState.portalUrl ?? regenerateState.portalUrl ?? active?.portalUrl ?? null;
   const busy = createPending || regeneratePending || revokePending;
@@ -262,12 +263,12 @@ export function ChangeOrderPortalPanel({ changeOrderId, tokens }: { changeOrderI
 }
 
 export function DuplicateChangeOrderButton({ id }: { id: string }) {
-  const [state, action, pending] = useActionState(duplicateChangeOrder, initialChangeOrderActionState);
+  const [state, action, pending] = useReliableActionState(duplicateChangeOrder, initialChangeOrderActionState);
   return <form action={action}><input name="change_order_id" type="hidden" value={id} /><button className="secondary-action" disabled={pending} type="submit"><Copy size={17} />{pending ? "Copying..." : "Duplicate"}</button>{state.message ? <ActionMessage state={state} /> : null}</form>;
 }
 
 export function AttachApprovedChangeOrdersButton({ invoiceId }: { invoiceId: string }) {
-  const [state, action, pending] = useActionState(attachApprovedChangeOrdersToInvoice, initialChangeOrderActionState);
+  const [state, action, pending] = useReliableActionState(attachApprovedChangeOrdersToInvoice, initialChangeOrderActionState);
   return <form action={action}><input name="invoice_id" type="hidden" value={invoiceId} /><button className="secondary-action" disabled={pending} type="submit"><FilePlus2 size={17} />{pending ? "Checking approved work..." : "Add approved change orders"}</button>{state.message ? <ActionMessage state={state} /> : null}<p className="field-note">Only approved, uninvoiced additions are copied. Draft, declined, and cancelled work is excluded.</p></form>;
 }
 

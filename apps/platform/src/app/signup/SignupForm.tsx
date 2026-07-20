@@ -1,7 +1,7 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState } from "react";
 import { LockKeyhole, UserRoundPlus } from "lucide-react";
 import {
   requestEmployeeAccess,
@@ -19,7 +19,7 @@ const initialState: AccessRequestActionState = {
 };
 
 export function SignupForm({ configured }: SignupFormProps) {
-  const [state, formAction, pending] = useActionState(requestEmployeeAccess, initialState);
+  const [state, formAction, pending] = useReliableActionState(requestEmployeeAccess, initialState);
   const disabled = !configured || pending || state.status === "success";
 
   return (

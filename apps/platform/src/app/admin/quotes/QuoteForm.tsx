@@ -1,8 +1,8 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
-import { useActionState } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
 import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
@@ -61,7 +61,7 @@ export function AddQuoteForm({
 }) {
   const isEditing = Boolean(quote);
   const action = isEditing ? updateQuote : createQuote;
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending] = useReliableActionState(action, initialState);
   const [dirty, setDirty] = useState(false);
   const [selectedPartyValue, setSelectedPartyValue] = useState(
     quote ? contractingPartyValue(quote) : defaultCustomerId ? `customer:${defaultCustomerId}` : "",

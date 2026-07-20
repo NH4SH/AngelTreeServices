@@ -582,7 +582,7 @@ function CalendarMonthView({
               {entries.slice(0, 2).map((entry) => (
                 <i className={`calendar-month-snippet ${getEntryTone(entry)}`} key={`${entry.source}-${entry.id}`}>
                   <strong>{entry.all_day ? "All day" : formatTime(entry.starts_at)}</strong>
-                  <span>{entry.customer_label || entry.title}</span>
+                  <span>{entry.customer_label || entry.title}{entry.workday_count && entry.workday_count > 1 ? ` · Day ${entry.workday_number} of ${entry.workday_count}` : ""}</span>
                 </i>
               ))}
               {entries.length > 2 ? <b className="calendar-month-more">+{entries.length - 2} more</b> : null}
@@ -617,7 +617,7 @@ function CalendarEntryCard({
   const locationLabel = formatEntryLocation(entry);
   const typeLabel = getEventTypeLabel(entry.event_type);
   const statusLabel = getStatusLabel(entry.status);
-  const titleLine = entry.title;
+  const titleLine = `${entry.title}${entry.workday_count && entry.workday_count > 1 ? ` · Day ${entry.workday_number} of ${entry.workday_count}` : ""}`;
   const linkedWorkLabel = entry.job_id ? "Linked to job record" : "No linked job record";
   const contextSummary = [entry.customer_label, locationLabel].filter(Boolean).join(" • ");
   const contextLine = [entry.customer_label, locationLabel].filter(Boolean).join(" • ");

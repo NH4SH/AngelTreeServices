@@ -1501,6 +1501,324 @@
   .reporting-input-form > button { width: 100%; }
 }
 
+/* Job work sessions */
+.job-schedule-manager {
+  display: grid;
+  gap: 18px;
+}
+
+.job-schedule-summary {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.job-schedule-summary h2,
+.job-schedule-summary p {
+  margin: 0;
+}
+
+.job-schedule-summary p:not(.surface-label) {
+  color: #516158;
+  margin-top: 5px;
+}
+
+.job-workday-summary-list,
+.crew-workday-list {
+  display: grid;
+  gap: 8px;
+}
+
+.job-workday-summary-list > div,
+.crew-workday-list > div {
+  align-items: center;
+  background: #f3f8f4;
+  border: 1px solid #d4e2d7;
+  border-radius: 7px;
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  padding: 11px 14px;
+}
+
+.job-workday-summary-list > div.today,
+.crew-workday-list > div.today {
+  background: #e5f3e8;
+  border-color: #70a77e;
+}
+
+.job-workday-summary-list small,
+.crew-workday-list span {
+  color: #607067;
+}
+
+.job-schedule-form {
+  background: #f7faf8;
+  border: 1px solid #ccddd1;
+  border-radius: 8px;
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+}
+
+.job-schedule-form .form-message {
+  display: grid;
+  gap: 6px;
+}
+
+.schedule-mode-control {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.schedule-mode-control legend {
+  flex-basis: 100%;
+  font-weight: 750;
+  margin-bottom: 2px;
+}
+
+.schedule-mode-control button,
+.schedule-quick-dates button,
+.schedule-time-shortcuts button,
+.schedule-duration-shortcuts button {
+  background: #eef4f0;
+  border: 1px solid #bdcec2;
+  color: #26352c;
+  min-height: 42px;
+  padding: 8px 13px;
+}
+
+.schedule-mode-control button[aria-pressed="true"],
+.schedule-time-shortcuts button[aria-pressed="true"] {
+  background: #174b32;
+  border-color: #174b32;
+  color: #f8fbf9;
+}
+
+.single-day-scheduler,
+.multi-day-scheduler,
+.job-session-editor-list {
+  display: grid;
+  gap: 16px;
+}
+
+.schedule-quick-dates,
+.schedule-time-shortcuts,
+.schedule-duration-shortcuts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.schedule-quick-dates > span {
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+.job-session-fields,
+.schedule-range-controls,
+.schedule-bulk-controls,
+.schedule-reschedule-controls,
+.schedule-crew-controls {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.job-session-fields > label,
+.schedule-range-controls > label,
+.schedule-bulk-controls > label,
+.schedule-reschedule-controls > label,
+.schedule-crew-controls > label,
+.schedule-add-date > label {
+  display: grid;
+  font-weight: 700;
+  gap: 7px;
+}
+
+.schedule-reschedule-controls {
+  align-items: end;
+  background: #eef5f0;
+  border: 1px solid #cfddd3;
+  border-radius: 7px;
+  padding: 14px;
+}
+
+.schedule-reschedule-controls .schedule-mode-control {
+  align-self: stretch;
+}
+
+.schedule-mode-control.compact button {
+  min-height: 40px;
+  padding: 7px 10px;
+}
+
+.schedule-shift-input {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.schedule-shift-input input {
+  width: 82px;
+}
+
+.job-session-fields .schedule-time-shortcuts,
+.job-session-fields .schedule-duration-shortcuts {
+  grid-column: 1 / -1;
+}
+
+.job-session-editor {
+  background: #fdfefd;
+  border: 1px solid #cfddd3;
+  border-radius: 7px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.job-session-editor-heading,
+.job-session-row-actions,
+.schedule-add-date,
+.job-schedule-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.job-session-editor-heading span {
+  color: #607067;
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.schedule-add-date {
+  justify-content: flex-start;
+}
+
+.schedule-add-date input {
+  min-width: 190px;
+}
+
+.schedule-crew-controls > label:first-child,
+.schedule-crew-controls > label:last-child {
+  grid-column: span 1;
+}
+
+.schedule-conflict-override {
+  background: #fff8e7;
+  border: 1px solid #e2c576;
+  border-radius: 7px;
+  padding: 14px;
+}
+
+.job-schedule-actions {
+  border-top: 1px solid #d1dfd5;
+  justify-content: flex-start;
+  padding-top: 16px;
+  position: sticky;
+  bottom: 0;
+  background: #f7faf8;
+  z-index: 2;
+}
+
+.job-schedule-calendar-link {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.crew-today-session,
+.crew-next-session {
+  background: #e4f2e7;
+  border: 1px solid #70a77e;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+  padding: 16px;
+}
+
+.crew-today-session strong {
+  color: #155333;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 760px) {
+  .job-schedule-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .job-session-fields,
+  .schedule-range-controls,
+  .schedule-bulk-controls,
+  .schedule-reschedule-controls,
+  .schedule-crew-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .job-session-fields > label:first-child,
+  .schedule-range-controls .checkbox-field,
+  .schedule-range-controls > button,
+  .schedule-bulk-controls > button,
+  .schedule-reschedule-controls > button,
+  .schedule-crew-controls > label:first-child,
+  .schedule-crew-controls > label:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .job-workday-summary-list > div,
+  .crew-workday-list > div {
+    grid-template-columns: 1fr auto;
+  }
+
+  .job-workday-summary-list small {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 430px) {
+  .job-schedule-form {
+    padding: 15px;
+  }
+
+  .job-session-fields,
+  .schedule-range-controls,
+  .schedule-bulk-controls,
+  .schedule-reschedule-controls,
+  .schedule-crew-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .job-session-fields > *,
+  .schedule-range-controls > *,
+  .schedule-bulk-controls > *,
+  .schedule-reschedule-controls > *,
+  .schedule-crew-controls > * {
+    grid-column: 1 !important;
+  }
+
+  .schedule-quick-dates button,
+  .schedule-time-shortcuts button,
+  .schedule-duration-shortcuts button {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .job-workday-summary-list > div,
+  .crew-workday-list > div {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Workflow-first application shell */
 .app-shell {
   grid-template-columns: 236px minmax(0, 1fr);

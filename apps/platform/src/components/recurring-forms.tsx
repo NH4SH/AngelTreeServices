@@ -1,7 +1,8 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CalendarPlus,
   Check,
@@ -80,7 +81,7 @@ export function AddRecurringPlanForm({
   staff: StaffOption[];
   sourceRecommendation?: ServiceRecommendation | null;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     createRecurringServicePlan,
     initialRecurringActionState,
   );
@@ -434,7 +435,7 @@ export function AddFollowUpForm({
   locations: ServiceLocation[];
   staff: StaffOption[];
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     createFollowUpTask,
     initialRecurringActionState,
   );
@@ -528,7 +529,7 @@ export function AddRecommendationForm({
   defaultLocationId?: string;
   locations: ServiceLocation[];
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     createServiceRecommendation,
     initialRecurringActionState,
   );
@@ -603,7 +604,7 @@ export function AddRecommendationForm({
 }
 
 export function GenerateRenewalsButton() {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     generateRecurringOpportunities,
     initialRecurringActionState,
   );
@@ -625,7 +626,7 @@ export function FollowUpActions({
   taskId: string;
   status: string;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     updateFollowUpTask,
     initialRecurringActionState,
   );
@@ -666,11 +667,11 @@ export function RecommendationActions({
 }: {
   recommendationId: string;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     createTaskFromRecommendation,
     initialRecurringActionState,
   );
-  const [quoteState, quoteAction, quotePending] = useActionState(
+  const [quoteState, quoteAction, quotePending] = useReliableActionState(
     createQuoteFromRecommendation,
     initialRecurringActionState,
   );
@@ -722,7 +723,7 @@ export function PlanStateActions({
   planId: string;
   state: string;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     updateRecurringPlanState,
     initialRecurringActionState,
   );
@@ -773,7 +774,7 @@ export function PlanLocationScheduleForm({
 }: {
   location: RecurringPlanLocation;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     rescheduleRecurringLocation,
     initialRecurringActionState,
   );
@@ -801,7 +802,7 @@ export function PlanLocationStateForm({
 }: {
   location: RecurringPlanLocation;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     updateRecurringLocationState,
     initialRecurringActionState,
   );
@@ -848,15 +849,15 @@ export function OccurrenceActions({
 }: {
   occurrence: RecurringServiceOccurrence;
 }) {
-  const [quoteState, quoteAction, quotePending] = useActionState(
+  const [quoteState, quoteAction, quotePending] = useReliableActionState(
     createRenewalQuote,
     initialRecurringActionState,
   );
-  const [jobState, jobAction, jobPending] = useActionState(
+  const [jobState, jobAction, jobPending] = useReliableActionState(
     createAuthorizedRecurringWorkOrder,
     initialRecurringActionState,
   );
-  const [closeState, closeAction, closePending] = useActionState(
+  const [closeState, closeAction, closePending] = useReliableActionState(
     closeRecurringOccurrence,
     initialRecurringActionState,
   );

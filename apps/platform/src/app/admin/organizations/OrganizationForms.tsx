@@ -1,7 +1,7 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState } from "react";
 import { Building2, MapPin, UserPlus } from "lucide-react";
 import { createOrganization, createOrganizationContact, createOrganizationProperty, updateOrganization, type OrganizationActionState } from "./actions";
 import type { Customer, Organization, OrganizationType, ServiceLocation } from "@/lib/types/database";
@@ -10,7 +10,7 @@ const initialState: OrganizationActionState = { status: "idle", message: "" };
 const types: OrganizationType[] = ["property_manager", "hoa", "commercial", "nonprofit", "church", "municipality", "general_contractor", "apartment_community", "real_estate", "other"];
 
 export function AddOrganizationForm() {
-  const [state, action, pending] = useActionState(createOrganization, initialState);
+  const [state, action, pending] = useReliableActionState(createOrganization, initialState);
 
   return (
     <form action={action} className="crm-form">
@@ -62,7 +62,7 @@ export function AddOrganizationForm() {
 }
 
 export function EditOrganizationForm({ organization }: { organization: Organization }) {
-  const [state, action, pending] = useActionState(updateOrganization, initialState);
+  const [state, action, pending] = useReliableActionState(updateOrganization, initialState);
 
   return (
     <form action={action} className="crm-form edit-record-form">
@@ -125,7 +125,7 @@ export function EditOrganizationForm({ organization }: { organization: Organizat
 }
 
 export function AddOrganizationContactForm({ organizationId, serviceLocations }: { organizationId: string; serviceLocations: Pick<ServiceLocation, "id" | "label" | "street">[] }) {
-  const [state, action, pending] = useActionState(createOrganizationContact, initialState);
+  const [state, action, pending] = useReliableActionState(createOrganizationContact, initialState);
 
   return (
     <form action={action} className="crm-form">
@@ -170,7 +170,7 @@ export function AddOrganizationContactForm({ organizationId, serviceLocations }:
 }
 
 export function AddOrganizationPropertyForm({ customers, organizationId }: { customers: Pick<Customer, "id" | "display_name">[]; organizationId: string }) {
-  const [state, action, pending] = useActionState(createOrganizationProperty, initialState);
+  const [state, action, pending] = useReliableActionState(createOrganizationProperty, initialState);
 
   return (
     <form action={action} className="crm-form">

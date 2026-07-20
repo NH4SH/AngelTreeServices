@@ -198,7 +198,13 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
 
   const [appointmentsResult, eventsResult] = await Promise.all([appointmentsQuery, eventsQuery]);
 
+  const migratedAppointmentIds = new Set(
+    ((eventsResult.data ?? []) as ScheduleEventWithRelations[])
+      .map((event) => event.source_appointment_id)
+      .filter((id): id is string => Boolean(id)),
+  );
   const appointmentData = ((appointmentsResult.data ?? []) as AppointmentWithRelations[]).filter((appointment) => {
+    if (appointment.appointment_type === "job" && migratedAppointmentIds.has(appointment.id)) return false;
     if (filters.assignedUserId !== "crew") {
       return true;
     }
@@ -224,8 +230,8 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
     return assignedUserIds.includes(filters.assignedUserId);
   });
 
-  const entries = [...scheduleEvents.map(toScheduleEventEntry), ...appointmentData.map(toAppointmentEntry)]
-    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+  const entries = addWorkdaySequence([...scheduleEvents.map(toScheduleEventEntry), ...appointmentData.map(toAppointmentEntry)]
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()));
   const conflicts = detectScheduleConflicts(entries, users);
 
   const error = [
@@ -297,6 +303,24 @@ function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntr
     assignees,
     customer_label: appointment.jobs?.organizations?.name ?? appointment.jobs?.customers?.display_name ?? null,
   };
+}
+
+function addWorkdaySequence(entries: CalendarEntry[]) {
+  const byJob = new Map<string, CalendarEntry[]>();
+  for (const entry of entries) {
+    if (!entry.job_id || entry.event_type !== "job") continue;
+    const group = byJob.get(entry.job_id) ?? [];
+    group.push(entry);
+    byJob.set(entry.job_id, group);
+  }
+  for (const group of byJob.values()) {
+    group.sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+    group.forEach((entry, index) => {
+      entry.workday_number = index + 1;
+      entry.workday_count = group.length;
+    });
+  }
+  return entries;
 }
 
 function getAppointmentTitle(appointment: AppointmentWithRelations) {
@@ -384,10 +408,23 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
   ]);
 
   const users = mapScheduleUsers((usersResult.data ?? []) as UserRow[]);
+  const todayScheduleEvents = (todayEvents.data ?? []) as ScheduleEventWithRelations[];
+  const migratedTodayAppointmentIds = new Set(
+    todayScheduleEvents
+      .map((event) => event.source_appointment_id)
+      .filter((id): id is string => Boolean(id)),
+  );
   const todaysEntries = [
-    ...((todayEvents.data ?? []) as ScheduleEventWithRelations[]).map(toScheduleEventEntry),
-    ...((todayAppointments.data ?? []) as AppointmentWithRelations[]).map(toAppointmentEntry),
-  ].sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+    ...todayScheduleEvents.map(toScheduleEventEntry),
+    ...((todayAppointments.data ?? []) as AppointmentWithRelations[])
+      .filter((appointment) => !(
+        appointment.appointment_type === "job"
+        && migratedTodayAppointmentIds.has(appointment.id)
+      ))
+      .map(toAppointmentEntry),
+  ];
+  const sequencedTodayEntries = addWorkdaySequence(todaysEntries
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()));
   const upcomingEstimates = [
     ...((upcomingEstimateEvents.data ?? []) as ScheduleEventWithRelations[]).map(toScheduleEventEntry),
     ...((upcomingEstimateAppointments.data ?? []) as AppointmentWithRelations[]).map(toAppointmentEntry),
@@ -402,14 +439,14 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     upcomingEstimateAppointments.error?.message ?? null,
     upcomingEstimateEvents.error?.message ?? null,
   ].filter(Boolean).join(" | ") || null;
-  const todaysCrewSchedules = buildCrewDaySchedules(todaysEntries, users);
-  const unassignedEntries = todaysEntries.filter((entry) => {
+  const todaysCrewSchedules = buildCrewDaySchedules(sequencedTodayEntries, users);
+  const unassignedEntries = sequencedTodayEntries.filter((entry) => {
     return isCrewWorkEntry(entry) && entry.assignees.length === 0;
   });
 
   return {
     data: {
-      conflicts: detectScheduleConflicts(todaysEntries, users),
+      conflicts: detectScheduleConflicts(sequencedTodayEntries, users),
       todaysCrewSchedules,
       unassignedEntries,
       upcomingEstimates,

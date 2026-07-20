@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { uploadPlatformDocument, type DocumentActionState } from "./actions";
 
@@ -16,7 +17,7 @@ export function DocumentUploadForm({ canUploadSensitive, options }: {
   canUploadSensitive: boolean;
   options: DocumentLinkOptions;
 }) {
-  const [state, action, pending] = useActionState(uploadPlatformDocument, initialState);
+  const [state, action, pending] = useReliableActionState(uploadPlatformDocument, initialState);
   const [linkType, setLinkType] = useState<keyof DocumentLinkOptions | "">("");
   const formRef = useRef<HTMLFormElement>(null);
 

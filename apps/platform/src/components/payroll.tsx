@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, Lock, RotateCcw } from "lucide-react";
 import {
   createPayPeriod,
@@ -15,7 +15,7 @@ const initialState: PayrollActionState = {
 };
 
 export function CreatePayPeriodForm() {
-  const [state, formAction, pending] = useActionState(createPayPeriod, initialState);
+  const [state, formAction, pending] = useReliableActionState(createPayPeriod, initialState);
 
   return (
     <form action={formAction} className="crm-form compact-form payroll-create-form">
@@ -47,7 +47,7 @@ export function PayPeriodStatusForm({
 }: {
   payPeriod: Pick<PayPeriod, "id" | "status">;
 }) {
-  const [state, formAction, pending] = useActionState(updatePayPeriodStatus, initialState);
+  const [state, formAction, pending] = useReliableActionState(updatePayPeriodStatus, initialState);
 
   return (
     <form action={formAction} className="payroll-status-form">

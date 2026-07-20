@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, MessageSquareText, ShieldCheck } from "lucide-react";
 import {
   approveQuoteByPortalToken,
@@ -15,8 +15,8 @@ const initialState: PortalTokenActionState = {
 };
 
 export function PortalQuoteActions({ rawToken }: { rawToken: string }) {
-  const [approvalState, approvalAction, approvalPending] = useActionState(approveQuoteByPortalToken, initialState);
-  const [changeState, changeAction, changePending] = useActionState(requestQuoteChangesByPortalToken, initialState);
+  const [approvalState, approvalAction, approvalPending] = useReliableActionState(approveQuoteByPortalToken, initialState);
+  const [changeState, changeAction, changePending] = useReliableActionState(requestQuoteChangesByPortalToken, initialState);
 
   if (approvalState.status === "success") {
     return <PortalConfirmation message={approvalState.message} title="Quote approved" variant="approved" />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CalendarPlus } from "lucide-react";
 import { createAppointment, type AppointmentActionState } from "./actions";
 import type { AppointmentType, AssignableUser, Job } from "@/lib/types/database";
@@ -25,7 +25,7 @@ export function AddAppointmentForm({
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
   lockedAppointmentType?: AppointmentType;
 }) {
-  const [state, formAction, pending] = useActionState(createAppointment, initialState);
+  const [state, formAction, pending] = useReliableActionState(createAppointment, initialState);
 
   return (
     <form action={formAction} className="crm-form">

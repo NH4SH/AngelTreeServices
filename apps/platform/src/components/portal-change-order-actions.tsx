@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, MessageSquareText, XCircle } from "lucide-react";
 import { approveChangeOrderByPortal, respondToChangeOrderByPortal } from "@/lib/actions/change-orders";
 import { initialChangeOrderActionState } from "@/lib/action-states/change-orders";
 
 export function PortalChangeOrderActions({ token }: { token: string }) {
-  const [approvalState, approvalAction, approvalPending] = useActionState(approveChangeOrderByPortal, initialChangeOrderActionState);
-  const [responseState, responseAction, responsePending] = useActionState(respondToChangeOrderByPortal, initialChangeOrderActionState);
+  const [approvalState, approvalAction, approvalPending] = useReliableActionState(approveChangeOrderByPortal, initialChangeOrderActionState);
+  const [responseState, responseAction, responsePending] = useReliableActionState(respondToChangeOrderByPortal, initialChangeOrderActionState);
   if (approvalState.status === "success" || responseState.status === "success") return <section className="customer-quote-confirmation" role="status"><CheckCircle2 size={24} /><div><h2>Response received</h2><p>{approvalState.message || responseState.message}</p></div></section>;
   return (
     <section className="customer-quote-actions">

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations } from "@/lib/types/database";
+import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations } from "@/lib/types/database";
 
 export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "in_progress" | "billing" | "completed" | "needs_attention" | "all";
 export type JobsIndexSort = "action" | "scheduled" | "updated" | "customer" | "value";
@@ -200,7 +200,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     return { data: null, error: jobError?.message ?? "Job not found or no access." };
   }
 
-  const [notes, photos, quotes, invoices, appointments, equipmentAssignments, changeOrders] = await Promise.all([
+  const [notes, photos, quotes, invoices, appointments, scheduleEvents, equipmentAssignments, changeOrders] = await Promise.all([
     supabase
       .from("notes")
       .select("*")
@@ -231,6 +231,12 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .eq("job_id", jobId)
       .order("starts_at", { ascending: true }),
     supabase
+      .from("schedule_events")
+      .select("*, service_locations(id, label, street, city, state, postal_code), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))")
+      .eq("job_id", jobId)
+      .eq("event_type", "job")
+      .order("starts_at", { ascending: true }),
+    supabase
       .from("equipment_assignments")
       .select("*, equipment_assets(id, asset_number, name, status, category), profiles:profiles!equipment_assignments_assigned_user_id_fkey(id, full_name, email), created_by_profile:profiles!equipment_assignments_created_by_user_id_fkey(id, full_name, email), schedule_events(id, title, starts_at, ends_at)")
       .eq("job_id", jobId)
@@ -248,6 +254,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     quotes.error?.message ??
     invoices.error?.message ??
     appointments.error?.message ??
+    scheduleEvents.error?.message ??
     equipmentAssignments.error?.message ??
     changeOrders.error?.message ??
     null;
@@ -260,6 +267,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       quotes: (quotes.data ?? []) as QuoteWithRelations[],
       invoices: (invoices.data ?? []) as InvoiceWithRelations[],
       appointments: (appointments.data ?? []) as AppointmentWithRelations[],
+      schedule_events: (scheduleEvents.data ?? []) as ScheduleEventWithRelations[],
       equipment_assignments: equipmentAssignments.data ?? [],
       change_orders: (changeOrders.data ?? []) as ChangeOrderWithRelations[],
     },

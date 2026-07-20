@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Copy } from "lucide-react";
 import type { DuplicateRecordActionState } from "@/lib/actions/duplicate-records";
 
@@ -32,7 +32,7 @@ export function DuplicateRecordButton({
   label: string;
   pendingLabel?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending] = useReliableActionState(action, initialState);
 
   return (
     <form

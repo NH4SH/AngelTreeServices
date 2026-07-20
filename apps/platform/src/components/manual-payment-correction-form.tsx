@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { RotateCcw } from "lucide-react";
 import { cancelManualPayment, type ManualPaymentActionState } from "@/lib/actions/payments";
 
@@ -15,7 +15,7 @@ export function ManualPaymentCorrectionForm({
   invoiceId: string;
   paymentId: string;
 }) {
-  const [state, formAction, pending] = useActionState(cancelManualPayment, initialState);
+  const [state, formAction, pending] = useReliableActionState(cancelManualPayment, initialState);
 
   return (
     <form

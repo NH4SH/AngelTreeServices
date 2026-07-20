@@ -1,7 +1,7 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState } from "react";
 import { LockKeyhole, UserRoundPlus } from "lucide-react";
 import { signInWithPassword, type LoginActionState } from "./actions";
 
@@ -17,7 +17,7 @@ const initialState: LoginActionState = {
 };
 
 export function LoginForm({ configured, nextPath, signedOut }: LoginFormProps) {
-  const [state, formAction, pending] = useActionState(signInWithPassword, initialState);
+  const [state, formAction, pending] = useReliableActionState(signInWithPassword, initialState);
   const disabled = !configured || pending;
 
   return (

@@ -406,6 +406,7 @@ async function prepareAppointmentMessage(
   let appointment: {
     ends_at: string | null;
     event_type: string;
+    job_id?: string | null;
     starts_at: string;
     status: string;
     updated_at: string;
@@ -415,7 +416,7 @@ async function prepareAppointmentMessage(
   if (communication.schedule_event_id) {
     const { data } = await supabase
       .from("schedule_events")
-      .select("starts_at, ends_at, event_type, status, updated_at, service_locations(street, city, state, postal_code)")
+      .select("starts_at, ends_at, event_type, status, updated_at, job_id, service_locations(street, city, state, postal_code)")
       .eq("id", communication.schedule_event_id)
       .maybeSingle();
     appointment = data ?? null;
@@ -456,6 +457,18 @@ async function prepareAppointmentMessage(
     return { action: "cancel", reason: "The appointment type changed after this reminder was scheduled." };
   }
 
+  let workSessions: { startsAt: string; endsAt: string | null }[] | undefined;
+  if (appointment.event_type === "job" && appointment.job_id) {
+    const { data: sessions } = await supabase
+      .from("schedule_events")
+      .select("starts_at, ends_at")
+      .eq("job_id", appointment.job_id)
+      .eq("event_type", "job")
+      .in("status", ["scheduled", "confirmed", "in_progress"])
+      .order("starts_at", { ascending: true });
+    workSessions = (sessions ?? []).map((session) => ({ startsAt: session.starts_at, endsAt: session.ends_at }));
+  }
+
   return {
     action: "send",
     data: {
@@ -469,6 +482,7 @@ async function prepareAppointmentMessage(
         location: formatLocation(one<LocationRow>(appointment.service_locations)),
         startsAt: appointment.starts_at,
         timezone: settings.business_timezone,
+        workSessions,
       }),
     },
   };

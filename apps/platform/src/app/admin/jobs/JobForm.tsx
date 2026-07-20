@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useMemo, useState } from "react";
 import { createJob, type JobActionState } from "./actions";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import type { Customer, JobPriority, JobServiceType, Organization, ServiceLocation } from "@/lib/types/database";
@@ -33,7 +34,7 @@ export function AddJobForm({
   organizations: Pick<Organization, "id" | "name">[];
   serviceLocations: ServiceLocation[];
 }) {
-  const [state, formAction, pending] = useActionState(createJob, initialState);
+  const [state, formAction, pending] = useReliableActionState(createJob, initialState);
   const [partyValue, setPartyValue] = useState("");
   const party = parseContractingParty(partyValue);
   const matchingLocations = useMemo(

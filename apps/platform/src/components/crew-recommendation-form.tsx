@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Sprout } from "lucide-react";
 import {
   submitCrewRecommendation,
@@ -10,7 +10,7 @@ import {
 const initialState: CrewCloseoutActionState = { status: "idle", message: "" };
 
 export function CrewRecommendationForm({ jobId }: { jobId: string }) {
-  const [state, action, pending] = useActionState(
+  const [state, action, pending] = useReliableActionState(
     submitCrewRecommendation,
     initialState,
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, FileCheck2, RotateCcw, Undo2 } from "lucide-react";
 import {
   reviewJobCloseout,
@@ -11,7 +11,7 @@ import type { JobCloseoutStatus } from "@/lib/types/database";
 const initialState: CloseoutReviewActionState = { status: "idle", message: "" };
 
 export function CloseoutReviewActions({ jobId, status }: { jobId: string; status: JobCloseoutStatus }) {
-  const [state, formAction, pending] = useActionState(reviewJobCloseout, initialState);
+  const [state, formAction, pending] = useReliableActionState(reviewJobCloseout, initialState);
   const needsReason = status === "submitted" || ["approved", "ready_to_invoice"].includes(status);
 
   return (

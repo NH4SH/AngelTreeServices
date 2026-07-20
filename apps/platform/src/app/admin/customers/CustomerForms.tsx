@@ -1,7 +1,7 @@
 "use client";
 
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useActionState } from "react";
 import type { CustomerActionState } from "./actions";
 import { createCustomer, createServiceLocation, updateCustomer } from "./actions";
 import type { Customer, CustomerStatus, CustomerType, CustomerWithLocations, Organization, ServiceLocation } from "@/lib/types/database";
@@ -15,7 +15,7 @@ const customerTypes: CustomerType[] = ["residential", "commercial", "property_ma
 const customerStatuses: CustomerStatus[] = ["active", "inactive", "archived"];
 
 export function AddCustomerForm() {
-  const [state, formAction, pending] = useActionState(createCustomer, initialState);
+  const [state, formAction, pending] = useReliableActionState(createCustomer, initialState);
 
   return (
     <form action={formAction} className="crm-form">
@@ -73,7 +73,7 @@ export function EditCustomerForm({
   organizations: Pick<Organization, "id" | "name">[];
   serviceLocations: ServiceLocation[];
 }) {
-  const [state, formAction, pending] = useActionState(updateCustomer, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateCustomer, initialState);
   const primaryLocationId =
     serviceLocations.find((location) => location.label === "Primary service location")?.id ??
     (serviceLocations.length === 1 ? serviceLocations[0]?.id : "");
@@ -292,7 +292,7 @@ export function AddServiceLocationForm({
 }: {
   customers: Pick<CustomerWithLocations, "id" | "display_name">[];
 }) {
-  const [state, formAction, pending] = useActionState(createServiceLocation, initialState);
+  const [state, formAction, pending] = useReliableActionState(createServiceLocation, initialState);
 
   return (
     <form action={formAction} className="crm-form compact-form">

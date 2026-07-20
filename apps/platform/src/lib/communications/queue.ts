@@ -205,7 +205,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("schedule_events")
-    .select("id, event_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+    .select("id, event_type, status, starts_at, ends_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("event_type", ["estimate", "job", "maintenance", "emergency"])
     .in("status", ["scheduled", "confirmed"])
     .not("job_id", "is", null)
@@ -215,7 +215,12 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   if (error) return { created: 0, error: error.message };
 
   const queue: QueueInput[] = [];
+  const firstWorkEventByJob = new Map<string, string>();
+  for (const event of [...(data ?? [])].filter((item) => item.event_type === "job" && item.job_id).sort((left, right) => left.starts_at.localeCompare(right.starts_at))) {
+    if (!firstWorkEventByJob.has(event.job_id!)) firstWorkEventByJob.set(event.job_id!, event.id);
+  }
   for (const event of data ?? []) {
+    if (event.event_type === "job" && event.job_id && firstWorkEventByJob.get(event.job_id) !== event.id) continue;
     const job = one<any>(event.jobs);
     const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
     if (!job || !party) continue;

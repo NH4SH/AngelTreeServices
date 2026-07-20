@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { AlertTriangle, Camera, ClipboardCheck } from "lucide-react";
 import { getInspectionTemplate } from "@/lib/equipment/inspection-templates";
 import type { CrewEquipmentAssignment } from "@/lib/types/database";
@@ -9,7 +9,7 @@ import { reportEquipmentProblem, submitEquipmentInspection, type CrewEquipmentAc
 const crewEquipmentInitialState: CrewEquipmentActionState = { status: "idle", message: "" };
 
 export function CrewInspectionForm({ assignment }: { assignment: CrewEquipmentAssignment }) {
-  const [state, action, pending] = useActionState(submitEquipmentInspection, crewEquipmentInitialState);
+  const [state, action, pending] = useReliableActionState(submitEquipmentInspection, crewEquipmentInitialState);
   const template = getInspectionTemplate(assignment.inspection_template_key);
   if (!template) return <section className="crew-empty-inline"><strong>No fixed checklist is assigned.</strong><p>Ask the office to attach the correct inspection checklist before operating equipment that requires one.</p></section>;
   return <form action={action} className="crew-equipment-form"><input name="asset_id" type="hidden" value={assignment.asset_id} /><input name="assignment_id" type="hidden" value={assignment.assignment_id} /><input name="template_key" type="hidden" value={template.key} /><Message state={state} />
@@ -20,7 +20,7 @@ export function CrewInspectionForm({ assignment }: { assignment: CrewEquipmentAs
 }
 
 export function CrewProblemForm({ assignment }: { assignment: CrewEquipmentAssignment }) {
-  const [state, action, pending] = useActionState(reportEquipmentProblem, crewEquipmentInitialState);
+  const [state, action, pending] = useReliableActionState(reportEquipmentProblem, crewEquipmentInitialState);
   return <form action={action} className="crew-equipment-form"><input name="asset_id" type="hidden" value={assignment.asset_id} /><input name="assignment_id" type="hidden" value={assignment.assignment_id} /><Message state={state} />
     <label>What is wrong?<input name="title" placeholder="Hydraulic leak, damaged tire, chain brake..." required /></label><label>What did you see or hear?<textarea name="description" placeholder="Describe where the problem is and what happened. Do not troubleshoot while equipment is running." required rows={5} /></label>
     <label>Severity<select defaultValue="attention" name="severity"><option value="attention">Needs attention, equipment can be parked safely</option><option value="unsafe">Unsafe, do not use</option><option value="critical">Critical hazard or breakdown</option></select></label>

@@ -1,4 +1,4 @@
-import type { AppointmentWithRelations, InvoiceWithRelations, JobStatus } from "@/lib/types/database";
+import type { AppointmentWithRelations, InvoiceWithRelations, JobStatus, ScheduleEventWithRelations } from "@/lib/types/database";
 
 export type JobOperationalState = "to_be_scheduled" | "scheduled" | "in_progress" | "work_complete" | "invoiced" | "paid" | "needs_attention" | "cancelled";
 
@@ -14,8 +14,16 @@ export function getCurrentWorkAppointment(appointments: AppointmentWithRelations
     )[0] ?? null;
 }
 
+export function getCurrentWorkSession(events: ScheduleEventWithRelations[] = [], now = new Date()) {
+  const active = events
+    .filter((event) => event.event_type === "job" && ["scheduled", "confirmed", "in_progress"].includes(event.status))
+    .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime());
+  return active.find((event) => new Date(event.ends_at ?? event.starts_at).getTime() >= now.getTime()) ?? active.at(-1) ?? null;
+}
+
 export function getJobOperationalState(input: {
   appointments?: AppointmentWithRelations[];
+  scheduleEvents?: ScheduleEventWithRelations[];
   invoices?: InvoiceWithRelations[];
   jobStatus: JobStatus;
   now?: Date;
@@ -28,6 +36,14 @@ export function getJobOperationalState(input: {
   if (["completed", "completed_pending_review", "ready_to_invoice"].includes(input.jobStatus)) return "work_complete";
   if (input.jobStatus === "returned_for_correction") return "needs_attention";
   if (input.jobStatus === "in_progress") return "in_progress";
+
+  const workSession = getCurrentWorkSession(input.scheduleEvents, input.now);
+  if (workSession) {
+    if (workSession.status === "in_progress") return "in_progress";
+    return new Date(workSession.starts_at).getTime() <= (input.now ?? new Date()).getTime()
+      ? "in_progress"
+      : "scheduled";
+  }
 
   const appointment = getCurrentWorkAppointment(input.appointments);
   if (appointment) {

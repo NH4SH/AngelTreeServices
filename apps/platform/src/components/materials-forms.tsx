@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useState } from "react";
 import { ArchiveRestore, Factory, MapPinned, PackageCheck, ReceiptText, RotateCcw, Save, Truck } from "lucide-react";
 import {
   addJobMaterialRequirement,
@@ -34,7 +35,7 @@ const initialState: MaterialActionState = { status: "idle", message: "" };
 type BasicOption = { id: string; name?: string; display_name?: string; service_type?: string | null; status?: string; asset_number?: string };
 
 export function MaterialCatalogForm({ canViewCosts, internalCostCents, material, organizations }: { canViewCosts: boolean; internalCostCents?: number | null; material?: MaterialRecord; organizations: BasicOption[] }) {
-  const [state, action, pending] = useActionState(material ? updateMaterial : createMaterial, initialState);
+  const [state, action, pending] = useReliableActionState(material ? updateMaterial : createMaterial, initialState);
   return <form action={action} className="crm-form material-form"><FormMessage state={state} />
     {material ? <input name="material_id" type="hidden" value={material.id} /> : null}
     <div className="form-grid-two"><label>Material name<input defaultValue={material?.name ?? ""} name="name" placeholder="Brown dyed mulch" required /></label><label>Category<select defaultValue={material?.category ?? "mulch"} name="category">{materialCategories.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label></div>
@@ -49,7 +50,7 @@ export function MaterialCatalogForm({ canViewCosts, internalCostCents, material,
 }
 
 export function InventoryLocationForm({ equipment }: { equipment: BasicOption[] }) {
-  const [state, action, pending] = useActionState(createInventoryLocation, initialState);
+  const [state, action, pending] = useReliableActionState(createInventoryLocation, initialState);
   return <form action={action} className="crm-form material-form"><FormMessage state={state} />
     <div className="form-grid-two"><label>Location name<input name="name" placeholder="Main yard" required /></label><label>Location type<select name="location_type">{inventoryLocationTypes.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label></div>
     <label>Linked truck or trailer<select name="equipment_asset_id"><option value="">No linked equipment</option>{equipment.map((asset) => <option key={asset.id} value={asset.id}>{asset.asset_number} - {asset.name}</option>)}</select></label>
@@ -59,8 +60,8 @@ export function InventoryLocationForm({ equipment }: { equipment: BasicOption[] 
 }
 
 export function InventoryMovementForm({ equipment, jobs, locations, materials }: { equipment: BasicOption[]; jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(recordInventoryMovement, initialState);
-  return <form action={action} className="crm-form material-form" encType="multipart/form-data"><IdempotencyInput /><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordInventoryMovement, initialState);
+  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-three"><label>Movement<select name="transaction_type">{inventoryTransactionTypes.filter((value) => !["reserve", "release", "reversal"].includes(value)).map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label><MaterialSelect materials={materials} /><UnitSelect /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><LocationSelect label="From location" locations={locations} name="source_location_id" /><LocationSelect label="To location" locations={locations} name="destination_location_id" /></div>
     <div className="form-grid-two"><JobSelect jobs={jobs} /><label>Truck / equipment<select name="equipment_asset_id"><option value="">Not linked</option>{equipment.map((asset) => <option key={asset.id} value={asset.id}>{asset.asset_number} - {asset.name}</option>)}</select></label></div>
@@ -72,7 +73,7 @@ export function InventoryMovementForm({ equipment, jobs, locations, materials }:
 }
 
 export function JobMaterialPlanForm({ jobId, materials }: { jobId: string; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(addJobMaterialRequirement, initialState);
+  const [state, action, pending] = useReliableActionState(addJobMaterialRequirement, initialState);
   return <form action={action} className="crm-form compact-material-form"><input name="job_id" type="hidden" value={jobId} /><FormMessage state={state} />
     <div className="form-grid-three"><MaterialSelect materials={materials} /><label>Planned quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /></div>
     <label>Loading or use notes<textarea name="notes" rows={2} /></label><label className="checkbox-field"><input name="is_estimated" type="checkbox" />Planned quantity is estimated</label>
@@ -81,7 +82,7 @@ export function JobMaterialPlanForm({ jobId, materials }: { jobId: string; mater
 }
 
 export function ReservationForm({ jobs, locations, materials }: { jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(reserveMaterial, initialState);
+  const [state, action, pending] = useReliableActionState(reserveMaterial, initialState);
   return <form action={action} className="crm-form material-form"><FormMessage state={state} />
     <div className="form-grid-two"><JobSelect jobs={jobs} /><MaterialSelect materials={materials} /></div>
     <div className="form-grid-three"><LocationSelect label="Reserve from" locations={locations} name="location_id" required /><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /></div>
@@ -91,13 +92,13 @@ export function ReservationForm({ jobs, locations, materials }: { jobs: BasicOpt
 }
 
 export function ReleaseReservationForm({ reservationId }: { reservationId: string }) {
-  const [state, action, pending] = useActionState(releaseMaterialReservation, initialState);
+  const [state, action, pending] = useReliableActionState(releaseMaterialReservation, initialState);
   return <form action={action} className="inline-material-action"><input name="reservation_id" type="hidden" value={reservationId} /><input aria-label="Release reason" name="reason" placeholder="Release reason" required /><button className="secondary-action" disabled={pending} type="submit">{pending ? "Releasing..." : "Release"}</button><FormMessage state={state} /></form>;
 }
 
 export function PurchaseForm({ locations, materials, organizations }: { locations: InventoryLocationRecord[]; materials: MaterialRecord[]; organizations: BasicOption[] }) {
-  const [state, action, pending] = useActionState(recordMaterialPurchase, initialState);
-  return <form action={action} className="crm-form material-form" encType="multipart/form-data"><IdempotencyInput /><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordMaterialPurchase, initialState);
+  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-two"><MaterialSelect materials={materials} /><LocationSelect label="Received at" locations={locations} name="received_location_id" required /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Unit cost<input min="0" name="unit_cost" required step="0.01" type="number" /></label></div>
     <div className="form-grid-three"><label>Purchase date<input defaultValue={new Date().toISOString().slice(0, 10)} name="purchase_date" type="date" /></label><label>Taxes / fees<input min="0" name="taxes_fees" step="0.01" type="number" /></label><label>Delivery charge<input min="0" name="delivery_charge" step="0.01" type="number" /></label></div>
@@ -109,8 +110,8 @@ export function PurchaseForm({ locations, materials, organizations }: { location
 }
 
 export function DisposalForm({ equipment, jobs, locations, materials, showCosts = true }: { equipment: BasicOption[]; jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[]; showCosts?: boolean }) {
-  const [state, action, pending] = useActionState(recordDisposal, initialState);
-  return <form action={action} className="crm-form material-form" encType="multipart/form-data"><IdempotencyInput /><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordDisposal, initialState);
+  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-two"><JobSelect jobs={jobs} required /><label>Destination type<select name="destination_type">{disposalDestinationTypes.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label></div>
     <label>Destination / facility name<input name="destination_name" placeholder="Regional landfill or donation site" required /></label>
     <div className="form-grid-three"><MaterialSelect materials={materials} optional /><label>Quantity<input min="0.001" name="quantity" step="0.001" type="number" /></label><UnitSelect optional /></div>
@@ -122,7 +123,7 @@ export function DisposalForm({ equipment, jobs, locations, materials, showCosts 
 }
 
 export function ProductionBatchForm({ equipment, locations, materials }: { equipment: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(recordProductionBatch, initialState);
+  const [state, action, pending] = useReliableActionState(recordProductionBatch, initialState);
   return <form action={action} className="crm-form material-form"><FormMessage state={state} />
     <div className="form-grid-three"><label>Batch number<input name="batch_number" required /></label><LocationSelect label="Production location" locations={locations} name="location_id" required /><EquipmentSelect equipment={equipment} label="Equipment" name="equipment_asset_id" /></div>
     <fieldset className="nested-fieldset"><legend>Input</legend><div className="form-grid-three"><MaterialSelect materials={materials} name="input_material_id" /><label>Input quantity<input min="0.001" name="input_quantity" required step="0.001" type="number" /></label><UnitSelect name="input_unit" /></div></fieldset>
@@ -136,8 +137,8 @@ export function ProductionBatchForm({ equipment, locations, materials }: { equip
 }
 
 export function DeliveryForm({ customers, equipment, jobs, locations, materials, organizations }: { customers: BasicOption[]; equipment: BasicOption[]; jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[]; organizations: BasicOption[] }) {
-  const [state, action, pending] = useActionState(recordCustomerDelivery, initialState);
-  return <form action={action} className="crm-form material-form" encType="multipart/form-data"><IdempotencyInput /><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordCustomerDelivery, initialState);
+  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-three"><label>Contracting party<select name="contracting_party" required><option value="">Choose customer or organization</option><optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup><optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup></select></label><MaterialSelect materials={materials} /><JobSelect jobs={jobs} /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Status<select name="status"><option value="planned">Planned</option><option value="scheduled">Scheduled</option><option value="out_for_delivery">Out for delivery</option><option value="delivered">Delivered</option></select></label></div>
     <div className="form-grid-three"><LocationSelect label="Source location" locations={locations} name="source_location_id" /><EquipmentSelect equipment={equipment} label="Vehicle" name="vehicle_asset_id" /><EquipmentSelect equipment={equipment} label="Trailer" name="trailer_asset_id" /></div>
@@ -149,8 +150,8 @@ export function DeliveryForm({ customers, equipment, jobs, locations, materials,
 }
 
 export function StockpileMeasurementForm({ locations, materials }: { locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(recordStockpileMeasurement, initialState);
-  return <form action={action} className="crm-form material-form" encType="multipart/form-data"><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordStockpileMeasurement, initialState);
+  return <form action={action} className="crm-form material-form"><FormMessage state={state} />
     <div className="form-grid-two"><MaterialSelect materials={materials} /><LocationSelect label="Stockpile location" locations={locations} name="location_id" required /></div>
     <div className="form-grid-three"><label>Quantity<input min="0" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Measurement method<select name="measurement_method"><option value="visual_estimate">Visual estimate</option><option value="dimensions_estimate">Dimensions estimate</option><option value="scale_weight">Scale weight</option><option value="metered">Metered</option><option value="counted">Counted</option><option value="other">Other</option></select></label></div>
     <label>Photo<input accept="image/jpeg,image/png,image/webp" name="photo" type="file" /></label><label>Notes<textarea name="notes" rows={2} /></label>
@@ -159,18 +160,18 @@ export function StockpileMeasurementForm({ locations, materials }: { locations: 
 }
 
 export function ReverseTransactionForm({ transactionId }: { transactionId: string }) {
-  const [state, action, pending] = useActionState(reverseInventoryTransaction, initialState);
+  const [state, action, pending] = useReliableActionState(reverseInventoryTransaction, initialState);
   return <form action={action} className="inline-material-action"><input name="transaction_id" type="hidden" value={transactionId} /><input aria-label="Correction reason" name="reason" placeholder="Correction reason" required /><button className="secondary-action" disabled={pending} type="submit"><RotateCcw size={15} />{pending ? "Reversing..." : "Reverse"}</button><FormMessage state={state} /></form>;
 }
 
 export function TransactionCostReviewForm({ transactionId }: { transactionId: string }) {
-  const [state, action, pending] = useActionState(reviewInventoryTransactionCost, initialState);
+  const [state, action, pending] = useReliableActionState(reviewInventoryTransactionCost, initialState);
   return <form action={action} className="inline-material-action"><input name="transaction_id" type="hidden" value={transactionId} /><input aria-label="Review notes" name="review_notes" placeholder="Review notes (optional)" /><button disabled={pending} name="decision" type="submit" value="approved">{pending ? "Saving..." : "Approve cost"}</button><button className="secondary-action" disabled={pending} name="decision" type="submit" value="rejected">Reject cost</button><FormMessage state={state} /></form>;
 }
 
 export function CrewMaterialMovementForm({ jobId, locations, materials }: { jobId: string; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
-  const [state, action, pending] = useActionState(recordInventoryMovement, initialState);
-  return <form action={action} className="crm-form crew-material-form" encType="multipart/form-data"><input name="job_id" type="hidden" value={jobId} /><IdempotencyInput /><FormMessage state={state} />
+  const [state, action, pending] = useReliableActionState(recordInventoryMovement, initialState);
+  return <form action={action} className="crm-form crew-material-form"><input name="job_id" type="hidden" value={jobId} /><IdempotencyInput /><FormMessage state={state} />
     <label>What did you do?<select name="transaction_type">{crewInventoryTransactionTypes.map((value) => <option key={value} value={value}>{crewActionLabel(value)}</option>)}</select></label>
     <MaterialSelect materials={materials} /><div className="form-grid-two"><label>Quantity<input inputMode="decimal" min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /></div>
     <div className="form-grid-two"><LocationSelect label="From" locations={locations} name="source_location_id" /><LocationSelect label="To" locations={locations} name="destination_location_id" /></div>

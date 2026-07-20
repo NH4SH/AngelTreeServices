@@ -12,6 +12,7 @@ export function appointmentCommunicationTemplate(input: {
   location: string;
   startsAt: string;
   timezone: string;
+  workSessions?: { endsAt: string | null; startsAt: string }[];
 }) {
   const action = input.isConfirmation ? "is scheduled" : "is coming up";
   const subject = `${companyName}: your ${input.communicationLabel} ${action}`;
@@ -19,7 +20,9 @@ export function appointmentCommunicationTemplate(input: {
     `Hi ${input.customerName},`,
     "",
     `Your ${input.communicationLabel} with ${companyName} ${action}.`,
-    `Date and arrival window: ${formatAppointmentWindow(input.startsAt, input.endsAt, input.timezone)}`,
+    input.workSessions && input.workSessions.length > 1
+      ? `Work schedule (${input.workSessions.length} days):\n${input.workSessions.map((session) => formatScheduleLine(session.startsAt, session.endsAt, input.timezone)).join("\n")}`
+      : `Date and arrival window: ${formatAppointmentWindow(input.startsAt, input.endsAt, input.timezone)}`,
     `Service location: ${input.location}`,
     "",
     "Please reply to this email or call our office if the location or access plan changes.",
@@ -29,6 +32,13 @@ export function appointmentCommunicationTemplate(input: {
   ].join("\n");
 
   return brandedTemplate(subject, text, input.isConfirmation ? "Appointment confirmed" : "Appointment reminder");
+}
+
+function formatScheduleLine(startsAt: string, endsAt: string | null, timezone: string) {
+  const date = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: timezone }).format(new Date(startsAt));
+  const start = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: timezone }).format(new Date(startsAt));
+  const end = endsAt ? new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: timezone }).format(new Date(endsAt)) : "arrival time may vary";
+  return `${date}: ${start} to ${end}`;
 }
 
 export function quoteFollowUpTemplate(input: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useMemo, useState } from "react";
 import { KeyRound } from "lucide-react";
 import {
   sendEmployeePasswordReset,
@@ -17,7 +18,7 @@ const confirmationCopy =
   "Send this employee a password reset email? They will receive a secure link to choose a new password.";
 
 export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) {
-  const [state, formAction, isPending] = useActionState(sendEmployeePasswordReset, initialState);
+  const [state, formAction, isPending] = useReliableActionState(sendEmployeePasswordReset, initialState);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const usersWithEmail = useMemo(
     () => users.filter((user) => Boolean(user.email)),

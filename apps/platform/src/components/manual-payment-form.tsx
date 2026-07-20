@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CircleDollarSign } from "lucide-react";
 import { recordManualPayment, type ManualPaymentActionState } from "@/lib/actions/payments";
 
 const initialState: ManualPaymentActionState = { status: "idle", message: "" };
 
 export function ManualPaymentForm({ balanceDueCents, invoiceId }: { balanceDueCents: number; invoiceId: string }) {
-  const [state, formAction, pending] = useActionState(recordManualPayment, initialState);
+  const [state, formAction, pending] = useReliableActionState(recordManualPayment, initialState);
 
   return (
     <form action={formAction} className="crm-form manual-payment-form">

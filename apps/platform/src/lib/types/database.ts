@@ -741,6 +741,8 @@ export type ScheduleEvent = {
   all_day: boolean;
   location_label: string | null;
   calendar_notes: string | null;
+  work_session_group_id: string | null;
+  source_appointment_id: string | null;
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
@@ -1107,6 +1109,9 @@ export type CrewJob = Pick<
   > | null;
   job_photos?: Pick<JobPhoto, "photo_type">[];
   notes?: Pick<Note, "id" | "visibility" | "body" | "created_at">[];
+  schedule_events?: (Pick<ScheduleEvent, "id" | "starts_at" | "ends_at" | "status" | "calendar_notes"> & {
+    schedule_event_assignments?: ScheduleEventAssignmentWithUser[];
+  })[];
 };
 
 export type QuoteWithRelations = Quote & {
@@ -1182,6 +1187,8 @@ export type CalendarEntry = {
   service_location_id: string | null;
   assignees: AssignableUser[];
   customer_label?: string | null;
+  workday_number?: number | null;
+  workday_count?: number | null;
 };
 
 export type TimeEntryWithRelations = TimeEntry & {
@@ -1349,6 +1356,7 @@ export type JobDetail = JobWithRelations & {
   invoices?: InvoiceWithRelations[];
   change_orders?: ChangeOrderWithRelations[];
   appointments?: AppointmentWithRelations[];
+  schedule_events?: ScheduleEventWithRelations[];
   equipment_assignments?: (EquipmentAssignment & {
     equipment_assets?: Pick<EquipmentAsset, "id" | "asset_number" | "name" | "status" | "category"> | null;
   })[];

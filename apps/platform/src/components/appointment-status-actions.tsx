@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2 } from "lucide-react";
 import { updateAppointmentStatus, type AppointmentActionState } from "@/app/admin/schedule/actions";
 import type { AppointmentStatus } from "@/lib/types/database";
@@ -28,7 +28,7 @@ export function AppointmentStatusActions({
   currentStatus: AppointmentStatus;
   jobId: string;
 }) {
-  const [state, formAction, pending] = useActionState(updateAppointmentStatus, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateAppointmentStatus, initialState);
 
   return (
     <form action={formAction} className="appointment-status-form">

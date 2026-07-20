@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Save } from "lucide-react";
 import { updateAppointmentDetails, type AppointmentActionState } from "@/app/admin/schedule/actions";
 import type { AppointmentWithRelations, AssignableUser } from "@/lib/types/database";
@@ -17,7 +17,7 @@ export function AppointmentEditForm({
   appointment: AppointmentWithRelations;
   assignedUsers: AssignableUser[];
 }) {
-  const [state, formAction, pending] = useActionState(updateAppointmentDetails, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateAppointmentDetails, initialState);
 
   return (
     <form action={formAction} className="appointment-edit-form">

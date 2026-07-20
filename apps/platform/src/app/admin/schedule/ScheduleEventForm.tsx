@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CalendarPlus, Save } from "lucide-react";
 import {
   createScheduleEvent,
@@ -50,7 +50,7 @@ export function AddScheduleEventForm({
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
   users: ScheduleUser[];
 }) {
-  const [state, formAction, pending] = useActionState(createScheduleEvent, initialState);
+  const [state, formAction, pending] = useReliableActionState(createScheduleEvent, initialState);
 
   return (
     <form action={formAction} className="crm-form schedule-event-form">
@@ -154,7 +154,7 @@ export function ScheduleEventEditForm({
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
   users: ScheduleUser[];
 }) {
-  const [state, formAction, pending] = useActionState(updateScheduleEventDetails, initialState);
+  const [state, formAction, pending] = useReliableActionState(updateScheduleEventDetails, initialState);
   const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.user_id);
 
   return (

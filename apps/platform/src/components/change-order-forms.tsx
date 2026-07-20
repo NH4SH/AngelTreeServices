@@ -187,6 +187,43 @@ export function ChangeOrderEditor({
   );
 }
 
+export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
+  const [state, action, pending] = useActionState(createChangeOrder, initialChangeOrderActionState);
+  const [title, setTitle] = useState("");
+
+  return (
+    <details className="job-inline-disclosure job-add-work-disclosure">
+      <summary><Plus size={17} />Add work item</summary>
+      <form action={action} className="crm-form job-add-work-form">
+        <input name="job_id" type="hidden" value={jobId} />
+        <input name="return_to_job" type="hidden" value="1" />
+        <input name="submit_intent" type="hidden" value="save" />
+        <input name="line_id" type="hidden" value="" />
+        <input name="line_title" type="hidden" value={title} />
+        <input name="line_service_category_id" type="hidden" value="" />
+        <input name="line_material_id" type="hidden" value="" />
+        <input name="line_internal_cost" type="hidden" value="" />
+        <p className="field-note">This adds a draft line to this work order. It must be approved before crew work or billing.</p>
+        <label>
+          Work item
+          <input maxLength={180} name="title" onChange={(event) => setTitle(event.target.value)} placeholder="Additional limb removal near rear fence" required value={title} />
+        </label>
+        <label>
+          Description / scope
+          <textarea className="scope-textarea" name="line_description" placeholder="Describe the added work and any customer-visible conditions." rows={4} />
+        </label>
+        <div className="form-grid-three">
+          <label>Quantity<input defaultValue="1" min="0.01" name="line_quantity" required step="0.01" type="number" /></label>
+          <label>Unit<input defaultValue="each" name="line_unit" /></label>
+          <label>Price per unit<input min="0" name="line_rate" required step="0.01" type="number" /></label>
+        </div>
+        <button disabled={pending} type="submit"><Save size={17} />{pending ? "Adding..." : "Add to work order"}</button>
+        {state.message ? <ActionMessage state={state} /> : null}
+      </form>
+    </details>
+  );
+}
+
 export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
   const [workflowState, workflowAction, workflowPending] = useActionState(updateChangeOrderWorkflow, initialChangeOrderActionState);
   const [emailState, emailAction, emailPending] = useActionState(sendChangeOrderEmail, initialChangeOrderActionState);

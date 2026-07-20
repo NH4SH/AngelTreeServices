@@ -18,7 +18,7 @@ export default async function ChangeOrderDetailPage({ params, searchParams }: Pr
   return (
     <PlatformFrame active="change-orders" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page">
-        <Link className="crew-back-link" href="/admin/change-orders">Back to change orders</Link>
+        <Link className="crew-back-link" href={order?.job_id ? `/admin/jobs/${order.job_id}#job-scope` : "/admin/change-orders"}>{order?.job_id ? "Back to work order" : "Back to work additions"}</Link>
         {detail.error ? <Warning message={detail.error} /> : null}{tokens.error ? <Warning message={`Customer links: ${tokens.error}`} /> : null}{activity.error ? <Warning message={`Activity history: ${activity.error}`} /> : null}{query.updated === "1" ? <p className="form-message success">Changes saved. Existing customer link remains active.</p> : null}
         {!order ? <section className="empty-state"><h1>Change order unavailable</h1></section> : <>
           <section className="commerce-detail-header"><div><p className="surface-label"><FilePlus2 size={18} /> Additional-work agreement</p><h1>{order.change_order_number}</h1><p>{order.title}</p></div><div className="commerce-header-aside"><span className={`status-pill change-order-status ${order.status}`}>{order.status.replaceAll("_", " ")}</span><strong>{money(order.total_cents)}</strong>{["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status) ? <Link className="primary-action" href={`/admin/change-orders/${order.id}/edit`}><Pencil size={17} /> Edit</Link> : null}<DuplicateChangeOrderButton id={order.id} /></div></section>

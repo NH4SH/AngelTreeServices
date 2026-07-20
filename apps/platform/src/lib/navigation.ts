@@ -122,7 +122,6 @@ export const navigationCommands: NavigationCommand[] = [
   { id: "new-invoice", label: "New invoice", href: "/admin/invoices?new=1", icon: ReceiptText, audience: "admin", permission: "internalStaff", keywords: ["bill", "billing"] },
   { id: "upload-document", label: "Upload document", href: "/admin/documents#upload-document", icon: Files, audience: "admin", permission: "internalStaff", keywords: ["file", "attachment"] },
   { id: "record-payment", label: "Record payment", href: "/admin/invoices?status=sent", icon: ReceiptText, audience: "admin", permission: "accessApproval", keywords: ["cash", "check", "paid"] },
-  { id: "change-orders", label: "Open change orders", href: "/admin/change-orders", icon: FilePlus2, audience: "admin", permission: "internalStaff", keywords: ["additional work", "scope"] },
   { id: "recurring-services", label: "Open recurring services", href: "/admin/recurring", icon: Sprout, audience: "admin", permission: "internalStaff", keywords: ["renewals", "plans", "maintenance"] },
   { id: "marketing", label: "Open marketing workspace", href: "/admin/marketing", icon: Megaphone, audience: "admin", permission: "internalStaff", keywords: ["photos", "completed jobs"] },
   { id: "report-equipment", label: "Report equipment issue", href: "/crew/equipment", icon: ShieldCheck, audience: "all", permission: "crewApp", keywords: ["problem", "unsafe", "maintenance"] },

@@ -14,6 +14,13 @@ const checklist = [
 
 export function WorkOrderDocument({ job }: { job: JobDetail }) {
   const crewNotes = (job.notes ?? []).filter((note) => note.visibility === "crew_visible");
+  const approvedQuote = (job.quotes ?? []).find((quote) => quote.status === "approved") ?? job.quotes?.[0] ?? null;
+  const originalLines = [...(approvedQuote?.quote_line_items ?? [])].sort((left, right) => left.sort_order - right.sort_order);
+  const approvedAdditions = (job.change_orders ?? [])
+    .filter((order) => order.status === "approved")
+    .flatMap((order) => [...(order.change_order_line_items ?? [])]
+      .sort((left, right) => left.sort_order - right.sort_order)
+      .map((line) => ({ ...line, changeOrderNumber: order.change_order_number })));
 
   return (
     <DocumentShell
@@ -30,7 +37,12 @@ export function WorkOrderDocument({ job }: { job: JobDetail }) {
         ]}
       />
       <DocumentSection title="Scope of work">
-        <p>{job.requested_scope || "No requested scope attached yet."}</p>
+        {originalLines.length || approvedAdditions.length ? (
+          <div className="business-document-work-list">
+            {originalLines.map((line) => <article key={line.id}><span>Original</span><div><strong>{line.name}</strong>{line.description ? <p>{line.description}</p> : null}</div></article>)}
+            {approvedAdditions.map((line) => <article key={line.id}><span>Added</span><div><strong>{line.title}</strong>{line.description ? <p>{line.description}</p> : null}<small>{line.changeOrderNumber}</small></div></article>)}
+          </div>
+        ) : <p>{job.requested_scope || "No requested scope attached yet."}</p>}
       </DocumentSection>
       <DocumentSection title="Access notes">
         <p>{job.service_locations?.access_notes || job.service_locations?.service_notes || "No access notes attached yet."}</p>

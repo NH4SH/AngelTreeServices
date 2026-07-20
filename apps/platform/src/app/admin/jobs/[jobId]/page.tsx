@@ -6,7 +6,6 @@ import {
   ChevronDown,
   CircleDollarSign,
   ClipboardCheck,
-  FilePlus2,
   FileSignature,
   Forklift,
   MapPin,
@@ -22,6 +21,7 @@ import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
 import { AppointmentStatusActions } from "@/components/appointment-status-actions";
 import { CommunicationControls } from "@/components/communication-controls";
 import { CompletedJobMarketingWorkspace } from "@/components/completed-job-marketing-workspace";
+import { InlineJobWorkAdditionForm } from "@/components/change-order-forms";
 import { PrintButton } from "@/components/documents/print-button";
 import { WorkOrderDocument } from "@/components/documents/work-order-document";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
@@ -50,7 +50,7 @@ import { getDirectionsUrl } from "@/lib/maps";
 
 type JobDetailPageProps = {
   params: Promise<{ jobId: string }>;
-  searchParams: Promise<{ contact_warning?: string; duplicated?: string }>;
+  searchParams: Promise<{ change_added?: string; contact_warning?: string; duplicated?: string }>;
 };
 
 export default async function JobDetailPage({ params, searchParams }: JobDetailPageProps) {
@@ -88,6 +88,12 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   const invoice = (job.invoices ?? []).find((item) => item.status !== "void") ?? job.invoices?.[0] ?? null;
   const approvedChanges = (job.change_orders ?? []).filter((order) => order.status === "approved");
   const pendingChanges = (job.change_orders ?? []).filter((order) => ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status));
+  const originalScopeLines = [...(approvedQuote?.quote_line_items ?? [])].sort((left, right) => left.sort_order - right.sort_order);
+  const addedScopeLines = [...approvedChanges, ...pendingChanges]
+    .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime())
+    .flatMap((order) => [...(order.change_order_line_items ?? [])]
+      .sort((left, right) => left.sort_order - right.sort_order)
+      .map((line) => ({ line, order })));
   const unbilledChanges = approvedChanges.filter((order) => !order.invoice_id);
   const canManageBilling = hasAllowedRole(context.roles, platformRoleGroups.internalStaff);
   const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
@@ -159,12 +165,35 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
 
         <section className="job-core-section" id="job-scope">
           <div className="job-section-heading">
-            <div><p className="surface-label"><FileSignature size={17} />Approved work</p><h2>Scope and additions</h2></div>
-            <Link className="secondary-action compact-action" href={`/admin/change-orders?new=1&jobId=${job.id}`}><FilePlus2 size={16} />Add work</Link>
+            <div><p className="surface-label"><FileSignature size={17} />Work list</p><h2>Scope of work</h2></div>
           </div>
-          <div className="job-scope-copy"><h3>Original scope</h3><p className="pre-wrap-copy">{job.requested_scope || "Open the approved quote for scope details."}</p></div>
-          {approvedChanges.length ? <div className="job-compact-list"><h3>Approved additions</h3>{approvedChanges.map((order) => <Link href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}: {order.title}</strong><span>{formatCurrency(order.total_cents)} · {order.invoice_id ? "Billed" : "Not yet billed"}</span></Link>)}</div> : null}
-          {pendingChanges.length ? <div className="job-compact-list"><h3>Pending additions</h3>{pendingChanges.map((order) => <Link href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number}: {order.title}</strong><span>{title(order.status)} · not approved for billing</span></Link>)}</div> : null}
+          <div className="job-work-scope-list">
+            {originalScopeLines.length ? originalScopeLines.map((line) => (
+              <article className="job-work-scope-line" key={line.id}>
+                <span className="job-work-line-kind original">Original</span>
+                <div><strong>{line.name}</strong>{line.description ? <p className="pre-wrap-copy">{line.description}</p> : null}</div>
+                <span>{line.quantity} × {formatCurrency(line.unit_price_cents)}</span>
+                <strong>{formatCurrency(line.total_cents)}</strong>
+              </article>
+            )) : (
+              <article className="job-work-scope-line">
+                <span className="job-work-line-kind original">Original</span>
+                <div><strong>{title(job.service_type || "Approved work")}</strong><p className="pre-wrap-copy">{job.requested_scope || "Open the approved quote for scope details."}</p></div>
+              </article>
+            )}
+            {addedScopeLines.map(({ line, order }) => {
+              const approved = order.status === "approved";
+              return (
+                <article className={`job-work-scope-line ${approved ? "approved" : "pending"}`} key={line.id}>
+                  <span className={`job-work-line-kind ${approved ? "approved" : "pending"}`}>{approved ? "Added" : "Draft addition"}</span>
+                  <div><strong>{line.title}</strong>{line.description ? <p className="pre-wrap-copy">{line.description}</p> : null}<Link href={`/admin/change-orders/${order.id}`}>{approved ? "View approval" : "Review and approve"}</Link></div>
+                  <span>{line.quantity} {line.unit ?? ""} × {formatCurrency(line.unit_price_cents)}</span>
+                  <strong>{formatCurrency(line.amount_cents)}</strong>
+                </article>
+              );
+            })}
+          </div>
+          <InlineJobWorkAdditionForm jobId={job.id} />
         </section>
 
         <section className="job-core-section" id="job-schedule">
@@ -243,9 +272,9 @@ function CompactEmpty({ children }: { children: ReactNode }) {
   return <p className="job-compact-empty">{children}</p>;
 }
 
-function PageNotices({ errors, query }: { errors: (string | null)[]; query: { contact_warning?: string; duplicated?: string } }) {
+function PageNotices({ errors, query }: { errors: (string | null)[]; query: { change_added?: string; contact_warning?: string; duplicated?: string } }) {
   const messages = [...new Set(errors.filter((error): error is string => Boolean(error)))];
-  return <>{messages.map((message) => <section className="data-warning" key={message} role="status"><strong>Database notice</strong><p>{message}</p></section>)}{query.duplicated === "job" ? <p className="form-message success" role="status">Work order duplicated.</p> : null}{query.contact_warning === "1" ? <p className="form-message error" role="alert">One or more inactive organization contacts were not copied. Review contacts before scheduling.</p> : null}</>;
+  return <>{messages.map((message) => <section className="data-warning" key={message} role="status"><strong>Database notice</strong><p>{message}</p></section>)}{query.change_added === "1" ? <p className="form-message success" role="status">Work item added as a draft. Review and approve it before crew work or billing.</p> : null}{query.duplicated === "job" ? <p className="form-message success" role="status">Work order duplicated.</p> : null}{query.contact_warning === "1" ? <p className="form-message error" role="alert">One or more inactive organization contacts were not copied. Review contacts before scheduling.</p> : null}</>;
 }
 
 function EmptyState({ title: emptyTitle, body }: { title: string; body: string }) {

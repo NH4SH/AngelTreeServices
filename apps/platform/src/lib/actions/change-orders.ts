@@ -90,6 +90,7 @@ export async function createChangeOrder(_state: ChangeOrderActionState, formData
   if (sourceCloseoutId) await auth.supabase.from("job_closeouts").update({ change_order_id: changeOrder.id }).eq("id", sourceCloseoutId).is("change_order_id", null);
   await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_created", subjectId: changeOrder.id, subjectType: "change_order", metadata: { job_id: jobId } });
   revalidateChangeOrderPaths(changeOrder.id, jobId, job.organization_id);
+  if (formData.get("return_to_job") === "1") redirect(`/admin/jobs/${jobId}?change_added=1#job-scope`);
   redirect(`/admin/change-orders/${changeOrder.id}`);
 }
 

@@ -1679,6 +1679,7 @@
   align-content: start;
   display: grid;
   gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
 
@@ -10576,21 +10577,73 @@ h1,
 }
 
 .schedule-event-drawer:has(.schedule-job-flow) {
+  background: oklch(.988 .005 154);
+  border-color: oklch(.7 .025 154 / .58);
   width: min(1180px, calc(100vw - 20px));
 }
 
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: inset 0 3px 0 var(--color-green);
+  padding: 14px 16px;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header > div {
+  padding-top: 3px;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header span {
+  color: var(--color-green);
+  letter-spacing: .03em;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header h2 {
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header p {
+  color: var(--color-muted);
+  line-height: 1.45;
+  margin: 5px 0 0;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header a {
+  background: var(--color-surface-subtle);
+  min-height: 40px;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  width: 40px;
+}
+
+.schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header a:hover {
+  background: var(--color-surface-green);
+  border-color: var(--color-border-strong);
+  color: var(--color-forest);
+}
+
 .schedule-drawer-type-control {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   display: grid;
   gap: 7px;
   margin-top: 16px;
   max-width: 300px;
+  padding: 10px 12px;
   color: var(--color-charcoal);
   font-size: .82rem;
   font-weight: 700;
 }
 
 .schedule-drawer-type-control select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 9px;
   min-height: 46px;
+  padding: 8px 11px;
 }
 
 .schedule-job-flow {
@@ -10602,13 +10655,14 @@ h1,
 
 .schedule-job-picker {
   align-items: end;
-  background: oklch(.975 .008 154);
-  border: 1px solid oklch(.86 .018 154);
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(170px, .7fr) minmax(260px, 1.3fr) minmax(300px, 1.6fr);
-  padding: 14px;
+  padding: 16px;
+  box-shadow: 0 5px 16px oklch(.22 .012 145 / .035);
 }
 
 .schedule-job-picker > div,
@@ -10628,8 +10682,20 @@ h1,
 
 .schedule-job-picker input,
 .schedule-job-picker select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
   min-height: 46px;
+  outline: none;
+  padding: 9px 12px;
   width: 100%;
+}
+
+.schedule-job-picker input:focus,
+.schedule-job-picker select:focus,
+.schedule-drawer-type-control select:focus {
+  border-color: oklch(.45 .08 154);
+  box-shadow: 0 0 0 3px oklch(.61 .09 145 / .14);
 }
 
 .schedule-job-search {
@@ -10638,6 +10704,7 @@ h1,
 
 .schedule-job-search svg {
   bottom: 14px;
+  color: var(--color-muted);
   left: 13px;
   pointer-events: none;
   position: absolute;
@@ -10656,8 +10723,10 @@ h1,
 }
 
 .schedule-job-summary {
-  border-bottom: 1px solid oklch(.86 .018 154);
-  padding: 2px 2px 16px;
+  background: var(--color-surface-green);
+  border: 1px solid oklch(.82 .034 154 / .7);
+  border-radius: 12px;
+  padding: 15px 16px;
 }
 
 .schedule-job-summary-heading {
@@ -10678,7 +10747,7 @@ h1,
 }
 
 .schedule-job-summary-heading b {
-  background: oklch(.94 .023 154);
+  background: var(--color-surface);
   border: 1px solid oklch(.82 .034 154);
   border-radius: 6px;
   color: var(--color-forest);
@@ -10723,25 +10792,106 @@ h1,
 
 .schedule-job-selection-empty {
   align-items: center;
-  border: 1px dashed oklch(.77 .03 154);
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px dashed oklch(.69 .04 154);
+  border-radius: 12px;
   color: var(--color-muted);
   display: grid;
   gap: 5px;
   justify-items: center;
-  min-height: 190px;
-  padding: 28px;
+  min-height: 150px;
+  padding: 24px;
   text-align: center;
 }
 
 .schedule-job-selection-empty strong {
   color: var(--color-charcoal);
+  font-size: 1.02rem;
+}
+
+.schedule-job-selection-empty svg {
+  color: var(--color-green);
 }
 
 .drawer-job-schedule-manager .job-schedule-form {
   background: transparent;
   border: 0;
+  gap: 16px;
   padding: 0;
+}
+
+.drawer-job-schedule-manager button,
+.drawer-job-schedule-manager input,
+.drawer-job-schedule-manager select,
+.drawer-job-schedule-manager textarea {
+  font: inherit;
+}
+
+.drawer-job-schedule-manager input,
+.drawer-job-schedule-manager select,
+.drawer-job-schedule-manager textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: var(--color-charcoal);
+  outline: none;
+  padding: 9px 11px;
+}
+
+.drawer-job-schedule-manager input:focus,
+.drawer-job-schedule-manager select:focus,
+.drawer-job-schedule-manager textarea:focus {
+  border-color: oklch(.45 .08 154);
+  box-shadow: 0 0 0 3px oklch(.61 .09 145 / .14);
+}
+
+.drawer-job-schedule-manager button {
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.drawer-job-schedule-manager button:focus-visible {
+  outline: 3px solid oklch(.61 .09 145 / .3);
+  outline-offset: 2px;
+}
+
+.drawer-job-schedule-manager button:disabled {
+  cursor: not-allowed;
+  opacity: .54;
+}
+
+.drawer-job-schedule-manager .schedule-mode-control {
+  background: oklch(.95 .016 154);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  padding: 5px;
+  width: fit-content;
+}
+
+.drawer-job-schedule-manager .schedule-mode-control legend {
+  color: var(--color-charcoal);
+  margin: 0 0 6px;
+  padding: 0 2px;
+}
+
+.drawer-job-schedule-manager .schedule-mode-control button {
+  background: transparent;
+  border-color: transparent;
+  min-height: 42px;
+}
+
+.drawer-job-schedule-manager .schedule-mode-control button:hover:not([aria-pressed="true"]) {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.drawer-job-schedule-manager .schedule-mode-control button[aria-pressed="true"] {
+  background: var(--color-forest);
+  border-color: var(--color-forest);
+  box-shadow: 0 3px 9px oklch(.22 .012 145 / .14);
+  color: var(--color-surface);
 }
 
 .drawer-job-schedule-manager .multi-select-scheduler {
@@ -10750,7 +10900,11 @@ h1,
 }
 
 .drawer-job-schedule-manager .schedule-default-hours {
+  background: var(--color-surface-green);
+  border-color: oklch(.82 .034 154 / .7);
+  border-radius: 12px;
   grid-column: 1 / -1;
+  padding: 16px;
 }
 
 .drawer-job-schedule-manager .schedule-date-column {
@@ -10762,12 +10916,83 @@ h1,
 }
 
 .drawer-job-schedule-manager .workday-calendar {
+  border-radius: 12px;
+  box-shadow: 0 5px 16px oklch(.22 .012 145 / .035);
   max-width: none;
 }
 
+.drawer-job-schedule-manager .workday-calendar-grid button {
+  border-radius: 8px;
+}
+
+.drawer-job-schedule-manager .selected-workday-row,
+.drawer-job-schedule-manager .workday-bulk-editor,
+.drawer-job-schedule-manager .schedule-range-shortcut {
+  border-radius: 11px;
+  min-width: 0;
+}
+
+.drawer-job-schedule-manager .selected-workday-row {
+  box-shadow: 0 3px 11px oklch(.22 .012 145 / .03);
+}
+
+.drawer-job-schedule-manager .selected-workday-fields {
+  grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr) minmax(95px, auto) minmax(150px, 1.15fr);
+}
+
+.drawer-job-schedule-manager .secondary-action,
+.drawer-job-schedule-manager .workday-time-presets button,
+.drawer-job-schedule-manager .calendar-month-actions button,
+.drawer-job-schedule-manager .calendar-selection-actions button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-charcoal);
+}
+
+.drawer-job-schedule-manager .secondary-action:hover,
+.drawer-job-schedule-manager .workday-time-presets button:hover,
+.drawer-job-schedule-manager .calendar-month-actions button:hover,
+.drawer-job-schedule-manager .calendar-selection-actions button:hover {
+  background: var(--color-surface-green);
+  border-color: oklch(.61 .06 154 / .65);
+  color: var(--color-forest);
+}
+
+.drawer-job-schedule-manager .workday-time-presets button[aria-pressed="true"] {
+  background: oklch(.91 .045 112);
+  border-color: oklch(.67 .11 105);
+  color: oklch(.31 .06 92);
+}
+
 .drawer-job-schedule-manager .job-schedule-actions {
-  margin-inline: -16px;
-  padding: 14px 16px 2px;
+  background: oklch(.975 .012 154 / .98);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 -6px 18px oklch(.22 .012 145 / .055);
+  gap: 9px;
+  margin-inline: 0;
+  padding: 10px;
+}
+
+.drawer-job-schedule-manager .job-schedule-actions button {
+  min-height: 46px;
+  padding: 0 16px;
+}
+
+.drawer-job-schedule-manager .job-schedule-actions button[type="submit"]:not(.danger-secondary-action) {
+  background: var(--color-forest);
+  border: 1px solid var(--color-forest);
+  color: var(--color-surface);
+}
+
+.drawer-job-schedule-manager .job-schedule-actions button[type="submit"]:not(.danger-secondary-action):hover {
+  background: oklch(.25 .07 154);
+}
+
+.drawer-job-schedule-manager .danger-secondary-action {
+  background: oklch(.978 .012 25);
+  border: 1px solid oklch(.7 .07 25 / .7);
+  color: oklch(.43 .12 25);
 }
 
 @media (max-width: 900px) {
@@ -10801,6 +11026,27 @@ h1,
 }
 
 @media (max-width: 560px) {
+  .schedule-event-drawer:has(.schedule-job-flow) {
+    border: 0;
+    border-radius: 0;
+    height: 100dvh;
+    margin: 0;
+    padding: 12px;
+    width: 100vw;
+  }
+
+  .schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header {
+    padding: 12px;
+  }
+
+  .schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header p {
+    font-size: .84rem;
+  }
+
   .schedule-drawer-type-control {
     max-width: none;
   }
@@ -10823,6 +11069,44 @@ h1,
   .schedule-job-picker,
   .schedule-job-selection-empty {
     padding: 12px;
+  }
+
+  .drawer-job-schedule-manager .schedule-mode-control {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .drawer-job-schedule-manager .schedule-mode-control legend {
+    grid-column: 1 / -1;
+  }
+
+  .drawer-job-schedule-manager .selected-workday-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .drawer-job-schedule-manager .selected-workday-fields .time-separator {
+    display: none;
+  }
+
+  .drawer-job-schedule-manager .selected-workday-fields .workday-duration,
+  .drawer-job-schedule-manager .selected-workday-fields .workday-crew {
+    grid-column: 1 / -1;
+  }
+
+  .drawer-job-schedule-manager .job-schedule-actions {
+    bottom: -12px;
+    border-radius: 12px 12px 0 0;
+    margin: 0 -12px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .drawer-job-schedule-manager .job-schedule-actions button:first-child {
+    flex: 1 0 100%;
+  }
+
+  .drawer-job-schedule-manager .job-schedule-actions button:not(:first-child) {
+    flex: 1 1 calc(50% - 5px);
   }
 }
 

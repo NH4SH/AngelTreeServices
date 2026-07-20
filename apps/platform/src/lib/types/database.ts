@@ -1169,6 +1169,16 @@ export type ScheduleEventWithRelations = ScheduleEvent & {
   })[];
 };
 
+export type ScheduleJobOption = Pick<
+  Job,
+  "id" | "customer_id" | "organization_id" | "service_location_id" | "status" | "service_type" | "requested_scope"
+> & {
+  customers?: Pick<Customer, "id" | "display_name"> | null;
+  organizations?: Pick<Organization, "id" | "name"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
+  schedule_events?: ScheduleEventWithRelations[];
+};
+
 export type CalendarEntrySource = "appointment" | "schedule_event";
 
 export type CalendarEntry = {

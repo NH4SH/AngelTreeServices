@@ -179,3 +179,43 @@ pass.
   existing closeout workflow.
 - Production migration application and deployment are intentionally not part of
   this pass.
+
+## Global schedule drawer integration
+
+The `/admin/schedule` Add event drawer now treats Job as a scheduling workflow
+rather than a generic one-event form. Staff first choose a work order using a
+searchable selector that matches customer or organization, service address,
+job ID, service type, and scope. The selected-job summary confirms the
+contracting party, property, scope, and current workday count before editing.
+
+The drawer embeds the same `JobScheduleManager` and atomic
+`save_job_work_sessions` action used by job detail. It supports unscheduled and
+already-scheduled jobs, single-day and direct multi-select modes, per-day hours,
+crew assignments, return visits, and explicit conflict override without
+creating a second scheduling implementation. Saving closes the drawer and
+refreshes the existing day, week, or month calendar route. Opening a job event
+now offers `Edit job schedule`, which loads the whole normalized schedule
+instead of editing one daily event in isolation.
+
+Non-job event types retain the existing generic event action and fields. The
+drawer stays compact for estimates, PTO, unavailable blocks, and internal
+events, while widening only for the job scheduler. Cancelled normalized work
+sessions remain available through an explicit Cancelled filter but are hidden
+from the default calendar so replacement history does not appear as current
+work.
+
+No migration was added for this integration. Authenticated browser checks
+covered day, week, and month entry points; existing and unscheduled jobs;
+nonconsecutive days; different daily hours; crew assignment; return visits;
+conflict warning and override; save/close refresh; non-job forms; and mobile
+overflow at 430x932 and 390x844.
+
+Additional screenshots:
+
+- `output/playwright/global-schedule-job-drawer/add-event-job-1440x900.png`
+- `output/playwright/global-schedule-job-drawer/linked-existing-job-1440x900.png`
+- `output/playwright/global-schedule-job-drawer/selected-days-different-hours-1366x768.png`
+- `output/playwright/global-schedule-job-drawer/saved-workdays-week-1366x768.png`
+- `output/playwright/global-schedule-job-drawer/return-visit-week-1366x768.png`
+- `output/playwright/global-schedule-job-drawer/mobile-calendar-430x932.png`
+- `output/playwright/global-schedule-job-drawer/mobile-workdays-390x844.png`

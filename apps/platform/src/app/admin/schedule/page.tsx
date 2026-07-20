@@ -17,7 +17,7 @@ import { CommunicationControls } from "@/components/communication-controls";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
-import { AddScheduleEventForm, ScheduleEventEditForm } from "./ScheduleEventForm";
+import { ScheduleEventDrawerContent, ScheduleEventEditForm } from "./ScheduleEventForm";
 import {
   updateAppointmentStatusFromForm,
   updateScheduleEventStatusFromForm,
@@ -47,7 +47,7 @@ import {
   type ScheduleView,
 } from "./schedule-utils";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getJobOptions } from "@/lib/data/jobs";
+import { getScheduleJobOptions } from "@/lib/data/jobs";
 import { getScheduleCalendarData } from "@/lib/data/schedule";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getDirectionsUrl } from "@/lib/maps";
@@ -56,7 +56,7 @@ import type {
   AppointmentWithRelations,
   AssignableUser,
   CalendarEntry,
-  Job,
+  ScheduleJobOption,
   ScheduleConflict,
   ScheduleEventStatus,
   ScheduleEventWithRelations,
@@ -70,6 +70,7 @@ type SchedulePageProps = {
     date?: string;
     event?: string;
     event_type?: string;
+    job?: string;
     new?: string;
     status?: string;
     view?: string;
@@ -106,7 +107,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
       startsAtOrAfter: range.start.toISOString(),
       startsBefore: range.end.toISOString(),
     }),
-    getJobOptions(),
+    getScheduleJobOptions(),
   ]);
   const days = getVisibleDays(date, view);
   const groupedEntries = groupEntriesByDate(schedule.data.entries);
@@ -287,6 +288,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
         {params.new === "1" ? (
           <ScheduleEventFormDrawer
             current={query}
+            initialJobId={params.job}
             jobs={jobs.data}
             users={schedule.data.users}
           />
@@ -655,33 +657,30 @@ function CalendarEntryCard({
 
 function ScheduleEventFormDrawer({
   current,
+  initialJobId,
   jobs,
   users,
 }: {
   current: ScheduleQuery;
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  initialJobId?: string;
+  jobs: ScheduleJobOption[];
   users: ScheduleUser[];
 }) {
   const selectedDate = getDateAnchor(current.date);
+  const closeHref = buildScheduleHref(current, { new: undefined, job: undefined });
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="add-schedule-event-title" aria-modal="true">
       <div className="appointment-backdrop" />
-      <aside className="appointment-drawer">
-        <div className="appointment-drawer-header">
-          <div>
-            <span>New schedule event</span>
-            <h2 id="add-schedule-event-title">Add event</h2>
-            <p>Schedule field work, estimates, PTO, unavailable time, or internal company events.</p>
-          </div>
-          <Link aria-label="Close add event" href={buildScheduleHref(current, { new: undefined })}>
-            <X aria-hidden="true" size={17} />
-          </Link>
-        </div>
-        <AddScheduleEventForm defaultStartsAt={toDrawerDateTime(selectedDate)} jobs={jobs} users={users} />
-        <Link className="drawer-cancel-link" href={buildScheduleHref(current, { new: undefined })}>
-          Cancel
-        </Link>
+      <aside className="appointment-drawer schedule-event-drawer">
+        <ScheduleEventDrawerContent
+          closeHref={closeHref}
+          defaultDate={formatDateInput(selectedDate)}
+          defaultStartsAt={toDrawerDateTime(selectedDate)}
+          initialJobId={initialJobId}
+          jobs={jobs}
+          users={users}
+        />
       </aside>
     </div>
   );
@@ -698,7 +697,7 @@ function ScheduleEventDetailPanel({
   communications: import("@/lib/types/database").CustomerCommunication[];
   current: ScheduleQuery;
   event: ScheduleEventWithRelations;
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "service_location_id">[];
+  jobs: ScheduleJobOption[];
   recipientOptions: { email: string; label: string; source: "customer" | "organization" }[];
   users: ScheduleUser[];
 }) {
@@ -818,6 +817,9 @@ function ScheduleEventDetailPanel({
         </dl>
 
         <div className="appointment-detail-actions">
+          {event.event_type === "job" && event.job_id ? (
+            <Link className="primary-action" href={buildScheduleHref(current, { event: undefined, job: event.job_id, new: "1" })}>Edit job schedule</Link>
+          ) : null}
           {event.job_id ? <Link href={`/admin/jobs/${event.job_id}`}>Open job</Link> : null}
           <Link href="/admin/equipment">Assign equipment</Link>
           {directionsUrl ? (
@@ -845,10 +847,10 @@ function ScheduleEventDetailPanel({
           </section>
         ) : null}
 
-        <details className="appointment-edit-details">
+        {event.event_type !== "job" ? <details className="appointment-edit-details">
           <summary>Edit event details</summary>
           <ScheduleEventEditForm event={event} jobs={jobs} users={users} />
-        </details>
+        </details> : null}
       </aside>
     </div>
   );

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations } from "@/lib/types/database";
+import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations, ScheduleJobOption } from "@/lib/types/database";
 
 export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "in_progress" | "billing" | "completed" | "needs_attention" | "all";
 export type JobsIndexSort = "action" | "scheduled" | "updated" | "customer" | "value";
@@ -293,6 +293,30 @@ export async function getJobOptions(): Promise<DataResult<Pick<Job, "id" | "stat
 
   return {
     data: (data ?? []) as Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[],
+    error: null,
+  };
+}
+
+export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOption[]>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { data: [], error: "Supabase is not configured." };
+  }
+
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(
+      "id, status, service_type, customer_id, organization_id, service_location_id, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name), organizations:organizations!jobs_organization_id_fkey(id, name), service_locations:service_locations!jobs_service_location_id_fkey(id, label, street, city, state, postal_code), schedule_events:schedule_events!schedule_events_job_id_fkey(*, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))",
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  return {
+    data: (data ?? []) as unknown as ScheduleJobOption[],
     error: null,
   };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, Plus, Save, Trash2, UsersRound } from "lucide-react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { saveJobWorkSessions, type JobScheduleActionState } from "@/app/admin/jobs/actions";
@@ -24,21 +25,29 @@ type SessionDraft = {
 };
 
 export function JobScheduleManager({
+  closeHref,
+  defaultDate,
+  embedded = false,
   events,
   jobId,
   users,
 }: {
+  closeHref?: string;
+  defaultDate?: string;
+  embedded?: boolean;
   events: ScheduleEventWithRelations[];
   jobId: string;
   users: AssignableUser[];
 }) {
+  const router = useRouter();
   const activeEvents = events.filter((event) => ["scheduled", "confirmed", "in_progress"].includes(event.status));
   const initialSessions = activeEvents.map(fromEvent).sort(byDate);
   const initialCrewIds = [...new Set(initialSessions.flatMap((session) => session.assigned_user_ids))];
+  const fallbackDate = defaultDate ?? quickDate(1);
   const [state, action, pending] = useReliableActionState(saveJobWorkSessions, initialState);
-  const [open, setOpen] = useState(initialSessions.length === 0);
+  const [open, setOpen] = useState(embedded || initialSessions.length === 0);
   const [mode, setMode] = useState<"single" | "multiple">(initialSessions.length > 1 ? "multiple" : "single");
-  const [sessions, setSessions] = useState<SessionDraft[]>(initialSessions.length ? initialSessions : [newSession(quickDate(1))]);
+  const [sessions, setSessions] = useState<SessionDraft[]>(initialSessions.length ? initialSessions : [newSession(fallbackDate)]);
   const [savedSessions, setSavedSessions] = useState<SessionDraft[]>(initialSessions);
   const [defaultStart, setDefaultStart] = useState(initialSessions[0]?.start_time ?? "08:00");
   const [defaultEnd, setDefaultEnd] = useState(initialSessions[0]?.end_time ?? "16:00");
@@ -60,9 +69,14 @@ export function JobScheduleManager({
     if (state.status !== "success") return;
     const nextSavedSessions = state.sessionCount === 0 ? [] : sessions;
     setSavedSessions(nextSavedSessions);
-    setSessions(nextSavedSessions.length ? nextSavedSessions : [newSession(quickDate(1))]);
+    setSessions(nextSavedSessions.length ? nextSavedSessions : [newSession(fallbackDate)]);
     setSelectedRows([]);
-    setOpen(false);
+    if (embedded && closeHref) {
+      router.replace(closeHref);
+      router.refresh();
+    } else {
+      setOpen(false);
+    }
     // Each completed action produces a new state object; capture that submitted draft once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
@@ -141,7 +155,11 @@ export function JobScheduleManager({
   }
 
   function closeEditor() {
-    const restored = savedSessions.length ? savedSessions : [newSession(quickDate(1))];
+    if (embedded && closeHref) {
+      router.replace(closeHref);
+      return;
+    }
+    const restored = savedSessions.length ? savedSessions : [newSession(fallbackDate)];
     setSessions(restored);
     setMode(savedSessions.length > 1 ? "multiple" : "single");
     setRangeStart(restored[0]?.date ?? quickDate(1));
@@ -153,8 +171,8 @@ export function JobScheduleManager({
   const summary = scheduleSummary(savedSessions);
 
   return (
-    <section className="job-schedule-manager">
-      <div className="job-schedule-summary">
+    <section className={`job-schedule-manager${embedded ? " drawer-job-schedule-manager" : ""}`}>
+      {!embedded ? <div className="job-schedule-summary">
         <div>
           <p className="surface-label"><CalendarDays size={17} />Schedule and crew</p>
           <h2>{activeCount ? activeCount === 1 ? "Scheduled for 1 workday" : `Scheduled for ${activeCount} workdays` : "To be scheduled"}</h2>
@@ -163,9 +181,9 @@ export function JobScheduleManager({
         <button aria-expanded={open} className="secondary-action" onClick={() => open ? closeEditor() : setOpen(true)} type="button">
           <CalendarDays size={17} />{activeCount ? "Edit schedule" : "Schedule job"}<ChevronDown className={open ? "disclosure-open" : ""} size={17} />
         </button>
-      </div>
+      </div> : null}
 
-      {activeCount ? <div className="job-workday-summary-list">{savedSessions.map((session, index) => (
+      {!embedded && activeCount ? <div className="job-workday-summary-list">{savedSessions.map((session, index) => (
         <div className={isToday(session.date) ? "today" : ""} key={session.clientId}>
           <strong>{isToday(session.date) ? "Today, " : ""}{formatDate(session.date)}</strong>
           <span>{formatTime(session.start_time)}-{formatTime(session.end_time)}</span>
@@ -198,10 +216,11 @@ export function JobScheduleManager({
                 <div><strong>Default hours</strong><span>Newly selected workdays start with these hours.</span></div>
                 <label>Default start<input onChange={(event) => setDefaultStart(event.target.value)} type="time" value={defaultStart} /></label>
                 <label>Default end<input min={defaultStart} onChange={(event) => setDefaultEnd(event.target.value)} type="time" value={defaultEnd} /></label>
-                <button className="secondary-action" disabled={!sessions.length} onClick={() => applyDefaultHours("all")} type="button">Apply default hours to all selected days</button>
+                <button className="secondary-action" disabled={!sessions.length} onClick={() => applyDefaultHours("all")} type="button">Apply hours to all workdays</button>
               </div>
 
-              <div className="workday-calendar" aria-label="Select workdays">
+              <div className="schedule-date-column">
+                <div className="workday-calendar" aria-label="Select workdays">
                 <div className="workday-calendar-heading">
                   <div><span>Select workdays</span><strong>{sessions.length} {sessions.length === 1 ? "workday" : "workdays"} selected</strong></div>
                   <div className="calendar-month-actions">
@@ -229,19 +248,21 @@ export function JobScheduleManager({
                   <span>Click dates individually. Shift-click selects the dates between two choices.</span>
                   <button className="secondary-action" disabled={!sessions.length} onClick={() => { setSessions([]); setSelectedRows([]); }} type="button">Clear selection</button>
                 </div>
+                </div>
+
+                <details className="schedule-range-shortcut">
+                  <summary>Select a date range</summary>
+                  <div className="schedule-range-controls">
+                    <label>Start date<input max={rangeEnd || undefined} onChange={(event) => setRangeStart(event.target.value)} type="date" value={rangeStart} /></label>
+                    <label>End date<input min={rangeStart || undefined} onChange={(event) => setRangeEnd(event.target.value)} type="date" value={rangeEnd} /></label>
+                    <label className="checkbox-field"><input checked={excludeWeekends} onChange={(event) => setExcludeWeekends(event.target.checked)} type="checkbox" />Exclude weekends</label>
+                    <button className="secondary-action" onClick={addRange} type="button"><Plus size={16} />Add range to selected days</button>
+                  </div>
+                </details>
               </div>
 
-              <details className="schedule-range-shortcut">
-                <summary>Select a date range</summary>
-                <div className="schedule-range-controls">
-                  <label>Start date<input max={rangeEnd || undefined} onChange={(event) => setRangeStart(event.target.value)} type="date" value={rangeStart} /></label>
-                  <label>End date<input min={rangeStart || undefined} onChange={(event) => setRangeEnd(event.target.value)} type="date" value={rangeEnd} /></label>
-                  <label className="checkbox-field"><input checked={excludeWeekends} onChange={(event) => setExcludeWeekends(event.target.checked)} type="checkbox" />Exclude weekends</label>
-                  <button className="secondary-action" onClick={addRange} type="button"><Plus size={16} />Add range to selected days</button>
-                </div>
-              </details>
-
-              {sessions.length > 1 ? (
+              <div className="schedule-workday-column">
+                {sessions.length > 1 ? (
                 <details className="workday-bulk-editor" aria-label="Bulk workday actions" open={sessions.length > 2 ? true : undefined}>
                   <summary className="bulk-editor-heading"><div><strong>Bulk actions</strong><span>{selectedRows.length ? `${selectedRows.length} rows selected` : sessions.length === 2 ? "Open when you want to change both days together." : "Select rows below to edit only those days."}</span></div></summary>
                   <div className="bulk-hour-actions">
@@ -256,14 +277,14 @@ export function JobScheduleManager({
                   </div> : null}
                   <button className="danger-secondary-action" disabled={!selectedRows.length} onClick={removeSelectedRows} type="button"><Trash2 size={16} />Remove selected days</button>
                 </details>
-              ) : null}
+                ) : null}
 
               <div className="selected-workday-heading">
                 <div><strong>Selected workdays</strong><span>Adjust each shift directly. Changes stay with the date while you browse other months.</span></div>
                 {sessions.length ? <label className="checkbox-field"><input checked={selectedRows.length === sessions.length} onChange={(event) => setSelectedRows(event.target.checked ? sessions.map((session) => session.clientId) : [])} type="checkbox" />Select all rows</label> : null}
               </div>
 
-              {sessions.length ? <div className="selected-workday-list">{sessions.map((session, index) => {
+                {sessions.length ? <div className="selected-workday-list">{sessions.map((session, index) => {
                 const errors = clientErrors.get(session.clientId) ?? [];
                 const conflicts = state.conflicts?.filter((conflict) => conflict.includes(session.date)) ?? [];
                 return <article className={`selected-workday-row${errors.length ? " has-error" : ""}`} key={session.clientId}>
@@ -289,7 +310,8 @@ export function JobScheduleManager({
                   {errors.map((error) => <p className="workday-row-error" key={error} role="alert">{error}</p>)}
                   {conflicts.map((conflict) => <p className="workday-row-warning" key={conflict}>{conflict}</p>)}
                 </article>;
-              })}</div> : <div className="schedule-empty-selection"><CalendarDays size={24} /><strong>No workdays selected</strong><span>Choose dates in the calendar above. Each date will appear here with editable hours.</span></div>}
+                })}</div> : <div className="schedule-empty-selection"><CalendarDays size={24} /><strong>No workdays selected</strong><span>Choose dates in the calendar above. Each date will appear here with editable hours.</span></div>}
+              </div>
             </section>
           )}
 
@@ -304,7 +326,7 @@ export function JobScheduleManager({
           <div className="job-schedule-actions">
             <button disabled={pending || sessions.length === 0 || hasClientErrors} type="submit"><Save size={17} />{pending ? "Saving schedule..." : "Save schedule"}</button>
             {savedSessions.length ? <button className="danger-secondary-action" disabled={pending} name="clear_schedule" onClick={(event) => { if (!window.confirm("Clear the entire job schedule? Work records, photos, time, and payroll data will remain unchanged.")) event.preventDefault(); }} type="submit" value="1">Clear schedule</button> : null}
-            <button className="secondary-action" onClick={closeEditor} type="button">Close</button>
+            <button className="secondary-action" onClick={closeEditor} type="button">{embedded ? "Cancel" : "Close"}</button>
           </div>
         </form>
       ) : null}

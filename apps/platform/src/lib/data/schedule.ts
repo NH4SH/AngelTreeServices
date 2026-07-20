@@ -213,6 +213,15 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   });
 
   const scheduleEvents = ((eventsResult.data ?? []) as ScheduleEventWithRelations[]).filter((event) => {
+    if (
+      (!filters.status || filters.status === "all") &&
+      event.event_type === "job" &&
+      event.status === "cancelled" &&
+      event.work_session_group_id
+    ) {
+      return false;
+    }
+
     const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.user_id);
 
     if (filters.assignedUserId === "unassigned") {

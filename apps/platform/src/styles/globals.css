@@ -1669,6 +1669,382 @@
   width: 82px;
 }
 
+.multi-select-scheduler {
+  display: grid;
+  gap: 18px;
+}
+
+.schedule-default-hours {
+  align-items: end;
+  background: #eef5f0;
+  border: 1px solid #cfddd3;
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(190px, 1fr) minmax(140px, 180px) minmax(140px, 180px) auto;
+  padding: 14px;
+}
+
+.schedule-default-hours > div,
+.selected-workday-heading > div,
+.bulk-editor-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.schedule-default-hours span,
+.selected-workday-heading span,
+.bulk-editor-heading span {
+  color: #607067;
+  font-size: .86rem;
+}
+
+.schedule-default-hours label,
+.selected-workday-fields label,
+.bulk-crew-actions label {
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.workday-calendar {
+  background: #fdfefd;
+  border: 1px solid #c9d9cd;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  max-width: 820px;
+  padding: 16px;
+}
+
+.workday-calendar-heading,
+.calendar-month-actions,
+.calendar-selection-actions,
+.selected-workday-heading,
+.selected-workday-title,
+.bulk-hour-actions,
+.bulk-crew-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.workday-calendar-heading,
+.calendar-selection-actions,
+.selected-workday-heading,
+.selected-workday-title {
+  justify-content: space-between;
+}
+
+.workday-calendar-heading > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.workday-calendar-heading > div:first-child > span {
+  color: #28523a;
+  font-size: .8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.workday-calendar-heading > div:first-child > strong {
+  font-size: 1.1rem;
+}
+
+.calendar-month-label {
+  color: #162d21;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.workday-calendar-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekday {
+  color: #5c6961;
+  font-size: .75rem;
+  font-weight: 800;
+  padding: 3px 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.workday-calendar-grid button,
+.calendar-empty {
+  aspect-ratio: 1 / .82;
+  min-height: 52px;
+}
+
+.workday-calendar-grid button {
+  align-items: center;
+  background: #f7faf8;
+  border: 1px solid #d3ded6;
+  border-radius: 6px;
+  color: #223329;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font-size: .98rem;
+  font-weight: 720;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+}
+
+.workday-calendar-grid button:hover {
+  background: #eaf3ec;
+  border-color: #7ca388;
+}
+
+.workday-calendar-grid button.selected {
+  background: #174b32;
+  border-color: #174b32;
+  box-shadow: inset 0 0 0 2px #ffffff;
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.workday-calendar-grid button.selected::after {
+  background: #ffffff;
+  border: 2px solid #174b32;
+  border-radius: 50%;
+  content: "";
+  height: 8px;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 8px;
+}
+
+.workday-calendar-grid button.today:not(.selected) {
+  border: 2px solid #174b32;
+}
+
+.workday-calendar-grid button small {
+  font-size: .62rem;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.calendar-selection-actions {
+  border-top: 1px solid #d7e2da;
+  color: #607067;
+  font-size: .82rem;
+  padding-top: 12px;
+}
+
+.schedule-range-shortcut {
+  border: 1px solid #d3ded6;
+  border-radius: 7px;
+  background: #f9fbfa;
+}
+
+.schedule-range-shortcut > summary {
+  color: #174b32;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 46px;
+  padding: 13px 14px;
+}
+
+.schedule-range-shortcut .schedule-range-controls {
+  border-top: 1px solid #d7e2da;
+  padding: 14px;
+}
+
+.workday-bulk-editor {
+  background: #eef5f0;
+  border: 1px solid #c8d9cd;
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.bulk-editor-heading {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.bulk-editor-heading > div {
+  display: inline-grid;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.bulk-hour-actions button,
+.bulk-crew-actions button {
+  min-height: 42px;
+}
+
+.bulk-crew-actions {
+  align-items: end;
+}
+
+.bulk-crew-actions label {
+  align-items: center;
+  flex: 1 1 260px;
+  grid-template-columns: auto minmax(180px, 260px);
+  min-width: 0;
+}
+
+.bulk-crew-actions label select {
+  grid-column: 1 / -1;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.selected-workday-heading {
+  border-bottom: 1px solid #d3ded6;
+  padding: 2px 0 12px;
+}
+
+.selected-workday-list {
+  display: grid;
+  gap: 10px;
+}
+
+.selected-workday-row {
+  background: #ffffff;
+  border: 1px solid #cddbd1;
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.selected-workday-row.has-error {
+  border-color: #b85c55;
+}
+
+.selected-workday-title {
+  border-bottom: 1px solid #e0e8e2;
+  padding-bottom: 10px;
+}
+
+.selected-workday-title > div {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.selected-workday-title > div span {
+  color: #607067;
+  font-size: .8rem;
+}
+
+.row-selection input {
+  height: 20px;
+  width: 20px;
+}
+
+.selected-workday-fields {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(130px, 180px) auto minmax(130px, 180px) minmax(130px, auto) minmax(180px, 1fr);
+}
+
+.selected-workday-fields input,
+.selected-workday-fields select,
+.schedule-default-hours input {
+  min-height: 44px;
+}
+
+.time-separator {
+  color: #607067;
+  font-weight: 750;
+  padding-bottom: 13px;
+}
+
+.workday-duration {
+  align-items: center;
+  color: #245038;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.workday-crew select {
+  min-height: 54px;
+}
+
+.workday-time-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.workday-time-presets button {
+  align-items: center;
+  background: #f1f6f2;
+  border: 1px solid #c8d7cc;
+  color: #26352c;
+  display: inline-flex;
+  gap: 5px;
+  min-height: 38px;
+  padding: 7px 10px;
+}
+
+.workday-time-presets button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.workday-row-error,
+.workday-row-warning {
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 700;
+  margin: 0;
+  padding: 9px 11px;
+}
+
+.workday-row-error {
+  background: #fff0ee;
+  border: 1px solid #d99a94;
+  color: #7d302b;
+}
+
+.workday-row-warning {
+  background: #fff8e7;
+  border: 1px solid #e2c576;
+  color: #65501c;
+}
+
+.schedule-empty-selection {
+  align-items: center;
+  background: #f7faf8;
+  border: 1px dashed #b9cabf;
+  border-radius: 7px;
+  color: #607067;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  padding: 28px 16px;
+  text-align: center;
+}
+
+.schedule-empty-selection strong {
+  color: #26352c;
+}
+
+.schedule-crew-controls.multi-day-options {
+  grid-template-columns: minmax(160px, 220px) minmax(260px, 1fr);
+}
+
+.schedule-crew-controls.multi-day-options > label:last-child {
+  grid-column: auto;
+}
+
 .job-session-fields .schedule-time-shortcuts,
 .job-session-fields .schedule-duration-shortcuts {
   grid-column: 1 / -1;
@@ -1784,6 +2160,28 @@
   .job-workday-summary-list small {
     grid-column: 1 / -1;
   }
+
+  .schedule-default-hours {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .schedule-default-hours > div,
+  .schedule-default-hours > button {
+    grid-column: 1 / -1;
+  }
+
+  .selected-workday-fields {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .workday-duration,
+  .workday-crew {
+    grid-column: 1 / -1;
+  }
+
+  .schedule-crew-controls.multi-day-options {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 430px) {
@@ -1816,6 +2214,98 @@
   .job-workday-summary-list > div,
   .crew-workday-list > div {
     grid-template-columns: 1fr;
+  }
+
+  .schedule-default-hours,
+  .schedule-crew-controls.multi-day-options {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-default-hours > *,
+  .schedule-crew-controls.multi-day-options > * {
+    grid-column: 1 !important;
+  }
+
+  .workday-calendar {
+    padding: 12px;
+  }
+
+  .workday-calendar-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-month-actions {
+    justify-content: space-between;
+  }
+
+  .workday-calendar-grid {
+    gap: 4px;
+  }
+
+  .workday-calendar-grid button,
+  .calendar-empty {
+    aspect-ratio: 1 / 1;
+    min-height: 40px;
+  }
+
+  .workday-calendar-grid button {
+    font-size: .9rem;
+    padding: 2px;
+  }
+
+  .workday-calendar-grid button.selected::after {
+    height: 6px;
+    right: 4px;
+    top: 4px;
+    width: 6px;
+  }
+
+  .calendar-selection-actions,
+  .selected-workday-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .selected-workday-row {
+    padding: 12px;
+  }
+
+  .selected-workday-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .selected-workday-fields .time-separator {
+    display: none;
+  }
+
+  .selected-workday-fields .workday-duration,
+  .selected-workday-fields .workday-crew {
+    grid-column: 1 / -1;
+  }
+
+  .workday-time-presets button,
+  .bulk-hour-actions button,
+  .bulk-crew-actions button {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .bulk-crew-actions {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .bulk-crew-actions label {
+    display: grid;
+    flex-basis: auto;
+    grid-template-columns: auto 1fr;
+    width: 100%;
+  }
+
+  .bulk-crew-actions > button {
+    min-width: 0;
+    width: 100%;
   }
 }
 

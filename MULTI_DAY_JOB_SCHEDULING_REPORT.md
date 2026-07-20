@@ -54,11 +54,18 @@ Next Monday, or a native accessible date field; select a preset or exact start;
 then choose 2, 4, 6, or 8 hours or an exact end time. New sessions default to
 8:00 AM-4:00 PM.
 
-Multiple days builds a date range with weekends excluded by default. The live
-list supports individual hours, removing a date, adding a nonconsecutive date,
-copying previous hours, applying hours to every day, moving one day, moving one
-day and all following days, and shifting the whole schedule by a day count.
-Crew, status, and internal scheduling note can be applied to all sessions.
+Multiple days uses a direct month calendar. Staff click individual dates to
+toggle them, Shift-click to add the dates between two choices, and can move
+between months without losing the current draft. An optional range shortcut
+remains available for sequential work, with weekends excluded by default.
+
+Each chosen date immediately creates a chronological workday row with its own
+hours and crew. Default hours apply only to newly selected dates unless staff
+explicitly apply them to all rows. Full day, morning, afternoon, custom, and
+copy-previous-day controls support different daily schedules. Row selection
+enables bulk hours, crew assignment, and removal without changing unselected
+days. Status and the internal scheduling note continue to apply to the whole
+schedule.
 
 The editor is collapsed behind Edit schedule on job detail. Clear schedule has
 an explicit confirmation and cancels active session rows instead of deleting
@@ -135,6 +142,12 @@ pass.
 - `git diff --check` - passed.
 - Authenticated Playwright inspection - passed for admin job detail, week
   calendar, crew job detail, and responsive editor layouts.
+- Multi-select interaction inspection - passed for nonconsecutive dates,
+  Shift-click ranges, cross-month persistence, per-day hours, bulk row
+  selection, and restoring the saved schedule when an unsaved edit is closed.
+- Responsive overflow checks - passed at 430x932, 390x844, and 375x812; the
+  390px viewport reports matching viewport/document widths with no horizontal
+  overflow.
 
 ## Screenshots
 
@@ -146,6 +159,12 @@ pass.
 - `output/playwright/multi-day-scheduling/crew-schedule-430x932.png`
 - `output/playwright/multi-day-scheduling/mobile-scheduling-390x844.png`
 - `output/playwright/multi-day-scheduling/mobile-scheduling-375x812.png`
+- `output/playwright/multi-select-scheduling/nonconsecutive-calendar-1440x900.png`
+- `output/playwright/multi-select-scheduling/bulk-and-different-hours-1366x768.png`
+- `output/playwright/multi-select-scheduling/cross-month-selection-1366x768.png`
+- `output/playwright/multi-select-scheduling/mobile-calendar-430x932.png`
+- `output/playwright/multi-select-scheduling/mobile-bulk-390x844.png`
+- `output/playwright/multi-select-scheduling/mobile-workday-row-375x812.png`
 
 ## Unresolved assumptions
 

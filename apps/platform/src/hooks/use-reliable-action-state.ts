@@ -40,12 +40,28 @@ export function useReliableActionState<State, Payload>(
     try {
       const nextState = await actionRef.current(stateRef.current, payload);
 
-      if (mountedRef.current) {
+      // Redirecting server actions may finish without a state payload while the
+      // destination is loading. Keep the current state until navigation unmounts.
+      if (nextState !== undefined && mountedRef.current) {
         flushSync(() => {
           stateRef.current = nextState;
           setState(nextState);
         });
       }
+    } catch (error) {
+      if (isNextNavigationSignal(error)) {
+        throw error;
+      }
+
+      const failureState = toFailureState(stateRef.current);
+      if (!failureState || !mountedRef.current) {
+        throw error;
+      }
+
+      flushSync(() => {
+        stateRef.current = failureState;
+        setState(failureState);
+      });
     } finally {
       pendingRef.current = false;
 
@@ -56,4 +72,25 @@ export function useReliableActionState<State, Payload>(
   }, []);
 
   return [state, dispatch, pending];
+}
+
+function toFailureState<State>(currentState: State): State | null {
+  if (!currentState || typeof currentState !== "object" || !("status" in currentState) || !("message" in currentState)) {
+    return null;
+  }
+
+  return {
+    ...currentState,
+    status: "error",
+    message: "That action could not finish. Please try again. Your previous click may already have been saved.",
+  } as State;
+}
+
+function isNextNavigationSignal(error: unknown) {
+  if (!error || typeof error !== "object" || !("digest" in error)) {
+    return false;
+  }
+
+  const digest = String(error.digest);
+  return digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_HTTP_ERROR_FALLBACK");
 }

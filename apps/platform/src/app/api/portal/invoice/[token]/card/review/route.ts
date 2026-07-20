@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   const { token } = await params;
-  const context = await getPortalCardPaymentContext(token);
+  const context = await getPortalCardPaymentContext(token, stripeConfig.stripe);
   if (!context.ok) return paymentError(context.message, context.status);
 
   const tokenHash = hashPortalToken(token);
@@ -29,7 +29,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     p_token_hash: tokenHash,
   });
   if (preferenceError) {
-    console.error("Card payment preference save failed", preferenceError);
+    console.error("Card payment preference save failed", { applicationErrorCode: "payment_preference_save_failed", route: "invoice_portal_card_review" });
     return paymentError("Online payment is not available right now. Please try again later.", 503);
   }
 

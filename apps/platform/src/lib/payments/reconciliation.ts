@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
@@ -15,7 +16,7 @@ export async function getSuccessfulPaymentTotal(
 ) {
   const { data, error } = await supabase
     .from("payments")
-    .select("amount_cents, refunded_principal_cents")
+    .select("amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status")
     .eq("invoice_id", invoiceId)
     .eq("status", "succeeded");
 
@@ -26,7 +27,7 @@ export async function getSuccessfulPaymentTotal(
   return {
     error: null,
     totalCents: (data ?? []).reduce(
-      (sum, payment) => sum + Math.max(0, Number(payment.amount_cents ?? 0) - Number(payment.refunded_principal_cents ?? 0)),
+      (sum, payment) => sum + netSuccessfulPaymentPrincipal(payment),
       0,
     ),
   };

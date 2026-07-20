@@ -1,6 +1,7 @@
 import "server-only";
 
 import { hasAllowedRole, platformRoleGroups, type PlatformRoleName } from "@/lib/auth/roles";
+import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { reportUtcBounds, resolveReportFilters, safeRate, type ReportFilters } from "@/lib/reporting/definitions";
 import { createClient } from "@/lib/supabase/server";
 import type { ReportingSettings, ServiceCategory } from "@/lib/types/database";
@@ -30,7 +31,7 @@ export type ReportInvoice = {
   payments: ReportPayment[];
 };
 
-export type ReportPayment = { id: string; invoice_id: string; amount_cents: number; refunded_principal_cents: number; payment_method: string | null; provider: string | null; status: string; paid_at: string | null; created_at: string };
+export type ReportPayment = { id: string; invoice_id: string; amount_cents: number; refunded_principal_cents: number; disputed_principal_cents: number; dispute_status: string | null; payment_method: string | null; provider: string | null; status: string; paid_at: string | null; created_at: string };
 export type ReportJob = {
   id: string; customer_id: string | null; organization_id: string | null; service_location_id: string; assigned_crew_user_id: string | null; lead_source_id: string | null;
   status: string; priority: string; service_type: string | null; created_at: string; updated_at: string; scheduled_start_at: string | null; scheduled_end_at: string | null; completed_at: string | null;
@@ -142,10 +143,10 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   if (filters.status) jobQuery = jobQuery.eq("status", filters.status);
 
   const invoiceQuery = canViewFinancials
-    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, payment_method, provider, status, paid_at, created_at)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
+    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const paymentQuery = canViewFinancials
-    ? supabase.from("payments").select("id, invoice_id, amount_cents, refunded_principal_cents, payment_method, provider, status, paid_at, created_at").eq("status", "succeeded").gte("paid_at", current.start).lt("paid_at", current.endExclusive).order("paid_at", { ascending: false }).limit(5000)
+    ? supabase.from("payments").select("id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at").eq("status", "succeeded").gte("paid_at", current.start).lt("paid_at", current.endExclusive).order("paid_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const timeQuery = canViewFinancials
     ? supabase.from("time_entries").select("id, user_id, job_id, entry_type, status, clock_in_at, clock_out_at, break_minutes, profiles(id, full_name, email), jobs(id, assigned_crew_user_id), time_entry_approvals(approval_status, approved_at)").gte("clock_in_at", current.start).lt("clock_in_at", current.endExclusive).order("clock_in_at", { ascending: false }).limit(5000)
@@ -160,7 +161,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     quoteQuery,
     jobQuery,
     invoiceQuery,
-    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, payment_method, provider, status, paid_at, created_at)").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
     paymentQuery,
     timeQuery,
     scheduleQuery,
@@ -186,7 +187,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     previousQuoteQuery,
     supabase.from("jobs").select("id, status, completed_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
     canViewFinancials ? supabase.from("invoices").select("id, status, total_cents").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
-    canViewFinancials ? supabase.from("payments").select("id, amount_cents, refunded_principal_cents, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("payments").select("id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
 
   const results = [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, organizationsResult, ownershipReviewResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult];
@@ -245,7 +246,10 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   const priorQuotes = (previousQuotes.data ?? []) as { status: string; total_cents: number; sent_at: string | null; approved_at: string | null }[];
   const priorJobs = (estimatorOnly ? [] : previousJobs.data ?? []) as { status: string; completed_at: string | null }[];
   const priorInvoices = (previousInvoices.data ?? []) as { status: string; total_cents: number }[];
-  const priorPayments = (previousPayments.data ?? []) as { amount_cents: number; refunded_principal_cents: number }[];
+  const priorPayments = (previousPayments.data ?? []) as Pick<
+    ReportPayment,
+    "amount_cents" | "refunded_principal_cents" | "disputed_principal_cents" | "dispute_status"
+  >[];
 
   return {
     settings,
@@ -315,7 +319,7 @@ export async function getDashboardReportingSummary(canViewFinancials: boolean) {
   const [quotes, invoices, payments, outstanding] = await Promise.all([
     supabase.from("quotes").select("status, total_cents, approved_at").gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000),
     canViewFinancials ? supabase.from("invoices").select("status, total_cents").gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
-    canViewFinancials ? supabase.from("payments").select("amount_cents, refunded_principal_cents").eq("status", "succeeded").gte("paid_at", bounds.start).lt("paid_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("payments").select("amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status").eq("status", "succeeded").gte("paid_at", bounds.start).lt("paid_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
     canViewFinancials ? supabase.from("invoices").select("status, balance_due_cents, due_at").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
   const quoteRows = quotes.data ?? []; const eligible = quoteRows.filter((quote) => !["draft", "cancelled"].includes(quote.status)); const approved = eligible.filter((quote) => quote.status === "approved" || quote.approved_at);
@@ -331,9 +335,7 @@ export function successfulPaymentTotal(invoice: ReportInvoice) {
   return invoice.payments.filter((payment) => payment.status === "succeeded").reduce((sum, payment) => sum + netPaymentPrincipal(payment), 0);
 }
 
-function netPaymentPrincipal(payment: { amount_cents: number; refunded_principal_cents?: number }) {
-  return Math.max(0, payment.amount_cents - Number(payment.refunded_principal_cents ?? 0));
-}
+const netPaymentPrincipal = netSuccessfulPaymentPrincipal;
 
 function buildProfitability(
   jobs: ReportJob[], invoices: ReportInvoice[], entries: ReportTimeEntry[], costs: ReportJobCost[], rates: ReportLaborRate[], usage: ReportEquipmentUsage[], settings: ReportingSettings,

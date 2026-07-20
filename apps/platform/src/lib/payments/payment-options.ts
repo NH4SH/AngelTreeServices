@@ -1,16 +1,14 @@
 import "server-only";
 
+import { normalizeBusinessCheckMailingAddress } from "@/lib/payments/check-mailing-address";
+import { cardPaymentFeatureEnabled } from "@/lib/payments/card-feature";
+
 export type InvoicePaymentPreference = "ach" | "card" | "cash_check_pickup" | "check_mail";
-export type OnlinePaymentChannel = Extract<InvoicePaymentPreference, "ach" | "card">;
 
 const preferences = new Set<InvoicePaymentPreference>(["ach", "card", "cash_check_pickup", "check_mail"]);
 
 export function isInvoicePaymentPreference(value: unknown): value is InvoicePaymentPreference {
   return typeof value === "string" && preferences.has(value as InvoicePaymentPreference);
-}
-
-export function isOnlinePaymentChannel(value: unknown): value is OnlinePaymentChannel {
-  return value === "ach" || value === "card";
 }
 
 export function getInvoicePaymentConfiguration() {
@@ -26,8 +24,12 @@ export function getInvoicePaymentConfiguration() {
 
   return {
     achEnabled: true,
-    businessCheckMailingAddress: process.env.BUSINESS_CHECK_MAILING_ADDRESS?.trim() || null,
-    cardEnabled: Boolean(stripePublishableKey) && (surchargeEnabled || unsurchargedCardEnabled),
+    businessCheckMailingAddress: normalizeBusinessCheckMailingAddress(process.env.BUSINESS_CHECK_MAILING_ADDRESS),
+    cardEnabled: cardPaymentFeatureEnabled({
+      hasPublishableKey: Boolean(stripePublishableKey),
+      surchargeEnabled,
+      unsurchargedCardEnabled,
+    }),
     stripePublishableKey,
     surchargeBps,
     surchargeEnabled,

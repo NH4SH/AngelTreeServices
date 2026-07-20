@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import { achCheckoutPaymentMethodTypes } from "@/lib/payments/ach-checkout";
 
 type CheckoutReservation = {
   amount_cents: number;
@@ -11,8 +12,8 @@ type CheckoutReservation = {
   currency: string;
   expires_at: string | null;
   id: string;
-  payment_channel: "ach" | "card";
-  status: "creating" | "open" | "completed" | "expired" | "failed" | "cancelled";
+  payment_channel: "ach";
+  status: "creating" | "open" | "processing" | "completed" | "expired" | "failed" | "cancelled";
   stripe_checkout_session_id: string | null;
 };
 
@@ -25,7 +26,6 @@ type CheckoutInput = {
   invoiceNumber: string | null;
   organizationId?: string | null;
   portalUrl: string;
-  paymentChannel: "ach" | "card";
   serviceLocationId?: string | null;
   stripe: Stripe;
   supabase: SupabaseClient<any, "public", any>;
@@ -43,14 +43,20 @@ const reservationTimeoutMs = 5 * 60 * 1000;
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const currency = (input.currency ?? "usd").toLowerCase();
-  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency, input.paymentChannel);
+  const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency);
 
   if (!reservationResult.ok) {
     return reservationResult;
   }
 
   const reservation = reservationResult.reservation;
-  if (reservation.invoice_principal_cents !== input.amountCents || reservation.payment_channel !== input.paymentChannel) {
+  if (reservation.status === "processing") {
+    return { ok: false, message: "A payment is already processing for this invoice." };
+  }
+  if (reservation.status === "creating" && reservation.payment_channel !== "ach") {
+    return { ok: false, message: "A payment is already being submitted for this invoice." };
+  }
+  if (reservation.invoice_principal_cents !== input.amountCents || reservation.payment_channel !== "ach") {
     await expireReservation(input.supabase, input.stripe, reservation);
     return createOrReuseInvoiceCheckout(input);
   }
@@ -68,8 +74,8 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
         .eq("id", reservation.id)
         .eq("status", "open");
       return createOrReuseInvoiceCheckout(input);
-    } catch (error) {
-      console.error("Stripe Checkout session retrieval failed", error);
+    } catch {
+      logAchCheckoutError("checkout_session_retrieval_failed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
   }
@@ -84,6 +90,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
       invoice_id: input.invoiceId,
       invoice_number: input.invoiceNumber ?? "",
       organization_id: input.organizationId ?? "",
+      payment_channel: "ach",
       service_location_id: input.serviceLocationId ?? "",
     });
     const session = await input.stripe.checkout.sessions.create(
@@ -103,9 +110,9 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
         ],
         metadata,
         mode: "payment",
-        payment_method_types: input.paymentChannel === "ach" ? ["us_bank_account"] : ["card"],
+        payment_method_types: [...achCheckoutPaymentMethodTypes],
         payment_intent_data: { metadata },
-        success_url: `${input.portalUrl}?payment=${input.paymentChannel === "ach" ? "processing" : "success"}&session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${input.portalUrl}?payment=processing&session_id={CHECKOUT_SESSION_ID}`,
       },
       { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}` },
     );
@@ -128,13 +135,13 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
       .eq("status", "creating");
 
     if (error) {
-      console.error("Stripe Checkout reservation update failed", error);
+      logAchCheckoutError("checkout_reservation_update_failed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
 
     return { ok: true, reused: false, url: session.url };
-  } catch (error) {
-    console.error("Stripe Checkout creation failed", error);
+  } catch {
+    logAchCheckoutError("checkout_session_creation_failed");
     await input.supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id);
     return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
   }
@@ -147,27 +154,29 @@ async function reserveCheckout(
   organizationId: string | null,
   amountCents: number,
   currency: string,
-  paymentChannel: "ach" | "card",
 ): Promise<{ ok: true; reservation: CheckoutReservation } | { ok: false; message: string }> {
   const { data: active, error: activeError } = await supabase
     .from("invoice_checkout_sessions")
     .select("id, amount_cents, invoice_principal_cents, payment_channel, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
     .eq("invoice_id", invoiceId)
-    .in("status", ["creating", "open"])
+    .in("status", ["creating", "open", "processing"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (activeError) {
-    console.error("Stripe Checkout reservation lookup failed", activeError);
+    logAchCheckoutError("checkout_reservation_lookup_failed");
     return { ok: false, message: "A secure payment checkout could not be prepared. Please try again." };
   }
 
   if (active) {
     const reservation = active as CheckoutReservation;
+    if (reservation.status === "processing") {
+      return { ok: false, message: "A payment is already processing for this invoice." };
+    }
     if (reservation.status === "creating" && Date.now() - new Date(reservation.created_at).getTime() > reservationTimeoutMs) {
       await supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id).eq("status", "creating");
-      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentChannel);
+      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
     }
 
     return { ok: true, reservation };
@@ -182,7 +191,7 @@ async function reserveCheckout(
       invoice_id: invoiceId,
       invoice_principal_cents: amountCents,
       organization_id: organizationId,
-      payment_channel: paymentChannel,
+      payment_channel: "ach",
       status: "creating",
       surcharge_cents: 0,
       total_charge_cents: amountCents,
@@ -195,10 +204,10 @@ async function reserveCheckout(
   }
 
   if (error?.code === "23505") {
-    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, paymentChannel);
+    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
   }
 
-  console.error("Stripe Checkout reservation failed", error);
+  logAchCheckoutError("checkout_reservation_insert_failed");
   return { ok: false, message: "A secure payment checkout could not be prepared. Please try again." };
 }
 
@@ -210,8 +219,8 @@ async function expireReservation(
   if (reservation.stripe_checkout_session_id) {
     try {
       await stripe.checkout.sessions.expire(reservation.stripe_checkout_session_id);
-    } catch (error) {
-      console.error("Stripe Checkout session expiry failed", error);
+    } catch {
+      logAchCheckoutError("checkout_session_expiry_failed");
     }
   }
 
@@ -253,8 +262,8 @@ export async function cancelOutstandingInvoiceCheckouts({
     if (session.stripe_checkout_session_id) {
       try {
         await stripe.checkout.sessions.expire(session.stripe_checkout_session_id);
-      } catch (error) {
-        console.error("Stripe Checkout session void expiry failed", error);
+      } catch {
+        logAchCheckoutError("checkout_void_expiry_failed");
         return { ok: false, message: "Could not close the active customer checkout before voiding this invoice." };
       }
     }
@@ -279,4 +288,12 @@ function getStripeId(value: string | { id: string } | null) {
 
 function isFuture(expiresAt: string | null) {
   return !expiresAt || new Date(expiresAt).getTime() > Date.now();
+}
+
+function logAchCheckoutError(applicationErrorCode: string) {
+  console.error("Stripe ACH Checkout operation failed", {
+    applicationErrorCode,
+    paymentChannel: "ach",
+    route: "/api/portal/invoice/[token]/checkout",
+  });
 }

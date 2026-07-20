@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
-import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
+import { getPortalPaymentContext } from "@/lib/payments/portal-card-context";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { createOrReuseInvoiceCheckout } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
-import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -29,59 +27,9 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   }
 
   const { token } = await params;
-  const lookup = await getInvoiceByPortalToken(token);
-  if (lookup.status !== "ready" || !lookup.invoice) {
-    return paymentError("This invoice link is not available.", 404);
-  }
-
-  const supabase = getServiceRoleClient();
-  if (!supabase) {
-    return paymentError("Online payment is not available for this invoice.", 503);
-  }
-
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .select("id, customer_id, organization_id, invoice_number, status, total_cents, customers:customers!invoices_customer_id_fkey(email), organizations(billing_email), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email), jobs(service_location_id)")
-    .eq("id", lookup.invoice.id)
-    .single();
-
-  if (invoiceError || !invoice) {
-    console.error("Stripe Checkout invoice lookup failed", invoiceError);
-    return paymentError("This invoice is not available.", 404);
-  }
-
-  if (!["sent", "partially_paid", "overdue"].includes(invoice.status)) {
-    return paymentError("This invoice is not available for online payment.", 409);
-  }
-
-  const payments = await getSuccessfulPaymentTotal(supabase, invoice.id);
-  if (payments.error) {
-    console.error("Stripe Checkout payment total failed", payments.error);
-    return paymentError("Online payment is not available right now. Please try again later.", 503);
-  }
-
-  const amountCents = Number(invoice.total_cents) - payments.totalCents;
-  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
-    return paymentError("This invoice no longer has a balance due.", 409);
-  }
-  if (amountCents > 99_999_999) {
-    return paymentError("This invoice amount cannot be paid online. Please contact Angel Tree Services.", 409);
-  }
-
-  const { data: processingCheckout, error: processingError } = await supabase
-    .from("invoice_checkout_sessions")
-    .select("id")
-    .eq("invoice_id", invoice.id)
-    .eq("status", "processing")
-    .limit(1)
-    .maybeSingle();
-  if (processingError) {
-    console.error("Stripe Checkout processing-payment lookup failed", processingError);
-    return paymentError("Online payment is not available right now. Please try again later.", 503);
-  }
-  if (processingCheckout) {
-    return paymentError("A bank payment is already processing for this invoice.", 409);
-  }
+  const context = await getPortalPaymentContext(token, stripeConfig.stripe);
+  if (!context.ok) return paymentError(context.message, context.status);
+  const { invoice, invoicePrincipalCents: amountCents, supabase } = context;
 
   const tokenHash = hashPortalToken(token);
   if (!tokenHash) {
@@ -92,7 +40,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     p_token_hash: tokenHash,
   });
   if (preferenceError) {
-    console.error("Checkout payment preference save failed", preferenceError);
+    console.error("Checkout payment preference save failed", { applicationErrorCode: "payment_preference_save_failed", route: "invoice_portal_ach_checkout" });
     return paymentError("Online payment is not available right now. Please try again later.", 503);
   }
 
@@ -100,13 +48,12 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const checkout = await createOrReuseInvoiceCheckout({
     amountCents,
-    customerEmail: getBillingEmail(invoice),
+    customerEmail: context.billingEmail,
     customerId: invoice.customer_id,
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoice_number,
     organizationId: invoice.organization_id,
     portalUrl,
-    paymentChannel: "ach",
     serviceLocationId: job?.service_location_id ?? null,
     stripe: stripeConfig.stripe,
     supabase,
@@ -117,19 +64,6 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   }
 
   return NextResponse.json({ ok: true, url: checkout.url });
-}
-
-function getBillingEmail(invoice: {
-  customers?: { email?: string | null } | { email?: string | null }[] | null;
-  organizations?: { billing_email?: string | null } | { billing_email?: string | null }[] | null;
-  billing_contact?: { email?: string | null } | { email?: string | null }[] | null;
-  accounts_payable_contact?: { email?: string | null } | { email?: string | null }[] | null;
-}) {
-  return asOne(invoice.accounts_payable_contact)?.email
-    ?? asOne(invoice.billing_contact)?.email
-    ?? asOne(invoice.customers)?.email
-    ?? asOne(invoice.organizations)?.billing_email
-    ?? null;
 }
 
 function asOne<T>(value: T | T[] | null | undefined) {

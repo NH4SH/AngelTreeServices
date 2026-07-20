@@ -1,0 +1,16 @@
+-- Production was audited before this migration was prepared. Every constraint
+-- below had zero rows where customer_id and organization_id were both null or
+-- both populated. Validation scans historical rows without rewriting them.
+
+alter table public.change_orders validate constraint change_orders_exactly_one_contracting_party;
+alter table public.customer_communications validate constraint customer_communications_exactly_one_contracting_party;
+alter table public.customer_deliveries validate constraint customer_deliveries_exactly_one_contracting_party;
+alter table public.invoice_checkout_sessions validate constraint invoice_checkout_sessions_exactly_one_contracting_party;
+alter table public.invoice_portal_tokens validate constraint invoice_portal_tokens_exactly_one_contracting_party;
+alter table public.invoices validate constraint invoices_exactly_one_contracting_party;
+alter table public.jobs validate constraint jobs_exactly_one_contracting_party;
+alter table public.payments validate constraint payments_exactly_one_contracting_party;
+alter table public.quote_portal_tokens validate constraint quote_portal_tokens_exactly_one_contracting_party;
+alter table public.quotes validate constraint quotes_exactly_one_contracting_party;
+alter table public.service_locations validate constraint service_locations_exactly_one_owner;
+alter table public.service_recommendations validate constraint service_recommendations_exactly_one_contracting_party;

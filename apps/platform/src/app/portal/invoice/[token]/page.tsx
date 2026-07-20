@@ -7,6 +7,7 @@ import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
+import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 
 type CustomerInvoicePortalPageProps = {
   params: Promise<{
@@ -28,7 +29,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
   const scopeSummary = getInvoiceScopeSummary(invoice);
   const paymentTotalCents = (invoice.payments ?? [])
     .filter((paymentRecord) => paymentRecord.status === "succeeded")
-    .reduce((sum, paymentRecord) => sum + Math.max(0, paymentRecord.amount_cents - paymentRecord.refunded_principal_cents), 0);
+    .reduce((sum, paymentRecord) => sum + netSuccessfulPaymentPrincipal(paymentRecord), 0);
   const amountDueCents = Math.max(0, invoice.total_cents - paymentTotalCents);
   const stripeConfigured = getStripeServerConfig().configured;
   const paymentConfig = getInvoicePaymentConfiguration();

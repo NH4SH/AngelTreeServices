@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { recordActivity } from "@/lib/activity-log";
 import { allocateRefund, normalizeCardFunding } from "@/lib/payments/card-surcharge";
 import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
+import { safeWebhookLog, WebhookProcessingError } from "@/lib/payments/webhook-logging";
 import { getStripeServerConfig, getStripeWebhookSecret } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   try {
     event = config.stripe.webhooks.constructEvent(await request.text(), signature, webhookSecret);
   } catch (error) {
-    console.error("Stripe webhook signature verification failed", error);
+    console.error("Stripe webhook rejected", safeWebhookLog({ error, eventType: null, internalEventCategory: "signature" }));
     return new Response("Invalid signature.", { status: 400 });
   }
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         break;
       case "charge.dispute.created":
       case "charge.dispute.closed":
-        await recordDispute(event.data.object as Stripe.Dispute, event.type);
+        await recordDispute(event.data.object as Stripe.Dispute, event.type, event.created);
         break;
       default:
         break;
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     await completeWebhookEvent(event.id, receipt.tracked);
   } catch (error) {
     await releaseWebhookEvent(event.id);
-    console.error("Stripe webhook handling failed", { eventId: event.id, eventType: event.type, error });
+    console.error("Stripe webhook processing failed", safeWebhookLog({ error, eventType: event.type, internalEventCategory: "processing" }));
     return new Response("Webhook handler failed.", { status: 500 });
   }
   return Response.json({ received: true });
@@ -113,6 +114,7 @@ async function reconcileSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.
   const supabase = requireServiceRoleClient();
   const { error } = await supabase.from("invoice_checkout_sessions").update({
     completed_at: new Date().toISOString(),
+    processing_expires_at: null,
     status: "completed",
     stripe_payment_intent_id: getStripeId(session.payment_intent),
   }).eq("id", checkout.id);
@@ -189,7 +191,7 @@ async function upsertStripePayment(checkout: CheckoutRecord, session: Stripe.Che
 async function markCheckoutFailed(session: Stripe.Checkout.Session) {
   const supabase = requireServiceRoleClient();
   const failedAt = new Date().toISOString();
-  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, status: "failed" })
+  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
     .eq("stripe_checkout_session_id", session.id).in("status", ["creating", "open", "processing"]);
   await supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
     .eq("provider_checkout_session_id", session.id).eq("status", "pending");
@@ -199,7 +201,7 @@ async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   const supabase = requireServiceRoleClient();
   const failedAt = new Date().toISOString();
   if (paymentIntent.metadata.payment_channel !== "card") {
-    await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, status: "failed" })
+    await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
       .eq("stripe_payment_intent_id", paymentIntent.id).in("status", ["creating", "open", "processing"]);
     await supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
       .eq("provider_payment_id", paymentIntent.id).eq("status", "pending");
@@ -207,7 +209,7 @@ async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
   const reservation = await getCardCheckoutForPaymentIntent(paymentIntent);
   if (!reservation) return;
-  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, status: "failed" })
+  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
     .eq("id", reservation.id).in("status", ["creating", "open", "processing"]);
   await upsertFailedPaymentIntentPayment(reservation, paymentIntent, failedAt);
 }
@@ -257,6 +259,7 @@ async function reconcileSuccessfulPaymentIntent(stripe: Stripe, eventPaymentInte
   const { error: updateError } = await supabase.from("invoice_checkout_sessions").update({
     authorized_at: completedAt,
     completed_at: completedAt,
+    processing_expires_at: null,
     status: "completed",
     stripe_payment_intent_id: paymentIntent.id,
   }).eq("id", reservation.id);
@@ -394,23 +397,29 @@ async function reconcileRefund(charge: Stripe.Charge) {
   if (!reconciliation.ok) throw new Error(reconciliation.message);
 }
 
-async function recordDispute(dispute: Stripe.Dispute, eventType: string) {
+async function recordDispute(dispute: Stripe.Dispute, eventType: string, eventCreated: number) {
   const supabase = requireServiceRoleClient();
   const chargeId = getStripeId(dispute.charge);
-  if (!chargeId) return;
-  const { data: payment } = await supabase.from("payments").select("id, invoice_id").eq("provider_charge_id", chargeId).maybeSingle();
-  if (!payment) return;
-  const { error } = await supabase.from("payments").update({
-    dispute_status: dispute.status,
-    disputed_at: new Date().toISOString(),
-  }).eq("id", payment.id);
-  if (error) throw new Error(error.message);
-  await recordActivity(supabase, {
-    eventType: eventType === "charge.dispute.created" ? "stripe_dispute_opened" : "stripe_dispute_updated",
-    metadata: { dispute_id: dispute.id, dispute_status: dispute.status, payment_id: payment.id },
-    subjectId: payment.invoice_id,
-    subjectType: "invoice",
+  if (!chargeId) throw new WebhookProcessingError("dispute_charge_missing", false);
+  const result = await supabase.rpc("reconcile_stripe_dispute", {
+    p_charge_id: chargeId,
+    p_dispute_id: dispute.id,
+    p_dispute_status: dispute.status,
+    p_disputed_gross_cents: dispute.amount,
+    p_event_created_at: new Date(eventCreated * 1000).toISOString(),
+    p_event_type: eventType,
   });
+  if (result.error) {
+    if (result.error.code === "P0002") {
+      throw new WebhookProcessingError("dispute_payment_not_ready", true);
+    }
+    throw new WebhookProcessingError("dispute_reconciliation_failed", true);
+  }
+  const reconciliation = Array.isArray(result.data) ? result.data[0] : result.data;
+  if (reconciliation?.invoice_balance_changed) {
+    const invoiceResult = await reconcileInvoiceBalance(supabase, reconciliation.invoice_id);
+    if (!invoiceResult.ok) throw new WebhookProcessingError("dispute_invoice_reconciliation_failed", true);
+  }
 }
 
 async function claimWebhookEvent(event: Stripe.Event): Promise<{ duplicate: boolean; tracked: boolean }> {

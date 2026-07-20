@@ -696,6 +696,10 @@ export type Payment = {
   net_received_cents: number | null;
   refunded_principal_cents: number;
   refunded_surcharge_cents: number;
+  provider_dispute_id: string | null;
+  disputed_gross_cents: number;
+  disputed_principal_cents: number;
+  disputed_surcharge_cents: number;
   submitted_at: string | null;
   authorized_at: string | null;
   succeeded_at: string | null;
@@ -703,6 +707,9 @@ export type Payment = {
   refunded_at: string | null;
   dispute_status: "warning_needs_response" | "warning_under_review" | "warning_closed" | "needs_response" | "under_review" | "won" | "lost" | null;
   disputed_at: string | null;
+  dispute_event_created_at: string | null;
+  dispute_closed_at: string | null;
+  dispute_principal_restored_at: string | null;
   reference: string | null;
   notes: string | null;
   status: PaymentStatus;

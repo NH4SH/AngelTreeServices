@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   const { token } = await params;
-  const context = await getPortalCardPaymentContext(token);
+  const context = await getPortalCardPaymentContext(token, stripeConfig.stripe);
   if (!context.ok) return paymentError(context.message, context.status);
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const result = await confirmCardReview({

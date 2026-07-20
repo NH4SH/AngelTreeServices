@@ -35,7 +35,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     p_token_hash: tokenHash,
   });
   if (error) {
-    console.error("Invoice payment preference save failed", { invoiceId: lookup.invoice.id, error });
+    console.error("Invoice payment preference save failed", {
+      applicationErrorCode: "payment_preference_save_failed",
+      route: "invoice_portal_payment_preference",
+    });
     return responseError("This payment preference could not be saved right now.", 409);
   }
 

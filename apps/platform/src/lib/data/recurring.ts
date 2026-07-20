@@ -1,5 +1,7 @@
 import "server-only";
 
+import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+
 import { createClient } from "@/lib/supabase/server";
 import type {
   Customer,
@@ -98,7 +100,7 @@ export async function getRecurringOperationsDashboard(
     canViewFinancials
       ? supabase
           .from("invoices")
-          .select("id, status, total_cents, payments(amount_cents, status)")
+          .select("id, status, total_cents, payments(amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, status)")
           .not("recurring_occurrence_id", "is", null)
           .limit(2000)
       : Promise.resolve({ data: [], error: null }),
@@ -111,7 +113,7 @@ export async function getRecurringOperationsDashboard(
   const invoiceRows = (recurringInvoices.data ?? []) as {
     status: string;
     total_cents: number;
-    payments?: { amount_cents: number; status: string }[] | null;
+    payments?: { amount_cents: number; refunded_principal_cents: number; disputed_principal_cents: number; dispute_status: string | null; status: string }[] | null;
   }[];
   const decidedRenewals = quoteRows.filter((quote) =>
     ["approved", "declined"].includes(quote.status),
@@ -141,7 +143,7 @@ export async function getRecurringOperationsDashboard(
           (invoice.payments ?? [])
             .filter((payment) => payment.status === "succeeded")
             .reduce(
-              (paymentTotal, payment) => paymentTotal + payment.amount_cents,
+              (paymentTotal, payment) => paymentTotal + netSuccessfulPaymentPrincipal(payment),
               0,
             ),
         0,

@@ -27,6 +27,7 @@ import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
+import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import type { InvoiceStatus, Payment } from "@/lib/types/database";
 
 type InvoiceDetailPageProps = {
@@ -57,7 +58,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
   const stripeSetup = getStripeServerConfig();
   const successfulPaymentCents = (detail.data?.payments ?? [])
     .filter((payment) => payment.status === "succeeded")
-    .reduce((sum, payment) => sum + Math.max(0, payment.amount_cents - payment.refunded_principal_cents), 0);
+    .reduce((sum, payment) => sum + netSuccessfulPaymentPrincipal(payment), 0);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
@@ -298,7 +299,14 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
                                 <div><dt>Stripe fee</dt><dd>{payment.stripe_fee_cents == null ? "Pending" : formatCurrency(payment.stripe_fee_cents)}</dd></div>
                                 <div><dt>Net received</dt><dd>{payment.net_received_cents == null ? "Pending" : formatCurrency(payment.net_received_cents)}</dd></div>
                                 <div><dt>Provider reference</dt><dd>{payment.provider_charge_id ?? payment.provider_payment_id ?? "Pending"}</dd></div>
-                                {payment.dispute_status ? <div><dt>Dispute</dt><dd>{payment.dispute_status.replaceAll("_", " ")}</dd></div> : null}
+                                {payment.dispute_status ? (
+                                  <>
+                                    <div><dt>Dispute</dt><dd>{payment.dispute_status.replaceAll("_", " ")}</dd></div>
+                                    <div><dt>Disputed total</dt><dd>{formatCurrency(payment.disputed_gross_cents)}</dd></div>
+                                    <div><dt>Disputed principal</dt><dd>{formatCurrency(payment.disputed_principal_cents)}</dd></div>
+                                    <div><dt>Disputed surcharge</dt><dd>{formatCurrency(payment.disputed_surcharge_cents)}</dd></div>
+                                  </>
+                                ) : null}
                                 {payment.refunded_principal_cents || payment.refunded_surcharge_cents ? (
                                   <div><dt>Refunded</dt><dd>{formatCurrency(payment.refunded_principal_cents + payment.refunded_surcharge_cents)}</dd></div>
                                 ) : null}

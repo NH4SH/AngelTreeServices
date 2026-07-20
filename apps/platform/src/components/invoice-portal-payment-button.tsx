@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { Building2, CreditCard, Mail } from "lucide-react";
+import { Banknote, Building2, CreditCard, Mail } from "lucide-react";
 
 type Preference = "ach" | "card" | "cash_check_pickup" | "check_mail";
 type CardReview = {
@@ -38,7 +38,7 @@ export function InvoicePortalPaymentChooser({
   surchargeEnabled: boolean;
   token: string;
 }) {
-  const [preference, setPreference] = useState<Preference>(selectedPreference === "card" ? "card" : selectedPreference === "check_mail" ? "check_mail" : "ach");
+  const [preference, setPreference] = useState<Preference>(selectedPreference ?? "ach");
   const [message, setMessage] = useState("");
   const [messageStatus, setMessageStatus] = useState<"error" | "success">("success");
   const [pending, setPending] = useState(false);
@@ -80,14 +80,17 @@ export function InvoicePortalPaymentChooser({
       const response = await fetch(`/api/portal/invoice/${encodeURIComponent(token)}/payment-preference`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preference: "check_mail" }),
+        body: JSON.stringify({ preference }),
       });
       const body = await response.json().catch(() => null) as { message?: string; notificationFailed?: boolean; ok?: boolean } | null;
       if (!response.ok || !body?.ok) throw new Error(body?.message ?? "Your check preference could not be saved right now.");
       setMessageStatus("success");
+      const isPickup = preference === "cash_check_pickup";
       setMessage(body.notificationFailed
-        ? "Your mail preference was saved, but our email notice could not be sent. Please call (540) 388-8715 with any questions."
-        : "Thanks. Our office has been notified that you plan to mail a check.");
+        ? `Your ${isPickup ? "pickup request" : "mail preference"} was saved, but our email notice could not be sent. Please call (540) 388-8715 with any questions.`
+        : isPickup
+          ? "Thanks. Our office has been notified that you would like us to arrange pickup. No payment has been recorded yet."
+          : "Thanks. Our office has been notified that you plan to mail a check.");
     } catch (error) {
       setMessageStatus("error");
       setMessage(error instanceof Error ? error.message : "Your check preference could not be saved right now.");
@@ -123,6 +126,15 @@ export function InvoicePortalPaymentChooser({
             value="ach"
           />
           <PaymentOption
+            checked={preference === "cash_check_pickup"}
+            description="Ask our office to arrange pickup of cash or a check. This does not mark the invoice paid until payment is received."
+            icon={<Banknote aria-hidden="true" size={24} />}
+            label="Cash or check pickup"
+            name="payment-preference"
+            onChange={() => select("cash_check_pickup")}
+            value="cash_check_pickup"
+          />
+          <PaymentOption
             checked={preference === "check_mail"}
             description="Mail a check using the instructions below. This does not mark the invoice paid until the check is received."
             icon={<Mail aria-hidden="true" size={24} />}
@@ -146,6 +158,13 @@ export function InvoicePortalPaymentChooser({
           <p>Please include invoice {invoiceNumber} on your check.</p>
         </div>
       ) : null}
+      {preference === "cash_check_pickup" ? (
+        <div className="invoice-mailing-instructions">
+          <strong>Pickup request</strong>
+          <p>Confirm this choice and our office will contact you to arrange pickup.</p>
+          <p>Please do not send cash through the mail.</p>
+        </div>
+      ) : null}
       {(preference === "ach" || preference === "card") && !onlinePaymentEnabled ? (
         <p className="form-message error">Online payment is not configured. Please mail a check or contact our office.</p>
       ) : null}
@@ -166,7 +185,7 @@ export function InvoicePortalPaymentChooser({
         </Elements>
       ) : (
         <button className="invoice-payment-continue" disabled={pending || onlineUnavailable} onClick={submitChoice} type="button">
-          {pending ? "Please wait..." : preference === "card" ? "Pay by card" : preference === "ach" ? "Pay by bank account" : "Confirm check payment choice"}
+          {pending ? "Please wait..." : preference === "card" ? "Pay by card" : preference === "ach" ? "Pay by bank account" : preference === "cash_check_pickup" ? "Request payment pickup" : "Confirm check payment choice"}
         </button>
       )}
 

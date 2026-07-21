@@ -8,6 +8,7 @@ import json
 import re
 import sys
 from collections import Counter
+from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlparse
@@ -294,6 +295,71 @@ class Validator:
             self.error(f"Duplicate page title(s): {'; '.join(duplicate_titles)}")
         if duplicate_descriptions:
             self.error(f"Duplicate meta description(s): {'; '.join(duplicate_descriptions)}")
+
+    def validate_video_structured_data(self) -> None:
+        video_keys: Counter[str] = Counter()
+
+        def objects(value: object):
+            if isinstance(value, dict):
+                yield value
+                for child in value.values():
+                    yield from objects(child)
+            elif isinstance(value, list):
+                for child in value:
+                    yield from objects(child)
+
+        def is_absolute_https(value: object) -> bool:
+            if not isinstance(value, str):
+                return False
+            parsed = urlparse(value)
+            return parsed.scheme == "https" and bool(parsed.netloc)
+
+        for route, page in self.pages.items():
+            for index, document in enumerate(page.json_ld, start=1):
+                try:
+                    schema = json.loads(document)
+                except Exception:
+                    continue
+
+                for item in objects(schema):
+                    if item.get("@type") != "VideoObject":
+                        continue
+
+                    label = str(item.get("name") or f"JSON-LD block {index}")
+                    upload_date = item.get("uploadDate")
+                    if not isinstance(upload_date, str) or not re.fullmatch(
+                        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})",
+                        upload_date,
+                    ):
+                        self.error(f"{route}: VideoObject {label!r} needs an ISO 8601 uploadDate with a timezone")
+                    else:
+                        try:
+                            datetime.fromisoformat(upload_date.replace("Z", "+00:00"))
+                        except ValueError:
+                            self.error(f"{route}: VideoObject {label!r} has an invalid uploadDate")
+
+                    media_urls = [item.get("contentUrl"), item.get("embedUrl")]
+                    if not any(is_absolute_https(value) for value in media_urls):
+                        self.error(f"{route}: VideoObject {label!r} needs an absolute HTTPS contentUrl or embedUrl")
+                    for field in ("contentUrl", "embedUrl"):
+                        if field in item and not is_absolute_https(item[field]):
+                            self.error(f"{route}: VideoObject {label!r} has an invalid {field}")
+
+                    thumbnails = item.get("thumbnailUrl")
+                    if isinstance(thumbnails, str):
+                        thumbnails = [thumbnails]
+                    if not isinstance(thumbnails, list) or not thumbnails or not all(
+                        is_absolute_https(value) for value in thumbnails
+                    ):
+                        self.error(f"{route}: VideoObject {label!r} needs absolute HTTPS thumbnailUrl values")
+
+                    identity = str(item.get("contentUrl") or item.get("embedUrl") or item.get("url") or label)
+                    video_keys[f"{route}\0{identity}"] += 1
+
+        for key, count in video_keys.items():
+            if count > 1:
+                route, identity = key.split("\0", 1)
+                self.error(f"{route}: duplicate VideoObject emitted for {identity}")
 
     @staticmethod
     def is_external_reference(reference: str) -> bool:
@@ -978,6 +1044,7 @@ class Validator:
         else:
             self.parse_pages()
             self.validate_metadata()
+            self.validate_video_structured_data()
             self.validate_references()
             self.validate_prefill_links()
             self.validate_navigation_graph()

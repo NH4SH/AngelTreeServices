@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAdminSearchPage } from "@/lib/data/admin-search";
 import { getInvoicesByCustomerId } from "@/lib/data/invoices";
 import { getJobsByCustomerId } from "@/lib/data/jobs";
 import { getQuotesByCustomerId } from "@/lib/data/quotes";
@@ -14,6 +15,7 @@ export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]
   const { data, error } = await supabase
     .from("customers")
     .select("*, service_locations(id, label, street, city, state, postal_code), notes(id, customer_id, body, created_at)")
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .order("created_at", { foreignTable: "notes", ascending: false })
     .limit(1, { foreignTable: "notes" });
@@ -23,6 +25,25 @@ export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]
   }
 
   return { data: (data ?? []) as CustomerWithLocations[], error: null };
+}
+
+export async function getCustomersPage(filters: { archived: boolean; page: number; pageSize: number; query?: string }) {
+  const index = await getAdminSearchPage({ ...filters, recordType: "customer" });
+  if (!index.ids.length) return { data: [] as CustomerWithLocations[], count: index.count, error: index.error };
+  const supabase = await createClient();
+  if (!supabase) return { data: [] as CustomerWithLocations[], count: 0, error: "Supabase is not configured." };
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*, service_locations(id, label, street, city, state, postal_code), notes(id, customer_id, body, created_at)")
+    .in("id", index.ids)
+    .order("created_at", { foreignTable: "notes", ascending: false })
+    .limit(1, { foreignTable: "notes" });
+  return {
+    data: orderByIds((data ?? []) as CustomerWithLocations[], index.ids),
+    count: index.count,
+    error: index.error ?? error?.message ?? null,
+  };
 }
 
 export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[]>> {
@@ -35,6 +56,7 @@ export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "i
   const { data, error } = await supabase
     .from("customers")
     .select("id, display_name, email, phone, billing_address")
+    .is("archived_at", null)
     .order("display_name", { ascending: true });
 
   if (error) {
@@ -54,6 +76,7 @@ export async function getServiceLocations(): Promise<DataResult<ServiceLocation[
   const { data, error } = await supabase
     .from("service_locations")
     .select("*")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -71,9 +94,27 @@ export async function getScheduleCustomerOptions(): Promise<DataResult<ScheduleC
     .from("customers")
     .select("id, display_name, email, phone, billing_address, service_locations(id, label, street, city, state, postal_code)")
     .eq("status", "active")
+    .is("archived_at", null)
     .order("display_name", { ascending: true });
 
   return { data: (data ?? []) as ScheduleCustomerOption[], error: error?.message ?? null };
+}
+
+export async function getServiceLocationsPage(filters: { archived: boolean; page: number; pageSize: number; query?: string }) {
+  const index = await getAdminSearchPage({ ...filters, recordType: "service_location" });
+  if (!index.ids.length) return { data: [] as (ServiceLocation & { customers?: { display_name: string } | null; organizations?: { name: string } | null })[], count: index.count, error: index.error };
+  const supabase = await createClient();
+  if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
+  const { data, error } = await supabase
+    .from("service_locations")
+    .select("*, customers(display_name), organizations(name)")
+    .in("id", index.ids);
+  return { data: orderByIds(data ?? [], index.ids), count: index.count, error: index.error ?? error?.message ?? null };
+}
+
+function orderByIds<T extends { id: string }>(records: T[], ids: string[]) {
+  const order = new Map(ids.map((id, index) => [id, index]));
+  return [...records].sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
 }
 
 export async function getCustomerNotes(customerIds: string[]): Promise<DataResult<Note[]>> {

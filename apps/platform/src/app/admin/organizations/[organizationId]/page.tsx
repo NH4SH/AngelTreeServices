@@ -5,8 +5,11 @@ import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../Orga
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { EmailHistoryList } from "@/components/email-history";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { getOrganizationDetail } from "@/lib/data/organizations";
 import { getCustomerCommunications } from "@/lib/data/communications";
 import { getEmailEvents } from "@/lib/data/email-events";
@@ -35,6 +38,8 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
   const org = detail.data;
   const emailEvents = org ? await getEmailEvents({ organizationId, limit: 15 }) : { data: [], error: null };
   const communications = org ? await getCustomerCommunications({ organizationId, limit: 25 }) : { data: [], error: null };
+  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const lifecyclePreview = org && canArchive ? await getRecordLifecyclePreview("organization", organizationId) : null;
 
   return (
     <PlatformFrame active="organizations" roles={context.roles} userEmail={context.user.email}>
@@ -67,6 +72,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 Edit
               </Link>
             </section>
+            {org.organization.archived_at ? <section className="data-warning" role="status"><strong>Archived organization</strong><p>This account is retained for history and is unavailable for new work until restored.</p></section> : null}
 
             <section className="detail-grid">
               <Panel icon={<Building2 size={18} />} title="Billing">
@@ -189,7 +195,7 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
               </Panel>
             </section>
 
-            <section className="crm-layout">
+            {!org.organization.archived_at ? <section className="crm-layout">
               <aside className="crm-side">
                 <section className="form-panel">
                   <h2>Add contact</h2>
@@ -202,7 +208,9 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                   <AddOrganizationPropertyForm customers={org.customers} organizationId={organizationId} />
                 </section>
               </aside>
-            </section>
+            </section> : null}
+
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={false} listHref="/admin/organizations" preview={lifecyclePreview} /> : null}
 
           </>
         )}

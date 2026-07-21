@@ -13,6 +13,7 @@ import {
   GraduationCap,
   HardHat,
   LayoutDashboard,
+  MapPin,
   Megaphone,
   MessageSquareMore,
   ReceiptText,
@@ -94,6 +95,7 @@ export const navigationItems: NavigationItem[] = [
 
   { id: "customers", label: "Customers", href: "/admin/customers", icon: UsersRound, section: "records", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/customers/*"], keywords: ["people", "homeowners", "contacts"] },
   { id: "organizations", label: "Organizations", href: "/admin/organizations", icon: Building2, section: "records", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/organizations/*"], keywords: ["commercial", "hoa", "property manager", "accounts"] },
+  { id: "properties", label: "Properties", href: "/admin/properties", icon: MapPin, section: "records", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/properties/*"], keywords: ["service locations", "addresses", "sites"] },
   { id: "documents", label: "Documents", href: "/admin/documents", icon: Files, section: "records", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/documents/*"], keywords: ["files", "uploads", "library"] },
 
   { id: "equipment", label: "Equipment", href: "/admin/equipment", icon: Forklift, section: "operations", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/equipment/*"], keywords: ["fleet", "vehicles", "maintenance", "inspections"] },

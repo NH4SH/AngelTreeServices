@@ -6,8 +6,11 @@ import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { getCustomerDetail } from "@/lib/data/customers";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCustomerCommunications } from "@/lib/data/communications";
@@ -37,6 +40,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
   const [detail, leadSources, recurring] = await Promise.all([getCustomerDetail(customerId), getLeadSources(), getRecurringSummaryForCustomer(customerId)]);
   const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
   const communications = detail.data ? await getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null };
+  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const lifecyclePreview = detail.data && canArchive ? await getRecordLifecyclePreview("customer", customerId) : null;
 
   return (
     <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>
@@ -70,6 +75,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 Edit
               </Link>
             </section>
+            {detail.data.customer.archived_at ? <section className="data-warning" role="status"><strong>Archived customer</strong><p>This record is retained for history and is unavailable for new work until restored.</p></section> : null}
 
             <section className="detail-grid">
               <article className="detail-panel">
@@ -102,7 +108,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 </dl>
               </article>
 
-              <article className="detail-panel">
+              {!detail.data.customer.archived_at ? <article className="detail-panel">
                 <PanelTitle icon={<MapPin size={18} />} title="Quick actions" />
                 <div className="quick-action-list">
                   <Link href={`/admin/quotes?new=1&customer_id=${detail.data.customer.id}`}>Create quote</Link>
@@ -113,7 +119,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                   <Link href={`/admin/recurring?new_task=1&customer_id=${customerId}`}>Add follow-up</Link>
                   <Link href={`/admin/recurring?new_plan=1&customer_id=${customerId}`}>Create recurring plan</Link>
                 </div>
-              </article>
+              </article> : null}
             </section>
 
             <section className="detail-grid">
@@ -200,7 +206,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
               </RecordSection>
             </section>
 
-            <section className="crm-layout">
+            {!detail.data.customer.archived_at ? <section className="crm-layout">
               <aside className="crm-side" id="add-location">
                 <section className="form-panel">
                   <h2>Add service location</h2>
@@ -214,7 +220,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                   <AddJobForm customers={[detail.data.customer]} leadSources={leadSources.data} organizations={[]} serviceLocations={detail.data.serviceLocations} />
                 </section>
               </aside>
-            </section>
+            </section> : null}
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/customers" preview={lifecyclePreview} /> : null}
           </>
         )}
       </div>

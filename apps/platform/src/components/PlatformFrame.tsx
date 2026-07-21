@@ -10,6 +10,7 @@ export type PlatformNavigationId =
   | "safety"
   | "customers"
   | "organizations"
+  | "properties"
   | "jobs"
   | "quotes"
   | "change-orders"

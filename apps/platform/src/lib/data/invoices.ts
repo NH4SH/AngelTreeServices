@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
 import type { DataResult, InvoiceDetail, InvoiceWithRelations, JobWithRelations, Note } from "@/lib/types/database";
 
 export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>> {
@@ -13,6 +14,7 @@ export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>>
     .select(
       "*, jobs(id, status, service_type, requested_scope), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -20,6 +22,38 @@ export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>>
   }
 
   return { data: (data ?? []) as InvoiceWithRelations[], error: null };
+}
+
+export async function getInvoicesPage(filters: { archived: boolean; page: number; pageSize: number; query?: string; statuses?: string[] }) {
+  const index = await getAdminSearchPage({ ...filters, recordType: "invoice" });
+  if (!index.ids.length) return { data: [] as InvoiceWithRelations[], count: index.count, error: index.error };
+  const supabase = await createClient();
+  if (!supabase) return { data: [] as InvoiceWithRelations[], count: 0, error: "Supabase is not configured." };
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("*, jobs(id, status, service_type, requested_scope), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)")
+    .in("id", index.ids);
+  return { data: orderByIds((data ?? []) as InvoiceWithRelations[], index.ids), count: index.count, error: index.error ?? error?.message ?? null };
+}
+
+export async function getInvoiceStatusCounts(query?: string) {
+  const statuses = ["draft", "sent", "partially_paid", "paid", "overdue", "void"];
+  const results = await Promise.all(statuses.map(async (status) => [status, await countAdminSearchRecords({ query, recordType: "invoice", statuses: [status] })] as const));
+  return {
+    data: Object.fromEntries(results.map(([status, result]) => [status, result.count])) as Record<string, number>,
+    error: results.find(([, result]) => result.error)?.[1].error ?? null,
+  };
+}
+
+export async function getInvoiceOutstandingTotal(): Promise<{ data: number; error: string | null }> {
+  const supabase = await createClient();
+  if (!supabase) return { data: 0, error: "Supabase is not configured." };
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("balance_due_cents")
+    .is("archived_at", null)
+    .not("status", "in", "(paid,void)");
+  return { data: (data ?? []).reduce((total, invoice) => total + invoice.balance_due_cents, 0), error: error?.message ?? null };
 }
 
 export async function getUnpaidInvoices(): Promise<DataResult<InvoiceWithRelations[]>> {
@@ -34,6 +68,7 @@ export async function getUnpaidInvoices(): Promise<DataResult<InvoiceWithRelatio
     .select(
       "*, jobs(id, status, service_type, requested_scope), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), invoice_line_items(*), payments(*)",
     )
+    .is("archived_at", null)
     .in("status", ["sent", "partially_paid", "overdue"])
     .order("created_at", { ascending: false })
     .limit(12);
@@ -42,6 +77,11 @@ export async function getUnpaidInvoices(): Promise<DataResult<InvoiceWithRelatio
     data: (data ?? []) as InvoiceWithRelations[],
     error: error?.message ?? null,
   };
+}
+
+function orderByIds<T extends { id: string }>(records: T[], ids: string[]) {
+  const order = new Map(ids.map((id, index) => [id, index]));
+  return [...records].sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
 }
 
 export async function getInvoicesByCustomerId(customerId: string): Promise<DataResult<InvoiceWithRelations[]>> {

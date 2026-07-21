@@ -130,20 +130,20 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   const previous = reportUtcBounds(filters.previousStartDate, filters.previousEndDate, filters.timezone);
   const warnings: string[] = [];
 
-  let quoteQuery = supabase.from("quotes").select("id, quote_number, customer_id, organization_id, estimator_user_id, status, total_cents, created_at, sent_at, approved_at, expires_at, customers:customers!quotes_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), profiles:profiles!quotes_estimator_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), quote_line_items(id, total_cents, service_category_id, service_categories(id, label)), jobs:jobs!quotes_job_id_fkey(id)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
+  let quoteQuery = supabase.from("quotes").select("id, quote_number, customer_id, organization_id, estimator_user_id, status, total_cents, created_at, sent_at, approved_at, expires_at, customers:customers!quotes_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), profiles:profiles!quotes_estimator_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), quote_line_items(id, total_cents, service_category_id, service_categories(id, label)), jobs:jobs!quotes_job_id_fkey(id)").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
   if (estimatorOnly) quoteQuery = quoteQuery.eq("estimator_user_id", userId);
   if (filters.customerId) quoteQuery = quoteQuery.eq("customer_id", filters.customerId);
   if (filters.status) quoteQuery = quoteQuery.eq("status", filters.status);
   if (filters.employeeId) quoteQuery = quoteQuery.eq("estimator_user_id", filters.employeeId);
 
-  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers:customers!jobs_customer_id_fkey(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
+  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers:customers!jobs_customer_id_fkey(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
   if (filters.customerId) jobQuery = jobQuery.eq("customer_id", filters.customerId);
   if (filters.leadSourceId) jobQuery = jobQuery.eq("lead_source_id", filters.leadSourceId);
   if (filters.employeeId) jobQuery = jobQuery.eq("assigned_crew_user_id", filters.employeeId);
   if (filters.status) jobQuery = jobQuery.eq("status", filters.status);
 
   const invoiceQuery = canViewFinancials
-    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
+    ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000)
     : Promise.resolve({ data: [], error: null });
   const paymentQuery = canViewFinancials
     ? supabase.from("payments").select("id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at").eq("status", "succeeded").gte("paid_at", current.start).lt("paid_at", current.endExclusive).order("paid_at", { ascending: false }).limit(5000)
@@ -153,7 +153,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     : Promise.resolve({ data: [], error: null });
   const scheduleQuery = supabase.from("schedule_events").select("id, title, event_type, status, job_id, starts_at, ends_at, schedule_event_assignments(user_id)").gte("starts_at", current.start).lt("starts_at", current.endExclusive).order("starts_at").limit(5000);
 
-  let previousQuoteQuery = supabase.from("quotes").select("id, estimator_user_id, status, total_cents, sent_at, approved_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000);
+  let previousQuoteQuery = supabase.from("quotes").select("id, estimator_user_id, status, total_cents, sent_at, approved_at").is("archived_at", null).gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000);
   if (estimatorOnly) previousQuoteQuery = previousQuoteQuery.eq("estimator_user_id", userId);
 
   const [settingsResult, quotesResult, jobsResult, invoicesResult, arInvoicesResult, paymentsResult, timeResult, scheduleResult, customersResult, organizationsResult, ownershipReviewResult, sourcesResult, categoriesResult, costsResult, ratesResult, usageResult, maintenanceResult, problemsResult, inspectionsResult, assetsResult, employeesResult, materialsResult, inventoryTransactionsResult, inventoryBalancesResult, disposalResult, productionResult, materialDeliveriesResult, previousQuotes, previousJobs, previousInvoices, previousPayments] = await Promise.all([
@@ -161,12 +161,12 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     quoteQuery,
     jobQuery,
     invoiceQuery,
-    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("invoices").select("id, invoice_number, customer_id, organization_id, job_id, quote_id, status, total_cents, balance_due_cents, created_at, due_at, paid_at, customers:customers!invoices_customer_id_fkey(id, display_name, lead_source_id, lead_sources(id, name)), organizations(id, name), jobs(id, assigned_crew_user_id, service_location_id, service_locations(id, city, state, postal_code)), invoice_line_items(id, total_cents, service_category_id, service_categories(id, label)), payments(id, invoice_id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, payment_method, provider, status, paid_at, created_at)").is("archived_at", null).gt("balance_due_cents", 0).not("status", "in", "(paid,void)").order("due_at", { ascending: true, nullsFirst: false }).limit(5000) : Promise.resolve({ data: [], error: null }),
     paymentQuery,
     timeQuery,
     scheduleQuery,
-    supabase.from("customers").select("id, display_name, status, organization_id, lead_source_id, created_at, lead_sources(id, name), service_locations(id, city, state, postal_code)").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
-    supabase.from("organizations").select("id, name, status, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
+    supabase.from("customers").select("id, display_name, status, organization_id, lead_source_id, created_at, lead_sources(id, name), service_locations(id, city, state, postal_code)").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
+    supabase.from("organizations").select("id, name, status, created_at").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000),
     supabase.from("contracting_party_review_items").select("id, record_type, record_id, issue_type, details, status, created_at").eq("status", "open").order("created_at", { ascending: false }).limit(1000),
     supabase.from("lead_sources").select("id, name").eq("is_active", true).order("name"),
     supabase.from("service_categories").select("*").eq("is_active", true).order("sort_order"),
@@ -185,8 +185,8 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     supabase.from("production_batches").select("id, batch_number, product_material_id, status, estimated_output_quantity, output_unit, direct_cost_cents, cost_per_unit_cents, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     supabase.from("customer_deliveries").select("id, material_id, job_id, quantity, unit, status, delivered_at, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     previousQuoteQuery,
-    supabase.from("jobs").select("id, status, completed_at").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
-    canViewFinancials ? supabase.from("invoices").select("id, status, total_cents").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
+    supabase.from("jobs").select("id, status, completed_at").is("archived_at", null).gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
+    canViewFinancials ? supabase.from("invoices").select("id, status, total_cents").is("archived_at", null).gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
     canViewFinancials ? supabase.from("payments").select("id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -317,10 +317,10 @@ export async function getDashboardReportingSummary(canViewFinancials: boolean) {
   const filters = resolveReportFilters({ range: "month" }, settings.data.business_timezone);
   const bounds = reportUtcBounds(filters.startDate, filters.endDate, filters.timezone);
   const [quotes, invoices, payments, outstanding] = await Promise.all([
-    supabase.from("quotes").select("status, total_cents, approved_at").gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000),
-    canViewFinancials ? supabase.from("invoices").select("status, total_cents").gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
+    supabase.from("quotes").select("status, total_cents, approved_at").is("archived_at", null).gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000),
+    canViewFinancials ? supabase.from("invoices").select("status, total_cents").is("archived_at", null).gte("created_at", bounds.start).lt("created_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
     canViewFinancials ? supabase.from("payments").select("amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status").eq("status", "succeeded").gte("paid_at", bounds.start).lt("paid_at", bounds.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
-    canViewFinancials ? supabase.from("invoices").select("status, balance_due_cents, due_at").gt("balance_due_cents", 0).not("status", "in", "(paid,void)").limit(5000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.from("invoices").select("status, balance_due_cents, due_at").is("archived_at", null).gt("balance_due_cents", 0).not("status", "in", "(paid,void)").limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);
   const quoteRows = quotes.data ?? []; const eligible = quoteRows.filter((quote) => !["draft", "cancelled"].includes(quote.status)); const approved = eligible.filter((quote) => quote.status === "approved" || quote.approved_at);
   const openRows = outstanding.data ?? []; const now = Date.now();

@@ -86,9 +86,9 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[]): Promise<
     supabase.from("customer_deliveries").select("*").order("delivery_window_start", { ascending: false, nullsFirst: false }).limit(100),
     supabase.from("production_batches").select("*").order("created_at", { ascending: false }).limit(60),
     supabase.from("stockpile_measurements").select("*").order("measured_at", { ascending: false }).limit(100),
-    supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, service_type, status, scheduled_start_at, customers:customers!jobs_customer_id_fkey(display_name), organizations(name)").not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200),
-    supabase.from("customers").select("id, display_name, service_locations(id, label, street, city, state, postal_code)").eq("status", "active").order("display_name"),
-    supabase.from("organizations").select("id, name, organization_type, billing_email, billing_phone").order("name"),
+    supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, service_type, status, scheduled_start_at, customers:customers!jobs_customer_id_fkey(display_name), organizations(name)").is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200),
+    supabase.from("customers").select("id, display_name, service_locations(id, label, street, city, state, postal_code)").is("archived_at", null).eq("status", "active").order("display_name"),
+    supabase.from("organizations").select("id, name, organization_type, billing_email, billing_phone").is("archived_at", null).order("name"),
     supabase.from("equipment_assets").select("id, asset_number, name, category, status").eq("is_active", true).order("name"),
     canViewCosts
       ? supabase.from("material_cost_settings").select("*")

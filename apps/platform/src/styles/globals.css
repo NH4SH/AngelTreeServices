@@ -1501,6 +1501,300 @@
   .reporting-input-form > button { width: 100%; }
 }
 
+/* Admin list search and record lifecycle controls */
+.list-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+
+.list-search {
+  align-items: center;
+  display: flex;
+  flex: 1 1 440px;
+  max-width: 720px;
+  position: relative;
+}
+
+.list-search label {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  display: flex;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 46px 0 14px;
+  width: 100%;
+}
+
+.list-search label:focus-within {
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px oklch(0.88 0.04 154 / 0.7);
+}
+
+.list-search input {
+  background: transparent;
+  border: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+  min-width: 0;
+  outline: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.list-search > button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-muted);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  position: absolute;
+  right: 3px;
+  width: 40px;
+}
+
+.list-view-toggle {
+  align-items: center;
+  background: oklch(0.97 0.01 154);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  display: flex;
+  padding: 3px;
+}
+
+.list-view-toggle a {
+  align-items: center;
+  border-radius: calc(var(--radius-control) - 2px);
+  color: var(--color-muted);
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 750;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.list-view-toggle a[aria-current="page"] {
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px oklch(0.3 0.02 154 / 0.12);
+  color: var(--color-forest);
+}
+
+.list-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.list-pagination a {
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-charcoal);
+  display: inline-flex;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.list-pagination a[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.list-pagination span {
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.record-lifecycle-panel {
+  align-items: center;
+  background: oklch(0.985 0.006 154);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid oklch(0.58 0.03 70);
+  border-radius: var(--radius-panel);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding: 18px;
+}
+
+.record-lifecycle-panel h2 {
+  font-size: 1rem;
+  margin: 3px 0 5px;
+}
+
+.record-lifecycle-panel p {
+  color: var(--color-muted);
+  font-size: 0.87rem;
+  margin: 0;
+  max-width: 66ch;
+}
+
+.record-lifecycle-panel.compact {
+  background: transparent;
+  border: 0;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.record-lifecycle-panel.compact .record-lifecycle-actions { width: 100%; }
+.record-lifecycle-panel.compact .record-lifecycle-actions > button { width: 100%; }
+
+.record-lifecycle-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.danger-action {
+  align-items: center;
+  background: #a33b35;
+  border: 1px solid #8f302b;
+  border-radius: var(--radius-control);
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 750;
+  gap: 7px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 13px;
+}
+
+.danger-action:hover { background: #8f302b; }
+.danger-action:disabled { cursor: not-allowed; opacity: 0.48; }
+
+.record-lifecycle-dialog {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 22px 70px oklch(0.2 0.02 154 / 0.3);
+  color: var(--color-charcoal);
+  max-height: min(720px, calc(100dvh - 32px));
+  max-width: min(580px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+}
+
+.record-lifecycle-dialog::backdrop { background: oklch(0.2 0.02 154 / 0.58); }
+
+.record-lifecycle-form {
+  display: flex;
+  flex-direction: column;
+  max-height: min(720px, calc(100dvh - 32px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.record-lifecycle-form > header,
+.record-lifecycle-form > p,
+.record-lifecycle-form > dl,
+.record-lifecycle-form > section,
+.record-lifecycle-form > label,
+.record-lifecycle-form > .form-message {
+  margin-left: 22px;
+  margin-right: 22px;
+}
+
+.record-lifecycle-form > header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+
+.record-lifecycle-form h2 { font-size: 1.25rem; margin-top: 4px; }
+.record-lifecycle-form > p { color: var(--color-muted); line-height: 1.55; }
+.record-lifecycle-form .icon-button { flex: 0 0 40px; min-height: 40px; width: 40px; }
+
+.record-delete-counts {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.record-delete-counts div {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.record-delete-counts div:nth-child(odd) { border-right: 1px solid var(--color-border); }
+.record-delete-counts dt { color: var(--color-muted); font-size: 0.82rem; }
+.record-delete-counts dd { font-weight: 800; margin: 0; }
+
+.record-delete-blockers {
+  background: #fff7e8;
+  border: 1px solid #e6c984;
+  border-radius: 6px;
+  color: #684713;
+  padding: 14px;
+}
+
+.record-delete-blockers ul { margin: 8px 0; padding-left: 20px; }
+.record-delete-blockers p { color: inherit; font-size: 0.84rem; }
+
+.confirmation-field {
+  color: var(--color-charcoal);
+  display: grid;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 7px;
+}
+
+.confirmation-field input {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.record-lifecycle-form > footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding: 14px 22px max(14px, env(safe-area-inset-bottom));
+  position: sticky;
+}
+
+@media (max-width: 680px) {
+  .list-toolbar,
+  .record-lifecycle-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .list-search { flex-basis: auto; max-width: none; }
+  .list-view-toggle { align-self: stretch; }
+  .list-view-toggle a { flex: 1; justify-content: center; }
+  .list-pagination { justify-content: space-between; }
+  .record-lifecycle-actions { display: grid; grid-template-columns: 1fr; }
+  .record-lifecycle-dialog { max-height: calc(100dvh - 16px); max-width: calc(100vw - 16px); }
+  .record-lifecycle-form { max-height: calc(100dvh - 16px); }
+  .record-delete-counts { grid-template-columns: 1fr; }
+  .record-delete-counts div:nth-child(odd) { border-right: 0; }
+  .record-lifecycle-form > footer { display: grid; grid-template-columns: 1fr 1fr; }
+}
+
 /* Job work sessions */
 .job-schedule-manager {
   display: grid;

@@ -64,6 +64,7 @@ import type {
   ScheduleEventWithRelations,
   ScheduleUser,
 } from "@/lib/types/database";
+import { ListSearch } from "@/components/list-search";
 
 type SchedulePageProps = {
   searchParams: Promise<{
@@ -74,6 +75,7 @@ type SchedulePageProps = {
     event_type?: string;
     job?: string;
     new?: string;
+    q?: string;
     status?: string;
     view?: string;
   }>;
@@ -108,6 +110,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
       status,
       startsAtOrAfter: range.start.toISOString(),
       startsBefore: range.end.toISOString(),
+      search: params.q,
     }),
     getScheduleJobOptions(),
     getScheduleCustomerOptions(),
@@ -151,6 +154,10 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           </p>
           <h1>Schedule</h1>
           <p>Jobs, estimates, follow-ups, PTO, internal events, and crew assignments in one place.</p>
+        </section>
+
+        <section className="list-toolbar schedule-search-toolbar" aria-label="Schedule search">
+          <ListSearch initialValue={params.q} label="Search schedule" placeholder="Search customer, phone, address, event, job, or status" />
         </section>
 
         {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error].filter(Boolean).map((message) => (

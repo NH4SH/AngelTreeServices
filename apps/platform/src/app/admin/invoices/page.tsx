@@ -1,6 +1,8 @@
 import { CircleDollarSign, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
 import { InvoiceStatusActions } from "@/components/workflow-actions";
 import { PortalViewStatus } from "@/components/portal-engagement";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -10,7 +12,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getServiceLocations } from "@/lib/data/customers";
-import { getInvoices } from "@/lib/data/invoices";
+import { getInvoiceOutstandingTotal, getInvoiceStatusCounts, getInvoicesPage } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getOrganizations } from "@/lib/data/organizations";
 import { getServiceCategories } from "@/lib/data/reports";
@@ -22,6 +24,9 @@ type InvoicesPageProps = {
     new?: string;
     customer_id?: string;
     job_id?: string;
+    archived?: string;
+    page?: string;
+    q?: string;
     status?: string;
   }>;
 };
@@ -43,20 +48,20 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     return <SetupRequired title="Configure Supabase before opening invoices" />;
   }
 
-  const [invoices, customers, organizations, jobs, serviceCategories, serviceLocations] = await Promise.all([
-    getInvoices(),
+  const archived = params.archived === "1";
+  const page = positivePage(params.page);
+  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as InvoiceStatus : null;
+  const [invoices, statusCounts, outstanding, customers, organizations, jobs, serviceCategories, serviceLocations] = await Promise.all([
+    getInvoicesPage({ archived, page, pageSize: 25, query: params.q, statuses: selectedStatus ? [selectedStatus] : undefined }),
+    getInvoiceStatusCounts(params.q),
+    getInvoiceOutstandingTotal(),
     getCustomerOptions(),
     getOrganizations(),
     getJobOptions(),
     getServiceCategories(),
     getServiceLocations(),
   ]);
-  const summary = getInvoiceSummary(invoices.data);
-  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as InvoiceStatus : null;
-  const visibleInvoices = selectedStatus ? invoices.data.filter((invoice) => invoice.status === selectedStatus) : invoices.data;
-  const outstandingCents = invoices.data
-    .filter((invoice) => !["paid", "void"].includes(invoice.status))
-    .reduce((sum, invoice) => sum + invoice.balance_due_cents, 0);
+  const summary = statusCounts.data;
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
@@ -76,19 +81,28 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           </Link>
         </section>
 
-        {[invoices.error, customers.error, organizations.error, jobs.error, serviceCategories.error, serviceLocations.error].filter(Boolean).map((message) => (
+        {[invoices.error, statusCounts.error, outstanding.error, customers.error, organizations.error, jobs.error, serviceCategories.error, serviceLocations.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
-        <section className="commerce-summary-strip" aria-label="Invoice workflow summary">
-          {summaryOrder.map((item) => (
-            <SummaryChip active={selectedStatus === item.key} href={`/admin/invoices?status=${item.key}`} key={item.key} label={item.label} value={summary[item.key]} />
-          ))}
-          <SummaryChip emphasis label="Outstanding" value={formatCurrency(outstandingCents)} />
+        <section className="list-toolbar" aria-label="Invoice search and views">
+          <ListSearch initialValue={params.q} label="Search invoices" placeholder="Search invoice, customer, phone, address, status, amount, job, or quote" />
+          <nav className="list-view-toggle" aria-label="Invoice record state">
+            <Link aria-current={!archived && params.q !== "test" ? "page" : undefined} href={listHref("/admin/invoices", params, { archived: undefined, q: params.q === "test" ? undefined : params.q, page: undefined })}>Active</Link>
+            <Link aria-current={archived ? "page" : undefined} href={listHref("/admin/invoices", params, { archived: "1", page: undefined })}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!archived && params.q === "test" ? "page" : undefined} href={listHref("/admin/invoices", params, { archived: undefined, q: "test", page: undefined, status: undefined })}>Test review</Link> : null}
+          </nav>
         </section>
 
-        {visibleInvoices.length === 0 ? (
-          <EmptyState title={selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} invoices` : "No invoices yet"} body={selectedStatus ? "Choose another invoice status to continue." : "Create an invoice from an accepted quote or a completed job."} />
+        {!archived ? <section className="commerce-summary-strip" aria-label="Invoice workflow summary">
+          {summaryOrder.map((item) => (
+            <SummaryChip active={selectedStatus === item.key} href={listHref("/admin/invoices", params, { status: item.key, page: undefined })} key={item.key} label={item.label} value={summary[item.key]} />
+          ))}
+          <SummaryChip emphasis label="Outstanding" value={formatCurrency(outstanding.data)} />
+        </section> : null}
+
+        {invoices.data.length === 0 ? (
+          <EmptyState title={params.q ? "No matching invoices" : archived ? "No archived invoices" : selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} invoices` : "No invoices yet"} body={params.q ? "Try another invoice number, customer, phone, address, amount, job, or quote." : archived ? "Archived invoices will appear here." : selectedStatus ? "Choose another invoice status to continue." : "Create an invoice from an accepted quote or a completed job."} />
         ) : (
           <section className="commerce-table-shell" aria-label="Invoices">
             <div className="commerce-table-header invoice-grid" aria-hidden="true">
@@ -100,7 +114,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
               <span>Actions</span>
             </div>
             <div className="commerce-row-list">
-              {visibleInvoices.map((invoice) => (
+              {invoices.data.map((invoice) => (
                 <article className="commerce-row invoice-grid" key={invoice.id}>
                   <div className="commerce-record-title">
                     <Link href={`/admin/invoices/${invoice.id}`}>{getInvoiceDisplayNumber(invoice.invoice_number)}</Link>
@@ -142,6 +156,8 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
             </div>
           </section>
         )}
+
+        <ListPagination basePath="/admin/invoices" count={invoices.count} page={page} pageSize={25} params={{ archived: archived ? "1" : undefined, q: params.q, status: selectedStatus ?? undefined }} />
 
         <section className="notice-panel commerce-boundary-note">
           <strong>
@@ -223,21 +239,17 @@ function SummaryChip({
   );
 }
 
-function getInvoiceSummary(invoices: InvoiceWithRelations[]) {
-  return invoices.reduce<Record<InvoiceStatus, number>>(
-    (counts, invoice) => {
-      counts[invoice.status] += 1;
-      return counts;
-    },
-    {
-      draft: 0,
-      sent: 0,
-      partially_paid: 0,
-      paid: 0,
-      overdue: 0,
-      void: 0,
-    },
-  );
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function listHref(basePath: string, current: Record<string, string | undefined>, updates: Record<string, string | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(current).forEach(([key, value]) => { if (value && key !== "new") query.set(key, value); });
+  Object.entries(updates).forEach(([key, value]) => value ? query.set(key, value) : query.delete(key));
+  const value = query.toString();
+  return value ? `${basePath}?${value}` : basePath;
 }
 
 function formatServiceType(serviceType?: string | null) {

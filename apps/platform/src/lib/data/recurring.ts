@@ -219,14 +219,16 @@ export async function getRecurringFormOptions() {
       supabase
         .from("customers")
         .select("id, display_name, organization_id, status")
+        .is("archived_at", null)
         .eq("status", "active")
         .order("display_name"),
       supabase
         .from("organizations")
         .select("id, name, status, payment_terms")
+        .is("archived_at", null)
         .eq("status", "active")
         .order("name"),
-      supabase.from("service_locations").select("*").order("street"),
+      supabase.from("service_locations").select("*").is("archived_at", null).order("street"),
       supabase
         .from("organization_contacts")
         .select("*")

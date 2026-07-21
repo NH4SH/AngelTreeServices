@@ -70,8 +70,8 @@ export async function getChangeOrderFormOptions() {
   const supabase = await createClient();
   if (!supabase) return { jobs: [], quotes: [], contacts: [], error: "Supabase is not configured." };
   const [jobs, quotes, contacts] = await Promise.all([
-    supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, source_quote_id, status, service_type, customers:customers!jobs_customer_id_fkey(display_name), organizations(name), service_locations(label, street, city)").order("created_at", { ascending: false }),
-    supabase.from("quotes").select("id, quote_number, customer_id, organization_id, service_location_id, job_id, status, total_cents").eq("status", "approved").order("created_at", { ascending: false }),
+    supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, source_quote_id, status, service_type, customers:customers!jobs_customer_id_fkey(display_name), organizations(name), service_locations(label, street, city)").is("archived_at", null).order("created_at", { ascending: false }),
+    supabase.from("quotes").select("id, quote_number, customer_id, organization_id, service_location_id, job_id, status, total_cents").is("archived_at", null).eq("status", "approved").order("created_at", { ascending: false }),
     supabase.from("organization_contacts").select("*").eq("is_active", true).order("full_name"),
   ]);
   return {

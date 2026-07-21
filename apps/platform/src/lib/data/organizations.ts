@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAdminSearchPage } from "@/lib/data/admin-search";
 import type {
   Customer,
   DataResult,
@@ -17,8 +18,22 @@ export async function getOrganizations(): Promise<DataResult<Organization[]>> {
   const supabase = await createClient();
   if (!supabase) return { data: [], error: "Supabase is not configured." };
 
-  const { data, error } = await supabase.from("organizations").select("*").order("name");
+  const { data, error } = await supabase.from("organizations").select("*").is("archived_at", null).order("name");
   return error ? { data: [], error: error.message } : { data: (data ?? []) as Organization[], error: null };
+}
+
+export async function getOrganizationsPage(filters: { archived: boolean; page: number; pageSize: number; query?: string }) {
+  const index = await getAdminSearchPage({ ...filters, recordType: "organization" });
+  if (!index.ids.length) return { data: [] as Organization[], count: index.count, error: index.error };
+  const supabase = await createClient();
+  if (!supabase) return { data: [] as Organization[], count: 0, error: "Supabase is not configured." };
+  const { data, error } = await supabase.from("organizations").select("*").in("id", index.ids);
+  const order = new Map(index.ids.map((id, position) => [id, position]));
+  return {
+    data: ((data ?? []) as Organization[]).sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0)),
+    count: index.count,
+    error: index.error ?? error?.message ?? null,
+  };
 }
 
 export async function getActiveOrganizationContacts(): Promise<DataResult<OrganizationContact[]>> {
@@ -100,6 +115,7 @@ export async function getOrganizationDashboardSummary() {
   const { data: customers, error: customersError } = await supabase
     .from("customers")
     .select("*")
+    .is("archived_at", null)
     .not("organization_id", "is", null);
 
   if (customersError) {
@@ -110,16 +126,19 @@ export async function getOrganizationDashboardSummary() {
     supabase
       .from("jobs")
       .select("*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)")
+      .is("archived_at", null)
       .not("organization_id", "is", null),
     supabase
       .from("quotes")
       .select("*, customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
+      .is("archived_at", null)
       .not("organization_id", "is", null),
     supabase
       .from("invoices")
       .select("*, customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), invoice_line_items(*), payments(*)")
+      .is("archived_at", null)
       .not("organization_id", "is", null),
-    supabase.from("service_locations").select("*").not("organization_id", "is", null),
+    supabase.from("service_locations").select("*").is("archived_at", null).not("organization_id", "is", null),
     supabase.from("change_orders").select("*, change_order_line_items(*)").not("organization_id", "is", null),
   ]);
 

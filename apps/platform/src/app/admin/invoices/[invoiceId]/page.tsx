@@ -15,9 +15,11 @@ import { ManualPaymentCorrectionForm } from "@/components/manual-payment-correct
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
@@ -58,6 +60,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
     : { data: [], error: null };
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
+  const lifecyclePreview = detail.data && canManageDelivery ? await getRecordLifecyclePreview("invoice", invoiceId) : null;
   const successfulPaymentCents = (detail.data?.payments ?? [])
     .filter((payment) => payment.status === "succeeded")
     .reduce((sum, payment) => sum + netSuccessfulPaymentPrincipal(payment), 0);
@@ -344,6 +347,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 </section>
               </aside>
             </section>
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canManageDelivery} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/invoices" preview={lifecyclePreview} /> : null}
           </>
         )}
       </div>

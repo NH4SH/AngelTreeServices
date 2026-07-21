@@ -151,6 +151,8 @@ export type Organization = {
   payment_terms: string | null;
   tax_exempt: boolean;
   tax_reference: string | null;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -195,6 +197,8 @@ export type Customer = {
   phone: string | null;
   billing_address: string | null;
   status: CustomerStatus;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -213,6 +217,8 @@ export type ServiceLocation = {
   service_notes: string | null;
   latitude: number | null;
   longitude: number | null;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -261,6 +267,8 @@ export type Job = {
   started_by_user_id: string | null;
   completed_by_user_id: string | null;
   lost_reason: string | null;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -303,6 +311,8 @@ export type Quote = {
   first_viewed_at: string | null;
   last_viewed_at: string | null;
   view_count: number;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -383,6 +393,8 @@ export type Invoice = {
   last_viewed_at: string | null;
   view_count: number;
   automatic_reminders_enabled: boolean;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1087,6 +1099,9 @@ export type JobOperationsIndexRow = {
   awaiting_invoice: boolean;
   action_rank: number;
   search_text: string;
+  expanded_search_text: string;
+  archived_at: string | null;
+  archived_by_user_id: string | null;
   updated_at: string;
   created_at: string;
 };

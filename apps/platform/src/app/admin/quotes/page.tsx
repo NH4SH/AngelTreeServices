@@ -1,6 +1,8 @@
 import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
 import { PortalViewStatus } from "@/components/portal-engagement";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -10,7 +12,7 @@ import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
-import { getQuotes } from "@/lib/data/quotes";
+import { getQuoteStatusCounts, getQuotesPage } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
@@ -20,11 +22,16 @@ type QuotesPageProps = {
   searchParams: Promise<{
     customer_id?: string;
     new?: string;
+    archived?: string;
+    page?: string;
+    q?: string;
     status?: string;
   }>;
 };
 
-const summaryOrder: { key: QuoteStatus | "awaiting"; label: string }[] = [
+type QuoteSummaryKey = "draft" | "awaiting" | "approved" | "change_requested" | "expired";
+
+const summaryOrder: { key: QuoteSummaryKey; label: string }[] = [
   { key: "draft", label: "Draft" },
   { key: "awaiting", label: "Sent / awaiting response" },
   { key: "approved", label: "Accepted" },
@@ -40,8 +47,13 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     return <SetupRequired title="Configure Supabase before opening quotes" />;
   }
 
-  const [quotes, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
-    getQuotes(),
+  const archived = params.archived === "1";
+  const page = positivePage(params.page);
+  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteSummaryKey : null;
+  const statuses = selectedStatus === "awaiting" ? ["sent", "change_requested"] : selectedStatus === "expired" ? ["expired", "declined"] : selectedStatus ? [selectedStatus] : undefined;
+  const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+    getQuotesPage({ archived, page, pageSize: 25, query: params.q, statuses }),
+    getQuoteStatusCounts(params.q),
     getCustomerOptions(),
     getOrganizations(),
     getActiveOrganizationContacts(),
@@ -51,13 +63,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     getServiceCategories(),
     getMaterialCatalogOptions(),
   ]);
-  const summary = getQuoteSummary(quotes.data);
-  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteStatus | "awaiting" : null;
-  const visibleQuotes = selectedStatus === "awaiting"
-    ? quotes.data.filter((quote) => ["sent", "change_requested"].includes(quote.status))
-    : selectedStatus
-      ? quotes.data.filter((quote) => quote.status === selectedStatus || (selectedStatus === "expired" && quote.status === "declined"))
-      : quotes.data;
+  const summary = statusCounts.data;
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -77,20 +83,29 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[quotes.error, statusCounts.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
           ))}
 
-        <section className="commerce-summary-strip" aria-label="Quote workflow summary">
-          {summaryOrder.map((item) => (
-            <SummaryChip active={selectedStatus === item.key} href={`/admin/quotes?status=${item.key}`} key={item.key} label={item.label} value={summary[item.key]} />
-          ))}
+        <section className="list-toolbar" aria-label="Quote search and views">
+          <ListSearch initialValue={params.q} label="Search quotes" placeholder="Search quote, customer, phone, address, status, amount, or job" />
+          <nav className="list-view-toggle" aria-label="Quote record state">
+            <Link aria-current={!archived && params.q !== "test" ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: undefined, q: params.q === "test" ? undefined : params.q, page: undefined })}>Active</Link>
+            <Link aria-current={archived ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: "1", page: undefined })}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!archived && params.q === "test" ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: undefined, q: "test", page: undefined, status: undefined })}>Test review</Link> : null}
+          </nav>
         </section>
 
-        {visibleQuotes.length === 0 ? (
-          <EmptyState title={selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} quotes` : "No quotes yet"} body={selectedStatus ? "Choose another workflow status to continue." : "Create the first draft quote from a customer and service location."} />
+        {!archived ? <section className="commerce-summary-strip" aria-label="Quote workflow summary">
+          {summaryOrder.map((item) => (
+            <SummaryChip active={selectedStatus === item.key} href={listHref("/admin/quotes", params, { status: item.key, page: undefined })} key={item.key} label={item.label} value={summary[item.key]} />
+          ))}
+        </section> : null}
+
+        {quotes.data.length === 0 ? (
+          <EmptyState title={params.q ? "No matching quotes" : archived ? "No archived quotes" : selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} quotes` : "No quotes yet"} body={params.q ? "Try another quote number, customer, phone, address, amount, or job reference." : archived ? "Archived quotes will appear here." : selectedStatus ? "Choose another workflow status to continue." : "Create the first draft quote from a customer and service location."} />
         ) : (
           <section className="commerce-table-shell" aria-label="Quotes">
             <div className="commerce-table-header quote-grid" aria-hidden="true">
@@ -102,7 +117,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
               <span>Actions</span>
             </div>
             <div className="commerce-row-list">
-              {visibleQuotes.map((quote) => (
+              {quotes.data.map((quote) => (
                 <article className="commerce-row quote-grid" key={quote.id}>
                   <div className="commerce-record-title">
                     <Link href={`/admin/quotes/${quote.id}`}>{getQuoteDisplayLabel(quote)}</Link>
@@ -149,6 +164,8 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             </div>
           </section>
         )}
+
+        <ListPagination basePath="/admin/quotes" count={quotes.count} page={page} pageSize={25} params={{ archived: archived ? "1" : undefined, q: params.q, status: selectedStatus ?? undefined }} />
 
         {params.new === "1" ? (
           <QuoteCreateDrawer
@@ -234,29 +251,17 @@ function SummaryChip({ active, href, label, value }: { active: boolean; href: st
   );
 }
 
-function getQuoteSummary(quotes: QuoteWithRelations[]) {
-  return quotes.reduce<Record<QuoteStatus | "awaiting", number>>(
-    (counts, quote) => {
-      counts[quote.status] += 1;
-      if (quote.status === "sent" || quote.status === "change_requested") {
-        counts.awaiting += 1;
-      }
-      if (quote.status === "declined") {
-        counts.expired += 1;
-      }
-      return counts;
-    },
-    {
-      draft: 0,
-      sent: 0,
-      approved: 0,
-      change_requested: 0,
-      expired: 0,
-      declined: 0,
-      cancelled: 0,
-      awaiting: 0,
-    },
-  );
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function listHref(basePath: string, current: Record<string, string | undefined>, updates: Record<string, string | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(current).forEach(([key, value]) => { if (value && key !== "new") query.set(key, value); });
+  Object.entries(updates).forEach(([key, value]) => value ? query.set(key, value) : query.delete(key));
+  const value = query.toString();
+  return value ? `${basePath}?${value}` : basePath;
 }
 
 function formatQuoteStatus(status: QuoteStatus) {

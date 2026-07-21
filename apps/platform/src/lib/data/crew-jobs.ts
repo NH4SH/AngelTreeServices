@@ -39,6 +39,7 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
   let query = supabase
     .from("jobs")
     .select(crewJobSelect)
+    .is("archived_at", null)
     .in("status", ["scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"])
     .order("scheduled_start_at", { ascending: true, nullsFirst: false });
 
@@ -73,6 +74,7 @@ export async function getCrewJobById(
   let query = supabase
     .from("jobs")
     .select(crewJobSelect)
+    .is("archived_at", null)
     .eq("id", jobId);
 
   // Crew row visibility is enforced by jobs RLS, including normalized work-session assignments.

@@ -23,9 +23,11 @@ import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import { ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateQuote } from "@/lib/actions/duplicate-records";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
@@ -62,6 +64,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   const assignedUsers = await getAssignableUsers();
   const emailSetup = getEmailSetupState();
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const lifecyclePreview = detail.data && canManuallyMarkSent ? await getRecordLifecyclePreview("quote", quoteId) : null;
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -331,6 +334,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 </section>
               </aside>
             </section>
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canManuallyMarkSent} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/quotes" preview={lifecyclePreview} /> : null}
           </>
         )}
       </div>

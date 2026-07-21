@@ -28,11 +28,13 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { JobCostPanel } from "@/components/job-cost-panel";
 import { JobPhotoGallery } from "@/components/job-photo-gallery";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { JobMaterialPlanForm } from "@/components/materials-forms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { CreateInvoiceFromJobAction, JobStatusActions, MarkJobCompleteAction } from "@/components/workflow-actions";
 import { duplicateJob } from "@/lib/actions/duplicate-records";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
@@ -97,9 +99,11 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
       .map((line) => ({ line, order })));
   const unbilledChanges = approvedChanges.filter((order) => !order.invoice_id);
   const canManageBilling = hasAllowedRole(context.roles, platformRoleGroups.internalStaff);
+  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
   const canCreateInvoice = canManageBilling && !invoice && ["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status);
   const directionsUrl = getDirectionsUrl(job.service_locations);
+  const lifecyclePreview = canArchive ? await getRecordLifecyclePreview("job", job.id) : null;
 
   return (
     <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
@@ -249,6 +253,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             <section className="email-draft-grid">{(job.appointments ?? []).slice(0, 3).map((appointment) => <EmailDraftCard draft={appointment.appointment_type === "estimate" ? generateEstimateScheduledMessage(job, appointment) : appointment.appointment_type === "job" ? generateJobScheduledMessage(job, appointment) : generatePostJobFollowUpMessage(job)} key={appointment.id} label={`${title(appointment.appointment_type)} message draft`} />)}<EmailDraftCard draft={generateWorkOrderCrewMessage(job)} label="Crew message draft" /></section>
             {operationalState === "work_complete" || operationalState === "invoiced" || operationalState === "paid" ? <CompletedJobMarketingWorkspace googleReviewUrl={getGoogleReviewUrl()} job={job} photos={photos.data} /> : null}
             <div className="job-more-actions"><DuplicateRecordButton action={duplicateJob} buttonClassName="secondary-action" hiddenFieldName="job_id" hiddenFieldValue={job.id} label="Duplicate work order" pendingLabel="Copying work order..." /></div>
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/jobs" preview={lifecyclePreview} /> : null}
           </div>
         </details>
       </div>

@@ -5,6 +5,7 @@ export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "
 export type JobsIndexSort = "action" | "scheduled" | "updated" | "customer" | "value";
 
 export type JobsIndexFilters = {
+  archived: boolean;
   view: JobsOperationalView;
   search?: string;
   scheduledDate?: string;
@@ -27,7 +28,7 @@ export async function getJobsOperationsPage(filters: JobsIndexFilters): Promise<
   const supabase = await createClient();
   if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
 
-  let query = supabase.from("job_operations_index").select("*", { count: "exact" });
+  let query = supabase.from("job_operations_search_index").select("*", { count: "exact" });
   query = applyJobsIndexFilters(query, filters, true);
 
   if (filters.sort === "scheduled") {
@@ -56,7 +57,7 @@ export async function getJobsIndexMetrics(filters: JobsIndexFilters) {
   if (!supabase) return { data: { toBeScheduled: 0, today: 0, inProgress: 0, awaitingInvoice: 0, unpaidInvoices: 0 }, error: "Supabase is not configured." };
 
   const metricQuery = () => applyJobsIndexFilters(
-    supabase.from("job_operations_index").select("id", { count: "exact", head: true }),
+    supabase.from("job_operations_search_index").select("id", { count: "exact", head: true }),
     filters,
     false,
   );
@@ -83,7 +84,7 @@ export async function getJobsIndexMetrics(filters: JobsIndexFilters) {
 export async function getJobsIndexCities(): Promise<DataResult<string[]>> {
   const supabase = await createClient();
   if (!supabase) return { data: [], error: "Supabase is not configured." };
-  const { data, error } = await supabase.from("service_locations").select("city").not("city", "is", null).order("city").limit(1000);
+  const { data, error } = await supabase.from("service_locations").select("city").is("archived_at", null).not("city", "is", null).order("city").limit(1000);
   return {
     data: [...new Set((data ?? []).map((item) => item.city?.trim()).filter((city): city is string => Boolean(city)))],
     error: error?.message ?? null,
@@ -91,6 +92,7 @@ export async function getJobsIndexCities(): Promise<DataResult<string[]>> {
 }
 
 function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeView: boolean) {
+  query = filters.archived ? query.not("archived_at", "is", null) : query.is("archived_at", null);
   if (includeView) {
     if (filters.view === "active") query = query.in("job_status", activeJobStatuses).neq("operational_state", "paid").neq("operational_state", "cancelled");
     if (filters.view === "to_be_scheduled") query = query.eq("job_status", "accepted").eq("operational_state", "to_be_scheduled");
@@ -102,7 +104,10 @@ function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeVie
   }
 
   const search = filters.search?.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
-  if (search) query = query.ilike("search_text", `%${search}%`);
+  if (search) {
+    const digits = search.replaceAll(/[^0-9]/g, "");
+    query = query.ilike("expanded_search_text", `%${digits.length >= 4 ? digits : search}%`);
+  }
   if (filters.assignedCrewId === "unassigned") query = query.is("assigned_crew_user_id", null);
   else if (filters.assignedCrewId) query = query.eq("assigned_crew_user_id", filters.assignedCrewId);
   if (filters.city) query = query.eq("city", filters.city);
@@ -126,6 +131,7 @@ export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
     .select(
       "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
     )
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -147,6 +153,7 @@ export async function getCompletedJobsForMarketing(): Promise<DataResult<JobDeta
     .select(
       "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), job_photos(*)",
     )
+    .is("archived_at", null)
     .in("status", ["completed", "ready_to_invoice", "invoiced", "paid"])
     .order("completed_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false });
@@ -170,6 +177,7 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
     .select(
       "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
     )
+    .is("archived_at", null)
     .eq("customer_id", customerId)
     .is("organization_id", null)
     .order("created_at", { ascending: false });
@@ -285,6 +293,7 @@ export async function getJobOptions(): Promise<DataResult<Pick<Job, "id" | "stat
   const { data, error } = await supabase
     .from("jobs")
     .select("id, status, service_type, customer_id, organization_id, service_location_id")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -309,6 +318,7 @@ export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOpt
     .select(
       "id, status, service_type, customer_id, organization_id, service_location_id, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name), organizations:organizations!jobs_organization_id_fkey(id, name), service_locations:service_locations!jobs_service_location_id_fkey(id, label, street, city, state, postal_code), schedule_events:schedule_events!schedule_events_job_id_fkey(*, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))",
     )
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -348,30 +358,35 @@ export async function getDashboardJobSummaries() {
     supabase
       .from("jobs")
       .select(commonSelect)
+      .is("archived_at", null)
       .eq("status", "new_lead")
       .order("created_at", { ascending: false })
       .limit(12),
     supabase
       .from("jobs")
       .select(commonSelect)
+      .is("archived_at", null)
       .eq("status", "estimate_scheduled")
       .order("created_at", { ascending: false })
       .limit(12),
     supabase
       .from("jobs")
       .select(commonSelect)
+      .is("archived_at", null)
       .eq("status", "accepted")
       .order("updated_at", { ascending: false })
       .limit(12),
     supabase
       .from("jobs")
       .select(commonSelect)
+      .is("archived_at", null)
       .in("status", ["completed", "ready_to_invoice"])
       .order("completed_at", { ascending: false, nullsFirst: false })
       .limit(12),
     supabase
       .from("jobs")
       .select(commonSelect)
+      .is("archived_at", null)
       .gte("scheduled_start_at", start.toISOString())
       .lt("scheduled_start_at", end.toISOString())
       .order("scheduled_start_at", { ascending: true })

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, CalendarClock, Globe2, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
 import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -14,14 +16,16 @@ import {
 } from "@/lib/data/communications";
 import type { CustomerCommunication } from "@/lib/types/database";
 
-export default async function CommunicationsPage() {
+export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+  const params = await searchParams;
+  const page = positivePage(params.page);
   const context = await getAuthenticatedPlatformContext("/admin/communications");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
 
   const [settings, communications, websiteLeads] = await Promise.all([
     getCommunicationSettings(),
     getCustomerCommunications({ limit: 100 }),
-    getWebsiteLeadInbox(),
+    getWebsiteLeadInbox({ limit: 24, page, query: params.q }),
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
@@ -52,7 +56,7 @@ export default async function CommunicationsPage() {
         {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
 
         <section className="communication-metric-grid">
-          <Metric icon={<Globe2 size={19} />} label="Website leads" value={websiteLeads.data.length} />
+          <Metric icon={<Globe2 size={19} />} label="Website leads" value={websiteLeads.count} />
           <Metric icon={<CalendarClock size={19} />} label="Scheduled" value={pending.length} />
           <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length} />
           <Metric icon={<MailCheck size={19} />} label="Recently completed" value={recent.length} />
@@ -66,7 +70,9 @@ export default async function CommunicationsPage() {
             </div>
             {canManageSettings ? <Link className="secondary-action compact-action" href="/admin/communications/lead-intake">Lead intake diagnostics</Link> : null}
           </div>
+          <ListSearch initialValue={params.q} label="Search website leads" placeholder="Search lead name, phone, email, address, service, status, or crew" />
           <WebsiteLeadRows rows={websiteLeads.data} />
+          <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ q: params.q }} />
         </section>
 
         <section className="detail-grid communication-page-grid" id="inbox">
@@ -94,6 +100,11 @@ export default async function CommunicationsPage() {
       </div>
     </PlatformFrame>
   );
+}
+
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
 function WebsiteLeadRows({ rows }: { rows: WebsiteLeadInboxItem[] }) {

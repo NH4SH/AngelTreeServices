@@ -10,11 +10,11 @@ import {
   MapPin,
   MoreHorizontal,
   Plus,
-  Search,
   TriangleAlert,
   Truck,
 } from "lucide-react";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { ListSearch } from "@/components/list-search";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { CreateInvoiceFromJobAction } from "@/components/workflow-actions";
@@ -101,14 +101,20 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         <section className="jobs-index-toolbar" aria-label="Job search and filters">
           <nav className="jobs-view-tabs" aria-label="Operational views">
             {operationalViews.map((view) => <Link aria-current={filters.view === view.key ? "page" : undefined} href={buildJobsHref(query, { view: view.key, page: null })} key={view.key}>{view.label}</Link>)}
+            <Link aria-current={filters.archived ? "page" : undefined} href={buildJobsHref(query, { archived: filters.archived ? null : "1", view: "all", page: null })}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!filters.archived && filters.search === "test" ? "page" : undefined} href="/admin/jobs?view=all&q=test">Test review</Link> : null}
           </nav>
 
-          <form className="jobs-search-row" method="get">
+          <div className="jobs-search-row">
+            <ListSearch initialValue={filters.search} label="Search jobs" placeholder="Search customer, phone, address, scope, crew, quote, or invoice" />
+          <form method="get">
             <input name="view" type="hidden" value={filters.view} />
-            <label className="jobs-search-field"><Search aria-hidden="true" size={19} /><span className="sr-only">Search jobs</span><input defaultValue={filters.search} name="q" placeholder="Search customer, address, scope, quote, or invoice" type="search" /></label>
+            {filters.search ? <input name="q" type="hidden" value={filters.search} /> : null}
+            {filters.archived ? <input name="archived" type="hidden" value="1" /> : null}
             <label><span className="sr-only">Sort jobs</span><select defaultValue={filters.sort} name="sort">{sortOptions.filter((option) => option.key !== "value" || canViewFinancials).map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}</select></label>
-            <button type="submit">Apply</button>
+            <button type="submit">Sort</button>
           </form>
+          </div>
 
           <details className="jobs-more-filters" open={hasMoreFilters(filters)}>
             <summary><Filter size={17} />More filters<ChevronDown size={17} /></summary>
@@ -195,8 +201,10 @@ function parseFilters(query: JobsSearchParams, canViewFinancials: boolean): Jobs
   const viewValue = first(query.view);
   const sortValue = first(query.sort);
   const pageValue = Number.parseInt(first(query.page) || "1", 10);
+  const archived = first(query.archived) === "1";
   return {
-    view: operationalViews.some((view) => view.key === viewValue) ? viewValue as JobsOperationalView : "active",
+    view: archived ? "all" : operationalViews.some((view) => view.key === viewValue) ? viewValue as JobsOperationalView : "active",
+    archived,
     search: first(query.q).slice(0, 160),
     scheduledDate: /^\d{4}-\d{2}-\d{2}$/.test(first(query.date)) ? first(query.date) : "",
     assignedCrewId: first(query.crew).slice(0, 80),

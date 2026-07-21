@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAdminSearchPage } from "@/lib/data/admin-search";
 import type {
   AppointmentType,
   AppointmentWithRelations,
@@ -32,6 +33,7 @@ export type ScheduleFilters = {
   status?: string | "all";
   startsAtOrAfter?: string;
   startsBefore?: string;
+  search?: string;
 };
 
 export type ScheduleCalendarData = {
@@ -135,6 +137,11 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   const crewUserIds = new Set(
     users.filter((user) => user.role_names.includes("crew")).map((user) => user.id),
   );
+  const searchMatches = filters.search
+    ? await getAdminSearchPage({ pageSize: 500, query: filters.search, recordType: ["appointment", "schedule_event"] })
+    : null;
+  const matchingAppointmentIds = searchMatches?.records.filter((record) => record.recordType === "appointment").map((record) => record.id) ?? [];
+  const matchingEventIds = searchMatches?.records.filter((record) => record.recordType === "schedule_event").map((record) => record.id) ?? [];
 
   let appointmentsQuery = supabase
     .from("appointments")
@@ -142,6 +149,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
       "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
     )
     .order("starts_at", { ascending: true });
+  if (searchMatches) appointmentsQuery = matchingAppointmentIds.length ? appointmentsQuery.in("id", matchingAppointmentIds) : appointmentsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
 
   if (filters.eventType && filters.eventType !== "all") {
     if (appointmentEventTypes.has(filters.eventType as AppointmentType)) {
@@ -179,6 +187,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
       "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
     )
     .order("starts_at", { ascending: true });
+  if (searchMatches) eventsQuery = matchingEventIds.length ? eventsQuery.in("id", matchingEventIds) : eventsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
 
   if (filters.eventType && filters.eventType !== "all") {
     eventsQuery = eventsQuery.eq("event_type", filters.eventType);
@@ -244,6 +253,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   const conflicts = detectScheduleConflicts(entries, users);
 
   const error = [
+    searchMatches?.error ?? null,
     usersResult.error,
     appointmentsResult.error?.message ?? null,
     eventsResult.error?.message ?? null,

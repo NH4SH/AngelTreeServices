@@ -72,7 +72,7 @@ export async function getEquipmentFormOptions() {
 
   const [profiles, jobs, events] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email").eq("status", "active").order("full_name"),
-    supabase.from("jobs").select("id, service_type, status").in("status", ["accepted", "scheduled", "in_progress"]).order("updated_at", { ascending: false }).limit(100),
+    supabase.from("jobs").select("id, service_type, status").is("archived_at", null).in("status", ["accepted", "scheduled", "in_progress"]).order("updated_at", { ascending: false }).limit(100),
     supabase.from("schedule_events").select("id, title, starts_at, ends_at").neq("status", "cancelled").gte("starts_at", new Date(Date.now() - 86_400_000).toISOString()).order("starts_at").limit(150),
   ]);
 

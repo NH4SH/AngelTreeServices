@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
 import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
 
 export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
@@ -13,6 +14,7 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
     .select(
       "*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)",
     )
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -20,6 +22,33 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
   }
 
   return { data: (data ?? []) as QuoteWithRelations[], error: null };
+}
+
+export async function getQuotesPage(filters: { archived: boolean; page: number; pageSize: number; query?: string; statuses?: string[] }) {
+  const index = await getAdminSearchPage({ ...filters, recordType: "quote" });
+  if (!index.ids.length) return { data: [] as QuoteWithRelations[], count: index.count, error: index.error };
+  const supabase = await createClient();
+  if (!supabase) return { data: [] as QuoteWithRelations[], count: 0, error: "Supabase is not configured." };
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_events(id, title, event_type, starts_at, ends_at), quote_line_items(*)")
+    .in("id", index.ids);
+  return { data: orderByIds((data ?? []) as QuoteWithRelations[], index.ids), count: index.count, error: index.error ?? error?.message ?? null };
+}
+
+export async function getQuoteStatusCounts(query?: string) {
+  const groups = {
+    draft: ["draft"],
+    awaiting: ["sent", "change_requested"],
+    approved: ["approved"],
+    change_requested: ["change_requested"],
+    expired: ["expired", "declined"],
+  };
+  const results = await Promise.all(Object.entries(groups).map(async ([key, statuses]) => [key, await countAdminSearchRecords({ query, recordType: "quote", statuses })] as const));
+  return {
+    data: Object.fromEntries(results.map(([key, result]) => [key, result.count])) as Record<keyof typeof groups, number>,
+    error: results.find(([, result]) => result.error)?.[1].error ?? null,
+  };
 }
 
 export async function getQuotesAwaitingResponse() {
@@ -32,6 +61,7 @@ export async function getQuotesAwaitingResponse() {
   const { data, error } = await supabase
     .from("quotes")
     .select("*, jobs:jobs!quotes_job_id_fkey(id, status, service_type), customers:customers!quotes_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), quote_line_items(*)")
+    .is("archived_at", null)
     .in("status", ["sent", "change_requested"])
     .order("created_at", { ascending: false })
     .limit(12);
@@ -40,6 +70,11 @@ export async function getQuotesAwaitingResponse() {
     data: (data ?? []) as QuoteWithRelations[],
     error: error?.message ?? null,
   };
+}
+
+function orderByIds<T extends { id: string }>(records: T[], ids: string[]) {
+  const order = new Map(ids.map((id, index) => [id, index]));
+  return [...records].sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
 }
 
 export async function getQuoteDashboardSummaries() {
@@ -57,12 +92,14 @@ export async function getQuoteDashboardSummaries() {
     supabase
       .from("quotes")
       .select(quoteSelect)
+      .is("archived_at", null)
       .eq("status", "draft")
       .order("updated_at", { ascending: false })
       .limit(12),
     supabase
       .from("quotes")
       .select(quoteSelect)
+      .is("archived_at", null)
       .in("status", ["sent", "change_requested"])
       .order("updated_at", { ascending: false })
       .limit(12),

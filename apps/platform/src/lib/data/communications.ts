@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAdminSearchPage } from "@/lib/data/admin-search";
 import type {
   CommunicationSettings,
   CommunicationStatus,
@@ -157,10 +158,11 @@ export async function getCommunicationDashboardSummary() {
       .eq("status", "failed")
       .order("updated_at", { ascending: false })
       .limit(8),
-    supabase.from("quotes").select("id", { count: "exact", head: true }).eq("status", "sent"),
+    supabase.from("quotes").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "sent"),
     supabase
       .from("invoices")
       .select("id", { count: "exact", head: true })
+      .is("archived_at", null)
       .in("status", ["sent", "partially_paid", "overdue"])
       .lt("due_at", now.toISOString())
       .gt("balance_due_cents", 0),
@@ -184,41 +186,29 @@ export async function getCommunicationDashboardSummary() {
   };
 }
 
-export async function getWebsiteLeadInbox(limit = 24): Promise<DataResult<WebsiteLeadInboxItem[]>> {
+export async function getWebsiteLeadInbox(filters: { limit?: number; page?: number; query?: string } = {}): Promise<DataResult<WebsiteLeadInboxItem[]> & { count: number }> {
   const supabase = await createClient();
-  if (!supabase) return { data: [], error: "Supabase is not configured." };
-
-  const { data: leadSources, error: leadSourceError } = await supabase
-    .from("lead_sources")
-    .select("id")
-    .eq("source_type", "website");
-
-  if (leadSourceError) {
-    return { data: [], error: leadSourceError.message };
-  }
-
-  const leadSourceIds = (leadSources ?? []).map((row) => row.id);
-  if (!leadSourceIds.length) {
-    return { data: [], error: null };
-  }
+  if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
+  const index = await getAdminSearchPage({ page: filters.page, pageSize: filters.limit ?? 24, query: filters.query, recordType: "job", sourceType: "website" });
+  if (!index.ids.length) return { data: [], count: index.count, error: index.error };
 
   const { data: jobs, error: jobsError } = await supabase
     .from("jobs")
     .select(
       "id, status, submitted_at, created_at, service_type, duplicate_of_job_id, notification_status, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
     )
-    .in("lead_source_id", leadSourceIds)
+    .in("id", index.ids)
     .order("submitted_at", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(filters.limit ?? 24);
 
   if (jobsError) {
-    return { data: [], error: jobsError.message };
+    return { data: [], count: index.count, error: jobsError.message };
   }
 
   const jobIds = (jobs ?? []).map((job) => job.id);
   if (!jobIds.length) {
-    return { data: [], error: null };
+    return { data: [], count: index.count, error: null };
   }
 
   const { data: communications, error: communicationsError } = await supabase
@@ -228,7 +218,7 @@ export async function getWebsiteLeadInbox(limit = 24): Promise<DataResult<Websit
     .order("created_at", { ascending: false });
 
   if (communicationsError) {
-    return { data: [], error: communicationsError.message };
+    return { data: [], count: index.count, error: communicationsError.message };
   }
 
   const communicationMap = new Map<string, CustomerCommunication[]>();
@@ -272,7 +262,8 @@ export async function getWebsiteLeadInbox(limit = 24): Promise<DataResult<Websit
         submittedAt: job.submitted_at || job.created_at,
       };
     }),
-    error: null,
+    count: index.count,
+    error: index.error,
   };
 }
 

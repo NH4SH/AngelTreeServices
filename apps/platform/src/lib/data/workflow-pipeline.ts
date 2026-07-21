@@ -23,14 +23,14 @@ export async function getWorkflowPipelineStages(): Promise<{
   dayEnd.setHours(23, 59, 59, 999);
 
   const queries = [
-    supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "new_lead"),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "new_lead"),
     supabase.from("follow_up_tasks").select("id", { count: "exact", head: true }).in("task_type", ["call_customer", "customer_callback", "schedule_estimate"]).in("status", ["open", "in_progress", "waiting"]).lte("due_at", dayEnd.toISOString()),
-    supabase.from("quotes").select("id", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("quotes").select("id", { count: "exact", head: true }).in("status", ["sent", "change_requested"]),
-    supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "accepted"),
-    supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["scheduled", "in_progress"]).gte("scheduled_start_at", now.toISOString()).lt("scheduled_start_at", weekEnd.toISOString()),
-    supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["completed", "ready_to_invoice"]),
-    supabase.from("invoices").select("id", { count: "exact", head: true }).in("status", ["sent", "partially_paid", "overdue"]).gt("balance_due_cents", 0),
+    supabase.from("quotes").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "draft"),
+    supabase.from("quotes").select("id", { count: "exact", head: true }).is("archived_at", null).in("status", ["sent", "change_requested"]),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "accepted"),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).in("status", ["scheduled", "in_progress"]).gte("scheduled_start_at", now.toISOString()).lt("scheduled_start_at", weekEnd.toISOString()),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).in("status", ["completed", "ready_to_invoice"]),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).is("archived_at", null).in("status", ["sent", "partially_paid", "overdue"]).gt("balance_due_cents", 0),
     supabase.from("follow_up_tasks").select("id", { count: "exact", head: true }).in("status", ["open", "in_progress", "waiting"]).lte("due_at", dayEnd.toISOString()),
   ];
   const results = await Promise.allSettled(queries);

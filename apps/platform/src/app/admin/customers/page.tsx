@@ -1,20 +1,27 @@
 import { MapPin, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddCustomerForm, AddServiceLocationForm } from "./CustomerForms";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCustomers } from "@/lib/data/customers";
+import { getCustomersPage } from "@/lib/data/customers";
 import type { CustomerWithLocations, Note } from "@/lib/types/database";
 
-export default async function CustomersPage() {
+const pageSize = 25;
+
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ archived?: string; page?: string; q?: string }> }) {
+  const params = await searchParams;
   const context = await getAuthenticatedPlatformContext("/admin/customers");
 
   if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening customers" />;
   }
 
-  const customers = await getCustomers();
+  const page = positivePage(params.page);
+  const archived = params.archived === "1";
+  const customers = await getCustomersPage({ archived, page, pageSize, query: params.q });
   const customerRecords = customers.data as Array<CustomerWithLocations & { notes?: Note[] }>;
 
   return (
@@ -29,12 +36,21 @@ export default async function CustomersPage() {
           <p>Contact details, service locations, and first notes for every account.</p>
         </section>
 
+        <section className="list-toolbar" aria-label="Customer search and views">
+          <ListSearch initialValue={params.q} label="Search customers" placeholder="Search name, phone, email, address, city, or customer ID" />
+          <nav className="list-view-toggle" aria-label="Customer record state">
+            <Link aria-current={!archived && params.q !== "test" ? "page" : undefined} href={params.q && params.q !== "test" ? `/admin/customers?q=${encodeURIComponent(params.q)}` : "/admin/customers"}>Active</Link>
+            <Link aria-current={archived ? "page" : undefined} href={`/admin/customers?archived=1${params.q ? `&q=${encodeURIComponent(params.q)}` : ""}`}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!archived && params.q === "test" ? "page" : undefined} href="/admin/customers?q=test">Test review</Link> : null}
+          </nav>
+        </section>
+
         {customers.error ? <DataWarning message={customers.error} /> : null}
 
         <section className="crm-layout">
           <div className="crm-main">
             {customerRecords.length === 0 ? (
-              <EmptyState title="No customers yet" body="Add a customer when the first request is ready to enter." />
+              <EmptyState title={params.q ? "No matching customers" : archived ? "No archived customers" : "No customers yet"} body={params.q ? "Try another name, phone number, email, or address." : archived ? "Archived customer records will appear here." : "Add a customer when the first request is ready to enter."} />
             ) : (
               <div className="record-list">
                 {customerRecords.map((customer) => {
@@ -79,7 +95,7 @@ export default async function CustomersPage() {
             )}
           </div>
 
-          <aside className="crm-side">
+          {!archived ? <aside className="crm-side">
             <section className="form-panel">
               <h2>Add customer</h2>
               <p className="form-panel-copy">Start the account record with the main contact, then add the first property if it is ready.</p>
@@ -90,11 +106,17 @@ export default async function CustomersPage() {
               <p className="form-panel-copy">Keep addresses and access notes separate so jobs, quotes, and crew directions stay tidy later.</p>
               <AddServiceLocationForm customers={customerRecords} />
             </section>
-          </aside>
+          </aside> : null}
         </section>
+        <ListPagination basePath="/admin/customers" count={customers.count} page={page} pageSize={pageSize} params={{ archived: archived ? "1" : undefined, q: params.q }} />
       </div>
     </PlatformFrame>
   );
+}
+
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {

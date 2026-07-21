@@ -370,6 +370,7 @@ export default async function AdminPage() {
               <a href="/admin/customers">Add customer</a>
               <a href="/admin/jobs">Create job</a>
               <a href="/admin/quotes">Prepare quote</a>
+              <a href="/admin/invoices?new=1">New invoice</a>
               <a href="/admin/schedule">Open schedule</a>
             </div>
           </section>

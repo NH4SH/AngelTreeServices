@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CalendarPlus, MapPinned, Save, Search, X } from "lucide-react";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
 import {
   createScheduleEvent,
+  createScheduleCustomerJob,
   updateScheduleEventDetails,
   type AppointmentActionState,
 } from "./actions";
-import type { ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
+import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -40,6 +42,7 @@ const statuses: ScheduleEventStatus[] = [
 
 export function ScheduleEventDrawerContent({
   closeHref,
+  customers,
   defaultDate,
   defaultStartsAt,
   initialJobId,
@@ -47,6 +50,7 @@ export function ScheduleEventDrawerContent({
   users,
 }: {
   closeHref: string;
+  customers: ScheduleCustomerOption[];
   defaultDate: string;
   defaultStartsAt?: string;
   initialJobId?: string;
@@ -117,13 +121,62 @@ export function ScheduleEventDrawerContent({
           key={selectedJob.id}
           users={users}
         />
-      </> : <div className="schedule-job-selection-empty">
+      </> : <>
+        <div className="schedule-job-selection-empty">
         <CalendarPlus aria-hidden="true" size={23} />
         <strong>Choose a job to begin</strong>
         <span>The title, customer, property, and scope will come from the work order.</span>
-      </div>}
+        </div>
+        <QuickScheduleJobForm customers={customers} />
+      </>}
     </div> : <AddScheduleEventForm defaultStartsAt={defaultStartsAt} eventType={eventType} jobs={jobs} users={users} />}
   </>;
+}
+
+type QuickJobState = AppointmentActionState & { jobId?: string };
+
+function QuickScheduleJobForm({ customers }: { customers: ScheduleCustomerOption[] }) {
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(createScheduleCustomerJob, initialState as QuickJobState);
+  const [customerId, setCustomerId] = useState("");
+  const [search, setSearch] = useState("");
+  const [newCustomer, setNewCustomer] = useState(false);
+  const customer = customers.find((item) => item.id === customerId) ?? null;
+  const visibleCustomers = customers.filter((item) => [item.display_name, item.phone, item.email, item.billing_address, ...(item.service_locations ?? []).map((location) => location.street)].filter(Boolean).join(" ").toLowerCase().includes(search.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!state.jobId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("new", "1");
+    url.searchParams.set("job", state.jobId);
+    router.replace(`${url.pathname}${url.search}`);
+  }, [router, state.jobId]);
+
+  return (
+    <details className="quick-schedule-job-creator">
+      <summary>{newCustomer ? "New customer and job" : "Customer has no job yet?"}</summary>
+      <form action={action} className="crm-form">
+        {state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null}
+        <label className="form-checkbox"><input checked={newCustomer} onChange={(event) => { setNewCustomer(event.target.checked); setCustomerId(""); }} type="checkbox" /><span>Create a new customer</span></label>
+        {!newCustomer ? <>
+          <label>Find customer<input onChange={(event) => setSearch(event.target.value)} placeholder="Name, phone, email, or street" type="search" value={search} /></label>
+          <label>Customer<select name="customer_id" onChange={(event) => setCustomerId(event.target.value)} required value={customerId}><option value="">Choose customer</option>{visibleCustomers.map((item) => <option key={item.id} value={item.id}>{item.display_name}{item.phone ? ` - ${item.phone}` : ""}</option>)}</select></label>
+          <label>Property<select disabled={!customer} name="service_location_id" required><option value="">Choose property</option>{(customer?.service_locations ?? []).map((location) => <option key={location.id} value={location.id}>{[location.label, location.street, location.city].filter(Boolean).join(" - ")}</option>)}</select></label>
+        </> : <div className="form-grid-two quick-customer-fields">
+          <label>Name<input name="new_customer_name" required /></label>
+          <label>Phone<input inputMode="tel" name="new_customer_phone" /></label>
+          <label>Email<input name="new_customer_email" type="email" /></label>
+          <label>Street<input name="new_customer_street" required /></label>
+          <label>City<input defaultValue="Fredericksburg" name="new_customer_city" required /></label>
+          <label>State<input defaultValue="VA" maxLength={2} name="new_customer_state" required /></label>
+          <label>ZIP<input name="new_customer_postal_code" /></label>
+        </div>}
+        <label>Service type<select defaultValue="tree_removal" name="service_type"><option value="tree_removal">Tree removal</option><option value="trimming">Trimming</option><option value="stump_grinding">Stump grinding</option><option value="landscaping">Landscaping</option><option value="lawn_care">Lawn care</option><option value="emergency">Emergency</option><option value="other">Other</option></select></label>
+        <label>Scope<textarea name="requested_scope" placeholder="Work to schedule" required rows={3} /></label>
+        <button disabled={pending || (!newCustomer && !customer)} type="submit"><Save size={18} />{pending ? "Creating..." : "Create job and continue"}</button>
+      </form>
+    </details>
+  );
 }
 
 export function AddScheduleEventForm({

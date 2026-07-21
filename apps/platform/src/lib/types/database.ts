@@ -1193,6 +1193,10 @@ export type ScheduleJobOption = Pick<
   schedule_events?: ScheduleEventWithRelations[];
 };
 
+export type ScheduleCustomerOption = Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address"> & {
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code">[];
+};
+
 export type CalendarEntrySource = "appointment" | "schedule_event";
 
 export type CalendarEntry = {

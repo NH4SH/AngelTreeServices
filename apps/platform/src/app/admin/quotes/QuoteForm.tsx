@@ -26,8 +26,8 @@ type LineItemDraft = {
   unitPrice: string;
 };
 
-const initialLineItem = (): LineItemDraft => ({
-  id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+const initialLineItem = (id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`): LineItemDraft => ({
+  id,
   name: "",
   description: "",
   serviceCategoryId: "",
@@ -82,7 +82,7 @@ export function AddQuoteForm({
             quantity: String(item.quantity),
             unitPrice: (item.unit_price_cents / 100).toFixed(2),
           }))
-      : [initialLineItem()],
+      : [initialLineItem("new-quote-line-1")],
   );
   const matchingLocations = useMemo(
     () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],

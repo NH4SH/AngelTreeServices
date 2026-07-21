@@ -48,6 +48,48 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
   );
 }
 
+const completeJobConfirmation =
+  "Mark this job complete? This records the completion time and updates its active schedule sessions. It will not create or send an invoice.";
+
+export function MarkJobCompleteAction({
+  completedAt,
+  jobId,
+  status,
+}: {
+  completedAt?: string | null;
+  jobId: string;
+  status: JobStatus;
+}) {
+  const [state, formAction, pending] = useReliableActionState(updateJobStatus, initialState);
+
+  if (["completed", "completed_pending_review", "ready_to_invoice", "invoiced", "paid"].includes(status)) {
+    return <p className="job-completion-date"><CheckCircle2 aria-hidden="true" size={18} />Completed {completedAt ? new Date(completedAt).toLocaleString() : "recently"}</p>;
+  }
+
+  if (!["scheduled", "in_progress"].includes(status)) {
+    return null;
+  }
+
+  return (
+    <WorkflowActionPanel message={state.message} status={state.status}>
+      <form
+        action={formAction}
+        className="inline-action-form"
+        onSubmit={(event) => {
+          if (!window.confirm(completeJobConfirmation)) event.preventDefault();
+        }}
+      >
+        <input name="job_id" type="hidden" value={jobId} />
+        <input name="next_status" type="hidden" value="completed" />
+        <button className="job-complete-action" disabled={pending} type="submit">
+          <CheckCircle2 aria-hidden="true" size={18} />
+          {pending ? "Completing..." : "Mark complete"}
+        </button>
+      </form>
+    </WorkflowActionPanel>
+  );
+}
+
 export function QuoteStatusActions({ quoteId, status }: { quoteId: string; status: QuoteStatus }) {
   const [state, formAction, pending] = useReliableActionState(updateQuoteStatus, initialState);
   const isClosed = ["approved", "declined", "expired", "cancelled"].includes(status);

@@ -87,18 +87,20 @@ export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<In
   }
 
   const jobId = (invoice as InvoiceWithRelations).job_id;
-  const { data: notes, error: notesError } = await supabase
-    .from("notes")
-    .select("*")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: false });
+  const notesResult = jobId
+    ? await supabase
+        .from("notes")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
 
   return {
     data: {
       ...(invoice as InvoiceWithRelations),
       jobs: (invoice as { jobs?: JobWithRelations | null }).jobs ?? null,
-      notes: (notes ?? []) as Note[],
+      notes: (notesResult.data ?? []) as Note[],
     },
-    error: notesError?.message ?? null,
+    error: notesResult.error?.message ?? null,
   };
 }

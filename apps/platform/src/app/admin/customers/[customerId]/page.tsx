@@ -106,6 +106,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 <PanelTitle icon={<MapPin size={18} />} title="Quick actions" />
                 <div className="quick-action-list">
                   <Link href={`/admin/quotes?new=1&customer_id=${detail.data.customer.id}`}>Create quote</Link>
+                  <Link href={`/admin/invoices?new=1&customer_id=${detail.data.customer.id}`}>Create invoice</Link>
                   <Link href="/admin/schedule?event_type=estimate">Schedule estimate</Link>
                   <a href="#add-location">Add service location</a>
                   <a href="#add-job">Create job / work order</a>

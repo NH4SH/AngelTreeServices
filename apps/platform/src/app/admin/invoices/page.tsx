@@ -9,16 +9,19 @@ import { AddInvoiceForm } from "./InvoiceForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
+import { getServiceLocations } from "@/lib/data/customers";
 import { getInvoices } from "@/lib/data/invoices";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getOrganizations } from "@/lib/data/organizations";
 import { getServiceCategories } from "@/lib/data/reports";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
-import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, ServiceCategory } from "@/lib/types/database";
+import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 type InvoicesPageProps = {
   searchParams: Promise<{
     new?: string;
+    customer_id?: string;
+    job_id?: string;
     status?: string;
   }>;
 };
@@ -40,12 +43,13 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     return <SetupRequired title="Configure Supabase before opening invoices" />;
   }
 
-  const [invoices, customers, organizations, jobs, serviceCategories] = await Promise.all([
+  const [invoices, customers, organizations, jobs, serviceCategories, serviceLocations] = await Promise.all([
     getInvoices(),
     getCustomerOptions(),
     getOrganizations(),
     getJobOptions(),
     getServiceCategories(),
+    getServiceLocations(),
   ]);
   const summary = getInvoiceSummary(invoices.data);
   const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as InvoiceStatus : null;
@@ -72,7 +76,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           </Link>
         </section>
 
-        {[invoices.error, customers.error, organizations.error, jobs.error, serviceCategories.error].filter(Boolean).map((message) => (
+        {[invoices.error, customers.error, organizations.error, jobs.error, serviceCategories.error, serviceLocations.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -147,7 +151,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
-        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} /> : null}
+        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} initialCustomerId={params.customer_id} initialJobId={params.job_id} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} serviceLocations={serviceLocations.data} /> : null}
       </div>
     </PlatformFrame>
   );
@@ -155,14 +159,20 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
 function InvoiceCreateDrawer({
   customers,
+  initialCustomerId,
+  initialJobId,
   jobs,
   organizations,
   serviceCategories,
+  serviceLocations,
 }: {
-  customers: Pick<Customer, "id" | "display_name">[];
+  customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
+  initialCustomerId?: string;
+  initialJobId?: string;
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
+  serviceLocations: ServiceLocation[];
 }) {
   return (
     <div aria-labelledby="new-invoice-title" className="commerce-drawer-overlay" role="dialog">
@@ -175,13 +185,13 @@ function InvoiceCreateDrawer({
               Invoice builder
             </p>
             <h2 id="new-invoice-title">New invoice</h2>
-            <p>Attach the customer and job first, then add the billing lines.</p>
+            <p>Choose a customer, then optionally attach a property or completed work order.</p>
           </div>
           <Link aria-label="Close new invoice panel" className="secondary-action icon-action" href="/admin/invoices">
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddInvoiceForm customers={customers} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} />
+        <AddInvoiceForm customers={customers} initialCustomerId={initialCustomerId} initialJobId={initialJobId} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} serviceLocations={serviceLocations} />
         <Link className="secondary-action commerce-cancel-link" href="/admin/invoices">
           Cancel
         </Link>

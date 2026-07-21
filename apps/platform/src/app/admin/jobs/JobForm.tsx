@@ -43,7 +43,7 @@ export function AddJobForm({
   );
 
   return (
-    <form action={formAction} className="crm-form">
+    <form action={formAction} className="crm-form mobile-primary-action-form">
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}

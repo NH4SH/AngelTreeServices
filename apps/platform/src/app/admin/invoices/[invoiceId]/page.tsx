@@ -34,10 +34,12 @@ type InvoiceDetailPageProps = {
   params: Promise<{
     invoiceId: string;
   }>;
+  searchParams: Promise<{ created?: string; note_warning?: string }>;
 };
 
-export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
+export default async function InvoiceDetailPage({ params, searchParams }: InvoiceDetailPageProps) {
   const { invoiceId } = await params;
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/invoices/${invoiceId}`);
 
   if (!context.configured) {
@@ -64,6 +66,8 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page">
         <Link className="crew-back-link" href="/admin/invoices">Back to invoices</Link>
+        {query.created === "1" ? <p className="form-message success" role="status">Invoice created. Review it before sending.</p> : null}
+        {query.note_warning === "1" ? <p className="form-message error" role="status">The invoice was created, but its internal note could not be attached.</p> : null}
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {portalTokens.error ? <DataWarning message={`Customer invoice links: ${portalTokens.error}`} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
@@ -368,7 +372,7 @@ function isInvoiceEditable(status: InvoiceStatus) {
 }
 
 function formatJobLabel(serviceType?: string | null) {
-  return serviceType ? serviceType.replace("_", " ") : "Linked job";
+  return serviceType ? serviceType.replace("_", " ") : "Standalone invoice";
 }
 
 function formatDate(value?: string | null) {

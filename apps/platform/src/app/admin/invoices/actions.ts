@@ -40,53 +40,133 @@ export async function createInvoice(
     return { status: "error", message: "Only authorized office staff can create invoices." };
   }
 
-  const jobId = String(formData.get("job_id") ?? "");
-  const party = parseContractingParty(formData.get("contracting_party"));
+  const jobId = String(formData.get("job_id") ?? "").trim();
+  const partyValue = String(formData.get("contracting_party") ?? "");
+  const newCustomerRequested = partyValue === "new_customer";
+  let party = parseContractingParty(partyValue);
+  let serviceLocationId = String(formData.get("service_location_id") ?? "").trim() || null;
+  let createdCustomerId: string | null = null;
   const dueDate = String(formData.get("due_date") ?? "");
   const notes = String(formData.get("notes") ?? "").trim();
   const lineItems = getInvoiceLineItems(formData);
   const totalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
-  if (!jobId || !party) {
-    return { status: "error", message: "Choose a contracting party and job before creating an invoice." };
+  if (!party && !newCustomerRequested) {
+    return { status: "error", message: "Choose a customer or organization before creating an invoice." };
   }
 
   if (lineItems.length === 0) {
     return { status: "error", message: "Add at least one invoice line before saving." };
   }
 
-  const { data: job, error: jobError } = await supabase
-    .from("jobs")
-    .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, status, recurring_service_plan_id, recurring_occurrence_id")
-    .eq("id", jobId)
-    .single();
+  if (newCustomerRequested) {
+    const name = String(formData.get("new_customer_name") ?? "").trim();
+    const phone = String(formData.get("new_customer_phone") ?? "").trim() || null;
+    const email = String(formData.get("new_customer_email") ?? "").trim().toLowerCase() || null;
+    const street = String(formData.get("new_customer_street") ?? "").trim();
+    const city = String(formData.get("new_customer_city") ?? "").trim();
+    const state = String(formData.get("new_customer_state") ?? "VA").trim().toUpperCase();
+    const postalCode = String(formData.get("new_customer_postal_code") ?? "").trim() || null;
 
-  if (jobError || !job) {
-    return { status: "error", message: jobError?.message ?? "Could not find the selected job." };
+    if (!name || (!phone && !email) || !street || !city || state.length !== 2) {
+      return { status: "error", message: "Enter the customer name, a phone or email, and a complete service address." };
+    }
+
+    const duplicateQueries = [
+      email ? supabase.from("customers").select("id, display_name").ilike("email", email).limit(1).maybeSingle() : null,
+      phone ? supabase.from("customers").select("id, display_name").eq("phone", phone).limit(1).maybeSingle() : null,
+    ].filter(Boolean) as PromiseLike<{ data: { id: string; display_name: string } | null; error: { message: string } | null }>[];
+    const duplicateResults = await Promise.all(duplicateQueries);
+    const duplicate = duplicateResults.find((result) => result.data)?.data;
+    if (duplicate) {
+      return { status: "error", message: `${duplicate.display_name} already uses that contact information. Select the existing customer instead.` };
+    }
+
+    const billingAddress = [street, city, state, postalCode].filter(Boolean).join(", ");
+    const { data: customer, error: customerError } = await supabase
+      .from("customers")
+      .insert({ display_name: name, phone, email, billing_address: billingAddress, customer_type: "residential", status: "active" })
+      .select("id")
+      .single();
+    if (customerError || !customer) {
+      return { status: "error", message: customerError?.message ?? "Could not create the customer." };
+    }
+    createdCustomerId = customer.id;
+    party = { kind: "customer", customerId: customer.id, organizationId: null };
+
+    const { data: location, error: locationError } = await supabase
+      .from("service_locations")
+      .insert({ customer_id: customer.id, organization_id: null, label: "Primary service location", street, city, state, postal_code: postalCode })
+      .select("id")
+      .single();
+    if (locationError || !location) {
+      await supabase.from("customers").delete().eq("id", customer.id);
+      return { status: "error", message: locationError?.message ?? "Could not create the service location." };
+    }
+    serviceLocationId = location.id;
   }
 
-  if (!belongsToContractingParty(job, party)) {
-    return { status: "error", message: "Selected job does not belong to the selected contracting party." };
+  if (!party) {
+    return { status: "error", message: "Choose a valid contracting party." };
   }
 
-  if (!["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status)) {
-    return { status: "error", message: "This work order is not available for draft invoicing." };
-  }
+  let job: {
+    id: string;
+    customer_id: string | null;
+    organization_id: string | null;
+    service_location_id: string | null;
+    property_manager_contact_id: string | null;
+    status: string;
+    recurring_service_plan_id: string | null;
+    recurring_occurrence_id: string | null;
+  } | null = null;
 
-  const { data: existingInvoice, error: existingInvoiceError } = await supabase
-    .from("invoices")
-    .select("id")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  if (jobId) {
+    const jobResult = await supabase
+      .from("jobs")
+      .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, status, recurring_service_plan_id, recurring_occurrence_id")
+      .eq("id", jobId)
+      .single();
+    job = jobResult.data;
 
-  if (existingInvoiceError) {
-    return { status: "error", message: existingInvoiceError.message };
-  }
+    if (jobResult.error || !job) {
+      return { status: "error", message: jobResult.error?.message ?? "Could not find the selected job." };
+    }
 
-  if (existingInvoice) {
-    redirect(`/admin/invoices/${existingInvoice.id}`);
+    if (!belongsToContractingParty(job, party)) {
+      return { status: "error", message: "Selected job does not belong to the selected contracting party." };
+    }
+
+    if (!["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status)) {
+      return { status: "error", message: "This work order is not available for draft invoicing." };
+    }
+
+    const { data: existingInvoice, error: existingInvoiceError } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingInvoiceError) {
+      return { status: "error", message: existingInvoiceError.message };
+    }
+
+    if (existingInvoice) {
+      redirect(`/admin/invoices/${existingInvoice.id}`);
+    }
+    serviceLocationId = job.service_location_id;
+  } else if (serviceLocationId) {
+    const { data: location, error: locationError } = await supabase
+      .from("service_locations")
+      .select("id, customer_id, organization_id")
+      .eq("id", serviceLocationId)
+      .single();
+    if (locationError || !location || !belongsToContractingParty(location, party)) {
+      if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+      return { status: "error", message: "Choose a service location belonging to the selected customer or organization." };
+    }
   }
 
   const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
@@ -94,14 +174,15 @@ export async function createInvoice(
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .insert({
-      job_id: jobId,
+      job_id: job?.id ?? null,
+      quote_id: null,
       customer_id: party.customerId,
       organization_id: party.organizationId,
-      billing_contact_id: job.property_manager_contact_id,
-      accounts_payable_contact_id: job.property_manager_contact_id,
-      service_location_id: job.service_location_id,
-      recurring_service_plan_id: job.recurring_service_plan_id,
-      recurring_occurrence_id: job.recurring_occurrence_id,
+      billing_contact_id: job?.property_manager_contact_id ?? null,
+      accounts_payable_contact_id: job?.property_manager_contact_id ?? null,
+      service_location_id: serviceLocationId,
+      recurring_service_plan_id: job?.recurring_service_plan_id ?? null,
+      recurring_occurrence_id: job?.recurring_occurrence_id ?? null,
       status: "draft",
       subtotal_cents: totalCents,
       tax_cents: 0,
@@ -113,6 +194,7 @@ export async function createInvoice(
     .single();
 
   if (invoiceError || !invoice) {
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
     return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
   }
 
@@ -131,6 +213,7 @@ export async function createInvoice(
 
   if (lineItemError) {
     await supabase.from("invoices").delete().eq("id", invoice.id);
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
     return {
       status: "error",
       message: `Invoice was not created because line items failed: ${lineItemError.message}`,
@@ -149,32 +232,37 @@ export async function createInvoice(
 
   let noteWarning = "";
   if (notes) {
-    const { error: noteError } = await supabase.from("notes").insert({
-      customer_id: party.customerId,
-      job_id: jobId,
-      author_user_id: user.id,
-      visibility: "internal",
-      body: `Invoice note: ${notes}`,
-    });
+    if (party.customerId || job || serviceLocationId) {
+      const { error: noteError } = await supabase.from("notes").insert({
+        customer_id: party.customerId,
+        job_id: job?.id ?? null,
+        service_location_id: serviceLocationId,
+        author_user_id: user.id,
+        visibility: "internal",
+        body: `Invoice note: ${notes}`,
+      });
 
-    if (noteError) {
-      console.error("Invoice note write failed", noteError);
-      noteWarning = " The internal note could not be added.";
+      if (noteError) {
+        console.error("Invoice note write failed", noteError);
+        noteWarning = " The internal note could not be added.";
+      }
+    } else {
+      noteWarning = " The note could not be attached without a customer, property, or work order.";
     }
   }
 
   await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "invoice_draft_created",
-    metadata: { source_quote_id: null },
+    metadata: { source_quote_id: null, standalone: !job },
     subjectId: invoice.id,
     subjectType: "invoice",
   });
-  await recordActivity(supabase, {
+  if (job) await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "invoice_draft_created_from_job",
     metadata: { invoice_id: invoice.id, job_status_preserved: job.status },
-    subjectId: jobId,
+    subjectId: job.id,
     subjectType: "job",
   });
 
@@ -182,7 +270,7 @@ export async function createInvoice(
   revalidatePath("/admin/invoices");
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  return { status: "success", message: `Invoice saved. Review it, then send it to the customer when ready.${noteWarning}` };
+  redirect(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`);
 }
 
 type InvoiceLineItemInput = {

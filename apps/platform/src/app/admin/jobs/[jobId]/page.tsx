@@ -31,7 +31,7 @@ import { JobScheduleManager } from "@/components/job-schedule-manager";
 import { JobMaterialPlanForm } from "@/components/materials-forms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
+import { CreateInvoiceFromJobAction, JobStatusActions, MarkJobCompleteAction } from "@/components/workflow-actions";
 import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
@@ -138,7 +138,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             {approvedQuote ? <Link className="secondary-action" href={`/admin/quotes/${approvedQuote.id}`}>Open quote</Link> : null}
             {operationalState === "in_progress" ? <Link className="secondary-action" href={`/admin/schedule?job_id=${job.id}`}>Change schedule</Link> : null}
             <a className="secondary-action" href="#job-photos"><Camera aria-hidden="true" size={17} />Photos</a>
-            {job.status === "in_progress" ? <JobStatusActions jobId={job.id} status={job.status} /> : null}
+            <MarkJobCompleteAction completedAt={job.completed_at} jobId={job.id} status={job.status} />
+            {job.status === "scheduled" ? <JobStatusActions jobId={job.id} status={job.status} /> : null}
             <a className="secondary-action" href="#job-more"><MoreHorizontal aria-hidden="true" size={17} />More</a>
           </div>
         </header>

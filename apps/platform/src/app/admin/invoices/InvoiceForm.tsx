@@ -14,7 +14,7 @@ import {
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
-import type { Customer, InvoiceDetail, Job, Organization, ServiceCategory } from "@/lib/types/database";
+import type { Customer, InvoiceDetail, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 const initialState: InvoiceActionState = {
   status: "idle",
@@ -23,20 +23,28 @@ const initialState: InvoiceActionState = {
 
 export function AddInvoiceForm({
   customers,
+  initialCustomerId,
+  initialJobId,
   jobs,
   organizations,
   serviceCategories,
+  serviceLocations,
 }: {
-  customers: Pick<Customer, "id" | "display_name">[];
+  customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
+  initialCustomerId?: string;
+  initialJobId?: string;
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
+  serviceLocations: ServiceLocation[];
 }) {
   const [state, formAction, pending] = useReliableActionState(createInvoice, initialState);
   const [dirty, setDirty] = useState(false);
-  const [selectedPartyValue, setSelectedPartyValue] = useState("");
+  const [selectedPartyValue, setSelectedPartyValue] = useState(initialCustomerId ? `customer:${initialCustomerId}` : "");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const creatingCustomer = selectedPartyValue === "new_customer";
   const selectedParty = parseContractingParty(selectedPartyValue);
-  const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([newInvoiceLine()]);
+  const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([newInvoiceLine("new-invoice-line-1")]);
   const matchingJobs = useMemo(
     () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
     [jobs, selectedParty],
@@ -45,6 +53,15 @@ export function AddInvoiceForm({
     () => matchingJobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)),
     [matchingJobs],
   );
+  const matchingLocations = useMemo(
+    () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],
+    [selectedParty, serviceLocations],
+  );
+  const visibleCustomers = useMemo(() => {
+    const query = customerSearch.trim().toLowerCase();
+    if (!query) return customers;
+    return customers.filter((customer) => [customer.display_name, customer.email, customer.phone, customer.billing_address].filter(Boolean).join(" ").toLowerCase().includes(query));
+  }, [customerSearch, customers]);
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
 
   return (
@@ -62,22 +79,50 @@ export function AddInvoiceForm({
         </div>
         <div className="form-grid-two">
           <label>
+            Find customer
+            <input onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Name, phone, email, or address" type="search" value={customerSearch} />
+          </label>
+          <label>
             Contracting party
             <select
               name="contracting_party"
               onChange={(event) => setSelectedPartyValue(event.target.value)}
-              required
               value={selectedPartyValue}
             >
               <option value="">Choose customer or organization</option>
-              <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
+              <option value="new_customer">Create a new walk-in customer</option>
+              <optgroup label="Individual customers">{visibleCustomers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}{customer.phone ? ` - ${customer.phone}` : ""}</option>)}</optgroup>
               <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
             </select>
           </label>
+        </div>
+        {creatingCustomer ? (
+          <fieldset className="quick-customer-fields">
+            <legend>New customer</legend>
+            <div className="form-grid-two">
+              <label>Name<input name="new_customer_name" required /></label>
+              <label>Phone<input inputMode="tel" name="new_customer_phone" /></label>
+              <label>Email<input name="new_customer_email" type="email" /></label>
+              <label>Street address<input name="new_customer_street" required /></label>
+              <label>City<input defaultValue="Fredericksburg" name="new_customer_city" required /></label>
+              <label>State<input defaultValue="VA" maxLength={2} name="new_customer_state" required /></label>
+              <label>ZIP<input inputMode="numeric" name="new_customer_postal_code" /></label>
+            </div>
+            <p>Enter either a phone number or email. The customer and property are created with this invoice.</p>
+          </fieldset>
+        ) : null}
+        {!creatingCustomer ? <div className="form-grid-two">
           <label>
-            Completed work order
-            <select name="job_id" required>
-              <option value="">Choose completed work order</option>
+            Service location (optional)
+            <select name="service_location_id">
+              <option value="">No property selected</option>
+              {matchingLocations.map((location) => <option key={location.id} value={location.id}>{[location.label, location.street, location.city].filter(Boolean).join(" - ")}</option>)}
+            </select>
+          </label>
+          <label>
+            Work order (optional)
+            <select defaultValue={initialJobId ?? ""} name="job_id">
+              <option value="">Standalone invoice, no work order</option>
               {invoiceableJobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.service_type ?? "job"} - {job.status.replace("_", " ")}
@@ -85,7 +130,7 @@ export function AddInvoiceForm({
               ))}
             </select>
           </label>
-        </div>
+        </div> : null}
         <label>
           Due date
           <input name="due_date" type="date" />
@@ -129,7 +174,7 @@ export function AddInvoiceForm({
       </section>
 
       <div className="quote-editor-action-bar">
-        <button disabled={pending || !selectedParty || invoiceableJobs.length === 0} type="submit">
+        <button disabled={pending || (!selectedParty && !creatingCustomer)} type="submit">
           <Save aria-hidden="true" size={17} />
           {pending ? "Saving..." : "Create invoice"}
         </button>
@@ -172,7 +217,7 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
             quantity: String(item.quantity),
             unitPrice: (item.unit_price_cents / 100).toFixed(2),
           }))
-      : [newInvoiceLine()],
+      : [newInvoiceLine("new-invoice-line-1")],
   );
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
 
@@ -435,9 +480,9 @@ function InvoiceIconButton({
   );
 }
 
-function newInvoiceLine(): InvoiceLineDraft {
+function newInvoiceLine(clientId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`): InvoiceLineDraft {
   return {
-    clientId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+    clientId,
     name: "",
     description: "",
     serviceCategoryId: "",

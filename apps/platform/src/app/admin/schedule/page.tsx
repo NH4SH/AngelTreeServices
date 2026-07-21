@@ -15,6 +15,7 @@ import {
 import { AppointmentEditForm } from "@/components/appointment-edit-form";
 import { CommunicationControls } from "@/components/communication-controls";
 import { PlatformFrame } from "@/components/PlatformFrame";
+import { MarkJobCompleteAction } from "@/components/workflow-actions";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
 import { ScheduleEventDrawerContent, ScheduleEventEditForm } from "./ScheduleEventForm";
@@ -48,6 +49,7 @@ import {
 } from "./schedule-utils";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getScheduleJobOptions } from "@/lib/data/jobs";
+import { getScheduleCustomerOptions } from "@/lib/data/customers";
 import { getScheduleCalendarData } from "@/lib/data/schedule";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getDirectionsUrl } from "@/lib/maps";
@@ -99,7 +101,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const assignedUserId = getAssignedUserFilter(params.assigned_user_id);
   const status = getStatusFilter(params.status);
   const range = getScheduleRange(date, view);
-  const [schedule, jobs] = await Promise.all([
+  const [schedule, jobs, customers] = await Promise.all([
     getScheduleCalendarData({
       assignedUserId,
       eventType,
@@ -108,6 +110,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
       startsBefore: range.end.toISOString(),
     }),
     getScheduleJobOptions(),
+    getScheduleCustomerOptions(),
   ]);
   const days = getVisibleDays(date, view);
   const groupedEntries = groupEntriesByDate(schedule.data.entries);
@@ -150,7 +153,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <p>Jobs, estimates, follow-ups, PTO, internal events, and crew assignments in one place.</p>
         </section>
 
-        {[schedule.error, jobs.error, selectedCommunications.error, selectedRecipients.error].filter(Boolean).map((message) => (
+        {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -289,6 +292,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <ScheduleEventFormDrawer
             current={query}
             initialJobId={params.job}
+            customers={customers.data}
             jobs={jobs.data}
             users={schedule.data.users}
           />
@@ -656,11 +660,13 @@ function CalendarEntryCard({
 }
 
 function ScheduleEventFormDrawer({
+  customers,
   current,
   initialJobId,
   jobs,
   users,
 }: {
+  customers: import("@/lib/types/database").ScheduleCustomerOption[];
   current: ScheduleQuery;
   initialJobId?: string;
   jobs: ScheduleJobOption[];
@@ -675,6 +681,7 @@ function ScheduleEventFormDrawer({
       <aside className="appointment-drawer schedule-event-drawer">
         <ScheduleEventDrawerContent
           closeHref={closeHref}
+          customers={customers}
           defaultDate={formatDateInput(selectedDate)}
           defaultStartsAt={toDrawerDateTime(selectedDate)}
           initialJobId={initialJobId}
@@ -817,6 +824,9 @@ function ScheduleEventDetailPanel({
         </dl>
 
         <div className="appointment-detail-actions">
+          {event.event_type === "job" && event.job_id && event.jobs ? (
+            <MarkJobCompleteAction jobId={event.job_id} status={event.jobs.status} />
+          ) : null}
           {event.event_type === "job" && event.job_id ? (
             <Link className="primary-action" href={buildScheduleHref(current, { event: undefined, job: event.job_id, new: "1" })}>Edit job schedule</Link>
           ) : null}

@@ -18,6 +18,7 @@ import type {
 export type AppointmentActionState = {
   status: "idle" | "success" | "error" | "warning";
   message: string;
+  jobId?: string;
 };
 
 const appointmentTypes: AppointmentType[] = ["estimate", "job", "follow_up", "maintenance"];
@@ -40,6 +41,100 @@ const scheduleStatuses: ScheduleEventStatus[] = [
   "cancelled",
   "no_show",
 ];
+
+export async function createScheduleCustomerJob(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before creating a scheduled job." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only authorized office staff can create scheduled jobs." };
+  }
+
+  let customerId = getOptionalString(formData, "customer_id");
+  let serviceLocationId = getOptionalString(formData, "service_location_id");
+  let createdCustomerId: string | null = null;
+  const newCustomerName = getOptionalString(formData, "new_customer_name");
+
+  if (newCustomerName) {
+    const phone = getOptionalString(formData, "new_customer_phone");
+    const email = getOptionalString(formData, "new_customer_email")?.toLowerCase() ?? null;
+    const street = getOptionalString(formData, "new_customer_street");
+    const city = getOptionalString(formData, "new_customer_city");
+    const state = (getOptionalString(formData, "new_customer_state") ?? "VA").toUpperCase();
+    const postalCode = getOptionalString(formData, "new_customer_postal_code");
+    if ((!phone && !email) || !street || !city || state.length !== 2) {
+      return { status: "error", message: "Enter a phone or email and a complete service address for the new customer." };
+    }
+
+    const duplicateResults = await Promise.all([
+      email ? supabase.from("customers").select("id, display_name").ilike("email", email).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+      phone ? supabase.from("customers").select("id, display_name").eq("phone", phone).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    const duplicate = duplicateResults.find((result) => result.data)?.data as { id: string; display_name: string } | null | undefined;
+    if (duplicate) return { status: "error", message: `${duplicate.display_name} already uses that contact information. Select the existing customer instead.` };
+
+    const { data: customer, error: customerError } = await supabase.from("customers").insert({
+      display_name: newCustomerName,
+      phone,
+      email,
+      billing_address: [street, city, state, postalCode].filter(Boolean).join(", "),
+      customer_type: "residential",
+      status: "active",
+    }).select("id").single();
+    if (customerError || !customer) return { status: "error", message: customerError?.message ?? "Could not create the customer." };
+    createdCustomerId = customer.id;
+    customerId = customer.id;
+
+    const { data: location, error: locationError } = await supabase.from("service_locations").insert({
+      customer_id: customer.id,
+      organization_id: null,
+      label: "Primary service location",
+      street,
+      city,
+      state,
+      postal_code: postalCode,
+    }).select("id").single();
+    if (locationError || !location) {
+      await supabase.from("customers").delete().eq("id", customer.id);
+      return { status: "error", message: locationError?.message ?? "Could not create the service location." };
+    }
+    serviceLocationId = location.id;
+  }
+
+  if (!customerId || !serviceLocationId) return { status: "error", message: "Choose a customer and one of their properties." };
+  const { data: location, error: locationError } = await supabase.from("service_locations").select("id, customer_id, organization_id").eq("id", serviceLocationId).single();
+  if (locationError || !location || location.customer_id !== customerId || location.organization_id) {
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+    return { status: "error", message: "Choose a property belonging to the selected customer." };
+  }
+
+  const requestedScope = getOptionalString(formData, "requested_scope");
+  const serviceType = getOptionalString(formData, "service_type") ?? "other";
+  if (!requestedScope) return { status: "error", message: "Describe the work before continuing to scheduling." };
+  const { data: job, error: jobError } = await supabase.from("jobs").insert({
+    customer_id: customerId,
+    organization_id: null,
+    service_location_id: serviceLocationId,
+    service_type: serviceType,
+    requested_scope: requestedScope,
+    status: "accepted",
+    priority: "normal",
+  }).select("id").single();
+  if (jobError || !job) {
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+    return { status: "error", message: jobError?.message ?? "Could not create the work order." };
+  }
+
+  await recordActivity(supabase, { actorUserId: user.id, eventType: "work_order_created_from_schedule", subjectId: job.id, subjectType: "job" });
+  revalidateSchedulePaths(job.id);
+  if (customerId) revalidatePath(`/admin/customers/${customerId}`);
+  return { status: "success", message: "Job created. Loading the scheduler...", jobId: job.id };
+}
 
 export async function createAppointment(
   _previousState: AppointmentActionState,

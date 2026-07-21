@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getInvoicesByCustomerId } from "@/lib/data/invoices";
 import { getJobsByCustomerId } from "@/lib/data/jobs";
 import { getQuotesByCustomerId } from "@/lib/data/quotes";
-import type { Customer, CustomerDetail, CustomerWithLocations, DataResult, Note, ServiceLocation } from "@/lib/types/database";
+import type { Customer, CustomerDetail, CustomerWithLocations, DataResult, Note, ScheduleCustomerOption, ServiceLocation } from "@/lib/types/database";
 
 export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]>> {
   const supabase = await createClient();
@@ -25,7 +25,7 @@ export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]
   return { data: (data ?? []) as CustomerWithLocations[], error: null };
 }
 
-export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "id" | "display_name">[]>> {
+export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[]>> {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -34,14 +34,14 @@ export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "i
 
   const { data, error } = await supabase
     .from("customers")
-    .select("id, display_name")
+    .select("id, display_name, email, phone, billing_address")
     .order("display_name", { ascending: true });
 
   if (error) {
     return { data: [], error: error.message };
   }
 
-  return { data: (data ?? []) as Pick<Customer, "id" | "display_name">[], error: null };
+  return { data: (data ?? []) as Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[], error: null };
 }
 
 export async function getServiceLocations(): Promise<DataResult<ServiceLocation[]>> {
@@ -61,6 +61,19 @@ export async function getServiceLocations(): Promise<DataResult<ServiceLocation[
   }
 
   return { data: (data ?? []) as ServiceLocation[], error: null };
+}
+
+export async function getScheduleCustomerOptions(): Promise<DataResult<ScheduleCustomerOption[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, display_name, email, phone, billing_address, service_locations(id, label, street, city, state, postal_code)")
+    .eq("status", "active")
+    .order("display_name", { ascending: true });
+
+  return { data: (data ?? []) as ScheduleCustomerOption[], error: error?.message ?? null };
 }
 
 export async function getCustomerNotes(customerIds: string[]): Promise<DataResult<Note[]>> {

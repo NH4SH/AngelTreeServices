@@ -43,13 +43,13 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     new_lead: ["estimate_scheduled"],
     estimate_scheduled: ["quoted"],
     accepted: ["scheduled"],
-    scheduled: ["in_progress"],
+    scheduled: ["in_progress", "completed"],
     in_progress: ["completed"],
   };
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id, status")
+    .select("id, status, completed_at, completed_by_user_id")
     .eq("id", jobId)
     .single();
 
@@ -57,21 +57,56 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     return { status: "error", message: jobError?.message ?? "Job not found or no access." };
   }
 
+  if (nextStatus === "completed" && job.status === "completed") {
+    return { status: "success", message: "This job is already complete." };
+  }
+
   if (!allowedTransitions[job.status as JobStatus]?.includes(nextStatus)) {
     return { status: "error", message: "That job status transition is not allowed here." };
   }
 
-  const updatePayload: { status: JobStatus } = { status: nextStatus };
+  const completedAt = nextStatus === "completed" ? (job.completed_at ?? new Date().toISOString()) : null;
+  const updatePayload: {
+    completed_at?: string;
+    completed_by_user_id?: string;
+    status: JobStatus;
+  } = nextStatus === "completed"
+    ? { status: nextStatus, completed_at: completedAt!, completed_by_user_id: job.completed_by_user_id ?? user.id }
+    : { status: nextStatus };
 
-  const { error } = await supabase.from("jobs").update(updatePayload).eq("id", jobId);
+  const { data: updatedJob, error } = await supabase
+    .from("jobs")
+    .update(updatePayload)
+    .eq("id", jobId)
+    .eq("status", job.status)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return { status: "error", message: error.message };
   }
 
+  if (!updatedJob) {
+    const { data: currentJob } = await supabase.from("jobs").select("status").eq("id", jobId).maybeSingle();
+    return currentJob?.status === nextStatus
+      ? { status: "success", message: nextStatus === "completed" ? "This job is already complete." : `Job already marked ${nextStatus.replace("_", " ")}.` }
+      : { status: "error", message: "The job changed before this action finished. Refresh and try again." };
+  }
+
+  if (nextStatus === "completed") {
+    const { error: scheduleError } = await supabase
+      .from("schedule_events")
+      .update({ status: "completed" })
+      .eq("job_id", jobId)
+      .in("status", ["scheduled", "confirmed", "in_progress"]);
+    if (scheduleError) {
+      console.error("Job completed, but linked schedule sessions were not updated", { jobId, scheduleError });
+    }
+  }
+
   await recordActivity(supabase, {
     actorUserId: user.id,
-    eventType: "work_order_status_changed",
+    eventType: nextStatus === "completed" ? "job_completed" : "work_order_status_changed",
     metadata: { from_status: job.status, to_status: nextStatus },
     subjectId: jobId,
     subjectType: "job",
@@ -80,7 +115,10 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
-  return { status: "success", message: `Job marked ${nextStatus.replace("_", " ")}.` };
+  revalidatePath("/admin/schedule");
+  revalidatePath("/crew/jobs");
+  revalidatePath(`/crew/jobs/${jobId}`);
+  return { status: "success", message: nextStatus === "completed" ? "Job marked complete." : `Job marked ${nextStatus.replace("_", " ")}.` };
 }
 
 export async function updateQuoteStatus(_previousState: WorkflowActionState, formData: FormData) {

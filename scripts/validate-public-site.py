@@ -1014,6 +1014,10 @@ class Validator:
     def validate_domain_redirects(self) -> None:
         redirects = self.site_dir / "_redirects"
         expected_rules = [
+            "http://angeltreeservice.com/* https://angeltreeservices.org/:splat 301!",
+            "https://angeltreeservice.com/* https://angeltreeservices.org/:splat 301!",
+            "http://www.angeltreeservice.com/* https://angeltreeservices.org/:splat 301!",
+            "https://www.angeltreeservice.com/* https://angeltreeservices.org/:splat 301!",
             "http://angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
             "https://angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
             "http://www.angeltreeservice.org/* https://angeltreeservices.org/:splat 301!",
@@ -1030,7 +1034,7 @@ class Validator:
             if line.strip() and not line.lstrip().startswith("#")
         ]
         if rules != expected_rules:
-            self.error("_redirects must contain only the approved singular-domain 301 rules in order")
+            self.error("_redirects must contain only the approved alternate-domain 301 rules in order")
 
         for rule in rules:
             if "admin.angeltreeservices.org" in rule:

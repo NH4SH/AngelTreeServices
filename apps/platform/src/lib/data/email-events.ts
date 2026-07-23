@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, EmailEvent } from "@/lib/types/database";
 
 export type EmailEventFilters = {
@@ -53,7 +54,7 @@ export async function getEmailEvents(filters: EmailEventFilters = {}): Promise<D
   const { data, error } = await query;
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as EmailEvent[], error: null };

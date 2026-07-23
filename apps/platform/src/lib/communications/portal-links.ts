@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptPortalToken } from "@/lib/portal/tokens";
+import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 
 export async function getExistingCommunicationPortalUrl(
   supabase: SupabaseClient,
@@ -29,7 +30,7 @@ export async function getExistingCommunicationPortalUrl(
     return { error: "The active customer link cannot be recovered safely.", url: null };
   }
 
-  const appBaseUrl = getAppBaseUrl();
+  const appBaseUrl = getCanonicalAppBaseUrl();
   if (!appBaseUrl) {
     return { error: "APP_BASE_URL is not configured for customer links.", url: null };
   }
@@ -38,16 +39,4 @@ export async function getExistingCommunicationPortalUrl(
     error: null,
     url: new URL(`/portal/${portalType}/${encodeURIComponent(rawToken)}`, appBaseUrl).toString(),
   };
-}
-
-function getAppBaseUrl() {
-  const value = process.env.APP_BASE_URL || process.env.URL || process.env.DEPLOY_PRIME_URL;
-  if (!value) return null;
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.hostname === "localhost" ? url.origin : null;
-  } catch {
-    return null;
-  }
 }

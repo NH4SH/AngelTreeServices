@@ -7,6 +7,7 @@ import { canAccessAssignedCrewJob } from "@/lib/auth/crewAccess";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import { buildJobPhotoPath, JOB_PHOTO_BUCKET } from "@/lib/storage/job-photo-paths";
 import type { JobPhotoType, JobPhotoUploadCategory } from "@/lib/types/database";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
 
 export type JobPhotoUploadState = {
   status: "idle" | "success" | "error";
@@ -22,7 +23,6 @@ const categoryToDbType: Record<JobPhotoUploadCategory, JobPhotoType> = {
   equipment_access: "equipment_access",
 };
 
-const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 export const maxJobPhotoUploadBytes = 6 * 1024 * 1024;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -53,19 +53,8 @@ export async function uploadJobPhotoForUser({
     return { status: "error", message: "Choose a photo before uploading." };
   }
 
-  if (!allowedImageTypes.has(file.type)) {
-    return {
-      status: "error",
-      message: "Upload a JPEG, PNG, WebP, HEIC, or HEIF image.",
-    };
-  }
-
-  if (file.size > maxJobPhotoUploadBytes) {
-    return {
-      status: "error",
-      message: "Photo is too large. Upload an image up to 6 MB.",
-    };
-  }
+  const prepared = await prepareSafeUpload(file, { maxBytes: maxJobPhotoUploadBytes });
+  if (!prepared.data) return { status: "error", message: prepared.error ?? "Upload a valid JPEG, PNG, or WebP image up to 6 MB." };
 
   if (!["before", "during", "after", "issue", "completion", "equipment_access"].includes(category)) {
     return { status: "error", message: "Choose a supported photo type." };
@@ -99,9 +88,9 @@ export async function uploadJobPhotoForUser({
 
   const { error: uploadError } = await supabase.storage
     .from(JOB_PHOTO_BUCKET)
-    .upload(storagePath, file, {
+    .upload(storagePath, prepared.data.bytes, {
       cacheControl: "3600",
-      contentType: file.type,
+      contentType: prepared.data.contentType,
       upsert: false,
     });
 

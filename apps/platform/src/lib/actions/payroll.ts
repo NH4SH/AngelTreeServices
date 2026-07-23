@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserRoles } from "@/lib/auth/roles";
 import { canReviewTimeClock } from "@/lib/auth/time-clock";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { PayPeriodStatus } from "@/lib/types/database";
 
 export type PayrollActionState = {
@@ -60,7 +61,7 @@ export async function createPayPeriod(
     .limit(1);
 
   if (overlapError) {
-    return { status: "error", message: overlapError.message };
+    return { status: "error", message: safeStaffMessage(overlapError.message) };
   }
 
   if ((overlappingPeriods?.length ?? 0) > 0) {
@@ -76,7 +77,7 @@ export async function createPayPeriod(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   revalidatePayrollPaths();
@@ -138,7 +139,7 @@ export async function updatePayPeriodStatus(
     .eq("id", payPeriodId);
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   revalidatePayrollPaths();

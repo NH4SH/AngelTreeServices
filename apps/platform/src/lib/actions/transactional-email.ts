@@ -19,6 +19,7 @@ import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { syncAutomatedCommunications } from "@/lib/communications/queue";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type TransactionalEmailActionState = {
   status: "idle" | "success" | "error";
@@ -316,7 +317,7 @@ async function validateSubmittedPortalUrl(
     .maybeSingle();
 
   if (error) {
-    return { created: false, error: error.message, tokenId: null, url: "" };
+    return { created: false, error: safeStaffMessage(error.message), tokenId: null, url: "" };
   }
 
   if (!data || data.revoked_at) {

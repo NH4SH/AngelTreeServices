@@ -4,6 +4,7 @@ import { hasAllowedRole, platformRoleGroups, type PlatformRoleName } from "@/lib
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { reportUtcBounds, resolveReportFilters, safeRate, type ReportFilters } from "@/lib/reporting/definitions";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { ReportingSettings, ServiceCategory } from "@/lib/types/database";
 
 type Relation<T> = T | T[] | null;
@@ -177,7 +178,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     supabase.from("equipment_problem_reports").select("id, asset_id, job_id, status, severity, equipment_stopped, created_at, equipment_assets(id, name, asset_number, category)").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     supabase.from("equipment_inspections").select("id, asset_id, job_id, overall_result, inspected_at, equipment_assets(id, name, asset_number, category)").gte("inspected_at", current.start).lt("inspected_at", current.endExclusive).limit(5000),
     supabase.from("equipment_assets").select("id, name, asset_number, category, status, is_active, updated_at").is("archived_at", null).limit(1000),
-    canViewFinancials ? supabase.from("employee_records").select("id, auth_user_id, preferred_name, legal_name, is_active").is("archived_at", null).order("preferred_name").limit(1000) : Promise.resolve({ data: [], error: null }),
+    canViewFinancials ? supabase.rpc("get_employee_operational_directory") : Promise.resolve({ data: { employees: [] }, error: null }),
     supabase.from("material_catalog").select("id, name, category, default_unit, stock_tracked, reorder_threshold").eq("is_active", true).is("archived_at", null).order("name"),
     supabase.from("inventory_transactions").select("id, material_id, transaction_type, quantity, unit, job_id, source_location_id, destination_location_id, is_estimated, occurred_at").gte("occurred_at", current.start).lt("occurred_at", current.endExclusive).order("occurred_at", { ascending: false }).limit(5000),
     supabase.from("material_stock_balances").select("material_id, location_id, on_hand_quantity, reserved_quantity, available_quantity, latest_transaction_at").limit(5000),
@@ -279,7 +280,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     disposalRecords: disposalResult.data ?? [],
     productionBatches: productionResult.data ?? [],
     materialDeliveries: materialDeliveriesResult.data ?? [],
-    employees: employeesResult.data ?? [],
+    employees: ((employeesResult.data as { employees?: ReportData["employees"] } | null)?.employees ?? []),
     canManageSettings,
     salesScope: estimatorOnly ? "own" : "company",
     comparisonAvailable: !filters.customerId && !filters.employeeId && !filters.leadSourceId && !filters.serviceCategoryId && !filters.status,
@@ -300,11 +301,11 @@ export async function getJobCostEntries(jobId: string) {
   const supabase = await createClient();
   if (!supabase) return { data: [] as (ReportJobCost & { receipt_signed_url?: string | null })[], error: "Supabase is not configured." };
   const { data, error } = await supabase.from("job_cost_entries").select("id, job_id, category, description, vendor_name, amount_cents, incurred_on, review_status, receipt_storage_path").eq("job_id", jobId).is("archived_at", null).order("incurred_on", { ascending: false }).order("created_at", { ascending: false });
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: safeStaffMessage(error.message) };
   const rows = (data ?? []) as ReportJobCost[];
   const paths = rows.map((row) => row.receipt_storage_path).filter((path): path is string => Boolean(path));
   if (!paths.length) return { data: rows, error: null };
-  const signed = await supabase.storage.from("job-cost-receipts").createSignedUrls(paths, 1800);
+  const signed = await supabase.storage.from("job-cost-receipts").createSignedUrls(paths, 1800, { download: true });
   const urls = new Map((signed.data ?? []).map((file) => [file.path, file.signedUrl]));
   return { data: rows.map((row) => ({ ...row, receipt_signed_url: row.receipt_storage_path ? urls.get(row.receipt_storage_path) ?? null : null })), error: signed.error?.message ?? null };
 }

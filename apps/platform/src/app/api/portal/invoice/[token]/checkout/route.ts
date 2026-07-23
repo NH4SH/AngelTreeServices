@@ -3,6 +3,7 @@ import { getPortalPaymentContext } from "@/lib/payments/portal-card-context";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { createOrReuseInvoiceCheckout } from "@/lib/stripe/invoice-checkout";
 import { getStripeServerConfig } from "@/lib/stripe/server";
+import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -21,12 +22,16 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     return paymentError("Online payment is not available for this invoice.", 403);
   }
 
+  const { token } = await params;
+  const rateLimit = await enforceSharedRateLimit({ action: "portal.invoice.ach-checkout", identifiers: [hashPortalToken(token)], limit: 8, request, windowSeconds: 600 });
+  if (!rateLimit.available) return paymentError("Online payment is not available right now. Please try again later.", 503);
+  if (!rateLimit.allowed) return paymentError("Please wait before starting another payment.", 429, rateLimit.retryAfterSeconds);
+
   const body = await request.json().catch(() => null) as { method?: unknown } | null;
   if (!body || Object.keys(body).some((key) => key !== "method") || body.method !== "ach") {
     return paymentError("Choose bank account payment to continue.", 400);
   }
 
-  const { token } = await params;
   const context = await getPortalPaymentContext(token, stripeConfig.stripe);
   if (!context.ok) return paymentError(context.message, context.status);
   const { invoice, invoicePrincipalCents: amountCents, supabase } = context;
@@ -70,6 +75,7 @@ function asOne<T>(value: T | T[] | null | undefined) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
-function paymentError(message: string, status: number) {
-  return NextResponse.json({ ok: false, message }, { status });
+function paymentError(message: string, status: number, retryAfterSeconds?: number) {
+  const headers = retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : undefined;
+  return NextResponse.json({ ok: false, message }, { status, headers });
 }

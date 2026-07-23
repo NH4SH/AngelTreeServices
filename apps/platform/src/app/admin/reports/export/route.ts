@@ -3,6 +3,7 @@ import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/rol
 import { getReportData, getReportingSettings, relation, successfulPaymentTotal } from "@/lib/data/reports";
 import { formatRange, resolveReportFilters } from "@/lib/reporting/definitions";
 import { createClient } from "@/lib/supabase/server";
+import { serializeCsv } from "@/lib/security/csv";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       ["Generated at", new Date().toISOString()],
       [],
     ];
-    const csv = [...metadata, ...rows].map((row) => row.map(csvValue).join(",")).join("\r\n");
+    const csv = serializeCsv([...metadata, ...rows]);
     return new Response(csv, {
       headers: {
         "content-type": "text/csv; charset=utf-8",
@@ -51,9 +52,4 @@ function exportRows(view: string, data: Awaited<ReturnType<typeof getReportData>
   if (view === "sources") return [["Lead source", "Job ID", "Job status", "Created at"], ...data.jobs.map((job) => [relation(job.lead_sources)?.name ?? "Not recorded", job.id, job.status, job.created_at])];
   if (view === "services") return [["Document type", "Document ID", "Line ID", "Service category", "Amount cents"], ...data.quotes.flatMap((quote) => quote.quote_line_items.map((line) => ["quote", quote.id, line.id, relation(line.service_categories)?.label ?? "Uncategorized", line.total_cents])), ...data.invoices.flatMap((invoice) => invoice.invoice_line_items.map((line) => ["invoice", invoice.id, line.id, relation(line.service_categories)?.label ?? "Uncategorized", line.total_cents]))];
   return [["Quote", "Contracting party", "Estimator", "Status", "Total cents", "Created at", "Sent at", "Approved at"], ...data.quotes.map((quote) => [quote.quote_number, relation(quote.organizations)?.name ?? relation(quote.customers)?.display_name ?? "Unknown", relation(quote.profiles)?.full_name || relation(quote.profiles)?.email || "Not assigned", quote.status, quote.total_cents, quote.created_at, quote.sent_at, quote.approved_at])];
-}
-
-function csvValue(value: string | number | null) {
-  const text = String(value ?? "");
-  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }

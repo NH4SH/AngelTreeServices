@@ -17,6 +17,10 @@ import {
 } from "@/lib/email/templates";
 import { recordEmailEvent, sendTransactionalEmail } from "@/lib/email/send";
 import { recordActivity } from "@/lib/activity-log";
+import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
+import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
+import { safeStaffMessage } from "@/lib/security/errors";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 const allowedRequestedRoles = new Set(employeeRequestedRoleOptions.map((option) => option.value));
 const allowedApprovalRoles = new Set<AccessApprovalRole>(["admin", "estimator", "crew", "payroll_admin"]);
@@ -64,6 +68,16 @@ export async function requestEmployeeAccess(
     return { status: "error", message: "Choose the kind of access you need." };
   }
 
+  const rateLimit = await enforceSharedRateLimit({
+    action: "public.employee-access.create",
+    headers: await headers(),
+    identifiers: [email],
+    limit: 5,
+    windowSeconds: 900,
+  });
+  if (!rateLimit.available) return { status: "error", message: "Employee signup is temporarily unavailable. Please try again shortly." };
+  if (!rateLimit.allowed) return { status: "error", message: "Please wait before submitting another access request." };
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -77,7 +91,7 @@ export async function requestEmployeeAccess(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   const authUserId = data.session?.user.id ?? null;
@@ -89,13 +103,17 @@ export async function requestEmployeeAccess(
     note,
     status: "pending" as const,
   };
-  let insert = await supabase.from("employee_access_requests").insert({
+  const accessRequestClient = getServiceRoleClient();
+  if (!accessRequestClient) {
+    return { status: "error", message: "Your sign-in was created, but employee access review is temporarily unavailable." };
+  }
+  let insert = await accessRequestClient.from("employee_access_requests").insert({
     ...basePayload,
     auth_user_id: authUserId,
   });
 
   if (insert.error && authUserId && isAuthLinkPolicyError(insert.error.message)) {
-    insert = await supabase.from("employee_access_requests").insert({
+    insert = await accessRequestClient.from("employee_access_requests").insert({
       ...basePayload,
       auth_user_id: null,
     });
@@ -209,7 +227,7 @@ export async function approveEmployeeAccessRequest(
   });
 
   if (profileError) {
-    return { status: "error", message: profileError.message };
+    return { status: "error", message: safeStaffMessage(profileError.message) };
   }
 
   const existingEmployeeByRequest = await supabase
@@ -271,23 +289,14 @@ export async function approveEmployeeAccessRequest(
     return { status: "error", message: employeeResult.error?.message ?? "Employee record could not be linked to the approved account." };
   }
 
-  const { data: roleRow, error: roleError } = await supabase
-    .from("roles")
-    .select("id")
-    .eq("name", approvedRole)
-    .maybeSingle();
-
-  if (roleError || !roleRow) {
-    return { status: "error", message: roleError?.message ?? "Selected role was not found." };
-  }
-
-  const { error: userRoleError } = await supabase.from("user_roles").upsert({
-    user_id: targetProfile.id,
-    role_id: roleRow.id,
+  const { error: userRoleError } = await supabase.rpc("replace_platform_user_roles", {
+    p_target_user_id: targetProfile.id,
+    p_role_names: [approvedRole],
+    p_reason: "Employee access request approval",
   });
 
   if (userRoleError) {
-    return { status: "error", message: userRoleError.message };
+    return { status: "error", message: safeStaffMessage(userRoleError.message) };
   }
 
   if (enableTimeClock) {
@@ -299,7 +308,7 @@ export async function approveEmployeeAccessRequest(
     });
 
     if (timeClockError) {
-      return { status: "error", message: timeClockError.message };
+      return { status: "error", message: safeStaffMessage(timeClockError.message) };
     }
   }
 
@@ -317,7 +326,7 @@ export async function approveEmployeeAccessRequest(
     .eq("id", requestId);
 
   if (updateError) {
-    return { status: "error", message: updateError.message };
+    return { status: "error", message: safeStaffMessage(updateError.message) };
   }
 
   await recordActivity(supabase, {
@@ -398,7 +407,7 @@ export async function rejectEmployeeAccessRequest(
     .eq("id", requestId);
 
   if (updateError) {
-    return { status: "error", message: updateError.message };
+    return { status: "error", message: safeStaffMessage(updateError.message) };
   }
 
   revalidateAccessPaths();
@@ -514,7 +523,7 @@ async function requireAccessApprovalUser() {
     .eq("user_id", user.id);
 
   if (rolesError) {
-    return { error: { status: "error" as const, message: rolesError.message } };
+    return { error: { status: "error" as const, message: safeStaffMessage(rolesError.message) } };
   }
 
   const roles = ((roleRows ?? []) as { roles: { name: PlatformRoleName } | { name: PlatformRoleName }[] | null }[])
@@ -599,12 +608,5 @@ function revalidateAccessPaths(userId?: string) {
 }
 
 async function getPasswordResetRedirectTo() {
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "";
-
-  if (host.startsWith("localhost:") || host.startsWith("127.0.0.1:")) {
-    return `http://${host}/update-password`;
-  }
-
-  return "https://admin.angeltreeservices.org/update-password";
+  return buildCanonicalAppUrl("/update-password") ?? "https://admin.angeltreeservices.org/update-password";
 }

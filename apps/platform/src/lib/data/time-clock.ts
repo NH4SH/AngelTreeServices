@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import type {
   AssignableUser,
@@ -187,7 +188,7 @@ export async function getTimeEntries(filters: TimeEntryFilters = {}): Promise<Da
   const { data, error } = await query;
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as TimeEntryWithRelations[], error: null };
@@ -209,7 +210,7 @@ export async function getActiveTimeEntryForUser(userId: string): Promise<DataRes
     .maybeSingle();
 
   if (error) {
-    return { data: null, error: error.message };
+    return { data: null, error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? null) as TimeEntryWithRelations | null, error: null };
@@ -240,7 +241,7 @@ export async function getAssignedScheduleEventsForUser(
   const { data, error } = await query;
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as ScheduleEventWithRelations[], error: null };

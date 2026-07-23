@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeLocalRedirect } from "@/lib/security/local-redirect";
 
 export type LoginActionState = {
   status: "idle" | "error";
@@ -23,7 +24,7 @@ export async function signInWithPassword(
 
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const nextPath = String(formData.get("next") || "/admin");
+  const nextPath = safeLocalRedirect(String(formData.get("next") || "/admin"));
 
   if (!email || !password) {
     return {
@@ -40,11 +41,11 @@ export async function signInWithPassword(
   if (error) {
     return {
       status: "error",
-      message: error.message,
+      message: "The email or password was not accepted.",
     };
   }
 
-  redirect(nextPath.startsWith("/") ? nextPath : "/admin");
+  redirect(nextPath);
 }
 
 export async function signOut() {

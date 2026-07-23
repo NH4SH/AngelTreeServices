@@ -1,9 +1,13 @@
 import { CheckCircle2, FilePlus2, Leaf, MapPin, ShieldCheck } from "lucide-react";
 import { PortalChangeOrderActions } from "@/components/portal-change-order-actions";
 import { getChangeOrderByPortalToken } from "@/lib/data/change-orders";
+import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
 export default async function ChangeOrderPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const rateLimit = await checkPortalPageRateLimit("change-order", token);
+  if (!rateLimit.available) return <Unavailable message="This secure change order is temporarily unavailable. Please try again shortly." />;
+  if (!rateLimit.allowed) return <Unavailable message="Please wait a moment before opening this secure change order again." />;
   const lookup = await getChangeOrderByPortalToken(token);
   if (!lookup.changeOrder) return <Unavailable message={lookup.message} />;
   const order = lookup.changeOrder;

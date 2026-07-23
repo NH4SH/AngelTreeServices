@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type ReportingActionState = { status: "idle" | "success" | "error"; message: string };
 
@@ -55,8 +57,10 @@ export async function addJobCost(_state: ReportingActionState, formData: FormDat
   if (receipt instanceof File && receipt.size > 0) {
     if (receipt.size > 10 * 1024 * 1024) return fail("Receipt files must be 10 MB or smaller.");
     if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(receipt.type)) return fail("Receipt must be a JPG, PNG, WebP, or PDF.");
+    const prepared = await prepareSafeUpload(receipt, { maxBytes: 10 * 1024 * 1024, allowDocuments: true });
+    if (!prepared.data) return fail(prepared.error ?? "The receipt could not be validated.");
     receiptStoragePath = `${jobId}/${auth.userId}/${crypto.randomUUID()}-${safeFileName(receipt.name)}`;
-    const upload = await auth.supabase.storage.from("job-cost-receipts").upload(receiptStoragePath, receipt, { contentType: receipt.type, upsert: false });
+    const upload = await auth.supabase.storage.from("job-cost-receipts").upload(receiptStoragePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
     if (upload.error) return fail(`Receipt could not be uploaded: ${upload.error.message}`);
   }
   const reviewStatus = canApprove && formData.get("approve_now") === "on" ? "approved" : "pending";
@@ -97,5 +101,5 @@ function optionalNumber(formData: FormData, key: string, min: number, max: numbe
 function moneyCents(formData: FormData, key: string) { const raw = text(formData, key, 30); if (!raw) return null; const value = Number(raw); return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null; }
 function optionalMoneyCents(formData: FormData, key: string) { return text(formData, key, 30) ? moneyCents(formData, key) : null; }
 function safeFileName(value: string) { return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "receipt"; }
-function fail(message: string): ReportingActionState { return { status: "error", message }; }
+function fail(message: string): ReportingActionState { return { status: "error", message: safeStaffMessage(message) }; }
 function ok(message: string): ReportingActionState { return { status: "success", message }; }

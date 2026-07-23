@@ -52,7 +52,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   const documents = (documentsResult.data ?? []) as unknown as DocumentRow[];
   const paths = documents.map((document) => document.storage_path);
   const signedResult = paths.length
-    ? await context.supabase.storage.from("platform-documents").createSignedUrls(paths, 1800)
+    ? await context.supabase.storage.from("platform-documents").createSignedUrls(paths, 1800, { download: true })
     : { data: [], error: null };
   const signedByPath = new Map((signedResult.data ?? []).map((file) => [file.path, file.signedUrl]));
   const error = documentsResult.error?.message ?? optionsResult.error ?? signedResult.error?.message ?? null;

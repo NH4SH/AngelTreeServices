@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { JobPriority, JobStatus } from "@/lib/types/database";
 
 export type JobActionState = {
@@ -159,7 +160,7 @@ export async function saveJobWorkSessions(
     p_mode: mode,
   });
 
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
 
   const sessionCount = Number((data as { session_count?: number } | null)?.session_count ?? sessions.length);
   await recordActivity(supabase, {

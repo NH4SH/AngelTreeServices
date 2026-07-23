@@ -12,6 +12,8 @@ import {
   materialUnits,
 } from "@/lib/materials/definitions";
 import { createClient } from "@/lib/supabase/server";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
+import { safeStaffMessage } from "@/lib/security/errors";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 
 export type MaterialActionState = { status: "idle" | "success" | "error" | "warning"; message: string };
@@ -617,8 +619,10 @@ async function uploadMaterialFile(context: NonNullable<Awaited<ReturnType<typeof
   if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(value.type) || value.size > 15 * 1024 * 1024) {
     return { path: null, error: "Upload a PDF, JPEG, PNG, or WebP file up to 15 MB." };
   }
+  const prepared = await prepareSafeUpload(value, { maxBytes: 15 * 1024 * 1024, allowDocuments: true });
+  if (!prepared.data) return { path: null, error: prepared.error ?? "The file could not be validated." };
   const path = `${context.user.id}/${folder}/${Date.now()}-${value.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100)}`;
-  const { error } = await context.supabase.storage.from("material-files").upload(path, value, { contentType: value.type, upsert: false });
+  const { error } = await context.supabase.storage.from("material-files").upload(path, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
   return { path: error ? null : path, error: error?.message ?? null };
 }
 
@@ -633,6 +637,6 @@ function money(formData: FormData, key: string) { const value = decimal(formData
 function dateTime(formData: FormData, key: string) { const value = text(formData, key, 40); if (!value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date.toISOString(); }
 function clean(message: string) { return message.replace(/^.*?: /, "").replace(/\.$/, "") + "."; }
 function ok(message: string): MaterialActionState { return { status: "success", message }; }
-function fail(message: string): MaterialActionState { return { status: "error", message }; }
+function fail(message: string): MaterialActionState { return { status: "error", message: safeStaffMessage(message) }; }
 function warning(message: string): MaterialActionState { return { status: "warning", message }; }
 function revalidateMaterials(jobId?: string | null) { revalidatePath("/admin"); revalidatePath("/admin/materials"); revalidatePath("/admin/reports"); if (jobId) { revalidatePath(`/admin/jobs/${jobId}`); revalidatePath(`/crew/jobs/${jobId}`); } }

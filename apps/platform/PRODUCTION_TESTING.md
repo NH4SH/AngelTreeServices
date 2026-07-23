@@ -1,5 +1,25 @@
 # Angel Tree Platform Production Testing
 
+## Security remediation regression
+
+Run this section only after the five `20260723` security migrations in `DEPLOYMENT_CHECKLIST.md` are confirmed on the target Supabase project and the admin app has been redeployed.
+
+- Confirm owner can assign a valid non-owner role and the immutable role-assignment event is created.
+- Confirm admin cannot assign owner, no user can change their own roles, and estimator/payroll/crew cannot mutate role tables directly.
+- Record and cancel a small manual test payment as owner/admin; confirm the invoice balance and activity history reconcile exactly once. Do not use a live customer invoice.
+- Confirm estimator can use employee assignment selectors but cannot retrieve home address, emergency contacts, private notes, or separation details.
+- Confirm crew can still access permitted self-service employee data and assigned work only.
+- Confirm `job-photos` is private, limited to 6 MB, and accepts only JPEG, PNG, and WebP.
+- Confirm malformed, mislabeled, SVG, HTML, oversized, and traversal-style uploads are rejected; confirm accepted image metadata is stripped.
+- Confirm reports/payroll CSV cells beginning with formula characters are neutralized while numeric amounts remain numeric.
+- Confirm admin, crew, employee, portal, and portal API responses are `no-store`; confirm frame blocking, referrer, permissions, HSTS, and report-only CSP headers.
+- Confirm login redirects reject external/protocol-relative/encoded paths and valid internal paths still work.
+- Confirm portal/email/Stripe URLs use `https://admin.angeltreeservices.org` even when request Host headers are spoofed in an isolated test.
+- Confirm lead, signup, portal view, portal response, and payment endpoints return `429` with `Retry-After` after their documented shared limit without exposing raw tokens or email existence.
+- Review server logs for correlation IDs and verify staff/public error notices do not contain SQL, schema, constraint, PostgREST, key, cookie, or token details.
+
+Payment acceptance remains a no-go until production migration parity, Stripe mode/webhook subscriptions, and Stripe test-mode payment regressions are manually verified. Do not enable either card-payment flag as part of this checklist.
+
 Run the reporting and profitability smoke checklist in [REPORTING.md](./REPORTING.md) after applying `20260717005036_business_reporting_profitability.sql`.
 
 Use this checklist after deploying the admin CRM to the live admin domain.

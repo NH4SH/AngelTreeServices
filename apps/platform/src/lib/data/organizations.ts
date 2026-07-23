@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminSearchPage } from "@/lib/data/admin-search";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   Customer,
   DataResult,
@@ -19,7 +20,7 @@ export async function getOrganizations(): Promise<DataResult<Organization[]>> {
   if (!supabase) return { data: [], error: "Supabase is not configured." };
 
   const { data, error } = await supabase.from("organizations").select("*").is("archived_at", null).order("name");
-  return error ? { data: [], error: error.message } : { data: (data ?? []) as Organization[], error: null };
+  return error ? { data: [], error: safeStaffMessage(error.message) } : { data: (data ?? []) as Organization[], error: null };
 }
 
 export async function getOrganizationsPage(filters: { archived: boolean; page: number; pageSize: number; query?: string }) {
@@ -47,7 +48,7 @@ export async function getActiveOrganizationContacts(): Promise<DataResult<Organi
     .order("full_name");
 
   return error
-    ? { data: [], error: error.message }
+    ? { data: [], error: safeStaffMessage(error.message) }
     : { data: (data ?? []) as OrganizationContact[], error: null };
 }
 
@@ -57,7 +58,7 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
 
   const { data: organization, error: organizationError } = await supabase
     .from("organizations").select("*").eq("id", organizationId).single();
-  if (organizationError || !organization) return { data: null, error: organizationError?.message ?? "Organization not found or no access." };
+  if (organizationError || !organization) return { data: null, error: organizationError ? safeStaffMessage(organizationError.message, "Organization not found or no access.") : "Organization not found or no access." };
 
   const [contacts, customers, locations] = await Promise.all([
     supabase.from("organization_contacts").select("*").eq("organization_id", organizationId).order("full_name"),
@@ -119,7 +120,7 @@ export async function getOrganizationDashboardSummary() {
     .not("organization_id", "is", null);
 
   if (customersError) {
-    return { data: [], error: customersError.message };
+    return { data: [], error: safeStaffMessage(customersError.message) };
   }
 
   const [jobs, quotes, invoices, locations, changeOrders] = await Promise.all([

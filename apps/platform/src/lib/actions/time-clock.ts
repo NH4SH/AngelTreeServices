@@ -9,6 +9,7 @@ import {
   isTimeClockRoleEligible,
 } from "@/lib/auth/time-clock";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type TimeClockActionState = {
   status: "idle" | "success" | "error";
@@ -130,7 +131,7 @@ export async function clockOut(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!updatedEntry) {
@@ -190,7 +191,7 @@ export async function setTimeClockPermission(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   revalidateTimeClockPaths(targetUserId);
@@ -254,7 +255,7 @@ export async function reviewTimeEntry(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   revalidateTimeClockPaths(userId || undefined);
@@ -330,7 +331,7 @@ export async function adjustTimeEntry(
   });
 
   if (adjustmentError) {
-    return { status: "error", message: adjustmentError.message };
+    return { status: "error", message: safeStaffMessage(adjustmentError.message) };
   }
 
   const { error: updateError } = await supabase
@@ -345,7 +346,7 @@ export async function adjustTimeEntry(
     .eq("id", timeEntryId);
 
   if (updateError) {
-    return { status: "error", message: updateError.message };
+    return { status: "error", message: safeStaffMessage(updateError.message) };
   }
 
   revalidateTimeClockPaths(userId || undefined);

@@ -6,6 +6,8 @@ import { recordActivity } from "@/lib/activity-log";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { createClient } from "@/lib/supabase/server";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { EquipmentCategory, EquipmentStatus } from "@/lib/types/database";
 
 export type EquipmentActionState = { status: "idle" | "success" | "error" | "warning"; message: string };
@@ -329,8 +331,10 @@ export async function uploadEquipmentDocument(_state: EquipmentActionState, form
   if (!(file instanceof File) || file.size === 0) return error("Choose a document or image to upload.");
   if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) return error("Upload a PDF, JPEG, PNG, or WebP file.");
   if (file.size > 15 * 1024 * 1024) return error("File is too large. Upload a file up to 15 MB.");
+  const prepared = await prepareSafeUpload(file, { maxBytes: 15 * 1024 * 1024, allowDocuments: true });
+  if (!prepared.data) return error(prepared.error ?? "The file could not be validated.");
   const storagePath = `${assetId}/documents/${Date.now()}-${safeFileName(file.name)}`;
-  const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, file, { contentType: file.type, upsert: false });
+  const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
   if (uploadError) return error(`Private file upload failed: ${uploadError.message}`);
   const { error: metadataError } = await context.supabase.from("equipment_documents").insert({ asset_id: assetId, title, document_type: documentType, storage_path: storagePath, expires_at: dateTime(formData, "expires_at"), uploaded_by_user_id: context.user.id });
   if (metadataError) {
@@ -397,4 +401,4 @@ function dateTime(formData: FormData, key: string) { const value = text(formData
 function moneyCents(formData: FormData, key: string) { const value = number(formData, key); return value === null ? null : Math.round(value * 100); }
 function escapeFilter(value: string) { return value.replace(/[,%()]/g, ""); }
 function safeFileName(value: string) { return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "document"; }
-function error(message: string): EquipmentActionState { return { status: "error", message }; }
+function error(message: string): EquipmentActionState { return { status: "error", message: safeStaffMessage(message) }; }

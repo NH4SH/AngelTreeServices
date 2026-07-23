@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { CustomerStatus, CustomerType } from "@/lib/types/database";
 
 export type CustomerActionState = {
@@ -203,7 +204,7 @@ export async function updateCustomer(
       .in("id", existingLocationIds);
 
     if (locationLookupError) {
-      return { status: "error", message: locationLookupError.message };
+      return { status: "error", message: safeStaffMessage(locationLookupError.message) };
     }
 
     const ownedLocationIds = new Set((existingLocations ?? []).filter((location) => location.customer_id === customerId).map((location) => location.id));
@@ -220,7 +221,7 @@ export async function updateCustomer(
 
     const removalCheck = await canRemoveServiceLocation(supabase, location.id);
     if (!removalCheck.ok) {
-      return { status: "error", message: removalCheck.message };
+      return { status: "error", message: safeStaffMessage(removalCheck.message) };
     }
   }
 
@@ -239,7 +240,7 @@ export async function updateCustomer(
     .eq("id", customerId);
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   for (const location of serviceLocations) {
@@ -368,7 +369,7 @@ export async function createServiceLocation(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   revalidatePath("/admin/customers");

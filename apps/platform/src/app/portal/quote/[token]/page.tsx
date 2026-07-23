@@ -3,6 +3,7 @@ import { QuoteDocument } from "@/components/documents/quote-document";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
+import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
 type CustomerQuotePortalPageProps = {
   params: Promise<{
@@ -18,6 +19,9 @@ const trustPoints = [
 
 export default async function CustomerQuotePortalPage({ params }: CustomerQuotePortalPageProps) {
   const { token } = await params;
+  const rateLimit = await checkPortalPageRateLimit("quote", token);
+  if (!rateLimit.available) return <PortalUnavailable message="This secure quote is temporarily unavailable. Please try again shortly." />;
+  if (!rateLimit.allowed) return <PortalUnavailable message="Please wait a moment before opening this secure quote again." />;
   const lookup = await getQuoteByPortalToken(token);
 
   if (!lookup.quote) {

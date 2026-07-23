@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { decryptPortalToken, hashPortalToken } from "@/lib/portal/tokens";
 import { getPortalUrl } from "@/lib/portal/urls";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, JobWithRelations, QuoteDetail, QuotePortalToken, QuoteWithRelations } from "@/lib/types/database";
 
 export type QuotePortalTokenSummary = Pick<
@@ -36,7 +37,7 @@ export async function getQuotePortalTokens(quoteId: string): Promise<DataResult<
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   const tokenRows = data ?? [];

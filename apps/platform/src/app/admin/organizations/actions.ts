@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { OrganizationType } from "@/lib/types/database";
 
 export type OrganizationActionState = { status: "idle" | "success" | "error"; message: string };
@@ -30,7 +31,7 @@ export async function createOrganization(_state: OrganizationActionState, formDa
     tax_exempt: formData.get("tax_exempt") === "on",
     tax_reference: optional(formData, "tax_reference", 160),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
   revalidatePath("/admin/organizations"); revalidatePath("/admin");
   return { status: "success", message: "Organization saved." };
 }
@@ -68,7 +69,7 @@ export async function updateOrganization(_state: OrganizationActionState, formDa
     })
     .eq("id", organizationId);
 
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
 
   revalidatePath("/admin/organizations");
   revalidatePath(`/admin/organizations/${organizationId}`);
@@ -102,7 +103,7 @@ export async function createOrganizationContact(_state: OrganizationActionState,
     service_location_id: serviceLocationId,
     notes: optional(formData, "contact_notes", 1000),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
   revalidatePath(`/admin/organizations/${organizationId}`);
   return { status: "success", message: "Organization contact saved." };
 }
@@ -118,7 +119,7 @@ export async function createOrganizationProperty(_state: OrganizationActionState
     street, city, state: text(formData, "state", 30) || "VA", postal_code: optional(formData, "postal_code", 20),
     service_notes: optional(formData, "service_notes", 600),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
   revalidatePath(`/admin/organizations/${organizationId}`); revalidatePath("/admin/jobs");
   return { status: "success", message: "Organization property saved." };
 }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { CrewChangeOrderScopeItem, CrewJob, DataResult } from "@/lib/types/database";
 
 const crewJobSelect = `
@@ -48,7 +49,7 @@ export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResul
   const { data, error } = await query;
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as unknown as CrewJob[], error: null };
@@ -82,7 +83,7 @@ export async function getCrewJobById(
   const { data, error } = await query.single();
 
   if (error) {
-    return { data: null, error: error.message };
+    return { data: null, error: safeStaffMessage(error.message) };
   }
 
   return { data: data as unknown as CrewJob, error: null };

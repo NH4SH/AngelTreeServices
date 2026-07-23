@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { getAdminSearchPage } from "@/lib/data/admin-search";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   CommunicationSettings,
   CommunicationStatus,
@@ -106,7 +107,7 @@ export async function getCommunicationRecipientOptions({
       : Promise.resolve({ data: null, error: null }),
   ]);
   const error = customerResult.error ?? organizationResult.error;
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: safeStaffMessage(error.message) };
 
   const customer = customerResult.data;
   const organization = organizationResult.data;
@@ -203,7 +204,7 @@ export async function getWebsiteLeadInbox(filters: { limit?: number; page?: numb
     .limit(filters.limit ?? 24);
 
   if (jobsError) {
-    return { data: [], count: index.count, error: jobsError.message };
+    return { data: [], count: index.count, error: safeStaffMessage(jobsError.message) };
   }
 
   const jobIds = (jobs ?? []).map((job) => job.id);
@@ -218,7 +219,7 @@ export async function getWebsiteLeadInbox(filters: { limit?: number; page?: numb
     .order("created_at", { ascending: false });
 
   if (communicationsError) {
-    return { data: [], count: index.count, error: communicationsError.message };
+    return { data: [], count: index.count, error: safeStaffMessage(communicationsError.message) };
   }
 
   const communicationMap = new Map<string, CustomerCommunication[]>();

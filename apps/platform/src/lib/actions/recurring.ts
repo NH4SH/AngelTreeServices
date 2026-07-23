@@ -9,6 +9,7 @@ import {
   platformRoleGroups,
 } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { RecurringActionState } from "@/lib/action-states/recurring";
 
 export async function createFollowUpTask(
@@ -1048,7 +1049,7 @@ function success(message: string): RecurringActionState {
   return { status: "success", message };
 }
 function failure(message: string): RecurringActionState {
-  return { status: "error", message };
+  return { status: "error", message: safeStaffMessage(message) };
 }
 function text(formData: FormData, key: string, max: number) {
   return String(formData.get(key) ?? "")

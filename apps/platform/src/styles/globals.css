@@ -17844,6 +17844,24 @@ body:has(.appointment-overlay) {
   color: #7a2f2f;
 }
 
+.status-pill.approval-source {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+}
+
+.status-pill.approval-source.manual {
+  background: #fff2d8;
+  border-color: #e2bd70;
+  color: #714d05;
+}
+
+.status-pill.approval-source.portal {
+  background: #dff4e5;
+  border-color: #a8d5b5;
+  color: #145b35;
+}
+
 .change-order-document {
   color: #26342c;
   display: grid;

@@ -180,7 +180,7 @@ export function CreateInvoiceFromJobAction({ jobId, operationalStatus }: { jobId
         action={formAction}
         className="inline-action-form"
         onSubmit={(event) => {
-          if (operationalStatus && !window.confirm(`This job is currently ${operationalStatus.toLowerCase()}. Create a draft invoice now? The invoice will not be sent automatically.`)) {
+          if (operationalStatus && !window.confirm(`This job is currently ${operationalStatus.toLowerCase()}. Create a draft invoice and mark the job complete? The invoice will not be sent automatically.`)) {
             event.preventDefault();
           }
         }}

@@ -163,7 +163,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               action={invoice ? <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={operationalLabel} /> : null}
               label="Invoice"
               title={invoice ? invoice.invoice_number ?? "Invoice draft" : "Not created"}
-              value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "A draft can be created without completing or closing the job."}
+              value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Creating the invoice also marks this work order complete."}
             />
           </div>
           {invoice && unbilledChanges.length ? <p className="job-attention-note">{unbilledChanges.length} approved {unbilledChanges.length === 1 ? "addition has" : "additions have"} not been added to this invoice.</p> : null}
@@ -192,7 +192,12 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               return (
                 <article className={`job-work-scope-line ${approved ? "approved" : "pending"}`} key={line.id}>
                   <span className={`job-work-line-kind ${approved ? "approved" : "pending"}`}>{approved ? "Added" : "Draft addition"}</span>
-                  <div><strong>{line.title}</strong>{line.description ? <p className="pre-wrap-copy">{line.description}</p> : null}<Link href={`/admin/change-orders/${order.id}`}>{approved ? "View approval" : "Review and approve"}</Link></div>
+                  <div>
+                    <strong>{line.title}</strong>
+                    {line.description ? <p className="pre-wrap-copy">{line.description}</p> : null}
+                    {approved && order.approval_method ? <span className={`status-pill approval-source ${order.approval_method === "portal" ? "portal" : "manual"}`}>{order.approval_method === "portal" ? "Portal approved" : "Manually approved"}</span> : null}
+                    <Link href={`/admin/change-orders/${order.id}`}>{approved ? "View approval" : "Review and approve"}</Link>
+                  </div>
                   <span>{line.quantity} {line.unit ?? ""} × {formatCurrency(line.unit_price_cents)}</span>
                   <strong>{formatCurrency(line.amount_cents)}</strong>
                 </article>

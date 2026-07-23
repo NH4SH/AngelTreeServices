@@ -33,7 +33,7 @@ import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
-import { getQuoteDetail } from "@/lib/data/quotes";
+import { getQuoteApprovalSource, getQuoteDetail } from "@/lib/data/quotes";
 import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { generateQuoteFollowUpMessage } from "@/lib/documents/scheduling-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
@@ -55,6 +55,9 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   }
 
   const detail = await getQuoteDetail(quoteId);
+  const approvalSource = detail.data?.status === "approved"
+    ? await getQuoteApprovalSource(quoteId)
+    : { data: null, error: null };
   const portalTokens = detail.data ? await getQuotePortalTokens(quoteId) : { data: [], error: null };
   const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
   const communications = detail.data ? await getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null };
@@ -71,6 +74,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
       <div className="shell app-content commerce-page">
         <Link className="crew-back-link" href="/admin/quotes">Back to quotes</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
+        {approvalSource.error ? <DataWarning message={`Approval history: ${approvalSource.error}`} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
@@ -92,6 +96,12 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 <span className={`status-pill quote-status ${detail.data.status}`}>
                   {formatQuoteStatus(detail.data.status)}
                 </span>
+                {approvalSource.data ? (
+                  <span className={`status-pill approval-source ${approvalSource.data}`}>
+                    <ClipboardCheck aria-hidden="true" size={15} />
+                    {approvalSource.data === "manual" ? "Manually approved" : "Portal approved"}
+                  </span>
+                ) : null}
                 <strong>{formatCurrency(detail.data.total_cents)}</strong>
                 {isQuoteEditable(detail.data.status) ? (
                   <Link className="primary-action" href={`/admin/quotes/${detail.data.id}/edit`}>
@@ -201,6 +211,14 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                   <span className={`status-pill quote-status ${detail.data.status}`}>
                     {formatQuoteStatus(detail.data.status)}
                   </span>
+                  {approvalSource.data ? (
+                    <p className="quote-delivery-note">
+                      <ClipboardCheck aria-hidden="true" size={16} />
+                      {approvalSource.data === "manual"
+                        ? "Approved manually by staff."
+                        : "Approved through the secure customer portal."}
+                    </p>
+                  ) : null}
                   <p className="inline-empty">Sending the quote marks it sent. Approval creates or links the work order.</p>
                   {detail.data.sent_at ? (
                     <p className="quote-delivery-note">

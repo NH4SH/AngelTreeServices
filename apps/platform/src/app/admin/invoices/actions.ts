@@ -6,6 +6,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
 import { safeStaffMessage } from "@/lib/security/errors";
 
 export type InvoiceActionState = {
@@ -118,6 +119,8 @@ export async function createInvoice(
     service_location_id: string | null;
     property_manager_contact_id: string | null;
     status: string;
+    completed_at: string | null;
+    completed_by_user_id: string | null;
     recurring_service_plan_id: string | null;
     recurring_occurrence_id: string | null;
   } | null = null;
@@ -125,7 +128,7 @@ export async function createInvoice(
   if (jobId) {
     const jobResult = await supabase
       .from("jobs")
-      .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, status, recurring_service_plan_id, recurring_occurrence_id")
+      .select("id, customer_id, organization_id, service_location_id, property_manager_contact_id, status, completed_at, completed_by_user_id, recurring_service_plan_id, recurring_occurrence_id")
       .eq("id", jobId)
       .single();
     job = jobResult.data;
@@ -252,6 +255,15 @@ export async function createInvoice(
     }
   }
 
+  const jobCompletion = job
+    ? await completeJobAfterInvoice({
+        actorUserId: user.id,
+        invoiceId: invoice.id,
+        job,
+        supabase,
+      })
+    : { completed: true as const, warning: null };
+
   await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "invoice_draft_created",
@@ -262,16 +274,25 @@ export async function createInvoice(
   if (job) await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "invoice_draft_created_from_job",
-    metadata: { invoice_id: invoice.id, job_status_preserved: job.status },
+    metadata: {
+      invoice_id: invoice.id,
+      job_status_after: jobCompletion.completed ? "completed" : job.status,
+      job_status_before: job.status,
+    },
     subjectId: job.id,
     subjectType: "job",
   });
 
   revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  if (job) revalidatePath(`/admin/jobs/${job.id}`);
+  revalidatePath("/admin/schedule");
+  revalidatePath("/crew/jobs");
+  if (job) revalidatePath(`/crew/jobs/${job.id}`);
   revalidatePath("/admin/invoices");
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  redirect(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`);
+  redirect(`/admin/invoices/${invoice.id}?created=1${job && jobCompletion.completed ? "&job_completed=1" : ""}${noteWarning ? "&note_warning=1" : ""}${jobCompletion.warning ? "&job_completion_warning=1" : ""}`);
 }
 
 type InvoiceLineItemInput = {

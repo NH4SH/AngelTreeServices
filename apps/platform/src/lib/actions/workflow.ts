@@ -11,6 +11,7 @@ import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -416,11 +417,18 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${approvalResult.jobId}`);
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${result.invoiceId}`);
-  redirect(`/admin/invoices/${result.invoiceId}`);
+  revalidatePath("/admin/schedule");
+  revalidatePath("/crew/jobs");
+  revalidatePath(`/crew/jobs/${approvalResult.jobId}`);
+  redirect(result.existing
+    ? `/admin/invoices/${result.invoiceId}`
+    : `/admin/invoices/${result.invoiceId}?created=1${result.jobCompletionWarning ? "&job_completion_warning=1" : "&job_completed=1"}`);
 }
 
 export async function createInvoiceFromJob(_previousState: WorkflowActionState, formData: FormData) {
@@ -458,6 +466,9 @@ export async function createInvoiceFromJob(_previousState: WorkflowActionState, 
   revalidatePath(`/admin/jobs/${jobId}`);
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${result.invoiceId}`);
+  revalidatePath("/admin/schedule");
+  revalidatePath("/crew/jobs");
+  revalidatePath(`/crew/jobs/${jobId}`);
 
   if (result.existing) {
     return {
@@ -467,11 +478,11 @@ export async function createInvoiceFromJob(_previousState: WorkflowActionState, 
     };
   }
 
-  redirect(`/admin/invoices/${result.invoiceId}`);
+  redirect(`/admin/invoices/${result.invoiceId}?created=1${result.jobCompletionWarning ? "&job_completion_warning=1" : "&job_completed=1"}`);
 }
 
 type InvoiceGenerationResult =
-  | { ok: true; invoiceId: string; existing: boolean }
+  | { ok: true; invoiceId: string; existing: boolean; jobCompletionWarning: boolean }
   | { ok: false; message: string };
 
 async function createInvoiceForJob({
@@ -491,12 +502,12 @@ async function createInvoiceForJob({
   }
 
   if (existingInvoice.invoiceId) {
-    return { ok: true, invoiceId: existingInvoice.invoiceId, existing: true };
+    return { ok: true, invoiceId: existingInvoice.invoiceId, existing: true, jobCompletionWarning: false };
   }
 
   const { data: invoiceableJob, error: invoiceableJobError } = await supabase
     .from("jobs")
-    .select("id, status, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, recurring_service_plan_id, recurring_occurrence_id")
+    .select("id, status, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, completed_at, completed_by_user_id, recurring_service_plan_id, recurring_occurrence_id")
     .eq("id", jobId)
     .single();
 
@@ -592,6 +603,13 @@ async function createInvoiceForJob({
     });
   }
 
+  const jobCompletion = await completeJobAfterInvoice({
+    actorUserId,
+    invoiceId: invoice.id,
+    job: invoiceableJob,
+    supabase,
+  });
+
   await recordActivity(supabase, {
     actorUserId,
     eventType: "invoice_draft_created",
@@ -602,12 +620,21 @@ async function createInvoiceForJob({
   await recordActivity(supabase, {
     actorUserId,
     eventType: "invoice_draft_created_from_job",
-    metadata: { invoice_id: invoice.id, job_status_preserved: invoiceableJob.status },
+    metadata: {
+      invoice_id: invoice.id,
+      job_status_after: jobCompletion.completed ? "completed" : invoiceableJob.status,
+      job_status_before: invoiceableJob.status,
+    },
     subjectId: jobId,
     subjectType: "job",
   });
 
-  return { ok: true, invoiceId: invoice.id, existing: false };
+  return {
+    ok: true,
+    invoiceId: invoice.id,
+    existing: false,
+    jobCompletionWarning: Boolean(jobCompletion.warning),
+  };
 }
 
 async function findInvoiceForJob(

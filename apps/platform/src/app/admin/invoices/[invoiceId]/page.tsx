@@ -36,7 +36,7 @@ type InvoiceDetailPageProps = {
   params: Promise<{
     invoiceId: string;
   }>;
-  searchParams: Promise<{ created?: string; note_warning?: string }>;
+  searchParams: Promise<{ created?: string; job_completed?: string; job_completion_warning?: string; note_warning?: string }>;
 };
 
 export default async function InvoiceDetailPage({ params, searchParams }: InvoiceDetailPageProps) {
@@ -70,6 +70,8 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
       <div className="shell app-content commerce-page">
         <Link className="crew-back-link" href="/admin/invoices">Back to invoices</Link>
         {query.created === "1" ? <p className="form-message success" role="status">Invoice created. Review it before sending.</p> : null}
+        {query.job_completed === "1" ? <p className="form-message success" role="status">The linked work order was marked complete automatically.</p> : null}
+        {query.job_completion_warning === "1" ? <p className="form-message error" role="status">The invoice was created, but the linked work order could not be marked complete. Open the work order and mark it complete manually.</p> : null}
         {query.note_warning === "1" ? <p className="form-message error" role="status">The invoice was created, but its internal note could not be attached.</p> : null}
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {portalTokens.error ? <DataWarning message={`Customer invoice links: ${portalTokens.error}`} /> : null}

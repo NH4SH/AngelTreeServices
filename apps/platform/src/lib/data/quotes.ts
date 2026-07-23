@@ -3,6 +3,35 @@ import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-se
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
 
+export type QuoteApprovalSource = "manual" | "portal";
+
+export async function getQuoteApprovalSource(quoteId: string): Promise<DataResult<QuoteApprovalSource | null>> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { data: null, error: "Supabase is not configured." };
+  }
+
+  const { data, error } = await supabase
+    .from("activity_log")
+    .select("actor_user_id")
+    .eq("subject_type", "quote")
+    .eq("subject_id", quoteId)
+    .eq("event_type", "quote_approved")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: safeStaffMessage(error.message) };
+  }
+
+  return {
+    data: data ? (data.actor_user_id ? "manual" : "portal") : null,
+    error: null,
+  };
+}
+
 export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
   const supabase = await createClient();
 

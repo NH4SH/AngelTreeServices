@@ -106,7 +106,7 @@ export async function getPayrollExportCsv(payPeriodId: string): Promise<DataResu
 
   return {
     data: {
-      csv: rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n"),
+      csv: serializeCsv(rows),
       filename: `angel-tree-payroll-${formatFileSafeDate(payroll.data.selected_pay_period.starts_at)}-to-${formatFileSafeDate(payroll.data.selected_pay_period.ends_at)}.csv`,
       payPeriod: payroll.data.selected_pay_period,
     },
@@ -394,12 +394,4 @@ function formatFileSafeDate(value: string) {
   return value.slice(0, 10);
 }
 
-function escapeCsvCell(value: string) {
-  const normalized = String(value ?? "");
-
-  if (/[",\n]/.test(normalized)) {
-    return `"${normalized.replace(/"/g, "\"\"")}"`;
-  }
-
-  return normalized;
-}
+import { serializeCsv } from "@/lib/security/csv";

@@ -14,6 +14,8 @@ import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import type { ChangeOrderActionState } from "@/lib/action-states/change-orders";
+import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export async function createChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
@@ -312,6 +314,9 @@ export async function duplicateChangeOrder(_state: ChangeOrderActionState, formD
 export async function approveChangeOrderByPortal(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const rawToken = text(formData, "token", 300);
   const approverName = text(formData, "approver_name", 160);
+  const rateLimit = await checkPortalActionRateLimit("change-order-approve", rawToken);
+  if (!rateLimit.available) return failure("Change-order responses are temporarily unavailable. Please try again shortly.");
+  if (!rateLimit.allowed) return failure("Please wait before submitting another response.");
   const lookup = await getChangeOrderByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
   if (!supabase || lookup.status !== "ready" || !lookup.changeOrder || !lookup.tokenId) return failure(lookup.message || "This change order link is unavailable.");
@@ -342,6 +347,9 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   const rawToken = text(formData, "token", 300);
   const intent = text(formData, "response_intent", 30);
   const message = text(formData, "message", 1000);
+  const rateLimit = await checkPortalActionRateLimit("change-order-response", rawToken);
+  if (!rateLimit.available) return failure("Change-order responses are temporarily unavailable. Please try again shortly.");
+  if (!rateLimit.allowed) return failure("Please wait before submitting another response.");
   const lookup = await getChangeOrderByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
   if (!supabase || lookup.status !== "ready" || !lookup.changeOrder || !lookup.tokenId) return failure(lookup.message || "This change order link is unavailable.");
@@ -514,6 +522,6 @@ function normalizeMultiline(value: FormDataEntryValue | null | undefined, max: n
 function optionalMultiline(formData: FormData, key: string, max: number) { return normalizeMultiline(formData.get(key), max); }
 function dateAtEndOfDay(value: FormDataEntryValue | null) { const date = String(value ?? "").trim(); return date ? new Date(`${date}T23:59:59`).toISOString() : null; }
 function money(centsValue: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(centsValue / 100); }
-function failure(message: string): ChangeOrderActionState { return { status: "error", message }; }
+function failure(message: string): ChangeOrderActionState { return { status: "error", message: safeStaffMessage(message) }; }
 function success(message: string): ChangeOrderActionState { return { status: "success", message }; }
 function revalidateChangeOrderPaths(id: string, jobId: string | null, organizationId: string | null) { revalidatePath("/admin/change-orders"); revalidatePath(`/admin/change-orders/${id}`); if (jobId) { revalidatePath(`/admin/jobs/${jobId}`); revalidatePath(`/crew/jobs/${jobId}`); } if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`); }

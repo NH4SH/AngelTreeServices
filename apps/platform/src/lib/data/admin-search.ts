@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type AdminSearchRecordType =
   | "appointment"
@@ -56,7 +57,7 @@ export async function getAdminSearchPage(filters: AdminSearchFilters): Promise<A
   const { data, count, error } = await request.range(from, from + pageSize - 1);
   return {
     count: count ?? 0,
-    error: error?.message ?? null,
+    error: error ? safeStaffMessage(error.message) : null,
     ids: (data ?? []).map((row) => row.record_id),
     records: (data ?? []).map((row) => ({ id: row.record_id, recordType: row.record_type as AdminSearchRecordType })),
   };
@@ -81,7 +82,7 @@ export async function countAdminSearchRecords(filters: Omit<AdminSearchFilters, 
   if (query) request = request.ilike("search_text", `%${escapeLike(query)}%`);
 
   const { count, error } = await request;
-  return { count: count ?? 0, error: error?.message ?? null };
+  return { count: count ?? 0, error: error ? safeStaffMessage(error.message) : null };
 }
 
 function normalizeSearchTerm(value?: string) {

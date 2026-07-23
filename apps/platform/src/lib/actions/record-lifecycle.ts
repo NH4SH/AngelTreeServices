@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type LifecycleRecordType = "customer" | "invoice" | "job" | "organization" | "quote" | "service_location";
 
@@ -282,5 +283,5 @@ function revalidateLifecyclePaths(recordType: LifecycleRecordType, recordId: str
 }
 
 function failure(message: string): LifecycleActionState {
-  return { status: "error", message };
+  return { status: "error", message: safeStaffMessage(message) };
 }

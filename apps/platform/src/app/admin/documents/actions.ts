@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type DocumentActionState = {
   status: "idle" | "success" | "error";
@@ -46,6 +48,8 @@ export async function uploadPlatformDocument(
   if (!allowedMimeTypes.has(file.type) || file.size > 25 * 1024 * 1024) {
     return failure("Upload a PDF, image, text, Word, or Excel file up to 25 MB.");
   }
+  const prepared = await prepareSafeUpload(file, { maxBytes: 25 * 1024 * 1024, allowDocuments: true });
+  if (!prepared.data) return failure(prepared.error ?? "The file could not be validated.");
 
   const linkType = text(formData, "link_type", 30) as keyof typeof linkColumns;
   const linkId = text(formData, "link_id", 80);
@@ -61,7 +65,7 @@ export async function uploadPlatformDocument(
   const storagePath = `${context.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
   const { error: uploadError } = await context.supabase.storage
     .from("platform-documents")
-    .upload(storagePath, file, { contentType: file.type, upsert: false });
+    .upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
   if (uploadError) {
     console.error("Platform document upload failed", uploadError);
     return failure(`The file could not be uploaded: ${uploadError.message}`);
@@ -72,8 +76,8 @@ export async function uploadPlatformDocument(
     title,
     document_type: documentType,
     storage_path: storagePath,
-    mime_type: file.type,
-    file_size_bytes: file.size,
+    mime_type: prepared.data.contentType,
+    file_size_bytes: prepared.data.size,
     expires_at: expiresAt,
     uploaded_by_user_id: context.user.id,
     access_classification: employeeSensitive ? "employee_sensitive" : "staff",
@@ -128,5 +132,5 @@ function safeFileName(value: string) {
 }
 
 function failure(message: string): DocumentActionState {
-  return { status: "error", message };
+  return { status: "error", message: safeStaffMessage(message) };
 }

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, InvoiceDetail, InvoiceWithRelations, JobWithRelations, Note } from "@/lib/types/database";
 
 export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>> {
@@ -18,7 +19,7 @@ export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>>
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as InvoiceWithRelations[], error: null };
@@ -101,7 +102,7 @@ export async function getInvoicesByCustomerId(customerId: string): Promise<DataR
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as InvoiceWithRelations[], error: null };
@@ -123,7 +124,7 @@ export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<In
     .single();
 
   if (invoiceError || !invoice) {
-    return { data: null, error: invoiceError?.message ?? "Invoice not found or no access." };
+    return { data: null, error: invoiceError ? safeStaffMessage(invoiceError.message, "Invoice not found or no access.") : "Invoice not found or no access." };
   }
 
   const jobId = (invoice as InvoiceWithRelations).job_id;

@@ -7,6 +7,7 @@ import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   AppointmentStatus,
   AppointmentType,
@@ -265,7 +266,7 @@ export async function updateAppointmentStatus(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!data) {
@@ -342,7 +343,7 @@ export async function updateAppointmentDetails(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!data) {
@@ -540,7 +541,7 @@ export async function updateScheduleEventStatus(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!data) {
@@ -649,7 +650,7 @@ export async function updateScheduleEventDetails(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
   if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserIds.join(","), reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: eventId, subjectType: "schedule_event" });
 

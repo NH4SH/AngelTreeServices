@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { processCommunicationById, processDueCommunications } from "@/lib/communications/processor";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   CommunicationRecipientSource,
   CommunicationType,
@@ -77,7 +78,7 @@ export async function updateRecordAutomation(
   const table = recordType === "quote" ? "quotes" : "invoices";
   const column = recordType === "quote" ? "automatic_follow_ups_enabled" : "automatic_reminders_enabled";
   const { error } = await auth.supabase.from(table).update({ [column]: enabled }).eq("id", recordId);
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
 
   if (!enabled) {
     let query = auth.supabase
@@ -143,7 +144,7 @@ export async function updateCommunicationSettings(
     })
     .eq("singleton", true);
 
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
   revalidateCommunicationPaths();
   return { status: "success", message: "Communication defaults saved." };
 }

@@ -8,6 +8,7 @@ import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/sta
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
 type CustomerInvoicePortalPageProps = {
   params: Promise<{
@@ -19,6 +20,9 @@ type CustomerInvoicePortalPageProps = {
 export default async function CustomerInvoicePortalPage({ params, searchParams }: CustomerInvoicePortalPageProps) {
   const { token } = await params;
   const { payment } = await searchParams;
+  const rateLimit = await checkPortalPageRateLimit("invoice", token);
+  if (!rateLimit.available) return <PortalUnavailable message="This secure invoice is temporarily unavailable. Please try again shortly." />;
+  if (!rateLimit.allowed) return <PortalUnavailable message="Please wait a moment before opening this secure invoice again." />;
   const lookup = await getInvoiceByPortalToken(token);
 
   if (!lookup.invoice) {

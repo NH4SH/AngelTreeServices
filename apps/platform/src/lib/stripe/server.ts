@@ -1,6 +1,7 @@
 import "server-only";
 
 import Stripe from "stripe";
+import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 
 type StripeServerConfig =
   | { configured: true; appBaseUrl: string; stripe: Stripe }
@@ -10,7 +11,7 @@ let stripeClient: Stripe | null = null;
 
 export function getStripeServerConfig(): StripeServerConfig {
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
-  const appBaseUrl = normalizeBaseUrl(process.env.APP_BASE_URL);
+  const appBaseUrl = getCanonicalAppBaseUrl();
 
   if (!secretKey || !appBaseUrl) {
     return {
@@ -30,21 +31,4 @@ export function getStripeServerConfig(): StripeServerConfig {
 
 export function getStripeWebhookSecret() {
   return process.env.STRIPE_WEBHOOK_SECRET?.trim() || null;
-}
-
-function normalizeBaseUrl(value?: string) {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return null;
-    }
-
-    return url.origin;
-  } catch {
-    return null;
-  }
 }

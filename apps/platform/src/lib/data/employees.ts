@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   CredentialType,
   DataResult,
@@ -43,9 +44,9 @@ export type EmployeeDetailData = {
 export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
   const supabase = await createClient();
   if (!supabase) return { data: [], error: "Supabase is not configured." };
-  const { data, error } = await supabase.from("employee_records").select("*, profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email), employee_onboarding_items(completion_status), employee_credentials(status, expiration_date, archived_at, credential_types(default_warning_days)), training_attendees(id)").is("archived_at", null).order("preferred_name", { ascending: true, nullsFirst: false }).order("legal_name");
-  if (error) return { data: [], error: error.message };
-  const rows = (data ?? []) as (EmployeeRecord & { employee_onboarding_items?: { completion_status: string }[]; employee_credentials?: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]; training_attendees?: { id: string }[] })[];
+  const { data, error } = await supabase.rpc("get_employee_operational_directory");
+  if (error) return { data: [], error: safeStaffMessage(error.message) };
+  const rows = ((data as { employees?: unknown[] } | null)?.employees ?? []) as (EmployeeRecord & { employee_onboarding_items?: { completion_status: string }[]; employee_credentials?: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]; training_attendees?: { id: string }[] })[];
   const authIds = rows.map((row) => row.auth_user_id).filter((id): id is string => Boolean(id));
   const [rolesResult, profilesResult, pendingResult] = await Promise.all([
     authIds.length ? supabase.from("user_roles").select("user_id, roles(name)").in("user_id", authIds) : Promise.resolve({ data: [], error: null }),
@@ -75,7 +76,7 @@ export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
           : employee.contact_email && pendingEmails.has(employee.contact_email.toLowerCase()) ? "pending" : "no_account",
       };
     }),
-    error: rolesResult.error?.message ?? profilesResult.error?.message ?? pendingResult.error?.message ?? null,
+    error: rolesResult.error ? safeStaffMessage(rolesResult.error.message) : profilesResult.error ? safeStaffMessage(profilesResult.error.message) : pendingResult.error ? safeStaffMessage(pendingResult.error.message) : null,
   };
 }
 
@@ -83,7 +84,7 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
   const supabase = await createClient();
   if (!supabase) return { data: null, error: "Supabase is not configured." };
   const { data, error } = await supabase.from("employee_records").select(detailSelect).eq("id", employeeId).single();
-  if (error || !data) return { data: null, error: error?.message ?? "Employee not found or no access." };
+  if (error || !data) return { data: null, error: error ? safeStaffMessage(error.message, "Employee not found or no access.") : "Employee not found or no access." };
   const employee = data as EmployeeDetail;
   const authId = employee.auth_user_id;
   const [roles, timer, equipment, activity, privateRecord] = await Promise.all([
@@ -96,7 +97,7 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
 
   const documents = employee.employee_documents ?? [];
   if (documents.length) {
-    const { data: signed } = await supabase.storage.from("employee-files").createSignedUrls(documents.map((document) => document.storage_path), 3600);
+    const { data: signed } = await supabase.storage.from("employee-files").createSignedUrls(documents.map((document) => document.storage_path), 3600, { download: true });
     const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
     employee.employee_documents = documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
   }
@@ -106,7 +107,7 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
   });
   return {
     data: { employee, roles: roleNames, timeClockEnabled: Boolean(timer.data?.is_enabled), equipmentAssignments: equipment.data ?? [], activity: activity.data ?? [], privateNotes: privateRecord.data?.private_hr_notes ?? null },
-    error: roles.error?.message ?? timer.error?.message ?? equipment.error?.message ?? activity.error?.message ?? privateRecord.error?.message ?? null,
+    error: roles.error ? safeStaffMessage(roles.error.message) : timer.error ? safeStaffMessage(timer.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : activity.error ? safeStaffMessage(activity.error.message) : privateRecord.error ? safeStaffMessage(privateRecord.error.message) : null,
   };
 }
 
@@ -114,11 +115,12 @@ export async function getEmployeeFormOptions() {
   const supabase = await createClient();
   if (!supabase) return { supervisors: [], credentialTypes: [], employees: [], qualificationRequirements: [], error: "Supabase is not configured." };
   const [employees, credentialTypes, qualificationRequirements] = await Promise.all([
-    supabase.from("employee_records").select("id, legal_name, preferred_name, crew_name, is_supervisor, auth_user_id").is("archived_at", null).order("preferred_name"),
+    supabase.rpc("get_employee_operational_directory"),
     supabase.from("credential_types").select("*").eq("is_active", true).order("label"),
     supabase.from("qualification_requirements").select("id, requirement_scope, scope_value, credential_type_id, warning_only, is_active, notes, credential_types(label)").eq("is_active", true).order("requirement_scope").order("scope_value"),
   ]);
-  return { supervisors: (employees.data ?? []).filter((employee) => employee.is_supervisor), employees: employees.data ?? [], credentialTypes: (credentialTypes.data ?? []) as CredentialType[], qualificationRequirements: qualificationRequirements.data ?? [], error: employees.error?.message ?? credentialTypes.error?.message ?? qualificationRequirements.error?.message ?? null };
+  const directory = ((employees.data as { employees?: Array<{ id: string; legal_name: string; preferred_name: string | null; crew_name: string | null; is_supervisor: boolean; auth_user_id: string | null }> } | null)?.employees ?? []);
+  return { supervisors: directory.filter((employee) => employee.is_supervisor), employees: directory, credentialTypes: (credentialTypes.data ?? []) as CredentialType[], qualificationRequirements: qualificationRequirements.data ?? [], error: employees.error ? safeStaffMessage(employees.error.message) : credentialTypes.error ? safeStaffMessage(credentialTypes.error.message) : qualificationRequirements.error ? safeStaffMessage(qualificationRequirements.error.message) : null };
 }
 
 export async function getEmployeeDashboardSummary() {
@@ -145,7 +147,7 @@ export async function getEmployeeDashboardSummary() {
     pendingSafetyAcknowledgments: safetyAcknowledgments.data ?? [],
     pendingDocuments: documents.data ?? [], pendingRequests: requests.data ?? [], equipmentDueBack: equipment.data ?? [],
     inactiveAccessReview: employees.data.filter((employee) => !employee.is_active && employee.platformAccessState === "active").slice(0, 20),
-  }, error: employees.error ?? accessRequests.error?.message ?? credentials.error?.message ?? safetyAcknowledgments.error?.message ?? documents.error?.message ?? requests.error?.message ?? equipment.error?.message ?? null };
+  }, error: employees.error ?? (accessRequests.error ? safeStaffMessage(accessRequests.error.message) : credentials.error ? safeStaffMessage(credentials.error.message) : safetyAcknowledgments.error ? safeStaffMessage(safetyAcknowledgments.error.message) : documents.error ? safeStaffMessage(documents.error.message) : requests.error ? safeStaffMessage(requests.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : null) };
 }
 
 export async function getMyEmployeeSelfService(): Promise<DataResult<EmployeeSelfServiceData | null>> {
@@ -154,12 +156,12 @@ export async function getMyEmployeeSelfService(): Promise<DataResult<EmployeeSel
   const { data, error } = await supabase.rpc("get_my_employee_self_service");
   const result = (data as EmployeeSelfServiceData | null) ?? null;
   if (result?.documents.length) {
-    const { data: signed, error: signedError } = await supabase.storage.from("employee-files").createSignedUrls(result.documents.map((document) => document.storage_path), 1800);
+    const { data: signed, error: signedError } = await supabase.storage.from("employee-files").createSignedUrls(result.documents.map((document) => document.storage_path), 1800, { download: true });
     const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
     result.documents = result.documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
-    return { data: result, error: error?.message ?? signedError?.message ?? null };
+    return { data: result, error: error ? safeStaffMessage(error.message) : signedError ? safeStaffMessage(signedError.message) : null };
   }
-  return { data: result, error: error?.message ?? null };
+  return { data: result, error: error ? safeStaffMessage(error.message) : null };
 }
 
 export async function getMySupervisedTeam(): Promise<DataResult<SupervisedTeamData | null>> {
@@ -167,35 +169,38 @@ export async function getMySupervisedTeam(): Promise<DataResult<SupervisedTeamDa
   if (!supabase) return { data: null, error: "Supabase is not configured." };
   const { data, error } = await supabase.rpc("get_my_supervised_team");
   const result = (data as SupervisedTeamData | null) ?? null;
-  if (!result?.is_supervisor || !result.employees.length) return { data: result, error: error?.message ?? null };
+  if (!result?.is_supervisor || !result.employees.length) return { data: result, error: error ? safeStaffMessage(error.message) : null };
   const employeeIds = result.employees.map((employee) => employee.id);
   const documents = await supabase.from("employee_documents").select("id, employee_id, title, storage_path, access_classification").in("employee_id", employeeIds).in("access_classification", ["employee_visible", "supervisor_visible"]).eq("review_status", "approved").is("archived_at", null);
   const paths = (documents.data ?? []).map((document) => document.storage_path);
-  const signed = paths.length ? await supabase.storage.from("employee-files").createSignedUrls(paths, 1800) : { data: [], error: null };
+  const signed = paths.length ? await supabase.storage.from("employee-files").createSignedUrls(paths, 1800, { download: true }) : { data: [], error: null };
   const signedByPath = new Map((signed.data ?? []).map((file) => [file.path, file.signedUrl]));
   result.employees = result.employees.map((employee) => ({ ...employee, documents: (documents.data ?? []).filter((document) => document.employee_id === employee.id).map((document) => ({ id: document.id, title: document.title, access_classification: document.access_classification, signed_url: signedByPath.get(document.storage_path) ?? null })) }));
-  return { data: result, error: error?.message ?? documents.error?.message ?? signed.error?.message ?? null };
+  return { data: result, error: error ? safeStaffMessage(error.message) : documents.error ? safeStaffMessage(documents.error.message) : signed.error ? safeStaffMessage(signed.error.message) : null };
 }
 
 export async function getEmployeeEligibilityWarnings(userIds: string[], scope: { type: "job_assignment_role" | "equipment_category" | "platform_role"; value: string }) {
   const supabase = await createClient();
   if (!supabase || !userIds.length) return [];
-  const { data: employees } = await supabase.from("employee_records").select("id, auth_user_id, preferred_name, legal_name, employment_status, is_active, employee_credentials(status, expiration_date, credential_type_id)").in("auth_user_id", userIds);
+  const { data: directory } = await supabase.rpc("get_employee_operational_directory");
+  const employees = (((directory as { employees?: Array<{ id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string; employment_status: string; is_active: boolean; employee_credentials?: Array<{ status: string; expiration_date: string | null; credential_type_id: string }> }> } | null)?.employees ?? [])).filter((employee) => employee.auth_user_id && userIds.includes(employee.auth_user_id));
   const { data: requirements } = await supabase.from("qualification_requirements").select("credential_type_id, warning_only, credential_types(label)").eq("requirement_scope", scope.type).eq("scope_value", scope.value).eq("is_active", true);
   const today = new Date().toISOString().slice(0, 10);
   const foundUserIds = new Set((employees ?? []).map((employee) => employee.auth_user_id));
   const missingRecords = userIds.filter((userId) => !foundUserIds.has(userId)).map((userId) => ({ userId, message: "This assigned user has no linked employee readiness record. Review the assignment.", requiresOverride: false }));
   const employeeWarnings = (employees ?? []).flatMap((employee) => {
+    const userId = employee.auth_user_id;
+    if (!userId) return [];
     const label = employee.preferred_name || employee.legal_name || "Employee";
     const warnings: { userId: string; message: string; requiresOverride: boolean }[] = [];
-    if (!employee.is_active || ["inactive", "separated", "leave"].includes(employee.employment_status)) warnings.push({ userId: employee.auth_user_id, message: `${label} is ${employee.employment_status} and is not normally scheduling-eligible.`, requiresOverride: true });
-    else if (["applicant", "onboarding"].includes(employee.employment_status)) warnings.push({ userId: employee.auth_user_id, message: `${label} is still ${employee.employment_status}. Review supervision and assignment limits.`, requiresOverride: false });
+    if (!employee.is_active || ["inactive", "separated", "leave"].includes(employee.employment_status)) warnings.push({ userId, message: `${label} is ${employee.employment_status} and is not normally scheduling-eligible.`, requiresOverride: true });
+    else if (["applicant", "onboarding"].includes(employee.employment_status)) warnings.push({ userId, message: `${label} is still ${employee.employment_status}. Review supervision and assignment limits.`, requiresOverride: false });
     for (const requirement of requirements ?? []) {
       const valid = (employee.employee_credentials ?? []).some((credential) => credential.credential_type_id === requirement.credential_type_id && credential.status === "active" && (!credential.expiration_date || credential.expiration_date >= today));
       if (!valid) {
         const relation = requirement.credential_types as { label?: string } | { label?: string }[] | null;
         const credentialLabel = (Array.isArray(relation) ? relation[0]?.label : relation?.label) || "required qualification";
-        warnings.push({ userId: employee.auth_user_id, message: `${label} does not have a current verified ${credentialLabel} for this assignment.`, requiresOverride: !requirement.warning_only });
+        warnings.push({ userId, message: `${label} does not have a current verified ${credentialLabel} for this assignment.`, requiresOverride: !requirement.warning_only });
       }
     }
     return warnings;

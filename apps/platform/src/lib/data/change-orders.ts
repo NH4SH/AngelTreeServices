@@ -4,6 +4,7 @@ import { decryptPortalToken, hashPortalToken } from "@/lib/portal/tokens";
 import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   ChangeOrderPortalToken,
   ChangeOrderWithRelations,
@@ -88,7 +89,7 @@ export async function getChangeOrderTokens(changeOrderId: string): Promise<DataR
   const { data, error } = await supabase.from("change_order_portal_tokens")
     .select("id, token_hint, token_encrypted, expires_at, viewed_at, used_at, revoked_at, created_at")
     .eq("change_order_id", changeOrderId).order("created_at", { ascending: false });
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: safeStaffMessage(error.message) };
   const summaries = await Promise.all((data ?? []).map(async (token) => {
     const active = !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now());
     const raw = active ? decryptPortalToken(token.token_encrypted) : null;

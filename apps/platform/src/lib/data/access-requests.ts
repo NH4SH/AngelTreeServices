@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { AssignableUser, DataResult, EmployeeAccessRequest } from "@/lib/types/database";
 
 export const approvalRoleOptions = ["admin", "estimator", "crew", "payroll_admin"] as const;
@@ -70,7 +71,7 @@ export async function getEmployeeAccessRequests(): Promise<DataResult<EmployeeAc
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   const reviewerIds = [...new Set(

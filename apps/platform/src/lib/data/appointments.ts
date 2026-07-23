@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { AppointmentStatus, AppointmentType, AppointmentWithRelations, AssignableUser, DataResult } from "@/lib/types/database";
 
 export type AppointmentFilters = {
@@ -48,7 +49,7 @@ export async function getAppointments(filters: AppointmentFilters = {}): Promise
   const { data, error } = await query;
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as AppointmentWithRelations[], error: null };
@@ -68,7 +69,7 @@ export async function getAssignableUsers(): Promise<DataResult<AssignableUser[]>
     .order("full_name", { ascending: true });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as AssignableUser[], error: null };

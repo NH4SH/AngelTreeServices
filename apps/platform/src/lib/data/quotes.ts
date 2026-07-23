@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
 
 export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
@@ -18,7 +19,7 @@ export async function getQuotes(): Promise<DataResult<QuoteWithRelations[]>> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as QuoteWithRelations[], error: null };
@@ -129,7 +130,7 @@ export async function getQuotesByCustomerId(customerId: string): Promise<DataRes
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as QuoteWithRelations[], error: null };

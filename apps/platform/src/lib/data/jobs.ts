@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations, ScheduleJobOption } from "@/lib/types/database";
 
 export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "in_progress" | "billing" | "completed" | "needs_attention" | "all";
@@ -135,7 +136,7 @@ export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as JobWithRelations[], error: null };
@@ -159,7 +160,7 @@ export async function getCompletedJobsForMarketing(): Promise<DataResult<JobDeta
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as JobDetail[], error: null };
@@ -183,7 +184,7 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as JobWithRelations[], error: null };
@@ -205,7 +206,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
     .single();
 
   if (jobError || !job) {
-    return { data: null, error: jobError?.message ?? "Job not found or no access." };
+    return { data: null, error: jobError ? safeStaffMessage(jobError.message, "Job not found or no access.") : "Job not found or no access." };
   }
 
   const [notes, photos, quotes, invoices, appointments, scheduleEvents, equipmentAssignments, changeOrders] = await Promise.all([
@@ -297,7 +298,7 @@ export async function getJobOptions(): Promise<DataResult<Pick<Job, "id" | "stat
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return {
@@ -322,7 +323,7 @@ export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOpt
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return {

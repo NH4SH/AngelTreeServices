@@ -1,5 +1,19 @@
 # Angel Tree Platform Deployment Checklist
 
+## Security remediation rollout (2026-07-23)
+
+Do not deploy the security application changes before the matching database migrations. Back up production, review the SQL, test in an isolated Supabase project, then apply these migrations in order:
+
+1. `20260723012429_security_authorization_boundaries.sql`
+2. `20260723013121_manage_private_job_photo_bucket.sql`
+3. `20260723013504_durable_security_rate_limits.sql`
+4. `20260723013922_employee_pii_least_privilege.sql`
+5. `20260723014156_least_privilege_public_grants.sql`
+
+After application, reload the PostgREST schema cache, confirm migration parity, run the role/payment/storage/rate-limit SQL tests against an isolated environment, and complete the security regression matrix in `PRODUCTION_TESTING.md`. Confirm `APP_BASE_URL` is exactly `https://admin.angeltreeservices.org`. Payment flags remain environment-controlled and must follow the separately approved Stripe rollout.
+
+The Content Security Policy is intentionally `Report-Only` for the first deployment. Review reports and smoke-test Supabase Auth, Stripe.js, printing, downloads, images, and portal pages before considering enforcement. The temporary `style-src 'unsafe-inline'` allowance supports the current Next.js styles and print templates; remove it only after a nonce/hash-compatible style pass.
+
 Change-order deployment: review and apply `supabase/migrations/20260717015652_change_orders_and_organization_parity.sql` after the crew closeout, reporting, and materials migrations. It adds no environment variables and reuses `PORTAL_TOKEN_ENCRYPTION_KEY`. Follow [CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md](./CHANGE_ORDER_AND_ORGANIZATION_WORKFLOW.md), refresh the PostgREST schema cache, and rerun Supabase Security Advisor before enabling customer approval links.
 
 Reporting deployment: apply `supabase/migrations/20260717005036_business_reporting_profitability.sql` before deploying the reports application changes, then follow [REPORTING.md](./REPORTING.md). No new environment variables are required.

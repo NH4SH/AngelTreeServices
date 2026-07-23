@@ -1,10 +1,9 @@
 import "server-only";
 
-import { headers } from "next/headers";
+import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 
 export async function getPortalUrl(portalType: "quote" | "invoice" | "change-order", rawToken: string) {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${protocol}://${host}/portal/${portalType}/${rawToken}`;
+  const url = buildCanonicalAppUrl(`/portal/${portalType}/${encodeURIComponent(rawToken)}`);
+  if (!url) throw new Error("APP_BASE_URL is not configured with an allowed admin origin.");
+  return url;
 }

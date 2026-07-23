@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type ManualPaymentActionState = {
   status: "idle" | "success" | "error";
@@ -45,59 +45,27 @@ export async function recordManualPayment(
     return { status: "error", message: "Enter a valid payment amount, date, and method." };
   }
 
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .select("id, customer_id, organization_id, status, balance_due_cents")
-    .eq("id", invoiceId)
-    .single();
-
-  if (invoiceError || !invoice) {
-    return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
-  }
-
-  if (["paid", "void"].includes(invoice.status) || Number(invoice.balance_due_cents) <= 0) {
-    return { status: "error", message: "This invoice does not have an amount available for payment." };
-  }
-
-  if (amountCents > Number(invoice.balance_due_cents)) {
-    return { status: "error", message: "Manual payment cannot be greater than the remaining balance." };
-  }
-
-  const { error: paymentError } = await supabase.from("payments").insert({
-    amount_cents: amountCents,
-    total_collected_cents: amountCents,
-    customer_id: invoice.customer_id,
-    organization_id: invoice.organization_id,
-    currency: "usd",
-    invoice_id: invoice.id,
-    notes,
-    paid_at: paymentDate,
-    payment_method: method,
-    provider: "manual",
-    reference,
-    status: "succeeded",
+  const { error: paymentError } = await supabase.rpc("record_manual_invoice_payment", {
+    p_invoice_id: invoiceId,
+    p_amount_cents: amountCents,
+    p_paid_at: paymentDate,
+    p_method: method,
+    p_reference: reference,
+    p_notes: notes,
   });
 
   if (paymentError) {
-    return { status: "error", message: paymentError.message };
+    return { status: "error", message: safeStaffMessage(paymentError.message, "The manual payment could not be recorded.") };
   }
 
-  const reconciliation = await reconcileInvoiceBalance(supabase, invoice.id);
+  const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
   if (!reconciliation.ok) {
     return { status: "error", message: `Payment was recorded, but the invoice balance could not be updated: ${reconciliation.message}` };
   }
 
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "manual_payment_recorded",
-    metadata: { amount_cents: amountCents, method, reference },
-    subjectId: invoice.id,
-    subjectType: "invoice",
-  });
-
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
-  revalidatePath(`/admin/invoices/${invoice.id}`);
+  revalidatePath(`/admin/invoices/${invoiceId}`);
   return { status: "success", message: "Manual payment recorded and invoice balance updated." };
 }
 
@@ -136,7 +104,7 @@ export async function cancelManualPayment(
     .maybeSingle();
 
   if (paymentError || !payment) {
-    return { status: "error", message: paymentError?.message ?? "Payment not found or no access." };
+    return { status: "error", message: paymentError ? safeStaffMessage(paymentError.message, "Payment not found or no access.") : "Payment not found or no access." };
   }
 
   if (payment.provider !== "manual") {
@@ -147,20 +115,16 @@ export async function cancelManualPayment(
     return { status: "error", message: "This payment has already been changed. Reload the invoice to see its current balance." };
   }
 
-  const { data: cancelledPayment, error: cancellationError } = await supabase
-    .from("payments")
-    .update({ status: "cancelled" })
-    .eq("id", payment.id)
-    .eq("invoice_id", invoiceId)
-    .eq("provider", "manual")
-    .eq("status", "succeeded")
-    .select("id")
-    .maybeSingle();
+  const { error: cancellationError } = await supabase.rpc("cancel_manual_invoice_payment", {
+    p_invoice_id: invoiceId,
+    p_payment_id: payment.id,
+    p_reason: "Manual payment correction",
+  });
 
-  if (cancellationError || !cancelledPayment) {
+  if (cancellationError) {
     return {
       status: "error",
-      message: cancellationError?.message ?? "This payment was already corrected. Reload the invoice to see the latest balance.",
+      message: safeStaffMessage(cancellationError.message, "The manual payment could not be corrected."),
     };
   }
 
@@ -173,34 +137,8 @@ export async function cancelManualPayment(
   }
 
   if (!reconciliation.ok) {
-    const { error: rollbackError } = await supabase
-      .from("payments")
-      .update({ status: "succeeded" })
-      .eq("id", payment.id)
-      .eq("status", "cancelled");
-
-    if (rollbackError) {
-      console.error("Could not restore a manual payment after reconciliation failed.", {
-        invoiceId,
-        paymentId,
-        rollbackError,
-      });
-    }
-
-    return { status: "error", message: `The payment was not changed because the balance could not be restored: ${reconciliation.message}` };
+    return { status: "error", message: `The payment was corrected, but follow-up processing needs attention: ${reconciliation.message}` };
   }
-
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "manual_payment_cancelled",
-    metadata: {
-      amount_cents: payment.amount_cents,
-      payment_id: payment.id,
-      reference: payment.reference,
-    },
-    subjectId: invoiceId,
-    subjectType: "invoice",
-  });
 
   revalidatePaymentPaths({
     customerId: payment.customer_id,

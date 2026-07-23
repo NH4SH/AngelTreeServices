@@ -162,6 +162,11 @@ supabase/migrations/20260717022829_recurring_services_followups_and_renewals.sql
 supabase/migrations/20260717032430_organization_contracting_parties.sql
 supabase/migrations/20260717040930_contracting_party_integrity_and_review.sql
 supabase/migrations/20260717141937_document_library_stabilization.sql
+supabase/migrations/20260723012429_security_authorization_boundaries.sql
+supabase/migrations/20260723013121_manage_private_job_photo_bucket.sql
+supabase/migrations/20260723013504_durable_security_rate_limits.sql
+supabase/migrations/20260723013922_employee_pii_least_privilege.sql
+supabase/migrations/20260723014156_least_privilege_public_grants.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.
@@ -215,7 +220,7 @@ Document templates currently live as local constants and helper functions in `sr
 
 ## Job Photos And Storage
 
-Create a private Supabase Storage bucket named:
+The security migration creates and maintains a private Supabase Storage bucket named:
 
 ```text
 job-photos
@@ -230,11 +235,11 @@ job-photos/{job_id}/issue/{timestamp}-{filename}
 job-photos/{job_id}/completion/{timestamp}-{filename}
 ```
 
-Apply `supabase/migrations/0004_job_photo_storage.sql`, then configure the bucket in the Supabase dashboard:
+Apply `supabase/migrations/0004_job_photo_storage.sql` and then `supabase/migrations/20260723013121_manage_private_job_photo_bucket.sql`. The latter idempotently enforces:
 
 - Keep the bucket private.
 - Set the maximum file size to `6 MB`.
-- Allow `image/jpeg`, `image/png`, `image/webp`, `image/heic`, and `image/heif`.
+- Allow `image/jpeg`, `image/png`, and `image/webp`.
 
 The migration adds the dedicated `completion` photo type and Storage policies for short-lived signed previews. `owner`, `admin`, and `estimator` roles can access job photos broadly. Crew users can access only photos whose first path segment belongs to their assigned job. Anonymous users receive no Storage access.
 
@@ -242,7 +247,7 @@ Crew checklist state is local UI only right now. Persist it later with a table s
 
 Crew app-layer access now mirrors the intended policy shape: `owner`, `admin`, and `estimator` can view crew jobs broadly, while regular crew access is scoped to `jobs.assigned_crew_user_id`. Production RLS should enforce the same rule in the database.
 
-Photo uploads validate UUID job IDs, allowed categories, image MIME type, caption length, and file size server-side before hitting Storage. If file upload succeeds but metadata insert fails, the app attempts to remove the uploaded object so private storage does not accumulate unattached files. Photo display uses authenticated server-side signed URLs with a 15-minute lifetime.
+Photo uploads validate UUID job IDs, categories, size, extension, declared MIME type, and actual file signatures server-side. Accepted images are decoded and re-encoded before Storage upload to remove metadata such as EXIF/GPS. If file upload succeeds but metadata insert fails, the app attempts to remove the uploaded object so private storage does not accumulate unattached files. Photo display uses authenticated server-side signed URLs with a 15-minute lifetime. Document downloads use signed URLs with attachment disposition. Malware scanning remains an external-infrastructure follow-up; the repository exposes a scanner extension point and does not claim unscanned files are safe.
 
 There is no delete button yet. The migration permits assigned uploaders to remove their own object and staff to remove accessible objects so failed metadata writes can clean up safely. Add a deliberate staff delete action with an audit-log entry before exposing deletion in the UI.
 
@@ -335,7 +340,7 @@ APP_BASE_URL=https://admin.angeltreeservices.org
 
 Configure Stripe test mode to send `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `payment_intent.processing`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed` to `/api/stripe/webhook`. ACH is redirected to hosted Checkout. Cards use Stripe.js Payment Element and a ConfirmationToken review; only the publishable key reaches Stripe.js. `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and Supabase service-role credentials remain server-only.
 
-`SUPABASE_SERVICE_ROLE_KEY` is required on the server for this public token lookup. It must never be exposed to client components, browser code, public logs, or static files. Before production, add request rate limiting and decide whether the canonical public platform URL should come from deployment configuration rather than request headers.
+`SUPABASE_SERVICE_ROLE_KEY` is required on the server for public token lookup and the durable rate-limit RPC. It must never be exposed to client components, browser code, public logs, or static files. Capability links and Stripe return URLs use the validated `APP_BASE_URL`; production does not trust request Host headers.
 
 Manual portal-link regression checks:
 
@@ -368,7 +373,7 @@ Website inquiries are temporarily represented by the legacy CRM model as `jobs.s
 
 For local testing, run the static site on port `8000` and the platform app on port `3000`. The public enhancement script automatically posts local static submissions to `http://localhost:3000/api/leads`.
 
-The endpoint includes a best-effort in-memory limit of five submissions per IP per ten minutes. Replace this with a durable distributed limiter before production traffic. Office email notification delivery is best-effort through Resend after CRM lead creation; notification failure is logged but does not fail a saved public lead.
+After `supabase/migrations/20260723013504_durable_security_rate_limits.sql` is applied, the endpoint uses a Supabase-backed shared limit of five submissions per trusted client IP per ten minutes. The limiter stores hashed keys with bounded expiry and is shared across serverless instances. Office email notification delivery is best-effort through Resend after CRM lead creation; notification failure is logged but does not fail a saved public lead.
 
 ## Scheduling And Follow-Ups
 
@@ -545,7 +550,7 @@ Intended role names:
 - `customer`
 - `property_manager`
 
-For now, logged-in access is enough. Full role enforcement should come after initial roles are created and assigned in Supabase.
+Role enforcement is database-backed. Role assignment is limited to the audited `replace_platform_user_roles` RPC: owners may manage assignments, admins may assign non-owner staff roles, no user may change their own roles, and the final owner cannot be removed. Browser roles cannot directly mutate `roles` or `user_roles`.
 
 ## Current Limitations
 

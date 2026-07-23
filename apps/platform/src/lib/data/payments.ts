@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, Payment } from "@/lib/types/database";
 
 export async function getPayments(): Promise<DataResult<Payment[]>> {
@@ -14,7 +15,7 @@ export async function getPayments(): Promise<DataResult<Payment[]>> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as Payment[], error: null };
@@ -38,7 +39,7 @@ export async function getPaymentsByInvoiceIds(invoiceIds: string[]): Promise<Dat
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as Payment[], error: null };

@@ -10,6 +10,7 @@ import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -83,7 +84,7 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!updatedJob) {
@@ -150,7 +151,7 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
     const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
 
     if (!result.ok) {
-      return { status: "error", message: result.message };
+      return { status: "error", message: safeStaffMessage(result.message) };
     }
 
     message = result.createdJob
@@ -166,7 +167,7 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
       .eq("id", quoteId);
 
     if (error) {
-      return { status: "error", message: error.message };
+      return { status: "error", message: safeStaffMessage(error.message) };
     }
 
     await recordActivity(supabase, {
@@ -228,7 +229,7 @@ export async function markQuoteSentManually(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!quote) {
@@ -282,13 +283,13 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
     supabase: paymentSupabase,
   });
   if (!cancellation.ok) {
-    return { status: "error", message: cancellation.message };
+    return { status: "error", message: safeStaffMessage(cancellation.message) };
   }
 
   const { error } = await supabase.from("invoices").update({ status: nextStatus }).eq("id", invoiceId);
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   await cancelPendingCommunications(supabase, { invoiceId }, "Invoice was voided.");
@@ -342,7 +343,7 @@ export async function markInvoiceSentManually(
     .maybeSingle();
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: safeStaffMessage(error.message) };
   }
 
   if (!invoice) {
@@ -400,7 +401,7 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
 
   if (!approvalResult.ok) {
-    return { status: "error", message: approvalResult.message };
+    return { status: "error", message: safeStaffMessage(approvalResult.message) };
   }
 
   const result = await createInvoiceForJob({
@@ -411,7 +412,7 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
   });
 
   if (!result.ok) {
-    return { status: "error", message: result.message };
+    return { status: "error", message: safeStaffMessage(result.message) };
   }
 
   revalidatePath("/admin");
@@ -449,7 +450,7 @@ export async function createInvoiceFromJob(_previousState: WorkflowActionState, 
 
   const result = await createInvoiceForJob({ actorUserId: user.id, jobId, supabase });
   if (!result.ok) {
-    return { status: "error", message: result.message };
+    return { status: "error", message: safeStaffMessage(result.message) };
   }
 
   revalidatePath("/admin");

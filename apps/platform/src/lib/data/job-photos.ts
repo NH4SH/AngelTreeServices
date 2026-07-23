@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { JOB_PHOTO_BUCKET } from "@/lib/storage/job-photo-paths";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { DataResult, JobPhoto, SignedJobPhoto } from "@/lib/types/database";
 
 const signedUrlLifetimeSeconds = 15 * 60;
@@ -22,7 +23,7 @@ export async function getJobPhotos(
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   const photos = (data ?? []) as JobPhoto[];

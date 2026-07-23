@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   AssignableUser,
   CrewEquipmentAssignment,
@@ -34,7 +35,7 @@ export async function getEquipmentAssets(): Promise<DataResult<EquipmentAsset[]>
     .is("archived_at", null)
     .order("name");
 
-  return { data: (data ?? []) as EquipmentAsset[], error: error?.message ?? null };
+  return { data: (data ?? []) as EquipmentAsset[], error: error ? safeStaffMessage(error.message) : null };
 }
 
 export async function getEquipmentAsset(assetId: string): Promise<DataResult<EquipmentDetail | null>> {
@@ -47,19 +48,21 @@ export async function getEquipmentAsset(assetId: string): Promise<DataResult<Equ
     .eq("id", assetId)
     .single();
 
-  if (error || !data) return { data: null, error: error?.message ?? "Equipment not found or no access." };
+  if (error || !data) return { data: null, error: error ? safeStaffMessage(error.message, "Equipment not found or no access.") : "Equipment not found or no access." };
 
   const detail = data as EquipmentDetail;
-  const paths = [
-    ...(detail.equipment_documents ?? []).map((document) => document.storage_path),
-    ...(detail.equipment_problem_reports ?? []).map((report) => report.photo_storage_path).filter((path): path is string => Boolean(path)),
-  ];
-  if (paths.length) {
-    const { data: signedFiles, error: signedError } = await supabase.storage.from("equipment-files").createSignedUrls(paths, 3600);
-    const signedByPath = new Map((signedFiles ?? []).map((file) => [file.path, file.signedUrl]));
+  const documentPaths = (detail.equipment_documents ?? []).map((document) => document.storage_path);
+  const photoPaths = (detail.equipment_problem_reports ?? []).map((report) => report.photo_storage_path).filter((path): path is string => Boolean(path));
+  if (documentPaths.length || photoPaths.length) {
+    const [signedDocuments, signedPhotos] = await Promise.all([
+      documentPaths.length ? supabase.storage.from("equipment-files").createSignedUrls(documentPaths, 3600, { download: true }) : Promise.resolve({ data: [], error: null }),
+      photoPaths.length ? supabase.storage.from("equipment-files").createSignedUrls(photoPaths, 3600) : Promise.resolve({ data: [], error: null }),
+    ]);
+    const signedByPath = new Map([...(signedDocuments.data ?? []), ...(signedPhotos.data ?? [])].map((file) => [file.path, file.signedUrl]));
     detail.equipment_documents = (detail.equipment_documents ?? []).map((document) => ({ ...document, signed_url: signedByPath.get(document.storage_path) ?? null }));
     detail.equipment_problem_reports = (detail.equipment_problem_reports ?? []).map((report) => ({ ...report, photo_signed_url: report.photo_storage_path ? signedByPath.get(report.photo_storage_path) ?? null : null }));
-    if (signedError) return { data: detail, error: `Equipment loaded, but private files could not be opened: ${signedError.message}` };
+    const signedError = signedDocuments.error ?? signedPhotos.error;
+    if (signedError) return { data: detail, error: safeStaffMessage(signedError.message, "Equipment loaded, but private files could not be opened.") };
   }
   return { data: detail, error: null };
 }
@@ -80,7 +83,7 @@ export async function getEquipmentFormOptions() {
     users: (profiles.data ?? []) as AssignableUser[],
     jobs: jobs.data ?? [],
     events: events.data ?? [],
-    error: profiles.error?.message ?? jobs.error?.message ?? events.error?.message ?? null,
+    error: profiles.error ? safeStaffMessage(profiles.error.message) : jobs.error ? safeStaffMessage(jobs.error.message) : events.error ? safeStaffMessage(events.error.message) : null,
   };
 }
 
@@ -89,7 +92,7 @@ export async function getMyAssignedEquipment(): Promise<DataResult<CrewEquipment
   if (!supabase) return { data: [], error: "Supabase is not configured." };
 
   const { data, error } = await supabase.rpc("get_my_assigned_equipment");
-  return { data: (data ?? []) as CrewEquipmentAssignment[], error: error?.message ?? null };
+  return { data: (data ?? []) as CrewEquipmentAssignment[], error: error ? safeStaffMessage(error.message) : null };
 }
 
 export async function getEquipmentDashboardSummary() {

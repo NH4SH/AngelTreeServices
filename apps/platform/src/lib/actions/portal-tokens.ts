@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createNewQuotePortalTokenRecord, createOrGetQuotePortalTokenRecord, getActiveQuotePortalTokens } from "@/lib/portal/quote-links";
 import { getPortalUrl } from "@/lib/portal/urls";
 import type { QuoteStatus } from "@/lib/types/database";
+import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type PortalTokenActionState = {
   ok: boolean;
@@ -211,11 +213,14 @@ export async function approveQuoteByPortalToken(
   formData: FormData,
 ): Promise<PortalTokenActionState> {
   const rawToken = getString(formData, "token");
+  const rateLimit = await checkPortalActionRateLimit("quote-approve", rawToken);
+  if (!rateLimit.available) return { ok: false, status: "error", message: "Quote responses are temporarily unavailable. Please try again shortly." };
+  if (!rateLimit.allowed) return { ok: false, status: "error", message: "Please wait before submitting another response." };
   const lookup = await getQuoteByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
 
   if (!supabase || lookup.status !== "ready" || !lookup.quote || !lookup.tokenId) {
-    return { ok: false, status: "error", message: lookup.message || "This quote link is not available." };
+    return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available.") };
   }
 
   if (!canCustomerRespondToQuote(lookup.quote.status)) {
@@ -226,7 +231,7 @@ export async function approveQuoteByPortalToken(
   const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, lookup.quote.id, approvedAt);
 
   if (!approvalResult.ok) {
-    return { ok: false, status: "error", message: approvalResult.message };
+    return { ok: false, status: "error", message: safeStaffMessage(approvalResult.message, "The quote could not be approved.") };
   }
 
   await supabase.from("quote_portal_tokens").update({ used_at: approvedAt }).eq("id", lookup.tokenId);
@@ -242,11 +247,14 @@ export async function requestQuoteChangesByPortalToken(
 ): Promise<PortalTokenActionState> {
   const rawToken = getString(formData, "token");
   const message = getString(formData, "message");
+  const rateLimit = await checkPortalActionRateLimit("quote-change-request", rawToken);
+  if (!rateLimit.available) return { ok: false, status: "error", message: "Quote responses are temporarily unavailable. Please try again shortly." };
+  if (!rateLimit.allowed) return { ok: false, status: "error", message: "Please wait before submitting another response." };
   const lookup = await getQuoteByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
 
   if (!supabase || lookup.status !== "ready" || !lookup.quote || !lookup.tokenId) {
-    return { ok: false, status: "error", message: lookup.message || "This quote link is not available." };
+    return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available.") };
   }
 
   if (!canCustomerRespondToQuote(lookup.quote.status)) {
@@ -281,7 +289,7 @@ export async function requestQuoteChangesByPortalToken(
 
   if (quoteError) {
     await supabase.from("notes").delete().eq("id", note.id);
-    return { ok: false, status: "error", message: quoteError.message };
+    return { ok: false, status: "error", message: safeStaffMessage(quoteError.message, "The quote could not be updated.") };
   }
 
   await cancelPendingCommunications(supabase, { quoteId: lookup.quote.id }, "Customer requested changes to the quote.");

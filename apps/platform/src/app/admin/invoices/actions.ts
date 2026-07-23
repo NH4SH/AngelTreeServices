@@ -6,6 +6,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
@@ -150,7 +151,7 @@ export async function createInvoice(
       .maybeSingle();
 
     if (existingInvoiceError) {
-      return { status: "error", message: existingInvoiceError.message };
+      return { status: "error", message: safeStaffMessage(existingInvoiceError.message) };
     }
 
     if (existingInvoice) {
@@ -350,7 +351,7 @@ export async function updateInvoice(
     .eq("id", invoiceId);
 
   if (invoiceError) {
-    return { status: "error", message: invoiceError.message };
+    return { status: "error", message: safeStaffMessage(invoiceError.message) };
   }
 
   const lineItemError = await syncInvoiceLineItems(supabase, invoiceId, lineItems);

@@ -10,6 +10,7 @@ import { getCurrentEmployeeAccessRequestFromClient } from "@/lib/data/access-req
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 import { LoginForm } from "./LoginForm";
+import { safeLocalRedirect } from "@/lib/security/local-redirect";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -20,7 +21,7 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const nextPath = params.next?.startsWith("/") ? params.next : "/admin";
+  const nextPath = safeLocalRedirect(params.next);
   const supabase = await createClient();
   const configured = Boolean(supabase);
   const {

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminSearchPage } from "@/lib/data/admin-search";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   AppointmentType,
   AppointmentWithRelations,
@@ -69,7 +70,7 @@ export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
     .order("full_name", { ascending: true });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return {
@@ -95,7 +96,7 @@ export async function getEstimateScheduleEventOptions(): Promise<DataResult<Esti
     .limit(50);
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return {

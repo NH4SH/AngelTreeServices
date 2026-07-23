@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { QuoteStatus } from "@/lib/types/database";
 
 export type QuoteActionState = {
@@ -377,7 +378,7 @@ export async function updateQuote(
     .eq("id", quoteId);
 
   if (quoteError) {
-    return { status: "error", message: quoteError.message };
+    return { status: "error", message: safeStaffMessage(quoteError.message) };
   }
 
   const lineItemError = await syncQuoteLineItems(supabase, quoteId, lineItems);

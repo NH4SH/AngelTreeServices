@@ -1,12 +1,11 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
+import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 
 const maxBodyBytes = 4_096;
-const rateLimitWindowMs = 5 * 60 * 1000;
 const rateLimitMaxRequests = 30;
-const rateLimitBuckets = new Map<string, number[]>();
 const sessionIdPattern = /^[A-Za-z0-9_-]{16,120}$/;
 
 type PortalViewRequest = {
@@ -28,10 +27,6 @@ export async function POST(request: Request) {
     return response(false, 415);
   }
 
-  if (isRateLimited(getRequestBucket(request))) {
-    return response(false, 429);
-  }
-
   let body: PortalViewRequest;
   try {
     body = await request.json() as PortalViewRequest;
@@ -46,6 +41,16 @@ export async function POST(request: Request) {
     ? body.sessionId
     : null;
   const tokenHash = typeof body.token === "string" ? hashPortalToken(body.token) : null;
+
+  const rateLimit = await enforceSharedRateLimit({
+    action: "portal.view",
+    identifiers: [documentType, tokenHash],
+    limit: rateLimitMaxRequests,
+    request,
+    windowSeconds: 300,
+  });
+  if (!rateLimit.available) return response(false, 503);
+  if (!rateLimit.allowed) return response(false, 429, rateLimit.retryAfterSeconds);
 
   if (!documentType || !sessionId || !tokenHash) {
     return response(false, 400);
@@ -85,41 +90,21 @@ export async function POST(request: Request) {
   );
 }
 
-function response(ok: boolean, status: number) {
-  return NextResponse.json({ ok }, { status, headers: { "Cache-Control": "no-store" } });
+function response(ok: boolean, status: number, retryAfterSeconds?: number) {
+  const headers = new Headers({ "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" });
+  if (retryAfterSeconds) headers.set("Retry-After", String(retryAfterSeconds));
+  return NextResponse.json({ ok }, { status, headers });
 }
 
 function isSameOriginRequest(request: Request) {
-  const requestOrigin = new URL(request.url).origin;
+  const requestOrigin = getCanonicalAppBaseUrl();
   const origin = request.headers.get("origin");
   const fetchSite = request.headers.get("sec-fetch-site");
 
-  if (origin && origin !== requestOrigin) return false;
+  if (!requestOrigin || (origin && origin !== requestOrigin)) return false;
   return !fetchSite || fetchSite === "same-origin" || fetchSite === "same-site";
 }
 
-function getRequestBucket(request: Request) {
-  const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
-  return createHash("sha256").update(address).digest("hex").slice(0, 24);
-}
-
-function isRateLimited(bucket: string) {
-  const now = Date.now();
-  const recent = (rateLimitBuckets.get(bucket) ?? []).filter(
-    (timestamp) => now - timestamp < rateLimitWindowMs,
-  );
-
-  if (recent.length >= rateLimitMaxRequests) {
-    rateLimitBuckets.set(bucket, recent);
-    return true;
-  }
-
-  recent.push(now);
-  rateLimitBuckets.set(bucket, recent);
-  return false;
-}
 
 function getReferrerDomain(request: Request) {
   const referrer = request.headers.get("referer");

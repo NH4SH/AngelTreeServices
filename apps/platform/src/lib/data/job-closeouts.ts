@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   DataResult,
   JobCloseout,
@@ -42,7 +43,7 @@ export async function getJobCloseout(
     .maybeSingle();
 
   if (closeoutResult.error) {
-    return { data: null, error: closeoutResult.error.message };
+    return { data: null, error: safeStaffMessage(closeoutResult.error.message) };
   }
 
   if (!closeoutResult.data) {
@@ -70,7 +71,7 @@ export async function getJobCloseout(
       .order("revision_number", { ascending: false }),
   ]);
 
-  const error = checklistResult.error?.message ?? scopeResult.error?.message ?? submissionsResult.error?.message ?? null;
+  const error = checklistResult.error ? safeStaffMessage(checklistResult.error.message) : scopeResult.error ? safeStaffMessage(scopeResult.error.message) : submissionsResult.error ? safeStaffMessage(submissionsResult.error.message) : null;
 
   return {
     data: {
@@ -110,7 +111,7 @@ export async function getCloseoutQueue(): Promise<DataResult<CloseoutQueueItem[]
     .order("submitted_at", { ascending: false, nullsFirst: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   const items = (data ?? []) as unknown as CloseoutQueueItem[];
@@ -120,7 +121,7 @@ export async function getCloseoutQueue(): Promise<DataResult<CloseoutQueueItem[]
     : { data: [], error: null };
 
   if (profilesResult.error) {
-    return { data: items, error: profilesResult.error.message };
+    return { data: items, error: safeStaffMessage(profilesResult.error.message) };
   }
 
   const labels = new Map(

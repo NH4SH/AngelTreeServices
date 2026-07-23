@@ -92,7 +92,7 @@ export function UpdatePasswordForm() {
     setIsSubmitting(false);
 
     if (error) {
-      setStatus({ tone: "error", message: error.message });
+      setStatus({ tone: "error", message: "The password could not be updated. Request a new reset link and try again." });
       return;
     }
 

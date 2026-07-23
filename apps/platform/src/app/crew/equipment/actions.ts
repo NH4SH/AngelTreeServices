@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getInspectionTemplate } from "@/lib/equipment/inspection-templates";
 import { createClient } from "@/lib/supabase/server";
+import { prepareSafeUpload } from "@/lib/security/upload-validation";
+import { safeStaffMessage } from "@/lib/security/errors";
 
 export type CrewEquipmentActionState = { status: "idle" | "success" | "error"; message: string };
 
@@ -60,8 +62,10 @@ export async function reportEquipmentProblem(_state: CrewEquipmentActionState, f
   if (photo instanceof File && photo.size > 0) {
     if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) return fail("Upload a JPEG, PNG, or WebP photo.");
     if (photo.size > 6 * 1024 * 1024) return fail("Photo is too large. Upload an image up to 6 MB.");
+    const prepared = await prepareSafeUpload(photo, { maxBytes: 6 * 1024 * 1024 });
+    if (!prepared.data) return fail(prepared.error ?? "The photo could not be validated.");
     storagePath = `${assetId}/problems/${Date.now()}-${safeFileName(photo.name)}`;
-    const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, photo, { contentType: photo.type, upsert: false });
+    const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
     if (uploadError) return fail(`Problem photo could not upload: ${uploadError.message}`);
   }
 
@@ -93,4 +97,4 @@ function revalidateEquipment(assetId: string) { revalidatePath("/crew"); revalid
 function text(formData: FormData, key: string, max: number) { return String(formData.get(key) ?? "").trim().slice(0, max); }
 function optionalNumber(formData: FormData, key: string) { const raw = text(formData, key, 40); if (!raw) return null; const value = Number(raw); return Number.isFinite(value) && value >= 0 ? value : null; }
 function safeFileName(value: string) { return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "photo.jpg"; }
-function fail(message: string): CrewEquipmentActionState { return { status: "error", message }; }
+function fail(message: string): CrewEquipmentActionState { return { status: "error", message: safeStaffMessage(message) }; }

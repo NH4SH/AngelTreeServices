@@ -3,6 +3,7 @@ import { getAdminSearchPage } from "@/lib/data/admin-search";
 import { getInvoicesByCustomerId } from "@/lib/data/invoices";
 import { getJobsByCustomerId } from "@/lib/data/jobs";
 import { getQuotesByCustomerId } from "@/lib/data/quotes";
+import { safeStaffMessage } from "@/lib/security/errors";
 import type { Customer, CustomerDetail, CustomerWithLocations, DataResult, Note, ScheduleCustomerOption, ServiceLocation } from "@/lib/types/database";
 
 export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]>> {
@@ -21,7 +22,7 @@ export async function getCustomers(): Promise<DataResult<CustomerWithLocations[]
     .limit(1, { foreignTable: "notes" });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as CustomerWithLocations[], error: null };
@@ -60,7 +61,7 @@ export async function getCustomerOptions(): Promise<DataResult<Pick<Customer, "i
     .order("display_name", { ascending: true });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[], error: null };
@@ -80,7 +81,7 @@ export async function getServiceLocations(): Promise<DataResult<ServiceLocation[
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as ServiceLocation[], error: null };
@@ -135,7 +136,7 @@ export async function getCustomerNotes(customerIds: string[]): Promise<DataResul
     .order("created_at", { ascending: false });
 
   if (error) {
-    return { data: [], error: error.message };
+    return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return { data: (data ?? []) as Note[], error: null };

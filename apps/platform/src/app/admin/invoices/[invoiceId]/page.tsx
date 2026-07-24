@@ -11,7 +11,7 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { ManualPaymentForm } from "@/components/manual-payment-form";
-import { ManualPaymentCorrectionForm } from "@/components/manual-payment-correction-form";
+import { ManualPaymentCorrectionForm, ManualPaymentRestoreForm } from "@/components/manual-payment-correction-form";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -324,6 +324,13 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                           </div>
                           {canManageDelivery && payment.provider === "manual" && payment.status === "succeeded" ? (
                             <ManualPaymentCorrectionForm
+                              amountLabel={formatCurrency(payment.amount_cents)}
+                              invoiceId={invoiceId}
+                              paymentId={payment.id}
+                            />
+                          ) : null}
+                          {canManageDelivery && payment.provider === "manual" && payment.status === "cancelled" ? (
+                            <ManualPaymentRestoreForm
                               amountLabel={formatCurrency(payment.amount_cents)}
                               invoiceId={invoiceId}
                               paymentId={payment.id}

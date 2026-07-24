@@ -152,6 +152,89 @@ export async function cancelManualPayment(
   };
 }
 
+export async function restoreCancelledManualPayment(
+  _previousState: ManualPaymentActionState,
+  formData: FormData,
+): Promise<ManualPaymentActionState> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Sign in before restoring payments." };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can restore manual payments." };
+  }
+
+  const invoiceId = String(formData.get("invoice_id") ?? "").trim();
+  const paymentId = String(formData.get("payment_id") ?? "").trim();
+  if (!invoiceId || !paymentId) {
+    return { status: "error", message: "Payment details are missing. Reload the invoice and try again." };
+  }
+
+  const { data: payment, error: paymentError } = await supabase
+    .from("payments")
+    .select("id, invoice_id, customer_id, organization_id, provider, status")
+    .eq("id", paymentId)
+    .eq("invoice_id", invoiceId)
+    .maybeSingle();
+
+  if (paymentError || !payment) {
+    return {
+      status: "error",
+      message: paymentError
+        ? safeStaffMessage(paymentError.message, "Payment not found or no access.")
+        : "Payment not found or no access.",
+    };
+  }
+
+  if (payment.provider !== "manual") {
+    return { status: "error", message: "Stripe payments cannot be restored through the manual payment workflow." };
+  }
+
+  if (payment.status !== "cancelled") {
+    return { status: "error", message: "Only a cancelled manual payment can be restored." };
+  }
+
+  const { error: restoreError } = await supabase.rpc("restore_cancelled_manual_invoice_payment", {
+    p_invoice_id: invoiceId,
+    p_payment_id: payment.id,
+  });
+
+  if (restoreError) {
+    return {
+      status: "error",
+      message: safeStaffMessage(restoreError.message, "The manual payment could not be restored."),
+    };
+  }
+
+  const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
+  if (!reconciliation.ok) {
+    return {
+      status: "error",
+      message: `The payment was restored, but follow-up processing needs attention: ${reconciliation.message}`,
+    };
+  }
+
+  revalidatePaymentPaths({
+    customerId: payment.customer_id,
+    invoiceId,
+    organizationId: payment.organization_id,
+  });
+
+  return {
+    status: "success",
+    message: "Manual payment restored and the invoice balance updated.",
+  };
+}
+
 function revalidatePaymentPaths({
   customerId,
   invoiceId,

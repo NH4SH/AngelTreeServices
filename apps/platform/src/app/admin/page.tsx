@@ -41,10 +41,28 @@ export default async function AdminPage() {
   }
 
   const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary, materialsSummary, workflowPipeline] = await Promise.all([
-    getDashboardJobSummaries(),
-    getQuoteDashboardSummaries(),
-    getFollowUpsDue(),
-    getUnpaidInvoices(),
+    loadOptionalDashboardModule("Jobs", getDashboardJobSummaries(), {
+      lanes: {
+        newLeads: [],
+        estimatesToSchedule: [],
+        approvedWorkToSchedule: [],
+        completedWorkToInvoice: [],
+        todaysJobs: [],
+      },
+      error: "Job summaries are temporarily unavailable.",
+    }),
+    loadOptionalDashboardModule("Quotes", getQuoteDashboardSummaries(), {
+      data: { drafts: [], awaitingResponse: [] },
+      error: "Quote summaries are temporarily unavailable.",
+    }),
+    loadOptionalDashboardModule("Follow-ups", getFollowUpsDue(), {
+      data: [],
+      error: "Follow-ups are temporarily unavailable.",
+    }),
+    loadOptionalDashboardModule("Invoices", getUnpaidInvoices(), {
+      data: [],
+      error: "Invoice summaries are temporarily unavailable.",
+    }),
     loadOptionalDashboardModule("Organizations", getOrganizationDashboardSummary(), { data: [], error: "Organizations are temporarily unavailable." }),
     loadOptionalDashboardModule("Schedule", getScheduleDashboardSummary(), { data: { conflicts: [], todaysCrewSchedules: [], unassignedEntries: [], upcomingEstimates: [] }, error: "Schedule is temporarily unavailable." }),
     loadOptionalDashboardModule("Communications", getCommunicationDashboardSummary(), { data: { dueToday: [], failed: [], overdueInvoiceCount: 0, quotesAwaitingResponseCount: 0, scheduled: [] }, error: "Communications are temporarily unavailable." }),
@@ -52,7 +70,10 @@ export default async function AdminPage() {
     loadOptionalDashboardModule("Employees", getEmployeeDashboardSummary(), { data: { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] }, error: "Employee readiness is temporarily unavailable." }),
     loadOptionalDashboardModule("Reporting", getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)), { data: { approvedQuoteCents: 0, quoteApprovalRate: null, invoicedCents: 0, collectedCents: 0, outstandingCents: 0, overdueCents: 0 }, error: "Reporting is temporarily unavailable." }),
     loadOptionalDashboardModule("Materials", getMaterialsDashboardSummary(), { data: { items: [] }, error: "Materials are temporarily unavailable." }),
-    getWorkflowPipelineStages(),
+    loadOptionalDashboardModule("Workflow", getWorkflowPipelineStages(), {
+      stages: [],
+      errors: ["Workflow counts are temporarily unavailable."],
+    }),
   ]);
 
   const lanes: {

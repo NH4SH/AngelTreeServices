@@ -10,6 +10,7 @@ import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
+import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
@@ -306,6 +307,63 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return { status: "success", message: `Invoice marked ${nextStatus}.` };
+}
+
+export async function restoreVoidedInvoice(
+  _previousState: WorkflowActionState,
+  formData: FormData,
+) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before restoring invoices." };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can restore voided invoices." };
+  }
+
+  const invoiceId = getString(formData, "invoice_id");
+  if (!invoiceId) {
+    return { status: "error", message: "Invoice details are missing. Reload and try again." };
+  }
+
+  const { data: restoredStatus, error } = await supabase.rpc("restore_voided_invoice", {
+    p_invoice_id: invoiceId,
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: safeStaffMessage(error.message, "The voided invoice could not be restored."),
+    };
+  }
+
+  const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
+  if (!reconciliation.ok) {
+    return {
+      status: "error",
+      message: `Invoice restored, but follow-up processing needs attention: ${reconciliation.message}`,
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${invoiceId}`);
+  revalidatePath(`/admin/invoices/${invoiceId}/edit`);
+  return {
+    status: "success",
+    message: `Invoice restored to ${String(restoredStatus ?? reconciliation.status).replaceAll("_", " ")}. No email was sent.`,
+  };
 }
 
 export async function markInvoiceSentManually(

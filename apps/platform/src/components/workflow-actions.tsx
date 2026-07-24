@@ -2,13 +2,14 @@
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import type { ReactNode } from "react";
-import { CheckCircle2, FilePlus2, MessageSquareWarning, Send, XCircle } from "lucide-react";
+import { CheckCircle2, FilePlus2, MessageSquareWarning, RotateCcw, Send, XCircle } from "lucide-react";
 import Link from "next/link";
 import {
   createInvoiceFromJob,
   createInvoiceFromQuote,
   markInvoiceSentManually,
   markQuoteSentManually,
+  restoreVoidedInvoice,
   updateInvoiceStatus,
   updateJobStatus,
   updateQuoteStatus,
@@ -207,17 +208,49 @@ export function InvoiceStatusActions({
   invoiceId: string;
   status: InvoiceStatus;
 }) {
-  const [state, formAction, pending] = useReliableActionState(updateInvoiceStatus, initialState);
+  if (status === "void") {
+    return <RestoreVoidedInvoiceAction invoiceId={invoiceId} />;
+  }
 
-  if (["paid", "void"].includes(status)) {
+  if (status === "paid") {
     return null;
   }
+
+  return <VoidInvoiceAction invoiceId={invoiceId} />;
+}
+
+function VoidInvoiceAction({ invoiceId }: { invoiceId: string }) {
+  const [state, formAction, pending] = useReliableActionState(updateInvoiceStatus, initialState);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <div className="workflow-button-row">
         <InvoiceStatusButton disabled={pending} formAction={formAction} invoiceId={invoiceId} status="void" />
       </div>
+    </WorkflowActionPanel>
+  );
+}
+
+function RestoreVoidedInvoiceAction({ invoiceId }: { invoiceId: string }) {
+  const [state, formAction, pending] = useReliableActionState(restoreVoidedInvoice, initialState);
+
+  return (
+    <WorkflowActionPanel message={state.message} status={state.status}>
+      <form
+        action={formAction}
+        className="inline-action-form"
+        onSubmit={(event) => {
+          if (!window.confirm("Unvoid this invoice? Its remaining balance will become active again. No email will be sent.")) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <input name="invoice_id" type="hidden" value={invoiceId} />
+        <button className="secondary-action" disabled={pending} type="submit">
+          <RotateCcw aria-hidden="true" size={18} />
+          {pending ? "Restoring invoice..." : "Unvoid invoice"}
+        </button>
+      </form>
     </WorkflowActionPanel>
   );
 }

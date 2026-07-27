@@ -95,9 +95,12 @@ RESEND_API_KEY=
 EMAIL_FROM="Angel Tree Services <info@angeltreeservice.org>"
 EMAIL_REPLY_TO="info@angeltreeservice.org"
 INTERNAL_LEAD_NOTIFICATION_EMAIL="info@angeltreeservice.org"
+INTERNAL_LEAD_NOTIFICATION_CC_EMAIL="angeltreeservice@outlook.com"
 APP_BASE_URL=http://localhost:3000
 COMMUNICATION_WORKER_SECRET=
 ```
+
+Website contact submissions send an independently logged internal notice to both lead-notification addresses. The secondary address applies only to website lead notices; it does not receive employee access, payment preference, quote, or invoice email.
 
 Do not commit real Resend API keys or SMTP credentials.
 

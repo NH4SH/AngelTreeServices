@@ -33,6 +33,7 @@ RESEND_API_KEY=
 EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
 EMAIL_REPLY_TO=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
+INTERNAL_LEAD_NOTIFICATION_CC_EMAIL=angeltreeservice@outlook.com
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PUBLISHABLE_KEY=
@@ -426,11 +427,11 @@ Deploy in this order:
 
 1. Back up production and review `supabase/migrations/20260717160000_public_website_lead_intake_metadata.sql`.
 2. Apply the reviewed migration. Do not apply it automatically from the public-site deploy.
-3. Configure `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, and the exact `LEAD_INTAKE_ALLOWED_ORIGINS` value above on the admin CRM.
+3. Configure `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, `INTERNAL_LEAD_NOTIFICATION_CC_EMAIL`, and the exact `LEAD_INTAKE_ALLOWED_ORIGINS` value above on the admin CRM.
 4. Deploy the admin CRM/API and open `/admin/communications/lead-intake` while signed in to confirm endpoint, allowed origins, database connectivity, and notification destination.
 5. Deploy the public static website files.
 6. Submit one controlled request from the plural production domain and one from the singular domain.
-7. Confirm each request appears once in `/admin/communications` with source Website, and confirm the office email arrives.
+7. Confirm each request appears once in `/admin/communications` with source Website, and confirm the lead notice arrives at both configured office addresses.
 8. Remove or clearly label controlled test records.
 
 A saved lead is the customer-facing success condition. If office email fails after the save, the API returns success and records `notification_status = failed` for staff review. If the database save fails, the API returns a failure and the browser retains the entered form values.

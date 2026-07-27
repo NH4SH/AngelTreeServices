@@ -57,6 +57,7 @@ RESEND_API_KEY=
 EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
 EMAIL_REPLY_TO=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
+INTERNAL_LEAD_NOTIFICATION_CC_EMAIL=angeltreeservice@outlook.com
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
@@ -178,7 +179,7 @@ Test flow:
 14. Submit a commercial/property-management request with a company name. Confirm the organization and submitter contact remain distinct and no placeholder individual contracting customer is required.
 15. From the lead, test Call, Email, communication logging, assignment, estimate scheduling, quote creation, unqualified/closed status, and conversion. Confirm the original website metadata and activity history remain attached.
 16. Confirm internal notes and notification errors never appear in public quote/invoice portals.
-17. If intake fails unexpectedly, verify `LEAD_INTAKE_ALLOWED_ORIGINS`, `SUPABASE_SERVICE_ROLE_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, the canonical endpoint in the public page source, and that both Netlify sites were redeployed after environment changes.
+17. If intake fails unexpectedly, verify `LEAD_INTAKE_ALLOWED_ORIGINS`, `SUPABASE_SERVICE_ROLE_KEY`, `INTERNAL_LEAD_NOTIFICATION_EMAIL`, `INTERNAL_LEAD_NOTIFICATION_CC_EMAIL`, the canonical endpoint in the public page source, and that both Netlify sites were redeployed after environment changes.
 
 ## 7. Operational Workflow Smoke Test
 

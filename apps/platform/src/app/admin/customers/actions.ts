@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { CustomerStatus, CustomerType } from "@/lib/types/database";
+import { recordActivity } from "@/lib/activity-log";
 
 export type CustomerActionState = {
   status: "idle" | "success" | "error";
@@ -109,6 +110,17 @@ export async function createCustomer(
     }
   }
 
+  await recordActivity(supabase, {
+    actionCategory: "customers",
+    actorUserId: user.id,
+    destinationPath: `/admin/customers/${customer.id}`,
+    eventType: "customer_created",
+    recordLabel: displayName,
+    summary: `${displayName} was added as a customer.`,
+    subjectId: customer.id,
+    subjectType: "customer",
+  });
+
   revalidatePath("/admin/customers");
   revalidatePath(`/admin/customers/${customer.id}`);
   revalidatePath("/admin/jobs");
@@ -188,7 +200,7 @@ export async function updateCustomer(
 
   const { data: existingCustomer, error: existingCustomerError } = await supabase
     .from("customers")
-    .select("id, organization_id")
+    .select("id, display_name, primary_contact_name, phone, email, billing_address, organization_id, customer_type, status")
     .eq("id", customerId)
     .single();
 
@@ -312,6 +324,30 @@ export async function updateCustomer(
     }
   }
 
+  await recordActivity(supabase, {
+    actionCategory: "customers",
+    actorUserId: user.id,
+    changes: {
+      billing_address: { before: existingCustomer.billing_address, after: billingAddress },
+      customer_type: { before: existingCustomer.customer_type, after: customerType },
+      display_name: { before: existingCustomer.display_name, after: displayName },
+      email: { before: existingCustomer.email, after: email },
+      organization_id: { before: existingCustomer.organization_id, after: organizationId },
+      phone: { before: existingCustomer.phone, after: phone },
+      primary_contact_name: { before: existingCustomer.primary_contact_name, after: primaryContactName },
+      status: { before: existingCustomer.status, after: status },
+    },
+    destinationPath: `/admin/customers/${customerId}`,
+    eventType: "customer_updated",
+    metadata: {
+      service_locations_reviewed: serviceLocations.length + (newServiceLocation.hasAnyValue ? 1 : 0),
+    },
+    recordLabel: displayName,
+    summary: `${displayName}'s customer record was updated.`,
+    subjectId: customerId,
+    subjectType: "customer",
+  });
+
   revalidatePath("/admin/customers");
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath(`/admin/customers/${customerId}/edit`);
@@ -358,7 +394,7 @@ export async function createServiceLocation(
     return { status: "error", message: "Customer, street, and city are required." };
   }
 
-  const { error } = await supabase.from("service_locations").insert({
+  const { data: location, error } = await supabase.from("service_locations").insert({
     customer_id: customerId,
     label,
     street,
@@ -366,11 +402,22 @@ export async function createServiceLocation(
     state,
     postal_code: postalCode,
     service_notes: serviceNotes,
-  });
+  }).select("id").single();
 
-  if (error) {
-    return { status: "error", message: safeStaffMessage(error.message) };
+  if (error || !location) {
+    return { status: "error", message: safeStaffMessage(error?.message ?? "Service location was not created.") };
   }
+
+  await recordActivity(supabase, {
+    actionCategory: "customers",
+    actorUserId: user.id,
+    destinationPath: `/admin/customers/${customerId}`,
+    eventType: "service_location_created",
+    recordLabel: `${street}, ${city}`,
+    summary: `${street}, ${city} was added as a service location.`,
+    subjectId: location.id,
+    subjectType: "service_location",
+  });
 
   revalidatePath("/admin/customers");
   revalidatePath("/admin/jobs");

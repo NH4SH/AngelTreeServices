@@ -26,6 +26,8 @@ export type PlatformNavigationId =
   | "access"
   | "documents"
   | "marketing"
+  | "notifications"
+  | "settings"
   | "crew"
   | "crew-equipment"
   | "crew-team"

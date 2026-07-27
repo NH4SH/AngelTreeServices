@@ -256,7 +256,7 @@ export async function updateQuote(
 
   const { data: existingQuote, error: quoteLookupError } = await supabase
     .from("quotes")
-    .select("id, customer_id, organization_id, status, recurring_occurrence_id")
+    .select("id, customer_id, organization_id, status, recurring_occurrence_id, total_cents, service_location_id, customer_message, expires_at")
     .eq("id", quoteId)
     .single();
 
@@ -404,6 +404,23 @@ export async function updateQuote(
       subjectType: "quote",
     });
   }
+
+  await recordActivity(supabase, {
+    actionCategory: "quotes",
+    actorUserId: user.id,
+    changes: {
+      customer_message: { before: existingQuote.customer_message, after: customerMessage },
+      expires_at: { before: existingQuote.expires_at, after: expiresAt },
+      service_location_id: { before: existingQuote.service_location_id, after: serviceLocationId },
+      total_cents: { before: existingQuote.total_cents, after: subtotalCents },
+    },
+    destinationPath: `/admin/quotes/${quoteId}`,
+    eventType: "quote_updated",
+    organizationId: party.organizationId,
+    summary: "Quote details and line items were updated.",
+    subjectId: quoteId,
+    subjectType: "quote",
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");

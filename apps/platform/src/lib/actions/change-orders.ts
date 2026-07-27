@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getChangeOrderByPortalToken, getChangeOrderDetail } from "@/lib/data/change-orders";
+import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
   createNewChangeOrderPortalTokenRecord,
@@ -332,11 +333,23 @@ export async function approveChangeOrderByPortal(_state: ChangeOrderActionState,
   }).single();
   if (error || !data) return failure(error?.message ?? "Could not approve the change order.");
   await supabase.from("change_order_portal_tokens").update({ used_at: new Date().toISOString() }).eq("id", lookup.tokenId);
-  await notifyOfficeOfChangeOrderResponse({
-    changeOrder: lookup.changeOrder,
-    response: `Approved by ${approverName}`,
-    supabase,
-  });
+  if ((data as { newly_approved: boolean }).newly_approved) {
+    await emitCustomerActivity({
+      category: "change_orders",
+      changeOrderId: lookup.changeOrder.id,
+      customerId: lookup.changeOrder.customer_id,
+      destinationPath: `/admin/change-orders/${lookup.changeOrder.id}`,
+      eventType: "change_order_portal_approved",
+      idempotencyKey: `change-order:${lookup.changeOrder.id}:portal-approved`,
+      organizationId: lookup.changeOrder.organization_id,
+      quoteId: lookup.changeOrder.source_quote_id,
+      recordLabel: lookup.changeOrder.change_order_number,
+      subjectId: lookup.changeOrder.id,
+      subjectType: "change_order",
+      summary: `${lookup.changeOrder.organizations?.name ?? lookup.changeOrder.customers?.display_name ?? "Customer"} approved ${lookup.changeOrder.change_order_number}.`,
+      title: "Change order approved",
+    });
+  }
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
   const result = data as { newly_approved: boolean };
@@ -361,13 +374,22 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   const { error } = await supabase.from("change_orders").update({ status, declined_at: intent === "decline" ? eventAt : null }).eq("id", lookup.changeOrder.id);
   if (error) return failure(error.message);
   if (message) await supabase.from("notes").insert({ customer_id: lookup.changeOrder.customer_id, service_location_id: lookup.changeOrder.service_location_id, job_id: lookup.changeOrder.job_id, visibility: "internal", body: `Change order customer response: ${message}` });
-  await supabase.from("activity_log").insert({ subject_type: "change_order", subject_id: lookup.changeOrder.id, event_type: intent === "decline" ? "change_order_declined" : "change_order_changes_requested", metadata_json: { source: "customer_portal" } });
   await supabase.from("change_order_portal_tokens").update({ used_at: eventAt }).eq("id", lookup.tokenId);
-  await notifyOfficeOfChangeOrderResponse({
-    changeOrder: lookup.changeOrder,
-    response: intent === "decline" ? "Declined by customer" : "Customer requested changes",
-    message,
-    supabase,
+  await emitCustomerActivity({
+    body: message || null,
+    category: "change_orders",
+    changeOrderId: lookup.changeOrder.id,
+    customerId: lookup.changeOrder.customer_id,
+    destinationPath: `/admin/change-orders/${lookup.changeOrder.id}`,
+    eventType: intent === "decline" ? "change_order_portal_declined" : "change_order_portal_changes_requested",
+    idempotencyKey: `change-order:${lookup.changeOrder.id}:${status}:${eventAt}`,
+    organizationId: lookup.changeOrder.organization_id,
+    quoteId: lookup.changeOrder.source_quote_id,
+    recordLabel: lookup.changeOrder.change_order_number,
+    subjectId: lookup.changeOrder.id,
+    subjectType: "change_order",
+    summary: `${lookup.changeOrder.organizations?.name ?? lookup.changeOrder.customers?.display_name ?? "Customer"} ${intent === "decline" ? "declined" : "requested changes to"} ${lookup.changeOrder.change_order_number}.`,
+    title: intent === "decline" ? "Change order declined" : "Customer requested change-order updates",
   });
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
@@ -393,42 +415,6 @@ async function requireStaff() {
   const roles = await getUserRoles(supabase, user.id);
   if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) return { error: failure("Only authorized office staff can manage change orders.") };
   return { supabase, userId: user.id, error: null };
-}
-
-async function notifyOfficeOfChangeOrderResponse({
-  changeOrder,
-  response,
-  message,
-  supabase,
-}: {
-  changeOrder: NonNullable<Awaited<ReturnType<typeof getChangeOrderByPortalToken>>["changeOrder"]>;
-  response: string;
-  message?: string;
-  supabase: NonNullable<ReturnType<typeof getServiceRoleClient>>;
-}) {
-  const officeEmail = process.env.INTERNAL_LEAD_NOTIFICATION_EMAIL?.trim();
-  if (!officeEmail) return;
-
-  await sendTransactionalEmail({
-    to: officeEmail,
-    subject: `${changeOrder.change_order_number}: ${response}`,
-    text: [
-      `${changeOrder.change_order_number}: ${changeOrder.title}`,
-      response,
-      message ? `Customer message: ${message}` : null,
-      "",
-      "Review this response in the Angel Tree Services admin platform.",
-    ].filter((line): line is string => line !== null).join("\n"),
-    emailType: "change_order",
-    relatedChangeOrderId: changeOrder.id,
-    relatedCustomerId: changeOrder.customer_id,
-    relatedJobId: changeOrder.job_id,
-    relatedQuoteId: changeOrder.source_quote_id,
-    relatedOrganizationId: changeOrder.organization_id,
-    sentByUserId: null,
-    supabase,
-    idempotencyKey: `change-order-response:${changeOrder.id}:${response}:${changeOrder.updated_at}`,
-  });
 }
 
 type LineInput = { id: string | null; title: string; description: string | null; quantity: number; unit: string | null; unit_price_cents: number; amount_cents: number; service_category_id: string | null; material_id: string | null; internal_cost_estimate_cents: number | null; sort_order: number };

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
 import { isInvoicePaymentPreference } from "@/lib/payments/payment-options";
-import { notifyOfficeOfInvoicePaymentPreference } from "@/lib/payments/preference-notification";
+import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
+import { paymentPreferenceLabel } from "@/lib/payments/payment-options";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
@@ -54,24 +55,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const changed = Boolean(result?.preference_changed);
   let notificationFailed = false;
 
-  if (changed && (body.preference === "cash_check_pickup" || body.preference === "check_mail")) {
+  if (changed) {
     const payments = await getSuccessfulPaymentTotal(supabase, lookup.invoice.id);
-    const notification = await notifyOfficeOfInvoicePaymentPreference({
-      appBaseUrl,
-      balanceDueCents: Math.max(0, lookup.invoice.total_cents - payments.totalCents),
-      customerName: lookup.invoice.organizations?.name ?? lookup.invoice.customers?.display_name ?? "Customer",
+    const customerName = lookup.invoice.organizations?.name ?? lookup.invoice.customers?.display_name ?? "Customer";
+    await emitCustomerActivity({
+      category: "payments",
+      customerId: lookup.invoice.customer_id,
+      destinationPath: `/admin/invoices/${lookup.invoice.id}`,
+      eventType: "customer_selected_payment_preference",
+      idempotencyKey: `invoice:${lookup.invoice.id}:payment-preference:${body.preference}:${Date.now()}`,
       invoiceId: lookup.invoice.id,
-      invoiceNumber: lookup.invoice.invoice_number,
-      preference: body.preference,
-      supabase,
+      metadata: {
+        balance_due_cents: Math.max(0, lookup.invoice.total_cents - payments.totalCents),
+        payment_preference: body.preference,
+      },
+      organizationId: lookup.invoice.organization_id,
+      recordLabel: lookup.invoice.invoice_number || "Invoice",
+      subjectId: lookup.invoice.id,
+      subjectType: "invoice",
+      summary: `${customerName} selected ${paymentPreferenceLabel(body.preference)} for ${lookup.invoice.invoice_number || "an invoice"}. No payment was recorded.`,
+      title: "Customer selected a payment option",
     });
-    notificationFailed = !notification.ok;
-    if (notificationFailed) {
-      console.error("Invoice payment preference notification failed", {
-        invoiceId: lookup.invoice.id,
-        message: notification.message,
-      });
-    }
   }
 
   return NextResponse.json({ ok: true, changed, notificationFailed });

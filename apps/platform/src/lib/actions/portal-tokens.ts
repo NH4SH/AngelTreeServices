@@ -12,6 +12,7 @@ import { getPortalUrl } from "@/lib/portal/urls";
 import type { QuoteStatus } from "@/lib/types/database";
 import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
 
 export type PortalTokenActionState = {
   ok: boolean;
@@ -235,7 +236,20 @@ export async function approveQuoteByPortalToken(
   }
 
   await supabase.from("quote_portal_tokens").update({ used_at: approvedAt }).eq("id", lookup.tokenId);
-  await logPortalActivity(supabase, lookup.quote.id, "quote_portal_approved");
+  await emitCustomerActivity({
+    category: "quotes",
+    customerId: lookup.quote.customer_id,
+    destinationPath: `/admin/quotes/${lookup.quote.id}`,
+    eventType: "quote_portal_approved",
+    idempotencyKey: `quote:${lookup.quote.id}:portal-approved`,
+    organizationId: lookup.quote.organization_id,
+    quoteId: lookup.quote.id,
+    recordLabel: lookup.quote.quote_number || "Quote",
+    subjectId: lookup.quote.id,
+    subjectType: "quote",
+    summary: `${lookup.quote.organizations?.name ?? lookup.quote.customers?.display_name ?? "Customer"} approved ${lookup.quote.quote_number || "a quote"}.`,
+    title: "Quote approved by customer",
+  });
 
   revalidatePortalQuote(rawToken, lookup.quote.id);
   return { ok: true, status: "success", message: "Thank you. Your quote has been approved. Angel Tree Services will follow up with scheduling details." };
@@ -295,7 +309,21 @@ export async function requestQuoteChangesByPortalToken(
   await cancelPendingCommunications(supabase, { quoteId: lookup.quote.id }, "Customer requested changes to the quote.");
 
   await supabase.from("quote_portal_tokens").update({ used_at: requestedAt }).eq("id", lookup.tokenId);
-  await logPortalActivity(supabase, lookup.quote.id, "quote_portal_changes_requested");
+  await emitCustomerActivity({
+    body: message,
+    category: "quotes",
+    customerId: lookup.quote.customer_id,
+    destinationPath: `/admin/quotes/${lookup.quote.id}`,
+    eventType: "quote_portal_changes_requested",
+    idempotencyKey: `quote:${lookup.quote.id}:change-request:${note.id}`,
+    organizationId: lookup.quote.organization_id,
+    quoteId: lookup.quote.id,
+    recordLabel: lookup.quote.quote_number || "Quote",
+    subjectId: lookup.quote.id,
+    subjectType: "quote",
+    summary: `${lookup.quote.organizations?.name ?? lookup.quote.customers?.display_name ?? "Customer"} requested changes to ${lookup.quote.quote_number || "a quote"}.`,
+    title: "Customer requested quote changes",
+  });
 
   revalidatePortalQuote(rawToken, lookup.quote.id);
   return { ok: true, status: "success", message: "Your change request has been sent. Angel Tree Services will review it and follow up." };
@@ -310,18 +338,4 @@ function revalidatePortalQuote(rawToken: string, quoteId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${quoteId}`);
-}
-
-
-async function logPortalActivity(
-  supabase: NonNullable<ReturnType<typeof getServiceRoleClient>>,
-  quoteId: string,
-  eventType: string,
-) {
-  await supabase.from("activity_log").insert({
-    subject_type: "quote",
-    subject_id: quoteId,
-    event_type: eventType,
-    metadata_json: { source: "customer_quote_portal" },
-  });
 }

@@ -98,7 +98,8 @@ export type EmailEventType =
   | "invoice_payment_reminder"
   | "overdue_invoice_reminder"
   | "payment_confirmation"
-  | "payment_preference_notice";
+  | "payment_preference_notice"
+  | "admin_customer_activity";
 export type EmailEventStatus = "sent" | "failed";
 export type CommunicationType = Extract<
   EmailEventType,

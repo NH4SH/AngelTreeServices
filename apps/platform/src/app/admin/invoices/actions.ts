@@ -265,9 +265,14 @@ export async function createInvoice(
     : { completed: true as const, warning: null };
 
   await recordActivity(supabase, {
+    actionCategory: "invoices",
     actorUserId: user.id,
+    destinationPath: `/admin/invoices/${invoice.id}`,
     eventType: "invoice_draft_created",
     metadata: { source_quote_id: null, standalone: !job },
+    organizationId: party.organizationId,
+    recordLabel: "Draft invoice",
+    summary: "A draft invoice was created.",
     subjectId: invoice.id,
     subjectType: "invoice",
   });
@@ -340,7 +345,7 @@ export async function updateInvoice(
 
   const { data: invoice, error: lookupError } = await supabase
     .from("invoices")
-    .select("id, customer_id, organization_id, status, total_cents, balance_due_cents")
+    .select("id, customer_id, organization_id, status, invoice_number, total_cents, balance_due_cents, due_at")
     .eq("id", invoiceId)
     .single();
 
@@ -379,6 +384,23 @@ export async function updateInvoice(
   if (lineItemError) {
     return { status: "error", message: `Invoice details saved, but line items could not be fully updated: ${lineItemError}` };
   }
+
+  const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
+  await recordActivity(supabase, {
+    actionCategory: "invoices",
+    actorUserId: user.id,
+    changes: {
+      due_at: { before: invoice.due_at, after: dueAt },
+      total_cents: { before: invoice.total_cents, after: totalCents },
+    },
+    destinationPath: `/admin/invoices/${invoiceId}`,
+    eventType: "invoice_updated",
+    organizationId: invoice.organization_id,
+    recordLabel: invoice.invoice_number || "Invoice",
+    summary: "Invoice details and line items were updated.",
+    subjectId: invoiceId,
+    subjectType: "invoice",
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");

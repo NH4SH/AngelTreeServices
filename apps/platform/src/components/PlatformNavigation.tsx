@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "@/app/login/actions";
+import { NotificationBell } from "@/components/notification-bell";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import {
   getVisibleNavigationCommands,
@@ -87,12 +88,14 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
   }
 
   const roleSummary = roles.length ? roles.join(", ") : "No role assigned";
+  const canSeeNotifications = audience === "admin" && roles.some((role) => role === "owner" || role === "admin");
 
   return (
     <>
       <aside className="app-sidebar">
         <div className="app-sidebar-header">
           <Brand />
+          {canSeeNotifications ? <NotificationBell /> : null}
         </div>
 
         <nav className="workflow-navigation" aria-label="Platform navigation">
@@ -150,6 +153,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
       <header className="app-mobilebar">
         <Brand compact />
         <div className="mobilebar-actions">
+          {canSeeNotifications ? <NotificationBell mobile /> : null}
           <button aria-label="Open command palette" className="mobile-icon-button" onClick={() => setPaletteOpen(true)} type="button">
             <Search aria-hidden="true" size={19} />
           </button>

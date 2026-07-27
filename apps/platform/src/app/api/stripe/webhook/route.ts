@@ -5,6 +5,7 @@ import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import { safeWebhookLog, WebhookProcessingError } from "@/lib/payments/webhook-logging";
 import { getStripeServerConfig, getStripeWebhookSecret } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
 
 export const runtime = "nodejs";
 
@@ -87,12 +88,28 @@ async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.
   }
   const checkout = await getCheckout(session.id);
   if (!checkout || checkout.payment_channel !== "ach") return;
-  await upsertStripePayment(checkout, session, null, "pending");
+  const started = await upsertStripePayment(checkout, session, null, "pending");
   const submittedAt = checkout.submitted_at ?? new Date(session.created * 1000).toISOString();
   const { error } = await requireServiceRoleClient().from("invoice_checkout_sessions")
     .update({ authorized_at: submittedAt, status: "processing", stripe_payment_intent_id: getStripeId(session.payment_intent), submitted_at: submittedAt })
     .eq("id", checkout.id).in("status", ["creating", "open"]);
   if (error) throw new Error(error.message);
+  if (started) {
+    await emitCustomerActivity({
+      category: "payments",
+      customerId: checkout.customer_id,
+      destinationPath: `/admin/invoices/${checkout.invoice_id}`,
+      eventType: "customer_bank_payment_processing",
+      idempotencyKey: `stripe-checkout:${checkout.id}:payment-processing`,
+      invoiceId: checkout.invoice_id,
+      organizationId: checkout.organization_id,
+      recordLabel: "Invoice payment",
+      subjectId: checkout.invoice_id,
+      subjectType: "invoice",
+      summary: "A customer submitted a bank payment that is still processing. The invoice remains open until Stripe confirms it.",
+      title: "Bank payment is processing",
+    });
+  }
 }
 
 async function reconcileSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.Checkout.Session) {
@@ -132,6 +149,24 @@ async function reconcileSuccessfulCheckout(stripe: Stripe, eventSession: Stripe.
       },
       subjectId: checkout.invoice_id,
       subjectType: "invoice",
+    });
+    await emitCustomerActivity({
+      category: "payments",
+      customerId: checkout.customer_id,
+      destinationPath: `/admin/invoices/${checkout.invoice_id}`,
+      eventType: "customer_payment_succeeded",
+      idempotencyKey: `stripe-checkout:${checkout.id}:payment-succeeded`,
+      invoiceId: checkout.invoice_id,
+      metadata: {
+        amount_cents: checkout.invoice_principal_cents,
+        payment_channel: checkout.payment_channel,
+      },
+      organizationId: checkout.organization_id,
+      recordLabel: "Invoice payment",
+      subjectId: checkout.invoice_id,
+      subjectType: "invoice",
+      summary: `A ${checkout.payment_channel === "ach" ? "bank" : "card"} payment was successfully recorded.`,
+      title: "Customer payment received",
     });
   }
 }
@@ -174,13 +209,13 @@ async function upsertStripePayment(checkout: CheckoutRecord, session: Stripe.Che
     surcharge_cents: checkout.surcharge_cents,
     total_collected_cents: checkout.total_charge_cents,
   };
-  const { data: existing, error: lookupError } = await supabase.from("payments").select("id")
+  const { data: existing, error: lookupError } = await supabase.from("payments").select("id, status")
     .eq("provider_checkout_session_id", session.id).maybeSingle();
   if (lookupError) throw new Error(lookupError.message);
   if (existing) {
     const { error } = await supabase.from("payments").update(values).eq("id", existing.id);
     if (error) throw new Error(error.message);
-    return false;
+    return existing.status !== status;
   }
   const { error } = await supabase.from("payments").insert(values);
   if (error?.code === "23505") return false;
@@ -190,11 +225,28 @@ async function upsertStripePayment(checkout: CheckoutRecord, session: Stripe.Che
 
 async function markCheckoutFailed(session: Stripe.Checkout.Session) {
   const supabase = requireServiceRoleClient();
+  const checkout = await getCheckout(session.id);
   const failedAt = new Date().toISOString();
   await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
     .eq("stripe_checkout_session_id", session.id).in("status", ["creating", "open", "processing"]);
   await supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
     .eq("provider_checkout_session_id", session.id).eq("status", "pending");
+  if (checkout) {
+    await emitCustomerActivity({
+      category: "payments",
+      customerId: checkout.customer_id,
+      destinationPath: `/admin/invoices/${checkout.invoice_id}`,
+      eventType: "customer_payment_failed",
+      idempotencyKey: `stripe-checkout:${checkout.id}:payment-failed`,
+      invoiceId: checkout.invoice_id,
+      organizationId: checkout.organization_id,
+      recordLabel: "Invoice payment",
+      subjectId: checkout.invoice_id,
+      subjectType: "invoice",
+      summary: "A customer payment did not complete. The invoice balance was not reduced.",
+      title: "Customer payment needs attention",
+    });
+  }
 }
 
 async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -212,6 +264,20 @@ async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
     .eq("id", reservation.id).in("status", ["creating", "open", "processing"]);
   await upsertFailedPaymentIntentPayment(reservation, paymentIntent, failedAt);
+  await emitCustomerActivity({
+    category: "payments",
+    customerId: reservation.customer_id,
+    destinationPath: `/admin/invoices/${reservation.invoice_id}`,
+    eventType: "customer_payment_failed",
+    idempotencyKey: `stripe-payment-intent:${reservation.id}:failed`,
+    invoiceId: reservation.invoice_id,
+    organizationId: reservation.organization_id,
+    recordLabel: "Invoice payment",
+    subjectId: reservation.invoice_id,
+    subjectType: "invoice",
+    summary: "A customer card payment did not complete. The invoice balance was not reduced.",
+    title: "Customer payment needs attention",
+  });
 }
 
 async function markPaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent) {
@@ -278,6 +344,21 @@ async function reconcileSuccessfulPaymentIntent(stripe: Stripe, eventPaymentInte
       },
       subjectId: reservation.invoice_id,
       subjectType: "invoice",
+    });
+    await emitCustomerActivity({
+      category: "payments",
+      customerId: reservation.customer_id,
+      destinationPath: `/admin/invoices/${reservation.invoice_id}`,
+      eventType: "customer_payment_succeeded",
+      idempotencyKey: `stripe-payment-intent:${reservation.id}:succeeded`,
+      invoiceId: reservation.invoice_id,
+      metadata: { amount_cents: reservation.invoice_principal_cents, payment_channel: "card" },
+      organizationId: reservation.organization_id,
+      recordLabel: "Invoice payment",
+      subjectId: reservation.invoice_id,
+      subjectType: "invoice",
+      summary: "A customer card payment was successfully recorded.",
+      title: "Customer payment received",
     });
   }
 }
@@ -374,7 +455,7 @@ async function upsertPaymentIntentPayment(checkout: CheckoutRecord, paymentInten
 async function reconcileRefund(charge: Stripe.Charge) {
   const supabase = requireServiceRoleClient();
   const { data: payment, error } = await supabase.from("payments")
-    .select("id, invoice_id, amount_cents, surcharge_cents, total_collected_cents")
+    .select("id, invoice_id, customer_id, organization_id, amount_cents, surcharge_cents, total_collected_cents")
     .eq("provider_charge_id", charge.id).maybeSingle();
   if (error) throw new Error(error.message);
   // A refund can be delivered before the corresponding success event. Returning
@@ -395,6 +476,22 @@ async function reconcileRefund(charge: Stripe.Charge) {
   if (updateError) throw new Error(updateError.message);
   const reconciliation = await reconcileInvoiceBalance(supabase, payment.invoice_id);
   if (!reconciliation.ok) throw new Error(reconciliation.message);
+  await emitCustomerActivity({
+    category: "payments",
+    customerId: payment.customer_id,
+    destinationPath: `/admin/invoices/${payment.invoice_id}`,
+    eventType: "customer_payment_refunded",
+    idempotencyKey: `stripe-charge:${charge.id}:refunded:${totalRefunded}`,
+    invoiceId: payment.invoice_id,
+    metadata: { refunded_cents: totalRefunded },
+    organizationId: payment.organization_id,
+    paymentId: payment.id,
+    recordLabel: "Invoice payment",
+    subjectId: payment.invoice_id,
+    subjectType: "invoice",
+    summary: "A Stripe refund changed the invoice balance.",
+    title: "Payment refund recorded",
+  });
 }
 
 async function recordDispute(dispute: Stripe.Dispute, eventType: string, eventCreated: number) {
@@ -419,6 +516,21 @@ async function recordDispute(dispute: Stripe.Dispute, eventType: string, eventCr
   if (reconciliation?.invoice_balance_changed) {
     const invoiceResult = await reconcileInvoiceBalance(supabase, reconciliation.invoice_id);
     if (!invoiceResult.ok) throw new WebhookProcessingError("dispute_invoice_reconciliation_failed", true);
+  }
+  if (reconciliation?.invoice_id) {
+    await emitCustomerActivity({
+      category: "payments",
+      destinationPath: `/admin/invoices/${reconciliation.invoice_id}`,
+      eventType: eventType === "charge.dispute.created" ? "customer_payment_disputed" : "customer_payment_dispute_updated",
+      idempotencyKey: `stripe-dispute:${dispute.id}:${eventType}:${dispute.status}`,
+      invoiceId: reconciliation.invoice_id,
+      metadata: { dispute_status: dispute.status },
+      recordLabel: "Invoice payment dispute",
+      subjectId: reconciliation.invoice_id,
+      subjectType: "invoice",
+      summary: `A Stripe payment dispute is now ${dispute.status.replaceAll("_", " ")}.`,
+      title: eventType === "charge.dispute.created" ? "Payment dispute opened" : "Payment dispute updated",
+    });
   }
 }
 

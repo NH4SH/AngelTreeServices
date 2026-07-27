@@ -6,6 +6,31 @@ dist-public
 __pycache__/
 *.py[cod]
 
+# Local browser, audit, and QA artifacts
+.playwright-cli/
+output/
+localbuild/
+*.log
+coverage/
+.turbo/
+.vercel/
+.DS_Store
+
+# Generated Supabase CLI state
+supabase/.temp/
+
+# Local implementation notes retained outside the repository
+local-notes/
+
+# Local exports, database snapshots, and editor backups
+exports/
+downloads/
+*.bak
+*.backup
+*.dump
+*.sqlite
+*.sqlite3
+
 # Dependencies and framework output
 node_modules
 .next
@@ -13,6 +38,5 @@ out
 *.tsbuildinfo
 
 # Local environment files
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example

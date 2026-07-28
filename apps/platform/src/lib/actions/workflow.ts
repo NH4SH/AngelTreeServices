@@ -13,6 +13,7 @@ import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
+import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
@@ -620,6 +621,7 @@ async function createInvoiceForJob({
       quote_id: quoteResult.quoteId,
       recurring_service_plan_id: invoiceableJob.recurring_service_plan_id,
       recurring_occurrence_id: invoiceableJob.recurring_occurrence_id,
+      due_at: getInvoiceDueAt(),
       status: "draft",
       subtotal_cents: subtotalCents,
       tax_cents: taxCents,

@@ -6,6 +6,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -173,7 +174,7 @@ export async function createInvoice(
     }
   }
 
-  const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
+  const dueAt = getInvoiceDueAt(dueDate);
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
@@ -372,7 +373,7 @@ export async function updateInvoice(
       tax_cents: 0,
       total_cents: totalCents,
       balance_due_cents: totalCents - recordedPaymentsCents,
-      due_at: dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null,
+      due_at: getInvoiceDueAt(dueDate),
     })
     .eq("id", invoiceId);
 
@@ -385,7 +386,7 @@ export async function updateInvoice(
     return { status: "error", message: `Invoice details saved, but line items could not be fully updated: ${lineItemError}` };
   }
 
-  const dueAt = dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null;
+  const dueAt = getInvoiceDueAt(dueDate);
   await recordActivity(supabase, {
     actionCategory: "invoices",
     actorUserId: user.id,

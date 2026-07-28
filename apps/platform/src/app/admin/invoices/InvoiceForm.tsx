@@ -14,6 +14,7 @@ import {
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { getDefaultInvoiceDueDate } from "@/lib/invoices/due-date";
 import type { Customer, InvoiceDetail, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 const initialState: InvoiceActionState = {
@@ -133,7 +134,8 @@ export function AddInvoiceForm({
         </div> : null}
         <label>
           Due date
-          <input name="due_date" type="date" />
+          <input defaultValue={getDefaultInvoiceDueDate()} name="due_date" required type="date" />
+          <small className="form-help">Defaults to 15 days after the invoice date.</small>
         </label>
         <label>
           Internal notes
@@ -269,7 +271,12 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
         </div>
         <label>
           Due date
-          <input defaultValue={invoice.due_at?.slice(0, 10) ?? ""} name="due_date" type="date" />
+          <input
+            defaultValue={invoice.due_at?.slice(0, 10) ?? getDefaultInvoiceDueDate(new Date(invoice.created_at))}
+            name="due_date"
+            required
+            type="date"
+          />
         </label>
       </section>
 

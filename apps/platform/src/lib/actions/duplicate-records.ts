@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceLineItem, JobPriority, QuoteLineItem } from "@/lib/types/database";
@@ -174,7 +175,7 @@ export async function duplicateInvoice(
       tax_cents: typedInvoice.tax_cents,
       total_cents: typedInvoice.total_cents,
       balance_due_cents: typedInvoice.total_cents,
-      due_at: null,
+      due_at: getInvoiceDueAt(),
       sent_at: null,
       paid_at: null,
     })

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, History, Settings } from "lucide-react";
+import { Activity, Bell, History, Settings } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
@@ -12,11 +12,12 @@ export default async function SettingsPage() {
   return (
     <PlatformFrame active="settings" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content">
-        <section className="page-heading"><p className="surface-label"><Settings size={18} />Settings</p><h1>Settings</h1><p>Personal alerts and administrative history.</p></section>
+        <section className="page-heading"><p className="surface-label"><Settings size={18} />Settings</p><h1>Settings</h1><p>Personal alerts, administrative history, and system readiness.</p></section>
         {!allowed ? <AccessDenied /> : (
           <section className="settings-link-grid">
             <Link href="/admin/settings/notifications"><Bell size={23} /><span><strong>Notifications</strong><small>Choose which customer activity also reaches your email.</small></span></Link>
             <Link href="/admin/settings/activity"><History size={23} /><span><strong>Activity Log</strong><small>Review meaningful platform changes and customer actions.</small></span></Link>
+            <Link href="/admin/settings/system-health"><Activity size={23} /><span><strong>System Health</strong><small>Review website, CRM, portal, data, communication, and payment readiness.</small></span></Link>
           </section>
         )}
       </div>

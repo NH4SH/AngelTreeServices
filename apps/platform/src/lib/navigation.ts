@@ -110,7 +110,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "access", label: "Access", href: "/admin/access", icon: UserCheck, section: "team", audience: "admin", permission: "accessApproval", activePatterns: ["/admin/access/*"], keywords: ["roles", "approval", "accounts", "password reset"] },
 
   { id: "reports", label: "Reports", href: "/admin/reports", icon: BarChart3, section: "business", audience: "admin", permission: "reporting", activePatterns: ["/admin/reports/*"], keywords: ["analytics", "profitability", "sales"] },
-  { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings, section: "business", audience: "admin", permission: "accessApproval", activePatterns: ["/admin/settings/*", "/admin/notifications"], keywords: ["notifications", "activity log", "preferences", "audit"] },
+  { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings, section: "business", audience: "admin", permission: "accessApproval", activePatterns: ["/admin/settings/*", "/admin/notifications"], keywords: ["notifications", "activity log", "preferences", "audit", "system health", "monitoring", "uptime"] },
 
   { id: "crew", label: "Crew home", href: "/crew", icon: HardHat, section: "crew", audience: "crew", permission: "crewApp", activePatterns: ["/crew", "/crew/jobs/*"], keywords: ["today", "assigned jobs"] },
   { id: "crew-equipment", label: "Assigned equipment", href: "/crew/equipment", icon: Forklift, section: "crew", audience: "crew", permission: "crewApp", activePatterns: ["/crew/equipment/*"], keywords: ["vehicles", "tools", "inspection"] },

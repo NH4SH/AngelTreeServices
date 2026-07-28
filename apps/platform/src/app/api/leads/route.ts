@@ -6,7 +6,9 @@ import {
   recordWebsiteLeadNotificationStatus,
 } from "@/lib/leads/intake";
 import { notifyOfficeOfWebsiteLead } from "@/lib/leads/notifications";
+import { bearerToken, isAuthenticatedMonitoringCanary } from "@/lib/security/monitoring-secret";
 import { enforceSharedRateLimit, hashRateLimitKey, trustedClientIp } from "@/lib/security/rate-limit";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 const maxBodyBytes = 32_000;
 const rateLimitMaxRequests = 5;
@@ -27,8 +29,13 @@ export async function OPTIONS(request: Request) {
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const requestAddressHash = hashRateLimitKey([trustedClientIp(request.headers) ?? "unknown"]);
+  const monitoringCanary = isAuthenticatedMonitoringCanary(
+    process.env.SYSTEM_HEALTH_MONITOR_SECRET,
+    bearerToken(request.headers),
+    request.headers.get("x-angel-tree-canary"),
+  );
 
-  if (!isAllowedOrigin(origin)) {
+  if (!monitoringCanary && !isAllowedOrigin(origin)) {
     console.warn("Website lead intake rejected: origin not allowed.", { origin, requestAddressHash });
     return json({ ok: false, message: "This request could not be submitted." }, 403, origin);
   }
@@ -44,7 +51,13 @@ export async function POST(request: Request) {
     return json({ ok: false, message: "This request format is not supported." }, 415, origin);
   }
 
-  const rateLimit = await enforceSharedRateLimit({ action: "public.lead.create", limit: rateLimitMaxRequests, request, windowSeconds: 600 });
+  const rateLimit = await enforceSharedRateLimit({
+    action: monitoringCanary ? "system_health.contact_canary" : "public.lead.create",
+    identifiers: monitoringCanary ? ["authenticated-canary"] : undefined,
+    limit: monitoringCanary ? 10 : rateLimitMaxRequests,
+    request,
+    windowSeconds: 600,
+  });
   if (!rateLimit.available) return json({ ok: false, message: "We could not send your request right now. Please call our office." }, 503, origin);
   if (!rateLimit.allowed) {
     console.warn("Website lead intake rejected: rate limited.", { origin, requestAddressHash });
@@ -66,6 +79,17 @@ export async function POST(request: Request) {
         error: parsed.error,
       });
       return json({ ok: false, message: parsed.error }, 400, origin);
+    }
+
+    if (monitoringCanary) {
+      const supabase = getServiceRoleClient();
+      if (!supabase) return json({ ok: false, message: "Canary dependencies are unavailable." }, 503, origin);
+      const databaseCheck = await supabase.from("jobs").select("id", { count: "exact", head: true }).limit(1);
+      if (databaseCheck.error) return json({ ok: false, message: "Canary dependencies are unavailable." }, 503, origin);
+      const response = json({ ok: true, message: PUBLIC_LEAD_SUCCESS_MESSAGE }, 200, origin);
+      response.headers.set("X-Angel-Tree-Canary", "accepted");
+      console.info("Website lead intake canary completed without creating CRM records.");
+      return response;
     }
 
     const result = await createWebsiteLead(parsed.data);

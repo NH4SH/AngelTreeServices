@@ -96,6 +96,8 @@ EMAIL_FROM="Angel Tree Services <info@angeltreeservice.org>"
 EMAIL_REPLY_TO="info@angeltreeservice.org"
 INTERNAL_LEAD_NOTIFICATION_EMAIL="info@angeltreeservice.org"
 INTERNAL_LEAD_NOTIFICATION_CC_EMAIL="angeltreeservice@outlook.com"
+SYSTEM_HEALTH_MONITOR_SECRET=
+CUSTOMER_PORTAL_BASE_URL=
 APP_BASE_URL=http://localhost:3000
 COMMUNICATION_WORKER_SECRET=
 ```
@@ -103,6 +105,23 @@ COMMUNICATION_WORKER_SECRET=
 Website contact submissions send an independently logged internal notice to both lead-notification addresses. The secondary address applies only to website lead notices; it does not receive employee access, payment preference, quote, or invoice email.
 
 Do not commit real Resend API keys or SMTP credentials.
+
+## System health monitoring
+
+Apply `supabase/migrations/20260728012739_system_health_monitoring.sql` before opening `/admin/settings/system-health`. The migration adds owner/admin-readable, service-role-written component state, short-retention check samples, deduplicated incidents, and an RLS-aware uptime aggregation function.
+
+Generate one random monitoring secret of at least 32 characters and configure the same `SYSTEM_HEALTH_MONITOR_SECRET` value in:
+
+1. The Netlify environment for the `angel-tree-admin` project.
+2. The GitHub Actions repository secret named `SYSTEM_HEALTH_MONITOR_SECRET`.
+
+Do not add it to the public static-site project or any `NEXT_PUBLIC_` variable. `CUSTOMER_PORTAL_BASE_URL` is optional; set it only when a separate customer-portal hostname is deployed. Otherwise quote and invoice portal routes are checked through `APP_BASE_URL`.
+
+The scheduled `.github/workflows/system-health-monitor.yml` workflow runs every five minutes outside both Netlify deployments. It retries public-site and CRM liveness checks, calls the authenticated readiness runner, opens one GitHub issue on an incident, and closes it on recovery. Enable repository Issues and ensure the business owner watches issue notifications; this GitHub path remains independent when the CRM or Resend cannot send alerts.
+
+Internal critical components require two consecutive failures before an incident alert. Noncritical components require three. One successful check closes an incident. Check samples are retained for 35 days and resolved incidents for one year. The canary uses the real `/api/leads` validation and database-read path but exits before creating customers, jobs, emails, reporting events, or follow-ups.
+
+The safe checks do not create Stripe activity, authentication accounts, storage objects, customer records, or synthetic email. The scheduled-workflow check only reads overdue job state and prior activity; it never advances a job. Stripe dashboard webhook subscriptions, DNS ownership, Netlify deployment metadata, recurring-service invocations without durable run history, and provider billing limits cannot be verified safely with the current credentials and must still be reviewed in their provider dashboards.
 
 ## Supabase Auth Redirect URLs
 

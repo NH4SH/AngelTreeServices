@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, History } from "lucide-react";
+import { Activity, Bell, History } from "lucide-react";
 import { NotificationPreferencesForm } from "@/components/notification-preferences-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -18,6 +18,7 @@ export default async function NotificationSettingsPage() {
         <nav className="local-workflow-tabs" aria-label="Settings">
           <Link aria-current="page" href="/admin/settings/notifications"><Bell size={16} />Notifications</Link>
           <Link href="/admin/settings/activity"><History size={16} />Activity Log</Link>
+          <Link href="/admin/settings/system-health"><Activity size={16} />System Health</Link>
         </nav>
         <section className="page-heading"><p className="surface-label"><Bell size={18} />Personal alerts</p><h1>Notification settings</h1><p>Important activity always stays in your in-platform inbox. These choices control only your email alerts.</p></section>
         {!allowed ? <section className="empty-state"><h2>Owner or admin access required</h2><p>Personal administrative alerts are restricted.</p></section> : null}

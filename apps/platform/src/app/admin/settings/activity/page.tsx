@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, ChevronDown, History, SlidersHorizontal } from "lucide-react";
+import { Activity, Bell, ChevronDown, History, SlidersHorizontal } from "lucide-react";
 import { ListPagination } from "@/components/list-pagination";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -25,6 +25,7 @@ export default async function ActivityLogPage({ searchParams }: Props) {
         <nav className="local-workflow-tabs" aria-label="Settings">
           <Link href="/admin/settings/notifications"><Bell size={16} />Notifications</Link>
           <Link aria-current="page" href="/admin/settings/activity"><History size={16} />Activity Log</Link>
+          <Link href="/admin/settings/system-health"><Activity size={16} />System Health</Link>
         </nav>
         <section className="page-heading"><p className="surface-label"><History size={18} />Administrative history</p><h1>Activity Log</h1><p>Meaningful changes and customer actions, newest first. History is append-only.</p></section>
         {!allowed ? <section className="empty-state"><h2>Owner or admin access required</h2><p>The complete administrative history is restricted.</p></section> : null}

@@ -3910,6 +3910,258 @@
   color: var(--color-forest);
 }
 
+.system-health-page {
+  display: grid;
+  gap: 24px;
+}
+
+.system-health-heading {
+  align-items: flex-end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.system-health-refresh {
+  align-items: flex-end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.system-health-refresh .form-message {
+  margin: 0;
+  max-width: 420px;
+}
+
+.system-health-overall {
+  align-items: center;
+  background: #f4f8f5;
+  border: 1px solid #cbd8cf;
+  border-left: 7px solid #597463;
+  display: flex;
+  gap: 18px;
+  padding: 22px 24px;
+}
+
+.system-health-overall h2,
+.system-health-overall p,
+.system-health-card h3,
+.system-health-card p {
+  margin: 0;
+}
+
+.system-health-overall span {
+  color: #4f6355;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.system-health-overall.health-operational {
+  background: #edf8f0;
+  border-left-color: #23763c;
+}
+
+.system-health-overall.health-degraded {
+  background: #fff8e7;
+  border-left-color: #b27613;
+}
+
+.system-health-overall.health-outage {
+  background: #fff0ee;
+  border-left-color: #b13a2f;
+}
+
+.system-health-section {
+  display: grid;
+  gap: 14px;
+}
+
+.system-health-section-heading {
+  align-items: baseline;
+  border-bottom: 1px solid #d9e1db;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 9px;
+}
+
+.system-health-section-heading h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.system-health-section-heading span {
+  color: #66726a;
+  font-size: 0.86rem;
+}
+
+.system-health-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.system-health-card {
+  background: #fff;
+  border: 1px solid #d8e0da;
+  border-left: 5px solid #718078;
+  border-radius: 6px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.system-health-card.health-operational { border-left-color: #2d7a43; }
+.system-health-card.health-degraded { border-left-color: #c18118; }
+.system-health-card.health-outage { border-left-color: #bd4034; }
+.system-health-card.health-unknown,
+.system-health-card.health-not_configured { border-left-color: #778079; }
+
+.system-health-card > header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.system-health-card > header div {
+  min-width: 0;
+}
+
+.system-health-card > header span {
+  color: #5d6c62;
+  display: block;
+  font-size: 0.84rem;
+  margin-top: 2px;
+}
+
+.health-operational > svg { color: #23763c; }
+.health-degraded > svg { color: #a5680d; }
+.health-outage > svg { color: #ad3027; }
+.health-unknown > svg,
+.health-not_configured > svg { color: #66726a; }
+
+.system-health-card > dl {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.system-health-card > dl div {
+  background: #f5f8f6;
+  border: 1px solid #e1e7e3;
+  padding: 9px 10px;
+}
+
+.system-health-card dt {
+  color: #617066;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.system-health-card dd {
+  font-size: 0.9rem;
+  margin: 3px 0 0;
+}
+
+.system-health-uptime {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.system-health-uptime span {
+  color: #617066;
+  font-size: 0.74rem;
+}
+
+.system-health-uptime strong {
+  color: #21352a;
+  display: block;
+  font-size: 1rem;
+}
+
+.system-health-incident-duration {
+  align-items: center;
+  color: #9b2e25;
+  display: flex;
+  font-weight: 700;
+  gap: 7px;
+}
+
+.system-health-card details {
+  border-top: 1px solid #e0e6e2;
+  padding-top: 10px;
+}
+
+.system-health-card summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.system-health-card details p {
+  font-size: 0.84rem;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.system-health-incident-list {
+  border: 1px solid #d8e0da;
+}
+
+.system-health-incident-list article {
+  align-items: flex-start;
+  background: #fff;
+  border-bottom: 1px solid #e2e7e3;
+  display: flex;
+  gap: 12px;
+  padding: 15px 17px;
+}
+
+.system-health-incident-list article:last-child {
+  border-bottom: 0;
+}
+
+.system-health-incident-list p {
+  margin: 3px 0;
+}
+
+.system-health-incident-list small {
+  color: #617066;
+}
+
+@media (max-width: 760px) {
+  .system-health-heading {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .system-health-refresh {
+    justify-items: stretch;
+  }
+
+  .system-health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .system-health-card > dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes system-health-spin {
+  to { transform: rotate(360deg); }
+}
+
+.system-health-refresh .spin {
+  animation: system-health-spin 0.9s linear infinite;
+}
+
 .commerce-summary-chip[aria-current="page"],
 .filter-pills a[aria-current="page"] {
   border-color: oklch(0.68 0.07 154);

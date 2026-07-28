@@ -34,6 +34,8 @@ EMAIL_FROM=Angel Tree Services <info@angeltreeservice.org>
 EMAIL_REPLY_TO=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_EMAIL=info@angeltreeservice.org
 INTERNAL_LEAD_NOTIFICATION_CC_EMAIL=angeltreeservice@outlook.com
+SYSTEM_HEALTH_MONITOR_SECRET=
+CUSTOMER_PORTAL_BASE_URL=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PUBLISHABLE_KEY=
@@ -46,6 +48,21 @@ COMMUNICATION_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
+
+`SYSTEM_HEALTH_MONITOR_SECRET` must be a random value of at least 32 characters. Configure the same value as a GitHub Actions repository secret, but never expose it to the browser or public-site Netlify project.
+
+## System health production setup
+
+1. Review and apply `supabase/migrations/20260728012739_system_health_monitoring.sql`.
+2. Set `SYSTEM_HEALTH_MONITOR_SECRET` on only the `angel-tree-admin` Netlify project.
+3. Add the same value to GitHub Actions as the repository secret `SYSTEM_HEALTH_MONITOR_SECRET`.
+4. If a separate `portal.angeltreeservices.org` deployment exists, set the GitHub repository variable and admin environment variable `CUSTOMER_PORTAL_BASE_URL=https://portal.angeltreeservices.org`. Otherwise leave it blank.
+5. Enable GitHub Issues and have the owner watch repository issue notifications.
+6. Deploy the admin app, then manually run `.github/workflows/system-health-monitor.yml`.
+7. Sign in as owner/admin, open `/admin/settings/system-health`, and select **Run checks now**.
+8. Confirm the contact canary creates no customer, job, communication, or email record.
+9. Confirm crew and customer accounts cannot read health tables or open the health dashboard.
+10. Temporarily test a harmless invalid external URL on a nonproduction branch to confirm one issue opens and one recovery closes it. Never disable production services for this test.
 
 Optional, server-only tooling value:
 

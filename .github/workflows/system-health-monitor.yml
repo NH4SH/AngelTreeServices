@@ -1,0 +1,114 @@
+name: Production system health
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-system-health
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ADMIN_URL: https://admin.angeltreeservices.org
+      PUBLIC_URL: https://angeltreeservices.org
+      CUSTOMER_PORTAL_URL: ${{ vars.CUSTOMER_PORTAL_BASE_URL }}
+      MONITOR_SECRET: ${{ secrets.SYSTEM_HEALTH_MONITOR_SECRET }}
+    steps:
+      - name: Check critical production paths
+        id: checks
+        shell: bash
+        run: |
+          set +e
+          failures=""
+
+          check_url() {
+            local label="$1"
+            local url="$2"
+            if ! curl --fail --silent --show-error --location \
+              --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 10 \
+              "$url" >/dev/null; then
+              failures="${failures}${label}; "
+            fi
+          }
+
+          check_url "Public website unavailable" "${PUBLIC_URL}/"
+          check_url "Essential public asset unavailable" "${PUBLIC_URL}/assets/favicon-32.png"
+          check_url "CRM liveness unavailable" "${ADMIN_URL}/api/health/live"
+
+          if [ -n "${CUSTOMER_PORTAL_URL}" ]; then
+            check_url "Customer portal unavailable" "${CUSTOMER_PORTAL_URL}/portal/quote/system-health-invalid-token"
+          fi
+
+          if [ -z "${MONITOR_SECRET}" ]; then
+            failures="${failures}SYSTEM_HEALTH_MONITOR_SECRET is not configured in GitHub Actions; "
+          elif ! curl --fail --silent --show-error \
+            --connect-timeout 8 --max-time 90 --retry 1 --retry-delay 15 \
+            -X POST -H "Authorization: Bearer ${MONITOR_SECRET}" \
+            "${ADMIN_URL}/api/internal/system-health/run" >/dev/null; then
+            failures="${failures}Detailed readiness checks failed; "
+          fi
+
+          if [ -n "${failures}" ]; then
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "summary=${failures}" >> "$GITHUB_OUTPUT"
+          else
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+            echo "summary=All independent checks passed." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or recover monitoring incident
+        uses: actions/github-script@v7
+        env:
+          HEALTHY: ${{ steps.checks.outputs.healthy }}
+          SUMMARY: ${{ steps.checks.outputs.summary }}
+        with:
+          script: |
+            const title = "[System Health] Production monitoring incident";
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+            const active = issues.find((issue) => issue.title === title);
+            const healthy = process.env.HEALTHY === "true";
+            const timestamp = new Date().toISOString();
+
+            if (!healthy && !active) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: [
+                  "Independent production monitoring detected a confirmed failure after retries.",
+                  "",
+                  `Time: ${timestamp}`,
+                  `Summary: ${process.env.SUMMARY}`,
+                  "",
+                  "Open Settings → System Health after the CRM is reachable. This issue contains no credentials or customer data.",
+                ].join("\n"),
+              });
+            } else if (healthy && active) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: active.number,
+                body: `Independent checks recovered at ${timestamp}. All monitored production paths passed.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: active.number,
+                state: "closed",
+                state_reason: "completed",
+              });
+            }

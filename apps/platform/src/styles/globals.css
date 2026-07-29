@@ -16659,8 +16659,8 @@ body:has(.appointment-overlay) {
 
 .customer-quote-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: 18px;
+  grid-template-columns: minmax(0, 2.25fr) minmax(290px, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
@@ -16671,7 +16671,14 @@ body:has(.appointment-overlay) {
   min-width: 0;
 }
 
+.customer-quote-document-column {
+  grid-column: 1;
+  grid-row: 1;
+}
+
 .customer-quote-action-column {
+  grid-column: 2;
+  grid-row: 1;
   position: sticky;
   top: 24px;
 }
@@ -16703,9 +16710,9 @@ body:has(.appointment-overlay) {
 .customer-quote-page .business-document {
   width: 100%;
   margin: 0;
-  border-radius: 18px;
+  border-radius: 8px;
   padding: 28px;
-  box-shadow: var(--shadow-small);
+  box-shadow: none;
 }
 
 .customer-quote-page .business-document-header {
@@ -16727,7 +16734,9 @@ body:has(.appointment-overlay) {
   gap: 16px;
   width: 100%;
   margin: 0;
+  border-radius: 8px;
   padding: 20px;
+  box-shadow: none;
 }
 
 .customer-quote-actions-intro h2,
@@ -16752,7 +16761,7 @@ body:has(.appointment-overlay) {
 .customer-approve-button {
   width: 100%;
   min-height: 58px;
-  border-radius: 14px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 760;
 }
@@ -16794,14 +16803,14 @@ body:has(.appointment-overlay) {
 
 .customer-change-form textarea {
   min-height: 116px;
-  border-radius: 14px;
+  border-radius: 8px;
   resize: vertical;
 }
 
 .customer-secondary-button {
   width: 100%;
   min-height: 50px;
-  border-radius: 14px;
+  border-radius: 8px;
   font-weight: 720;
 }
 
@@ -16831,6 +16840,146 @@ body:has(.appointment-overlay) {
 
 .customer-quote-confirmation p {
   color: inherit;
+}
+
+.customer-quote-actions > .customer-quote-confirmation {
+  border: 0;
+  border-radius: 0;
+  padding: 14px 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.customer-quote-heading {
+  margin: 0 0 16px;
+}
+
+.customer-quote-heading h1 {
+  max-width: 28ch;
+  margin: 6px 0 0;
+  color: var(--color-charcoal);
+  font-size: 1.8rem;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.customer-quote-heading > p:last-child {
+  max-width: 64ch;
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.customer-quote-metadata {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(220px, 1.5fr) repeat(3, minmax(120px, auto));
+  gap: 0;
+  margin: 0 0 18px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-green);
+}
+
+.customer-quote-metadata > div {
+  min-width: 0;
+  padding: 13px 14px;
+  border-right: 1px solid var(--color-border);
+}
+
+.customer-quote-metadata > div:last-child {
+  border-right: 0;
+}
+
+.customer-quote-metadata dt,
+.customer-quote-decision-facts dt {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.customer-quote-metadata dd,
+.customer-quote-decision-facts dd {
+  margin: 5px 0 0;
+  color: var(--color-charcoal);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.customer-quote-metadata .status-badge {
+  white-space: normal;
+}
+
+.customer-quote-decision-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.customer-quote-decision-facts > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.customer-quote-decision-facts > div:first-child dd {
+  color: var(--color-forest);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.customer-quote-work-summary {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.customer-quote-work-summary h2 {
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.customer-quote-work-summary p,
+.customer-quote-work-summary ul {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.customer-quote-work-summary ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 19px;
+}
+
+.customer-quote-work-summary li {
+  padding-left: 2px;
+  overflow-wrap: anywhere;
+}
+
+.customer-quote-work-summary a {
+  width: fit-content;
+  color: var(--color-forest);
+  font-size: 0.88rem;
+  font-weight: 750;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.customer-quote-next-step {
+  margin: 0;
+  border-left: 3px solid var(--color-green);
+  padding: 10px 12px;
+  background: var(--color-surface-subtle);
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .customer-portal-footer {
@@ -17240,7 +17389,31 @@ body:has(.appointment-overlay) {
   }
 
   .customer-quote-action-column {
+    grid-column: auto;
+    grid-row: auto;
     position: static;
+  }
+
+  .customer-quote-document-column {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .customer-quote-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-quote-metadata > div {
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .customer-quote-metadata > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .customer-quote-metadata > div:nth-last-child(-n + 2) {
+    border-bottom: 0;
   }
 }
 
@@ -17264,6 +17437,37 @@ body:has(.appointment-overlay) {
 
   .customer-quote-page .business-document {
     padding: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .customer-quote-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-quote-metadata > div,
+  .customer-quote-metadata > div:nth-child(2n),
+  .customer-quote-metadata > div:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .customer-quote-metadata > div:last-child {
+    border-bottom: 0;
+  }
+
+  .customer-quote-metadata .customer-quote-metadata-total,
+  .customer-quote-metadata .customer-quote-metadata-expiration,
+  .customer-quote-metadata .customer-quote-metadata-status {
+    display: none;
+  }
+
+  .customer-quote-metadata .customer-quote-metadata-location {
+    border-bottom: 0;
+  }
+
+  .customer-quote-actions {
+    padding: 17px;
   }
 }
 

@@ -7,10 +7,12 @@ import type { QuoteDetail } from "@/lib/types/database";
 export function QuoteDocument({
   approvalMessage = "Approve this quote or request changes using the secure quote portal link included in your quote email.",
   quote,
+  showApprovalSection = true,
   showInternalPreview = false,
 }: {
   approvalMessage?: string;
   quote: QuoteDetail;
+  showApprovalSection?: boolean;
   showInternalPreview?: boolean;
 }) {
   const lineItems = [...(quote.quote_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
@@ -67,11 +69,13 @@ export function QuoteDocument({
         variant="quote"
       />
 
-      <section className="business-document-approval">
-        <strong>Ready to move forward?</strong>
-        <p>{approvalMessage}</p>
-        <small>Your secure link keeps approval and change requests connected to this proposal.</small>
-      </section>
+      {showApprovalSection ? (
+        <section className="business-document-approval">
+          <strong>Ready to move forward?</strong>
+          <p>{approvalMessage}</p>
+          <small>Your secure link keeps approval and change requests connected to this proposal.</small>
+        </section>
+      ) : null}
     </DocumentShell>
   );
 }
@@ -88,7 +92,7 @@ function QuoteScopeItems({
   totalCents: number;
 }) {
   return (
-    <section className="quote-proposal-scope">
+    <section className="quote-proposal-scope" id="proposal-scope">
       <div className="quote-proposal-section-heading">
         <div>
           <span>Proposed services</span>

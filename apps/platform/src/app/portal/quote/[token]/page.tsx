@@ -1,8 +1,9 @@
-import { CheckCircle2, Clock3, FileSignature, Leaf, MapPin, ShieldCheck } from "lucide-react";
+import { FileSignature, Leaf, ShieldCheck } from "lucide-react";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
+import { buildPortalWorkSummary, formatCustomerQuoteStatus } from "@/lib/portal/quote-presentation";
 import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
 type CustomerQuotePortalPageProps = {
@@ -10,12 +11,6 @@ type CustomerQuotePortalPageProps = {
     token: string;
   }>;
 };
-
-const trustPoints = [
-  "Private quote link",
-  "Clear line-item pricing",
-  "Direct Angel Tree follow-up",
-];
 
 export default async function CustomerQuotePortalPage({ params }: CustomerQuotePortalPageProps) {
   const { token } = await params;
@@ -29,7 +24,15 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
   }
 
   const isApproved = lookup.quote.status === "approved";
-  const scopeSummary = getQuoteScopeSummary(lookup.quote);
+  const statusLabel = formatCustomerQuoteStatus(lookup.quote.status);
+  const totalLabel = formatCurrency(lookup.quote.total_cents);
+  const expirationLabel = lookup.quote.expires_at
+    ? formatDate(lookup.quote.expires_at)
+    : "Contact us for validity";
+  const preparedFor = lookup.quote.organizations?.name
+    ?? lookup.quote.customers?.display_name
+    ?? "Customer";
+  const workSummary = buildPortalWorkSummary(lookup.quote);
 
   return (
     <main className="customer-portal-page customer-quote-page">
@@ -45,74 +48,51 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
         <p><ShieldCheck aria-hidden="true" size={17} /> Secure quote review</p>
       </header>
 
-      <section className="customer-portal-hero customer-quote-hero">
-        <div className="customer-portal-intro">
-          <p className="surface-label">
-            <FileSignature aria-hidden="true" size={18} />
-            Your Quote
-          </p>
-          <h1>{isApproved ? "Your quote is approved." : "Review your quote and respond when you are ready."}</h1>
-          <p>
-            This private page shows only the quote prepared for you. Review the scope, line items, and total, then
-            approve the work or request changes.
-          </p>
-        </div>
-
-        <aside className="customer-portal-summary-card customer-quote-summary-card">
-          <div className="customer-quote-summary-total">
-            <span>Total quote</span>
-            <strong>{formatCurrency(lookup.quote.total_cents)}</strong>
-          </div>
-          <dl className="customer-quote-summary-list">
-            <div>
-              <dt>Status</dt>
-              <dd>{formatStatus(lookup.quote.status)}</dd>
-            </div>
-            <div>
-              <dt>Service location</dt>
-              <dd>{formatLocation(lookup.quote)}</dd>
-            </div>
-            <div>
-              <dt>Expires</dt>
-              <dd>{lookup.quote.expires_at ? formatDate(lookup.quote.expires_at) : "No expiration date set"}</dd>
-            </div>
-          </dl>
-          <div className="customer-portal-trust-list" aria-label="Portal trust cues">
-            {trustPoints.map((point) => (
-              <p key={point}>
-                <CheckCircle2 aria-hidden="true" size={16} />
-                {point}
-              </p>
-            ))}
-          </div>
-        </aside>
+      <section className="customer-quote-heading">
+        <p className="surface-label">
+          <FileSignature aria-hidden="true" size={18} />
+          Proposal
+        </p>
+        <h1>{isApproved ? "Proposal approved" : "Review your proposal"}</h1>
+        <p>Review the work and pricing below, then approve the proposal or request a change.</p>
       </section>
 
-      <section className="customer-quote-workspace">
-        <div className="customer-quote-document-column">
-          <div className="customer-quote-overview">
-            {scopeSummary ? (
-              <article className="customer-quote-overview-card">
-                <strong>
-                  <MapPin aria-hidden="true" size={16} />
-                  Scope at a glance
-                </strong>
-                <p className="business-document-preformatted">{scopeSummary}</p>
-              </article>
-            ) : null}
-            <article className="customer-quote-overview-card">
-              <strong>
-                <Clock3 aria-hidden="true" size={16} />
-                What happens next
-              </strong>
-              <p>
-                {isApproved
-                  ? "Your approval is on file. Angel Tree Services will follow up with scheduling details."
-                  : "After approval, Angel Tree Services will follow up with scheduling and any final coordination."}
-              </p>
-            </article>
-          </div>
+      <dl className="customer-quote-metadata" aria-label="Proposal details">
+        <div className="customer-quote-metadata-prepared">
+          <dt>Prepared for</dt>
+          <dd>{preparedFor}</dd>
+        </div>
+        <div className="customer-quote-metadata-location">
+          <dt>Service location</dt>
+          <dd>{formatLocation(lookup.quote)}</dd>
+        </div>
+        <div className="customer-quote-metadata-total">
+          <dt>Total</dt>
+          <dd>{totalLabel}</dd>
+        </div>
+        <div className="customer-quote-metadata-expiration">
+          <dt>Valid through</dt>
+          <dd>{expirationLabel}</dd>
+        </div>
+        <div className="customer-quote-metadata-status">
+          <dt>Status</dt>
+          <dd><span className={`status-badge ${lookup.quote.status}`}>{statusLabel}</span></dd>
+        </div>
+      </dl>
 
+      <section className="customer-quote-workspace">
+        <aside className="customer-quote-action-column">
+          <PortalQuoteActions
+            approved={isApproved}
+            expirationLabel={expirationLabel}
+            rawToken={token}
+            statusLabel={statusLabel}
+            totalLabel={totalLabel}
+            workSummary={workSummary}
+          />
+        </aside>
+
+        <div className="customer-quote-document-column">
           <QuoteDocument
             approvalMessage={
               isApproved
@@ -120,22 +100,9 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
                 : "Approve this quote or request changes using your secure quote portal link."
             }
             quote={lookup.quote}
+            showApprovalSection={false}
           />
         </div>
-
-        <aside className="customer-quote-action-column">
-          {isApproved ? (
-            <section className="customer-quote-confirmation" role="status">
-              <CheckCircle2 aria-hidden="true" size={24} />
-              <div>
-                <h2>Quote approved</h2>
-                <p>Thank you. Angel Tree Services will follow up with scheduling details.</p>
-              </div>
-            </section>
-          ) : (
-            <PortalQuoteActions rawToken={token} />
-          )}
-        </aside>
       </section>
 
       <footer className="customer-portal-footer">
@@ -180,10 +147,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatStatus(status: string) {
-  return status === "approved" ? "Approved" : status.replace("_", " ");
-}
-
 function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]) {
   const location = quote?.service_locations ?? quote?.jobs?.service_locations;
 
@@ -191,14 +154,6 @@ function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>
     return "No service location attached";
   }
 
-  return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
-}
-
-function getQuoteScopeSummary(quote: NonNullable<Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]>) {
-  const lineItemScope = (quote.quote_line_items ?? [])
-    .map((item) => [item.name, item.description].filter(Boolean).join(": "))
-    .filter(Boolean)
-    .join("\n");
-
-  return lineItemScope || quote.jobs?.requested_scope?.trim() || null;
+  const stateAndPostalCode = [location.state, location.postal_code].filter(Boolean).join(" ");
+  return [location.street, location.city, stateAndPostalCode].filter(Boolean).join(", ");
 }

@@ -2,28 +2,68 @@
 
 import Link from "next/link";
 import { Bell, Check, LoaderCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AdminNotification } from "@/lib/data/notifications";
+import {
+  getNotificationPopoverLayout,
+  type NotificationPopoverLayout,
+} from "@/lib/notifications/popover-position";
 
 export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<AdminNotification[] | null>(null);
   const [error, setError] = useState("");
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const [popoverLayout, setPopoverLayout] = useState<NotificationPopoverLayout | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    setPortalHost(document.body);
     void fetchNotifications("count");
   }, []);
+
+  const updatePopoverLayout = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    setPopoverLayout(getNotificationPopoverLayout({
+      mobile,
+      trigger: trigger.getBoundingClientRect(),
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+    }));
+  }, [mobile]);
 
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !popoverRef.current?.contains(target)) {
+        setOpen(false);
+      }
     };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    const reposition = () => updatePopoverLayout();
+
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+    document.addEventListener("keydown", closeWithEscape);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    requestAnimationFrame(() => popoverRef.current?.focus());
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", closeWithEscape);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open, updatePopoverLayout]);
 
   async function fetchNotifications(mode: "count" | "recent") {
     try {
@@ -40,6 +80,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
 
   async function toggle() {
     const next = !open;
+    if (next) updatePopoverLayout();
     setOpen(next);
     if (next) {
       setNotifications(null);
@@ -66,16 +107,30 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     <div className={`notification-bell ${mobile ? "is-mobile" : ""}`} ref={rootRef}>
       <button
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}
         className="notification-bell-trigger"
         onClick={toggle}
+        ref={triggerRef}
         type="button"
       >
         <Bell aria-hidden="true" size={mobile ? 19 : 18} />
         {unreadCount ? <span>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
       </button>
-      {open ? (
-        <section aria-label="Recent notifications" className="notification-popover">
+      {open && portalHost && popoverLayout ? createPortal(
+        <section
+          aria-label="Recent notifications"
+          className={`notification-popover ${mobile ? "is-mobile" : ""}`}
+          ref={popoverRef}
+          role="dialog"
+          style={{
+            left: popoverLayout.left,
+            maxHeight: popoverLayout.maxHeight,
+            top: popoverLayout.top,
+            width: popoverLayout.width,
+          }}
+          tabIndex={-1}
+        >
           <header>
             <div><strong>Notifications</strong><span>{unreadCount} unread</span></div>
             <Link href="/admin/notifications" onClick={() => setOpen(false)}>View all</Link>
@@ -96,7 +151,8 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
               </Link>
             ))}
           </div>
-        </section>
+        </section>,
+        portalHost,
       ) : null}
     </div>
   );

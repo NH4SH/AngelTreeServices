@@ -12,7 +12,8 @@
     "test:payments": "node --test --experimental-strip-types src/lib/payments/*.test.mjs",
     "test:schedule": "node --test --experimental-strip-types src/lib/schedule/*.test.mjs",
     "test:security": "node --test --experimental-strip-types src/lib/security/*.test.mjs",
-    "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs"
+    "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs",
+    "test:notifications": "node --test --experimental-strip-types src/lib/notifications/*.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

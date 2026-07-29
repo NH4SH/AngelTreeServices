@@ -18,6 +18,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { MarkJobCompleteAction } from "@/components/workflow-actions";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
+import { ScheduleDaySheet } from "./ScheduleDaySheet";
 import { ScheduleEventDrawerContent, ScheduleEventEditForm } from "./ScheduleEventForm";
 import {
   updateAppointmentStatusFromForm,
@@ -52,6 +53,7 @@ import { getScheduleJobOptions } from "@/lib/data/jobs";
 import { getScheduleCustomerOptions } from "@/lib/data/customers";
 import { getScheduleCalendarData } from "@/lib/data/schedule";
 import { getLeadEstimatePrefill } from "@/lib/data/lead-estimate";
+import { getPartyEstimatePrefill } from "@/lib/data/party-estimate";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getDirectionsUrl } from "@/lib/maps";
@@ -72,12 +74,14 @@ type SchedulePageProps = {
   searchParams: Promise<{
     appointment?: string;
     assigned_user_id?: string;
+    customer?: string;
     date?: string;
     event?: string;
     event_type?: string;
     job?: string;
     lead?: string;
     new?: string;
+    organization?: string;
     q?: string;
     scheduled?: string;
     status?: string;
@@ -123,14 +127,22 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const leadEstimate = params.lead && canScheduleLeadEstimate
     ? await getLeadEstimatePrefill(params.lead)
     : { data: null, error: params.lead ? "Owner or admin access is required to schedule a website lead." : null };
+  const partySource = params.customer
+    ? { id: params.customer, kind: "customer" as const }
+    : params.organization
+      ? { id: params.organization, kind: "organization" as const }
+      : null;
+  const partyEstimate = partySource && canScheduleLeadEstimate
+    ? await getPartyEstimatePrefill(partySource.kind, partySource.id)
+    : { data: null, error: partySource ? "Owner or admin access is required to schedule from this record." : null };
   const days = getVisibleDays(date, view);
   const groupedEntries = groupEntriesByDate(schedule.data.entries);
   const selectedAppointment =
     schedule.data.appointments.find((appointment) => appointment.id === params.appointment) ?? null;
   const selectedEvent =
     schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
-  const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
-  const selectedOrganizationId = selectedEvent?.jobs?.organization_id ?? selectedAppointment?.jobs?.organization_id ?? null;
+  const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedEvent?.source_customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
+  const selectedOrganizationId = selectedEvent?.jobs?.organization_id ?? selectedEvent?.source_organization_id ?? selectedAppointment?.jobs?.organization_id ?? null;
   const selectedCommunications = selectedEvent
     ? await getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
     : selectedAppointment
@@ -149,6 +161,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const summary = buildScheduleSummary(schedule.data.entries, schedule.data.users);
   const attention = buildScheduleAttention(schedule.data.entries, schedule.data.conflicts);
   const dayEntries = groupedEntries[formatDateInput(date)] ?? [];
+  const printableDayEntries = dayEntries.filter((entry) => entry.event_type === "estimate" || entry.event_type === "job" || entry.event_type === "emergency");
   const crewDayGroups = buildCrewAssignmentsForDay(dayEntries, schedule.data.users);
   const dayShareText = buildCrewShareText(date, crewDayGroups);
 
@@ -168,7 +181,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <ListSearch initialValue={params.q} label="Search schedule" placeholder="Search customer, phone, address, event, job, or status" />
         </section>
 
-        {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error, leadEstimate.error].filter(Boolean).map((message) => (
+        {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error, leadEstimate.error, partyEstimate.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
         {params.scheduled === "1" ? (
@@ -313,6 +326,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             current={query}
             initialJobId={params.job}
             leadEstimate={leadEstimate.data}
+            partyEstimate={partyEstimate.data}
             customers={customers.data}
             jobs={jobs.data}
             users={schedule.data.users}
@@ -339,6 +353,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             users={schedule.data.users}
           />
         ) : null}
+        <ScheduleDaySheet date={date} entries={printableDayEntries} />
       </div>
     </PlatformFrame>
   );
@@ -685,6 +700,7 @@ function ScheduleEventFormDrawer({
   current,
   initialJobId,
   leadEstimate,
+  partyEstimate,
   jobs,
   users,
 }: {
@@ -692,11 +708,12 @@ function ScheduleEventFormDrawer({
   current: ScheduleQuery;
   initialJobId?: string;
   leadEstimate: import("@/lib/schedule/lead-estimate").LeadEstimatePrefill | null;
+  partyEstimate: import("@/lib/schedule/party-estimate").PartyEstimatePrefill | null;
   jobs: ScheduleJobOption[];
   users: ScheduleUser[];
 }) {
   const selectedDate = getDateAnchor(current.date);
-  const closeHref = buildScheduleHref(current, { new: undefined, job: undefined, lead: undefined });
+  const closeHref = buildScheduleHref(current, { new: undefined, job: undefined, lead: undefined, customer: undefined, organization: undefined });
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="add-schedule-event-title" aria-modal="true">
@@ -710,6 +727,7 @@ function ScheduleEventFormDrawer({
           initialJobId={initialJobId}
           jobs={jobs}
           leadEstimate={leadEstimate}
+          partyEstimate={partyEstimate}
           users={users}
         />
       </aside>
@@ -755,7 +773,11 @@ function ScheduleEventDetailPanel({
         .filter(Boolean)
         .join(", ")
     : (event.location_label || "No location yet.");
-  const customerSummary = event.jobs?.organizations?.name || event.jobs?.customers?.display_name || "No linked contracting party";
+  const customerSummary = event.jobs?.organizations?.name
+    || event.jobs?.customers?.display_name
+    || event.source_organization?.name
+    || event.source_customer?.display_name
+    || "No linked contracting party";
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="schedule-event-detail-title" aria-modal="true">

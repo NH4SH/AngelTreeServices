@@ -137,7 +137,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
   if (filters.status) quoteQuery = quoteQuery.eq("status", filters.status);
   if (filters.employeeId) quoteQuery = quoteQuery.eq("estimator_user_id", filters.employeeId);
 
-  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers:customers!jobs_customer_id_fkey(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").is("archived_at", null).gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
+  let jobQuery = supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, assigned_crew_user_id, lead_source_id, status, priority, service_type, created_at, updated_at, scheduled_start_at, scheduled_end_at, completed_at, customers:customers!jobs_customer_id_fkey(id, display_name, status), organizations(id, name), lead_sources(id, name), profiles:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), service_locations(id, city, state, postal_code), job_closeouts(id, status, has_scope_exception, has_incident)").is("archived_at", null).eq("lead_disposition", "active").gte("created_at", current.start).lt("created_at", current.endExclusive).order("created_at", { ascending: false }).limit(5000);
   if (filters.customerId) jobQuery = jobQuery.eq("customer_id", filters.customerId);
   if (filters.leadSourceId) jobQuery = jobQuery.eq("lead_source_id", filters.leadSourceId);
   if (filters.employeeId) jobQuery = jobQuery.eq("assigned_crew_user_id", filters.employeeId);
@@ -186,7 +186,7 @@ export async function getReportData(filters: ReportFilters, roles: PlatformRoleN
     supabase.from("production_batches").select("id, batch_number, product_material_id, status, estimated_output_quantity, output_unit, direct_cost_cents, cost_per_unit_cents, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     supabase.from("customer_deliveries").select("id, material_id, job_id, quantity, unit, status, delivered_at, created_at").gte("created_at", current.start).lt("created_at", current.endExclusive).limit(5000),
     previousQuoteQuery,
-    supabase.from("jobs").select("id, status, completed_at").is("archived_at", null).gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
+    supabase.from("jobs").select("id, status, completed_at").is("archived_at", null).eq("lead_disposition", "active").gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000),
     canViewFinancials ? supabase.from("invoices").select("id, status, total_cents").is("archived_at", null).gte("created_at", previous.start).lt("created_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
     canViewFinancials ? supabase.from("payments").select("id, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status, status, paid_at").eq("status", "succeeded").gte("paid_at", previous.start).lt("paid_at", previous.endExclusive).limit(5000) : Promise.resolve({ data: [], error: null }),
   ]);

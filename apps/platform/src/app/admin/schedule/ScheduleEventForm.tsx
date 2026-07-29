@@ -10,11 +10,13 @@ import {
   createScheduleEvent,
   createScheduleCustomerJob,
   scheduleLeadEstimate,
+  schedulePartyEstimate,
   updateScheduleEventDetails,
   type AppointmentActionState,
 } from "./actions";
 import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
 import { defaultEstimateStart, type LeadEstimatePrefill } from "@/lib/schedule/lead-estimate";
+import type { PartyEstimatePrefill } from "@/lib/schedule/party-estimate";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -50,6 +52,7 @@ export function ScheduleEventDrawerContent({
   initialJobId,
   jobs,
   leadEstimate,
+  partyEstimate,
   users,
 }: {
   closeHref: string;
@@ -59,6 +62,7 @@ export function ScheduleEventDrawerContent({
   initialJobId?: string;
   jobs: ScheduleJobOption[];
   leadEstimate?: LeadEstimatePrefill | null;
+  partyEstimate?: PartyEstimatePrefill | null;
   users: ScheduleUser[];
 }) {
   const [eventType, setEventType] = useState<ScheduleEventType>("job");
@@ -79,6 +83,15 @@ export function ScheduleEventDrawerContent({
       closeHref={closeHref}
       defaultStartsAt={defaultStartsAt ?? ""}
       lead={leadEstimate}
+      users={users}
+    />;
+  }
+
+  if (partyEstimate) {
+    return <PartyEstimateDrawer
+      closeHref={closeHref}
+      defaultStartsAt={defaultStartsAt ?? ""}
+      source={partyEstimate}
       users={users}
     />;
   }
@@ -143,6 +156,130 @@ export function ScheduleEventDrawerContent({
         <QuickScheduleJobForm customers={customers} />
       </>}
     </div> : <AddScheduleEventForm defaultStartsAt={defaultStartsAt} eventType={eventType} jobs={jobs} users={users} />}
+  </>;
+}
+
+function PartyEstimateDrawer({
+  closeHref,
+  defaultStartsAt,
+  source,
+  users,
+}: {
+  closeHref: string;
+  defaultStartsAt: string;
+  source: PartyEstimatePrefill;
+  users: ScheduleUser[];
+}) {
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(schedulePartyEstimate, initialState as LeadEstimateActionState);
+  const [contactId, setContactId] = useState(source.selectedContactId);
+  const [locationId, setLocationId] = useState(source.selectedLocationId);
+  const selectedContact = source.contactOptions.find((contact) => contact.id === contactId) ?? null;
+  const selectedLocation = source.locationOptions.find((location) => location.id === locationId) ?? null;
+
+  useEffect(() => {
+    if (!state.eventId || state.status !== "success") return;
+    const url = new URL(closeHref, window.location.origin);
+    url.searchParams.set("event", state.eventId);
+    url.searchParams.set("scheduled", "1");
+    router.replace(`${url.pathname}${url.search}`);
+  }, [closeHref, router, state.eventId, state.status]);
+
+  return <>
+    <div className="appointment-drawer-header schedule-drawer-header">
+      <div>
+        <span>{source.partyType === "organization" ? "Organization" : "Customer"} · {source.leadSource}</span>
+        <h2 id="add-schedule-event-title">Schedule estimate</h2>
+        <p>Scheduling {source.partyLabel}. Existing contact and property details are filled in and remain editable.</p>
+      </div>
+      <Link aria-label="Close estimate scheduling" href={closeHref}><X aria-hidden="true" size={17} /></Link>
+    </div>
+
+    <section className="lead-estimate-context" aria-label="Scheduling source">
+      <UserRound aria-hidden="true" size={20} />
+      <div><strong>{source.partyLabel}</strong><span>{source.partyType === "organization" ? "Organization record" : "Customer record"}</span></div>
+      <Link href={source.partyType === "organization" ? `/admin/organizations/${source.organizationId}` : `/admin/customers/${source.sourceCustomerId}`}>Open record</Link>
+    </section>
+
+    <form
+      className="crm-form lead-estimate-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void action(new FormData(event.currentTarget));
+      }}
+    >
+      <input name="source_request_key" type="hidden" value={source.sourceRequestKey} />
+      <input name="source_customer_id" type="hidden" value={source.sourceCustomerId} />
+      <input name="source_organization_id" type="hidden" value={source.organizationId} />
+      <FormMessage state={state} />
+
+      <section className="lead-estimate-time-section">
+        <div><Clock3 aria-hidden="true" size={20} /><span><strong>Choose the estimate time</strong><small>Review only the details that need correction.</small></span></div>
+        <label>Estimate date and time<input defaultValue={defaultStartsAt} name="starts_at" required type="datetime-local" /></label>
+      </section>
+
+      <fieldset>
+        <legend>Customer contact</legend>
+        {source.contactOptions.length > 1 ? (
+          <label>Organization contact
+            <select name="source_contact_id" onChange={(event) => setContactId(event.target.value)} required value={contactId}>
+              <option value="">Choose contact</option>
+              {source.contactOptions.map((contact) => <option key={contact.id} value={contact.id}>{contact.label}</option>)}
+            </select>
+          </label>
+        ) : <input name="source_contact_id" type="hidden" value={contactId} />}
+        <div className="form-grid-two" key={contactId || "party-contact"}>
+          <label>Contact name<input defaultValue={selectedContact?.label || source.contactName} name="contact_name" required /></label>
+          <label>Phone<input defaultValue={selectedContact?.phone || source.phone} inputMode="tel" name="phone" /></label>
+          <label>Email<input defaultValue={selectedContact?.email || source.email} name="email" type="email" /></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Service property</legend>
+        {source.locationOptions.length > 1 ? (
+          <label>Property
+            <select name="service_location_id" onChange={(event) => setLocationId(event.target.value)} required value={locationId}>
+              <option value="">Choose property</option>
+              {source.locationOptions.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}
+            </select>
+          </label>
+        ) : <input name="service_location_id" type="hidden" value={locationId} />}
+        {selectedLocation ? <div key={selectedLocation.id}>
+          <label>Street address<input defaultValue={selectedLocation.street} name="street" required /></label>
+          <div className="form-grid-three">
+            <label>City<input defaultValue={selectedLocation.city} name="city" required /></label>
+            <label>State<input defaultValue={selectedLocation.state} maxLength={2} name="state" required /></label>
+            <label>ZIP<input defaultValue={selectedLocation.postalCode} name="postal_code" /></label>
+          </div>
+          <label>Access instructions<textarea defaultValue={selectedLocation.accessNotes} name="access_notes" rows={2} /></label>
+          <label>Property notes<textarea defaultValue={selectedLocation.serviceNotes} name="service_notes" rows={2} /></label>
+        </div> : <p className="form-message warning">Choose a service property before scheduling.</p>}
+      </fieldset>
+
+      <fieldset>
+        <legend>Requested work</legend>
+        <label>Service
+          <select defaultValue={source.serviceType} name="service_type">
+            <option value="tree_removal">Tree removal</option><option value="trimming">Trimming</option>
+            <option value="stump_grinding">Stump grinding</option><option value="landscaping">Landscaping</option>
+            <option value="lawn_care">Lawn care</option><option value="emergency">Emergency</option><option value="other">Other</option>
+          </select>
+        </label>
+        <label>Work description<textarea defaultValue={source.requestedScope} name="requested_scope" placeholder="Describe the requested estimate" required rows={5} /></label>
+        <label>Customer or organization notes<textarea defaultValue={source.notes} name="calendar_notes" rows={3} /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Calendar details</legend>
+        <label>Calendar title<input defaultValue={source.eventTitle} name="event_title" required /></label>
+        <label>Estimator<select defaultValue="" name="assigned_user_id"><option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Unnamed team member"}</option>)}</select></label>
+        <label>Owner/admin override reason<textarea name="eligibility_override_reason" placeholder="Only needed for a qualification warning" rows={2} /></label>
+      </fieldset>
+
+      <p className="form-helper">Saving updates the selected contact and property. Repeated submissions reuse this appointment instead of creating a duplicate.</p>
+      <button disabled={pending || !selectedLocation} type="submit"><CalendarPlus aria-hidden="true" size={18} />{pending ? "Scheduling..." : "Schedule estimate"}</button>
+    </form>
   </>;
 }
 

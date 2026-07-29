@@ -360,6 +360,7 @@ export async function getDashboardJobSummaries() {
       .from("jobs")
       .select(commonSelect)
       .is("archived_at", null)
+      .eq("lead_disposition", "active")
       .eq("status", "new_lead")
       .order("created_at", { ascending: false })
       .limit(12),
@@ -367,6 +368,7 @@ export async function getDashboardJobSummaries() {
       .from("jobs")
       .select(commonSelect)
       .is("archived_at", null)
+      .eq("lead_disposition", "active")
       .eq("status", "estimate_scheduled")
       .order("created_at", { ascending: false })
       .limit(12),

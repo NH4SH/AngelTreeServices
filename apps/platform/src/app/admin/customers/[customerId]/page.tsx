@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BriefcaseBusiness, ClipboardList, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, StickyNote, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, CalendarClock, ClipboardList, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, StickyNote, UsersRound } from "lucide-react";
 import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
@@ -113,7 +113,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 <div className="quick-action-list">
                   <Link href={`/admin/quotes?new=1&customer_id=${detail.data.customer.id}`}>Create quote</Link>
                   <Link href={`/admin/invoices?new=1&customer_id=${detail.data.customer.id}`}>Create invoice</Link>
-                  <Link href="/admin/schedule?event_type=estimate">Schedule estimate</Link>
+                  <Link href={`/admin/schedule?new=1&customer=${detail.data.customer.id}`}>Schedule estimate</Link>
                   <a href="#add-location">Add service location</a>
                   <a href="#add-job">Create job / work order</a>
                   <Link href={`/admin/recurring?new_task=1&customer_id=${customerId}`}>Add follow-up</Link>
@@ -160,6 +160,17 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                     </Link>
                   ))
                 )}
+              </RecordSection>
+
+              <RecordSection icon={<CalendarClock size={18} />} title="Estimate appointments">
+                {detail.data.scheduleEvents.length === 0 ? (
+                  <EmptyInline>No estimates scheduled directly from this customer record.</EmptyInline>
+                ) : detail.data.scheduleEvents.map((event) => (
+                  <Link className="linked-record" href={`/admin/schedule?event=${event.id}`} key={event.id}>
+                    <strong>{event.title}</strong>
+                    <span>{formatDateTime(event.starts_at)} - {event.status.replaceAll("_", " ")}</span>
+                  </Link>
+                ))}
               </RecordSection>
 
               <RecordSection icon={<FileSignature size={18} />} title="Quotes">

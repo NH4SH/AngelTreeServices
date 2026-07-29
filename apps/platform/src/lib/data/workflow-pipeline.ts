@@ -23,7 +23,7 @@ export async function getWorkflowPipelineStages(): Promise<{
   dayEnd.setHours(23, 59, 59, 999);
 
   const queries = [
-    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "new_lead"),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).eq("lead_disposition", "active").eq("status", "new_lead"),
     supabase.from("follow_up_tasks").select("id", { count: "exact", head: true }).in("task_type", ["call_customer", "customer_callback", "schedule_estimate"]).in("status", ["open", "in_progress", "waiting"]).lte("due_at", dayEnd.toISOString()),
     supabase.from("quotes").select("id", { count: "exact", head: true }).is("archived_at", null).eq("status", "draft"),
     supabase.from("quotes").select("id", { count: "exact", head: true }).is("archived_at", null).in("status", ["sent", "change_requested"]),

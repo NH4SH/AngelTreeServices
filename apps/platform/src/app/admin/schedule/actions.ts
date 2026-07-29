@@ -159,6 +159,119 @@ export async function scheduleLeadEstimate(
   };
 }
 
+export async function schedulePartyEstimate(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before scheduling an estimate." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can schedule estimates from customer records." };
+  }
+
+  const sourceRequestKey = getOptionalString(formData, "source_request_key");
+  const customerId = getOptionalString(formData, "source_customer_id");
+  const organizationId = getOptionalString(formData, "source_organization_id");
+  const contactId = getOptionalString(formData, "source_contact_id");
+  const serviceLocationId = getOptionalString(formData, "service_location_id");
+  const contactName = limited(formData, "contact_name", 180);
+  const phone = limited(formData, "phone", 50);
+  const email = limited(formData, "email", 254).toLowerCase();
+  const street = limited(formData, "street", 240);
+  const city = limited(formData, "city", 120);
+  const state = limited(formData, "state", 2).toUpperCase();
+  const postalCode = limited(formData, "postal_code", 20);
+  const accessNotes = limited(formData, "access_notes", 2000);
+  const serviceNotes = limited(formData, "service_notes", 2000);
+  const serviceType = limited(formData, "service_type", 80);
+  const requestedScope = limited(formData, "requested_scope", 5000);
+  const eventTitle = limited(formData, "event_title", 140);
+  const calendarNotes = limited(formData, "calendar_notes", 1000);
+  const assignedUserId = getOptionalString(formData, "assigned_user_id");
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+  const startsAt = parseDateTime(formData.get("starts_at"));
+
+  if (
+    !sourceRequestKey ||
+    Boolean(customerId) === Boolean(organizationId) ||
+    !serviceLocationId ||
+    !contactName ||
+    (!phone && !email) ||
+    !street ||
+    !city ||
+    state.length !== 2 ||
+    !requestedScope ||
+    !eventTitle ||
+    !startsAt
+  ) {
+    return { status: "error", message: "Enter the estimate time and review the required contact, property, and work fields." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: "error", message: "Enter a valid contact email address or leave it blank." };
+  }
+
+  const eligibility = await checkAssignmentEligibility(
+    supabase,
+    user.id,
+    assignedUserId ? [assignedUserId] : [],
+    "estimate",
+    eligibilityOverrideReason,
+  );
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+  const { data, error } = await supabase.rpc("schedule_party_estimate", {
+    p_access_notes: accessNotes || null,
+    p_assigned_user_id: assignedUserId,
+    p_calendar_notes: calendarNotes || null,
+    p_city: city,
+    p_contact_id: contactId,
+    p_contact_name: contactName,
+    p_customer_id: customerId,
+    p_email: email || null,
+    p_ends_at: null,
+    p_event_title: eventTitle,
+    p_organization_id: organizationId,
+    p_phone: phone || null,
+    p_postal_code: postalCode || null,
+    p_requested_scope: requestedScope,
+    p_service_location_id: serviceLocationId,
+    p_service_notes: serviceNotes || null,
+    p_service_type: serviceType || "other",
+    p_source_request_key: sourceRequestKey,
+    p_starts_at: startsAt.toISOString(),
+    p_state: state,
+    p_street: street,
+  }).single();
+
+  if (error || !data) {
+    return { status: "error", message: safeStaffMessage(error?.message, "The estimate could not be scheduled. Your entries are still in the form.") };
+  }
+
+  const eventId = String((data as { event_id: string }).event_id);
+  const created = Boolean((data as { event_created: boolean }).event_created);
+  await recordActivity(supabase, {
+    actorType: roles.includes("owner") ? "owner" : "admin",
+    actorUserId: user.id,
+    destinationPath: `/admin/schedule?event=${eventId}`,
+    eventType: created ? "party_estimate_scheduled" : "party_estimate_schedule_updated",
+    idempotencyKey: `party-estimate:${sourceRequestKey}:${created ? "created" : "updated"}`,
+    metadata: {
+      customer_id: customerId,
+      organization_id: organizationId,
+      service_location_id: serviceLocationId,
+    },
+    subjectId: eventId,
+    subjectType: "schedule_event",
+  });
+  revalidatePath("/admin/schedule");
+  if (customerId) revalidatePath(`/admin/customers/${customerId}`);
+  if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`);
+  return { status: "success", message: created ? "Estimate scheduled." : "Estimate schedule updated.", eventId };
+}
+
 export async function createScheduleCustomerJob(
   _previousState: AppointmentActionState,
   formData: FormData,

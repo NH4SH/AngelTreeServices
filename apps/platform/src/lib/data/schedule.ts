@@ -12,6 +12,7 @@ import type {
   ScheduleDashboardSummary,
   ScheduleEventType,
   ScheduleEventWithRelations,
+  ScheduleLinkedJobSummary,
   ScheduleUser,
 } from "@/lib/types/database";
 
@@ -147,7 +148,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let appointmentsQuery = supabase
     .from("appointments")
     .select(
-      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
     )
     .order("starts_at", { ascending: true });
   if (searchMatches) appointmentsQuery = matchingAppointmentIds.length ? appointmentsQuery.in("id", matchingAppointmentIds) : appointmentsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
@@ -185,7 +186,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let eventsQuery = supabase
     .from("schedule_events")
     .select(
-      "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+      "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), source_customer:customers!schedule_events_source_customer_id_fkey(id, display_name, phone, email), source_organization:organizations!schedule_events_source_organization_id_fkey(id, name, billing_phone, billing_email), source_contact:organization_contacts!schedule_events_source_contact_id_fkey(id, full_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
     )
     .order("starts_at", { ascending: true });
   if (searchMatches) eventsQuery = matchingEventIds.length ? eventsQuery.in("id", matchingEventIds) : eventsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
@@ -284,7 +285,10 @@ function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry 
     id: event.id,
     source: "schedule_event",
     title: event.title,
-    subtitle: event.description || event.jobs?.requested_scope || event.calendar_notes || "Calendar event",
+    subtitle: [
+      event.source_service_type ? event.source_service_type.replaceAll("_", " ") : "",
+      event.description || event.jobs?.requested_scope || event.calendar_notes || "Calendar event",
+    ].filter(Boolean).join("\n"),
     event_type: event.event_type,
     status: event.status,
     starts_at: event.starts_at,
@@ -295,7 +299,15 @@ function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry 
     job_id: event.job_id,
     service_location_id: event.service_location_id,
     assignees,
-    customer_label: event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name ?? null,
+    customer_label: event.jobs?.organizations?.name ?? event.jobs?.customers?.display_name ?? event.source_organization?.name ?? event.source_customer?.display_name ?? null,
+    primary_phone: event.jobs?.organizations?.billing_phone ?? event.jobs?.customers?.phone ?? event.source_contact?.phone ?? event.source_organization?.billing_phone ?? event.source_customer?.phone ?? null,
+    full_address: formatFullAddress(event.service_locations),
+    access_instructions: buildAccessInstructions(event.service_locations),
+    equipment_details: (event.equipment_assignments ?? []).map((assignment) => {
+      const asset = assignment.equipment_assets;
+      return asset ? `${asset.asset_number} · ${asset.name}` : "";
+    }).filter(Boolean),
+    material_details: formatMaterialDetails(event.jobs?.job_material_requirements),
   };
 }
 
@@ -322,7 +334,36 @@ function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntr
     service_location_id: appointment.service_location_id,
     assignees,
     customer_label: appointment.jobs?.organizations?.name ?? appointment.jobs?.customers?.display_name ?? null,
+    primary_phone: appointment.jobs?.organizations?.billing_phone ?? appointment.jobs?.customers?.phone ?? null,
+    full_address: formatFullAddress(appointment.service_locations),
+    access_instructions: buildAccessInstructions(appointment.service_locations),
+    equipment_details: [],
+    material_details: formatMaterialDetails(appointment.jobs?.job_material_requirements),
   };
+}
+
+function formatFullAddress(location?: ScheduleEventWithRelations["service_locations"] | null) {
+  if (!location) return null;
+  return [
+    location.street,
+    [location.city, location.state].filter(Boolean).join(", "),
+    location.postal_code,
+  ].filter(Boolean).join(" ");
+}
+
+function buildAccessInstructions(location?: ScheduleEventWithRelations["service_locations"] | null) {
+  if (!location) return null;
+  return [location.access_notes, location.service_notes].filter(Boolean).join("\n") || null;
+}
+
+function formatMaterialDetails(
+  requirements?: ScheduleLinkedJobSummary["job_material_requirements"],
+) {
+  return (requirements ?? []).map((requirement) => {
+    const quantity = Number(requirement.planned_quantity);
+    const amount = Number.isFinite(quantity) ? `${quantity} ${requirement.unit}` : requirement.unit;
+    return [requirement.material_catalog?.name || "Material", amount, requirement.notes].filter(Boolean).join(" · ");
+  });
 }
 
 function addWorkdaySequence(entries: CalendarEntry[]) {

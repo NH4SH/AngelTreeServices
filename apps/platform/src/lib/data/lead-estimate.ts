@@ -19,6 +19,7 @@ export async function getLeadEstimatePrefill(leadJobId: string) {
     )
     .eq("id", leadJobId)
     .not("website_submission_id", "is", null)
+    .eq("lead_disposition", "active")
     .is("archived_at", null)
     .maybeSingle();
 

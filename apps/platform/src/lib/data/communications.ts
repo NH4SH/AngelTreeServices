@@ -31,6 +31,7 @@ export type WebsiteLeadInboxItem = {
   duplicateOfJobId: string | null;
   email: string | null;
   jobId: string;
+  leadDisposition: "active" | "spam" | "archived";
   lastCommunication: string | null;
   nextAction: string | null;
   notificationStatus: "pending" | "sent" | "failed" | "skipped";
@@ -187,29 +188,39 @@ export async function getCommunicationDashboardSummary() {
   };
 }
 
-export async function getWebsiteLeadInbox(filters: { limit?: number; page?: number; query?: string } = {}): Promise<DataResult<WebsiteLeadInboxItem[]> & { count: number }> {
+export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "spam" | "archived"; limit?: number; page?: number; query?: string } = {}): Promise<DataResult<WebsiteLeadInboxItem[]> & { count: number }> {
   const supabase = await createClient();
   if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
-  const index = await getAdminSearchPage({ page: filters.page, pageSize: filters.limit ?? 24, query: filters.query, recordType: "job", sourceType: "website" });
-  if (!index.ids.length) return { data: [], count: index.count, error: index.error };
+  const disposition = filters.disposition ?? "active";
+  const index = filters.query
+    ? await getAdminSearchPage({ page: 1, pageSize: 500, query: filters.query, recordType: "job", sourceType: "website" })
+    : null;
+  if (index && !index.ids.length) return { data: [], count: 0, error: index.error };
 
-  const { data: jobs, error: jobsError } = await supabase
+  let jobsQuery: any = supabase
     .from("jobs")
     .select(
-      "id, status, submitted_at, created_at, service_type, duplicate_of_job_id, notification_status, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
+      "id, status, submitted_at, created_at, service_type, duplicate_of_job_id, notification_status, lead_disposition, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
+      { count: "exact" },
     )
-    .in("id", index.ids)
+    .not("website_submission_id", "is", null)
+    .eq("lead_disposition", disposition)
     .order("submitted_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(filters.limit ?? 24);
+    .order("created_at", { ascending: false });
+  jobsQuery = disposition === "archived" ? jobsQuery.not("archived_at", "is", null) : jobsQuery.is("archived_at", null);
+  if (index) jobsQuery = jobsQuery.in("id", index.ids);
+  const page = Math.max(1, filters.page ?? 1);
+  const limit = Math.min(100, Math.max(1, filters.limit ?? 24));
+  const from = (page - 1) * limit;
+  const { data: jobs, count, error: jobsError } = await jobsQuery.range(from, from + limit - 1);
 
   if (jobsError) {
-    return { data: [], count: index.count, error: safeStaffMessage(jobsError.message) };
+    return { data: [], count: 0, error: safeStaffMessage(jobsError.message) };
   }
 
-  const jobIds = (jobs ?? []).map((job) => job.id);
+  const jobIds = (jobs ?? []).map((job: { id: string }) => job.id);
   if (!jobIds.length) {
-    return { data: [], count: index.count, error: null };
+    return { data: [], count: count ?? 0, error: index?.error ?? null };
   }
 
   const { data: communications, error: communicationsError } = await supabase
@@ -219,7 +230,7 @@ export async function getWebsiteLeadInbox(filters: { limit?: number; page?: numb
     .order("created_at", { ascending: false });
 
   if (communicationsError) {
-    return { data: [], count: index.count, error: safeStaffMessage(communicationsError.message) };
+    return { data: [], count: count ?? 0, error: safeStaffMessage(communicationsError.message) };
   }
 
   const communicationMap = new Map<string, CustomerCommunication[]>();
@@ -254,6 +265,7 @@ export async function getWebsiteLeadInbox(filters: { limit?: number; page?: numb
         duplicateOfJobId: job.duplicate_of_job_id ?? null,
         email: customer?.email || organization?.billing_email || latest?.recipient_email || null,
         jobId: job.id,
+        leadDisposition: job.lead_disposition,
         lastCommunication: latest ? summarizeCommunication(latest) : null,
         nextAction: pending ? `Pending ${pending.communication_type.replaceAll("_", " ")} · ${formatDateTime(pending.scheduled_for)}` : defaultNextAction(job.status as JobStatus),
         notificationStatus: (job.notification_status ?? "pending") as WebsiteLeadInboxItem["notificationStatus"],
@@ -263,8 +275,8 @@ export async function getWebsiteLeadInbox(filters: { limit?: number; page?: numb
         submittedAt: job.submitted_at || job.created_at,
       };
     }),
-    count: index.count,
-    error: index.error,
+    count: count ?? 0,
+    error: index?.error ?? null,
   };
 }
 

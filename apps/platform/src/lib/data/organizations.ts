@@ -60,10 +60,11 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
     .from("organizations").select("*").eq("id", organizationId).single();
   if (organizationError || !organization) return { data: null, error: organizationError ? safeStaffMessage(organizationError.message, "Organization not found or no access.") : "Organization not found or no access." };
 
-  const [contacts, customers, locations] = await Promise.all([
+  const [contacts, customers, locations, scheduleEvents] = await Promise.all([
     supabase.from("organization_contacts").select("*").eq("organization_id", organizationId).order("full_name"),
     supabase.from("customers").select("*").eq("organization_id", organizationId).order("display_name"),
     supabase.from("service_locations").select("*").eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase.from("schedule_events").select("*, service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))").eq("source_organization_id", organizationId).order("starts_at", { ascending: false }),
   ]);
   const [jobs, quotes, invoices] = await Promise.all([
     supabase.from("jobs").select("*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)").eq("organization_id", organizationId).order("created_at", { ascending: false }),
@@ -82,7 +83,7 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
     ...(changeOrders.data ?? []).map((record) => record.id),
   ];
   const activity = await supabase.from("activity_log").select("id, subject_type, subject_id, event_type, metadata_json, created_at").in("subject_id", ownedRecordIds).order("created_at", { ascending: false }).limit(75);
-  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? changeOrders.error?.message ?? payments.error?.message ?? activity.error?.message ?? null;
+  const firstError = contacts.error?.message ?? customers.error?.message ?? locations.error?.message ?? scheduleEvents.error?.message ?? jobs.error?.message ?? quotes.error?.message ?? invoices.error?.message ?? changeOrders.error?.message ?? payments.error?.message ?? activity.error?.message ?? null;
   const typedInvoices = (invoices.data ?? []) as InvoiceWithRelations[];
 
   return {
@@ -94,6 +95,7 @@ export async function getOrganizationDetail(organizationId: string): Promise<Dat
       jobs: (jobs.data ?? []) as JobWithRelations[],
       quotes: (quotes.data ?? []) as QuoteWithRelations[],
       invoices: typedInvoices,
+      scheduleEvents: (scheduleEvents.data ?? []) as import("@/lib/types/database").ScheduleEventWithRelations[],
       changeOrders: (changeOrders.data ?? []) as ChangeOrderWithRelations[],
       payments: (payments.data ?? []) as Payment[],
       activity: activity.data ?? [],
@@ -157,6 +159,7 @@ export async function getOrganizationDashboardSummary() {
     contacts: [],
     customers: ((customers ?? []) as Customer[]).filter((customer) => customer.organization_id === organization.id),
     serviceLocations: ((locations.data ?? []) as ServiceLocation[]).filter((location) => location.organization_id === organization.id),
+    scheduleEvents: [],
     jobs: ((jobs.data ?? []) as JobWithRelations[]).filter((job) => job.organization_id === organization.id || (job.customer_id && customerToOrganization.get(job.customer_id) === organization.id)),
     quotes: ((quotes.data ?? []) as QuoteWithRelations[]).filter((quote) => quote.organization_id === organization.id || (quote.customer_id && customerToOrganization.get(quote.customer_id) === organization.id)),
     invoices: ((invoices.data ?? []) as InvoiceWithRelations[]).filter((invoice) => invoice.organization_id === organization.id || (invoice.customer_id && customerToOrganization.get(invoice.customer_id) === organization.id)),

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Activity, Building2, CircleDollarSign, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
+import { Activity, Building2, CalendarClock, CircleDollarSign, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { EmailHistoryList } from "@/components/email-history";
@@ -67,10 +67,15 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 <h1>{org.organization.name}</h1>
                 <p>{org.organization.organization_type.replace("_", " ")} account with repeat-property workflow scaffolding.</p>
               </div>
-              <Link className="primary-action" href={`/admin/organizations/${org.organization.id}/edit`}>
-                <Pencil aria-hidden="true" size={17} />
-                Edit
-              </Link>
+              <div className="page-heading-actions">
+                <Link className="secondary-action" href={`/admin/schedule?new=1&organization=${org.organization.id}`}>
+                  Schedule estimate
+                </Link>
+                <Link className="primary-action" href={`/admin/organizations/${org.organization.id}/edit`}>
+                  <Pencil aria-hidden="true" size={17} />
+                  Edit
+                </Link>
+              </div>
             </section>
             {org.organization.archived_at ? <section className="data-warning" role="status"><strong>Archived organization</strong><p>This account is retained for history and is unavailable for new work until restored.</p></section> : null}
 
@@ -134,6 +139,15 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
                 ) : (
                   <p>No organization jobs yet.</p>
                 )}
+              </Panel>
+
+              <Panel icon={<CalendarClock size={18} />} title="Estimate appointments">
+                {org.scheduleEvents.length ? org.scheduleEvents.map((event) => (
+                  <Link className="linked-record" href={`/admin/schedule?event=${event.id}`} key={event.id}>
+                    <strong>{event.title}</strong>
+                    <span>{formatDateTime(event.starts_at)} - {event.status.replaceAll("_", " ")}</span>
+                  </Link>
+                )) : <p>No estimates scheduled directly from this organization record.</p>}
               </Panel>
 
               <Panel icon={<FileSignature size={18} />} title="Quotes">

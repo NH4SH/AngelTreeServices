@@ -15,19 +15,22 @@ import {
   type WebsiteLeadInboxItem,
 } from "@/lib/data/communications";
 import type { CustomerCommunication } from "@/lib/types/database";
+import { LeadLifecycleActions } from "./LeadLifecycleActions";
 
-export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
+export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ lead_view?: string; page?: string; q?: string }> }) {
   const params = await searchParams;
   const page = positivePage(params.page);
+  const leadView = params.lead_view === "spam" || params.lead_view === "archived" ? params.lead_view : "active";
   const context = await getAuthenticatedPlatformContext("/admin/communications");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
 
   const [settings, communications, websiteLeads] = await Promise.all([
     getCommunicationSettings(),
     getCustomerCommunications({ limit: 100 }),
-    getWebsiteLeadInbox({ limit: 24, page, query: params.q }),
+    getWebsiteLeadInbox({ disposition: leadView, limit: 24, page, query: params.q }),
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const canDeleteLeads = context.roles.includes("owner");
   const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
   const failed = communications.data.filter((item) => item.status === "failed");
   const recent = communications.data.filter((item) => !["pending", "failed"].includes(item.status)).slice(0, 20);
@@ -71,8 +74,13 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
             {canManageSettings ? <Link className="secondary-action compact-action" href="/admin/communications/lead-intake">Lead intake diagnostics</Link> : null}
           </div>
           <ListSearch initialValue={params.q} label="Search website leads" placeholder="Search lead name, phone, email, address, service, status, or crew" />
-          <WebsiteLeadRows canScheduleEstimates={canManageSettings} rows={websiteLeads.data} />
-          <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ q: params.q }} />
+          <nav className="filter-pills lead-view-filters" aria-label="Website lead view">
+            <Link aria-current={leadView === "active" ? "page" : undefined} href="/admin/communications#website-leads">Active</Link>
+            <Link aria-current={leadView === "spam" ? "page" : undefined} href="/admin/communications?lead_view=spam#website-leads">Spam</Link>
+            <Link aria-current={leadView === "archived" ? "page" : undefined} href="/admin/communications?lead_view=archived#website-leads">Archived</Link>
+          </nav>
+          <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} />
+          <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ lead_view: leadView === "active" ? undefined : leadView, q: params.q }} />
         </section>
 
         <section className="detail-grid communication-page-grid" id="inbox">
@@ -107,8 +115,8 @@ function positivePage(value?: string) {
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
-function WebsiteLeadRows({ canScheduleEstimates, rows }: { canScheduleEstimates: boolean; rows: WebsiteLeadInboxItem[] }) {
-  if (!rows.length) return <p className="inline-empty">No website leads have arrived yet.</p>;
+function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; canManage: boolean; rows: WebsiteLeadInboxItem[] }) {
+  if (!rows.length) return <p className="inline-empty">No leads in this view.</p>;
 
   return (
     <div className="record-list website-lead-list">
@@ -136,11 +144,12 @@ function WebsiteLeadRows({ canScheduleEstimates, rows }: { canScheduleEstimates:
             <Link href={`/admin/jobs/${lead.jobId}`}>Open lead</Link>
             {lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}
             {lead.email ? <a href={`mailto:${lead.email}`}>Email</a> : null}
-            {canScheduleEstimates && ["new_lead", "estimate_scheduled"].includes(lead.currentStatus)
+            {canManage && lead.leadDisposition === "active" && ["new_lead", "estimate_scheduled"].includes(lead.currentStatus)
               ? <Link href={`/admin/schedule?new=1&lead=${lead.jobId}`}>{lead.currentStatus === "estimate_scheduled" ? "Review estimate schedule" : "Schedule estimate"}</Link>
               : null}
-            <Link href={`/admin/quotes?new=1&job_id=${lead.jobId}`}>Create quote</Link>
+            {lead.leadDisposition === "active" ? <Link href={`/admin/quotes?new=1&job_id=${lead.jobId}`}>Create quote</Link> : null}
           </div>
+          {canManage ? <LeadLifecycleActions canDelete={canDelete} disposition={lead.leadDisposition} jobId={lead.jobId} label={lead.customerName} /> : null}
         </article>
       ))}
     </div>

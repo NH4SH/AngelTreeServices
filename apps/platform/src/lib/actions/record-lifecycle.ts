@@ -130,7 +130,7 @@ export async function getRecordLifecyclePreview(recordType: LifecycleRecordType,
   }
 
   if (recordType === "job") {
-    const [record, invoices, quotes, appointments, events, closeouts, timeEntries, costs, transactions, disposal, documents, changeOrders] = await Promise.all([
+    const [record, invoices, quotes, appointments, events, closeouts, timeEntries, costs, transactions, disposal, documents, changeOrders, communications, emailEvents] = await Promise.all([
       supabase.from("jobs").select("id, service_type, status, archived_at").eq("id", recordId).maybeSingle(),
       countRows(supabase, "invoices", "job_id", recordId),
       supabase.from("quotes").select("id, status").eq("job_id", recordId),
@@ -143,6 +143,8 @@ export async function getRecordLifecyclePreview(recordType: LifecycleRecordType,
       countRows(supabase, "disposal_records", "job_id", recordId),
       countRows(supabase, "documents", "job_id", recordId),
       countRows(supabase, "change_orders", "job_id", recordId),
+      countRows(supabase, "customer_communications", "job_id", recordId),
+      countRows(supabase, "email_events", "job_id", recordId),
     ]);
     if (!record.data) return empty;
     const unsafeQuotes = (quotes.data ?? []).filter((quote) => quote.status !== "draft");
@@ -157,8 +159,9 @@ export async function getRecordLifecyclePreview(recordType: LifecycleRecordType,
       costs || transactions || disposal ? "Material, disposal, or cost history must be retained." : null,
       documents ? "Attached documents must be retained." : null,
       changeOrders ? "Change-order history must be retained." : null,
+      communications || emailEvents ? "Customer communication or delivery history must be retained." : null,
     ].filter(Boolean) as string[];
-    return preview(recordType, recordId, record.data.service_type?.replaceAll("_", " ") || "Work order", record.data.archived_at, { job: 1, draftQuotes: quotes.data?.length ?? 0, invoices, appointments, scheduleEvents: events, closeouts, timeEntries, costRecords: costs + transactions + disposal, documents, changeOrders }, blockers, true);
+    return preview(recordType, recordId, record.data.service_type?.replaceAll("_", " ") || "Work order", record.data.archived_at, { job: 1, draftQuotes: quotes.data?.length ?? 0, invoices, appointments, scheduleEvents: events, closeouts, timeEntries, costRecords: costs + transactions + disposal, documents, changeOrders, communications: communications + emailEvents }, blockers, true);
   }
 
   if (recordType === "customer") {

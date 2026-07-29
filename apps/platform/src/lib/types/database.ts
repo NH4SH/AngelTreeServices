@@ -250,6 +250,7 @@ export type Job = {
   submitted_at: string;
   notification_status: "pending" | "sent" | "failed" | "skipped";
   notification_error: string | null;
+  lead_disposition: "active" | "spam" | "archived";
   assigned_crew_user_id: string | null;
   status: JobStatus;
   service_type: JobServiceType | string | null;
@@ -760,6 +761,11 @@ export type ScheduleEvent = {
   id: string;
   job_id: string | null;
   lead_intake_job_id: string | null;
+  source_customer_id: string | null;
+  source_organization_id: string | null;
+  source_contact_id: string | null;
+  source_service_type: string | null;
+  source_request_key: string | null;
   service_location_id: string | null;
   title: string;
   description: string | null;
@@ -1175,6 +1181,12 @@ export type InvoiceWithRelations = Invoice & {
 export type ScheduleLinkedJobSummary = Pick<Job, "id" | "customer_id" | "organization_id" | "status" | "service_type" | "requested_scope"> & {
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
   organizations?: Pick<Organization, "id" | "name" | "billing_phone" | "billing_email"> | null;
+  job_material_requirements?: {
+    planned_quantity: number;
+    unit: string;
+    notes: string | null;
+    material_catalog?: { name: string } | null;
+  }[];
 };
 
 export type ScheduleLocationSummary = Pick<
@@ -1194,6 +1206,9 @@ export type ScheduleEventAssignmentWithUser = ScheduleEventAssignment & {
 
 export type ScheduleEventWithRelations = ScheduleEvent & {
   jobs?: ScheduleLinkedJobSummary | null;
+  source_customer?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  source_organization?: Pick<Organization, "id" | "name" | "billing_phone" | "billing_email"> | null;
+  source_contact?: Pick<OrganizationContact, "id" | "full_name" | "phone" | "email"> | null;
   service_locations?: ScheduleLocationSummary | null;
   schedule_event_assignments?: ScheduleEventAssignmentWithUser[];
   equipment_assignments?: (EquipmentAssignment & {
@@ -1233,6 +1248,11 @@ export type CalendarEntry = {
   service_location_id: string | null;
   assignees: AssignableUser[];
   customer_label?: string | null;
+  primary_phone?: string | null;
+  full_address?: string | null;
+  access_instructions?: string | null;
+  equipment_details?: string[];
+  material_details?: string[];
   workday_number?: number | null;
   workday_count?: number | null;
 };
@@ -1393,6 +1413,7 @@ export type CustomerDetail = {
   jobs: JobWithRelations[];
   quotes: QuoteWithRelations[];
   invoices: InvoiceWithRelations[];
+  scheduleEvents: ScheduleEventWithRelations[];
 };
 
 export type JobDetail = JobWithRelations & {
@@ -1427,6 +1448,7 @@ export type OrganizationDetail = {
   jobs: JobWithRelations[];
   quotes: QuoteWithRelations[];
   invoices: InvoiceWithRelations[];
+  scheduleEvents: ScheduleEventWithRelations[];
   changeOrders: ChangeOrderWithRelations[];
   payments: Payment[];
   activity: {

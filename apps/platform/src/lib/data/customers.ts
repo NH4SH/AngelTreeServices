@@ -159,7 +159,7 @@ export async function getCustomerDetail(customerId: string): Promise<DataResult<
     return { data: null, error: customerError?.message ?? "Customer not found or no access." };
   }
 
-  const [locations, notes, jobs, quotes, invoices] = await Promise.all([
+  const [locations, notes, jobs, quotes, invoices, scheduleEvents] = await Promise.all([
     supabase
       .from("service_locations")
       .select("*")
@@ -173,6 +173,11 @@ export async function getCustomerDetail(customerId: string): Promise<DataResult<
     getJobsByCustomerId(customerId),
     getQuotesByCustomerId(customerId),
     getInvoicesByCustomerId(customerId),
+    supabase
+      .from("schedule_events")
+      .select("*, service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))")
+      .eq("source_customer_id", customerId)
+      .order("starts_at", { ascending: false }),
   ]);
 
   const firstError =
@@ -181,6 +186,7 @@ export async function getCustomerDetail(customerId: string): Promise<DataResult<
     jobs.error ??
     quotes.error ??
     invoices.error ??
+    scheduleEvents.error?.message ??
     null;
 
   return {
@@ -191,6 +197,7 @@ export async function getCustomerDetail(customerId: string): Promise<DataResult<
       jobs: jobs.data,
       quotes: quotes.data,
       invoices: invoices.data,
+      scheduleEvents: (scheduleEvents.data ?? []) as import("@/lib/types/database").ScheduleEventWithRelations[],
     },
     error: firstError,
   };

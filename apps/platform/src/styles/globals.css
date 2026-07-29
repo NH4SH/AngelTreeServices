@@ -13240,6 +13240,199 @@ h1,
     box-shadow: none;
   }
 
+  .schedule-print-region {
+    display: block;
+    color: #17201b;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+  }
+
+  .schedule-print-region,
+  .schedule-print-region * {
+    box-sizing: border-box;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .schedule-print-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 3px solid #174f35;
+    padding-bottom: 10px;
+  }
+
+  .schedule-print-header span {
+    color: #35634d;
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .schedule-print-header h1 {
+    margin: 2px 0 0;
+    color: #173629;
+    font-size: 24pt;
+    line-height: 1;
+  }
+
+  .schedule-print-header > strong {
+    font-size: 12pt;
+  }
+
+  .schedule-print-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .schedule-print-entry {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #9db3a6;
+    border-radius: 4px;
+    padding: 12px;
+  }
+
+  .schedule-print-entry > header {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: start;
+    border-bottom: 1px solid #d3ddd7;
+    padding-bottom: 8px;
+  }
+
+  .schedule-print-time,
+  .schedule-print-time span {
+    display: block;
+  }
+
+  .schedule-print-time strong {
+    color: #174f35;
+    font-size: 13pt;
+  }
+
+  .schedule-print-time span,
+  .schedule-print-entry header p {
+    margin: 2px 0 0;
+    color: #4f5c54;
+    font-size: 8.5pt;
+  }
+
+  .schedule-print-entry h2 {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 13pt;
+  }
+
+  .schedule-print-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+  }
+
+  .schedule-print-tags span {
+    border: 1px solid #9db3a6;
+    border-radius: 999px;
+    padding: 3px 7px;
+    color: #294f3d;
+    font-size: 7.5pt;
+    font-weight: 700;
+  }
+
+  .schedule-print-facts,
+  .schedule-print-resources {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 1fr;
+    gap: 10px;
+    margin: 9px 0 0;
+  }
+
+  .schedule-print-facts div,
+  .schedule-print-resources div {
+    min-width: 0;
+  }
+
+  .schedule-print-facts dt,
+  .schedule-print-resources dt,
+  .schedule-print-entry h3 {
+    margin: 0 0 2px;
+    color: #476455;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .schedule-print-facts dd,
+  .schedule-print-resources dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-weight: 600;
+  }
+
+  .schedule-print-entry section {
+    margin-top: 9px;
+  }
+
+  .schedule-print-entry section p {
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .schedule-print-operations {
+    border-left: 3px solid #d6a63c;
+    padding-left: 8px;
+  }
+
+  .schedule-print-resources {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-print-field-notes {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .schedule-print-field-notes strong {
+    color: #476455;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+  }
+
+  .schedule-print-field-notes span,
+  .schedule-print-empty span {
+    display: block;
+    height: 10px;
+    border-bottom: 1px solid #b9c5be;
+  }
+
+  .schedule-print-empty {
+    margin-top: 24px;
+    border: 1px solid #9db3a6;
+    padding: 24px;
+  }
+
+  .schedule-print-empty h2 {
+    margin: 0 0 6px;
+  }
+
+  .schedule-print-empty p {
+    margin: 0 0 28px;
+  }
+
+  .schedule-print-region > footer {
+    margin-top: 12px;
+    border-top: 1px solid #d3ddd7;
+    padding-top: 6px;
+    color: #65736b;
+    font-size: 7.5pt;
+    text-align: center;
+  }
+
   a[href]::after {
     content: none !important;
   }
@@ -16934,6 +17127,58 @@ body:has(.appointment-overlay) {
   color: var(--color-muted);
   font-size: 0.82rem;
   text-align: right;
+}
+
+.lead-view-filters {
+  margin: 14px 0;
+}
+
+.lead-view-filters a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 0 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lead-view-filters a[aria-current="page"] {
+  border-color: var(--color-forest);
+  background: var(--color-forest-soft);
+  color: var(--color-forest);
+}
+
+.lead-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.lead-lifecycle-actions button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 700;
+}
+
+@media screen {
+  .schedule-print-region {
+    display: none;
+  }
 }
 
 .crew-day-sheet-grid {

@@ -27,6 +27,11 @@ export type CustomerDocumentEmailEdits = Pick<
   "subject" | "greeting" | "intro" | "scopeText" | "customerNotes" | "closing"
 >;
 
+export type ScopePresentationBlock = {
+  kind: "heading" | "text";
+  text: string;
+};
+
 const companyName = "Angel Tree Services";
 type EmailLocation = {
   label?: string | null;
@@ -79,6 +84,7 @@ export function generateQuoteEmailDraft(
   options: { portalUrl?: string } = {},
 ): CustomerDocumentEmailDraft {
   const propertyLabel = formatQuoteLocation(quote);
+  const workDescription = describeQuoteWork(quote);
   const firstName = firstNameFrom(
     quote.approval_contact?.full_name
       ?? quote.recipient_contact?.full_name
@@ -87,21 +93,21 @@ export function generateQuoteEmailDraft(
   const revised = quote.status === "change_requested";
   const draft: CustomerDocumentEmailDraft = {
     documentType: "quote",
-    subject: `${companyName} Proposal – ${subjectLocation(propertyLabel)}`,
+    subject: `${companyName} Proposal – ${quoteSubjectLocation(quote)}`,
     greeting: `Hi ${firstName || "there"},`,
-    intro: revised
-      ? `We have updated the proposal for the requested work at ${propertyLabel}.`
-      : `We have prepared a proposal for the requested work at ${propertyLabel}.`,
+    intro: buildQuoteIntroduction(quote, workDescription, revised),
     propertyLabel,
-    scopeHeading: "Proposed work",
-    scopeText: formatLineItemScope(quote.quote_line_items, quote.jobs?.requested_scope),
+    scopeHeading: "The proposed work includes",
+    scopeText: formatLineItemScope(quote.quote_line_items, quote.jobs?.requested_scope, {
+      suppressBundledCalculation: true,
+    }),
     customerNotes: uniqueSections([
       quote.customer_message,
       formatDebrisHandling(quote.debris_handling, quote.debris_handling_notes),
-      quote.payment_terms ? `Payment terms: ${quote.payment_terms.trim()}` : null,
+      formatQuotePaymentTerms(quote.payment_terms),
       ...customerVisibleNotes(quote.notes),
     ]).join("\n\n"),
-    closing: "Please reply to this email or call our office if you have questions or would like to request a change.",
+    closing: "Please reply to this email or call our office if you have any questions or would like to request a change.",
     summaryLabel: "Proposal total",
     summaryValue: formatCurrency(quote.total_cents),
     timingLabel: "Proposal validity",
@@ -189,6 +195,7 @@ export function buildCustomerDocumentEmailText(draft: Omit<CustomerDocumentEmail
     draft.closing,
     "",
     "Thank you,",
+    "",
     companyName,
     "(540) 388-8715",
     "info@angeltreeservice.org",
@@ -203,23 +210,28 @@ function withBody(draft: CustomerDocumentEmailDraft): CustomerDocumentEmailDraft
 function formatLineItemScope(
   lineItems?: Pick<QuoteLineItem | InvoiceLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[],
   fallbackScope?: string | null,
+  options: { suppressBundledCalculation?: boolean } = {},
 ) {
   if (!lineItems?.length) {
-    return fallbackScope?.trim() || "See the attached document or secure customer page for the complete scope.";
+    return formatScopePresentation(fallbackScope?.trim())
+      || "See the attached document or secure customer page for the complete scope.";
   }
 
-  return lineItems
+  const showLineCalculations = !options.suppressBundledCalculation || lineItems.length > 1;
+  return formatScopePresentation(lineItems
     .slice()
     .sort((left, right) => left.sort_order - right.sort_order)
     .map((item, index) => {
       const lines = [
         `${index + 1}. ${item.name.trim()}`,
         item.description?.trim(),
-        `${formatQuantity(item.quantity)} × ${formatCurrency(item.unit_price_cents)} = ${formatCurrency(item.total_cents)}`,
+        showLineCalculations || item.quantity !== 1
+          ? `${formatQuantity(item.quantity)} × ${formatCurrency(item.unit_price_cents)} = ${formatCurrency(item.total_cents)}`
+          : null,
       ].filter(Boolean);
       return lines.join("\n");
     })
-    .join("\n\n");
+    .join("\n\n"));
 }
 
 function formatQuoteLocation(quote: QuoteEmailDraftInput) {
@@ -232,13 +244,137 @@ function formatInvoiceLocation(invoice: InvoiceEmailDraftInput) {
 
 function formatLocation(location?: EmailLocation | null) {
   if (!location) return "the service property";
-  const address = [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
-  if (location.label && address && normalize(location.label) !== normalize(location.street)) return `${location.label}, ${address}`;
+  const locality = [location.city, formatStateAndPostalCode(location.state, location.postal_code)]
+    .filter(Boolean)
+    .join(", ");
+  const address = [location.street, locality].filter(Boolean).join(", ");
   return address || location.label || "the service property";
 }
 
 function subjectLocation(value: string) {
   return value === "the service property" ? "Service Property" : value;
+}
+
+function quoteSubjectLocation(quote: QuoteEmailDraftInput) {
+  const location = quote.service_locations ?? quote.jobs?.service_locations;
+  return subjectLocation(location?.street?.trim() || location?.city?.trim() || formatQuoteLocation(quote));
+}
+
+function buildQuoteIntroduction(
+  quote: QuoteEmailDraftInput,
+  workDescription: string,
+  revised: boolean,
+) {
+  const location = quote.service_locations ?? quote.jobs?.service_locations;
+  const locationPhrase = proposalLocationPhrase(location);
+  return `Thank you for the opportunity to provide this ${revised ? "updated " : ""}proposal for ${workDescription}${locationPhrase}.`;
+}
+
+function proposalLocationPhrase(location?: EmailLocation | null) {
+  const street = location?.street?.trim();
+  const city = location?.city?.trim();
+  if (street && city) return ` at ${street} in ${city}`;
+  if (street) return ` at ${street}`;
+  if (city) return ` in ${city}`;
+  return "";
+}
+
+function describeQuoteWork(quote: QuoteEmailDraftInput) {
+  const scopeText = [
+    quote.jobs?.requested_scope,
+    ...(quote.quote_line_items ?? []).flatMap((item) => [item.name, item.description]),
+  ].filter(Boolean).join(" ").toLowerCase();
+  const hasTreeWork = /\b(tree|trees|branch|branches|limb|limbs|stump|stumps|oak|maple|cypress|myrtle|holly|prun\w*|trim\w*)\b/.test(scopeText);
+  const hasLandscaping = /\b(landscap\w*|lawn|grass|flower|flowers|planting|beds?|bush|bushes|rose|roses|shrub|shrubs)\b/.test(scopeText);
+  const hasStormDamage = /\bstorm(?:[- ]damage| cleanup)?\b/.test(scopeText);
+  const hasCleanup = /\b(cleanup|clean up|debris)\b/.test(scopeText);
+
+  if (hasTreeWork && hasLandscaping) return "the landscaping and tree work";
+
+  switch (quote.jobs?.service_type) {
+    case "tree_removal":
+      return "the tree removal work";
+    case "trimming":
+      return "the tree trimming work";
+    case "stump_grinding":
+      return "the stump grinding work";
+    case "landscaping":
+      return "the landscaping work";
+    case "lawn_care":
+      return "the lawn care work";
+    case "emergency":
+      return hasStormDamage ? "the storm-damage tree work" : "the emergency tree work";
+    default:
+      if (hasStormDamage && hasTreeWork) return "the storm-damage tree work";
+      if (hasCleanup && hasTreeWork) return "the cleanup and tree work";
+      if (hasTreeWork) return "the tree work";
+      if (hasLandscaping) return "the landscaping work";
+      return "the proposed work";
+  }
+}
+
+function formatStateAndPostalCode(state?: string | null, postalCode?: string | null) {
+  return [state?.trim(), postalCode?.trim()].filter(Boolean).join(" ");
+}
+
+function formatQuotePaymentTerms(value?: string | null) {
+  const terms = value?.trim();
+  if (!terms) return null;
+  if (/^net\s*\d+\s*(?:days?)?\.?$/i.test(terms)) return null;
+  if (/^(?:payment in full is )?due (?:in|within) \d+ days?(?: of the invoice date)?\.?$/i.test(terms)) return null;
+  return `Payment terms: ${terms}`;
+}
+
+const scopeHeadingLabels = new Map([
+  ["front of the house", "Front of the house"],
+  ["front of house", "Front of the house"],
+  ["beside right", "Right side of the house"],
+  ["right side", "Right side of the house"],
+  ["right side of the house", "Right side of the house"],
+  ["beside left", "Left side of the house"],
+  ["left side", "Left side of the house"],
+  ["left side of the house", "Left side of the house"],
+  ["back property", "Back of the property"],
+  ["back of the property", "Back of the property"],
+  ["close to the shed", "Near the shed"],
+  ["near the shed", "Near the shed"],
+]);
+
+export function parseScopePresentation(value: string): ScopePresentationBlock[] {
+  const blocks: ScopePresentationBlock[] = [];
+  let textLines: string[] = [];
+
+  function flushText() {
+    const text = textLines.join("\n").trim();
+    if (text) blocks.push({ kind: "text", text });
+    textLines = [];
+  }
+
+  for (const line of value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n")) {
+    const heading = scopeHeadingLabel(line);
+    if (heading) {
+      flushText();
+      blocks.push({ kind: "heading", text: heading });
+    } else if (!line.trim()) {
+      flushText();
+    } else {
+      textLines.push(line);
+    }
+  }
+  flushText();
+  return blocks;
+}
+
+function formatScopePresentation(value?: string | null) {
+  if (!value) return "";
+  return parseScopePresentation(value)
+    .map((block) => block.text)
+    .join("\n\n");
+}
+
+function scopeHeadingLabel(value: string) {
+  const candidate = normalize(value.replaceAll(/[.:]+$/g, ""));
+  return scopeHeadingLabels.get(candidate) ?? null;
 }
 
 function firstNameFrom(value?: string | null) {

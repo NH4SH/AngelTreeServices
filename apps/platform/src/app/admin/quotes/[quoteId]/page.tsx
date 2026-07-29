@@ -134,6 +134,26 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
               </div>
             </section>
 
+            <section className="commerce-side-panel quote-email-workspace">
+              <PanelTitle icon={<Send size={18} />} title="Proposal email" />
+              <p className="inline-empty">Review the customer-facing message and branded preview before sending. Delivery reuses the active secure link when available.</p>
+              <EmailSetupNotice configured={emailSetup.configured} />
+              <SendQuoteEmailForm
+                disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
+                documentHref={`/admin/quotes/${detail.data.id}/print`}
+                draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                portalUrl={activePortalUrl}
+                quoteId={detail.data.id}
+                recipient={recipient}
+              />
+              {!recipient ? (
+                <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
+              ) : null}
+              {isQuoteClosedForSending(detail.data.status) ? (
+                <p className="inline-empty">This quote is closed, so it cannot be sent again from the main workflow.</p>
+              ) : null}
+            </section>
+
             <section className="commerce-detail-layout">
               <main className="commerce-document-column">
                 <section className="commerce-document-panel">
@@ -177,26 +197,6 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
 
                 <section className="email-draft-grid commerce-email-grid">
                   <EmailDraftCard draft={generateQuoteFollowUpMessage(detail.data)} label="Quote follow-up draft" />
-                </section>
-
-                <section className="commerce-side-panel">
-                  <PanelTitle icon={<Send size={18} />} title="Proposal email" />
-                  <p className="inline-empty">Review the customer-facing message and branded preview before sending. Delivery reuses the active secure link when available.</p>
-                  <EmailSetupNotice configured={emailSetup.configured} />
-                  <SendQuoteEmailForm
-                    disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
-                    documentHref={`/admin/quotes/${detail.data.id}/print`}
-                    draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
-                    portalUrl={activePortalUrl}
-                    quoteId={detail.data.id}
-                    recipient={recipient}
-                  />
-                  {!recipient ? (
-                    <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
-                  ) : null}
-                  {isQuoteClosedForSending(detail.data.status) ? (
-                    <p className="inline-empty">This quote is closed, so it cannot be sent again from the main workflow.</p>
-                  ) : null}
                 </section>
 
                 <section className="commerce-side-panel">

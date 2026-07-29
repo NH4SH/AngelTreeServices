@@ -4,6 +4,7 @@ import {
   applyCustomerDocumentEmailEdits,
   generateInvoiceEmailDraft,
   generateQuoteEmailDraft,
+  parseScopePresentation,
 } from "../documents/email-drafts.ts";
 import { renderCustomerDocumentEmailHtml } from "./customer-document-layout.ts";
 
@@ -143,4 +144,131 @@ test("missing optional dates use a narrow document fallback instead of inventing
   assert.equal(draft.timingValue, "See the invoice for payment terms");
   assert.doesNotMatch(draft.body, /15 days/);
   assert.match(draft.scopeText, /Pruning/);
+});
+
+test("quote copy removes internal location labels and uses a warm deterministic introduction", () => {
+  const draft = generateQuoteEmailDraft({
+    approval_contact: { full_name: "Carla Beltrao" },
+    customer_message: null,
+    customers: { display_name: "Carla Beltrao" },
+    debris_handling: null,
+    debris_handling_notes: null,
+    expires_at: "2026-08-13T12:00:00.000Z",
+    jobs: { requested_scope: "Tree and landscape work", service_locations: location, service_type: "landscaping" },
+    notes: [],
+    organizations: null,
+    payment_terms: "Net 15",
+    quote_line_items: [
+      {
+        name: "Tree Service",
+        description: "Front of the house.\n- Trim a Holly Tree\nBeside Right\n- Elevate 2 Cypress\nBeside Left\n- Trim a purple bush\nBack property\n- Clean up 3 Crape Myrtles\nClose to the shed\n- Remove 2 branches",
+        quantity: 1,
+        unit_price_cents: 293000,
+        total_cents: 293000,
+        sort_order: 1,
+      },
+    ],
+    quote_number: "Q-2048",
+    recipient_contact: null,
+    sent_at: null,
+    service_locations: {
+      ...location,
+      label: "Primary service location",
+      street: "11810 Arthur Ln",
+      city: "Fredericksburg",
+      postal_code: "22407",
+    },
+    status: "draft",
+    total_cents: 293000,
+    updated_at: "2026-07-29T12:00:00.000Z",
+  });
+
+  assert.equal(draft.subject, "Angel Tree Services Proposal – 11810 Arthur Ln");
+  assert.equal(
+    draft.intro,
+    "Thank you for the opportunity to provide this proposal for the landscaping and tree work at 11810 Arthur Ln in Fredericksburg.",
+  );
+  assert.doesNotMatch(draft.body, /Primary service location/);
+  assert.doesNotMatch(draft.scopeText, /1 × \$2,930\.00/);
+  assert.doesNotMatch(draft.customerNotes, /Net 15/);
+  assert.match(draft.scopeText, /Right side of the house/);
+  assert.match(draft.scopeText, /Left side of the house/);
+  assert.match(draft.scopeText, /Back of the property/);
+  assert.match(draft.scopeText, /Near the shed/);
+});
+
+test("scope headings become structured presentation blocks without rewriting work details", () => {
+  const scope = "Front of the house.\n- Trim a Holly Tree\nBeside Right\n- Elevate 2 Cypress";
+  assert.deepEqual(parseScopePresentation(scope), [
+    { kind: "heading", text: "Front of the house" },
+    { kind: "text", text: "- Trim a Holly Tree" },
+    { kind: "heading", text: "Right side of the house" },
+    { kind: "text", text: "- Elevate 2 Cypress" },
+  ]);
+});
+
+test("useful line calculations and explicit proposal terms remain visible", () => {
+  const draft = generateQuoteEmailDraft({
+    approval_contact: null,
+    customer_message: null,
+    customers: { display_name: "Jamie Reed" },
+    debris_handling: null,
+    debris_handling_notes: null,
+    expires_at: null,
+    jobs: { requested_scope: null, service_locations: location, service_type: "tree_removal" },
+    notes: [],
+    organizations: null,
+    payment_terms: "50% deposit required before scheduling",
+    quote_line_items: [
+      { name: "Tree removal", description: "Remove two marked trees.", quantity: 2, unit_price_cents: 50000, total_cents: 100000, sort_order: 1 },
+      { name: "Stump grinding", description: "Grind one stump.", quantity: 1, unit_price_cents: 25000, total_cents: 25000, sort_order: 2 },
+    ],
+    quote_number: "Q-2049",
+    recipient_contact: null,
+    sent_at: null,
+    service_locations: location,
+    status: "draft",
+    total_cents: 125000,
+    updated_at: "2026-07-29T12:00:00.000Z",
+  });
+
+  assert.match(draft.scopeText, /2 × \$500\.00 = \$1,000\.00/);
+  assert.match(draft.scopeText, /1 × \$250\.00 = \$250\.00/);
+  assert.match(draft.customerNotes, /50% deposit required before scheduling/);
+});
+
+test("HTML renders scope headings, a subdued wrapping link, and one company signoff", () => {
+  const draft = generateQuoteEmailDraft({
+    approval_contact: null,
+    customer_message: null,
+    customers: { display_name: "Alex Smith" },
+    debris_handling: null,
+    debris_handling_notes: null,
+    expires_at: null,
+    jobs: { requested_scope: null, service_locations: location, service_type: "trimming" },
+    notes: [],
+    organizations: null,
+    payment_terms: null,
+    quote_line_items: [
+      { name: "Pruning", description: "Front of the house\n- Prune the marked limbs", quantity: 1, unit_price_cents: 50000, total_cents: 50000, sort_order: 1 },
+    ],
+    quote_number: "Q-2050",
+    recipient_contact: null,
+    sent_at: null,
+    service_locations: location,
+    status: "draft",
+    total_cents: 50000,
+    updated_at: "2026-07-29T12:00:00.000Z",
+  }, {
+    portalUrl: `https://admin.angeltreeservices.org/portal/quote/${"long-token-".repeat(20)}`,
+  });
+  const html = renderCustomerDocumentEmailHtml(draft, {
+    logoUrl: "https://admin.angeltreeservices.org/angel-tree-services-logo.jpg",
+  });
+
+  assert.match(html, /Front of the house/);
+  assert.match(html, /copy and paste this secure link into your browser/);
+  assert.match(html, /word-break:break-word/);
+  assert.equal((html.match(/<strong>Angel Tree Services<\/strong>/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /<strong style="color:#174b32;">Angel Tree Services<\/strong>/);
 });

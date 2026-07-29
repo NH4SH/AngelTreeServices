@@ -1,8 +1,9 @@
 "use client";
 
-import { FileText, Mail, RotateCcw, Send, X } from "lucide-react";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { Expand, FileText, Mail, Maximize2, Monitor, RotateCcw, Send, Smartphone, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { ChangeEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import {
   sendInvoiceEmail,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/actions/transactional-email";
 import {
   buildCustomerDocumentEmailText,
+  parseScopePresentation,
   type CustomerDocumentEmailDraft,
   type CustomerDocumentEmailEdits,
 } from "@/lib/documents/email-drafts";
@@ -92,12 +94,23 @@ function CustomerDocumentEmailComposer({
   pending: boolean;
   state: TransactionalEmailActionState;
 }) {
+  const router = useRouter();
   const initialEdits = useMemo(() => draftEdits(draft), [draft]);
   const [edits, setEdits] = useState<CustomerDocumentEmailEdits>(initialEdits);
   const [open, setOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
+  const [viewportMode, setViewportMode] = useState<"desktop" | "mobile">("desktop");
+  const [refreshing, startRefresh] = useTransition();
+  const fullPreviewRef = useRef<HTMLDialogElement>(null);
+  const regenerationRequestedRef = useRef(false);
   const previewDraft = { ...draft, ...edits, portalUrl: portalUrl ?? draft.portalUrl };
   const plainText = buildCustomerDocumentEmailText(previewDraft);
+
+  useEffect(() => {
+    if (refreshing || !regenerationRequestedRef.current) return;
+    setEdits(initialEdits);
+    regenerationRequestedRef.current = false;
+  }, [initialEdits, refreshing]);
 
   function update<K extends keyof CustomerDocumentEmailEdits>(key: K, value: CustomerDocumentEmailEdits[K]) {
     setEdits((current) => ({ ...current, [key]: value }));
@@ -105,6 +118,19 @@ function CustomerDocumentEmailComposer({
 
   function reset() {
     setEdits(initialEdits);
+  }
+
+  function resetField(key: keyof CustomerDocumentEmailEdits) {
+    update(key, initialEdits[key]);
+  }
+
+  function regenerate() {
+    if (!window.confirm("Regenerate this email from the current proposal? This will replace unsaved email edits. It will not send the email or change the customer link.")) {
+      return;
+    }
+    regenerationRequestedRef.current = true;
+    reset();
+    startRefresh(() => router.refresh());
   }
 
   if (!open) {
@@ -127,9 +153,17 @@ function CustomerDocumentEmailComposer({
           <h3>Review before sending</h3>
           <p>Financial details and the secure customer destination stay synced to the CRM record.</p>
         </div>
-        <button aria-label="Close email composer" className="icon-button" disabled={pending} onClick={() => setOpen(false)} type="button">
-          <X aria-hidden="true" size={20} />
-        </button>
+        <div className="email-composer-header-actions">
+          {draft.documentType === "quote" ? (
+            <button className="secondary-action" disabled={pending || refreshing} onClick={regenerate} type="button">
+              <RotateCcw aria-hidden="true" size={16} />
+              {refreshing ? "Refreshing..." : "Regenerate from current proposal"}
+            </button>
+          ) : null}
+          <button aria-label="Close email composer" className="icon-button" disabled={pending} onClick={() => setOpen(false)} type="button">
+            <X aria-hidden="true" size={20} />
+          </button>
+        </div>
       </header>
 
       <form
@@ -141,19 +175,20 @@ function CustomerDocumentEmailComposer({
       >
         {hiddenField}
         {portalUrl ? <input name="portal_url" type="hidden" value={portalUrl} /> : null}
+        <div className="email-authoritative-summary" aria-label="CRM controlled email details">
+          <div><span>To</span><strong>{recipient}</strong></div>
+          <div><span>{draft.summaryLabel}</span><strong>{draft.summaryValue}</strong></div>
+          <div><span>{draft.timingLabel}</span><strong>{draft.timingValue}</strong></div>
+          <div><span>PDF attachment</span><strong>Available through the secure page</strong></div>
+          <div><span>Secure link</span><strong>{portalUrl ? "Active" : "Created securely when sent"}</strong></div>
+        </div>
         <div className="email-composer-fields">
-          <label>Recipient<input readOnly value={recipient} /></label>
-          <label>Subject<input maxLength={180} name="email_subject" onChange={(event) => update("subject", event.target.value)} required value={edits.subject} /></label>
-          <label>Greeting<input maxLength={160} name="email_greeting" onChange={(event) => update("greeting", event.target.value)} required value={edits.greeting} /></label>
-          <label>Introduction<textarea maxLength={1_200} name="email_intro" onChange={(event) => update("intro", event.target.value)} required rows={3} value={edits.intro} /></label>
-          <label>Scope presentation<textarea maxLength={12_000} name="email_scope" onChange={(event) => update("scopeText", event.target.value)} required rows={10} value={edits.scopeText} /></label>
-          <label>Customer-facing notes<textarea maxLength={6_000} name="email_customer_notes" onChange={(event) => update("customerNotes", event.target.value)} placeholder="Optional notes, exclusions, prerequisites, or billing clarification" rows={5} value={edits.customerNotes} /></label>
-          <label>Closing<textarea maxLength={1_200} name="email_closing" onChange={(event) => update("closing", event.target.value)} required rows={3} value={edits.closing} /></label>
-          <div className="email-authoritative-facts" aria-label="CRM controlled email details">
-            <div><span>{draft.summaryLabel}</span><strong>{draft.summaryValue}</strong></div>
-            <div><span>{draft.timingLabel}</span><strong>{draft.timingValue}</strong></div>
-            <div><span>Customer link</span><strong>{portalUrl ? "Active secure link" : "Created securely when sent"}</strong></div>
-          </div>
+          <ComposerTextField label="Subject" maxLength={180} name="email_subject" onChange={(event) => update("subject", event.target.value)} onReset={() => resetField("subject")} required value={edits.subject} />
+          <ComposerTextField label="Greeting" maxLength={160} name="email_greeting" onChange={(event) => update("greeting", event.target.value)} onReset={() => resetField("greeting")} required value={edits.greeting} />
+          <ComposerTextarea label="Introduction" maxLength={1_200} name="email_intro" onChange={(event) => update("intro", event.target.value)} onReset={() => resetField("intro")} required rows={3} value={edits.intro} />
+          <ComposerTextarea expandable label="Scope presentation" maxLength={12_000} name="email_scope" onChange={(event) => update("scopeText", event.target.value)} onReset={() => resetField("scopeText")} required rows={7} value={edits.scopeText} />
+          <ComposerTextarea expandable label="Customer-facing notes" maxLength={6_000} name="email_customer_notes" onChange={(event) => update("customerNotes", event.target.value)} onReset={() => resetField("customerNotes")} placeholder="Optional notes, exclusions, prerequisites, or proposal terms" rows={3} value={edits.customerNotes} />
+          <ComposerTextarea label="Closing" maxLength={1_200} name="email_closing" onChange={(event) => update("closing", event.target.value)} onReset={() => resetField("closing")} required rows={3} value={edits.closing} />
           <a className="email-document-link" href={documentHref} rel="noreferrer" target="_blank">
             <FileText aria-hidden="true" size={18} />
             Open printable {draft.documentType === "quote" ? "proposal" : "invoice"}
@@ -164,12 +199,28 @@ function CustomerDocumentEmailComposer({
         <section className="email-composer-preview-panel" aria-label="Email preview">
           <div className="email-preview-toolbar">
             <strong>Preview</strong>
-            <div className="segmented-control" role="group" aria-label="Email preview format">
-              <button aria-pressed={previewMode === "html"} onClick={() => setPreviewMode("html")} type="button">Email</button>
-              <button aria-pressed={previewMode === "text"} onClick={() => setPreviewMode("text")} type="button">Plain text</button>
+            <div className="email-preview-controls">
+              <div className="segmented-control" role="group" aria-label="Email preview format">
+                <button aria-pressed={previewMode === "html"} onClick={() => setPreviewMode("html")} type="button">Email</button>
+                <button aria-pressed={previewMode === "text"} onClick={() => setPreviewMode("text")} type="button">Plain text</button>
+              </div>
+              {previewMode === "html" ? (
+                <div className="segmented-control" role="group" aria-label="Email preview size">
+                  <button aria-label="Desktop preview" aria-pressed={viewportMode === "desktop"} onClick={() => setViewportMode("desktop")} type="button"><Monitor aria-hidden="true" size={16} />Desktop</button>
+                  <button aria-label="Mobile preview" aria-pressed={viewportMode === "mobile"} onClick={() => setViewportMode("mobile")} type="button"><Smartphone aria-hidden="true" size={16} />Mobile</button>
+                </div>
+              ) : null}
+              <button className="email-full-preview-button" onClick={() => fullPreviewRef.current?.showModal()} type="button">
+                <Maximize2 aria-hidden="true" size={16} />
+                Open full preview
+              </button>
             </div>
           </div>
-          {previewMode === "html" ? <BrandedEmailPreview draft={previewDraft} /> : <pre className="email-plain-text-preview">{plainText}</pre>}
+          {previewMode === "html" ? (
+            <div className={`email-preview-canvas ${viewportMode}`}>
+              <BrandedEmailPreview draft={previewDraft} />
+            </div>
+          ) : <pre className="email-plain-text-preview">{plainText}</pre>}
         </section>
 
         <FormMessage state={state} />
@@ -184,12 +235,30 @@ function CustomerDocumentEmailComposer({
             {pending ? "Sending..." : draft.documentType === "quote" ? "Send proposal" : "Send invoice"}
           </button>
         </footer>
+
+        <dialog
+          aria-label="Full email preview"
+          className="email-full-preview-dialog"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) event.currentTarget.close();
+          }}
+          ref={fullPreviewRef}
+        >
+          <header>
+            <strong>{previewMode === "html" ? "Email preview" : "Plain-text preview"}</strong>
+            <button aria-label="Close full preview" className="icon-button" onClick={() => fullPreviewRef.current?.close()} type="button"><X aria-hidden="true" size={20} /></button>
+          </header>
+          <div className={`email-full-preview-content ${viewportMode}`}>
+            {previewMode === "html" ? <BrandedEmailPreview draft={previewDraft} /> : <pre className="email-plain-text-preview">{plainText}</pre>}
+          </div>
+        </dialog>
       </form>
     </section>
   );
 }
 
 function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
+  const scopeBlocks = parseScopePresentation(draft.scopeText);
   return (
     <article className="branded-email-preview">
       <header><img alt="Angel Tree Services" src="/angel-tree-services-logo.jpg" /></header>
@@ -198,7 +267,11 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
         <p className="email-preview-prewrap">{draft.intro}</p>
         <section>
           <strong>{draft.scopeHeading}</strong>
-          <pre>{draft.scopeText}</pre>
+          <div className="email-preview-scope">
+            {scopeBlocks.map((block, index) => block.kind === "heading"
+              ? <h4 key={`${block.kind}-${index}`}>{block.text}</h4>
+              : <pre key={`${block.kind}-${index}`}>{block.text}</pre>)}
+          </div>
         </section>
         <dl>
           <div><dt>{draft.summaryLabel}</dt><dd>{draft.summaryValue}</dd></div>
@@ -206,12 +279,86 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
         </dl>
         {draft.customerNotes ? <section className="email-preview-notes"><strong>Important notes</strong><pre>{draft.customerNotes}</pre></section> : null}
         <span className="email-preview-cta">{draft.ctaLabel}</span>
-        <small>{draft.portalUrl || "A secure customer link will be generated when this email is sent."}</small>
+        <small>{draft.portalUrl
+          ? <>If the button does not open, copy and paste this secure link into your browser.<br /><span>{draft.portalUrl}</span></>
+          : "A secure customer link will be generated when this email is sent."}</small>
         <p className="email-preview-prewrap">{draft.closing}</p>
-        <p>Thank you,<br /><strong>Angel Tree Services</strong></p>
+        <p>Thank you,<br /><br /><strong>Angel Tree Services</strong></p>
       </div>
-      <footer>Angel Tree Services<br />(540) 388-8715<br />info@angeltreeservice.org<br />angeltreeservices.org</footer>
+      <footer>(540) 388-8715<br />info@angeltreeservice.org<br />angeltreeservices.org</footer>
     </article>
+  );
+}
+
+function ComposerTextField({
+  label,
+  onReset,
+  ...props
+}: {
+  label: string;
+  onReset: () => void;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  const id = useId();
+  return (
+    <div className="email-composer-field">
+      <div className="email-composer-field-heading">
+        <label htmlFor={id}>{label}</label>
+        <button onClick={onReset} type="button">Reset to generated text</button>
+      </div>
+      <input id={id} {...props} />
+    </div>
+  );
+}
+
+function ComposerTextarea({
+  expandable = false,
+  label,
+  onChange,
+  onReset,
+  value,
+  ...props
+}: {
+  expandable?: boolean;
+  label: string;
+  onReset: () => void;
+  value: string;
+} & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value">) {
+  const id = useId();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const maximumHeight = expanded ? 520 : 280;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maximumHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maximumHeight ? "auto" : "hidden";
+  }, [expanded, value]);
+
+  return (
+    <div className="email-composer-field">
+      <div className="email-composer-field-heading">
+        <label htmlFor={id}>{label}</label>
+        <span>
+          <button onClick={onReset} type="button">Reset to generated text</button>
+          {expandable ? (
+            <button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} type="button">
+              <Expand aria-hidden="true" size={14} />
+              {expanded ? "Collapse" : "Expand"}
+            </button>
+          ) : null}
+        </span>
+      </div>
+      <textarea
+        className={expanded ? "expanded" : undefined}
+        id={id}
+        onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onChange?.(event)}
+        ref={textareaRef}
+        value={value}
+        {...props}
+      />
+    </div>
   );
 }
 

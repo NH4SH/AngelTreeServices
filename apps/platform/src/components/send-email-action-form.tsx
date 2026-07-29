@@ -103,6 +103,7 @@ function CustomerDocumentEmailComposer({
   const [refreshing, startRefresh] = useTransition();
   const fullPreviewRef = useRef<HTMLDialogElement>(null);
   const regenerationRequestedRef = useRef(false);
+  const formId = useId();
   const previewDraft = { ...draft, ...edits, portalUrl: portalUrl ?? draft.portalUrl };
   const plainText = buildCustomerDocumentEmailText(previewDraft);
 
@@ -154,6 +155,10 @@ function CustomerDocumentEmailComposer({
           <p>Financial details and the secure customer destination stay synced to the CRM record.</p>
         </div>
         <div className="email-composer-header-actions">
+          <button className="primary-action" disabled={disabled || pending} form={formId} type="submit">
+            <Send aria-hidden="true" size={17} />
+            {pending ? "Sending..." : draft.documentType === "quote" ? "Send proposal" : "Send invoice"}
+          </button>
           {draft.documentType === "quote" ? (
             <button className="secondary-action" disabled={pending || refreshing} onClick={regenerate} type="button">
               <RotateCcw aria-hidden="true" size={16} />
@@ -168,6 +173,7 @@ function CustomerDocumentEmailComposer({
 
       <form
         className="customer-email-composer-form"
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault();
           void formAction(new FormData(event.currentTarget));

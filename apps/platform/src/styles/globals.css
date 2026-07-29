@@ -10293,9 +10293,12 @@ h1 {
   align-items: center;
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
+.email-composer-header-actions .primary-action,
 .email-composer-header-actions .secondary-action {
   min-height: 42px;
 }
@@ -10776,16 +10779,20 @@ h1 {
 
 @media (max-width: 560px) {
   .customer-email-composer > header {
+    align-items: stretch;
+    flex-direction: column;
     gap: 10px;
   }
 
   .email-composer-header-actions {
-    align-items: flex-end;
-    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
   }
 
+  .email-composer-header-actions .primary-action,
   .email-composer-header-actions .secondary-action {
-    width: 100%;
+    flex: 1 1 220px;
   }
 
   .email-authoritative-summary {

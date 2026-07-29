@@ -13216,7 +13216,7 @@ h1,
   body {
     min-height: 0 !important;
     height: auto !important;
-    background: oklch(1 0 0);
+    background: oklch(0.985 0.006 145);
   }
 
   body * {
@@ -13242,9 +13242,10 @@ h1,
 
   .schedule-print-region {
     display: block;
-    color: #17201b;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 10pt;
+    color: oklch(0.24 0.018 145);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.38;
   }
 
   .schedule-print-region,
@@ -13256,52 +13257,83 @@ h1,
 
   .schedule-print-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
-    border-bottom: 3px solid #174f35;
-    padding-bottom: 10px;
+    border-bottom: 2px solid oklch(0.38 0.09 151);
+    padding: 0 0 12px;
   }
 
-  .schedule-print-header span {
-    color: #35634d;
-    font-size: 9pt;
+  .schedule-print-title > span,
+  .schedule-print-date > span {
+    color: oklch(0.46 0.055 151);
+    font-size: 8pt;
     font-weight: 700;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
   .schedule-print-header h1 {
-    margin: 2px 0 0;
-    color: #173629;
-    font-size: 24pt;
-    line-height: 1;
+    margin: 3px 0 0;
+    color: oklch(0.29 0.07 151);
+    font-size: 23pt;
+    line-height: 1.05;
   }
 
-  .schedule-print-header > strong {
-    font-size: 12pt;
+  .schedule-print-date {
+    display: grid;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .schedule-print-date strong {
+    margin-top: 2px;
+    font-size: 12.5pt;
+  }
+
+  .schedule-print-date small {
+    margin-top: 3px;
+    color: oklch(0.46 0.018 145);
+    font-size: 8.5pt;
+    font-weight: 600;
   }
 
   .schedule-print-list {
     display: grid;
-    gap: 12px;
-    margin-top: 14px;
+    gap: 14px;
+    margin-top: 16px;
   }
 
   .schedule-print-entry {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    border: 1px solid #9db3a6;
-    border-radius: 4px;
-    padding: 12px;
+    break-inside: auto;
+    page-break-inside: auto;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    border: 1px solid oklch(0.76 0.025 145);
+    border-radius: 3px;
+    background: oklch(0.99 0.004 145);
+    padding: 13px 14px 14px;
   }
 
   .schedule-print-entry > header {
     display: grid;
-    grid-template-columns: 82px minmax(0, 1fr) auto;
-    gap: 12px;
+    grid-template-columns: 25px 74px minmax(0, 1fr) auto;
+    gap: 10px;
     align-items: start;
-    border-bottom: 1px solid #d3ddd7;
-    padding-bottom: 8px;
+    break-after: avoid;
+    border-bottom: 1px solid oklch(0.87 0.015 145);
+    padding-bottom: 9px;
+  }
+
+  .schedule-print-sequence {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border-radius: 50%;
+    background: oklch(0.34 0.085 151);
+    color: oklch(0.97 0.008 145);
+    font-size: 9pt;
   }
 
   .schedule-print-time,
@@ -13310,45 +13342,55 @@ h1,
   }
 
   .schedule-print-time strong {
-    color: #174f35;
+    color: oklch(0.34 0.085 151);
     font-size: 13pt;
   }
 
   .schedule-print-time span,
   .schedule-print-entry header p {
     margin: 2px 0 0;
-    color: #4f5c54;
+    color: oklch(0.46 0.018 145);
     font-size: 8.5pt;
   }
 
   .schedule-print-entry h2 {
     margin: 0;
+    color: oklch(0.24 0.025 145);
     overflow-wrap: anywhere;
-    font-size: 13pt;
+    font-size: 13.5pt;
+    line-height: 1.15;
   }
 
   .schedule-print-tags {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
-    gap: 5px;
+    gap: 12px;
   }
 
   .schedule-print-tags span {
-    border: 1px solid #9db3a6;
-    border-radius: 999px;
-    padding: 3px 7px;
-    color: #294f3d;
-    font-size: 7.5pt;
+    display: grid;
+    gap: 1px;
+    color: oklch(0.31 0.055 151);
+    font-size: 8.5pt;
     font-weight: 700;
+    text-align: right;
+  }
+
+  .schedule-print-tags small {
+    color: oklch(0.51 0.018 145);
+    font-size: 6.8pt;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 
   .schedule-print-facts,
   .schedule-print-resources {
     display: grid;
     grid-template-columns: 1.5fr 0.8fr 1fr;
-    gap: 10px;
-    margin: 9px 0 0;
+    gap: 12px;
+    margin: 10px 0 0;
+    break-inside: avoid;
   }
 
   .schedule-print-facts div,
@@ -13360,8 +13402,8 @@ h1,
   .schedule-print-resources dt,
   .schedule-print-entry h3 {
     margin: 0 0 2px;
-    color: #476455;
-    font-size: 7.5pt;
+    color: oklch(0.47 0.045 151);
+    font-size: 7.3pt;
     font-weight: 700;
     text-transform: uppercase;
   }
@@ -13369,22 +13411,45 @@ h1,
   .schedule-print-facts dd,
   .schedule-print-resources dd {
     margin: 0;
+    color: oklch(0.28 0.018 145);
     overflow-wrap: anywhere;
     font-weight: 600;
   }
 
   .schedule-print-entry section {
-    margin-top: 9px;
+    margin-top: 10px;
+    break-inside: avoid;
   }
 
   .schedule-print-entry section p {
     margin: 0;
-    line-height: 1.35;
+    max-width: 72ch;
+    line-height: 1.42;
   }
 
   .schedule-print-operations {
-    border-left: 3px solid #d6a63c;
-    padding-left: 8px;
+    border: 1px solid oklch(0.82 0.025 95);
+    border-radius: 2px;
+    background: oklch(0.96 0.018 95);
+    padding: 8px 10px 9px;
+  }
+
+  .schedule-print-operations > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .schedule-print-operations p strong {
+    display: block;
+    margin-bottom: 2px;
+    color: oklch(0.42 0.055 80);
+    font-size: 7.2pt;
+    text-transform: uppercase;
+  }
+
+  .schedule-print-operations p:only-child {
+    grid-column: 1 / -1;
   }
 
   .schedule-print-resources {
@@ -13393,27 +13458,29 @@ h1,
 
   .schedule-print-field-notes {
     display: grid;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 9px;
+    margin-top: 12px;
+    break-inside: avoid;
   }
 
   .schedule-print-field-notes strong {
-    color: #476455;
-    font-size: 7.5pt;
+    color: oklch(0.47 0.045 151);
+    font-size: 7.3pt;
     text-transform: uppercase;
   }
 
   .schedule-print-field-notes span,
   .schedule-print-empty span {
     display: block;
-    height: 10px;
-    border-bottom: 1px solid #b9c5be;
+    height: 11px;
+    border-bottom: 1px solid oklch(0.78 0.018 145);
   }
 
   .schedule-print-empty {
-    margin-top: 24px;
-    border: 1px solid #9db3a6;
-    padding: 24px;
+    margin-top: 26px;
+    border: 1px solid oklch(0.76 0.025 145);
+    background: oklch(0.99 0.004 145);
+    padding: 28px;
   }
 
   .schedule-print-empty h2 {
@@ -13425,10 +13492,10 @@ h1,
   }
 
   .schedule-print-region > footer {
-    margin-top: 12px;
-    border-top: 1px solid #d3ddd7;
-    padding-top: 6px;
-    color: #65736b;
+    margin-top: 14px;
+    border-top: 1px solid oklch(0.87 0.015 145);
+    padding-top: 7px;
+    color: oklch(0.52 0.015 145);
     font-size: 7.5pt;
     text-align: center;
   }

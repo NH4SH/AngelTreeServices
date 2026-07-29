@@ -5,8 +5,8 @@ import { recordActivity } from "@/lib/activity-log";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { getQuoteDetail } from "@/lib/data/quotes";
-import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
-import { invoiceEmailTemplate } from "@/lib/email/templates";
+import type { CustomerDocumentEmailEdits } from "@/lib/documents/email-drafts";
+import { invoiceEmailTemplate, quoteEmailTemplate } from "@/lib/email/templates";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
   createOrGetInvoicePortalTokenRecord,
@@ -62,17 +62,26 @@ export async function sendQuoteEmail(
     return { status: "error", message: "This quote is no longer open for sending." };
   }
 
+  const submittedDraft = readCustomerDocumentEmailEdits(formData);
+  if (submittedDraft.error) {
+    return { status: "error", message: submittedDraft.error };
+  }
+
   const portalLink = await getQuotePortalLinkForEmail(auth, detail.data.id, formData);
 
   if (portalLink.error) {
     return { status: "error", message: portalLink.error };
   }
 
-  const template = generateQuoteEmailDraft(detail.data, { portalUrl: portalLink.url });
+  const template = quoteEmailTemplate(detail.data, {
+    edits: submittedDraft.edits,
+    portalUrl: portalLink.url,
+  });
   const result = await sendTransactionalEmail({
     to: recipient,
     subject: template.subject,
-    text: template.body,
+    text: template.text,
+    html: template.html,
     emailType: "quote",
     relatedCustomerId: detail.data.customer_id,
     relatedJobId: detail.data.job_id ?? null,
@@ -100,7 +109,12 @@ export async function sendQuoteEmail(
     await recordActivity(auth.supabase, {
       actorUserId: auth.userId,
       eventType: "quote_sent",
-      metadata: { delivery_method: "crm_email" },
+      metadata: {
+        delivery_method: "crm_email",
+        provider_message_id: result.providerMessageId,
+        subject: template.subject,
+        template_type: "branded_quote",
+      },
       subjectId: detail.data.id,
       subjectType: "quote",
     });
@@ -160,13 +174,21 @@ export async function sendInvoiceEmail(
     return { status: "error", message: "Paid and void invoices are closed for regular sending." };
   }
 
+  const submittedDraft = readCustomerDocumentEmailEdits(formData);
+  if (submittedDraft.error) {
+    return { status: "error", message: submittedDraft.error };
+  }
+
   const portalLink = await getInvoicePortalLinkForEmail(auth, detail.data.id, formData);
 
   if (portalLink.error) {
     return { status: "error", message: portalLink.error };
   }
 
-  const template = invoiceEmailTemplate(detail.data, { portalUrl: portalLink.url });
+  const template = invoiceEmailTemplate(detail.data, {
+    edits: submittedDraft.edits,
+    portalUrl: portalLink.url,
+  });
   const result = await sendTransactionalEmail({
     to: recipient,
     subject: template.subject,
@@ -197,7 +219,12 @@ export async function sendInvoiceEmail(
     await recordActivity(auth.supabase, {
       actorUserId: auth.userId,
       eventType: "invoice_sent",
-      metadata: { delivery_method: "crm_email" },
+      metadata: {
+        delivery_method: "crm_email",
+        provider_message_id: result.providerMessageId,
+        subject: template.subject,
+        template_type: "branded_invoice",
+      },
       subjectId: detail.data.id,
       subjectType: "invoice",
     });
@@ -356,4 +383,65 @@ function extractPortalToken(value: string, portalType: "quote" | "invoice") {
   }
 
   return trimmed;
+}
+
+function readCustomerDocumentEmailEdits(
+  formData: FormData,
+): { edits?: CustomerDocumentEmailEdits; error?: string } {
+  const fields = {
+    subject: "email_subject",
+    greeting: "email_greeting",
+    intro: "email_intro",
+    scopeText: "email_scope",
+    customerNotes: "email_customer_notes",
+    closing: "email_closing",
+  } as const;
+  const submitted = Object.values(fields).some((field) => formData.has(field));
+  if (!submitted) return {};
+
+  const limits: Record<keyof CustomerDocumentEmailEdits, number> = {
+    subject: 180,
+    greeting: 160,
+    intro: 1_200,
+    scopeText: 12_000,
+    customerNotes: 6_000,
+    closing: 1_200,
+  };
+  const edits = {} as CustomerDocumentEmailEdits;
+
+  for (const [key, field] of Object.entries(fields) as [keyof CustomerDocumentEmailEdits, string][]) {
+    const value = normalizeDraftText(String(formData.get(field) ?? ""));
+    if (value.length > limits[key]) {
+      return { error: `${draftFieldLabel(key)} is too long. Shorten it and try again.` };
+    }
+    if (key !== "customerNotes" && !value) {
+      return { error: `${draftFieldLabel(key)} is required.` };
+    }
+    edits[key] = value;
+  }
+
+  if (/[\r\n]/.test(edits.subject)) {
+    return { error: "Email subject must stay on one line." };
+  }
+
+  return { edits };
+}
+
+function normalizeDraftText(value: string) {
+  return value
+    .replaceAll("\r\n", "\n")
+    .replaceAll("\r", "\n")
+    .replaceAll(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+}
+
+function draftFieldLabel(field: keyof CustomerDocumentEmailEdits) {
+  return {
+    subject: "Email subject",
+    greeting: "Greeting",
+    intro: "Introduction",
+    scopeText: "Scope",
+    customerNotes: "Customer-facing notes",
+    closing: "Closing",
+  }[field];
 }

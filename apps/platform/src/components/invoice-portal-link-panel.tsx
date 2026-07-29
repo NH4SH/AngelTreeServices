@@ -3,18 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Copy, ExternalLink, Link2, RotateCw, ShieldCheck, XCircle } from "lucide-react";
-import { EmailDraftCard } from "@/components/email-draft-card";
-import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
 import {
   createInvoicePortalLink,
   regenerateInvoicePortalLink,
   revokeInvoicePortalLink,
   type InvoicePortalTokenActionState,
 } from "@/lib/actions/invoice-portal-tokens";
-import {
-  generateInvoiceEmailDraft,
-  type InvoiceEmailDraftInput,
-} from "@/lib/documents/email-drafts";
 import type { InvoicePortalTokenSummary } from "@/lib/data/portal-invoice";
 import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
@@ -25,11 +19,9 @@ const initialState: InvoicePortalTokenActionState = {
 };
 
 export function InvoicePortalLinkPanel({
-  invoice,
   invoiceId,
   tokens,
 }: {
-  invoice: InvoiceEmailDraftInput;
   invoiceId: string;
   tokens: InvoicePortalTokenSummary[];
 }) {
@@ -143,7 +135,6 @@ export function InvoicePortalLinkPanel({
               <ExternalLink aria-hidden="true" size={17} />
               Open customer view
             </Link>
-            <SendInvoiceEmailForm invoiceId={invoiceId} portalUrl={latestLinkState.portalUrl} />
           </div>
           <p>Expires {latestLinkState.expiresAt ? formatDate(latestLinkState.expiresAt) : "after the configured window"}.</p>
           {copyFeedback ? <p className="email-copy-feedback" role="status">{copyFeedback}</p> : null}
@@ -194,13 +185,6 @@ export function InvoicePortalLinkPanel({
         </div>
       </details>
 
-      {latestLinkState.portalUrl ? (
-        <EmailDraftCard
-          draft={generateInvoiceEmailDraft(invoice, { portalUrl: latestLinkState.portalUrl })}
-          embedded
-          label="Invoice email draft with secure link"
-        />
-      ) : null}
     </section>
   );
 }

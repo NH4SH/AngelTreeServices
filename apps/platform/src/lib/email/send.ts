@@ -92,8 +92,8 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const message = getProviderErrorMessage(payload, response.status);
-      await logEmailEvent(input, "failed", null, message, recipient);
+      const message = getProviderErrorMessage(response.status);
+      await logEmailEvent(input, "failed", null, getProviderDiagnostic(payload, response.status), recipient);
       return {
         ok: false,
         configured: true,
@@ -113,8 +113,9 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
       retryable: false,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Email provider request failed.";
-    await logEmailEvent(input, "failed", null, message, recipient);
+    const diagnostic = error instanceof Error ? error.message : "Email provider request failed.";
+    const message = "Email delivery could not reach the provider. Your draft is still here; please try again.";
+    await logEmailEvent(input, "failed", null, diagnostic, recipient);
     return { ok: false, configured: true, message, providerMessageId: null, retryable: true };
   }
 }
@@ -192,7 +193,7 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function getProviderErrorMessage(payload: unknown, status: number) {
+function getProviderDiagnostic(payload: unknown, status: number) {
   if (payload && typeof payload === "object") {
     const maybeMessage = "message" in payload ? payload.message : null;
     const maybeError = "error" in payload ? payload.error : null;
@@ -207,4 +208,11 @@ function getProviderErrorMessage(payload: unknown, status: number) {
   }
 
   return `Email provider returned HTTP ${status}.`;
+}
+
+function getProviderErrorMessage(status: number) {
+  if (status === 401 || status === 403) return "Email delivery was rejected by the configured provider account. Check the email configuration before retrying.";
+  if (status === 429) return "Email delivery is temporarily rate-limited. Your draft is still here; wait a moment and try again.";
+  if (status >= 500) return "The email provider is temporarily unavailable. Your draft is still here; please try again.";
+  return "The email provider rejected this message. Check the recipient and draft, then try again.";
 }

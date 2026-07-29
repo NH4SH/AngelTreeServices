@@ -68,6 +68,14 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
   const emailSetup = getEmailSetupState();
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const lifecyclePreview = detail.data && canManuallyMarkSent ? await getRecordLifecyclePreview("quote", quoteId) : null;
+  const recipient = detail.data
+    ? detail.data.approval_contact?.email
+      ?? detail.data.recipient_contact?.email
+      ?? detail.data.customers?.email
+      ?? detail.data.organizations?.billing_email
+      ?? ""
+    : "";
+  const activePortalUrl = portalTokens.data.find((token) => token.portalUrl)?.portalUrl ?? undefined;
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -168,18 +176,22 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 </section>
 
                 <section className="email-draft-grid commerce-email-grid">
-                  <EmailDraftCard draft={generateQuoteEmailDraft(detail.data)} label="Quote email draft" />
                   <EmailDraftCard draft={generateQuoteFollowUpMessage(detail.data)} label="Quote follow-up draft" />
                 </section>
 
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<Send size={18} />} title="Quote email sending" />
+                  <PanelTitle icon={<Send size={18} />} title="Proposal email" />
+                  <p className="inline-empty">Review the customer-facing message and branded preview before sending. Delivery reuses the active secure link when available.</p>
                   <EmailSetupNotice configured={emailSetup.configured} />
                   <SendQuoteEmailForm
-                    disabled={!emailSetup.configured || !(detail.data.approval_contact?.email ?? detail.data.recipient_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) || isQuoteClosedForSending(detail.data.status)}
+                    disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
+                    documentHref={`/admin/quotes/${detail.data.id}/print`}
+                    draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                    portalUrl={activePortalUrl}
                     quoteId={detail.data.id}
+                    recipient={recipient}
                   />
-                  {!(detail.data.approval_contact?.email ?? detail.data.recipient_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) ? (
+                  {!recipient ? (
                     <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
                   ) : null}
                   {isQuoteClosedForSending(detail.data.status) ? (
@@ -313,11 +325,6 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
                 <section className="commerce-side-panel" id="portal-link">
                   {portalTokens.error ? <DataWarning message={`Customer portal links: ${portalTokens.error}`} /> : null}
                   <QuotePortalLinkPanel
-                    quoteDraftInput={{
-                      quote_number: detail.data.quote_number,
-                      customer_message: detail.data.customer_message,
-                      customers: detail.data.customers,
-                    }}
                     quoteId={detail.data.id}
                     tokens={portalTokens.data}
                   />

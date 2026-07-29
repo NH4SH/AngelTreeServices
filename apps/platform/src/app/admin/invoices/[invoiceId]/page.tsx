@@ -7,7 +7,6 @@ import { CommunicationControls } from "@/components/communication-controls";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { PortalEngagementPanel } from "@/components/portal-engagement";
-import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { ManualPaymentForm } from "@/components/manual-payment-form";
@@ -61,6 +60,14 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
   const lifecyclePreview = detail.data && canManageDelivery ? await getRecordLifecyclePreview("invoice", invoiceId) : null;
+  const recipient = detail.data
+    ? detail.data.accounts_payable_contact?.email
+      ?? detail.data.billing_contact?.email
+      ?? detail.data.customers?.email
+      ?? detail.data.organizations?.billing_email
+      ?? ""
+    : "";
+  const activePortalUrl = portalTokens.data.find((token) => token.portalUrl)?.portalUrl ?? undefined;
   const successfulPaymentCents = (detail.data?.payments ?? [])
     .filter((payment) => payment.status === "succeeded")
     .reduce((sum, payment) => sum + netSuccessfulPaymentPrincipal(payment), 0);
@@ -124,7 +131,6 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
             {canManageDelivery ? (
               <section className="invoice-delivery-grid" aria-label="Customer invoice delivery">
                 <InvoicePortalLinkPanel
-                  invoice={detail.data}
                   invoiceId={detail.data.id}
                   tokens={portalTokens.data}
                 />
@@ -137,12 +143,16 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   <SendInvoiceEmailForm
                     disabled={
                       !emailSetup.configured ||
-                      !(detail.data.accounts_payable_contact?.email ?? detail.data.billing_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) ||
+                      !recipient ||
                       ["paid", "void"].includes(detail.data.status)
                     }
+                    documentHref={`/admin/invoices/${detail.data.id}/print`}
+                    draft={generateInvoiceEmailDraft(detail.data, { portalUrl: activePortalUrl })}
                     invoiceId={detail.data.id}
+                    portalUrl={activePortalUrl}
+                    recipient={recipient}
                   />
-                  {!(detail.data.accounts_payable_contact?.email ?? detail.data.billing_contact?.email ?? detail.data.customers?.email ?? detail.data.organizations?.billing_email) ? (
+                  {!recipient ? (
                     <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
                   ) : null}
                 </section>
@@ -191,10 +201,6 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   ) : (
                     <EmptyInline>No line items yet.</EmptyInline>
                   )}
-                </section>
-
-                <section className="email-draft-grid commerce-email-grid">
-                  <EmailDraftCard draft={generateInvoiceEmailDraft(detail.data)} label="Invoice email draft" />
                 </section>
 
                 <section className="commerce-side-panel">

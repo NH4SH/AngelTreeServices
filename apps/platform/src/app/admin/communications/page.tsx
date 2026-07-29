@@ -34,6 +34,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
   const failed = communications.data.filter((item) => item.status === "failed");
   const recent = communications.data.filter((item) => !["pending", "failed"].includes(item.status)).slice(0, 20);
+  const leadViewLabel = leadView === "active" ? "Active leads" : leadView === "spam" ? "Spam leads" : "Archived leads";
 
   return (
     <PlatformFrame active="communications" roles={context.roles} userEmail={context.user.email}>
@@ -59,25 +60,25 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
 
         <section className="communication-metric-grid">
-          <Metric icon={<Globe2 size={19} />} label="Website leads" value={websiteLeads.count} />
-          <Metric icon={<CalendarClock size={19} />} label="Scheduled" value={pending.length} />
+          <Metric icon={<Globe2 size={19} />} label={leadViewLabel} value={websiteLeads.count} />
+          <Metric icon={<CalendarClock size={19} />} label="Pending messages" value={pending.length} />
           <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length} />
-          <Metric icon={<MailCheck size={19} />} label="Recently completed" value={recent.length} />
+          <Metric icon={<MailCheck size={19} />} label="Recent messages" value={recent.length} />
         </section>
 
         <section className="detail-panel" id="website-leads">
           <div className="panel-heading-row">
             <div>
               <h2 className="panel-title"><Globe2 size={18} />Website lead inbox</h2>
-              <p>Public requests are stored as legacy new-lead jobs until staff qualifies and converts them.</p>
+              <p>Website requests stay here until staff schedule an estimate, prepare a quote, archive them, or mark them as spam.</p>
             </div>
             {canManageSettings ? <Link className="secondary-action compact-action" href="/admin/communications/lead-intake">Lead intake diagnostics</Link> : null}
           </div>
           <ListSearch initialValue={params.q} label="Search website leads" placeholder="Search lead name, phone, email, address, service, status, or crew" />
           <nav className="filter-pills lead-view-filters" aria-label="Website lead view">
-            <Link aria-current={leadView === "active" ? "page" : undefined} href="/admin/communications#website-leads">Active</Link>
-            <Link aria-current={leadView === "spam" ? "page" : undefined} href="/admin/communications?lead_view=spam#website-leads">Spam</Link>
-            <Link aria-current={leadView === "archived" ? "page" : undefined} href="/admin/communications?lead_view=archived#website-leads">Archived</Link>
+            <Link aria-current={leadView === "active" ? "page" : undefined} href={leadViewHref("active", params.q)}>Active</Link>
+            <Link aria-current={leadView === "spam" ? "page" : undefined} href={leadViewHref("spam", params.q)}>Spam</Link>
+            <Link aria-current={leadView === "archived" ? "page" : undefined} href={leadViewHref("archived", params.q)}>Archived</Link>
           </nav>
           <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} />
           <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ lead_view: leadView === "active" ? undefined : leadView, q: params.q }} />
@@ -115,6 +116,14 @@ function positivePage(value?: string) {
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
+function leadViewHref(view: "active" | "spam" | "archived", query?: string) {
+  const params = new URLSearchParams();
+  if (view !== "active") params.set("lead_view", view);
+  if (query?.trim()) params.set("q", query.trim());
+  const search = params.toString();
+  return `/admin/communications${search ? `?${search}` : ""}#website-leads`;
+}
+
 function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; canManage: boolean; rows: WebsiteLeadInboxItem[] }) {
   if (!rows.length) return <p className="inline-empty">No leads in this view.</p>;
 
@@ -127,7 +136,10 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
               <h2>{lead.customerName}</h2>
               <p>{lead.sourceBadge} · {formatDateTime(lead.submittedAt)}</p>
             </div>
-            <span className="status-pill">{lead.currentStatus.replaceAll("_", " ")}</span>
+            <div className="lead-status-stack">
+              {lead.leadDisposition !== "active" ? <span className={`status-pill lead-${lead.leadDisposition}`}>{lead.leadDisposition}</span> : null}
+              <span className="status-pill">{lead.currentStatus.replaceAll("_", " ")}</span>
+            </div>
           </div>
           <dl className="record-details website-lead-details">
             <Detail label="Phone" value={lead.phone ?? "Not provided"} />
@@ -142,8 +154,8 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
           {lead.duplicateOfJobId ? <p className="data-warning">Possible duplicate of lead {lead.duplicateOfJobId}.</p> : null}
           <div className="record-actions">
             <Link href={`/admin/jobs/${lead.jobId}`}>Open lead</Link>
-            {lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}
-            {lead.email ? <a href={`mailto:${lead.email}`}>Email</a> : null}
+            {lead.leadDisposition !== "spam" && lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}
+            {lead.leadDisposition !== "spam" && lead.email ? <a href={`mailto:${lead.email}`}>Email</a> : null}
             {canManage && lead.leadDisposition === "active" && ["new_lead", "estimate_scheduled"].includes(lead.currentStatus)
               ? <Link href={`/admin/schedule?new=1&lead=${lead.jobId}`}>{lead.currentStatus === "estimate_scheduled" ? "Review estimate schedule" : "Schedule estimate"}</Link>
               : null}

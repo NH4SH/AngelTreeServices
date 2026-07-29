@@ -135,10 +135,15 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
             <div><strong>Notifications</strong><span>{unreadCount} unread</span></div>
             <Link href="/admin/notifications" onClick={() => setOpen(false)}>View all</Link>
           </header>
-          <div className="notification-popover-list">
-            {error ? <p className="notification-popover-state">{error}</p> : null}
-            {!error && notifications === null ? <p className="notification-popover-state"><LoaderCircle className="spin" size={18} />Loading…</p> : null}
-            {!error && notifications?.length === 0 ? <p className="notification-popover-state"><Check size={18} />No customer activity yet.</p> : null}
+          <div aria-busy={!error && notifications === null} aria-live="polite" className="notification-popover-list">
+            {error ? (
+              <div className="notification-popover-state notification-popover-error" role="alert">
+                <p>{error}</p>
+                <button onClick={() => { setNotifications(null); void fetchNotifications("recent"); }} type="button">Try again</button>
+              </div>
+            ) : null}
+            {!error && notifications === null ? <p className="notification-popover-state"><LoaderCircle aria-hidden="true" className="spin" size={18} />Loading notifications</p> : null}
+            {!error && notifications?.length === 0 ? <p className="notification-popover-state"><Check aria-hidden="true" size={18} />No customer activity yet.</p> : null}
             {notifications?.map((notification) => (
               <Link
                 className={notification.read_at ? "" : "is-unread"}
@@ -146,7 +151,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
                 key={notification.id}
                 onClick={() => markRead(notification)}
               >
-                <span className={`notification-category-dot ${notification.category}`} />
+                <span aria-hidden="true" className={`notification-category-dot ${notification.category}`} />
                 <span><strong>{notification.title}</strong><small>{notification.body}</small><time>{relativeTime(notification.created_at)}</time></span>
               </Link>
             ))}

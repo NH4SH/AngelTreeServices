@@ -254,7 +254,12 @@ function PartyEstimateDrawer({
           </div>
           <label>Access instructions<textarea defaultValue={selectedLocation.accessNotes} name="access_notes" rows={2} /></label>
           <label>Property notes<textarea defaultValue={selectedLocation.serviceNotes} name="service_notes" rows={2} /></label>
-        </div> : <p className="form-message warning">Choose a service property before scheduling.</p>}
+        </div> : (
+          <div className="lead-estimate-missing-property" role="status">
+            <strong>No active service property is available</strong>
+            <span>Add or restore a service location on the {source.partyType === "organization" ? "organization" : "customer"} record, then return here to schedule the estimate.</span>
+          </div>
+        )}
       </fieldset>
 
       <fieldset>
@@ -277,7 +282,7 @@ function PartyEstimateDrawer({
         <label>Owner/admin override reason<textarea name="eligibility_override_reason" placeholder="Only needed for a qualification warning" rows={2} /></label>
       </fieldset>
 
-      <p className="form-helper">Saving updates the selected contact and property. Repeated submissions reuse this appointment instead of creating a duplicate.</p>
+      <p className="form-helper">Saving updates the selected contact and property. If this request is submitted again, the existing appointment is updated instead of duplicated.</p>
       <button disabled={pending || !selectedLocation} type="submit"><CalendarPlus aria-hidden="true" size={18} />{pending ? "Scheduling..." : "Schedule estimate"}</button>
     </form>
   </>;

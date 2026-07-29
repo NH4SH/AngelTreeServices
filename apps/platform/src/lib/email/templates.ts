@@ -7,7 +7,14 @@ import type {
   QuoteDetail,
 } from "@/lib/types/database";
 import type { PublicLeadSubmission } from "@/lib/leads/intake";
-import { generateInvoiceEmailDraft, generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
+import {
+  applyCustomerDocumentEmailEdits,
+  generateInvoiceEmailDraft,
+  generateQuoteEmailDraft,
+  type CustomerDocumentEmailEdits,
+} from "@/lib/documents/email-drafts";
+import { renderCustomerDocumentEmailHtml } from "@/lib/email/customer-document-layout";
+import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 
 export type TransactionalEmailTemplate = {
   subject: string;
@@ -100,17 +107,30 @@ export function leadInternalNoticeTemplate(input: {
   return buildTemplate(subject, text);
 }
 
-export function quoteEmailTemplate(quote: QuoteDetail): TransactionalEmailTemplate {
-  const draft = generateQuoteEmailDraft(quote);
-  return buildTemplate(draft.subject, draft.body);
+export function quoteEmailTemplate(
+  quote: QuoteDetail,
+  options: { edits?: CustomerDocumentEmailEdits; portalUrl?: string } = {},
+): TransactionalEmailTemplate {
+  const generated = generateQuoteEmailDraft(quote, { portalUrl: options.portalUrl });
+  const draft = options.edits ? applyCustomerDocumentEmailEdits(generated, options.edits) : generated;
+  return {
+    subject: draft.subject,
+    text: draft.body,
+    html: renderCustomerDocumentEmailHtml(draft, { logoUrl: buildCanonicalAppUrl("/angel-tree-services-logo.jpg") }),
+  };
 }
 
 export function invoiceEmailTemplate(
   invoice: InvoiceDetail,
-  options: { portalUrl?: string } = {},
+  options: { edits?: CustomerDocumentEmailEdits; portalUrl?: string } = {},
 ): TransactionalEmailTemplate {
-  const draft = generateInvoiceEmailDraft(invoice, options);
-  return buildTemplate(draft.subject, draft.body);
+  const generated = generateInvoiceEmailDraft(invoice, { portalUrl: options.portalUrl });
+  const draft = options.edits ? applyCustomerDocumentEmailEdits(generated, options.edits) : generated;
+  return {
+    subject: draft.subject,
+    text: draft.body,
+    html: renderCustomerDocumentEmailHtml(draft, { logoUrl: buildCanonicalAppUrl("/angel-tree-services-logo.jpg") }),
+  };
 }
 
 function buildTemplate(subject: string, text: string): TransactionalEmailTemplate {

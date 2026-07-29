@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import { Clipboard, Copy, ExternalLink, Link2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
-import { EmailDraftCard } from "@/components/email-draft-card";
-import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import {
   createQuotePortalLink,
   regenerateQuotePortalLink,
   revokeQuotePortalLink,
   type PortalTokenActionState,
 } from "@/lib/actions/portal-tokens";
-import { generateQuoteEmailDraft, type QuoteEmailDraftInput } from "@/lib/documents/email-drafts";
 import type { QuotePortalTokenSummary } from "@/lib/data/portal-quote";
 import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
@@ -21,11 +18,9 @@ const initialState: PortalTokenActionState = {
 };
 
 export function QuotePortalLinkPanel({
-  quoteDraftInput,
   quoteId,
   tokens,
 }: {
-  quoteDraftInput: QuoteEmailDraftInput;
   quoteId: string;
   tokens: QuotePortalTokenSummary[];
 }) {
@@ -137,7 +132,6 @@ export function QuotePortalLinkPanel({
               <ExternalLink aria-hidden="true" size={17} />
               Open customer link
             </a>
-            <SendQuoteEmailForm portalUrl={latestLinkState.portalUrl} quoteId={quoteId} />
           <p>
             Expires {latestLinkState.expiresAt ? formatDate(latestLinkState.expiresAt) : "after the configured window"}.
           </p>
@@ -184,18 +178,12 @@ export function QuotePortalLinkPanel({
         ) : null}
       </div>
 
-      {latestLinkState.portalUrl ? (
-        <EmailDraftCard
-          draft={generateQuoteEmailDraft(quoteDraftInput, { portalUrl: latestLinkState.portalUrl })}
-          embedded
-          label="Quote email draft with secure link"
-        />
-      ) : (
+      {!latestLinkState.portalUrl ? (
         <p className="portal-link-note">
           <Clipboard aria-hidden="true" size={17} />
-          Generate a link to prepare a copyable quote email draft with the secure URL included.
+          Generate a link when you need to copy or open the customer view before sending.
         </p>
-      )}
+      ) : null}
     </section>
   );
 }

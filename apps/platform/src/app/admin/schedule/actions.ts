@@ -19,6 +19,7 @@ import type {
 export type AppointmentActionState = {
   status: "idle" | "success" | "error" | "warning";
   message: string;
+  eventId?: string;
   jobId?: string;
 };
 
@@ -42,6 +43,121 @@ const scheduleStatuses: ScheduleEventStatus[] = [
   "cancelled",
   "no_show",
 ];
+
+export async function scheduleLeadEstimate(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before scheduling an estimate." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can schedule website lead estimates." };
+  }
+
+  const leadJobId = getOptionalString(formData, "lead_job_id");
+  const contactName = limited(formData, "contact_name", 180);
+  const organizationName = limited(formData, "organization_name", 180);
+  const phone = limited(formData, "phone", 50);
+  const email = limited(formData, "email", 254).toLowerCase();
+  const street = limited(formData, "street", 240);
+  const city = limited(formData, "city", 120);
+  const state = limited(formData, "state", 2).toUpperCase();
+  const postalCode = limited(formData, "postal_code", 20);
+  const accessNotes = limited(formData, "access_notes", 2000);
+  const serviceNotes = limited(formData, "service_notes", 2000);
+  const serviceType = limited(formData, "service_type", 80);
+  const requestedScope = limited(formData, "requested_scope", 5000);
+  const internalNotes = limited(formData, "internal_notes", 5000);
+  const preferredContactMethod = limited(formData, "preferred_contact_method", 30);
+  const preferredTiming = limited(formData, "preferred_appointment_timing", 180);
+  const eventTitle = limited(formData, "event_title", 140);
+  const calendarNotes = limited(formData, "calendar_notes", 1000);
+  const assignedUserId = getOptionalString(formData, "assigned_user_id");
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+  const startsAt = parseDateTime(formData.get("starts_at"));
+
+  if (!leadJobId || !contactName || (!phone && !email) || !street || !city || state.length !== 2 || !serviceType || !requestedScope || !eventTitle || !startsAt) {
+    return { status: "error", message: "Enter the estimate time and review the required contact, property, and work fields." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: "error", message: "Enter a valid customer email address or leave it blank." };
+  }
+
+  const eligibility = await checkAssignmentEligibility(
+    supabase,
+    user.id,
+    assignedUserId ? [assignedUserId] : [],
+    "estimate",
+    eligibilityOverrideReason,
+  );
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+  const { data, error } = await supabase.rpc("schedule_lead_estimate", {
+    p_access_notes: accessNotes || null,
+    p_assigned_user_id: assignedUserId,
+    p_calendar_notes: calendarNotes || null,
+    p_city: city,
+    p_contact_name: contactName,
+    p_email: email || null,
+    p_ends_at: null,
+    p_event_title: eventTitle,
+    p_internal_notes: internalNotes || null,
+    p_lead_job_id: leadJobId,
+    p_organization_name: organizationName || null,
+    p_phone: phone || null,
+    p_postal_code: postalCode || null,
+    p_preferred_appointment_timing: preferredTiming || null,
+    p_preferred_contact_method: preferredContactMethod || null,
+    p_requested_scope: requestedScope,
+    p_service_notes: serviceNotes || null,
+    p_service_type: serviceType,
+    p_starts_at: startsAt.toISOString(),
+    p_state: state,
+    p_street: street,
+  }).single();
+
+  if (error || !data) {
+    return { status: "error", message: safeStaffMessage(error?.message, "The estimate could not be scheduled. Your entries are still in the form.") };
+  }
+
+  const eventId = String((data as { event_id: string }).event_id);
+  const created = Boolean((data as { event_created: boolean }).event_created);
+  await recordActivity(supabase, {
+    actorType: roles.includes("owner") ? "owner" : "admin",
+    actorUserId: user.id,
+    destinationPath: `/admin/schedule?event=${eventId}`,
+    eventType: created ? "lead_estimate_scheduled" : "lead_estimate_schedule_updated",
+    idempotencyKey: created ? `lead-estimate-scheduled:${eventId}` : null,
+    metadata: { schedule_event_id: eventId },
+    summary: created ? "Scheduled an estimate from a website lead." : "Updated the estimate scheduled from a website lead.",
+    subjectId: leadJobId,
+    subjectType: "job",
+  });
+  if (eligibility.warningCount) {
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning",
+      metadata: {
+        assigned_user_ids: assignedUserId ?? "",
+        reason: eligibilityOverrideReason,
+        warning_count: eligibility.warningCount,
+      },
+      subjectId: eventId,
+      subjectType: "schedule_event",
+    });
+  }
+
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(leadJobId);
+  return {
+    eventId,
+    status: "success",
+    message: created ? "Estimate scheduled. Opening the calendar event..." : "Estimate schedule updated. Opening the calendar event...",
+  };
+}
 
 export async function createScheduleCustomerJob(
   _previousState: AppointmentActionState,
@@ -690,6 +806,10 @@ export async function updateScheduleEventDetails(
 
 function getOptionalString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() || null;
+}
+
+function limited(formData: FormData, key: string, maxLength: number) {
+  return String(formData.get(key) ?? "").trim().slice(0, maxLength);
 }
 
 async function checkAssignmentEligibility(

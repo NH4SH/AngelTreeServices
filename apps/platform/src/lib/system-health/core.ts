@@ -47,6 +47,31 @@ export function boundedLatency(value: number | null | undefined) {
   return Math.max(0, Math.min(120_000, Math.round(value)));
 }
 
+export function classifyResendCredentialCheck(statusCode: number, errorName: string | null) {
+  if (statusCode >= 200 && statusCode < 300) {
+    return {
+      status: "operational" as const,
+      summary: "Resend API is reachable without sending an email.",
+    };
+  }
+  if (errorName === "restricted_api_key") {
+    return {
+      status: "operational" as const,
+      summary: "Resend recognized the configured send-only credential.",
+    };
+  }
+  if (errorName === "invalid_api_key" || errorName === "missing_api_key" || statusCode === 401 || statusCode === 403) {
+    return {
+      status: "outage" as const,
+      summary: "Resend rejected the configured credential.",
+    };
+  }
+  return {
+    status: "outage" as const,
+    summary: `Resend returned HTTP ${statusCode}.`,
+  };
+}
+
 export function uptimePercentage(
   checks: Array<{ checked_at: string; status: HealthStatus }>,
   since: Date,

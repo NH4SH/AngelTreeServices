@@ -121,7 +121,7 @@ The scheduled `.github/workflows/system-health-monitor.yml` workflow runs every 
 
 Internal critical components require two consecutive failures before an incident alert. Noncritical components require three. One successful check closes an incident. Check samples are retained for 35 days and resolved incidents for one year. The canary uses the real `/api/leads` validation and database-read path but exits before creating customers, jobs, emails, reporting events, or follow-ups.
 
-The safe checks do not create Stripe activity, authentication accounts, storage objects, customer records, or synthetic email. The scheduled-workflow check only reads overdue job state and prior activity; it never advances a job. Stripe dashboard webhook subscriptions, DNS ownership, Netlify deployment metadata, recurring-service invocations without durable run history, and provider billing limits cannot be verified safely with the current credentials and must still be reviewed in their provider dashboards.
+The safe checks do not create Stripe activity, authentication accounts, storage objects, customer records, or synthetic email. Resend send-only credentials are recognized through the provider's restricted-key response, while actual delivery health comes from existing email events and the communication queue. The scheduled-workflow check only reads overdue job state and prior activity; it never advances a job. Stripe dashboard webhook subscriptions, DNS ownership, Netlify deployment metadata, recurring-service invocations without durable run history, and provider billing limits cannot be verified safely with the current credentials and must still be reviewed in their provider dashboards.
 
 ## Supabase Auth Redirect URLs
 

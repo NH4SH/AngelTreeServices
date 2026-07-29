@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getHealthTransition, sanitizeHealthSummary, uptimePercentage } from "./core.ts";
+import { classifyResendCredentialCheck, getHealthTransition, sanitizeHealthSummary, uptimePercentage } from "./core.ts";
 import { healthComponents } from "./registry.ts";
 import { isAuthenticatedMonitoringCanary, monitoringSecretMatches } from "../security/monitoring-secret.ts";
 
@@ -40,4 +40,10 @@ test("monitoring authorization requires an exact 32+ character secret", () => {
   assert.equal(monitoringSecretMatches("short", "short"), false);
   assert.equal(isAuthenticatedMonitoringCanary(secret, secret, "contact-form-v1"), true);
   assert.equal(isAuthenticatedMonitoringCanary(secret, secret, "ordinary-submission"), false);
+});
+
+test("Resend send-only credentials are recognized without hiding invalid keys", () => {
+  assert.equal(classifyResendCredentialCheck(401, "restricted_api_key").status, "operational");
+  assert.equal(classifyResendCredentialCheck(403, "invalid_api_key").status, "outage");
+  assert.equal(classifyResendCredentialCheck(503, null).status, "outage");
 });

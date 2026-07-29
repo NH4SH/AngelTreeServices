@@ -71,7 +71,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
             {canManageSettings ? <Link className="secondary-action compact-action" href="/admin/communications/lead-intake">Lead intake diagnostics</Link> : null}
           </div>
           <ListSearch initialValue={params.q} label="Search website leads" placeholder="Search lead name, phone, email, address, service, status, or crew" />
-          <WebsiteLeadRows rows={websiteLeads.data} />
+          <WebsiteLeadRows canScheduleEstimates={canManageSettings} rows={websiteLeads.data} />
           <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ q: params.q }} />
         </section>
 
@@ -107,7 +107,7 @@ function positivePage(value?: string) {
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
-function WebsiteLeadRows({ rows }: { rows: WebsiteLeadInboxItem[] }) {
+function WebsiteLeadRows({ canScheduleEstimates, rows }: { canScheduleEstimates: boolean; rows: WebsiteLeadInboxItem[] }) {
   if (!rows.length) return <p className="inline-empty">No website leads have arrived yet.</p>;
 
   return (
@@ -136,7 +136,9 @@ function WebsiteLeadRows({ rows }: { rows: WebsiteLeadInboxItem[] }) {
             <Link href={`/admin/jobs/${lead.jobId}`}>Open lead</Link>
             {lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}
             {lead.email ? <a href={`mailto:${lead.email}`}>Email</a> : null}
-            <Link href={`/admin/schedule?new=1&event_type=estimate&job_id=${lead.jobId}`}>Schedule estimate</Link>
+            {canScheduleEstimates && ["new_lead", "estimate_scheduled"].includes(lead.currentStatus)
+              ? <Link href={`/admin/schedule?new=1&lead=${lead.jobId}`}>{lead.currentStatus === "estimate_scheduled" ? "Review estimate schedule" : "Schedule estimate"}</Link>
+              : null}
             <Link href={`/admin/quotes?new=1&job_id=${lead.jobId}`}>Create quote</Link>
           </div>
         </article>

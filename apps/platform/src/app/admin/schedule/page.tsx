@@ -51,7 +51,9 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getScheduleJobOptions } from "@/lib/data/jobs";
 import { getScheduleCustomerOptions } from "@/lib/data/customers";
 import { getScheduleCalendarData } from "@/lib/data/schedule";
+import { getLeadEstimatePrefill } from "@/lib/data/lead-estimate";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getDirectionsUrl } from "@/lib/maps";
 import type {
   AppointmentStatus,
@@ -74,8 +76,10 @@ type SchedulePageProps = {
     event?: string;
     event_type?: string;
     job?: string;
+    lead?: string;
     new?: string;
     q?: string;
+    scheduled?: string;
     status?: string;
     view?: string;
   }>;
@@ -115,6 +119,10 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     getScheduleJobOptions(),
     getScheduleCustomerOptions(),
   ]);
+  const canScheduleLeadEstimate = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const leadEstimate = params.lead && canScheduleLeadEstimate
+    ? await getLeadEstimatePrefill(params.lead)
+    : { data: null, error: params.lead ? "Owner or admin access is required to schedule a website lead." : null };
   const days = getVisibleDays(date, view);
   const groupedEntries = groupEntriesByDate(schedule.data.entries);
   const selectedAppointment =
@@ -160,9 +168,14 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <ListSearch initialValue={params.q} label="Search schedule" placeholder="Search customer, phone, address, event, job, or status" />
         </section>
 
-        {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error].filter(Boolean).map((message) => (
+        {[schedule.error, jobs.error, customers.error, selectedCommunications.error, selectedRecipients.error, leadEstimate.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
+        {params.scheduled === "1" ? (
+          <p className="form-message success" role="status">
+            Estimate scheduled. The lead and calendar are linked to this appointment.
+          </p>
+        ) : null}
 
         <section className="calendar-shell company-calendar-shell">
           <ScheduleToolbar
@@ -299,6 +312,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <ScheduleEventFormDrawer
             current={query}
             initialJobId={params.job}
+            leadEstimate={leadEstimate.data}
             customers={customers.data}
             jobs={jobs.data}
             users={schedule.data.users}
@@ -670,17 +684,19 @@ function ScheduleEventFormDrawer({
   customers,
   current,
   initialJobId,
+  leadEstimate,
   jobs,
   users,
 }: {
   customers: import("@/lib/types/database").ScheduleCustomerOption[];
   current: ScheduleQuery;
   initialJobId?: string;
+  leadEstimate: import("@/lib/schedule/lead-estimate").LeadEstimatePrefill | null;
   jobs: ScheduleJobOption[];
   users: ScheduleUser[];
 }) {
   const selectedDate = getDateAnchor(current.date);
-  const closeHref = buildScheduleHref(current, { new: undefined, job: undefined });
+  const closeHref = buildScheduleHref(current, { new: undefined, job: undefined, lead: undefined });
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="add-schedule-event-title" aria-modal="true">
@@ -693,6 +709,7 @@ function ScheduleEventFormDrawer({
           defaultStartsAt={toDrawerDateTime(selectedDate)}
           initialJobId={initialJobId}
           jobs={jobs}
+          leadEstimate={leadEstimate}
           users={users}
         />
       </aside>

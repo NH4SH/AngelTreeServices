@@ -5,7 +5,7 @@ import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 import { getStripeServerConfig, getStripeWebhookSecret } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { getSupabasePublicConfig } from "@/lib/supabase/config";
-import { boundedLatency, sanitizeHealthSummary, type HealthCheckResult } from "./core";
+import { boundedLatency, classifyResendCredentialCheck, sanitizeHealthSummary, type HealthCheckResult } from "./core";
 import { healthComponentByKey, healthComponents } from "./registry";
 
 const checkTimeoutMs = 8_000;
@@ -255,20 +255,20 @@ async function checkResend() {
   if (!config) return result("not_configured", "Transactional email is not configured.");
   const started = performance.now();
   const response = await timedFetch("https://api.resend.com/domains?limit=1", {
-    headers: { Authorization: `Bearer ${config.apiKey}` },
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "User-Agent": "angel-tree-system-health/1.0",
+    },
   });
   const latencyMs = boundedLatency(performance.now() - started);
-  if (response.status === 401 || response.status === 403) {
-    return result(
-      response.status === 401 ? "outage" : "unknown",
-      response.status === 401
-        ? "Resend rejected the configured credential."
-        : "Resend is configured, but this key cannot perform the non-sending verification.",
-      latencyMs,
-    );
-  }
-  if (!response.ok) return result("outage", `Resend returned HTTP ${response.status}.`, latencyMs);
-  return result("operational", "Resend API is reachable without sending an email.", latencyMs);
+  const errorName = response.ok ? null : await readProviderErrorName(response);
+  const credential = classifyResendCredentialCheck(response.status, errorName);
+  const lastObservedUsageAt = await getLatestSuccessfulEmailAt();
+  return {
+    ...result(credential.status, credential.summary, latencyMs),
+    details: errorName === "restricted_api_key" ? { credentialScope: "send_only" } : undefined,
+    lastObservedUsageAt,
+  };
 }
 
 async function checkCommunicationQueue() {
@@ -329,6 +329,29 @@ async function timedFetch(url: string, init: RequestInit = {}) {
     cache: "no-store",
     signal: AbortSignal.timeout(checkTimeoutMs),
   });
+}
+
+async function readProviderErrorName(response: Response) {
+  try {
+    const body = await response.json() as { name?: unknown; type?: unknown };
+    const value = typeof body.name === "string" ? body.name : typeof body.type === "string" ? body.type : "";
+    return value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 80) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getLatestSuccessfulEmailAt() {
+  const supabase = getServiceRoleClient();
+  if (!supabase) return null;
+  const latest = await supabase
+    .from("email_events")
+    .select("sent_at")
+    .eq("status", "sent")
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return latest.data?.sent_at ?? null;
 }
 
 function result(status: HealthCheckResult["status"], summary: string, latencyMs: number | null = null): HealthCheckResult {

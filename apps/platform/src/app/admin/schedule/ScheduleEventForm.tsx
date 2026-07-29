@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
-import { CalendarPlus, MapPinned, Save, Search, X } from "lucide-react";
+import { CalendarPlus, Clock3, MapPinned, Save, Search, UserRound, X } from "lucide-react";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
 import {
   createScheduleEvent,
   createScheduleCustomerJob,
+  scheduleLeadEstimate,
   updateScheduleEventDetails,
   type AppointmentActionState,
 } from "./actions";
 import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
+import { defaultEstimateStart, type LeadEstimatePrefill } from "@/lib/schedule/lead-estimate";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -47,6 +49,7 @@ export function ScheduleEventDrawerContent({
   defaultStartsAt,
   initialJobId,
   jobs,
+  leadEstimate,
   users,
 }: {
   closeHref: string;
@@ -55,6 +58,7 @@ export function ScheduleEventDrawerContent({
   defaultStartsAt?: string;
   initialJobId?: string;
   jobs: ScheduleJobOption[];
+  leadEstimate?: LeadEstimatePrefill | null;
   users: ScheduleUser[];
 }) {
   const [eventType, setEventType] = useState<ScheduleEventType>("job");
@@ -69,6 +73,15 @@ export function ScheduleEventDrawerContent({
       return terms.every((term) => searchable.includes(term));
     });
   }, [jobSearch, jobs]);
+
+  if (leadEstimate) {
+    return <LeadEstimateDrawer
+      closeHref={closeHref}
+      defaultStartsAt={defaultStartsAt ?? ""}
+      lead={leadEstimate}
+      users={users}
+    />;
+  }
 
   return <>
     <div className="appointment-drawer-header schedule-drawer-header">
@@ -130,6 +143,141 @@ export function ScheduleEventDrawerContent({
         <QuickScheduleJobForm customers={customers} />
       </>}
     </div> : <AddScheduleEventForm defaultStartsAt={defaultStartsAt} eventType={eventType} jobs={jobs} users={users} />}
+  </>;
+}
+
+type LeadEstimateActionState = AppointmentActionState & { eventId?: string };
+
+function LeadEstimateDrawer({
+  closeHref,
+  defaultStartsAt,
+  lead,
+  users,
+}: {
+  closeHref: string;
+  defaultStartsAt: string;
+  lead: LeadEstimatePrefill;
+  users: ScheduleUser[];
+}) {
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(scheduleLeadEstimate, initialState as LeadEstimateActionState);
+
+  useEffect(() => {
+    if (!state.eventId || state.status !== "success") return;
+    const url = new URL(closeHref, window.location.origin);
+    url.searchParams.set("event", state.eventId);
+    url.searchParams.set("scheduled", "1");
+    router.replace(`${url.pathname}${url.search}`);
+  }, [closeHref, router, state.eventId, state.status]);
+
+  return <>
+    <div className="appointment-drawer-header schedule-drawer-header">
+      <div>
+        <span>Website lead · {lead.leadSource}</span>
+        <h2 id="add-schedule-event-title">Schedule estimate</h2>
+        <p>Scheduling {lead.organizationName || lead.contactName}. Intake details are already filled in and remain editable.</p>
+      </div>
+      <Link aria-label="Close estimate scheduling" href={closeHref}>
+        <X aria-hidden="true" size={17} />
+      </Link>
+    </div>
+
+    <section className="lead-estimate-context" aria-label="Originating lead">
+      <UserRound aria-hidden="true" size={20} />
+      <div>
+        <strong>{lead.contactName}</strong>
+        <span>Received {new Date(lead.submittedAt).toLocaleString()} · Lead {lead.leadJobId.slice(0, 8).toUpperCase()}</span>
+      </div>
+      <Link href={`/admin/jobs/${lead.leadJobId}`}>Open lead</Link>
+    </section>
+
+    <form
+      className="crm-form lead-estimate-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void action(new FormData(event.currentTarget));
+      }}
+    >
+      <input name="lead_job_id" type="hidden" value={lead.leadJobId} />
+      <FormMessage state={state} />
+
+      <section className="lead-estimate-time-section">
+        <div><Clock3 aria-hidden="true" size={20} /><span><strong>Choose the estimate time</strong><small>Everything else came from the customer’s request.</small></span></div>
+        <label>
+          Estimate date and time
+          <input
+            defaultValue={defaultEstimateStart(lead.existingStartsAt, defaultStartsAt)}
+            name="starts_at"
+            required
+            type="datetime-local"
+          />
+        </label>
+      </section>
+
+      <fieldset>
+        <legend>Customer contact</legend>
+        {lead.partyType === "organization" ? <label>Organization name<input defaultValue={lead.organizationName} name="organization_name" required /></label> : null}
+        <div className="form-grid-two">
+          <label>Contact name<input defaultValue={lead.contactName} name="contact_name" required /></label>
+          <label>Phone<input defaultValue={lead.phone} inputMode="tel" name="phone" /></label>
+          <label>Email<input defaultValue={lead.email} name="email" type="email" /></label>
+          <label>Preferred contact
+            <select defaultValue={lead.preferredContactMethod} name="preferred_contact_method">
+              <option value="">Not specified</option>
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="text">Text</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Service location</legend>
+        <label>Street address<input defaultValue={lead.street} name="street" required /></label>
+        <div className="form-grid-three">
+          <label>City<input defaultValue={lead.city} name="city" required /></label>
+          <label>State<input defaultValue={lead.state} maxLength={2} name="state" required /></label>
+          <label>ZIP<input defaultValue={lead.postalCode} name="postal_code" /></label>
+        </div>
+        <label>Access instructions<textarea defaultValue={lead.accessNotes} name="access_notes" placeholder="Gate, parking, pets, or where to meet" rows={2} /></label>
+        <label>Property/customer notes<textarea defaultValue={lead.serviceNotes} name="service_notes" rows={2} /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Requested work</legend>
+        <label>Service
+          <select defaultValue={lead.serviceType} name="service_type">
+            <option value="tree_removal">Tree removal</option>
+            <option value="trimming">Trimming</option>
+            <option value="stump_grinding">Stump grinding</option>
+            <option value="landscaping">Landscaping</option>
+            <option value="lawn_care">Lawn care</option>
+            <option value="emergency">Emergency</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>Work description<textarea defaultValue={lead.requestedScope} name="requested_scope" required rows={5} /></label>
+        <label>Requested date or window<input defaultValue={lead.preferredTiming} name="preferred_appointment_timing" placeholder="No preference supplied" /></label>
+        <label>Intake details<textarea defaultValue={lead.internalNotes} name="internal_notes" rows={3} /></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Calendar details</legend>
+        <label>Calendar title<input defaultValue={lead.eventTitle} name="event_title" required /></label>
+        <label>Estimator
+          <select defaultValue={lead.assignedUserId} name="assigned_user_id">
+            <option value="">Unassigned</option>
+            {users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Unnamed team member"}</option>)}
+          </select>
+        </label>
+        <label>Schedule notes<textarea defaultValue={lead.calendarNotes} name="calendar_notes" rows={3} /></label>
+        <label>Owner/admin override reason<textarea name="eligibility_override_reason" placeholder="Only needed if the selected estimator has a qualification warning" rows={2} /></label>
+      </fieldset>
+
+      <p className="form-helper">Saving updates this lead and its existing customer or organization and property. It does not create another customer, lead, or estimate event.</p>
+      <button disabled={pending} type="submit"><CalendarPlus aria-hidden="true" size={18} />{pending ? "Scheduling..." : lead.eventId ? "Update estimate" : "Schedule estimate"}</button>
+    </form>
   </>;
 }
 

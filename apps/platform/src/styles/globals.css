@@ -11721,6 +11721,114 @@ h1,
   width: min(1180px, calc(100vw - 20px));
 }
 
+.schedule-event-drawer:has(.lead-estimate-form) {
+  background: oklch(.988 .005 154);
+  border-color: oklch(.7 .025 154 / .58);
+  width: min(820px, calc(100vw - 20px));
+}
+
+.schedule-event-drawer:has(.lead-estimate-form) .schedule-drawer-header {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: inset 0 3px 0 var(--color-green);
+  padding: 14px 16px;
+}
+
+.lead-estimate-context {
+  align-items: center;
+  background: var(--color-surface-green);
+  border: 1px solid oklch(.82 .034 154 / .75);
+  border-radius: 11px;
+  color: var(--color-charcoal);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin-top: 14px;
+  padding: 12px 14px;
+}
+
+.lead-estimate-context > svg {
+  color: var(--color-green);
+}
+
+.lead-estimate-context > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lead-estimate-context span {
+  color: var(--color-muted);
+  font-size: .78rem;
+  overflow-wrap: anywhere;
+}
+
+.lead-estimate-context a {
+  color: var(--color-forest);
+  font-size: .84rem;
+  font-weight: 750;
+}
+
+.lead-estimate-form {
+  gap: 14px;
+  padding-bottom: 16px;
+}
+
+.lead-estimate-form fieldset {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+  padding: 13px;
+}
+
+.lead-estimate-form legend {
+  color: var(--color-forest);
+  font-size: .86rem;
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.lead-estimate-time-section {
+  background: oklch(.955 .035 100);
+  border: 1px solid oklch(.78 .08 95 / .7);
+  border-radius: 11px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, .85fr);
+  padding: 14px;
+}
+
+.lead-estimate-time-section > div {
+  align-items: flex-start;
+  display: flex;
+  gap: 9px;
+}
+
+.lead-estimate-time-section > div > svg {
+  color: oklch(.43 .1 80);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.lead-estimate-time-section span {
+  display: grid;
+  gap: 3px;
+}
+
+.lead-estimate-time-section small {
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.lead-estimate-form > button[type="submit"] {
+  min-height: 48px;
+}
+
 .schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -12165,6 +12273,7 @@ h1,
 }
 
 @media (max-width: 560px) {
+  .schedule-event-drawer:has(.lead-estimate-form),
   .schedule-event-drawer:has(.schedule-job-flow) {
     border: 0;
     border-radius: 0;
@@ -12172,6 +12281,18 @@ h1,
     margin: 0;
     padding: 12px;
     width: 100vw;
+  }
+
+  .lead-estimate-context {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .lead-estimate-context a {
+    grid-column: 2;
+  }
+
+  .lead-estimate-time-section {
+    grid-template-columns: 1fr;
   }
 
   .schedule-event-drawer:has(.schedule-job-flow) .schedule-drawer-header {

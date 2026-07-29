@@ -29,6 +29,7 @@ export type SendEmailInput = {
 export type SendEmailResult = {
   ok: boolean;
   configured: boolean;
+  historyRecorded: boolean;
   message: string;
   providerMessageId: string | null;
   retryable: boolean;
@@ -60,16 +61,16 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
 
   if (!isValidEmail(recipient)) {
     const message = "Recipient email address is missing or invalid.";
-    await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: true, message, providerMessageId: null, retryable: false };
+    const historyRecorded = await logEmailEvent(input, "failed", null, message);
+    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
   const config = getEmailProviderConfig();
 
   if (!config) {
     const message = "Email sending is not configured. Drafts are still available.";
-    await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: false, message, providerMessageId: null, retryable: false };
+    const historyRecorded = await logEmailEvent(input, "failed", null, message);
+    return { ok: false, configured: false, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
   try {
@@ -93,10 +94,11 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
 
     if (!response.ok) {
       const message = getProviderErrorMessage(response.status);
-      await logEmailEvent(input, "failed", null, getProviderDiagnostic(payload, response.status), recipient);
+      const historyRecorded = await logEmailEvent(input, "failed", null, getProviderDiagnostic(payload, response.status), recipient);
       return {
         ok: false,
         configured: true,
+        historyRecorded,
         message,
         providerMessageId: null,
         retryable: response.status === 429 || response.status >= 500 || isConcurrentIdempotencyError(payload),
@@ -104,19 +106,22 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     }
 
     const providerMessageId = typeof payload.id === "string" ? payload.id : null;
-    await logEmailEvent(input, "sent", providerMessageId, null, recipient);
+    const historyRecorded = await logEmailEvent(input, "sent", providerMessageId, null, recipient);
     return {
       ok: true,
       configured: true,
-      message: "Email sent.",
+      historyRecorded,
+      message: historyRecorded
+        ? "Email accepted by the email provider and recorded in delivery history."
+        : "Email accepted by the email provider, but its CRM delivery history could not be recorded.",
       providerMessageId,
       retryable: false,
     };
   } catch (error) {
     const diagnostic = error instanceof Error ? error.message : "Email provider request failed.";
     const message = "Email delivery could not reach the provider. Your draft is still here; please try again.";
-    await logEmailEvent(input, "failed", null, diagnostic, recipient);
-    return { ok: false, configured: true, message, providerMessageId: null, retryable: true };
+    const historyRecorded = await logEmailEvent(input, "failed", null, diagnostic, recipient);
+    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: true };
   }
 }
 
@@ -156,12 +161,12 @@ async function logEmailEvent(
   const supabase = input.supabase ?? getServiceRoleClient();
 
   if (!supabase) {
-    return;
+    return false;
   }
 
   const recipientEmail = (recipientOverride ?? input.to.trim().toLowerCase()) || "unknown";
 
-  await supabase.from("email_events").insert({
+  const { error } = await supabase.from("email_events").insert({
     related_customer_id: input.relatedCustomerId ?? null,
     related_job_id: input.relatedJobId ?? null,
     related_quote_id: input.relatedQuoteId ?? null,
@@ -181,6 +186,7 @@ async function logEmailEvent(
     sent_by_user_id: input.sentByUserId ?? null,
     sent_at: status === "sent" ? new Date().toISOString() : null,
   });
+  return !error;
 }
 
 function isConcurrentIdempotencyError(payload: unknown) {

@@ -31,9 +31,9 @@ export function EmailHistoryList({ events }: { events: EmailEvent[] }) {
               {formatEmailType(event.email_type)} to {event.recipient_email}
             </small>
             <small>
-              {event.status === "sent" ? "Sent" : "Failed"} {formatDateTime(event.sent_at ?? event.created_at)}
-              {event.provider_message_id ? `, ${event.provider_message_id}` : ""}
+              {event.status === "sent" ? "Accepted by email provider" : "Delivery attempt failed"} {formatDateTime(event.sent_at ?? event.created_at)}
             </small>
+            {event.provider_message_id ? <small>Provider reference: {event.provider_message_id}</small> : null}
             {event.error_message ? <p>{event.error_message}</p> : null}
           </div>
         </article>

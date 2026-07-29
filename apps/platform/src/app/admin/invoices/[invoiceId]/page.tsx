@@ -204,7 +204,8 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 </section>
 
                 <section className="commerce-side-panel">
-                  <PanelTitle icon={<Send size={18} />} title="Email history" />
+                  <PanelTitle icon={<Send size={18} />} title="Email delivery history" />
+                  <p className="inline-empty">Provider accepted confirms the email service accepted the message. Customer opens are tracked separately through the secure link.</p>
                   <EmailHistoryList events={emailEvents.data} />
                 </section>
 

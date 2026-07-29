@@ -113,6 +113,10 @@ function CustomerDocumentEmailComposer({
     regenerationRequestedRef.current = false;
   }, [initialEdits, refreshing]);
 
+  useEffect(() => {
+    if (state.status === "success") router.refresh();
+  }, [router, state.status]);
+
   function update<K extends keyof CustomerDocumentEmailEdits>(key: K, value: CustomerDocumentEmailEdits[K]) {
     setEdits((current) => ({ ...current, [key]: value }));
   }
@@ -188,6 +192,7 @@ function CustomerDocumentEmailComposer({
           <div><span>PDF attachment</span><strong>Available through the secure page</strong></div>
           <div><span>Secure link</span><strong>{portalUrl ? "Active" : "Created securely when sent"}</strong></div>
         </div>
+        <FormMessage state={state} />
         <div className="email-composer-fields">
           <ComposerTextField label="Subject" maxLength={180} name="email_subject" onChange={(event) => update("subject", event.target.value)} onReset={() => resetField("subject")} required value={edits.subject} />
           <ComposerTextField label="Greeting" maxLength={160} name="email_greeting" onChange={(event) => update("greeting", event.target.value)} onReset={() => resetField("greeting")} required value={edits.greeting} />
@@ -229,7 +234,6 @@ function CustomerDocumentEmailComposer({
           ) : <pre className="email-plain-text-preview">{plainText}</pre>}
         </section>
 
-        <FormMessage state={state} />
         <footer>
           <button className="secondary-action" disabled={pending} onClick={() => setOpen(false)} type="button">Cancel</button>
           <button className="secondary-action" disabled={pending} onClick={reset} type="button">

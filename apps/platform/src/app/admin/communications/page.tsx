@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, CalendarClock, Globe2, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
 import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
+import { EmailHistoryList } from "@/components/email-history";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -14,6 +15,7 @@ import {
   getWebsiteLeadInbox,
   type WebsiteLeadInboxItem,
 } from "@/lib/data/communications";
+import { getEmailEvents } from "@/lib/data/email-events";
 import type { CustomerCommunication } from "@/lib/types/database";
 import { LeadLifecycleActions } from "./LeadLifecycleActions";
 
@@ -24,16 +26,19 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const context = await getAuthenticatedPlatformContext("/admin/communications");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
 
-  const [settings, communications, websiteLeads] = await Promise.all([
+  const [settings, communications, websiteLeads, emailEvents] = await Promise.all([
     getCommunicationSettings(),
     getCustomerCommunications({ limit: 100 }),
     getWebsiteLeadInbox({ disposition: leadView, limit: 24, page, query: params.q }),
+    getEmailEvents({ types: ["quote", "invoice", "change_order"], limit: 100 }),
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const canDeleteLeads = context.roles.includes("owner");
   const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
   const failed = communications.data.filter((item) => item.status === "failed");
   const recent = communications.data.filter((item) => !["pending", "failed"].includes(item.status)).slice(0, 20);
+  const acceptedEmailCount = emailEvents.data.filter((item) => item.status === "sent").length;
+  const failedEmailCount = emailEvents.data.filter((item) => item.status === "failed").length;
   const leadViewLabel = leadView === "active" ? "Active leads" : leadView === "spam" ? "Spam leads" : "Archived leads";
 
   return (
@@ -58,12 +63,13 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         {settings.error ? <Warning message={settings.error} /> : null}
         {communications.error ? <Warning message={communications.error} /> : null}
         {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
+        {emailEvents.error ? <Warning message={`Email delivery history: ${emailEvents.error}`} /> : null}
 
         <section className="communication-metric-grid">
           <Metric icon={<Globe2 size={19} />} label={leadViewLabel} value={websiteLeads.count} />
           <Metric icon={<CalendarClock size={19} />} label="Pending messages" value={pending.length} />
-          <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length} />
-          <Metric icon={<MailCheck size={19} />} label="Recent messages" value={recent.length} />
+          <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length + failedEmailCount} />
+          <Metric icon={<MailCheck size={19} />} label="Provider accepted" value={acceptedEmailCount} />
         </section>
 
         <section className="detail-panel" id="website-leads">
@@ -89,13 +95,18 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
             <h2 className="panel-title"><CalendarClock size={18} />Scheduled reminders</h2>
             <CommunicationRows rows={pending} empty="No reminders are currently scheduled." />
           </article>
-          <article className="detail-panel" id="history">
+          <article className="detail-panel">
             <h2 className="panel-title"><AlertTriangle size={18} />Failed communications</h2>
             <CommunicationRows rows={failed} empty="No failed communications." />
           </article>
           <article className="detail-panel">
             <h2 className="panel-title"><MailCheck size={18} />Recent history</h2>
             <CommunicationRows rows={recent} empty="No communication history yet." />
+          </article>
+          <article className="detail-panel wide-detail-panel" id="history">
+            <h2 className="panel-title"><MailCheck size={18} />Quote and invoice email delivery</h2>
+            <p className="inline-empty">Provider accepted means Resend accepted the message for delivery. It does not prove the recipient opened it or that every receiving mail server placed it in the inbox.</p>
+            <EmailHistoryList events={emailEvents.data} />
           </article>
         </section>
 

@@ -135,7 +135,14 @@ export async function sendQuoteEmail(
   if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
   if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
-    ? { status: "success", message: portalLink.created ? "Quote email sent and marked sent." : "Quote email resent using the existing customer link." }
+    ? {
+        status: "success",
+        message: result.historyRecorded
+          ? portalLink.created
+            ? "Quote email accepted by the provider, recorded in delivery history, and marked sent."
+            : "Quote email accepted by the provider and recorded in delivery history using the existing customer link."
+          : "Quote email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
+      }
     : { status: "error", message: result.message };
 }
 
@@ -241,7 +248,14 @@ export async function sendInvoiceEmail(
   if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
   if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
-    ? { status: "success", message: portalLink.created ? "Invoice email sent and marked sent." : "Invoice email resent using the existing customer link." }
+    ? {
+        status: "success",
+        message: result.historyRecorded
+          ? portalLink.created
+            ? "Invoice email accepted by the provider, recorded in delivery history, and marked sent."
+            : "Invoice email accepted by the provider and recorded in delivery history using the existing customer link."
+          : "Invoice email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
+      }
     : { status: "error", message: result.message };
 }
 

@@ -21,7 +21,7 @@ const crewJobSelect = `
   service_locations(label, street, city, state, postal_code, access_notes, gate_code, service_notes),
   job_photos(photo_type),
   notes(id, visibility, body, created_at),
-  schedule_events(id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))
+  schedule_events:schedule_events!schedule_events_job_id_fkey(id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))
 `;
 
 type CrewAccessContext = {

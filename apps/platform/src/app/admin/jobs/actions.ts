@@ -213,7 +213,7 @@ async function findWorkSessionConflicts(supabase: Awaited<ReturnType<typeof crea
   const currentIds = sessions.map((session) => session.id).filter((id): id is string => Boolean(id));
   let query = supabase
     .from("schedule_events")
-    .select("id, title, starts_at, ends_at, jobs(id, service_type), schedule_event_assignments(user_id, profiles(full_name, email))")
+    .select("id, title, starts_at, ends_at, jobs:jobs!schedule_events_job_id_fkey(id, service_type), schedule_event_assignments(user_id, profiles(full_name, email))")
     .in("status", ["scheduled", "confirmed", "in_progress"])
     .lt("starts_at", rangeEnd.toISOString())
     .gt("ends_at", rangeStart.toISOString());

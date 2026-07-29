@@ -287,7 +287,7 @@ async function resolveCommunicationContext(
   if (recordType === "schedule_event" && communicationType !== "quote_follow_up") {
     const { data, error } = await supabase
       .from("schedule_events")
-      .select("id, job_id, status, event_type, starts_at, updated_at, jobs(id, customers:customers!jobs_customer_id_fkey(id, email), organizations(id, billing_email))")
+      .select("id, job_id, status, event_type, starts_at, updated_at, jobs:jobs!schedule_events_job_id_fkey(id, customers:customers!jobs_customer_id_fkey(id, email), organizations(id, billing_email))")
       .eq("id", recordId)
       .maybeSingle();
     const job = one<{ id: string; customers: unknown; organizations: unknown }>(data?.jobs);

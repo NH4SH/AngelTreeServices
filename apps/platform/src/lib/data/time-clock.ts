@@ -229,7 +229,7 @@ export async function getAssignedScheduleEventsForUser(
   let query = supabase
     .from("schedule_events")
     .select(
-      "*, jobs(id, customer_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
+      "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))",
     )
     .in("status", ["scheduled", "confirmed", "in_progress"])
     .order("starts_at", { ascending: true });

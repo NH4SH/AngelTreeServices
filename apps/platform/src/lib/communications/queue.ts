@@ -205,7 +205,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("schedule_events")
-    .select("id, event_type, status, starts_at, ends_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+    .select("id, event_type, status, starts_at, ends_at, created_at, updated_at, job_id, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
     .in("event_type", ["estimate", "job", "maintenance", "emergency"])
     .in("status", ["scheduled", "confirmed"])
     .not("job_id", "is", null)

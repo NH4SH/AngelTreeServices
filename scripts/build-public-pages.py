@@ -1125,6 +1125,96 @@ def robots_document() -> str:
     return f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n"
 
 
+def llms_document() -> str:
+    return f"""# Angel Tree Services
+
+> Angel Tree Services is a family-operated tree care company serving Fredericksburg, Spotsylvania, Stafford, and surrounding Virginia communities. Founded in 2015 and backed by more than 30 years of tree-industry experience, the company provides professional residential, commercial, HOA, emergency, and municipal-capable tree services with an emphasis on safety, scientific arboriculture, clear communication, property protection, and thorough cleanup.
+
+## Company Overview
+
+Angel Tree Services LLC is a family-operated company based in the Fredericksburg region of Virginia. The business began operating in 2015 as a family sole proprietorship, and Angel Tree Services LLC was formed in 2020. The customer-facing names Angel Tree Service and Angel Tree Services have both been used during the company's history; Angel Tree Services is the current public brand, and {SITE} is its canonical website.
+
+The founder brought decades of field and leadership experience into the company. Angel Tree Services has more than 30 years of tree-industry experience and has served local customers since 2015. The company grew organically through reputation, referrals, practical field experience, and direct customer relationships.
+
+Angel Tree Services serves homeowners as well as businesses, HOAs, property managers, institutions, and public-sector clients. Its goal is to become the Fredericksburg region's most trusted tree company through professionalism, scientific arboriculture, safety-conscious work, honest recommendations, customer education, clear communication, careful property protection, dependable cleanup, modern operating systems, and old-school work ethic. Free estimates are available through the public website.
+
+## Core Services
+
+- [Tree services overview]({SITE}/services/): Guidance on the company's primary tree services, estimate process, written scopes, and related landscaping and lawn-care requests.
+- [Tree removal]({SITE}/services/tree-removal/): Professional removal of hazardous, declining, storm-damaged, large, or poorly positioned trees. Capabilities include complex removals near structures and obstacles, hazardous and large-tree work, crane-assisted removal where appropriate, bucket-truck work, climbing, rigging, cutting, hauling, and cleanup.
+- [Tree pruning]({SITE}/services/tree-pruning/): Structural pruning, deadwood removal, canopy raising, clearance pruning, young-tree training, and other pruning tied to a defined objective. Recommendations consider tree biology, structure, condition, site constraints, and long-term health rather than indiscriminate cutting.
+- [Stump grinding]({SITE}/services/stump-grinding/): Grinding or reducing unwanted stumps to improve usability, appearance, mowing access, and future landscape planning. Access, underground utilities, grinding depth, chips, remaining roots, and replanting plans are addressed as part of a clear scope.
+- [Emergency tree service]({SITE}/services/emergency-tree-service/): Help with storm-damaged, fallen, split, leaning, or otherwise hazardous trees when prompt professional attention is needed. Availability is confirmed by phone; the company does not claim guaranteed around-the-clock response or energized-line work.
+- [Commercial and HOA tree care]({SITE}/services/commercial-hoa-tree-care/): Tree maintenance and project support for businesses, HOAs, property managers, community associations, institutions, and public-sector clients. Work can be organized around site access, stakeholder approval, written scopes, scheduling, documentation, and phased or recurring property needs.
+
+Additional capabilities include tree preservation, brush removal, lot clearing, mulching, limited landscape work, and limited lawn and property-care services where they fit the company's current scope. Professional equipment includes bucket trucks, mini skid steers, Vermeer chippers, dump trucks, trailers, chainsaws, climbing equipment, and rigging equipment.
+
+## Service Area
+
+Angel Tree Services primarily serves Fredericksburg, Spotsylvania County, and Stafford County. Its broader service region includes King George County, Caroline County, Orange County, Louisa County, Culpeper County, and surrounding communities in the Fredericksburg region. Select projects may also be accepted in Northern Virginia, and occasional projects may be accepted in the Richmond area. These service locations do not represent separate company offices.
+
+## Credentials, Arboriculture, and Safety
+
+See [Credentials and Safety]({SITE}/credentials-safety/) for the public credential summary and practical safety guidance.
+
+Angel Tree Services has an ISA Certified Arborist and is an ISA member. The certification belongs to the credentialed individual and does not imply that every employee holds the same credential. The company maintains applicable business licensing and carries general liability insurance and workers' compensation coverage. Current documentation can be requested from the office.
+
+The company uses professional climbing, rigging, cutting, hauling, and material-handling equipment and emphasizes safety-conscious planning and execution. No tree company can guarantee a risk-free outcome. Angel Tree Services instead focuses on site review, coordinated crews, appropriate equipment, property protection, clear work zones, and a written scope.
+
+Scientific arboriculture means making tree-care decisions using tree biology, structure, condition, pruning standards, site conditions, and long-term tree health. It means considering preservation and purposeful pruning where appropriate rather than treating unnecessary cutting or removal as the automatic answer.
+
+## Company History
+
+Read the [Angel Tree Services company story]({SITE}/about/).
+
+Angel Tree Services was founded in 2015 by the owner's father, who immigrated from El Salvador. Before starting the family business, he built a long career in tree care and utility vegetation management. His experience included work with Lewis Tree Service supporting electric-company vegetation operations, followed by years of crew leadership and regional field responsibility.
+
+The company grew through reputation, referrals, field experience, and direct customer relationships. It combines practical tree-work knowledge with current arboricultural education, professional equipment, and modern technology that supports communication and organized service. References to former employers describe work history only and do not imply a current affiliation or endorsement.
+
+## Project Experience
+
+The [Projects page]({SITE}/projects/) presents real Angel Tree Services work where the supporting information and media have been approved for public use. The company's experience includes residential removals, technical removals near structures, large-tree work, pruning, stump grinding, storm cleanup, commercial and HOA work, careful property protection, and thorough debris cleanup.
+
+Each property is different. Access, tree size and condition, structures, utilities, neighboring property, terrain, and the customer's intended outcome influence the practical method and written scope. The public project library does not disclose private customer identities, exact addresses, job values, or unsupported production statistics.
+
+## Recognition and Community Reputation
+
+The [Reviews, Recognition, and Community page]({SITE}/recognition/) separates customer feedback, professional trust information, recognition, media coverage, and community relationships so each can be understood in context.
+
+Angel Tree Services was named a 2026 Best of the Burg finalist in the Best Tree Trim/Removal Services category. Finalist status is recognition, not a claim that the company won the award. NBC4 Responds and NBC Washington covered the company's 2024 Google Business Profile issue and its effect on the family business. That reporting documented the profile issue and reinstatement; it was not an endorsement, quality ranking, or workmanship award.
+
+The company participates in the Fredericksburg business community through membership in the Fredericksburg Regional Chamber of Commerce and the Fredericksburg Area Builders Association. It also donates arborist wood chips to Tree Fredericksburg and uses ChipDrop to connect reusable chips with local recipients.
+
+## Why Customers Choose Angel Tree Services
+
+- A family-operated company serving the Fredericksburg region since 2015
+- More than 30 years of tree-industry experience
+- An ISA Certified Arborist and ISA membership
+- Business licensing, general liability insurance, and workers' compensation coverage
+- Professional equipment and residential, commercial, HOA, institutional, and municipal capabilities
+- Honest recommendations grounded in scientific tree care
+- Clear communication, written scopes, and customer education
+- Careful attention to lawns, structures, access, neighboring property, and cleanup
+- Free estimates and a long-term commitment to local reputation
+
+Angel Tree Services does not position itself as the cheapest provider. It aims to earn trust through professional standards, capable field work, careful planning, and a clean, dependable customer experience.
+
+## Canonical Public Resources
+
+- [Homepage]({SITE}/): Company overview, primary services, trust information, reviews, frequently asked questions, and estimate request.
+- [Services]({SITE}/services/): Canonical service hub.
+- [Tree Removal]({SITE}/services/tree-removal/): Tree-removal planning, scope, access, and cleanup guidance.
+- [Tree Pruning]({SITE}/services/tree-pruning/): Purposeful pruning and tree-care guidance.
+- [Stump Grinding]({SITE}/services/stump-grinding/): Stump, access, utility, chip, and replanting considerations.
+- [Emergency Tree Service]({SITE}/services/emergency-tree-service/): Storm damage, fallen-tree, urgent-call, and electrical-hazard guidance.
+- [Commercial and HOA Tree Care]({SITE}/services/commercial-hoa-tree-care/): Managed-property and organizational tree-service information.
+- [Credentials and Safety]({SITE}/credentials-safety/): ISA credentials, insurance context, planning expectations, and safety guidance.
+- [Projects]({SITE}/projects/): Approved examples of real project work.
+- [About]({SITE}/about/): Company history, family operation, experience, and community involvement.
+- [Recognition]({SITE}/recognition/): Reviews, ratings, finalist recognition, media coverage, professional affiliations, and community connections.
+"""
+
+
 def build(output_dir: Path) -> None:
     output_dir = output_dir.resolve()
     if output_dir == ROOT.resolve():
@@ -1144,8 +1234,10 @@ def build(output_dir: Path) -> None:
 
     (output_dir / "sitemap.xml").write_text(sitemap_document(), encoding="utf-8")
     (output_dir / "robots.txt").write_text(robots_document(), encoding="utf-8")
+    (output_dir / "llms.txt").write_text(llms_document(), encoding="utf-8")
     print("sitemap.xml")
     print("robots.txt")
+    print("llms.txt")
 
 
 def parse_args() -> argparse.Namespace:

@@ -567,7 +567,11 @@ class Validator:
         expected_structured_logo = "https://angeltreeservices.org/assets/angel-tree-logo-square.webp"
         if expected_structured_logo not in homepage:
             self.error("/: LocalBusiness logo must use the self-contained green-square asset")
-        if homepage.count('/assets/angel-tree-logo-transparent.webp') < 3:
+        transparent_logo_count = (
+            homepage.count('/assets/angel-tree-logo-transparent.webp')
+            + homepage.count('/assets/versioned/angel-tree-logo-128.')
+        )
+        if transparent_logo_count < 3:
             self.error("/: responsive layout headers must use the transparent logo asset")
         for route, source in self.page_sources.items():
             if route != "/" and '/assets/angel-tree-logo-transparent.webp' not in source:
@@ -721,7 +725,7 @@ class Validator:
             "Certified Arborist-led &middot; Insured &middot; 30+ years of tree-industry experience",
             "ISA Member and Certified Arborist",
             "angeltreeservices_backup_files/isamember1_004.jpg",
-            "angeltreeservices_backup_files/certified-arborist.png",
+            'alt="ISA Certified Arborist"',
             "Insured &middot; 30+ years of tree-industry experience",
             "120+",
             "4.9 average",
@@ -746,20 +750,20 @@ class Validator:
             self.error("/: homepage BBB card must not include the negative accreditation qualifier")
 
         homepage_images = {
-            image.get("src", ""): image for image in self.pages["/"].images
+            image.get("alt", ""): image for image in self.pages["/"].images
         }
-        for source in (
-            "angeltreeservices_backup_files/isamember1_004.jpg",
-            "angeltreeservices_backup_files/certified-arborist.png",
+        for alt in (
+            "ISA Member",
+            "ISA Certified Arborist",
         ):
-            image = homepage_images.get(source)
+            image = homepage_images.get(alt)
             if image is None:
-                self.error(f"/: static homepage credential image is missing: {source}")
+                self.error(f"/: static homepage credential image is missing: {alt}")
                 continue
             if image.get("loading", "").lower() == "lazy":
-                self.error(f"/: homepage credential image must load on first paint, not lazily: {source}")
+                self.error(f"/: homepage credential image must load on first paint, not lazily: {alt}")
             if not image.get("width") or not image.get("height"):
-                self.error(f"/: homepage credential image must reserve explicit dimensions: {source}")
+                self.error(f"/: homepage credential image must reserve explicit dimensions: {alt}")
 
         public_scripts = "\n".join(
             path.read_text(encoding="utf-8")
@@ -957,6 +961,7 @@ class Validator:
             self.site_dir / "site-pages.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",
+            self.site_dir / "llms.txt",
         ]
         seen: set[Path] = set()
         for path in text_files:
@@ -1011,6 +1016,102 @@ class Validator:
             if re.search(r"Disallow:\s*/(?:assets|site-pages|angeltreeservices_backup_files)", source, re.IGNORECASE):
                 self.error("robots.txt blocks required public assets")
 
+    def validate_llms_document(self) -> None:
+        llms = self.site_dir / "llms.txt"
+        if not llms.is_file():
+            self.error("llms.txt is missing")
+            return
+
+        raw = llms.read_bytes()
+        if raw.startswith(b"\xef\xbb\xbf"):
+            self.error("llms.txt must use UTF-8 without a byte-order mark")
+        if b"\r\n" in raw or b"\r" in raw:
+            self.error("llms.txt must use Unix line endings")
+
+        try:
+            source = raw.decode("utf-8")
+        except UnicodeDecodeError as error:
+            self.error(f"llms.txt is not valid UTF-8: {error}")
+            return
+
+        if not source.startswith("# Angel Tree Services\n"):
+            self.error("llms.txt must begin with the Angel Tree Services heading")
+        if not source.endswith("\n"):
+            self.error("llms.txt must end with a newline")
+
+        word_count = len(re.findall(r"\b[\w’'-]+\b", source))
+        if not 900 <= word_count <= 1500:
+            self.error(f"llms.txt should contain 900–1,500 words; found {word_count}")
+
+        required_terms = (
+            "Angel Tree Services LLC",
+            "family-operated",
+            "founded in 2015",
+            "more than 30 years of tree-industry experience",
+            "Fredericksburg",
+            "Spotsylvania",
+            "Stafford",
+            "ISA Certified Arborist",
+            "ISA member",
+            "general liability insurance",
+            "workers' compensation coverage",
+            "Best of the Burg finalist",
+            "NBC4",
+            f"{SITE}/",
+            f"{SITE}/services/",
+            f"{SITE}/services/tree-removal/",
+            f"{SITE}/services/tree-pruning/",
+            f"{SITE}/services/stump-grinding/",
+            f"{SITE}/services/emergency-tree-service/",
+            f"{SITE}/services/commercial-hoa-tree-care/",
+            f"{SITE}/credentials-safety/",
+            f"{SITE}/projects/",
+            f"{SITE}/about/",
+            f"{SITE}/recognition/",
+        )
+        lower_source = source.lower()
+        for term in required_terms:
+            if term.lower() not in lower_source:
+                self.error(f"llms.txt is missing required public fact or resource: {term}")
+
+        forbidden_terms = (
+            "admin.angeltreeservices.org",
+            "netlify.app",
+            "supabase",
+            "customer portal",
+            "employee portal",
+            "quote portal",
+            "invoice portal",
+            "service role",
+            "internal api",
+            "trademark strategy",
+            "github.com",
+            "asplundh",
+            "competitor",
+        )
+        for term in forbidden_terms:
+            if term in lower_source:
+                self.error(f"llms.txt includes forbidden private or noncanonical content: {term}")
+
+        urls = re.findall(r"https://[^\s)>]+", source)
+        for url in urls:
+            parsed = urlparse(url)
+            if parsed.netloc != "angeltreeservices.org":
+                self.error(f"llms.txt includes a noncanonical URL: {url}")
+            if re.search(r"[?&](?:token|access_token|quote_token|invoice_token)=", url, re.IGNORECASE):
+                self.error(f"llms.txt includes a tokenized URL: {url}")
+
+        robots = self.site_dir / "robots.txt"
+        if robots.is_file() and "llms.txt" in robots.read_text(encoding="utf-8"):
+            self.error("robots.txt must not list llms.txt as a sitemap or directive")
+
+        netlify_config = (ROOT / "netlify.toml").read_text(encoding="utf-8")
+        if not re.search(
+            r'for\s*=\s*"/llms\.txt"[\s\S]*?Content-Type\s*=\s*"text/plain;\s*charset=utf-8"',
+            netlify_config,
+        ):
+            self.error("netlify.toml must explicitly serve llms.txt as text/plain; charset=utf-8")
+
     def validate_domain_redirects(self) -> None:
         redirects = self.site_dir / "_redirects"
         expected_rules = [
@@ -1060,6 +1161,7 @@ class Validator:
             self.validate_about_page()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
+            self.validate_llms_document()
             self.validate_domain_redirects()
 
         if self.errors:

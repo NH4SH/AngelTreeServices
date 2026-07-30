@@ -164,6 +164,14 @@
 /* Hero background: use static image to avoid resize flicker */
 #top .section-background {
   background-image: url("assets/hero-grass-1600.webp");
+  background-image: -webkit-image-set(
+    url("assets/versioned/hero-grass-1600.8c26d68532.avif") 1x,
+    url("assets/hero-grass-1600.webp") 1x
+  );
+  background-image: image-set(
+    url("assets/versioned/hero-grass-1600.8c26d68532.avif") type("image/avif"),
+    url("assets/hero-grass-1600.webp") type("image/webp")
+  );
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -171,6 +179,22 @@
 
 #top .section-background-content,
 #top .background-image-fx {
+  display: none !important;
+}
+
+/* Preserve the former generative service-section texture without its runtime. */
+#about .section-background {
+  background-color: #2f9d33;
+  background-image:
+    radial-gradient(92% 62% at 50% 112%, rgba(13, 118, 22, 0.9) 0 48%, transparent 49%),
+    radial-gradient(94% 72% at 50% 74%, rgba(20, 126, 27, 0.78) 0 50%, transparent 51%),
+    radial-gradient(94% 78% at 50% 34%, rgba(24, 135, 31, 0.7) 0 50%, transparent 51%),
+    linear-gradient(135deg, #35aa39 0%, #2b9c31 52%, #35aa39 100%);
+  background-size: cover;
+}
+
+#about .section-background-content,
+#about .background-pause-button {
   display: none !important;
 }
 
@@ -1890,8 +1914,20 @@ body.ats-form-submitted .ats-form-success {
 }
 
 @media (max-width: 800px) {
+  #top {
+    padding-top: 0 !important;
+  }
+
   #top .section-background {
     background-image: url("assets/hero-grass-900.webp");
+    background-image: -webkit-image-set(
+      url("assets/versioned/hero-grass-900.ba17092048.avif") 1x,
+      url("assets/hero-grass-900.webp") 1x
+    );
+    background-image: image-set(
+      url("assets/versioned/hero-grass-900.ba17092048.avif") type("image/avif"),
+      url("assets/hero-grass-900.webp") type("image/webp")
+    );
   }
 
   #top .content {

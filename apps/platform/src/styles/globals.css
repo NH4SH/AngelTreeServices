@@ -10589,17 +10589,59 @@ h1 {
   padding: 5px 0;
 }
 
-.email-preview-scope h4 {
+.email-preview-scope-item {
   color: oklch(.39 .095 154);
-  font-size: .91rem;
+  font-size: 1rem;
   line-height: 1.35;
   margin: 0;
-  padding: 11px 0 3px;
+  overflow-wrap: anywhere;
+  padding: 13px 0 4px;
+}
+
+.email-preview-scope-item ~ .email-preview-scope-item {
+  border-top: 1px solid oklch(.84 .025 154);
+  margin-top: 8px;
+  padding-top: 18px;
+}
+
+.email-preview-scope-context,
+.email-preview-scope-quantity {
+  color: oklch(.52 .015 154);
+  font-size: .8rem;
+  line-height: 1.45 !important;
+}
+
+.email-preview-scope-context {
+  font-weight: 750;
+  padding: 1px 0 3px;
+}
+
+.email-preview-scope-quantity {
+  padding-top: 6px;
 }
 
 .email-preview-scope pre {
   line-height: 1.58;
   padding: 6px 0 11px;
+}
+
+.email-preview-scope-price {
+  align-items: baseline;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 8px 0 15px;
+}
+
+.email-preview-scope-price span {
+  color: oklch(.52 .015 154);
+  font-size: .8rem;
+}
+
+.email-preview-scope-price strong {
+  color: oklch(.39 .095 154);
+  font-size: 1.08rem;
+  text-align: right;
 }
 
 .branded-email-preview-body dl {
@@ -13335,14 +13377,17 @@ h1,
   margin-top: 0;
 }
 
-.invoice-email-delivery-panel {
+.invoice-email-delivery-panel,
+.quote-email-workspace {
   display: grid;
   align-content: start;
   gap: 12px;
 }
 
 .invoice-email-delivery-panel .inline-empty,
-.invoice-email-delivery-panel .send-email-action-form {
+.invoice-email-delivery-panel .send-email-action-form,
+.quote-email-workspace .inline-empty,
+.quote-email-workspace .send-email-action-form {
   margin: 0;
 }
 

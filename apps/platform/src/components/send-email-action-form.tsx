@@ -278,9 +278,13 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
         <section>
           <strong>{draft.scopeHeading}</strong>
           <div className="email-preview-scope">
-            {scopeBlocks.map((block, index) => block.kind === "heading"
-              ? <h4 key={`${block.kind}-${index}`}>{block.text}</h4>
-              : <pre key={`${block.kind}-${index}`}>{block.text}</pre>)}
+            {scopeBlocks.map((block, index) => {
+              if (block.kind === "item") return <h4 className="email-preview-scope-item" key={`${block.kind}-${index}`}>{block.text}</h4>;
+              if (block.kind === "heading") return <p className="email-preview-scope-context" key={`${block.kind}-${index}`}>{block.text}</p>;
+              if (block.kind === "quantity") return <p className="email-preview-scope-quantity" key={`${block.kind}-${index}`}>Quantity: {block.text}</p>;
+              if (block.kind === "price") return <div className="email-preview-scope-price" key={`${block.kind}-${index}`}><span>Price</span><strong>{block.text}</strong></div>;
+              return <pre key={`${block.kind}-${index}`}>{block.text}</pre>;
+            })}
           </div>
         </section>
         <dl>

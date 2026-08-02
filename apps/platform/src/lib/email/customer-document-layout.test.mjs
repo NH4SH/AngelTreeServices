@@ -50,7 +50,8 @@ test("quote draft preserves scope, optional work, first name, total, and secure 
   assert.match(draft.scopeText, /Optional stump grinding/);
   assert.match(draft.customerNotes, /utility-line clearance/);
   assert.doesNotMatch(draft.body, /Private margin discussion/);
-  assert.match(draft.body, /\$1,500\.00/);
+  assert.match(draft.body, /Proposal total: \$1,500/);
+  assert.doesNotMatch(draft.body, /Proposal total: \$1,500\.00/);
   assert.match(draft.body, /safe-token/);
 });
 
@@ -81,6 +82,7 @@ test("invoice draft uses authoritative balance, due date, applied credits, and c
   assert.match(draft.customerNotes, /prevent duplicate billing/);
   assert.doesNotMatch(draft.body, /Crew-only note/);
   assert.match(draft.scopeText, /Removal and cleanup included/);
+  assert.equal(parseScopePresentation(draft.scopeText).some((block) => block.kind === "price" || block.kind === "item"), false);
 });
 
 test("branded HTML escapes edited customer content and includes responsive operational branding", () => {
@@ -186,10 +188,11 @@ test("quote copy removes internal location labels and uses a warm deterministic 
   assert.equal(draft.subject, "Angel Tree Services Proposal – 11810 Arthur Ln");
   assert.equal(
     draft.intro,
-    "Thank you for the opportunity to provide this proposal for the landscaping and tree work at 11810 Arthur Ln in Fredericksburg.",
+    "Thank you for the opportunity to provide this proposal for the landscaping and tree work at 11810 Arthur Ln in Fredericksburg, VA 22407.",
   );
   assert.doesNotMatch(draft.body, /Primary service location/);
   assert.doesNotMatch(draft.scopeText, /1 × \$2,930\.00/);
+  assert.match(draft.scopeText, /Price: \$2,930/);
   assert.doesNotMatch(draft.customerNotes, /Net 15/);
   assert.match(draft.scopeText, /Right side of the house/);
   assert.match(draft.scopeText, /Left side of the house/);
@@ -207,7 +210,7 @@ test("scope headings become structured presentation blocks without rewriting wor
   ]);
 });
 
-test("useful line calculations and explicit proposal terms remain visible", () => {
+test("proposal pricing hides redundant quantity math and keeps meaningful quantities", () => {
   const draft = generateQuoteEmailDraft({
     approval_contact: null,
     customer_message: null,
@@ -232,9 +235,47 @@ test("useful line calculations and explicit proposal terms remain visible", () =
     updated_at: "2026-07-29T12:00:00.000Z",
   });
 
-  assert.match(draft.scopeText, /2 × \$500\.00 = \$1,000\.00/);
-  assert.match(draft.scopeText, /1 × \$250\.00 = \$250\.00/);
+  assert.match(draft.scopeText, /Quantity: 2 × \$500 each/);
+  assert.match(draft.scopeText, /Price: \$1,000/);
+  assert.match(draft.scopeText, /Price: \$250/);
+  assert.doesNotMatch(draft.scopeText, /Quantity: 1 ×/);
+  assert.doesNotMatch(draft.scopeText, /= \$1,000/);
+  assert.equal(draft.summaryValue, "$1,250");
+  assert.deepEqual(parseScopePresentation(draft.scopeText).map((block) => block.kind), [
+    "item", "text", "quantity", "price", "item", "text", "price",
+  ]);
+  const html = renderCustomerDocumentEmailHtml(draft);
+  assert.match(html, /Quantity: 2 × \$500 each/);
+  assert.match(html, />\$1,000<\/td>/);
   assert.match(draft.customerNotes, /50% deposit required before scheduling/);
+});
+
+test("proposal pricing preserves real cents without adding unnecessary decimal zeros", () => {
+  const draft = generateQuoteEmailDraft({
+    approval_contact: null,
+    customer_message: null,
+    customers: { display_name: "Jamie Reed" },
+    debris_handling: null,
+    debris_handling_notes: null,
+    expires_at: null,
+    jobs: { requested_scope: null, service_locations: location, service_type: "trimming" },
+    notes: [],
+    organizations: null,
+    payment_terms: null,
+    quote_line_items: [
+      { name: "Canopy pruning", description: "Prune marked limbs.", quantity: 1, unit_price_cents: 123456, total_cents: 123456, sort_order: 1 },
+    ],
+    quote_number: "Q-2051",
+    recipient_contact: null,
+    sent_at: null,
+    service_locations: location,
+    status: "draft",
+    total_cents: 123456,
+    updated_at: "2026-07-29T12:00:00.000Z",
+  });
+
+  assert.match(draft.scopeText, /Price: \$1,234\.56/);
+  assert.equal(draft.summaryValue, "$1,234.56");
 });
 
 test("HTML renders scope headings, a subdued wrapping link, and one company signoff", () => {
@@ -267,6 +308,10 @@ test("HTML renders scope headings, a subdued wrapping link, and one company sign
   });
 
   assert.match(html, /Front of the house/);
+  assert.match(html, />Price<\/td>/);
+  assert.match(html, />\$500<\/td>/);
+  assert.doesNotMatch(html, /\$500\.00/);
+  assert.match(html, /align="right"/);
   assert.match(html, /copy and paste this secure link into your browser/);
   assert.match(html, /word-break:break-word/);
   assert.equal((html.match(/<strong>Angel Tree Services<\/strong>/g) ?? []).length, 1);

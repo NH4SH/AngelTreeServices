@@ -44,10 +44,12 @@ type QuoteDetailPageProps = {
   params: Promise<{
     quoteId: string;
   }>;
+  searchParams: Promise<{ lead_archive_warning?: string }>;
 };
 
-export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) {
+export default async function QuoteDetailPage({ params, searchParams }: QuoteDetailPageProps) {
   const { quoteId } = await params;
+  const query = await searchParams;
   const context = await getAuthenticatedPlatformContext(`/admin/quotes/${quoteId}`);
 
   if (!context.configured) {
@@ -87,6 +89,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
         {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
+        {query.lead_archive_warning === "1" ? <DataWarning message="The quote was created, but its website lead could not be archived automatically. Archive the lead manually from Leads and Communications." /> : null}
         {!detail.data ? (
           <EmptyState title="Quote not found or no access" body="This record is unavailable to the current account." />
         ) : (

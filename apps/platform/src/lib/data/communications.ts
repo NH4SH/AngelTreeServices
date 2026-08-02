@@ -32,6 +32,7 @@ export type WebsiteLeadInboxItem = {
   email: string | null;
   jobId: string;
   leadDisposition: "active" | "spam" | "archived";
+  linkedQuote: { id: string; label: string } | null;
   lastCommunication: string | null;
   nextAction: string | null;
   notificationStatus: "pending" | "sent" | "failed" | "skipped";
@@ -224,14 +225,24 @@ export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "s
     return { data: [], count: count ?? 0, error: index?.error ?? null };
   }
 
-  const { data: communications, error: communicationsError } = await supabase
-    .from("customer_communications")
-    .select("job_id, communication_type, status, recipient_email, scheduled_for, sent_at, created_at")
-    .in("job_id", jobIds)
-    .order("created_at", { ascending: false });
+  const [communicationsResult, quotesResult] = await Promise.all([
+    supabase
+      .from("customer_communications")
+      .select("job_id, communication_type, status, recipient_email, scheduled_for, sent_at, created_at")
+      .in("job_id", jobIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("quotes")
+      .select("id, quote_number, job_id, created_at")
+      .in("job_id", jobIds)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+  const { data: communications, error: communicationsError } = communicationsResult;
+  const { data: linkedQuotes, error: linkedQuotesError } = quotesResult;
 
-  if (communicationsError) {
-    return { data: [], count: count ?? 0, error: safeStaffMessage(communicationsError.message) };
+  if (communicationsError || linkedQuotesError) {
+    return { data: [], count: count ?? 0, error: safeStaffMessage((communicationsError ?? linkedQuotesError)?.message ?? "Could not load website lead context.") };
   }
 
   const communicationMap = new Map<string, CustomerCommunication[]>();
@@ -242,6 +253,14 @@ export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "s
     const existing = communicationMap.get(jobId) ?? [];
     existing.push(item as CustomerCommunication);
     communicationMap.set(jobId, existing);
+  });
+  const quoteMap = new Map<string, { id: string; label: string }>();
+  (linkedQuotes ?? []).forEach((quote) => {
+    if (!quote.job_id || quoteMap.has(quote.job_id)) return;
+    quoteMap.set(quote.job_id, {
+      id: quote.id,
+      label: quote.quote_number || "Open quote",
+    });
   });
 
   return {
@@ -267,6 +286,7 @@ export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "s
         email: customer?.email || organization?.billing_email || latest?.recipient_email || null,
         jobId: job.id,
         leadDisposition: job.lead_disposition,
+        linkedQuote: quoteMap.get(job.id) ?? null,
         lastCommunication: latest ? summarizeCommunication(latest) : null,
         nextAction: pending ? `Pending ${pending.communication_type.replaceAll("_", " ")} · ${formatDateTime(pending.scheduled_for)}` : defaultNextAction(job.status as JobStatus),
         notificationStatus: (job.notification_status ?? "pending") as WebsiteLeadInboxItem["notificationStatus"],

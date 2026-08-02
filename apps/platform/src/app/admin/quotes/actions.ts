@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { archiveWebsiteLead } from "@/lib/leads/archive";
+import { isMatchingQuoteLeadSource } from "@/lib/quotes/lead-prefill";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { QuoteStatus } from "@/lib/types/database";
 
@@ -52,6 +55,7 @@ export async function createQuote(
   const serviceLocationIdInput = String(formData.get("service_location_id") ?? "");
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
+  const sourceLeadJobId = String(formData.get("source_lead_job_id") ?? "").trim() || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
   const recipientContactId = String(formData.get("recipient_contact_id") ?? "").trim() || null;
   const approvalContactId = String(formData.get("approval_contact_id") ?? "").trim() || null;
@@ -65,6 +69,18 @@ export async function createQuote(
   const submitIntent = String(formData.get("submit_intent") ?? "save");
   const lineItems = getQuoteLineItems(formData);
   const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
+
+  let sourceActorType: "owner" | "admin" | "staff" = "staff";
+  if (sourceLeadJobId) {
+    if (!isUuid(sourceLeadJobId)) {
+      return { status: "error", message: "The originating website lead is invalid. Return to Leads and Communications and try again." };
+    }
+    const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+    if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+      return { status: "error", message: "Only authorized office staff can create a quote from a website lead." };
+    }
+    sourceActorType = roles.includes("owner") ? "owner" : roles.includes("admin") ? "admin" : "staff";
+  }
 
   if (!party) {
     return { status: "error", message: "Choose a customer or organization before creating a draft quote." };
@@ -127,7 +143,7 @@ export async function createQuote(
   if (jobId) {
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, customer_id, organization_id, service_location_id")
+      .select("id, customer_id, organization_id, service_location_id, website_submission_id")
       .eq("id", jobId)
       .single();
 
@@ -144,6 +160,18 @@ export async function createQuote(
     if (serviceLocationId !== job.service_location_id) {
       return { status: "error", message: "Selected job and service location do not match." };
     }
+
+    if (sourceLeadJobId && !isMatchingQuoteLeadSource(job, {
+      customerId: party.customerId,
+      jobId,
+      organizationId: party.organizationId,
+      serviceLocationId,
+      sourceLeadJobId,
+    })) {
+      return { status: "error", message: "The originating website lead no longer matches this quote. Return to Leads and Communications and try again." };
+    }
+  } else if (sourceLeadJobId) {
+    return { status: "error", message: "Keep the originating website lead linked before creating this quote." };
   }
 
   const { data: quote, error: quoteError } = await supabase
@@ -194,23 +222,48 @@ export async function createQuote(
 
     if (lineItemError) {
       revalidatePath("/admin/quotes");
-      redirect(`/admin/quotes/${quote.id}/edit?line_error=1`);
+      redirect(`/admin/quotes/${quote.id}/edit?line_error=1${sourceLeadJobId ? `&source_lead_job_id=${sourceLeadJobId}` : ""}`);
     }
   }
 
   await recordActivity(supabase, {
     actorUserId: user.id,
     eventType: "quote_created",
-    metadata: { service_location_id: serviceLocationId },
+    metadata: { service_location_id: serviceLocationId, source_lead_job_id: sourceLeadJobId },
     subjectId: quote.id,
     subjectType: "quote",
   });
 
+  const leadArchiveResult = sourceLeadJobId
+    ? await archiveWebsiteLead(supabase, {
+        actorType: sourceActorType,
+        actorUserId: user.id,
+        eventType: "website_lead_archived_after_quote",
+        idempotencyKey: `website-lead:${sourceLeadJobId}:quote:${quote.id}:archive`,
+        jobId: sourceLeadJobId,
+        metadata: { quote_id: quote.id },
+        reason: "Lead completed by quote creation.",
+        summary: "Website lead archived automatically after its quote was created.",
+      })
+    : null;
+  const leadArchiveWarning = leadArchiveResult?.status === "error";
+  if (leadArchiveWarning) {
+    console.error("Website lead could not be archived after quote creation", {
+      jobId: sourceLeadJobId,
+      quoteId: quote.id,
+    });
+  }
+
   revalidatePath("/admin");
+  revalidatePath("/admin/communications");
   revalidatePath("/admin/quotes");
+  revalidatePath("/admin/reports");
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  redirect(submitIntent === "save_close" ? `/admin/quotes/${quote.id}` : `/admin/quotes/${quote.id}/edit?saved=1`);
+  const warningQuery = leadArchiveWarning ? "lead_archive_warning=1" : "";
+  redirect(submitIntent === "save_close"
+    ? `/admin/quotes/${quote.id}${warningQuery ? `?${warningQuery}` : ""}`
+    : `/admin/quotes/${quote.id}/edit?saved=1${warningQuery ? `&${warningQuery}` : ""}`);
 }
 
 export async function updateQuote(
@@ -236,6 +289,7 @@ export async function updateQuote(
   const serviceLocationIdInput = String(formData.get("service_location_id") ?? "");
   const estimateScheduleEventId = String(formData.get("estimate_schedule_event_id") ?? "") || null;
   const jobId = String(formData.get("job_id") ?? "") || null;
+  const sourceLeadJobId = String(formData.get("source_lead_job_id") ?? "").trim() || null;
   const customerMessage = String(formData.get("customer_message") ?? "").trim() || null;
   const recipientContactId = String(formData.get("recipient_contact_id") ?? "").trim() || null;
   const approvalContactId = String(formData.get("approval_contact_id") ?? "").trim() || null;
@@ -250,13 +304,25 @@ export async function updateQuote(
   const lineItems = getQuoteLineItems(formData);
   const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
+  let sourceActorType: "owner" | "admin" | "staff" = "staff";
+  if (sourceLeadJobId) {
+    if (!isUuid(sourceLeadJobId)) {
+      return { status: "error", message: "The originating website lead is invalid. Return to Leads and Communications and try again." };
+    }
+    const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+    if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+      return { status: "error", message: "Only authorized office staff can complete a quote from a website lead." };
+    }
+    sourceActorType = roles.includes("owner") ? "owner" : roles.includes("admin") ? "admin" : "staff";
+  }
+
   if (!quoteId || !party) {
     return { status: "error", message: "Quote and contracting party are required." };
   }
 
   const { data: existingQuote, error: quoteLookupError } = await supabase
     .from("quotes")
-    .select("id, customer_id, organization_id, status, recurring_occurrence_id, total_cents, service_location_id, customer_message, expires_at")
+    .select("id, customer_id, organization_id, job_id, status, recurring_occurrence_id, total_cents, service_location_id, customer_message, expires_at")
     .eq("id", quoteId)
     .single();
 
@@ -331,7 +397,7 @@ export async function updateQuote(
   if (jobId) {
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, customer_id, organization_id, service_location_id")
+      .select("id, customer_id, organization_id, service_location_id, website_submission_id")
       .eq("id", jobId)
       .single();
 
@@ -348,6 +414,18 @@ export async function updateQuote(
     if (serviceLocationId !== job.service_location_id) {
       return { status: "error", message: "Selected job and service location do not match." };
     }
+
+    if (sourceLeadJobId && (existingQuote.job_id !== sourceLeadJobId || !isMatchingQuoteLeadSource(job, {
+      customerId: party.customerId,
+      jobId,
+      organizationId: party.organizationId,
+      serviceLocationId,
+      sourceLeadJobId,
+    }))) {
+      return { status: "error", message: "The originating website lead no longer matches this quote. Return to Leads and Communications and try again." };
+    }
+  } else if (sourceLeadJobId) {
+    return { status: "error", message: "Keep the originating website lead linked before saving this quote." };
   }
 
   const { error: quoteError } = await supabase
@@ -422,20 +500,44 @@ export async function updateQuote(
     subjectType: "quote",
   });
 
+  const leadArchiveResult = sourceLeadJobId
+    ? await archiveWebsiteLead(supabase, {
+        actorType: sourceActorType,
+        actorUserId: user.id,
+        eventType: "website_lead_archived_after_quote",
+        idempotencyKey: `website-lead:${sourceLeadJobId}:quote:${quoteId}:archive`,
+        jobId: sourceLeadJobId,
+        metadata: { quote_id: quoteId },
+        reason: "Lead completed by quote creation.",
+        summary: "Website lead archived automatically after its quote was created.",
+      })
+    : null;
+  const leadArchiveWarning = leadArchiveResult?.status === "error";
+  if (leadArchiveWarning) {
+    console.error("Website lead could not be archived after quote recovery", {
+      jobId: sourceLeadJobId,
+      quoteId,
+    });
+  }
+
   revalidatePath("/admin");
+  revalidatePath("/admin/communications");
   revalidatePath("/admin/quotes");
+  revalidatePath("/admin/reports");
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath(`/admin/quotes/${quoteId}/edit`);
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
 
   if (submitIntent === "save_close") {
-    redirect(`/admin/quotes/${quoteId}`);
+    redirect(`/admin/quotes/${quoteId}${leadArchiveWarning ? "?lead_archive_warning=1" : ""}`);
   }
 
   return {
     status: "success",
-    message: "Changes saved. The current quote status and existing customer link remain active.",
+    message: leadArchiveWarning
+      ? "Changes saved, but the website lead could not be archived automatically. Archive it manually from Leads and Communications."
+      : "Changes saved. The current quote status and existing customer link remain active.",
   };
 }
 
@@ -598,4 +700,8 @@ function getLineItemName(name: string, description: string | null, index: number
 function getEndOfDayIso(value: FormDataEntryValue | null) {
   const date = String(value ?? "").trim();
   return date ? new Date(`${date}T23:59:59.999Z`).toISOString() : null;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

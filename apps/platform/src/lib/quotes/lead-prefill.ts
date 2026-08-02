@@ -1,5 +1,6 @@
 export type QuoteLeadSourceRecord = {
   id: string;
+  archived_at?: string | null;
   customer_id: string | null;
   organization_id: string | null;
   service_location_id: string;
@@ -8,6 +9,7 @@ export type QuoteLeadSourceRecord = {
   service_type: string | null;
   requested_scope: string | null;
   website_submission_id: string | null;
+  lead_disposition?: "active" | "spam" | "archived";
   customers?: {
     id: string;
     display_name: string;
@@ -48,6 +50,14 @@ export type QuoteLeadSourceRecord = {
     access_notes: string | null;
     service_notes: string | null;
   } | null;
+};
+
+export type QuoteLeadSourceContext = {
+  customerId: string | null;
+  jobId: string | null;
+  organizationId: string | null;
+  serviceLocationId: string | null;
+  sourceLeadJobId: string;
 };
 
 export type QuoteLeadPrefill = {
@@ -108,6 +118,20 @@ export function buildQuoteLeadPrefill(record: QuoteLeadSourceRecord): QuoteLeadP
     approvalContactId: organizationContact?.id ?? "",
     onsiteContactId: organizationContact?.id ?? "",
   };
+}
+
+export function isMatchingQuoteLeadSource(
+  record: Pick<QuoteLeadSourceRecord, "id" | "customer_id" | "organization_id" | "service_location_id" | "website_submission_id">,
+  context: QuoteLeadSourceContext,
+) {
+  return Boolean(
+    record.website_submission_id
+      && record.id === context.sourceLeadJobId
+      && record.id === context.jobId
+      && record.customer_id === context.customerId
+      && record.organization_id === context.organizationId
+      && record.service_location_id === context.serviceLocationId,
+  );
 }
 
 function firstValidOrganizationContact(

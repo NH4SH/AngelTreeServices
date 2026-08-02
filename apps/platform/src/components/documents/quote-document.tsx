@@ -1,5 +1,6 @@
 import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
+import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { getQuoteTerms } from "@/lib/documents/terms";
 import type { QuoteDetail } from "@/lib/types/database";
@@ -188,11 +189,7 @@ export function DocumentLineItems({
 
 function formatLocation(quote: QuoteDetail) {
   const location = quote.service_locations ?? quote.jobs?.service_locations;
-  if (!location) {
-    return "No service location attached yet.";
-  }
-
-  return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
+  return formatCustomerFacingAddress(location) || "Service location to be confirmed.";
 }
 
 function formatContact(quote: QuoteDetail) {

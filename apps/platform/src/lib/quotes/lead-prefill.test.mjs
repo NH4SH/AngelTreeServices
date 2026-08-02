@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildQuoteLeadPrefill } from "./lead-prefill.ts";
+import { getWebsiteLeadArchiveDecision } from "../leads/archive-rules.ts";
+import { buildQuoteLeadPrefill, isMatchingQuoteLeadSource } from "./lead-prefill.ts";
 
 const customerLead = {
   id: "73000000-0000-0000-0000-000000000001",
@@ -114,4 +115,25 @@ test("mismatched service-location ownership is rejected", () => {
   });
 
   assert.equal(result, null);
+});
+
+test("quote creation accepts only its explicit matching website lead source", () => {
+  const context = {
+    customerId: customerLead.customer_id,
+    jobId: customerLead.id,
+    organizationId: null,
+    serviceLocationId: customerLead.service_location_id,
+    sourceLeadJobId: customerLead.id,
+  };
+
+  assert.equal(isMatchingQuoteLeadSource(customerLead, context), true);
+  assert.equal(isMatchingQuoteLeadSource(customerLead, { ...context, sourceLeadJobId: "73000000-0000-0000-0000-000000000099" }), false);
+  assert.equal(isMatchingQuoteLeadSource(customerLead, { ...context, serviceLocationId: "72000000-0000-0000-0000-000000000099" }), false);
+  assert.equal(isMatchingQuoteLeadSource({ ...customerLead, website_submission_id: null }, context), false);
+});
+
+test("automatic archive rules preserve spam and already archived leads", () => {
+  assert.equal(getWebsiteLeadArchiveDecision({ archived_at: null, lead_disposition: "active" }), "archive");
+  assert.equal(getWebsiteLeadArchiveDecision({ archived_at: "2026-08-02T12:00:00.000Z", lead_disposition: "archived" }), "already_archived");
+  assert.equal(getWebsiteLeadArchiveDecision({ archived_at: null, lead_disposition: "spam" }), "skip");
 });

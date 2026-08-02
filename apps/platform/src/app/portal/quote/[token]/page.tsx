@@ -3,6 +3,7 @@ import { QuoteDocument } from "@/components/documents/quote-document";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
+import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { buildPortalWorkSummary, formatCustomerQuoteStatus } from "@/lib/portal/quote-presentation";
 import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
@@ -149,11 +150,5 @@ function formatDate(value: string) {
 
 function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]) {
   const location = quote?.service_locations ?? quote?.jobs?.service_locations;
-
-  if (!location) {
-    return "No service location attached";
-  }
-
-  const stateAndPostalCode = [location.state, location.postal_code].filter(Boolean).join(" ");
-  return [location.street, location.city, stateAndPostalCode].filter(Boolean).join(", ");
+  return formatCustomerFacingAddress(location) || "Service location to be confirmed";
 }

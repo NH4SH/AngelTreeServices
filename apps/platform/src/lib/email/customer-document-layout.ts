@@ -76,11 +76,23 @@ export function renderCustomerDocumentEmailHtml(
 }
 
 function renderScopePresentation(value: string) {
-  return parseScopeBlocks(value)
-    .map((block) => block.kind === "heading"
-      ? `<p style="margin:0;padding:15px 0 5px;color:#174b32;font-size:15px;line-height:1.35;font-weight:800;">${escapeHtml(block.text)}</p>`
-      : `<div style="padding:7px 0 14px;color:#303934;font-size:15px;line-height:1.58;white-space:pre-wrap;">${formatPlainText(block.text)}</div>`)
-    .join("");
+  const blocks = parseScopeBlocks(value);
+  return blocks.map((block, index) => {
+    if (block.kind === "item") {
+      const hasPreviousItem = blocks.slice(0, index).some((candidate) => candidate.kind === "item");
+      return `<p style="margin:0;padding:${hasPreviousItem ? "20px" : "17px"} 0 5px;${hasPreviousItem ? "border-top:1px solid #d7e3da;" : ""}color:#174b32;font-size:16px;line-height:1.35;font-weight:800;">${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "heading") {
+      return `<p style="margin:0;padding:5px 0 3px;color:#667169;font-size:13px;line-height:1.4;font-weight:700;">${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "quantity") {
+      return `<p style="margin:0;padding:8px 0 2px;color:#667169;font-size:13px;line-height:1.45;">Quantity: ${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "price") {
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td style="padding:8px 0 16px;color:#667169;font-size:13px;line-height:1.4;">Price</td><td align="right" style="padding:8px 0 16px;color:#174b32;font-size:18px;line-height:1.2;font-weight:800;">${escapeHtml(block.text)}</td></tr></table>`;
+    }
+    return `<div style="padding:5px 0 8px;color:#303934;font-size:15px;line-height:1.58;white-space:pre-wrap;">${formatPlainText(block.text)}</div>`;
+  }).join("");
 }
 
 function parseScopeBlocks(value: string) {
@@ -98,8 +110,9 @@ function parseScopeBlocks(value: string) {
     ["close to the shed", "Near the shed"],
     ["near the shed", "Near the shed"],
   ]);
-  const blocks: { kind: "heading" | "text"; text: string }[] = [];
+  const blocks: { kind: "heading" | "item" | "price" | "quantity" | "text"; text: string }[] = [];
   let textLines: string[] = [];
+  const usesProposalPricing = value.split(/\r?\n/).some((line) => /^Price:\s*\S/i.test(line.trim()));
   const flushText = () => {
     const text = textLines.join("\n").trim();
     if (text) blocks.push({ kind: "text", text });
@@ -107,12 +120,26 @@ function parseScopeBlocks(value: string) {
   };
 
   for (const line of value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n")) {
-    const candidate = line.trim().replaceAll(/[.:]+$/g, "").replaceAll(/\s+/g, " ").toLowerCase();
+    const trimmed = line.trim();
+    const item = usesProposalPricing ? trimmed.match(/^\d+\.\s+(.+)$/) : null;
+    const price = usesProposalPricing ? trimmed.match(/^Price:\s*(.+)$/i) : null;
+    const quantity = usesProposalPricing ? trimmed.match(/^Quantity:\s*(.+)$/i) : null;
+    const candidate = trimmed.replaceAll(/[.:]+$/g, "").replaceAll(/\s+/g, " ").toLowerCase();
     const heading = labels.get(candidate);
-    if (heading) {
+
+    if (item) {
+      flushText();
+      blocks.push({ kind: "item", text: item[1] });
+    } else if (price) {
+      flushText();
+      blocks.push({ kind: "price", text: price[1] });
+    } else if (quantity) {
+      flushText();
+      blocks.push({ kind: "quantity", text: quantity[1] });
+    } else if (heading) {
       flushText();
       blocks.push({ kind: "heading", text: heading });
-    } else if (!line.trim()) {
+    } else if (!trimmed) {
       flushText();
     } else {
       textLines.push(line);

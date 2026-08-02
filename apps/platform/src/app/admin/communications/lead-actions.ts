@@ -5,6 +5,7 @@ import { updateRecordLifecycle, type LifecycleActionState } from "@/lib/actions/
 import { recordActivity } from "@/lib/activity-log";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
+import { archiveWebsiteLead } from "@/lib/leads/archive";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,11 +37,29 @@ export async function updateWebsiteLeadLifecycle(
     return updateRecordLifecycle({ status: "idle", message: "" }, delegated);
   }
 
+  if (intent === "archive") {
+    const result = await archiveWebsiteLead(supabase, {
+      actorType: roles.includes("owner") ? "owner" : "admin",
+      actorUserId: user.id,
+      eventType: "website_lead_archive",
+      idempotencyKey: `website-lead:${jobId}:archive:${new Date().toISOString()}`,
+      jobId,
+      reason: "Lead archived by staff.",
+      summary: "Website lead archived manually by staff.",
+    });
+    if (result.error) return failure(result.error);
+    if (result.status === "skipped") return failure("Website lead not found or no access.");
+
+    revalidateLeadViews();
+    return {
+      status: "success",
+      message: "Lead archived. It can be restored from the Archived view.",
+    };
+  }
+
   const next = intent === "spam"
     ? { archived_at: null, archived_by_user_id: null, lead_disposition: "spam" }
-    : intent === "archive"
-      ? { archived_at: new Date().toISOString(), archived_by_user_id: user.id, lead_disposition: "archived" }
-      : intent === "restore"
+    : intent === "restore"
         ? { archived_at: null, archived_by_user_id: null, lead_disposition: "active" }
         : null;
   if (!next) return failure("Choose spam, archive, restore, or permanent delete.");
@@ -55,11 +74,11 @@ export async function updateWebsiteLeadLifecycle(
   if (error) return failure(error.message);
   if (!lead) return failure("Website lead not found or no access.");
 
-  if (intent === "spam" || intent === "archive") {
+  if (intent === "spam") {
     await cancelPendingCommunications(
       supabase,
       { jobId },
-      intent === "spam" ? "Lead classified as spam." : "Lead archived by staff.",
+      "Lead classified as spam.",
     );
   }
   await recordActivity(supabase, {
@@ -71,17 +90,19 @@ export async function updateWebsiteLeadLifecycle(
     subjectId: jobId,
     subjectType: "job",
   });
-  revalidatePath("/admin/communications");
-  revalidatePath("/admin");
-  revalidatePath("/admin/reports");
+  revalidateLeadViews();
   return {
     status: "success",
     message: intent === "spam"
       ? "Lead marked as spam. Pending follow-ups were cancelled."
-      : intent === "archive"
-        ? "Lead archived. It can be restored from the Archived view."
-        : "Lead restored to the active inbox.",
+      : "Lead restored to the active inbox.",
   };
+}
+
+function revalidateLeadViews() {
+  revalidatePath("/admin/communications");
+  revalidatePath("/admin");
+  revalidatePath("/admin/reports");
 }
 
 function failure(message: string): LeadLifecycleState {

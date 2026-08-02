@@ -28,7 +28,7 @@ export type CustomerDocumentEmailEdits = Pick<
 >;
 
 export type ScopePresentationBlock = {
-  kind: "heading" | "text";
+  kind: "heading" | "item" | "price" | "quantity" | "text";
   text: string;
 };
 
@@ -40,6 +40,52 @@ type EmailLocation = {
   state?: string | null;
   postal_code?: string | null;
 };
+
+const internalAddressPlaceholders = new Set([
+  "needs confirmation",
+  "unknown",
+  "n/a",
+  "not provided",
+]);
+
+type CustomerFacingAddressParts = {
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+};
+
+export function formatCustomerFacingAddress(location?: EmailLocation | null) {
+  const parts = customerFacingAddressParts(location);
+  const locality = formatCustomerFacingLocality(parts);
+
+  if (parts.street && locality && !endsWithComponent(parts.street, parts.city)) {
+    return `${parts.street}, ${locality}`;
+  }
+
+  if (parts.street) {
+    const stateAndPostalCode = formatStateAndPostalCode(parts.state, parts.postalCode);
+    return [parts.street, stateAndPostalCode].filter(Boolean).join(", ");
+  }
+
+  return parts.city ? locality : "";
+}
+
+export function formatCustomerFacingLocationPhrase(location?: EmailLocation | null) {
+  const parts = customerFacingAddressParts(location);
+  const locality = formatCustomerFacingLocality(parts);
+
+  if (parts.street && locality && !endsWithComponent(parts.street, parts.city)) {
+    return ` at ${parts.street} in ${locality}`;
+  }
+
+  if (parts.street) {
+    const stateAndPostalCode = formatStateAndPostalCode(parts.state, parts.postalCode);
+    return ` at ${[parts.street, stateAndPostalCode].filter(Boolean).join(", ")}`;
+  }
+
+  return parts.city ? ` in ${locality}` : "";
+}
 
 export type QuoteEmailDraftInput = Pick<
   QuoteDetail,
@@ -99,7 +145,7 @@ export function generateQuoteEmailDraft(
     propertyLabel,
     scopeHeading: "The proposed work includes",
     scopeText: formatLineItemScope(quote.quote_line_items, quote.jobs?.requested_scope, {
-      suppressBundledCalculation: true,
+      proposalPricing: true,
     }),
     customerNotes: uniqueSections([
       quote.customer_message,
@@ -109,7 +155,7 @@ export function generateQuoteEmailDraft(
     ]).join("\n\n"),
     closing: "Please reply to this email or call our office if you have any questions or would like to request a change.",
     summaryLabel: "Proposal total",
-    summaryValue: formatCurrency(quote.total_cents),
+    summaryValue: formatCustomerCurrency(quote.total_cents),
     timingLabel: "Proposal validity",
     timingValue: quote.expires_at ? `Valid through ${formatDate(quote.expires_at)}` : "See the proposal for validity terms",
     ctaLabel: "Review and approve proposal",
@@ -210,14 +256,13 @@ function withBody(draft: CustomerDocumentEmailDraft): CustomerDocumentEmailDraft
 function formatLineItemScope(
   lineItems?: Pick<QuoteLineItem | InvoiceLineItem, "name" | "description" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[],
   fallbackScope?: string | null,
-  options: { suppressBundledCalculation?: boolean } = {},
+  options: { proposalPricing?: boolean } = {},
 ) {
   if (!lineItems?.length) {
     return formatScopePresentation(fallbackScope?.trim())
       || "See the attached document or secure customer page for the complete scope.";
   }
 
-  const showLineCalculations = !options.suppressBundledCalculation || lineItems.length > 1;
   return formatScopePresentation(lineItems
     .slice()
     .sort((left, right) => left.sort_order - right.sort_order)
@@ -225,9 +270,12 @@ function formatLineItemScope(
       const lines = [
         `${index + 1}. ${item.name.trim()}`,
         item.description?.trim(),
-        showLineCalculations || item.quantity !== 1
-          ? `${formatQuantity(item.quantity)} × ${formatCurrency(item.unit_price_cents)} = ${formatCurrency(item.total_cents)}`
+        options.proposalPricing && item.quantity !== 1
+          ? `Quantity: ${formatQuantity(item.quantity)} × ${formatCustomerCurrency(item.unit_price_cents)} each`
           : null,
+        options.proposalPricing
+          ? `Price: ${formatCustomerCurrency(item.total_cents)}`
+          : `${formatQuantity(item.quantity)} × ${formatCurrency(item.unit_price_cents)} = ${formatCurrency(item.total_cents)}`,
       ].filter(Boolean);
       return lines.join("\n");
     })
@@ -235,20 +283,21 @@ function formatLineItemScope(
 }
 
 function formatQuoteLocation(quote: QuoteEmailDraftInput) {
-  return formatLocation(quote.service_locations ?? quote.jobs?.service_locations);
+  return formatCustomerFacingAddress(quote.service_locations ?? quote.jobs?.service_locations)
+    || "the service property";
 }
 
 function formatInvoiceLocation(invoice: InvoiceEmailDraftInput) {
-  return formatLocation(invoice.jobs?.service_locations);
+  return formatCustomerFacingAddress(invoice.jobs?.service_locations)
+    || "the service property";
 }
 
-function formatLocation(location?: EmailLocation | null) {
+function formatOperationalLocation(location?: EmailLocation | null) {
   if (!location) return "the service property";
-  const locality = [location.city, formatStateAndPostalCode(location.state, location.postal_code)]
-    .filter(Boolean)
-    .join(", ");
-  const address = [location.street, locality].filter(Boolean).join(", ");
-  return address || location.label || "the service property";
+  const stateAndPostalCode = formatStateAndPostalCode(location.state, location.postal_code);
+  return [location.street, location.city, stateAndPostalCode].filter(Boolean).join(", ")
+    || location.label
+    || "the service property";
 }
 
 function subjectLocation(value: string) {
@@ -257,7 +306,8 @@ function subjectLocation(value: string) {
 
 function quoteSubjectLocation(quote: QuoteEmailDraftInput) {
   const location = quote.service_locations ?? quote.jobs?.service_locations;
-  return subjectLocation(location?.street?.trim() || location?.city?.trim() || formatQuoteLocation(quote));
+  const parts = customerFacingAddressParts(location);
+  return subjectLocation(parts.street || formatCustomerFacingLocality(parts) || formatQuoteLocation(quote));
 }
 
 function buildQuoteIntroduction(
@@ -266,17 +316,8 @@ function buildQuoteIntroduction(
   revised: boolean,
 ) {
   const location = quote.service_locations ?? quote.jobs?.service_locations;
-  const locationPhrase = proposalLocationPhrase(location);
+  const locationPhrase = formatCustomerFacingLocationPhrase(location);
   return `Thank you for the opportunity to provide this ${revised ? "updated " : ""}proposal for ${workDescription}${locationPhrase}.`;
-}
-
-function proposalLocationPhrase(location?: EmailLocation | null) {
-  const street = location?.street?.trim();
-  const city = location?.city?.trim();
-  if (street && city) return ` at ${street} in ${city}`;
-  if (street) return ` at ${street}`;
-  if (city) return ` in ${city}`;
-  return "";
 }
 
 function describeQuoteWork(quote: QuoteEmailDraftInput) {
@@ -317,6 +358,69 @@ function formatStateAndPostalCode(state?: string | null, postalCode?: string | n
   return [state?.trim(), postalCode?.trim()].filter(Boolean).join(" ");
 }
 
+function customerFacingAddressParts(location?: EmailLocation | null): CustomerFacingAddressParts {
+  let street = cleanCustomerFacingAddressValue(location?.street);
+  let city = cleanCustomerFacingAddressValue(location?.city);
+  const state = cleanCustomerFacingAddressValue(location?.state);
+  const postalCode = cleanCustomerFacingAddressValue(location?.postal_code);
+
+  if (street && !city && isInternalAddressPlaceholder(location?.city)) {
+    const recovered = recoverLocalityFromCombinedStreet(street);
+    street = recovered.street;
+    city = recovered.city;
+  }
+
+  return {
+    street,
+    city: sameComponent(street, city) ? "" : city,
+    state: sameComponent(city, state) ? "" : state,
+    postalCode,
+  };
+}
+
+function cleanCustomerFacingAddressValue(value?: string | null) {
+  const cleaned = value?.trim().replaceAll(/\s+/g, " ") ?? "";
+  return isInternalAddressPlaceholder(cleaned) ? "" : cleaned;
+}
+
+function isInternalAddressPlaceholder(value?: string | null) {
+  const normalized = value?.trim().replaceAll(/\s+/g, " ").replace(/[.!]+$/, "").toLowerCase();
+  return normalized ? internalAddressPlaceholders.has(normalized) : false;
+}
+
+function formatCustomerFacingLocality(parts: CustomerFacingAddressParts) {
+  if (!parts.city) return "";
+  const stateAndPostalCode = formatStateAndPostalCode(parts.state, parts.postalCode);
+  return [parts.city, stateAndPostalCode].filter(Boolean).join(", ");
+}
+
+function sameComponent(left: string, right: string) {
+  return Boolean(left && right && normalizeAddressComponent(left) === normalizeAddressComponent(right));
+}
+
+function endsWithComponent(value: string, component: string) {
+  if (!component) return false;
+  return normalizeAddressComponent(value).endsWith(normalizeAddressComponent(component));
+}
+
+function normalizeAddressComponent(value: string) {
+  return value.toLowerCase().replaceAll(/[^a-z0-9]+/g, " ").trim();
+}
+
+function recoverLocalityFromCombinedStreet(value: string) {
+  const match = value.match(
+    /^(.+?\b(?:avenue|ave|boulevard|blvd|circle|cir|court|ct|drive|dr|highway|hwy|lane|ln|parkway|pkwy|place|pl|road|rd|street|st|trail|trl|way))\s+([a-z][a-z .'-]{1,80})$/i,
+  );
+  if (!match) return { street: value, city: "" };
+
+  const city = match[2]?.trim() ?? "";
+  if (/^(?:apartment|apt|lot|suite|unit)\b/i.test(city)) {
+    return { street: value, city: "" };
+  }
+
+  return { street: match[1]?.trim() ?? value, city };
+}
+
 function formatQuotePaymentTerms(value?: string | null) {
   const terms = value?.trim();
   if (!terms) return null;
@@ -343,6 +447,7 @@ const scopeHeadingLabels = new Map([
 export function parseScopePresentation(value: string): ScopePresentationBlock[] {
   const blocks: ScopePresentationBlock[] = [];
   let textLines: string[] = [];
+  const usesProposalPricing = value.split(/\r?\n/).some((line) => /^Price:\s*\S/i.test(line.trim()));
 
   function flushText() {
     const text = textLines.join("\n").trim();
@@ -351,8 +456,20 @@ export function parseScopePresentation(value: string): ScopePresentationBlock[] 
   }
 
   for (const line of value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n")) {
+    const item = usesProposalPricing ? line.trim().match(/^\d+\.\s+(.+)$/) : null;
+    const price = usesProposalPricing ? line.trim().match(/^Price:\s*(.+)$/i) : null;
+    const quantity = usesProposalPricing ? line.trim().match(/^Quantity:\s*(.+)$/i) : null;
     const heading = scopeHeadingLabel(line);
-    if (heading) {
+    if (item) {
+      flushText();
+      blocks.push({ kind: "item", text: item[1] });
+    } else if (price) {
+      flushText();
+      blocks.push({ kind: "price", text: price[1] });
+    } else if (quantity) {
+      flushText();
+      blocks.push({ kind: "quantity", text: quantity[1] });
+    } else if (heading) {
       flushText();
       blocks.push({ kind: "heading", text: heading });
     } else if (!line.trim()) {
@@ -367,8 +484,14 @@ export function parseScopePresentation(value: string): ScopePresentationBlock[] 
 
 function formatScopePresentation(value?: string | null) {
   if (!value) return "";
+  let itemNumber = 0;
   return parseScopePresentation(value)
-    .map((block) => block.text)
+    .map((block) => {
+      if (block.kind === "item") return `${++itemNumber}. ${block.text}`;
+      if (block.kind === "price") return `Price: ${block.text}`;
+      if (block.kind === "quantity") return `Quantity: ${block.text}`;
+      return block.text;
+    })
     .join("\n\n");
 }
 
@@ -432,7 +555,7 @@ export function generateWorkOrderCrewMessage(job: JobDetail): EmailDraft {
   return {
     subject: `${companyName} work order: ${job.service_type?.replace("_", " ") ?? "service job"}`,
     body: [
-      `Address: ${formatLocation(job.service_locations)}`,
+      `Address: ${formatOperationalLocation(job.service_locations)}`,
       `Scope: ${job.requested_scope || "No requested scope entered yet."}`,
       `Access notes: ${job.service_locations?.access_notes || "None"}`,
       `Service notes: ${job.service_locations?.service_notes || "None"}`,
@@ -450,6 +573,15 @@ function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
+  }).format(cents / 100);
+}
+
+function formatCustomerCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 

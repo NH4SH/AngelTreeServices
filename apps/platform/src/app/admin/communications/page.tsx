@@ -167,6 +167,7 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
             </div>
           </dl>
           {lead.duplicateOfJobId ? <p className="data-warning">Possible duplicate of lead {lead.duplicateOfJobId}.</p> : null}
+          {lead.linkedQuote ? <p className="inline-empty">Quote created · <Link href={`/admin/quotes/${lead.linkedQuote.id}`}>{lead.linkedQuote.label}</Link></p> : null}
           <div className="record-actions">
             <Link href={`/admin/jobs/${lead.jobId}`}>Open lead</Link>
             {lead.leadDisposition !== "spam" && lead.phone ? <a href={`tel:${lead.phone}`}>Call</a> : null}

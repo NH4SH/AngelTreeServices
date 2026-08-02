@@ -15,7 +15,7 @@ import { AddQuoteForm } from "../../QuoteForm";
 
 type QuoteEditPageProps = {
   params: Promise<{ quoteId: string }>;
-  searchParams: Promise<{ contact_warning?: string; duplicated?: string; line_error?: string; renewal?: string; saved?: string }>;
+  searchParams: Promise<{ contact_warning?: string; duplicated?: string; lead_archive_warning?: string; line_error?: string; renewal?: string; saved?: string; source_lead_job_id?: string }>;
 };
 
 export default async function QuoteEditPage({ params, searchParams }: QuoteEditPageProps) {
@@ -85,6 +85,11 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
                 The quote draft was created, but its line items could not be saved. Review the lines and save again.
               </p>
             ) : null}
+            {query.lead_archive_warning === "1" ? (
+              <p className="form-message error" role="alert">
+                The quote was created, but its website lead could not be archived automatically. Archive the lead manually from Leads and Communications.
+              </p>
+            ) : null}
             <AddQuoteForm
               customers={customers.data}
               estimateScheduleEvents={estimateScheduleEvents.data}
@@ -95,6 +100,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               quote={detail.data}
               serviceCategories={serviceCategories.data}
               serviceLocations={serviceLocations.data}
+              sourceLeadJobId={query.source_lead_job_id}
             />
           </>
         )}

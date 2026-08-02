@@ -50,6 +50,7 @@ export function AddQuoteForm({
   quote,
   serviceCategories,
   serviceLocations,
+  sourceLeadJobId,
 }: {
   createCloseHref?: string;
   customers: Pick<Customer, "id" | "display_name">[];
@@ -63,6 +64,7 @@ export function AddQuoteForm({
   quote?: QuoteDetail;
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
+  sourceLeadJobId?: string;
 }) {
   const isEditing = Boolean(quote);
   const action = isEditing ? updateQuote : createQuote;
@@ -133,6 +135,7 @@ export function AddQuoteForm({
       onChange={() => setDirty(true)}
     >
       {quote ? <input name="quote_id" type="hidden" value={quote.id} /> : null}
+      {leadPrefill?.sourceJobId || sourceLeadJobId ? <input name="source_lead_job_id" type="hidden" value={leadPrefill?.sourceJobId ?? sourceLeadJobId} /> : null}
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}

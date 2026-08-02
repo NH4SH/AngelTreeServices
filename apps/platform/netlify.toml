@@ -2,5 +2,8 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  NETLIFY_NEXT_SKEW_PROTECTION = "true"
+
 [functions]
   directory = "netlify/functions"

@@ -1377,6 +1377,16 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.website-lead-project-details {
+  grid-column: 1 / -1;
+}
+
+.website-lead-project-details dd {
+  max-width: 90ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .communication-metric {
   display: flex;
   gap: 12px;

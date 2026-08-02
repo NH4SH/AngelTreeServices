@@ -107,9 +107,9 @@ export default async function AdminPage() {
       title: "New leads",
       description: "Requests that need first contact, qualification, or a quick call back.",
       Icon: PhoneCall,
-      href: "/admin/jobs",
+      href: "/admin/communications#website-leads",
       items: jobSummaries.lanes.newLeads.map((job) => ({
-        href: `/admin/jobs/${job.id}`,
+        href: "/admin/communications#website-leads",
         title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.requested_scope ?? "No scope entered yet",
       })),

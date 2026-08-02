@@ -49,7 +49,7 @@ export async function getWorkflowPipelineStages(): Promise<{
 }
 
 const stageDefinitions: Omit<WorkflowPipelineStage, "count">[] = [
-  { id: "new-leads", label: "New leads", href: "/admin/jobs?status=new_lead" },
+  { id: "new-leads", label: "New leads", href: "/admin/communications#website-leads" },
   { id: "awaiting-contact", label: "Awaiting contact", href: "/admin/follow-ups?view=due" },
   { id: "quotes-prepare", label: "Quotes to prepare", href: "/admin/quotes?status=draft" },
   { id: "quotes-response", label: "Awaiting response", href: "/admin/quotes?status=sent" },

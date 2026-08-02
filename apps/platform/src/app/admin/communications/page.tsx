@@ -161,6 +161,10 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
             <Detail label="Last communication" value={lead.lastCommunication ?? "No staff communication yet"} />
             <Detail label="Next action" value={lead.nextAction ?? "Review lead"} />
             <Detail label="Office notification" value={lead.notificationStatus} />
+            <div className="website-lead-project-details">
+              <dt>Project details</dt>
+              <dd>{lead.projectDetails ?? "No project details provided."}</dd>
+            </div>
           </dl>
           {lead.duplicateOfJobId ? <p className="data-warning">Possible duplicate of lead {lead.duplicateOfJobId}.</p> : null}
           <div className="record-actions">

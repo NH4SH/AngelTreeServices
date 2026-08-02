@@ -4,6 +4,7 @@ import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
 import { PortalViewStatus } from "@/components/portal-engagement";
+import { QuoteListEmailToolbar } from "@/components/quote-list-email-toolbar";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
@@ -17,6 +18,7 @@ import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
 import { buildQuoteLeadPrefill, type QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
+import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
 import type { Customer, Job, Organization, OrganizationContact, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 type QuotesPageProps = {
@@ -32,6 +34,7 @@ type QuotesPageProps = {
 };
 
 type QuoteSummaryKey = "draft" | "awaiting" | "approved" | "change_requested" | "expired";
+const quoteListEmailFormId = "quote-list-combined-email";
 
 const summaryOrder: { key: QuoteSummaryKey; label: string }[] = [
   { key: "draft", label: "Draft" },
@@ -115,6 +118,8 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
         {quotes.data.length === 0 ? (
           <EmptyState title={params.q ? "No matching quotes" : archived ? "No archived quotes" : selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} quotes` : "No quotes yet"} body={params.q ? "Try another quote number, customer, phone, address, amount, or job reference." : archived ? "Archived quotes will appear here." : selectedStatus ? "Choose another workflow status to continue." : "Create the first draft quote from a customer and service location."} />
         ) : (
+          <>
+          {!archived ? <QuoteListEmailToolbar /> : null}
           <section className="commerce-table-shell" aria-label="Quotes">
             <div className="commerce-table-header quote-grid" aria-hidden="true">
               <span>Quote</span>
@@ -128,8 +133,21 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
               {quotes.data.map((quote) => (
                 <article className="commerce-row quote-grid" key={quote.id}>
                   <div className="commerce-record-title">
-                    <Link href={`/admin/quotes/${quote.id}`}>{getQuoteDisplayLabel(quote)}</Link>
-                    <span>{quote.quote_line_items?.length ?? 0} line items</span>
+                    <div className="quote-list-select-title">
+                      <input
+                        aria-label={`Select ${getQuoteDisplayLabel(quote)} for combined email`}
+                        disabled={Boolean(getMultiQuoteEmailIneligibility(quote))}
+                        form={quoteListEmailFormId}
+                        name="quote_id"
+                        title={getMultiQuoteEmailIneligibility(quote) ?? "Select for combined email"}
+                        type="checkbox"
+                        value={quote.id}
+                      />
+                      <span>
+                        <Link href={`/admin/quotes/${quote.id}`}>{getQuoteDisplayLabel(quote)}</Link>
+                        <small>{quote.quote_line_items?.length ?? 0} line items</small>
+                      </span>
+                    </div>
                   </div>
                   <div className="commerce-cell">
                     <strong>{quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party"}</strong>
@@ -171,6 +189,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
               ))}
             </div>
           </section>
+          </>
         )}
 
         <ListPagination basePath="/admin/quotes" count={quotes.count} page={page} pageSize={25} params={{ archived: archived ? "1" : undefined, q: params.q, status: selectedStatus ?? undefined }} />

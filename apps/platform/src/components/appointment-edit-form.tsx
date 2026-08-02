@@ -4,6 +4,7 @@ import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { Save } from "lucide-react";
 import { updateAppointmentDetails, type AppointmentActionState } from "@/app/admin/schedule/actions";
 import type { AppointmentWithRelations, AssignableUser } from "@/lib/types/database";
+import { toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -27,11 +28,11 @@ export function AppointmentEditForm({
       <div className="form-grid-two">
         <label>
           <span>Start time</span>
-          <input defaultValue={toLocalDateTime(appointment.starts_at)} name="starts_at" required type="datetime-local" />
+          <input defaultValue={toScheduleDateTimeLocal(appointment.starts_at)} name="starts_at" required type="datetime-local" />
         </label>
         <label>
           <span>End time</span>
-          <input defaultValue={appointment.ends_at ? toLocalDateTime(appointment.ends_at) : ""} name="ends_at" type="datetime-local" />
+          <input defaultValue={appointment.ends_at ? toScheduleDateTimeLocal(appointment.ends_at) : ""} name="ends_at" type="datetime-local" />
         </label>
       </div>
       <label>
@@ -67,10 +68,4 @@ export function AppointmentEditForm({
       ) : null}
     </form>
   );
-}
-
-function toLocalDateTime(value: string) {
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }

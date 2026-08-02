@@ -5878,6 +5878,30 @@ a {
   text-decoration: none;
 }
 
+.app-shell :where(a[href], button:not(:disabled), summary) {
+  touch-action: manipulation;
+}
+
+.app-shell :where(a[href], button:not(:disabled), summary):active {
+  filter: brightness(0.96);
+  transform: translateY(1px);
+}
+
+.app-shell :where(a[href], button, summary):focus-visible {
+  outline: 3px solid oklch(0.66 0.16 145 / 0.48);
+  outline-offset: 2px;
+}
+
+.app-shell :where(button:not(:disabled), summary) {
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .app-shell :where(.primary-action, .secondary-action, .record-actions a, .record-actions button) {
+    min-height: 44px;
+  }
+}
+
 button,
 input,
 select,

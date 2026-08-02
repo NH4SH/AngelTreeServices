@@ -17,6 +17,7 @@ import {
 import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
 import { defaultEstimateStart, type LeadEstimatePrefill } from "@/lib/schedule/lead-estimate";
 import type { PartyEstimatePrefill } from "@/lib/schedule/party-estimate";
+import { toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -621,11 +622,11 @@ export function ScheduleEventEditForm({
       <div className="form-grid-two">
         <label>
           <span>Start time</span>
-          <input defaultValue={toLocalDateTime(event.starts_at)} name="starts_at" required type="datetime-local" />
+          <input defaultValue={toScheduleDateTimeLocal(event.starts_at)} name="starts_at" required type="datetime-local" />
         </label>
         <label>
           <span>End time</span>
-          <input defaultValue={event.ends_at ? toLocalDateTime(event.ends_at) : ""} name="ends_at" type="datetime-local" />
+          <input defaultValue={event.ends_at ? toScheduleDateTimeLocal(event.ends_at) : ""} name="ends_at" type="datetime-local" />
         </label>
       </div>
       <label className="form-checkbox">
@@ -750,10 +751,4 @@ function FormMessage({ state }: { state: AppointmentActionState }) {
       {state.message}
     </p>
   );
-}
-
-function toLocalDateTime(value: string) {
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }

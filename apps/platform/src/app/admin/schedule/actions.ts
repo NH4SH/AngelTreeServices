@@ -8,6 +8,7 @@ import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } fro
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { parseScheduleDateTime } from "@/lib/schedule/event-form";
 import type {
   AppointmentStatus,
   AppointmentType,
@@ -954,8 +955,7 @@ function parseDateTime(value: FormDataEntryValue | null, optional = false) {
     return null;
   }
 
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseScheduleDateTime(text);
 }
 
 function normalizeScheduleStart(date: Date | null, allDay: boolean) {

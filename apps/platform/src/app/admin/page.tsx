@@ -241,11 +241,11 @@ export default async function AdminPage() {
           <section className="panel dashboard-panel dashboard-reporting-panel">
             <PanelHeader title="This month" detail="Sales, cash, and accounts receivable" />
             <div className="pipeline-list">
-              <a className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></a>
-              <a className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></a>
-              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></a>
-              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></a>
-              <a className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></a>
+              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></Link>
             </div>
           </section>
           <section className="panel dashboard-panel">
@@ -253,7 +253,7 @@ export default async function AdminPage() {
             <div className="workflow-list schedule-dashboard-list">
               {scheduleSummary.data.todaysCrewSchedules.length ? (
                 scheduleSummary.data.todaysCrewSchedules.map((group) => (
-                  <a className="workflow-row" href={`/admin/schedule?assigned_user_id=${group.user.id}`} key={group.user.id}>
+                  <Link className="workflow-row" href={`/admin/schedule?assigned_user_id=${group.user.id}`} key={group.user.id}>
                     <span className="workflow-row-icon" aria-hidden="true">
                       <Truck size={15} />
                     </span>
@@ -266,7 +266,7 @@ export default async function AdminPage() {
                       </small>
                     </span>
                     <b>{group.entries.length}</b>
-                  </a>
+                  </Link>
                 ))
               ) : (
                 <p className="subtle-empty">No crew schedule assigned for today yet.</p>
@@ -284,38 +284,38 @@ export default async function AdminPage() {
           <section className="panel dashboard-panel">
             <PanelHeader title="Customer communications" detail="Reminder queue and delivery attention" />
             <div className="pipeline-list">
-              <a className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></a>
-              <a className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></a>
-              <a className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></a>
-              <a className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></a>
-              <a className="pipeline-row" href="/admin/communications"><span>Failed communications</span><strong>{communicationSummary.data.failed.length}</strong></a>
-              <a className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></a>
+              <Link className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></Link>
+              <Link className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/communications"><span>Failed communications</span><strong>{communicationSummary.data.failed.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></Link>
             </div>
           </section>
 
           <section className="panel dashboard-panel">
             <PanelHeader title="Fleet attention" detail="Safety, repairs, maintenance, and expiring documents" />
             <div className="pipeline-list">
-              <a className="pipeline-row" href="/admin/equipment?status=out_of_service"><span>Out of service</span><strong>{equipmentSummary.data.outOfService.length}</strong></a>
-              <a className="pipeline-row" href="/admin/equipment?status=maintenance_due"><span>Maintenance due soon</span><strong>{equipmentSummary.data.dueMaintenance.length}</strong></a>
-              <a className="pipeline-row" href="/admin/equipment"><span>Open problem reports</span><strong>{equipmentSummary.data.openProblems.length}</strong></a>
-              <a className="pipeline-row" href="/admin/equipment"><span>Failed inspections</span><strong>{equipmentSummary.data.failedInspections.length}</strong></a>
-              <a className="pipeline-row" href="/admin/equipment"><span>Documents expiring in 30 days</span><strong>{equipmentSummary.data.expiringDocuments.length}</strong></a>
+              <Link className="pipeline-row" href="/admin/equipment?status=out_of_service"><span>Out of service</span><strong>{equipmentSummary.data.outOfService.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/equipment?status=maintenance_due"><span>Maintenance due soon</span><strong>{equipmentSummary.data.dueMaintenance.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/equipment"><span>Open problem reports</span><strong>{equipmentSummary.data.openProblems.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/equipment"><span>Failed inspections</span><strong>{equipmentSummary.data.failedInspections.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/equipment"><span>Documents expiring in 30 days</span><strong>{equipmentSummary.data.expiringDocuments.length}</strong></Link>
             </div>
           </section>
 
           <section className="panel dashboard-panel">
             <PanelHeader title="Employee readiness" detail="Onboarding, access, training, credentials, and return review" />
             <div className="pipeline-list">
-              <a className="pipeline-row" href="/admin/employees?status=onboarding"><span>Employees onboarding</span><strong>{employeeSummary.data.onboarding.length}</strong></a>
-              <a className="pipeline-row" href="/admin/access"><span>Access requests awaiting approval</span><strong>{employeeSummary.data.pendingAccess.length}</strong></a>
-              <a className="pipeline-row" href="/admin/employees?credential=expiring"><span>Credentials expiring soon</span><strong>{employeeSummary.data.expiring.length}</strong></a>
-              <a className="pipeline-row" href="/admin/employees?credential=expired"><span>Expired credentials</span><strong>{employeeSummary.data.expired.length}</strong></a>
-              <a className="pipeline-row" href="/admin/employees?training=none"><span>Missing training records</span><strong>{employeeSummary.data.missingTraining.length}</strong></a>
-              <a className="pipeline-row" href="/admin/safety"><span>Safety acknowledgments pending</span><strong>{employeeSummary.data.pendingSafetyAcknowledgments.length}</strong></a>
-              <a className="pipeline-row" href="/admin/employees"><span>Documents awaiting verification</span><strong>{employeeSummary.data.pendingDocuments.length}</strong></a>
-              <a className="pipeline-row" href="/admin/equipment"><span>Equipment/PPE overdue for return</span><strong>{employeeSummary.data.equipmentDueBack.length}</strong></a>
-              <a className="pipeline-row" href="/admin/employees?status=inactive"><span>Inactive access requiring review</span><strong>{employeeSummary.data.inactiveAccessReview.length}</strong></a>
+              <Link className="pipeline-row" href="/admin/employees?status=onboarding"><span>Employees onboarding</span><strong>{employeeSummary.data.onboarding.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/access"><span>Access requests awaiting approval</span><strong>{employeeSummary.data.pendingAccess.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/employees?credential=expiring"><span>Credentials expiring soon</span><strong>{employeeSummary.data.expiring.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/employees?credential=expired"><span>Expired credentials</span><strong>{employeeSummary.data.expired.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/employees?training=none"><span>Missing training records</span><strong>{employeeSummary.data.missingTraining.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/safety"><span>Safety acknowledgments pending</span><strong>{employeeSummary.data.pendingSafetyAcknowledgments.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/employees"><span>Documents awaiting verification</span><strong>{employeeSummary.data.pendingDocuments.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/equipment"><span>Equipment/PPE overdue for return</span><strong>{employeeSummary.data.equipmentDueBack.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/employees?status=inactive"><span>Inactive access requiring review</span><strong>{employeeSummary.data.inactiveAccessReview.length}</strong></Link>
             </div>
           </section>
 
@@ -388,11 +388,11 @@ export default async function AdminPage() {
           <section className="panel dashboard-panel">
             <PanelHeader title="Quick actions" detail="Most common next steps" />
             <div className="quick-actions">
-              <a href="/admin/customers">Add customer</a>
-              <a href="/admin/jobs">Create job</a>
-              <a href="/admin/quotes">Prepare quote</a>
-              <a href="/admin/invoices?new=1">New invoice</a>
-              <a href="/admin/schedule">Open schedule</a>
+              <Link href="/admin/customers">Add customer</Link>
+              <Link href="/admin/jobs">Create job</Link>
+              <Link href="/admin/quotes">Prepare quote</Link>
+              <Link href="/admin/invoices?new=1">New invoice</Link>
+              <Link href="/admin/schedule">Open schedule</Link>
             </div>
           </section>
 
@@ -404,7 +404,7 @@ export default async function AdminPage() {
               <div className="pipeline-row"><span>Quotes waiting</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.quotes.filter((quote) => quote.status === "sent" || quote.status === "change_requested").length, 0)}</strong></div>
               <div className="pipeline-row"><span>Unpaid invoices</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.invoices.filter((invoice) => ["sent", "partially_paid", "overdue"].includes(invoice.status)).length, 0)}</strong></div>
             </div>
-            <div className="record-actions"><a href="/admin/organizations">Open organizations</a></div>
+            <div className="record-actions"><Link href="/admin/organizations">Open organizations</Link></div>
           </section>
         </section>
 

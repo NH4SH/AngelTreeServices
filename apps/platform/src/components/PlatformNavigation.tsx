@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   Command,
@@ -219,6 +219,7 @@ function NavigationLinks({ items, onNavigate, pathname }: { items: NavigationIte
 }
 
 function CommandPalette({ audience, items, onClose, roles }: { audience: NavigationAudience; items: NavigationItem[]; onClose: () => void; roles: PlatformRoleName[] }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -242,7 +243,10 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
       setActiveIndex((index) => Math.max(index - 1, 0));
     }
     if (event.key === "Enter" && filtered[activeIndex]) {
-      window.location.assign(filtered[activeIndex].href);
+      event.preventDefault();
+      const href = filtered[activeIndex].href;
+      onClose();
+      router.push(href);
     }
   }
 

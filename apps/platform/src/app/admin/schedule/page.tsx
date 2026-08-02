@@ -20,10 +20,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
 import { ScheduleDaySheet } from "./ScheduleDaySheet";
 import { ScheduleEventDrawerContent, ScheduleEventEditForm } from "./ScheduleEventForm";
-import {
-  updateAppointmentStatusFromForm,
-  updateScheduleEventStatusFromForm,
-} from "./actions";
+import { AppointmentStatusAction, ScheduleEventStatusAction } from "./ScheduleStatusAction";
 import {
   appointmentStatuses,
   buildScheduleHref,
@@ -143,14 +140,16 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
   const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedEvent?.source_customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
   const selectedOrganizationId = selectedEvent?.jobs?.organization_id ?? selectedEvent?.source_organization_id ?? selectedAppointment?.jobs?.organization_id ?? null;
-  const selectedCommunications = selectedEvent
-    ? await getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
-    : selectedAppointment
-      ? await getCustomerCommunications({ appointmentId: selectedAppointment.id, limit: 20 })
-      : { data: [], error: null };
-  const selectedRecipients = selectedCustomerId || selectedOrganizationId
-    ? await getCommunicationRecipientOptions({ customerId: selectedCustomerId, organizationId: selectedOrganizationId })
-    : { data: [], error: null };
+  const [selectedCommunications, selectedRecipients] = await Promise.all([
+    selectedEvent
+      ? getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
+      : selectedAppointment
+        ? getCustomerCommunications({ appointmentId: selectedAppointment.id, limit: 20 })
+        : Promise.resolve({ data: [], error: null }),
+    selectedCustomerId || selectedOrganizationId
+      ? getCommunicationRecipientOptions({ customerId: selectedCustomerId, organizationId: selectedOrganizationId })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   const query: ScheduleQuery = {
     assigned_user_id: assignedUserId,
     date: formatDateInput(date),
@@ -905,7 +904,7 @@ function ScheduleEventDetailPanel({
 
         {event.event_type !== "job" ? <details className="appointment-edit-details">
           <summary>Edit event details</summary>
-          <ScheduleEventEditForm event={event} jobs={jobs} users={users} />
+          <ScheduleEventEditForm event={event} jobs={jobs} key={event.id} users={users} />
         </details> : null}
       </aside>
     </div>
@@ -993,7 +992,7 @@ function AppointmentDetailPanel({
 
         <details className="appointment-edit-details">
           <summary>Edit legacy appointment</summary>
-          <AppointmentEditForm appointment={appointment} assignedUsers={users} />
+          <AppointmentEditForm appointment={appointment} assignedUsers={users} key={appointment.id} />
         </details>
       </aside>
     </div>
@@ -1009,15 +1008,7 @@ function QuickScheduleStatusButton({
   label: string;
   nextStatus: ScheduleEventStatus;
 }) {
-  return (
-    <form action={updateScheduleEventStatusFromForm}>
-      <input name="event_id" type="hidden" value={event.id} />
-      <input name="next_status" type="hidden" value={nextStatus} />
-      <button disabled={event.status === nextStatus} type="submit">
-        {label}
-      </button>
-    </form>
-  );
+  return <ScheduleEventStatusAction currentStatus={event.status} eventId={event.id} label={label} nextStatus={nextStatus} />;
 }
 
 function QuickAppointmentStatusButton({
@@ -1029,16 +1020,7 @@ function QuickAppointmentStatusButton({
   label: string;
   nextStatus: AppointmentStatus;
 }) {
-  return (
-    <form action={updateAppointmentStatusFromForm}>
-      <input name="appointment_id" type="hidden" value={appointment.id} />
-      <input name="job_id" type="hidden" value={appointment.job_id} />
-      <input name="next_status" type="hidden" value={nextStatus} />
-      <button disabled={appointment.status === nextStatus} type="submit">
-        {label}
-      </button>
-    </form>
-  );
+  return <AppointmentStatusAction appointmentId={appointment.id} currentStatus={appointment.status} jobId={appointment.job_id} label={label} nextStatus={nextStatus} />;
 }
 
 function EmployeeSummaryCard({

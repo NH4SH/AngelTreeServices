@@ -15,7 +15,8 @@
     "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs",
     "test:email": "node --test --experimental-strip-types src/lib/email/*.test.mjs",
     "test:notifications": "node --test --experimental-strip-types src/lib/notifications/*.test.mjs",
-    "test:portal": "node --test --experimental-strip-types src/lib/portal/*.test.mjs"
+    "test:portal": "node --test --experimental-strip-types src/lib/portal/*.test.mjs",
+    "test:quotes": "node --test --experimental-strip-types src/lib/quotes/*.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

@@ -10,17 +10,19 @@ import { AddQuoteForm } from "./QuoteForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
-import { getJobOptions } from "@/lib/data/jobs";
+import { getJobOptions, getQuoteLeadSource } from "@/lib/data/jobs";
 import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
 import { getQuoteStatusCounts, getQuotesPage } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
+import { buildQuoteLeadPrefill, type QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
 import type { Customer, Job, Organization, OrganizationContact, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 type QuotesPageProps = {
   searchParams: Promise<{
     customer_id?: string;
+    job_id?: string;
     new?: string;
     archived?: string;
     page?: string;
@@ -51,7 +53,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
   const page = positivePage(params.page);
   const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteSummaryKey : null;
   const statuses = selectedStatus === "awaiting" ? ["sent", "change_requested"] : selectedStatus === "expired" ? ["expired", "declined"] : selectedStatus ? [selectedStatus] : undefined;
-  const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials, quoteLeadSource] = await Promise.all([
     getQuotesPage({ archived, page, pageSize: 25, query: params.q, statuses }),
     getQuoteStatusCounts(params.q),
     getCustomerOptions(),
@@ -62,8 +64,14 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     getEstimateScheduleEventOptions(),
     getServiceCategories(),
     getMaterialCatalogOptions(),
+    getQuoteLeadSource(params.new === "1" ? params.job_id : undefined),
   ]);
   const summary = statusCounts.data;
+  const quoteLeadPrefill = quoteLeadSource.data ? buildQuoteLeadPrefill(quoteLeadSource.data) : null;
+  const quoteLeadWarning = quoteLeadSource.error
+    ?? (params.new === "1" && params.job_id && !quoteLeadPrefill
+      ? "The selected lead could not be loaded or you do not have access."
+      : null);
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -176,8 +184,10 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             materials={materials.data}
             organizations={organizations.data}
             organizationContacts={organizationContacts.data}
+            prefill={quoteLeadPrefill}
             serviceCategories={serviceCategories.data}
             serviceLocations={serviceLocations.data}
+            sourceWarning={quoteLeadWarning}
           />
         ) : null}
       </div>
@@ -193,8 +203,10 @@ function QuoteCreateDrawer({
   materials,
   organizations,
   organizationContacts,
+  prefill,
   serviceCategories,
   serviceLocations,
+  sourceWarning,
 }: {
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
@@ -203,12 +215,16 @@ function QuoteCreateDrawer({
   materials: MaterialRecord[];
   organizations: Pick<Organization, "id" | "name">[];
   organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
+  prefill: QuoteLeadPrefill | null;
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
+  sourceWarning: string | null;
 }) {
+  const closeHref = prefill || sourceWarning ? "/admin/communications#website-leads" : "/admin/quotes";
+
   return (
     <div aria-labelledby="new-quote-title" className="commerce-drawer-overlay" role="dialog">
-      <Link aria-label="Close new quote panel" className="commerce-drawer-backdrop" href="/admin/quotes" />
+      <Link aria-label="Close new quote panel" className="commerce-drawer-backdrop" href={closeHref} />
       <aside className="commerce-drawer">
         <div className="commerce-drawer-header">
           <div>
@@ -217,24 +233,30 @@ function QuoteCreateDrawer({
               Quote builder
             </p>
             <h2 id="new-quote-title">New quote</h2>
-            <p>Start a draft proposal from the customer, service location, and proposed work.</p>
+            <p>{prefill ? `Continue the lead for ${prefill.partyName}.` : "Start a draft proposal from the customer, service location, and proposed work."}</p>
           </div>
-          <Link aria-label="Close new quote panel" className="secondary-action icon-action" href="/admin/quotes">
+          <Link aria-label="Close new quote panel" className="secondary-action icon-action" href={closeHref}>
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddQuoteForm
-          customers={customers}
-          defaultCustomerId={defaultCustomerId}
-          estimateScheduleEvents={estimateScheduleEvents}
-          jobs={jobs}
-          materials={materials}
-          organizations={organizations}
-          organizationContacts={organizationContacts}
-          serviceCategories={serviceCategories}
-          serviceLocations={serviceLocations}
-        />
-        <Link className="secondary-action commerce-cancel-link" href="/admin/quotes">
+        {sourceWarning ? (
+          <DataWarning message={sourceWarning} />
+        ) : (
+          <AddQuoteForm
+            createCloseHref={closeHref}
+            customers={customers}
+            defaultCustomerId={defaultCustomerId}
+            estimateScheduleEvents={estimateScheduleEvents}
+            jobs={jobs}
+            leadPrefill={prefill}
+            materials={materials}
+            organizations={organizations}
+            organizationContacts={organizationContacts}
+            serviceCategories={serviceCategories}
+            serviceLocations={serviceLocations}
+          />
+        )}
+        <Link className="secondary-action commerce-cancel-link" href={closeHref}>
           Cancel
         </Link>
       </aside>

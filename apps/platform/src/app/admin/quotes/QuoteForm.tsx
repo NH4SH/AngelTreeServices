@@ -9,6 +9,7 @@ import { belongsToContractingParty, contractingPartyValue, parseContractingParty
 import type { Customer, Job, Organization, OrganizationContact, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 import type { MaterialRecord } from "@/lib/data/materials";
+import type { QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
 
 const initialState: QuoteActionState = {
   status: "idle",
@@ -37,10 +38,12 @@ const initialLineItem = (id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()
 });
 
 export function AddQuoteForm({
+  createCloseHref,
   customers,
   defaultCustomerId = "",
   estimateScheduleEvents,
   jobs,
+  leadPrefill,
   materials,
   organizations,
   organizationContacts,
@@ -48,10 +51,12 @@ export function AddQuoteForm({
   serviceCategories,
   serviceLocations,
 }: {
+  createCloseHref?: string;
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
   jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  leadPrefill?: QuoteLeadPrefill | null;
   materials: MaterialRecord[];
   organizations: Pick<Organization, "id" | "name">[];
   organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
@@ -64,7 +69,9 @@ export function AddQuoteForm({
   const [state, formAction, pending] = useReliableActionState(action, initialState);
   const [dirty, setDirty] = useState(false);
   const [selectedPartyValue, setSelectedPartyValue] = useState(
-    quote ? contractingPartyValue(quote) : defaultCustomerId ? `customer:${defaultCustomerId}` : "",
+    quote
+      ? contractingPartyValue(quote)
+      : leadPrefill?.partyValue ?? (defaultCustomerId ? `customer:${defaultCustomerId}` : ""),
   );
   const selectedParty = parseContractingParty(selectedPartyValue);
   const originalPartyValue = quote ? contractingPartyValue(quote) : "";
@@ -99,7 +106,7 @@ export function AddQuoteForm({
     [organizationContacts, selectedParty],
   );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
-  const closeHref = quote ? `/admin/quotes/${quote.id}` : "/admin/quotes";
+  const closeHref = quote ? `/admin/quotes/${quote.id}` : createCloseHref ?? "/admin/quotes";
 
   useEffect(() => {
     if (state.status === "success") {
@@ -132,6 +139,8 @@ export function AddQuoteForm({
         </p>
       ) : null}
 
+      {!quote && leadPrefill ? <LeadRequestContext prefill={leadPrefill} /> : null}
+
       <section className="quote-editor-section">
         <div>
           <p className="surface-label">{isEditing ? "Edit quote" : "Draft quote"}</p>
@@ -161,7 +170,7 @@ export function AddQuoteForm({
           </label>
           <label>
             Service location
-            <select defaultValue={quote?.service_location_id ?? ""} name="service_location_id" required>
+            <select defaultValue={quote?.service_location_id ?? leadPrefill?.serviceLocationId ?? ""} name="service_location_id" required>
               <option value="">Choose service location</option>
               {matchingLocations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -182,14 +191,14 @@ export function AddQuoteForm({
           <div className="form-grid-two">
             <label>
               Quote recipient
-              <select defaultValue={quote?.recipient_contact_id ?? ""} name="recipient_contact_id" required>
+              <select defaultValue={quote?.recipient_contact_id ?? leadPrefill?.recipientContactId ?? ""} name="recipient_contact_id" required>
                 <option value="">Choose recipient</option>
                 {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
               </select>
             </label>
             <label>
               Approval contact
-              <select defaultValue={quote?.approval_contact_id ?? ""} name="approval_contact_id" required>
+              <select defaultValue={quote?.approval_contact_id ?? leadPrefill?.approvalContactId ?? ""} name="approval_contact_id" required>
                 <option value="">Choose approval contact</option>
                 {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.contact_roles?.length ? ` - ${contact.contact_roles.join(", ")}` : ""}</option>)}
               </select>
@@ -198,7 +207,7 @@ export function AddQuoteForm({
           <div className="form-grid-two">
             <label>
               Onsite contact
-              <select defaultValue={quote?.onsite_contact_id ?? ""} name="onsite_contact_id">
+              <select defaultValue={quote?.onsite_contact_id ?? leadPrefill?.onsiteContactId ?? ""} name="onsite_contact_id">
                 <option value="">No onsite contact selected</option>
                 {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}</option>)}
               </select>
@@ -237,7 +246,7 @@ export function AddQuoteForm({
           </label>
           <label>
             Existing job / work order
-            <select defaultValue={quote?.job_id ?? ""} name="job_id">
+            <select defaultValue={quote?.job_id ?? leadPrefill?.sourceJobId ?? ""} name="job_id">
               <option value="">No existing job yet</option>
               {matchingJobs.map((job) => (
                 <option key={job.id} value={job.id}>
@@ -470,6 +479,43 @@ export function AddQuoteForm({
         </Link>
       </div>
     </form>
+  );
+}
+
+function LeadRequestContext({ prefill }: { prefill: QuoteLeadPrefill }) {
+  return (
+    <aside className="quote-lead-context" aria-labelledby="quote-lead-context-title">
+      <div className="quote-lead-context-header">
+        <p className="surface-label">{prefill.sourceLabel}</p>
+        <h3 id="quote-lead-context-title">Creating quote for {prefill.partyName}</h3>
+        <p>{prefill.serviceLocation}</p>
+      </div>
+      <dl className="quote-lead-context-grid">
+        <div>
+          <dt>Phone</dt>
+          <dd>{prefill.phone || "Not provided"}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{prefill.email || "Not provided"}</dd>
+        </div>
+        <div>
+          <dt>Requested service</dt>
+          <dd>{prefill.requestedService}</dd>
+        </div>
+      </dl>
+      <div className="quote-lead-project-details">
+        <strong>Customer-submitted project details</strong>
+        <p>{prefill.projectDetails || "No project details were provided."}</p>
+      </div>
+      {prefill.propertyNotes ? (
+        <div className="quote-lead-project-details">
+          <strong>Property and access notes</strong>
+          <p>{prefill.propertyNotes}</p>
+        </div>
+      ) : null}
+      <p className="quote-lead-context-note">Use this request as reference. Write the proposed scope in the line items below.</p>
+    </aside>
   );
 }
 

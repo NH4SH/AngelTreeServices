@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
+import type { QuoteLeadSourceRecord } from "@/lib/quotes/lead-prefill";
 import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations, ScheduleJobOption } from "@/lib/types/database";
 
 export type JobsOperationalView = "active" | "to_be_scheduled" | "scheduled" | "in_progress" | "billing" | "completed" | "needs_attention" | "all";
@@ -307,6 +308,31 @@ export async function getJobOptions(): Promise<DataResult<Pick<Job, "id" | "stat
   };
 }
 
+export async function getQuoteLeadSource(jobId?: string): Promise<DataResult<QuoteLeadSourceRecord | null>> {
+  if (!jobId) return { data: null, error: null };
+  if (!isUuid(jobId)) return { data: null, error: "The selected lead could not be loaded or you do not have access." };
+
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(
+      "id, customer_id, organization_id, service_location_id, onsite_contact_id, property_manager_contact_id, service_type, requested_scope, website_submission_id, customers:customers!jobs_customer_id_fkey(id, display_name, email, phone), organizations:organizations!jobs_organization_id_fkey(id, name, billing_email, billing_phone), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(id, organization_id, full_name, email, phone, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(id, organization_id, full_name, email, phone, is_active), service_locations:service_locations!jobs_service_location_id_fkey(id, customer_id, organization_id, label, street, city, state, postal_code, access_notes, service_notes)",
+    )
+    .eq("id", jobId)
+    .not("website_submission_id", "is", null)
+    .eq("lead_disposition", "active")
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { data: null, error: "The selected lead could not be loaded or you do not have access." };
+  }
+
+  return { data: data as unknown as QuoteLeadSourceRecord, error: null };
+}
+
 export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOption[]>> {
   const supabase = await createClient();
 
@@ -330,6 +356,10 @@ export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOpt
     data: (data ?? []) as unknown as ScheduleJobOption[],
     error: null,
   };
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 export async function getDashboardJobSummaries() {

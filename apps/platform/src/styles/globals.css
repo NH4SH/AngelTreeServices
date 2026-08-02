@@ -15682,6 +15682,81 @@ body:has(.appointment-overlay) {
   gap: 16px;
 }
 
+.quote-lead-context {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--color-border-strong);
+  border-left: 5px solid var(--color-forest);
+  border-radius: 8px;
+  background: var(--color-surface-green);
+  padding: 16px;
+}
+
+.quote-lead-context h3,
+.quote-lead-context p,
+.quote-lead-context dl,
+.quote-lead-context dd {
+  margin: 0;
+}
+
+.quote-lead-context h3 {
+  margin-top: 4px;
+  color: var(--color-charcoal);
+  font-size: 1.08rem;
+}
+
+.quote-lead-context-header > p:last-child {
+  margin-top: 5px;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.quote-lead-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+}
+
+.quote-lead-context-grid div {
+  min-width: 0;
+}
+
+.quote-lead-context-grid dt,
+.quote-lead-project-details strong {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.quote-lead-context-grid dd {
+  margin-top: 3px;
+  color: var(--color-charcoal);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.quote-lead-project-details {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.quote-lead-project-details p {
+  color: var(--color-charcoal);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.quote-lead-context .quote-lead-context-note {
+  color: var(--color-forest);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .commerce-editor-page {
   width: min(900px, calc(100% - 32px));
 }
@@ -19865,6 +19940,10 @@ body:has(.appointment-overlay) {
 
   .quote-editor-section {
     padding: 12px;
+  }
+
+  .quote-lead-context-grid {
+    grid-template-columns: 1fr;
   }
 
   .quote-editor-section-header,

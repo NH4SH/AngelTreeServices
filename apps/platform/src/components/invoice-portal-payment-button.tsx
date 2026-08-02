@@ -122,7 +122,6 @@ export function InvoicePortalPaymentChooser({
             label="Pay by bank account"
             name="payment-preference"
             onChange={() => select("ach")}
-            recommended
             value="ach"
           />
           <PaymentOption
@@ -132,6 +131,7 @@ export function InvoicePortalPaymentChooser({
             label="Cash or check pickup"
             name="payment-preference"
             onChange={() => select("cash_check_pickup")}
+            recommended
             value="cash_check_pickup"
           />
           <PaymentOption

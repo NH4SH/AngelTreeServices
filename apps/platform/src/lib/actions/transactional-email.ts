@@ -8,6 +8,7 @@ import { getQuoteDetail } from "@/lib/data/quotes";
 import type { CustomerDocumentEmailEdits } from "@/lib/documents/email-drafts";
 import { invoiceEmailTemplate, quoteEmailTemplate } from "@/lib/email/templates";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 import {
   createOrGetInvoicePortalTokenRecord,
 } from "@/lib/portal/invoice-links";
@@ -20,11 +21,132 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { syncAutomatedCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
+import {
+  buildMultiQuoteEmailDraft,
+  normalizeMultiQuoteIds,
+  renderMultiQuoteEmailHtml,
+  validateMultiQuoteSelection,
+  type MultiQuoteEmailEdits,
+} from "@/lib/quotes/multi-email";
 
 export type TransactionalEmailActionState = {
   status: "idle" | "success" | "error";
   message: string;
 };
+
+export async function sendMultiQuoteEmail(
+  _previousState: TransactionalEmailActionState,
+  formData: FormData,
+): Promise<TransactionalEmailActionState> {
+  const quoteIds = normalizeMultiQuoteIds(formData.getAll("quote_id").map(String));
+  if (quoteIds.length < 2) return { status: "error", message: "Select at least two quotes to send together." };
+
+  const auth = await requireInternalEmailSender();
+  if (auth.error) return auth.error;
+
+  const loaded = await Promise.all(quoteIds.map((quoteId) => getQuoteDetail(quoteId)));
+  const failedLoad = loaded.find((detail) => detail.error || !detail.data);
+  if (failedLoad) return { status: "error", message: failedLoad.error ?? "One or more selected quotes could not be loaded." };
+
+  const quotes = loaded.flatMap((detail) => detail.data ? [detail.data] : []);
+  const validation = validateMultiQuoteSelection(quotes);
+  if (!validation.ok) return { status: "error", message: validation.message };
+
+  const submittedDraft = readMultiQuoteEmailEdits(formData);
+  if (submittedDraft.error) return { status: "error", message: submittedDraft.error };
+
+  const createdTokenIds: string[] = [];
+  const linkedQuotes: { quote: (typeof quotes)[number]; portalUrl: string }[] = [];
+  for (const quote of quotes) {
+    const token = await createOrGetQuotePortalTokenRecord({ quoteId: quote.id, supabase: auth.supabase });
+    if (token.error) {
+      await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
+      return { status: "error", message: token.error };
+    }
+    if (token.created) createdTokenIds.push(token.tokenId);
+    try {
+      linkedQuotes.push({ quote, portalUrl: await getPortalUrl("quote", token.rawToken) });
+    } catch {
+      await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
+      return { status: "error", message: "The secure customer link could not be built. Verify APP_BASE_URL before sending." };
+    }
+  }
+
+  const template = buildMultiQuoteEmailDraft(linkedQuotes, submittedDraft.edits);
+  const result = await sendTransactionalEmail({
+    to: validation.recipient,
+    subject: template.subject,
+    text: template.body,
+    html: renderMultiQuoteEmailHtml(template, buildCanonicalAppUrl("/angel-tree-services-logo.jpg")),
+    emailType: "quote",
+    relatedCustomerId: validation.customerId,
+    relatedQuoteId: quoteIds[0],
+    relatedOrganizationId: validation.organizationId,
+    sentByUserId: auth.userId,
+    supabase: auth.supabase,
+    idempotencyKey: normalizeDraftText(String(formData.get("email_attempt_id") ?? "")) || undefined,
+  });
+
+  if (!result.ok) {
+    await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
+    return { status: "error", message: result.message };
+  }
+
+  const sentAt = new Date().toISOString();
+  const { data: updatedQuotes, error: statusError } = await auth.supabase
+    .from("quotes")
+    .update({ status: "sent", sent_at: sentAt, sent_method: "crm_email", sent_by_user_id: auth.userId })
+    .in("id", quoteIds)
+    .select("id");
+
+  if (statusError || (updatedQuotes?.length ?? 0) !== quoteIds.length) {
+    return {
+      status: "error",
+      message: `Proposal email sent, but not every quote status could be updated. Contact an administrator before sending again${statusError ? `: ${safeStaffMessage(statusError.message)}` : "."}`,
+    };
+  }
+
+  await Promise.all(quotes.map(async (quote) => {
+    await recordActivity(auth.supabase, {
+      actorUserId: auth.userId,
+      eventType: "quote_sent",
+      metadata: {
+        delivery_method: "crm_email",
+        provider_message_id: result.providerMessageId,
+        subject: template.subject,
+        template_type: "branded_multi_quote",
+        quote_count: quotes.length,
+        primary_quote_id: quoteIds[0],
+      },
+      subjectId: quote.id,
+      subjectType: "quote",
+    });
+    if (quote.recurring_occurrence_id) {
+      await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", quote.recurring_occurrence_id);
+      await recordActivity(auth.supabase, {
+        actorUserId: auth.userId,
+        eventType: "renewal_quote_sent",
+        subjectId: quote.recurring_occurrence_id,
+        subjectType: "recurring_occurrence",
+        metadata: { quote_id: quote.id },
+      });
+    }
+  }));
+
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  quoteIds.forEach((quoteId) => revalidatePath(`/admin/quotes/${quoteId}`));
+  if (validation.customerId) revalidatePath(`/admin/customers/${validation.customerId}`);
+  if (validation.organizationId) revalidatePath(`/admin/organizations/${validation.organizationId}`);
+  revalidatePath("/admin/communications");
+
+  return {
+    status: "success",
+    message: result.historyRecorded
+      ? `${quotes.length} proposals were accepted by the email provider, recorded in delivery history, and marked sent.`
+      : "The proposal email was accepted, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
+  };
+}
 
 export async function sendQuoteEmail(
   _previousState: TransactionalEmailActionState,
@@ -439,6 +561,45 @@ function readCustomerDocumentEmailEdits(
   }
 
   return { edits };
+}
+
+function readMultiQuoteEmailEdits(
+  formData: FormData,
+): { edits?: MultiQuoteEmailEdits; error?: string } {
+  const fields = {
+    subject: "email_subject",
+    greeting: "email_greeting",
+    intro: "email_intro",
+    closing: "email_closing",
+  } as const;
+  const limits: Record<keyof MultiQuoteEmailEdits, number> = {
+    subject: 180,
+    greeting: 160,
+    intro: 1_200,
+    closing: 1_200,
+  };
+  const edits = {} as MultiQuoteEmailEdits;
+
+  for (const [key, field] of Object.entries(fields) as [keyof MultiQuoteEmailEdits, string][]) {
+    const value = normalizeDraftText(String(formData.get(field) ?? ""));
+    if (!value) return { error: `${multiQuoteDraftFieldLabel(key)} is required.` };
+    if (value.length > limits[key]) return { error: `${multiQuoteDraftFieldLabel(key)} is too long. Shorten it and try again.` };
+    edits[key] = value;
+  }
+  if (/[\r\n]/.test(edits.subject)) return { error: "Email subject must stay on one line." };
+  return { edits };
+}
+
+function multiQuoteDraftFieldLabel(field: keyof MultiQuoteEmailEdits) {
+  return { subject: "Email subject", greeting: "Greeting", intro: "Introduction", closing: "Closing" }[field];
+}
+
+async function revokeNewQuoteTokens(
+  supabase: Parameters<typeof createOrGetQuotePortalTokenRecord>[0]["supabase"],
+  tokenIds: string[],
+) {
+  if (!tokenIds.length) return;
+  await supabase.from("quote_portal_tokens").update({ revoked_at: new Date().toISOString() }).in("id", tokenIds);
 }
 
 function normalizeDraftText(value: string) {

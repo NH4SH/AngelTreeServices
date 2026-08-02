@@ -5,6 +5,7 @@ import { AddJobForm } from "../../jobs/JobForm";
 import { AddServiceLocationForm } from "../CustomerForms";
 import { EmailHistoryList } from "@/components/email-history";
 import { CommunicationHistoryList } from "@/components/communication-history";
+import { MultiQuoteEmailSelection } from "@/components/multi-quote-email-selection";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -16,7 +17,9 @@ import { getEmailEvents } from "@/lib/data/email-events";
 import { getCustomerCommunications } from "@/lib/data/communications";
 import { getLeadSources } from "@/lib/data/reports";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
+import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { getRecurringSummaryForCustomer } from "@/lib/data/recurring";
+import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
 
 type CustomerDetailPageProps = {
   params: Promise<{
@@ -177,12 +180,18 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 {detail.data.quotes.length === 0 ? (
                   <EmptyInline>No quotes yet.</EmptyInline>
                 ) : (
-                  detail.data.quotes.map((quote) => (
-                    <Link className="linked-record" href={`/admin/quotes/${quote.id}`} key={quote.id}>
-                      <strong>{quote.quote_number || "Quote"}</strong>
-                      <span>{quote.status.replace("_", " ")} - {formatCurrency(quote.total_cents)}</span>
-                    </Link>
-                  ))
+                  <MultiQuoteEmailSelection quotes={detail.data.quotes.map((quote) => {
+                    const ineligibility = getMultiQuoteEmailIneligibility(quote);
+                    return {
+                      id: quote.id,
+                      label: quote.quote_number ? `Quote ${quote.quote_number}` : "Quote",
+                      locationLabel: formatCustomerFacingAddress(quote.service_locations) || "Service location not set",
+                      statusLabel: quote.status.replaceAll("_", " "),
+                      totalLabel: formatCurrency(quote.total_cents),
+                      eligible: !ineligibility,
+                      ineligibleReason: ineligibility ?? undefined,
+                    };
+                  })} />
                 )}
               </RecordSection>
 

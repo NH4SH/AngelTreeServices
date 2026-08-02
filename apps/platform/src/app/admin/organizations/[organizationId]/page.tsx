@@ -4,6 +4,7 @@ import { Activity, Building2, CalendarClock, CircleDollarSign, ClipboardList, Fi
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
 import { CommunicationHistoryList } from "@/components/communication-history";
 import { EmailHistoryList } from "@/components/email-history";
+import { MultiQuoteEmailSelection } from "@/components/multi-quote-email-selection";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -15,6 +16,8 @@ import { getCustomerCommunications } from "@/lib/data/communications";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { formatInvoiceStatus } from "@/lib/invoices/status";
 import { getRecurringSummaryForOrganization } from "@/lib/data/recurring";
+import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
+import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
 
 type OrganizationDetailPageProps = {
   params: Promise<{
@@ -152,12 +155,18 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
 
               <Panel icon={<FileSignature size={18} />} title="Quotes">
                 {org.quotes.length ? (
-                  org.quotes.map((quote) => (
-                    <Link className="linked-record" href={`/admin/quotes/${quote.id}`} key={quote.id}>
-                      <strong>{quote.quote_number || "Quote"}</strong>
-                      <span>{quote.status.replace("_", " ")}</span>
-                    </Link>
-                  ))
+                  <MultiQuoteEmailSelection quotes={org.quotes.map((quote) => {
+                    const ineligibility = getMultiQuoteEmailIneligibility(quote);
+                    return {
+                      id: quote.id,
+                      label: quote.quote_number ? `Quote ${quote.quote_number}` : "Quote",
+                      locationLabel: formatCustomerFacingAddress(quote.service_locations) || "Service location not set",
+                      statusLabel: quote.status.replaceAll("_", " "),
+                      totalLabel: money(quote.total_cents),
+                      eligible: !ineligibility,
+                      ineligibleReason: ineligibility ?? undefined,
+                    };
+                  })} />
                 ) : (
                   <p>No organization quotes yet.</p>
                 )}

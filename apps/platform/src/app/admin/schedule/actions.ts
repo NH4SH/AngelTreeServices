@@ -8,7 +8,7 @@ import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } fro
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { parseScheduleDateTime } from "@/lib/schedule/event-form";
+import { parseScheduleDateTime, toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
 import type {
   AppointmentStatus,
   AppointmentType,
@@ -967,9 +967,7 @@ function normalizeScheduleStart(date: Date | null, allDay: boolean) {
     return date;
   }
 
-  const normalized = new Date(date);
-  normalized.setHours(0, 0, 0, 0);
-  return normalized;
+  return parseScheduleDateTime(`${toScheduleDateTimeLocal(date.toISOString()).slice(0, 10)}T00:00`);
 }
 
 function normalizeScheduleEnd(start: Date | null, end: Date | null, allDay: boolean) {
@@ -978,18 +976,14 @@ function normalizeScheduleEnd(start: Date | null, end: Date | null, allDay: bool
   }
 
   if (end) {
-    const normalized = new Date(end);
-    normalized.setHours(23, 59, 0, 0);
-    return normalized;
+    return parseScheduleDateTime(`${toScheduleDateTimeLocal(end.toISOString()).slice(0, 10)}T23:59`);
   }
 
   if (!start) {
     return null;
   }
 
-  const normalized = new Date(start);
-  normalized.setHours(23, 59, 0, 0);
-  return normalized;
+  return parseScheduleDateTime(`${toScheduleDateTimeLocal(start.toISOString()).slice(0, 10)}T23:59`);
 }
 
 function getScheduledJobStatus(currentStatus: JobStatus, appointmentType: AppointmentType): JobStatus | null {

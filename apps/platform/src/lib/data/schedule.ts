@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getScheduleDateKey, parseScheduleDateTime, shiftScheduleDateKey } from "@/lib/schedule/event-form";
 import { getAdminSearchPage } from "@/lib/data/admin-search";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type {
@@ -416,13 +417,16 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     };
   }
 
-  const today = new Date();
-  const start = new Date(today);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  const upcomingEnd = new Date(start);
-  upcomingEnd.setDate(upcomingEnd.getDate() + 7);
+  const todayKey = getScheduleDateKey(new Date());
+  const start = parseScheduleDateTime(`${todayKey}T00:00`);
+  const end = parseScheduleDateTime(`${shiftScheduleDateKey(todayKey, 1)}T00:00`);
+  const upcomingEnd = parseScheduleDateTime(`${shiftScheduleDateKey(todayKey, 7)}T00:00`);
+  if (!start || !end || !upcomingEnd) {
+    return {
+      data: { conflicts: [], todaysCrewSchedules: [], unassignedEntries: [], upcomingEstimates: [] },
+      error: "The Eastern schedule window could not be calculated.",
+    };
+  }
 
   const [usersResult, todayAppointments, todayEvents, upcomingEstimateAppointments, upcomingEstimateEvents] = await Promise.all([
     supabase
@@ -633,10 +637,8 @@ function resolveEntryEnd(entry: CalendarEntry) {
   }
 
   if (entry.all_day) {
-    const end = new Date(entry.starts_at);
-    end.setDate(end.getDate() + 1);
-    end.setHours(0, 0, 0, 0);
-    return end;
+    const nextDate = shiftScheduleDateKey(getScheduleDateKey(entry.starts_at), 1);
+    return parseScheduleDateTime(`${nextDate}T00:00`);
   }
 
   return null;

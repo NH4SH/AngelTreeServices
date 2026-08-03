@@ -379,7 +379,7 @@ function ScheduleToolbar({
   users: ScheduleUser[];
   view: ScheduleView;
 }) {
-  const today = new Date();
+  const today = getDateAnchor();
 
   return (
     <header className="calendar-toolbar company-calendar-toolbar">
@@ -506,7 +506,7 @@ function CalendarWeekView({
   days: Date[];
   entriesByDate: Record<string, CalendarEntry[]>;
 }) {
-  const today = new Date();
+  const today = getDateAnchor();
 
   return (
     <section className="calendar-grid calendar-week-grid" aria-label="Week calendar">
@@ -548,8 +548,8 @@ function CalendarDayView({
   return (
     <section className="calendar-day-view" aria-label="Day agenda">
       <div className="calendar-agenda-heading">
-        <span>{new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(date)}</span>
-        <strong>{new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(date)}</strong>
+        <span>{new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date)}</span>
+        <strong>{new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" }).format(date)}</strong>
       </div>
       {entries.length > 0 ? (
         <div className="calendar-agenda-list">
@@ -598,7 +598,7 @@ function CalendarMonthView({
   days: Date[];
   entriesByDate: Record<string, CalendarEntry[]>;
 }) {
-  const today = new Date();
+  const today = getDateAnchor();
 
   return (
     <section className="calendar-month-grid" aria-label="Month calendar">
@@ -1201,6 +1201,7 @@ function buildCrewShareText(
     weekday: "long",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   }).format(date)}`;
 
   if (!groups.length) {
@@ -1267,10 +1268,7 @@ function formatAssignedUserFilter(value: string, users: ScheduleUser[]) {
 }
 
 function toDrawerDateTime(date: Date) {
-  const seeded = new Date(date);
-  seeded.setHours(8, 0, 0, 0);
-  const offset = seeded.getTimezoneOffset();
-  return new Date(seeded.getTime() - offset * 60_000).toISOString().slice(0, 16);
+  return `${formatDateInput(date)}T08:00`;
 }
 
 function formatAppointmentLocation(appointment: AppointmentWithRelations) {

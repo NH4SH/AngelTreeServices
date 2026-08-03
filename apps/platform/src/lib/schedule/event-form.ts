@@ -1,4 +1,4 @@
-const businessTimeZone = "America/New_York";
+export const businessTimeZone = "America/New_York";
 const localDateTimePattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
 
 export function toScheduleDateTimeLocal(value: string) {
@@ -37,6 +37,46 @@ export function parseScheduleDateTime(value: string) {
 
   const parsed = new Date(guess);
   return toScheduleDateTimeLocal(parsed.toISOString()) === `${year}-${month}-${day}T${hour}:${minute}` ? parsed : null;
+}
+
+export function getScheduleDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: businessTimeZone,
+    year: "numeric",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+export function shiftScheduleDateKey(value: string, days: number) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function formatScheduleTime(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: businessTimeZone,
+  }).format(date);
+}
+
+export function formatScheduleDateTime(
+  value: string | Date,
+  options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", { ...options, timeZone: businessTimeZone }).format(date);
 }
 
 function zonedPartsAsUtc(date: Date) {

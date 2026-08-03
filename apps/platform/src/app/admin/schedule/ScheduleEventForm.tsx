@@ -17,7 +17,7 @@ import {
 import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
 import { defaultEstimateStart, type LeadEstimatePrefill } from "@/lib/schedule/lead-estimate";
 import type { PartyEstimatePrefill } from "@/lib/schedule/party-estimate";
-import { toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
+import { formatScheduleDateTime, toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
 
 const initialState: AppointmentActionState = {
   status: "idle",
@@ -732,8 +732,8 @@ function formatCurrentSchedule(events: ScheduleEventWithRelations[]) {
   if (!events.length) return "Not scheduled yet";
   const first = new Date(events[0].starts_at);
   const last = new Date(events.at(-1)!.starts_at);
-  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
-  return events.length === 1 ? formatter.format(first) : `${events.length} workdays, ${formatter.format(first)} to ${formatter.format(last)}`;
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
+  return events.length === 1 ? formatScheduleDateTime(first, options) : `${events.length} workdays, ${formatScheduleDateTime(first, options)} to ${formatScheduleDateTime(last, options)}`;
 }
 
 function formatOption(value: string) {

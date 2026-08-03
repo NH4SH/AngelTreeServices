@@ -129,7 +129,23 @@ export function buildLeadEstimatePrefill(record: LeadEstimateSourceRecord): Lead
 }
 
 export function defaultEstimateStart(existingStartsAt: string, drawerDefault: string) {
-  return existingStartsAt ? toLocalDateTime(existingStartsAt) : drawerDefault;
+  return existingStartsAt ? toEasternDateTimeLocal(existingStartsAt) : drawerDefault;
+}
+
+function toEasternDateTimeLocal(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "America/New_York",
+    year: "numeric",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
 export function isLeadEstimateSchedulable(status: JobStatus) {
@@ -150,11 +166,4 @@ function buildCalendarNotes({
     accessNotes ? `Access: ${accessNotes}` : "",
     serviceNotes ? `Property notes: ${serviceNotes}` : "",
   ].filter(Boolean).join("\n");
-}
-
-function toLocalDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }

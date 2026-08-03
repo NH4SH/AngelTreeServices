@@ -1,4 +1,5 @@
 import type { AppointmentType, CalendarEntry, ScheduleEventType } from "@/lib/types/database";
+import { formatScheduleDateTime, formatScheduleTime, getScheduleDateKey, parseScheduleDateTime } from "@/lib/schedule/event-form";
 
 export type ScheduleView = "day" | "week" | "month";
 
@@ -25,43 +26,30 @@ export const appointmentStatuses = [
 ] as const;
 
 export function getDateAnchor(value?: string) {
-  const date = value ? new Date(`${value}T12:00:00`) : new Date();
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+  const todayKey = getScheduleDateKey(new Date());
+  const dateKey = /^\d{4}-\d{2}-\d{2}$/.test(value ?? "") ? value! : todayKey;
+  const date = new Date(`${dateKey}T12:00:00Z`);
+  return Number.isNaN(date.getTime()) ? new Date(`${todayKey}T12:00:00Z`) : date;
 }
 
 export function getScheduleRange(anchor: Date, view: ScheduleView) {
-  if (view === "month") {
-    const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-    const start = startOfWeek(firstOfMonth);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 42);
-    return { start, end };
-  }
-
-  const start = view === "week" ? startOfWeek(anchor) : startOfDay(anchor);
-  const end = new Date(start);
-  end.setDate(end.getDate() + (view === "day" ? 1 : 7));
+  const civilStart = getCivilRangeStart(anchor, view);
+  const civilEnd = addCivilDays(civilStart, view === "day" ? 1 : view === "week" ? 7 : 42);
+  const start = parseScheduleDateTime(`${formatDateInput(civilStart)}T00:00`);
+  const end = parseScheduleDateTime(`${formatDateInput(civilEnd)}T00:00`);
+  if (!start || !end) throw new Error("Could not create the Eastern schedule range.");
   return { start, end };
 }
 
 export function getVisibleDays(anchor: Date, view: ScheduleView) {
-  const range = getScheduleRange(anchor, view);
+  const start = getCivilRangeStart(anchor, view);
   const count = view === "day" ? 1 : view === "week" ? 7 : 42;
 
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(range.start);
-    date.setDate(date.getDate() + index);
-    return date;
-  });
+  return Array.from({ length: count }, (_, index) => addCivilDays(start, index));
 }
 
 export function shiftDate(date: Date, view: ScheduleView, direction: -1 | 1) {
-  const shifted = new Date(date);
-  shifted.setDate(
-    shifted.getDate() +
-      direction * (view === "day" ? 1 : view === "week" ? 7 : daysInMonth(date)),
-  );
-  return shifted;
+  return addCivilDays(date, direction * (view === "day" ? 1 : view === "week" ? 7 : daysInMonth(date)));
 }
 
 export function buildScheduleHref(
@@ -82,22 +70,23 @@ export function buildScheduleHref(
 
 export function groupEntriesByDate(entries: CalendarEntry[]) {
   return entries.reduce<Record<string, CalendarEntry[]>>((groups, entry) => {
-    const key = formatDateInput(new Date(entry.starts_at));
+    const key = getScheduleDateKey(entry.starts_at);
     groups[key] = [...(groups[key] ?? []), entry];
     return groups;
   }, {});
 }
 
 export function formatDateInput(date: Date) {
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+  return [date.getUTCFullYear(), String(date.getUTCMonth() + 1).padStart(2, "0"), String(date.getUTCDate()).padStart(2, "0")].join("-");
 }
 
-export function formatRangeTitle(anchor: Date, range: { start: Date; end: Date }, view: ScheduleView) {
+export function formatRangeTitle(anchor: Date, _range: { start: Date; end: Date }, view: ScheduleView) {
   if (view === "day") {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
+      timeZone: "UTC",
     }).format(anchor);
   }
 
@@ -105,31 +94,32 @@ export function formatRangeTitle(anchor: Date, range: { start: Date; end: Date }
     return new Intl.DateTimeFormat("en-US", {
       month: "long",
       year: "numeric",
+      timeZone: "UTC",
     }).format(anchor);
   }
 
-  const inclusiveEnd = new Date(range.end);
-  inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
-  return `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(range.start)} to ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(inclusiveEnd)}`;
+  const start = startOfWeek(anchor);
+  const inclusiveEnd = addCivilDays(start, 6);
+  return `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(start)} to ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(inclusiveEnd)}`;
 }
 
 export function formatDayLabel(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(date);
 }
 
 export function formatDayNumber(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "UTC" }).format(date);
 }
 
 export function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
+  return formatScheduleTime(value);
 }
 
 export function formatDateTimeLabel(
   value: string,
   options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
 ) {
-  return new Intl.DateTimeFormat("en-US", options).format(new Date(value));
+  return formatScheduleDateTime(value, options);
 }
 
 export function formatEntryLocation(entry: CalendarEntry) {
@@ -189,21 +179,24 @@ export function isSameDay(left: Date, right: Date) {
 }
 
 export function isSameMonth(left: Date, right: Date) {
-  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
+  return left.getUTCFullYear() === right.getUTCFullYear() && left.getUTCMonth() === right.getUTCMonth();
 }
 
-function startOfDay(date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
+function getCivilRangeStart(date: Date, view: ScheduleView) {
+  if (view === "month") return startOfWeek(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 12)));
+  return view === "week" ? startOfWeek(date) : new Date(date);
 }
 
 function startOfWeek(date: Date) {
-  const start = startOfDay(date);
-  start.setDate(start.getDate() - start.getDay());
-  return start;
+  return addCivilDays(date, -date.getUTCDay());
+}
+
+function addCivilDays(date: Date, days: number) {
+  const shifted = new Date(date);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted;
 }
 
 function daysInMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 12)).getUTCDate();
 }

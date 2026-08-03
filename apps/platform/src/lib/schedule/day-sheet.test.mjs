@@ -28,6 +28,7 @@ test("day sheet rows are chronological and preserve operational details", () => 
 
   assert.equal(rows[0].title, "First");
   assert.equal(rows[0].duration, "1 hr 30 min");
+  assert.equal(rows[0].time, "8:00 AM");
   assert.equal(rows[0].accessInstructions, "Gate code 1234");
   assert.deepEqual(rows[0].equipment, ["TR-01 · Chipper"]);
 });

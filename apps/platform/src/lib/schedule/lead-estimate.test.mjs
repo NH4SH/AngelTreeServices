@@ -103,7 +103,7 @@ test("revisiting an estimate keeps the existing event, estimator, and local time
   assert.equal(result.assignedUserId, "75000000-0000-0000-0000-000000000001");
   assert.equal(result.eventTitle, "Estimate - driveway oak");
   assert.equal(result.calendarNotes, "Meet customer by driveway.");
-  assert.match(defaultEstimateStart(result.existingStartsAt, "2026-08-01T09:00"), /^2026-07-30T/);
+  assert.equal(defaultEstimateStart(result.existingStartsAt, "2026-08-01T09:00"), "2026-07-30T10:30");
 });
 
 test("manual schedule defaults remain available and only lead scheduling statuses are accepted", () => {

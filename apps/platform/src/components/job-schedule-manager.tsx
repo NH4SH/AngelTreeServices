@@ -355,9 +355,9 @@ function fromEvent(event: ScheduleEventWithRelations): SessionDraft { return { c
 function toPayload(session: SessionDraft) { const { clientId: _, ...payload } = session; return payload; }
 function byDate(a: SessionDraft, b: SessionDraft) { return a.date.localeCompare(b.date); }
 function addHours(time: string, hours: number) { const [hour, minute] = time.split(":").map(Number); return `${String(Math.min(hour + hours, 23)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`; }
-function quickDate(offset: number) { const date = new Date(); date.setDate(date.getDate() + offset); return localDateValue(date); }
-function nextMonday() { const date = new Date(); const offset = ((8 - date.getDay()) % 7) || 7; date.setDate(date.getDate() + offset); return localDateValue(date); }
-function localDateValue(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
+function quickDate(offset: number) { return shiftDateValue(zonedPart(new Date().toISOString(), "date"), offset); }
+function nextMonday() { const today = quickDate(0); const date = new Date(`${today}T12:00:00Z`); const offset = ((8 - date.getUTCDay()) % 7) || 7; return shiftDateValue(today, offset); }
+function shiftDateValue(value: string, days: number) { const date = new Date(`${value}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
 function datesBetween(start: string, end: string) { const [first, last] = start <= end ? [start, end] : [end, start]; const dates: string[] = []; const cursor = new Date(`${first}T12:00:00Z`); const finalDate = new Date(`${last}T12:00:00Z`); while (cursor <= finalDate) { dates.push(cursor.toISOString().slice(0, 10)); cursor.setUTCDate(cursor.getUTCDate() + 1); } return dates; }
 function isWeekend(date: string) { const day = new Date(`${date}T12:00:00Z`).getUTCDay(); return day === 0 || day === 6; }
 function isToday(date: string) { return date === quickDate(0); }

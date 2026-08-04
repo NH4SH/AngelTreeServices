@@ -2,13 +2,14 @@
 
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { ArtisticTreeLoader, type ArtisticTreeVariant } from "./TreeArtwork";
 
 const variants = [
-  { id: "a", name: "Minimal Sapling", description: "Quiet and understated", detail: "A fine trunk, three branches, and a spare crown." },
-  { id: "b", name: "Branching Tree", description: "Measured and established", detail: "Progressive branching gives this option more presence." },
-  { id: "c", name: "Canopy Bloom", description: "Soft and recognizable", detail: "Muted canopy forms create the clearest tree silhouette." },
-  { id: "d", name: "Root to Canopy", description: "Grounded and expressive", detail: "Roots, asymmetric growth, and a restrained final settle." },
-] as const;
+  { id: "a", name: "Botanical Line Tree", description: "Fine, hand-drawn, and graceful", detail: "A tapered sketch with curved limbs, delicate twigs, and sparse leaves." },
+  { id: "b", name: "Graceful Canopy Tree", description: "Mature, layered, and recognizable", detail: "An open deciduous crown built from irregular overlapping foliage." },
+  { id: "c", name: "Ink / Brush Tree", description: "Expressive, restrained, and artistic", detail: "Brush-weight structure and loose foliage washes form through negative space." },
+  { id: "d", name: "Angel Tree Signature", description: "Grounded, crafted, and distinctive", detail: "Root gestures, strong branching, and a broad crown grow from the center outward." },
+] as const satisfies ReadonlyArray<{ id: ArtisticTreeVariant; name: string; description: string; detail: string }>;
 
 type VariantId = (typeof variants)[number]["id"];
 type ReplayState = Record<VariantId, number>;
@@ -70,7 +71,7 @@ export function LoadingLab() {
                 <div><h3>{variant.name}</h3><p>{variant.description}</p></div>
               </header>
               <div className="loading-variant-stage">
-                <TreeLoader key={`${variant.id}-${replays[variant.id]}`} variant={variant.id} />
+                <ArtisticTreeLoader key={`${variant.id}-${replays[variant.id]}`} variant={variant.id} />
               </div>
               <footer>
                 <p>{variant.detail}</p>
@@ -99,7 +100,7 @@ export function LoadingLab() {
                 <i /><i /><i /><i />
               </aside>
               <div>
-                <TreeLoader context key={`${variant.id}-context-${replays[variant.id]}`} variant={variant.id} />
+                <ArtisticTreeLoader context key={`${variant.id}-context-${replays[variant.id]}`} variant={variant.id} />
                 <strong>Loading operations...</strong>
                 <span>{variant.name}</span>
               </div>
@@ -107,33 +108,6 @@ export function LoadingLab() {
           ))}
         </div>
       </section>
-    </div>
-  );
-}
-
-function TreeLoader({ context = false, variant }: { context?: boolean; variant: VariantId }) {
-  return (
-    <div aria-hidden={context || undefined} className={`tree-loader tree-loader-${variant}${context ? " is-context" : ""}`}>
-      <div className="tree-loader-art" aria-hidden="true">
-        <span className="tree-ground" />
-        <span className="tree-root tree-root-left" />
-        <span className="tree-root tree-root-right" />
-        <span className="tree-growth">
-          <span className="tree-trunk" />
-          <span className="tree-branch branch-1" /><span className="tree-branch branch-2" />
-          <span className="tree-branch branch-3" /><span className="tree-branch branch-4" />
-          <span className="tree-branch branch-5" /><span className="tree-branch branch-6" />
-          <span className="tree-leaf leaf-1" /><span className="tree-leaf leaf-2" />
-          <span className="tree-leaf leaf-3" /><span className="tree-leaf leaf-4" />
-          <span className="tree-leaf leaf-5" /><span className="tree-leaf leaf-6" />
-          <span className="tree-leaf leaf-7" /><span className="tree-leaf leaf-8" />
-          <span className="tree-leaf leaf-9" /><span className="tree-leaf leaf-10" />
-          <span className="tree-canopy canopy-1" /><span className="tree-canopy canopy-2" />
-          <span className="tree-canopy canopy-3" /><span className="tree-canopy canopy-4" />
-          <span className="tree-canopy canopy-5" />
-        </span>
-      </div>
-      {context ? null : <span className="sr-only">Loading</span>}
     </div>
   );
 }

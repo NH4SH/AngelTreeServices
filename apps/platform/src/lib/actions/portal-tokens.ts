@@ -8,8 +8,14 @@ import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createNewQuotePortalTokenRecord, createOrGetQuotePortalTokenRecord, getActiveQuotePortalTokens } from "@/lib/portal/quote-links";
+import {
+  createNewQuotePortalTokenRecord,
+  createOrGetQuotePortalTokenRecord,
+  getActiveQuotePortalTokens,
+  LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
+} from "@/lib/portal/quote-links";
 import { getPortalUrl } from "@/lib/portal/urls";
+import { normalizeMultiQuoteIds } from "@/lib/quotes/multi-email";
 import type { QuoteStatus } from "@/lib/types/database";
 import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
@@ -22,6 +28,13 @@ export type PortalTokenActionState = {
   portalUrl?: string;
   expiresAt?: string;
   reusedExisting?: boolean;
+};
+
+export type MultiQuotePortalRecoveryState = {
+  message: string;
+  ok: boolean;
+  portalUrls: Record<string, string>;
+  status: "idle" | "success" | "error";
 };
 
 function getString(formData: FormData, key: string) {
@@ -89,26 +102,94 @@ export async function regenerateQuotePortalLink(
   _previousState: PortalTokenActionState,
   formData: FormData,
 ): Promise<PortalTokenActionState> {
-  const supabase = await createClient();
+  const auth = await requireQuoteLinkRegenerator();
+  if (auth.error) return auth.error;
 
-  if (!supabase) {
-    return { ok: false, status: "error", message: "Supabase is not configured." };
+  const quoteId = getString(formData, "quote_id");
+  const result = await regenerateQuotePortalLinkForUser(auth.supabase, auth.userId, quoteId);
+  if (result.ok) revalidatePath(`/admin/quotes/${quoteId}`);
+  return result;
+}
+
+export async function regenerateLegacyQuotePortalLinksForEmail(
+  _previousState: MultiQuotePortalRecoveryState,
+  formData: FormData,
+): Promise<MultiQuotePortalRecoveryState> {
+  const quoteIds = normalizeMultiQuoteIds(formData.getAll("quote_id").map(String), 25);
+  if (quoteIds.length === 0) {
+    return { message: "No proposal links need replacement.", ok: false, portalUrls: {}, status: "error" };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await requireQuoteLinkRegenerator();
+  if (auth.error) {
+    return { message: auth.error.message, ok: false, portalUrls: {}, status: "error" };
+  }
 
+  const portalUrls: Record<string, string> = {};
+  for (const quoteId of quoteIds) {
+    const currentToken = await createOrGetQuotePortalTokenRecord({ quoteId, supabase: auth.supabase });
+    if (!currentToken.error) {
+      portalUrls[quoteId] = await getPortalUrl("quote", currentToken.rawToken);
+      if (currentToken.created) {
+        await recordActivity(auth.supabase, {
+          actorUserId: auth.userId,
+          eventType: "quote_portal_link_generated",
+          subjectId: quoteId,
+          subjectType: "quote",
+        });
+        revalidatePath(`/admin/quotes/${quoteId}`);
+      }
+      continue;
+    }
+
+    if (currentToken.error !== LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR) {
+      return { message: currentToken.error, ok: false, portalUrls, status: "error" };
+    }
+
+    const result = await regenerateQuotePortalLinkForUser(auth.supabase, auth.userId, quoteId);
+    if (!result.ok || !result.portalUrl) {
+      return { message: result.message, ok: false, portalUrls, status: "error" };
+    }
+
+    portalUrls[quoteId] = result.portalUrl;
+    revalidatePath(`/admin/quotes/${quoteId}`);
+  }
+
+  revalidatePath("/admin/quotes/email");
+  return {
+    message: quoteIds.length === 1
+      ? "Replacement link ready. You can continue sending this proposal."
+      : `${quoteIds.length} replacement links are ready. You can continue sending these proposals.`,
+    ok: true,
+    portalUrls,
+    status: "success",
+  };
+}
+
+async function requireQuoteLinkRegenerator() {
+  const supabase = await createClient();
+  if (!supabase) {
+    return { error: { ok: false, status: "error", message: "Supabase is not configured." } satisfies PortalTokenActionState };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, status: "error", message: "Sign in before regenerating customer links." };
+    return { error: { ok: false, status: "error", message: "Sign in before regenerating customer links." } satisfies PortalTokenActionState };
   }
 
   const roles = await getUserRoles(supabase, user.id);
   if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
-    return { ok: false, status: "error", message: "Only internal staff can regenerate customer links." };
+    return { error: { ok: false, status: "error", message: "Only internal staff can regenerate customer links." } satisfies PortalTokenActionState };
   }
 
-  const quoteId = getString(formData, "quote_id");
+  return { error: null, supabase, userId: user.id };
+}
+
+async function regenerateQuotePortalLinkForUser(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  userId: string,
+  quoteId: string,
+): Promise<PortalTokenActionState> {
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
     .select("id, customer_id, organization_id")
@@ -130,7 +211,7 @@ export async function regenerateQuotePortalLink(
     organizationId: quote.organization_id,
     quoteId: quote.id,
     supabase,
-    userId: user.id,
+    userId,
   });
 
   if (tokenRecord.error || !tokenRecord.tokenId) {
@@ -153,13 +234,11 @@ export async function regenerateQuotePortalLink(
   }
 
   await recordActivity(supabase, {
-    actorUserId: user.id,
+    actorUserId: userId,
     eventType: "quote_portal_link_regenerated",
     subjectId: quote.id,
     subjectType: "quote",
   });
-
-  revalidatePath(`/admin/quotes/${quote.id}`);
 
   return {
     ok: true,

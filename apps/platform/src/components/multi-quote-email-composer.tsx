@@ -1,40 +1,78 @@
 "use client";
 
-import { Mail, Monitor, RotateCcw, Send, Smartphone } from "lucide-react";
-import { useMemo, useState } from "react";
+import { AlertTriangle, Mail, Monitor, RefreshCw, RotateCcw, Send, Smartphone } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import {
+  regenerateLegacyQuotePortalLinksForEmail,
+  type MultiQuotePortalRecoveryState,
+} from "@/lib/actions/portal-tokens";
 import { sendMultiQuoteEmail, type TransactionalEmailActionState } from "@/lib/actions/transactional-email";
 import {
   applyMultiQuoteEmailEdits,
+  applyMultiQuotePortalUrls,
   type MultiQuoteEmailDraft,
   type MultiQuoteEmailEdits,
 } from "@/lib/quotes/multi-email";
 
 const initialState: TransactionalEmailActionState = { status: "idle", message: "" };
+const initialRecoveryState: MultiQuotePortalRecoveryState = {
+  message: "",
+  ok: false,
+  portalUrls: {},
+  status: "idle",
+};
 
 export function MultiQuoteEmailComposer({
   attemptId,
   draft,
+  legacyQuoteIds,
   partyName,
   quoteIds,
   recipient,
 }: {
   attemptId: string;
   draft: MultiQuoteEmailDraft;
+  legacyQuoteIds: string[];
   partyName: string;
   quoteIds: string[];
   recipient: string;
 }) {
   const [state, formAction, pending] = useReliableActionState(sendMultiQuoteEmail, initialState);
+  const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(
+    regenerateLegacyQuotePortalLinksForEmail,
+    initialRecoveryState,
+  );
   const initialEdits = useMemo(() => draftEdits(draft), [draft]);
   const [edits, setEdits] = useState<MultiQuoteEmailEdits>(initialEdits);
+  const [replacementUrls, setReplacementUrls] = useState<Record<string, string>>({});
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
   const [viewportMode, setViewportMode] = useState<"desktop" | "mobile">("desktop");
-  const preview = applyMultiQuoteEmailEdits(draft, edits);
+  const previewDraft = applyMultiQuotePortalUrls(draft, replacementUrls);
+  const preview = applyMultiQuoteEmailEdits(previewDraft, edits);
   const sent = state.status === "success";
+  const unresolvedLegacyQuoteIds = legacyQuoteIds.filter((quoteId) => !replacementUrls[quoteId]);
+  const replacementRequired = unresolvedLegacyQuoteIds.length > 0;
+  const sendBlocked = pending || sent || recoveryPending || replacementRequired;
+
+  useEffect(() => {
+    if (Object.keys(recoveryState.portalUrls).length === 0) return;
+    setReplacementUrls((current) => ({ ...current, ...recoveryState.portalUrls }));
+  }, [recoveryState.portalUrls]);
 
   function update<K extends keyof MultiQuoteEmailEdits>(key: K, value: MultiQuoteEmailEdits[K]) {
     setEdits((current) => ({ ...current, [key]: value }));
+  }
+
+  function replaceLegacyLinks() {
+    const proposalLabel = unresolvedLegacyQuoteIds.length === 1 ? "proposal" : "proposals";
+    if (!window.confirm(`Replace the older customer ${proposalLabel === "proposal" ? "link" : "links"}? Previously sent URLs for the affected ${proposalLabel} will stop working.`)) {
+      return;
+    }
+
+    const formData = new FormData();
+    unresolvedLegacyQuoteIds.forEach((quoteId) => formData.append("quote_id", quoteId));
+    void recoveryAction(formData);
   }
 
   return (
@@ -45,17 +83,35 @@ export function MultiQuoteEmailComposer({
           <h3>Review before sending</h3>
           <p>Each proposal keeps its own price, secure link, and approval decision.</p>
         </div>
-        <button className="primary-action" disabled={pending || sent} form="multi-quote-email-form" type="submit">
+        <button className="primary-action" disabled={sendBlocked} form="multi-quote-email-form" type="submit">
           <Send aria-hidden="true" size={17} />
           {pending ? "Sending..." : sent ? "Email sent" : `Send ${quoteIds.length} proposals`}
         </button>
       </header>
+
+      {replacementRequired ? (
+        <section className="email-portal-recovery-notice" role="alert">
+          <AlertTriangle aria-hidden="true" size={21} />
+          <div>
+            <strong>{unresolvedLegacyQuoteIds.length} older customer {unresolvedLegacyQuoteIds.length === 1 ? "link needs" : "links need"} replacement</strong>
+            <p>The affected proposals predate secure link recovery. Replacing their links will disable those previous customer URLs and keep this combined email workflow open.</p>
+            {recoveryState.message ? <p className={`form-message ${recoveryState.status}`}>{recoveryState.message}</p> : null}
+          </div>
+          <button className="secondary-action" disabled={recoveryPending} onClick={replaceLegacyLinks} type="button">
+            <RefreshCw aria-hidden="true" size={17} />
+            {recoveryPending ? "Regenerating..." : "Regenerate links and continue"}
+          </button>
+        </section>
+      ) : recoveryState.message ? (
+        <p className={`form-message ${recoveryState.status}`} role={recoveryState.status === "error" ? "alert" : "status"}>{recoveryState.message}</p>
+      ) : null}
 
       <form
         className="customer-email-composer-form"
         id="multi-quote-email-form"
         onSubmit={(event) => {
           event.preventDefault();
+          if (sendBlocked) return;
           void formAction(new FormData(event.currentTarget));
         }}
       >
@@ -65,7 +121,7 @@ export function MultiQuoteEmailComposer({
           <div><span>Customer</span><strong>{partyName}</strong></div>
           <div><span>To</span><strong>{recipient}</strong></div>
           <div><span>Proposals</span><strong>{quoteIds.length} independent quotes</strong></div>
-          <div><span>Secure links</span><strong>Reused or created when sent</strong></div>
+          <div><span>Secure links</span><strong>{replacementRequired ? "Replacement required" : "Ready for delivery"}</strong></div>
         </div>
         {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</div> : null}
 
@@ -74,7 +130,7 @@ export function MultiQuoteEmailComposer({
           <ComposerField label="Greeting" maxLength={160} name="email_greeting" onChange={(value) => update("greeting", value)} value={edits.greeting} />
           <ComposerField label="Introduction" maxLength={1_200} multiline name="email_intro" onChange={(value) => update("intro", value)} value={edits.intro} />
           <ComposerField label="Closing" maxLength={1_200} multiline name="email_closing" onChange={(value) => update("closing", value)} value={edits.closing} />
-          <button className="secondary-action" disabled={pending || sent} onClick={() => setEdits(initialEdits)} type="button">
+          <button className="secondary-action" disabled={pending || sent || recoveryPending} onClick={() => setEdits(initialEdits)} type="button">
             <RotateCcw aria-hidden="true" size={16} />Reset message
           </button>
           <p className="form-helper">Quote totals, recipient, customer, and secure destinations are always reloaded from the CRM when you send.</p>
@@ -100,7 +156,7 @@ export function MultiQuoteEmailComposer({
         </section>
 
         <footer>
-          <button className="primary-action" disabled={pending || sent} type="submit">
+          <button className="primary-action" disabled={sendBlocked} type="submit">
             <Send aria-hidden="true" size={17} />
             {pending ? "Sending..." : sent ? "Email sent" : `Send ${quoteIds.length} proposals`}
           </button>

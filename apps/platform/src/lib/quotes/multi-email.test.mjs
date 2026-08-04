@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyMultiQuoteEmailEdits,
+  applyMultiQuotePortalUrls,
   buildMultiQuoteEmailDraft,
   normalizeMultiQuoteIds,
   renderMultiQuoteEmailHtml,
@@ -125,4 +127,28 @@ test("HTML includes a separate safe call to action for each proposal", () => {
   assert.doesNotMatch(html, /<script>alert/);
   assert.match(html, /token-a/);
   assert.match(html, /token-b/);
+});
+
+test("legacy link recovery updates only affected proposal destinations and preserves edits", () => {
+  const firstId = "20000000-0000-4000-8000-000000000001";
+  const secondId = "20000000-0000-4000-8000-000000000002";
+  const draft = buildMultiQuoteEmailDraft([
+    { quote: quote({ id: firstId }), portalUrl: "https://admin.example.test/portal/quote/existing-token" },
+    { quote: quote({ id: secondId }), portalUrl: "" },
+  ]);
+  const updated = applyMultiQuotePortalUrls(draft, {
+    [secondId]: "https://admin.example.test/portal/quote/replacement-token",
+  });
+  const edited = applyMultiQuoteEmailEdits(updated, {
+    subject: "Edited subject",
+    greeting: "Hello Donna,",
+    intro: "Please review these updated proposals.",
+    closing: "Call us with any questions.",
+  });
+
+  assert.equal(edited.items[0].portalUrl, "https://admin.example.test/portal/quote/existing-token");
+  assert.equal(edited.items[1].portalUrl, "https://admin.example.test/portal/quote/replacement-token");
+  assert.equal(edited.subject, "Edited subject");
+  assert.match(edited.body, /replacement-token/);
+  assert.match(edited.body, /Please review these updated proposals/);
 });

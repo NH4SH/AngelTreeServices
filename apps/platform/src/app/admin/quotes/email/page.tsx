@@ -7,6 +7,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
 import { getQuoteDetail } from "@/lib/data/quotes";
+import { getQuoteEmailPortalLinkState } from "@/lib/portal/quote-email-link-state";
 import { buildMultiQuoteEmailDraft, normalizeMultiQuoteIds, validateMultiQuoteSelection } from "@/lib/quotes/multi-email";
 
 type MultiQuoteEmailPageProps = {
@@ -43,6 +44,9 @@ export default async function MultiQuoteEmailPage({ searchParams }: MultiQuoteEm
     portalUrl: tokenLookups[index].data.find((token) => token.portalUrl)?.portalUrl ?? "",
   }));
   const draft = buildMultiQuoteEmailDraft(previewQuotes);
+  const legacyQuoteIds = quotes.flatMap((quote, index) =>
+    getQuoteEmailPortalLinkState(tokenLookups[index].data) === "legacy_unrecoverable" ? [quote.id] : [],
+  );
   const backHref = validation.customerId
     ? `/admin/customers/${validation.customerId}`
     : `/admin/organizations/${validation.organizationId}`;
@@ -66,6 +70,7 @@ export default async function MultiQuoteEmailPage({ searchParams }: MultiQuoteEm
       <MultiQuoteEmailComposer
         attemptId={randomUUID()}
         draft={draft}
+        legacyQuoteIds={legacyQuoteIds}
         partyName={validation.partyName}
         quoteIds={quoteIds}
         recipient={validation.recipient}

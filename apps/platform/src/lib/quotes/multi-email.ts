@@ -143,6 +143,20 @@ export function applyMultiQuoteEmailEdits(draft: MultiQuoteEmailDraft, edits: Mu
   return { ...updated, body: buildMultiQuoteEmailText(updated) };
 }
 
+export function applyMultiQuotePortalUrls(
+  draft: MultiQuoteEmailDraft,
+  portalUrls: Record<string, string>,
+) {
+  const updated = {
+    ...draft,
+    items: draft.items.map((item) => ({
+      ...item,
+      portalUrl: portalUrls[item.quoteId] ?? item.portalUrl,
+    })),
+  };
+  return { ...updated, body: buildMultiQuoteEmailText(updated) };
+}
+
 export function buildMultiQuoteEmailText(draft: Omit<MultiQuoteEmailDraft, "body">) {
   const proposals = draft.items.flatMap((item, index) => [
     `PROPOSAL ${index + 1}`,

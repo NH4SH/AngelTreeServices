@@ -10,6 +10,9 @@ import {
   QUOTE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
 
+export const LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR =
+  "An existing customer link is still active but was created before link recovery was enabled. Use Regenerate link only if you intend to replace it.";
+
 export type ActiveQuotePortalToken = {
   id: string;
   expires_at: string | null;
@@ -68,7 +71,7 @@ export async function createOrGetQuotePortalTokenRecord({
   if (!recoveredToken) {
     return {
       created: false,
-      error: "An existing customer link is still active but was created before link recovery was enabled. Use Regenerate link only if you intend to replace it.",
+      error: LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
       expiresAt: "",
       rawToken: "",
       tokenId: "",

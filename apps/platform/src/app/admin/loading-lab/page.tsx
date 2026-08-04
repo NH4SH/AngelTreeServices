@@ -20,7 +20,7 @@ export default async function LoadingLabPage() {
         <section className="page-heading">
           <p className="surface-label"><FlaskConical aria-hidden="true" size={17} />Interface prototype</p>
           <h1>Loading animation lab</h1>
-          <p>Compare four calm tree-growth directions before choosing a production loader.</p>
+          <p>Compare three calligraphic tree-growth refinements before choosing a production loader.</p>
         </section>
 
         {allowed ? (

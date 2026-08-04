@@ -20791,13 +20791,13 @@ body:has(.appointment-overlay) {
 .loading-variant-grid,
 .loading-context-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .loading-variant-card {
   display: grid;
-  grid-template-rows: auto minmax(230px, 1fr) auto;
+  grid-template-rows: auto minmax(248px, 1fr) auto;
   min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -20843,7 +20843,7 @@ body:has(.appointment-overlay) {
 
 .loading-variant-stage {
   display: grid;
-  min-height: 232px;
+  min-height: 248px;
   place-items: center;
   border-block: 1px solid var(--color-border);
   background: var(--lab-preview-background);
@@ -20958,11 +20958,6 @@ body:has(.appointment-overlay) {
   height: 112px;
 }
 
-.motion-tree-a { --tree-cycle: 4.2s; }
-.motion-tree-b { --tree-cycle: 4.35s; }
-.motion-tree-c { --tree-cycle: 4.5s; }
-.motion-tree-d { --tree-cycle: 4.55s; }
-
 .motion-tree-svg {
   display: block;
   width: 180px;
@@ -20975,7 +20970,46 @@ body:has(.appointment-overlay) {
   height: 110px;
 }
 
-.motion-tree-stroke {
+
+/* Calligraphic tree study */
+
+.motion-tree-sparse { --tree-cycle: 4.05s; }
+.motion-tree-balanced { --tree-cycle: 4.2s; }
+.motion-tree-golden { --tree-cycle: 4.35s; }
+
+.motion-tree-sparse,
+.motion-tree-balanced,
+.motion-tree-golden {
+  width: 202px;
+  height: 184px;
+}
+
+.motion-tree-sparse.is-context,
+.motion-tree-balanced.is-context,
+.motion-tree-golden.is-context {
+  width: 116px;
+  height: 106px;
+}
+
+.motion-tree-sparse .motion-tree-svg,
+.motion-tree-balanced .motion-tree-svg,
+.motion-tree-golden .motion-tree-svg {
+  width: 200px;
+  height: auto;
+}
+
+.motion-tree-loader.is-context.motion-tree-sparse .motion-tree-svg,
+.motion-tree-loader.is-context.motion-tree-balanced .motion-tree-svg,
+.motion-tree-loader.is-context.motion-tree-golden .motion-tree-svg {
+  width: 114px;
+  height: auto;
+}
+
+.calligraphy-artwork {
+  animation: calligraphyArtworkCycle var(--tree-cycle) linear infinite both;
+}
+
+.calligraphy-growth-path {
   fill: none;
   stroke: var(--tree-deep);
   stroke-dasharray: 1;
@@ -20986,504 +21020,224 @@ body:has(.appointment-overlay) {
   vector-effect: non-scaling-stroke;
 }
 
-.living-root,
-.canopy-ground,
-.signature-root,
-.ratio-root {
+.calligraphy-root {
   stroke-width: 1.45;
+  animation: calligraphyRootDraw var(--tree-cycle) var(--tree-ease) infinite both;
 }
 
-.living-ink-tree .root-one,
-.canopy-ground,
-.signature-tree .root-one,
-.ratio-tree .root-one {
-  animation: motionRootOne var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .root-two,
-.signature-tree .root-two,
-.signature-tree .root-three,
-.ratio-tree .root-two {
-  animation: motionRootTwo var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-trunk,
-.canopy-trunk-shape,
-.signature-trunk-shape,
-.ratio-trunk-shape {
-  transform: scaleY(0);
-  transform-box: fill-box;
-  transform-origin: center bottom;
-  opacity: 0;
-  animation: motionTrunkShape var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.canopy-trunk-shape {
+.calligraphy-trunk {
   fill: var(--tree-deep);
 }
 
-.living-highlight,
-.signature-highlight,
-.ratio-trunk-light {
-  stroke: var(--tree-mid);
-  stroke-width: 1.15;
-  animation: motionTrunkLight var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-branch,
-.canopy-limb,
-.signature-limb,
-.ratio-primary {
-  stroke-width: 2.45;
-}
-
-.living-ink-tree .branch-one,
-.canopy-unfold-tree .limb-one,
-.signature-tree .limb-one,
-.ratio-primary.ratio-one {
-  animation: motionPrimaryOne var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .branch-two,
-.canopy-unfold-tree .limb-two,
-.signature-tree .limb-two,
-.ratio-primary.ratio-two {
-  animation: motionPrimaryTwo var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .branch-three,
-.canopy-unfold-tree .limb-three,
-.signature-tree .limb-three,
-.ratio-primary.ratio-three {
-  animation: motionPrimaryThree var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .branch-four,
-.canopy-unfold-tree .limb-four,
-.signature-tree .limb-four,
-.ratio-primary.ratio-four {
-  animation: motionPrimaryFour var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .branch-five,
-.canopy-unfold-tree .limb-five,
-.signature-tree .limb-five,
-.ratio-primary.ratio-five {
-  animation: motionPrimaryFive var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .branch-six,
-.signature-tree .limb-six,
-.ratio-primary.ratio-six {
-  animation: motionPrimarySix var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-twig,
-.canopy-detail,
-.signature-branch,
-.ratio-secondary {
-  stroke: var(--tree-forest);
-  stroke-width: 1.2;
-}
-
-.living-ink-tree .twig-one,
-.living-ink-tree .twig-two,
-.canopy-unfold-tree .detail-one,
-.canopy-unfold-tree .detail-two,
-.signature-tree .branch-one,
-.signature-tree .branch-two,
-.ratio-secondary.ratio-one {
-  animation: motionSecondaryOne var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .twig-three,
-.living-ink-tree .twig-four,
-.canopy-unfold-tree .detail-three,
-.canopy-unfold-tree .detail-four,
-.signature-tree .branch-three,
-.signature-tree .branch-four,
-.ratio-secondary.ratio-two {
-  animation: motionSecondaryTwo var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .twig-five,
-.canopy-unfold-tree .detail-five,
-.signature-tree .branch-five,
-.signature-tree .branch-six,
-.ratio-secondary.ratio-three {
-  animation: motionSecondaryThree var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .twig-six,
-.living-ink-tree .twig-seven,
-.canopy-unfold-tree .detail-six,
-.signature-tree .branch-seven,
-.ratio-secondary.ratio-four {
-  animation: motionSecondaryFour var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-ink-tree .twig-eight,
-.signature-tree .branch-eight,
-.ratio-secondary.ratio-five {
-  animation: motionSecondaryFive var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-wash,
-.living-leaf,
-.canopy-edge,
-.signature-cluster,
-.signature-accent,
-.ratio-cluster,
-.ratio-leaf {
-  transform: scale(0.58) translateY(2px);
+.sparse-artwork .calligraphy-trunk {
+  transform: scaleX(0.82);
   transform-box: fill-box;
   transform-origin: center;
-  opacity: 0;
 }
 
-.living-wash {
-  fill: var(--tree-light);
-  fill-opacity: 0.3;
-}
-
-.living-leaf {
-  fill: var(--tree-forest);
-}
-
-.living-foliage .wash-one,
-.living-foliage .leaf-one,
-.living-foliage .leaf-two,
-.living-foliage .leaf-three,
-.canopy-edge-details .edge-one,
-.signature-crown .cluster-one,
-.signature-crown .cluster-two,
-.ratio-foliage .cluster-one,
-.ratio-foliage .cluster-two,
-.ratio-foliage .leaf-one {
-  animation: motionFoliageOne var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-foliage .wash-two,
-.living-foliage .leaf-four,
-.living-foliage .leaf-five,
-.living-foliage .leaf-six,
-.canopy-edge-details .edge-two,
-.canopy-edge-details .edge-three,
-.signature-crown .cluster-three,
-.signature-crown .cluster-four,
-.signature-crown .cluster-five,
-.signature-crown .cluster-nine,
-.ratio-foliage .cluster-three,
-.ratio-foliage .cluster-four,
-.ratio-foliage .cluster-nine,
-.ratio-foliage .cluster-ten,
-.ratio-foliage .leaf-two,
-.ratio-foliage .leaf-three,
-.ratio-foliage .leaf-four {
-  animation: motionFoliageTwo var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.living-foliage .wash-three,
-.living-foliage .leaf-seven,
-.living-foliage .leaf-eight,
-.living-foliage .leaf-nine,
-.living-foliage .leaf-ten,
-.canopy-edge-details .edge-four,
-.canopy-edge-details .edge-five,
-.signature-crown .cluster-six,
-.signature-crown .cluster-seven,
-.signature-crown .cluster-eight,
-.signature-crown .cluster-ten,
-.signature-accent,
-.ratio-foliage .cluster-five,
-.ratio-foliage .cluster-six,
-.ratio-foliage .cluster-seven,
-.ratio-foliage .cluster-eight,
-.ratio-foliage .cluster-eleven,
-.ratio-foliage .cluster-twelve,
-.ratio-foliage .leaf-five,
-.ratio-foliage .leaf-six,
-.ratio-foliage .leaf-seven {
-  animation: motionFoliageThree var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.canopy-mask-stroke {
+.calligraphy-trunk-reveal {
   fill: none;
   stroke: white;
+  stroke-width: 19;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0;
+  animation: calligraphyTrunkDraw var(--tree-cycle) var(--tree-ease) infinite both;
 }
 
-.canopy-mask-stroke.mask-one {
-  stroke-width: 58;
-  animation: motionCanopyMaskOne var(--tree-cycle) var(--tree-ease) infinite both;
+.calligraphy-branch {
+  stroke-width: 2.6;
 }
 
-.canopy-mask-stroke.mask-two {
-  stroke-width: 54;
-  animation: motionCanopyMaskTwo var(--tree-cycle) var(--tree-ease) infinite both;
+.balanced-artwork .calligraphy-branch {
+  stroke-width: 2.75;
 }
 
-.canopy-mask-stroke.mask-three {
-  stroke-width: 48;
-  animation: motionCanopyMaskThree var(--tree-cycle) var(--tree-ease) infinite both;
+.golden-artwork .calligraphy-branch {
+  stroke-width: 2.9;
 }
 
-.canopy-layers {
-  animation: motionArtworkFade var(--tree-cycle) linear infinite both;
-}
+.calligraphy-branch.branch-2 { stroke-width: 2.5; }
+.calligraphy-branch.branch-3 { stroke-width: 2.25; }
+.calligraphy-branch.branch-4 { stroke-width: 2.05; }
+.calligraphy-branch.branch-5 { stroke-width: 1.82; }
+.calligraphy-branch.branch-6 { stroke-width: 1.58; }
 
-.canopy-shape,
-.signature-cluster,
-.ratio-cluster {
-  fill: var(--tree-mid);
-}
-
-.motion-tree-loader .layer-deep { fill: var(--tree-forest); }
-.motion-tree-loader .layer-mid { fill: var(--tree-mid); }
-.motion-tree-loader .layer-light { fill: var(--tree-light); }
-
-.canopy-light-shift {
-  fill-opacity: 0.28;
-}
-
-.canopy-edge {
-  fill: var(--tree-forest);
-}
-
-.canopy-overlay-branch {
-  stroke: var(--tree-deep);
+.calligraphy-twig {
+  stroke: var(--tree-forest);
   stroke-width: 1.25;
 }
 
-.canopy-visible-structure .overlay-one { animation: motionPrimaryTwo var(--tree-cycle) var(--tree-ease) infinite both; }
-.canopy-visible-structure .overlay-two { animation: motionPrimaryThree var(--tree-cycle) var(--tree-ease) infinite both; }
-.canopy-visible-structure .overlay-three { animation: motionPrimaryFour var(--tree-cycle) var(--tree-ease) infinite both; }
-.canopy-visible-structure .overlay-four { animation: motionPrimaryFive var(--tree-cycle) var(--tree-ease) infinite both; }
-
-.signature-crown {
-  animation: motionSignatureSettle var(--tree-cycle) var(--tree-ease) infinite both;
+.balanced-artwork .calligraphy-twig,
+.golden-artwork .calligraphy-twig {
+  stroke-width: 1.35;
 }
 
-.signature-cluster,
-.ratio-cluster {
-  fill-opacity: 0.9;
-}
+.calligraphy-branch.branch-1 { animation: calligraphyBranchOne var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-branch.branch-2 { animation: calligraphyBranchTwo var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-branch.branch-3 { animation: calligraphyBranchThree var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-branch.branch-4 { animation: calligraphyBranchFour var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-branch.branch-5 { animation: calligraphyBranchFive var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-branch.branch-6 { animation: calligraphyBranchSix var(--tree-cycle) var(--tree-ease) infinite both; }
 
-.signature-accent {
-  fill: var(--tree-glint);
-}
+.calligraphy-twig.twig-1 { animation: calligraphyTwigOne var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-twig.twig-2 { animation: calligraphyTwigTwo var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-twig.twig-3 { animation: calligraphyTwigThree var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-twig.twig-4 { animation: calligraphyTwigFour var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-twig.twig-5,
+.calligraphy-twig.twig-6 { animation: calligraphyTwigFive var(--tree-cycle) var(--tree-ease) infinite both; }
 
-.ratio-seed {
-  fill: var(--tree-glint);
-  transform: scale(0.35);
+.calligraphy-leaf {
+  transform: scale(0.24) rotate(-13deg);
   transform-box: fill-box;
-  transform-origin: center;
-  opacity: 0;
-  animation: motionSeed var(--tree-cycle) var(--tree-ease) infinite both;
-}
-
-.ratio-primary {
-  stroke-linecap: round;
-}
-
-.ratio-secondary {
-  stroke-width: 1.15;
-}
-
-.ratio-leaf {
+  transform-origin: 0% 50%;
   fill: var(--tree-forest);
+  opacity: 0;
 }
 
-.ratio-foliage {
-  animation: motionRatioSettle var(--tree-cycle) var(--tree-ease) infinite both;
-  transform-origin: 102px 98px;
+.calligraphy-leaf.is-light {
+  fill: var(--tree-light);
 }
 
-@keyframes motionRootOne {
+.golden-artwork .calligraphy-leaf.is-light {
+  fill: var(--tree-mid);
+}
+
+.calligraphy-leaf.leaf-stage-1 { animation: calligraphyLeafOne var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-leaf.leaf-stage-2 { animation: calligraphyLeafTwo var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-leaf.leaf-stage-3 { animation: calligraphyLeafThree var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-leaf.leaf-stage-4 { animation: calligraphyLeafFour var(--tree-cycle) var(--tree-ease) infinite both; }
+.calligraphy-leaf.leaf-stage-5 { animation: calligraphyLeafFive var(--tree-cycle) var(--tree-ease) infinite both; }
+
+@keyframes calligraphyArtworkCycle {
+  0%, 93% { opacity: 1; }
+  98%, 100% { opacity: 0; }
+}
+
+@keyframes calligraphyRootDraw {
   0%, 2% { opacity: 0; stroke-dashoffset: 1; }
-  13%, 91% { opacity: 0.72; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+  13%, 92% { opacity: 0.72; stroke-dashoffset: 0; }
+  100% { opacity: 0.72; stroke-dashoffset: 0; }
 }
 
-@keyframes motionRootTwo {
-  0%, 6% { opacity: 0; stroke-dashoffset: 1; }
-  17%, 91% { opacity: 0.62; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+@keyframes calligraphyTrunkDraw {
+  0%, 7% { stroke-dashoffset: 1; }
+  34%, 100% { stroke-dashoffset: 0; }
 }
 
-@keyframes motionSeed {
-  0%, 2% { opacity: 0; transform: scale(0.35) translateY(2px); }
-  12%, 91% { opacity: 0.9; transform: scale(1) translateY(0); }
-  100% { opacity: 0; transform: scale(1) translateY(0); }
+@keyframes calligraphyBranchOne {
+  0%, 25% { opacity: 0; stroke-dashoffset: 1; }
+  45%, 100% { opacity: 1; stroke-dashoffset: 0; }
 }
 
-@keyframes motionTrunkShape {
-  0%, 5% { opacity: 0; transform: scaleY(0); }
-  35%, 91% { opacity: 1; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(1); }
+@keyframes calligraphyBranchTwo {
+  0%, 29% { opacity: 0; stroke-dashoffset: 1; }
+  49%, 100% { opacity: 1; stroke-dashoffset: 0; }
 }
 
-@keyframes motionTrunkLight {
-  0%, 21% { opacity: 0; stroke-dashoffset: 1; }
-  42%, 91% { opacity: 0.58; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+@keyframes calligraphyBranchThree {
+  0%, 33% { opacity: 0; stroke-dashoffset: 1; }
+  53%, 100% { opacity: 1; stroke-dashoffset: 0; }
 }
 
-@keyframes motionPrimaryOne {
-  0%, 22% { opacity: 0; stroke-dashoffset: 1; }
-  49%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
-}
-
-@keyframes motionPrimaryTwo {
-  0%, 27% { opacity: 0; stroke-dashoffset: 1; }
-  53%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
-}
-
-@keyframes motionPrimaryThree {
-  0%, 32% { opacity: 0; stroke-dashoffset: 1; }
-  58%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
-}
-
-@keyframes motionPrimaryFour {
+@keyframes calligraphyBranchFour {
   0%, 37% { opacity: 0; stroke-dashoffset: 1; }
-  63%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+  57%, 100% { opacity: 1; stroke-dashoffset: 0; }
 }
 
-@keyframes motionPrimaryFive {
+@keyframes calligraphyBranchFive {
+  0%, 41% { opacity: 0; stroke-dashoffset: 1; }
+  61%, 100% { opacity: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes calligraphyBranchSix {
+  0%, 45% { opacity: 0; stroke-dashoffset: 1; }
+  61%, 100% { opacity: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes calligraphyTwigOne {
   0%, 42% { opacity: 0; stroke-dashoffset: 1; }
-  68%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+  57%, 100% { opacity: 0.88; stroke-dashoffset: 0; }
 }
 
-@keyframes motionPrimarySix {
-  0%, 47% { opacity: 0; stroke-dashoffset: 1; }
-  72%, 91% { opacity: 1; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+@keyframes calligraphyTwigTwo {
+  0%, 46% { opacity: 0; stroke-dashoffset: 1; }
+  61%, 100% { opacity: 0.88; stroke-dashoffset: 0; }
 }
 
-@keyframes motionSecondaryOne {
-  0%, 39% { opacity: 0; stroke-dashoffset: 1; }
-  58%, 91% { opacity: 0.9; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+@keyframes calligraphyTwigThree {
+  0%, 50% { opacity: 0; stroke-dashoffset: 1; }
+  65%, 100% { opacity: 0.86; stroke-dashoffset: 0; }
 }
 
-@keyframes motionSecondaryTwo {
-  0%, 43% { opacity: 0; stroke-dashoffset: 1; }
-  62%, 91% { opacity: 0.9; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+@keyframes calligraphyTwigFour {
+  0%, 52% { opacity: 0; stroke-dashoffset: 1; }
+  65%, 100% { opacity: 0.84; stroke-dashoffset: 0; }
 }
 
-@keyframes motionSecondaryThree {
-  0%, 47% { opacity: 0; stroke-dashoffset: 1; }
-  66%, 91% { opacity: 0.86; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
-}
-
-@keyframes motionSecondaryFour {
-  0%, 51% { opacity: 0; stroke-dashoffset: 1; }
-  70%, 91% { opacity: 0.84; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
-}
-
-@keyframes motionSecondaryFive {
+@keyframes calligraphyTwigFive {
   0%, 55% { opacity: 0; stroke-dashoffset: 1; }
-  74%, 91% { opacity: 0.82; stroke-dashoffset: 0; }
-  100% { opacity: 0; stroke-dashoffset: 0; }
+  68%, 100% { opacity: 0.82; stroke-dashoffset: 0; }
 }
 
-@keyframes motionFoliageOne {
-  0%, 50% { opacity: 0; transform: scale(0.58) translateY(2px); }
-  64%, 91% { opacity: 0.9; transform: scale(1) translateY(0); }
-  100% { opacity: 0; transform: scale(1) translateY(0); }
+@keyframes calligraphyLeafOne {
+  0%, 52% { opacity: 0; transform: scale(0.24) rotate(-13deg); }
+  64%, 100% { opacity: 0.96; transform: scale(1) rotate(0); }
 }
 
-@keyframes motionFoliageTwo {
-  0%, 56% { opacity: 0; transform: scale(0.58) translateY(2px); }
-  69%, 91% { opacity: 0.88; transform: scale(1) translateY(0); }
-  100% { opacity: 0; transform: scale(1) translateY(0); }
+@keyframes calligraphyLeafTwo {
+  0%, 55% { opacity: 0; transform: scale(0.24) rotate(-13deg); }
+  67%, 100% { opacity: 0.95; transform: scale(1) rotate(0); }
 }
 
-@keyframes motionFoliageThree {
-  0%, 61% { opacity: 0; transform: scale(0.58) translateY(2px); }
-  75%, 91% { opacity: 0.86; transform: scale(1) translateY(0); }
-  100% { opacity: 0; transform: scale(1) translateY(0); }
+@keyframes calligraphyLeafThree {
+  0%, 58% { opacity: 0; transform: scale(0.24) rotate(-13deg); }
+  70%, 100% { opacity: 0.94; transform: scale(1) rotate(0); }
 }
 
-@keyframes motionCanopyMaskOne {
-  0%, 47% { opacity: 0; stroke-dashoffset: 1; }
-  64%, 100% { opacity: 1; stroke-dashoffset: 0; }
+@keyframes calligraphyLeafFour {
+  0%, 61% { opacity: 0; transform: scale(0.24) rotate(-13deg); }
+  73%, 100% { opacity: 0.93; transform: scale(1) rotate(0); }
 }
 
-@keyframes motionCanopyMaskTwo {
-  0%, 53% { opacity: 0; stroke-dashoffset: 1; }
-  69%, 100% { opacity: 1; stroke-dashoffset: 0; }
-}
-
-@keyframes motionCanopyMaskThree {
-  0%, 58% { opacity: 0; stroke-dashoffset: 1; }
-  75%, 100% { opacity: 1; stroke-dashoffset: 0; }
-}
-
-@keyframes motionArtworkFade {
-  0%, 90% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes motionSignatureSettle {
-  0%, 82% { transform: translateY(-1px); }
-  89%, 91% { transform: translateY(0); }
-  100% { transform: translateY(0); }
-}
-
-@keyframes motionRatioSettle {
-  0%, 82% { transform: rotate(-0.35deg) translateY(-0.5px); }
-  89%, 91% { transform: rotate(0) translateY(0); }
-  100% { transform: rotate(0) translateY(0); }
+@keyframes calligraphyLeafFive {
+  0%, 64% { opacity: 0; transform: scale(0.24) rotate(-13deg); }
+  76%, 100% { opacity: 0.92; transform: scale(1) rotate(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .motion-tree-loader *,
-  .motion-tree-loader *::before,
-  .motion-tree-loader *::after {
+  .calligraphy-artwork,
+  .calligraphy-root,
+  .calligraphy-trunk-reveal,
+  .calligraphy-branch,
+  .calligraphy-twig,
+  .calligraphy-leaf {
     animation: none !important;
   }
 
-  .motion-tree-stroke,
-  .canopy-mask-stroke {
+  .calligraphy-artwork,
+  .calligraphy-leaf {
+    opacity: 1;
+  }
+
+  .calligraphy-root,
+  .calligraphy-trunk-reveal,
+  .calligraphy-branch,
+  .calligraphy-twig {
     stroke-dashoffset: 0;
     opacity: 1;
   }
 
-  .living-trunk,
-  .canopy-trunk-shape,
-  .signature-trunk-shape,
-  .ratio-trunk-shape,
-  .living-wash,
-  .living-leaf,
-  .canopy-edge,
-  .signature-cluster,
-  .signature-accent,
-  .ratio-seed,
-  .ratio-cluster,
-  .ratio-leaf,
-  .canopy-layers {
+  .calligraphy-leaf {
     transform: none;
-    opacity: 0.92;
   }
+}
 
-  .living-trunk,
-  .canopy-trunk-shape,
-  .signature-trunk-shape,
-  .ratio-trunk-shape {
-    opacity: 1;
+@media (max-width: 1100px) and (min-width: 841px) {
+  .loading-variant-grid,
+  .loading-context-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

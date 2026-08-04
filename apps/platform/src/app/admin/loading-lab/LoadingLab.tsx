@@ -5,16 +5,15 @@ import { useState } from "react";
 import { ArtisticTreeLoader, type ArtisticTreeVariant } from "./TreeArtwork";
 
 const variants = [
-  { id: "a", name: "Living Ink Tree", description: "Botanical, fluid, and quietly expressive", detail: "Tapered ink structure grows into hand-shaped leaves and an airy crown." },
-  { id: "b", name: "Canopy Unfold", description: "Layered, mature, and softly dimensional", detail: "Visible limbs support an irregular canopy revealed outward from the tree's heart." },
-  { id: "c", name: "Angel Tree Signature", description: "Enduring, crafted, and unmistakably grounded", detail: "Roots, a strong tapering trunk, and a balanced crown express skilled tree care." },
-  { id: "d", name: "Golden Ratio Growth", description: "Harmonious, flowing, and naturally composed", detail: "Proportional curves and phyllotactic rhythms create hidden mathematical balance." },
+  { id: "sparse", name: "Sparse Calligraphy", description: "Minimal, airy, and quietly assured", detail: "Nine hand-shaped leaves punctuate a fine sweeping silhouette with generous negative space." },
+  { id: "balanced", name: "Balanced Botanical", description: "Graceful, legible, and naturally composed", detail: "A richer branch rhythm and fourteen leaves balance botanical character with loading clarity." },
+  { id: "golden", name: "Golden Flow", description: "Expressive, harmonious, and highly refined", detail: "Spiraling branch intervals and proportional taper create the most lyrical growth gesture." },
 ] as const satisfies ReadonlyArray<{ id: ArtisticTreeVariant; name: string; description: string; detail: string }>;
 
 type VariantId = (typeof variants)[number]["id"];
 type ReplayState = Record<VariantId, number>;
 
-const initialReplayState: ReplayState = { a: 0, b: 0, c: 0, d: 0 };
+const initialReplayState: ReplayState = { sparse: 0, balanced: 0, golden: 0 };
 
 export function LoadingLab() {
   const [background, setBackground] = useState<"white" | "green">("white");
@@ -26,10 +25,9 @@ export function LoadingLab() {
 
   function replayAll() {
     setReplays((current) => ({
-      a: current.a + 1,
-      b: current.b + 1,
-      c: current.c + 1,
-      d: current.d + 1,
+      sparse: current.sparse + 1,
+      balanced: current.balanced + 1,
+      golden: current.golden + 1,
     }));
   }
 
@@ -64,10 +62,10 @@ export function LoadingLab() {
           <p>Each cycle pauses at full growth, then fades before restarting.</p>
         </div>
         <div className="loading-variant-grid">
-          {variants.map((variant) => (
+          {variants.map((variant, index) => (
             <article className="loading-variant-card" key={variant.id}>
               <header>
-                <span aria-hidden="true">{variant.id.toUpperCase()}</span>
+                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <div><h3>{variant.name}</h3><p>{variant.description}</p></div>
               </header>
               <div className="loading-variant-stage">

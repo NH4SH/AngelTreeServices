@@ -1,3 +1,4 @@
+import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -560,13 +561,11 @@ function party(item: {
   return item.organizations?.name ?? item.customers?.display_name ?? "Account";
 }
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(`${value}T12:00:00`),
-  );
+  return formatBusinessDate(value, { dateStyle: "medium" });
 }
 function formatDateTime(value: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(value, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(value);
+  });
 }

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { addBusinessDays, getBusinessDayRange } from "@/lib/business-time";
 import { createClient } from "@/lib/supabase/server";
 
 export type WorkflowPipelineStage = {
@@ -17,10 +18,8 @@ export async function getWorkflowPipelineStages(): Promise<{
   if (!supabase) return { stages: stageDefinitions.map((stage) => ({ ...stage, count: 0 })), errors: ["Supabase is not configured."] };
 
   const now = new Date();
-  const weekEnd = new Date(now);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-  const dayEnd = new Date(now);
-  dayEnd.setHours(23, 59, 59, 999);
+  const weekEnd = addBusinessDays(now, 7)!;
+  const dayEnd = new Date(getBusinessDayRange(now)!.endExclusive.getTime() - 1);
 
   const queries = [
     supabase.from("jobs").select("id", { count: "exact", head: true }).is("archived_at", null).eq("lead_disposition", "active").eq("status", "new_lead"),

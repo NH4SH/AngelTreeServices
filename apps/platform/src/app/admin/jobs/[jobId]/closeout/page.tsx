@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -161,7 +162,7 @@ export default async function CloseoutReviewPage({ params }: CloseoutReviewPageP
                     <div key={entry.id}>
                       <span>{entry.profiles?.full_name || entry.profiles?.email || "Employee"}</span>
                       <strong>{getTimeEntryHours(entry).toFixed(2)} hours</strong>
-                      <small>{new Date(entry.clock_in_at).toLocaleString()} to {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : "Active timer"}</small>
+                      <small>{formatBusinessDateTime(new Date(entry.clock_in_at))} to {entry.clock_out_at ? formatBusinessDateTime(new Date(entry.clock_out_at)) : "Active timer"}</small>
                     </div>
                   ))}
                 </div>
@@ -200,7 +201,7 @@ function formatLocation(location: { street: string; city: string; state: string 
 }
 
 function formatDateTime(value: string | null) {
-  return value ? new Date(value).toLocaleString() : "Not recorded";
+  return value ? formatBusinessDateTime(new Date(value)) : "Not recorded";
 }
 
 function formatStatus(status: string) {

@@ -1,3 +1,4 @@
+import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, Clock3, Filter, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
 import { PermissionToggleForm } from "@/components/time-clock";
@@ -393,26 +394,26 @@ function formatReviewStatus(value: ReturnType<typeof getLatestTimeEntryReviewSta
 }
 
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDate(value, {
     month: "short",
     day: "numeric",
-  }).format(new Date(value));
+  });
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatTimeRange(clockInAt: string, clockOutAt: string | null) {

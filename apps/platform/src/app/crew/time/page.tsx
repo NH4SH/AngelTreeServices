@@ -1,3 +1,4 @@
+import { formatBusinessDateTime, getBusinessDateKey } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, Clock3, PlayCircle, ShieldCheck, TimerReset } from "lucide-react";
 import {
@@ -284,22 +285,16 @@ function RecentTimeEntries({ entries }: { entries: Awaited<ReturnType<typeof get
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function isToday(value: string) {
-  const date = new Date(value);
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
+  return getBusinessDateKey(value) === getBusinessDateKey(new Date());
 }
 
 function DataWarning({ message }: { message: string }) {

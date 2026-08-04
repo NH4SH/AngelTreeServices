@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBusinessDayRange } from "@/lib/business-time";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { QuoteLeadSourceRecord } from "@/lib/quotes/lead-prefill";
 import type { AppointmentWithRelations, ChangeOrderWithRelations, DataResult, InvoiceWithRelations, Job, JobDetail, JobOperationsIndexRow, JobPhoto, JobWithRelations, Note, QuoteWithRelations, ScheduleEventWithRelations, ScheduleJobOption } from "@/lib/types/database";
@@ -378,10 +379,7 @@ export async function getDashboardJobSummaries() {
     };
   }
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const { start, endExclusive: end } = getBusinessDayRange()!;
   const commonSelect =
     "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
 

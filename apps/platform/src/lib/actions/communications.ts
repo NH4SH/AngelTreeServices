@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseBusinessDateTime } from "@/lib/business-time";
 import { processCommunicationById, processDueCommunications } from "@/lib/communications/processor";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -365,8 +366,7 @@ async function requireStaff(adminOnly = false) {
 }
 
 function parseScheduledDate(value: FormDataEntryValue | null) {
-  const date = new Date(String(value ?? ""));
-  return Number.isNaN(date.getTime()) ? null : date;
+  return parseBusinessDateTime(String(value ?? ""));
 }
 
 function integer(formData: FormData, key: string, min: number, max: number) {

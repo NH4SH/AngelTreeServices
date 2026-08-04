@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { getBusinessDateKey, shiftBusinessDateKey } from "@/lib/business-time";
 import type {
   CredentialType,
   DataResult,
@@ -128,21 +129,23 @@ export async function getEmployeeDashboardSummary() {
   const supabase = await createClient();
   const empty = { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] };
   if (!supabase) return { data: empty, error: "Supabase is not configured." };
-  const today = new Date(); const in90Days = new Date(today.getTime() + 90 * 86_400_000).toISOString().slice(0, 10);
+  const now = new Date();
+  const today = getBusinessDateKey(now);
+  const in90Days = shiftBusinessDateKey(today, 90);
   const [accessRequests, credentials, safetyAcknowledgments, documents, requests, equipment] = await Promise.all([
     supabase.from("employee_access_requests").select("id, full_name, email, status").eq("status", "pending").order("created_at").limit(20),
     supabase.from("employee_credentials").select("id, employee_id, expiration_date, status, employee_records(preferred_name, legal_name), credential_types(default_warning_days)").is("archived_at", null).not("expiration_date", "is", null).lte("expiration_date", in90Days).order("expiration_date").limit(30),
     supabase.from("safety_meeting_attendees").select("id, employee_id, safety_meeting_id, attendance_status, acknowledged_at, employee_records(preferred_name, legal_name), safety_meetings(title, starts_at)").eq("attendance_status", "present").is("acknowledged_at", null).order("created_at").limit(30),
     supabase.from("employee_documents").select("id, employee_id, title, review_status, employee_records(preferred_name, legal_name)").eq("review_status", "pending").is("archived_at", null).limit(20),
     supabase.from("employee_requests").select("id, employee_id, title, request_type, employee_records(preferred_name, legal_name)").eq("status", "pending").order("created_at").limit(20),
-    supabase.from("equipment_assignments").select("id, assigned_user_id, ends_at, returned_at, equipment_assets(name, asset_number), profiles:profiles!equipment_assignments_assigned_user_id_fkey(full_name)").is("returned_at", null).not("ends_at", "is", null).lt("ends_at", today.toISOString()).limit(20),
+    supabase.from("equipment_assignments").select("id, assigned_user_id, ends_at, returned_at, equipment_assets(name, asset_number), profiles:profiles!equipment_assignments_assigned_user_id_fkey(full_name)").is("returned_at", null).not("ends_at", "is", null).lt("ends_at", now.toISOString()).limit(20),
   ]);
   const credentialRows = credentials.data ?? [];
   return { data: {
     onboarding: employees.data.filter((employee) => employee.employment_status === "onboarding" || employee.onboardingProgress < 100).slice(0, 12),
     pendingAccess: accessRequests.data ?? [],
-    expiring: credentialRows.filter((credential) => { const relation = credential.credential_types as { default_warning_days?: number } | { default_warning_days?: number }[] | null; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && credential.expiration_date >= today.toISOString().slice(0, 10) && credential.expiration_date <= new Date(today.getTime() + warningDays * 86_400_000).toISOString().slice(0, 10); }),
-    expired: credentialRows.filter((credential) => credential.expiration_date && credential.expiration_date < today.toISOString().slice(0, 10)),
+    expiring: credentialRows.filter((credential) => { const relation = credential.credential_types as { default_warning_days?: number } | { default_warning_days?: number }[] | null; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && credential.expiration_date >= today && credential.expiration_date <= shiftBusinessDateKey(today, warningDays); }),
+    expired: credentialRows.filter((credential) => credential.expiration_date && credential.expiration_date < today),
     missingTraining: employees.data.filter((employee) => employee.is_active && employee.trainingState === "none").slice(0, 20),
     pendingSafetyAcknowledgments: safetyAcknowledgments.data ?? [],
     pendingDocuments: documents.data ?? [], pendingRequests: requests.data ?? [], equipmentDueBack: equipment.data ?? [],
@@ -185,7 +188,7 @@ export async function getEmployeeEligibilityWarnings(userIds: string[], scope: {
   const { data: directory } = await supabase.rpc("get_employee_operational_directory");
   const employees = (((directory as { employees?: Array<{ id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string; employment_status: string; is_active: boolean; employee_credentials?: Array<{ status: string; expiration_date: string | null; credential_type_id: string }> }> } | null)?.employees ?? [])).filter((employee) => employee.auth_user_id && userIds.includes(employee.auth_user_id));
   const { data: requirements } = await supabase.from("qualification_requirements").select("credential_type_id, warning_only, credential_types(label)").eq("requirement_scope", scope.type).eq("scope_value", scope.value).eq("is_active", true);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBusinessDateKey(new Date());
   const foundUserIds = new Set((employees ?? []).map((employee) => employee.auth_user_id));
   const missingRecords = userIds.filter((userId) => !foundUserIds.has(userId)).map((userId) => ({ userId, message: "This assigned user has no linked employee readiness record. Review the assignment.", requiresOverride: false }));
   const employeeWarnings = (employees ?? []).flatMap((employee) => {
@@ -212,8 +215,8 @@ function credentialState(credentials: { status: string; expiration_date: string 
   const active = credentials.filter((credential) => !credential.archived_at);
   if (!active.length) return "none";
   if (active.some((credential) => credential.status === "pending_verification")) return "pending";
-  const today = new Date();
-  if (active.some((credential) => credential.expiration_date && new Date(credential.expiration_date) < today)) return "expired";
-  if (active.some((credential) => { const relation = credential.credential_types; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && new Date(credential.expiration_date) <= new Date(today.getTime() + warningDays * 86_400_000); })) return "expiring";
+  const today = getBusinessDateKey(new Date());
+  if (active.some((credential) => credential.expiration_date && credential.expiration_date < today)) return "expired";
+  if (active.some((credential) => { const relation = credential.credential_types; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && credential.expiration_date <= shiftBusinessDateKey(today, warningDays); })) return "expiring";
   return "current";
 }

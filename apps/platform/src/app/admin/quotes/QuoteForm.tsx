@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
@@ -614,12 +615,12 @@ function formatLocation(location: Pick<ServiceLocation, "label" | "street" | "ci
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatCurrency(cents: number) {

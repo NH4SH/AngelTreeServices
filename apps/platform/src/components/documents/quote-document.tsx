@@ -3,6 +3,7 @@ import { DocumentTerms } from "@/components/documents/document-terms";
 import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { getQuoteTerms } from "@/lib/documents/terms";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import type { QuoteDetail } from "@/lib/types/database";
 
 export function QuoteDocument({
@@ -227,11 +228,7 @@ function formatQuantity(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "long" });
 }
 
 function formatCurrency(cents: number) {

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -396,10 +397,10 @@ function formatQuoteStatus(status: QuoteStatus) {
 }
 
 function formatSentActivity(method: string | null, sentAt: string) {
-  const date = new Intl.DateTimeFormat("en-US", {
+  const date = formatBusinessDateTime(new Date(sentAt), {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(sentAt));
+  });
 
   if (method === "manual") {
     return `Marked as sent manually on ${date}`;
@@ -437,7 +438,7 @@ function formatProposalLabel(quote: { jobs?: { service_type?: string | null } | 
 }
 
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : "Not set";
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "Not set";
 }
 
 function formatCurrency(cents: number) {

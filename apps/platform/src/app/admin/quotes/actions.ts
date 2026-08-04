@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
@@ -699,7 +700,7 @@ function getLineItemName(name: string, description: string | null, index: number
 
 function getEndOfDayIso(value: FormDataEntryValue | null) {
   const date = String(value ?? "").trim();
-  return date ? new Date(`${date}T23:59:59.999Z`).toISOString() : null;
+  return date ? parseBusinessDateTime(`${date}T23:59:59`)?.toISOString() ?? null : null;
 }
 
 function isUuid(value: string) {

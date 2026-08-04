@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Building2, CalendarClock, FilePlus2, MapPin, Pencil, ReceiptText, ShieldCheck, UserRound } from "lucide-react";
 import { ChangeOrderPortalPanel, ChangeOrderWorkflowPanel, DuplicateChangeOrderButton } from "@/components/change-order-forms";
@@ -43,6 +44,6 @@ export default async function ChangeOrderDetailPage({ params, searchParams }: Pr
 }
 function Warning({ message }: { message: string }) { return <section className="data-warning"><strong>Database notice</strong><p>{message}</p></section>; }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100); }
-function date(value: string) { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value)); }
-function dateTime(value: string | null) { return value ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not yet"; }
+function date(value: string) { return formatBusinessDateTime(value, { dateStyle: "medium" }); }
+function dateTime(value: string | null) { return value ? formatBusinessDateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" }) : "Not yet"; }
 function location(order: NonNullable<Awaited<ReturnType<typeof getChangeOrderDetail>>["data"]>) { const value = order.service_locations; return value ? [value.label, value.street, value.city, value.state, value.postal_code].filter(Boolean).join(", ") : "No service location attached"; }

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Clock3, ShieldCheck, TimerReset, UsersRound } from "lucide-react";
 import {
@@ -265,10 +266,10 @@ function SummaryChip({ emphasis, label, value }: { emphasis?: boolean; label: st
 }
 
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatRange(clockInAt: string, clockOutAt: string | null) {
@@ -276,12 +277,12 @@ function formatRange(clockInAt: string, clockOutAt: string | null) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function DataWarning({ message }: { message: string }) {

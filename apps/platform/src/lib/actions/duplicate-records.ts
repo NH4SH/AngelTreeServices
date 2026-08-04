@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getBusinessDateKey } from "@/lib/business-time";
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -397,7 +398,7 @@ async function getNextRecordNumber(
   currentNumber: string | null,
 ) {
   const existingPattern = currentNumber?.match(/^(.*?)(\d+)$/);
-  const dateStamp = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const dateStamp = getBusinessDateKey(new Date()).replaceAll("-", "");
   const prefix = existingPattern ? existingPattern[1] : `${fallbackPrefix}-${dateStamp}-`;
   const width = existingPattern ? existingPattern[2].length : 3;
   const matcher = new RegExp(`^${escapeRegExp(prefix)}(\\d+)$`);

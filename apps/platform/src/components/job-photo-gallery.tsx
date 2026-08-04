@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { Camera, ImageOff } from "lucide-react";
 import type { JobPhotoType, SignedJobPhoto } from "@/lib/types/database";
 
@@ -73,10 +74,10 @@ function PhotoGroup({ photos, title }: { photos: SignedJobPhoto[]; title: string
 }
 
 function formatCreatedAt(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

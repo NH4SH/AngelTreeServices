@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, RotateCcw, Send, XCircle } from "lucide-react";
@@ -64,7 +65,7 @@ export function MarkJobCompleteAction({
   const [state, formAction, pending] = useReliableActionState(updateJobStatus, initialState);
 
   if (["completed", "completed_pending_review", "ready_to_invoice", "invoiced", "paid"].includes(status)) {
-    return <p className="job-completion-date"><CheckCircle2 aria-hidden="true" size={18} />Completed {completedAt ? new Date(completedAt).toLocaleString() : "recently"}</p>;
+    return <p className="job-completion-date"><CheckCircle2 aria-hidden="true" size={18} />Completed {completedAt ? formatBusinessDateTime(new Date(completedAt)) : "recently"}</p>;
   }
 
   if (!["scheduled", "in_progress"].includes(status)) {

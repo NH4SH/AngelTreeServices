@@ -9,6 +9,7 @@ import {
   type PortalTokenActionState,
 } from "@/lib/actions/portal-tokens";
 import type { QuotePortalTokenSummary } from "@/lib/data/portal-quote";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
 const initialState: PortalTokenActionState = {
@@ -237,9 +238,5 @@ function getTokenStatus(tokens: QuotePortalTokenSummary[]) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "medium" });
 }

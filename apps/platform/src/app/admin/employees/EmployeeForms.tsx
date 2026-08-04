@@ -4,6 +4,7 @@ import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { Award, FileUp, Save, ShieldCheck, Trash2, UserPlus, UsersRound } from "lucide-react";
 import type { CredentialType, EmployeeDetail, EmployeeOnboardingItem } from "@/lib/types/database";
+import { formatBusinessDate } from "@/lib/business-time";
 import { addEmployeeCredential, createEmployee, createSafetyMeeting, createTrainingSession, deactivateQualificationRequirement, saveQualificationRequirement, updateEmployee, updateEmployeeRoles, updateOnboardingItem, uploadEmployeeDocument, type EmployeeActionState } from "./actions";
 
 const initialState: EmployeeActionState = { status: "idle", message: "" };
@@ -41,4 +42,4 @@ export function QualificationRequirementsForm({ credentialTypes, requirements }:
 function EmployeePicker({ employees, name, title: heading }: { employees: { id: string; preferred_name: string | null; legal_name: string | null }[]; name: string; title: string }) { return <fieldset className="employee-picker"><legend>{heading}</legend>{employees.map((employee) => <label className="checkbox-field" key={employee.id}><input name={name} type="checkbox" value={employee.id} />{employee.preferred_name || employee.legal_name || "Employee"}</label>)}</fieldset>; }
 function Message({ state }: { state: EmployeeActionState }) { return state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null; }
 function title(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)); }
+function formatDate(value: string) { return formatBusinessDate(value, { dateStyle: "medium" }); }

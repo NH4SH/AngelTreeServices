@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
+import { formatBusinessDate } from "@/lib/business-time";
 
 const companyName = "Angel Tree Services";
 
@@ -161,7 +162,7 @@ function formatAppointmentWindow(startsAt: string, endsAt: string | null, timezo
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(new Date(value));
+  return formatBusinessDate(value, { dateStyle: "long" });
 }
 
 function money(cents: number) {

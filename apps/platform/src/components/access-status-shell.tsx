@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Clock3, HardHat, Leaf, LogOut, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { signOut } from "@/app/login/actions";
@@ -160,11 +161,11 @@ function formatRequestedRole(value?: string | null) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

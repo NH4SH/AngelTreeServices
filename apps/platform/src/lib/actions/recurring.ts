@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getBusinessDateKey, parseBusinessDateTime } from "@/lib/business-time";
 import {
   getUserRoles,
   hasAllowedRole,
@@ -906,7 +907,7 @@ export async function createAuthorizedRecurringWorkOrder(
     return failure(
       "This plan requires a quote or staff review before work can be created.",
     );
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBusinessDateKey(new Date());
   if (
     (plan.authorization_start_date && plan.authorization_start_date > today) ||
     (plan.authorization_end_date && plan.authorization_end_date < today)
@@ -1073,8 +1074,7 @@ function dateOnly(value: FormDataEntryValue | null) {
 function dateTime(value: FormDataEntryValue | null) {
   const raw = String(value ?? "");
   if (!raw) return null;
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  return parseBusinessDateTime(raw)?.toISOString() ?? null;
 }
 function integer(value: FormDataEntryValue | null) {
   const parsed = Number.parseInt(String(value ?? ""), 10);

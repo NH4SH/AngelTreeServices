@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBusinessDayRange } from "@/lib/business-time";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { AppointmentStatus, AppointmentType, AppointmentWithRelations, AssignableUser, DataResult } from "@/lib/types/database";
 
@@ -76,8 +77,7 @@ export async function getAssignableUsers(): Promise<DataResult<AssignableUser[]>
 }
 
 export async function getFollowUpsDue() {
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const todayEnd = getBusinessDayRange()!.endExclusive;
   const supabase = await createClient();
 
   if (!supabase) {

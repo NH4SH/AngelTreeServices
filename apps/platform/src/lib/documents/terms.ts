@@ -1,3 +1,5 @@
+import { formatBusinessDate } from "@/lib/business-time";
+
 export type DocumentTerm = {
   label: string;
   text: string;
@@ -96,9 +98,5 @@ export function getQuoteTerms(expiresAt?: string | null): readonly DocumentTerm[
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDate(value, { dateStyle: "long" });
 }

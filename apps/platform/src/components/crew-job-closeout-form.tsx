@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -399,7 +400,7 @@ function SubmittedCloseout({ bundle, hasActiveJobTimer }: { bundle: JobCloseoutB
         <div><h2>{statusLabel}</h2><p>The submitted closeout is locked to protect the job record.</p></div>
       </div>
       <dl className="crew-detail-list">
-        <div><dt>Submitted</dt><dd>{bundle.closeout.submitted_at ? new Date(bundle.closeout.submitted_at).toLocaleString() : "Not submitted"}</dd></div>
+        <div><dt>Submitted</dt><dd>{bundle.closeout.submitted_at ? formatBusinessDateTime(new Date(bundle.closeout.submitted_at)) : "Not submitted"}</dd></div>
         <div><dt>Submission revision</dt><dd>{bundle.submissions[0]?.revision_number ?? 0}</dd></div>
       </dl>
       {hasActiveJobTimer ? (

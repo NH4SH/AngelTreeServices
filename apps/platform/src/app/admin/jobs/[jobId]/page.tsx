@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -292,7 +293,7 @@ function formatLocation(location: { street: string; city: string; state: string;
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return formatBusinessDateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" });
 }
 
 function formatCurrency(cents: number) {

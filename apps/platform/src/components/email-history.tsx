@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { MailCheck, MailWarning } from "lucide-react";
 import type { EmailEvent } from "@/lib/types/database";
 
@@ -47,10 +48,10 @@ function formatEmailType(value: EmailEvent["email_type"]) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

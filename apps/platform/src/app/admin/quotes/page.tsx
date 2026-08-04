@@ -9,6 +9,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddQuoteForm } from "./QuoteForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { duplicateQuote } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions, getQuoteLeadSource } from "@/lib/data/jobs";
@@ -322,7 +323,7 @@ function formatLocation(location?: QuoteWithRelations["service_locations"]) {
 }
 
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : "not set";
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "not set";
 }
 
 function formatCurrency(cents: number) {

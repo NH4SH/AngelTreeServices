@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { CalendarDays, Camera, CheckCircle2, Clock3, Forklift, MapPin, TimerReset, Truck } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -133,13 +134,13 @@ function formatDateTime(value: string | null) {
     return "No time set";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatLocation(job: CrewJob) {

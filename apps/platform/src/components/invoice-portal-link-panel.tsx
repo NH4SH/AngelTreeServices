@@ -10,6 +10,7 @@ import {
   type InvoicePortalTokenActionState,
 } from "@/lib/actions/invoice-portal-tokens";
 import type { InvoicePortalTokenSummary } from "@/lib/data/portal-invoice";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { usePortalLinkAction } from "@/components/use-portal-link-action";
 
 const initialState: InvoicePortalTokenActionState = {
@@ -202,9 +203,5 @@ function getTokenState(token: InvoicePortalTokenSummary) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "medium" });
 }

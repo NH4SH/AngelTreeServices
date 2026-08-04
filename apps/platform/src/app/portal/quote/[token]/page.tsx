@@ -3,6 +3,7 @@ import { QuoteDocument } from "@/components/documents/quote-document";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { buildPortalWorkSummary, formatCustomerQuoteStatus } from "@/lib/portal/quote-presentation";
 import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
@@ -141,11 +142,7 @@ function formatCurrency(cents: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "long" });
 }
 
 function formatLocation(quote: Awaited<ReturnType<typeof getQuoteByPortalToken>>["quote"]) {

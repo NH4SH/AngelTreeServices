@@ -9,6 +9,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { AddInvoiceForm } from "./InvoiceForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getServiceLocations } from "@/lib/data/customers";
@@ -257,7 +258,7 @@ function formatServiceType(serviceType?: string | null) {
 }
 
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : "not set";
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "not set";
 }
 
 function formatCurrency(cents: number) {

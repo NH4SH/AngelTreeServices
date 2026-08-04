@@ -1,3 +1,4 @@
+import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, Archive, CalendarDays, ClipboardCheck, FileText, Gauge, Pencil, ShieldCheck, Truck, Wrench } from "lucide-react";
 import { AssignmentForm, EquipmentDocumentForm, EquipmentStatusForm, MaintenanceScheduleForm, ReadingForm } from "../EquipmentForms";
@@ -47,8 +48,8 @@ function PanelTitle({ icon, title: value }: { icon: React.ReactNode; title: stri
 function Row({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
 function Metric({ label, value }: { label: string; value: string }) { return <article><small>{label}</small><strong>{value}</strong></article>; }
 function title(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)); }
-function formatDateTime(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+function formatDate(value: string) { return formatBusinessDate(value, { dateStyle: "medium" }); }
+function formatDateTime(value: string) { return formatBusinessDateTime(new Date(value), { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }); }
 function byNewest<K extends string>(key: K) { return (left: Record<K, string>, right: Record<K, string>) => new Date(right[key]).getTime() - new Date(left[key]).getTime(); }
 function dueLabel(schedule: { next_due_at: string | null; next_due_mileage: number | null; next_due_hours: number | null }, mileage: number | null, hours: number | null) { const details = [schedule.next_due_at && `Due ${formatDate(schedule.next_due_at)}`, schedule.next_due_mileage != null && `${schedule.next_due_mileage.toLocaleString()} mi`, schedule.next_due_hours != null && `${schedule.next_due_hours.toLocaleString()} hr`].filter(Boolean); const overdue = (schedule.next_due_at && new Date(schedule.next_due_at) <= new Date()) || (schedule.next_due_mileage != null && mileage != null && mileage >= schedule.next_due_mileage) || (schedule.next_due_hours != null && hours != null && hours >= schedule.next_due_hours); return `${overdue ? "Due now · " : ""}${details.join(" · ") || "Interval based"}`; }
 function DataWarning({ message }: { message: string }) { return <section className="data-warning"><strong>Database notice</strong><p>{message}</p></section>; }

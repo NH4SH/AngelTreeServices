@@ -2,6 +2,7 @@ import { DocumentMeta, DocumentShell } from "@/components/documents/document-she
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { invoiceTerms } from "@/lib/documents/terms";
 import { getEmailSetupState } from "@/lib/email/config";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import type { InvoiceDetail } from "@/lib/types/database";
 
@@ -147,11 +148,7 @@ function formatQuantity(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "long" });
 }
 
 function formatCurrency(cents: number) {

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
 import type { JobDetail } from "@/lib/types/database";
 
@@ -73,11 +74,11 @@ function formatLocation(job: JobDetail) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "long",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

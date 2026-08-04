@@ -1,6 +1,7 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { getBusinessDateKey } from "@/lib/business-time";
 import { useEffect, useState } from "react";
 import { ArchiveRestore, Factory, MapPinned, PackageCheck, ReceiptText, RotateCcw, Save, Truck } from "lucide-react";
 import {
@@ -101,7 +102,7 @@ export function PurchaseForm({ locations, materials, organizations }: { location
   return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-two"><MaterialSelect materials={materials} /><LocationSelect label="Received at" locations={locations} name="received_location_id" required /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Unit cost<input min="0" name="unit_cost" required step="0.01" type="number" /></label></div>
-    <div className="form-grid-three"><label>Purchase date<input defaultValue={new Date().toISOString().slice(0, 10)} name="purchase_date" type="date" /></label><label>Taxes / fees<input min="0" name="taxes_fees" step="0.01" type="number" /></label><label>Delivery charge<input min="0" name="delivery_charge" step="0.01" type="number" /></label></div>
+    <div className="form-grid-three"><label>Purchase date<input defaultValue={getBusinessDateKey(new Date())} name="purchase_date" type="date" /></label><label>Taxes / fees<input min="0" name="taxes_fees" step="0.01" type="number" /></label><label>Delivery charge<input min="0" name="delivery_charge" step="0.01" type="number" /></label></div>
     <label>Vendor<select name="vendor_organization_id"><option value="">Use typed vendor</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label>
     <div className="form-grid-two"><label>Vendor name<input name="vendor_name" /></label><label>PO / reference<input name="purchase_order_reference" /></label></div>
     <label>Private receipt<input accept="application/pdf,image/jpeg,image/png,image/webp" name="receipt" type="file" /></label><label>Notes<textarea name="notes" rows={2} /></label>

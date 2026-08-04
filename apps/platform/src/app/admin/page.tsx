@@ -1,3 +1,4 @@
+import { formatBusinessDateTime, getBusinessDateKey } from "@/lib/business-time";
 import {
   AlertTriangle,
   CalendarDays,
@@ -466,27 +467,27 @@ function WorkflowLane({
 }
 
 function formatDashboardDate() {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(), {
     weekday: "long",
     month: "short",
     day: "numeric",
-  }).format(new Date());
+  });
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(value, {
     month: "short",
     day: "numeric",
-  }).format(new Date(value));
+  });
 }
 
 function formatCurrency(cents: number) {
@@ -506,9 +507,7 @@ async function loadOptionalDashboardModule<T>(label: string, loader: Promise<T>,
 }
 
 function formatFollowUpMeta(appointment: AppointmentWithRelations) {
-  const dueAt = new Date(appointment.starts_at);
-  const today = new Date();
-  const timing = dueAt.toDateString() === today.toDateString() ? "Due today" : "Overdue";
+  const timing = getBusinessDateKey(appointment.starts_at) === getBusinessDateKey(new Date()) ? "Due today" : "Overdue";
   const detail = appointment.calendar_notes ?? formatDate(appointment.starts_at);
 
   return `${timing}: ${detail}`;

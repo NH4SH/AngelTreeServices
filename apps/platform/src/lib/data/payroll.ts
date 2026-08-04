@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatBusinessDate, getBusinessDateKey, getBusinessDayRange } from "@/lib/business-time";
 import {
   getLatestTimeEntryReviewStatus,
   getTimeEntryHours,
@@ -282,8 +283,7 @@ function buildPayrollSummary(entries: TimeEntryWithRelations[]): PayrollReviewSu
 
 function buildPayrollWarnings(entries: TimeEntryWithRelations[]) {
   const warnings: PayrollWarning[] = [];
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getBusinessDayRange()!.start;
   const byUser = new Map<string, TimeEntryWithRelations[]>();
 
   entries.forEach((entry) => {
@@ -383,15 +383,15 @@ function createEntryTypeTotals() {
 }
 
 function formatCsvDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDate(value, {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  });
 }
 
 function formatFileSafeDate(value: string) {
-  return value.slice(0, 10);
+  return getBusinessDateKey(value);
 }
 
 import { serializeCsv } from "@/lib/security/csv";

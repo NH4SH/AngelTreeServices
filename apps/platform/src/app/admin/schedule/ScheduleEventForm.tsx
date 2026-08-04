@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -329,7 +330,7 @@ function LeadEstimateDrawer({
       <UserRound aria-hidden="true" size={20} />
       <div>
         <strong>{lead.contactName}</strong>
-        <span>Received {new Date(lead.submittedAt).toLocaleString()} · Lead {lead.leadJobId.slice(0, 8).toUpperCase()}</span>
+        <span>Received {formatBusinessDateTime(new Date(lead.submittedAt))} · Lead {lead.leadJobId.slice(0, 8).toUpperCase()}</span>
       </div>
       <Link href={`/admin/jobs/${lead.leadJobId}`}>Open lead</Link>
     </section>

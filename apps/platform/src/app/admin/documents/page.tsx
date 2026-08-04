@@ -5,6 +5,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import type { PlatformDocument } from "@/lib/types/database";
 import { archivePlatformDocument } from "./actions";
 import { DocumentUploadForm, type DocumentLinkOptions } from "./DocumentUploadForm";
@@ -177,5 +178,5 @@ function title(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "medium" });
 }

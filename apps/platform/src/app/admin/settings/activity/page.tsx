@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Activity, Bell, ChevronDown, History, SlidersHorizontal } from "lucide-react";
 import { ListPagination } from "@/components/list-pagination";
@@ -79,7 +80,7 @@ function ActivityDetails({ changes, metadata }: { changes: Record<string, unknow
 
 function positivePage(value?: string) { const parsed = Number.parseInt(value ?? "1", 10); return Number.isFinite(parsed) && parsed > 0 ? parsed : 1; }
 function humanize(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function formatDateTime(value: string) { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }
+function formatDateTime(value: string) { return formatBusinessDateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" }); }
 function actorTypeLabel(value: string) { return value === "portal" ? "Customer portal" : humanize(value || "system"); }
 function initials(value: string) { return value.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "AT"; }
 function displayValue(value: unknown) { if (value === null || value === undefined || value === "") return "Not set"; if (typeof value === "object") return JSON.stringify(value); return String(value); }

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { useMemo, useState } from "react";
 import { CalendarClock, MailCheck, MailPlus, PauseCircle, Send } from "lucide-react";
@@ -216,8 +217,8 @@ function formatStatus(value: CustomerCommunication["status"]) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }

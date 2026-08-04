@@ -1,3 +1,4 @@
+import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import {
   Building2,
@@ -247,15 +248,13 @@ export default async function RecurringPlanDetailPage({
   );
 }
 function date(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(
-    new Date(`${value}T12:00:00`),
-  );
+  return formatBusinessDate(value, { dateStyle: "long" });
 }
 function dateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }
 function money(cents: number) {
   return new Intl.NumberFormat("en-US", {

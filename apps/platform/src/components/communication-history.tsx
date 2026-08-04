@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { CalendarClock, CheckCircle2, CircleSlash2, MailWarning } from "lucide-react";
 import type { CustomerCommunication } from "@/lib/types/database";
 
@@ -29,5 +30,5 @@ function statusIcon(status: CustomerCommunication["status"]) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return formatBusinessDateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" });
 }

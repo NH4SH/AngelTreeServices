@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { getBusinessDateKey } from "@/lib/business-time";
 import type { CrewChangeOrderScopeItem, CrewJob, DataResult } from "@/lib/types/database";
 
 const crewJobSelect = `
@@ -104,13 +105,13 @@ export async function getCrewDashboardSummaries(access?: CrewAccessContext) {
     };
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBusinessDateKey(new Date());
 
   return {
     lanes: {
-      todaysJobs: jobs.data.filter((job) => job.scheduled_start_at?.startsWith(today)),
+      todaysJobs: jobs.data.filter((job) => getBusinessDateKey(job.scheduled_start_at ?? "") === today),
       upcomingJobs: jobs.data.filter(
-        (job) => job.scheduled_start_at && job.scheduled_start_at.slice(0, 10) > today,
+        (job) => job.scheduled_start_at && getBusinessDateKey(job.scheduled_start_at) > today,
       ),
       needsPhotos: jobs.data.filter((job) => {
         const photoTypes = new Set((job.job_photos ?? []).map((photo) => photo.photo_type));

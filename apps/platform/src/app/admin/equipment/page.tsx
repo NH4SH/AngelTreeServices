@@ -6,6 +6,7 @@ import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEquipmentAssets, getEquipmentDashboardSummary, getEquipmentFormOptions } from "@/lib/data/equipment";
+import { formatBusinessDate } from "@/lib/business-time";
 import type { EquipmentAsset } from "@/lib/types/database";
 
 type EquipmentPageProps = { searchParams: Promise<{ category?: string; status?: string; crew?: string; maintenance?: string; q?: string; new?: string; archived?: string }> };
@@ -53,5 +54,5 @@ function EquipmentCard({ asset }: { asset: EquipmentAsset }) {
 function SummaryCard({ href, icon, label, tone, value }: { href: string; icon: React.ReactNode; label: string; tone: string; value: number }) { return <Link className={`equipment-summary-card ${tone}`} href={href}><span>{icon}</span><strong>{value}</strong><small>{label}</small></Link>; }
 function matches(asset: EquipmentAsset, query: { category?: string; status?: string; crew?: string; maintenance?: string; q?: string }, dueAssetIds: Set<string>) { const q = query.q?.trim().toLowerCase(); const crewMatches = !query.crew || (query.crew === "unassigned" ? !asset.assigned_employee_id : asset.assigned_employee_id === query.crew); return (!query.category || asset.category === query.category) && (!query.status || asset.status === query.status) && crewMatches && (!query.maintenance || (query.maintenance === "due" && dueAssetIds.has(asset.id))) && (!q || [asset.name, asset.asset_number, asset.manufacturer, asset.model, asset.serial_number, asset.vin, asset.license_plate].some((value) => value?.toLowerCase().includes(q))); }
 function title(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)); }
+function formatDate(value: string) { return formatBusinessDate(value, { dateStyle: "medium" }); }
 function DataWarning({ message }: { message: string }) { return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>; }

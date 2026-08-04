@@ -1,3 +1,4 @@
+import { formatBusinessDateTime, getBusinessDayRange } from "@/lib/business-time";
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
@@ -138,8 +139,7 @@ export async function getCommunicationDashboardSummary() {
   if (!supabase) return { data: empty, error: "Supabase is not configured." };
 
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setHours(24, 0, 0, 0);
+  const tomorrow = getBusinessDayRange(now)!.endExclusive;
 
   const [dueToday, scheduled, failed, quotes, invoices] = await Promise.all([
     supabase
@@ -326,5 +326,5 @@ function defaultNextAction(status: JobStatus) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return formatBusinessDateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" });
 }

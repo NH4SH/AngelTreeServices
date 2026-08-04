@@ -12,6 +12,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getUnpaidInvoices } from "@/lib/data/invoices";
 import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
@@ -181,5 +182,5 @@ function relativeDue(value: string) {
   if (days === 1) return "Tomorrow";
   return shortDate(value);
 }
-function shortDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(value)); }
+function shortDate(value: string) { return formatBusinessDateTime(value, { month: "short", day: "numeric" }); }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100); }

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import type { Appointment, JobDetail, QuoteDetail } from "@/lib/types/database";
 import type { EmailDraft } from "@/lib/documents/email-drafts";
 
@@ -86,12 +87,12 @@ function scheduledMessage(job: JobDetail, appointment: Appointment, label: strin
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

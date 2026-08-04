@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { AlertTriangle, CalendarPlus, Gauge, Save, ShieldCheck, Truck, Wrench } from "lucide-react";
@@ -128,4 +129,4 @@ export function EquipmentDocumentForm({ assetId }: { assetId: string }) {
 
 function FormMessage({ state }: { state: EquipmentActionState }) { return state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null; }
 function label(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+function formatDate(value: string) { return formatBusinessDateTime(new Date(value), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }

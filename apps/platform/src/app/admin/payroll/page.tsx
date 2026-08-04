@@ -1,3 +1,4 @@
+import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -316,11 +317,11 @@ function DataWarning({ message }: { message: string }) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(value));
+  });
 }
 
 function formatRange(clockInAt: string, clockOutAt: string | null) {
@@ -340,8 +341,8 @@ function formatReviewStatus(status: ReturnType<typeof getLatestTimeEntryReviewSt
 }
 
 function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  });
 }

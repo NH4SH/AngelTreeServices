@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, Boxes, Factory, MapPinned, PackageCheck, Plus, ReceiptText, Scale, Truck } from "lucide-react";
 import {
@@ -83,5 +84,5 @@ function jobName(data: MaterialWorkspaceData, id: string | null) { const job = d
 function organizationName(data: MaterialWorkspaceData, id: string | null) { return data.organizations.find((item) => item.id === id)?.name ?? null; }
 function customerName(data: MaterialWorkspaceData, id: string | null) { return data.customers.find((item) => item.id === id)?.display_name ?? "customer"; }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents) / 100); }
-function formatDate(value: string) { return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+function formatDate(value: string) { return formatBusinessDateTime(new Date(value), { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }); }
 function tabIcon(view: string) { const Icon = view === "catalog" ? Boxes : view === "movements" || view === "disposal" || view === "deliveries" ? Truck : view === "production" ? Factory : view === "purchases" ? ReceiptText : view === "reservations" ? PackageCheck : Scale; return <Icon size={17} />; }

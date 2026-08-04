@@ -8,6 +8,7 @@ import { getReportData, getReportingSettings, relation, successfulPaymentTotal, 
 import { formatRange, median, metricDefinitions, percentChange, reportViews, resolveReportFilters, safeRate, type ReportFilters, type ReportView } from "@/lib/reporting/definitions";
 import { formatMaterialQuantity, materialLabel } from "@/lib/materials/definitions";
 import { contractingPartyName as displayContractingPartyName } from "@/lib/contracting-parties";
+import { formatBusinessDateTime } from "@/lib/business-time";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -232,7 +233,7 @@ function groupValue<T>(rows: T[], label: (row: T) => string, value: ((row: T) =>
 function monthlySeries<T>(rows: T[], dateKey: keyof T, valueKey: keyof T) { return groupValue(rows, (row) => String(row[dateKey]).slice(0, 7), valueKey).sort((a, b) => a.label.localeCompare(b.label)); }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100); }
 function formatPercent(value: number | null) { return value == null ? "Not available" : `${value.toFixed(1)}%`; }
-function formatDate(value: string | null) { return value ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)) : "Not set"; }
+function formatDate(value: string | null) { return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "Not set"; }
 function title(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function ageDays(value: string) { return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000)); }
 function averageAge(records: { created_at: string }[]) { return records.length ? `${(records.reduce((total, record) => total + ageDays(record.created_at), 0) / records.length).toFixed(1)}d` : "N/A"; }

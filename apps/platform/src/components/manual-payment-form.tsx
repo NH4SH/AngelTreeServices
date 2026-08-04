@@ -3,6 +3,7 @@
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CircleDollarSign } from "lucide-react";
 import { recordManualPayment, type ManualPaymentActionState } from "@/lib/actions/payments";
+import { getBusinessDateKey } from "@/lib/business-time";
 
 const initialState: ManualPaymentActionState = { status: "idle", message: "" };
 
@@ -19,7 +20,7 @@ export function ManualPaymentForm({ balanceDueCents, invoiceId }: { balanceDueCe
         </label>
         <label>
           Payment date
-          <input defaultValue={new Date().toISOString().slice(0, 10)} name="payment_date" required type="date" />
+          <input defaultValue={getBusinessDateKey(new Date())} name="payment_date" required type="date" />
         </label>
       </div>
       <div className="form-grid-two">

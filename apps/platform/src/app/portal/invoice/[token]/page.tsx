@@ -4,6 +4,7 @@ import { PrintButton } from "@/components/documents/print-button";
 import { InvoicePortalPaymentChooser } from "@/components/invoice-portal-payment-button";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
@@ -197,11 +198,7 @@ function formatDate(value?: string | null) {
     return "Contact us for due date";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+  return formatBusinessDateTime(value, { dateStyle: "long" });
 }
 
 function formatCurrency(cents: number) {

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CircleDollarSign, ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
@@ -396,7 +397,7 @@ function formatJobLabel(serviceType?: string | null) {
 }
 
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : "Not set";
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "Not set";
 }
 
 function formatCurrency(cents: number) {
@@ -424,8 +425,8 @@ function formatPaymentPreference(value: string | null) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }

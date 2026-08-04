@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bell, Check, LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import type { AdminNotification } from "@/lib/data/notifications";
 import {
   getNotificationPopoverLayout,
@@ -169,5 +170,5 @@ function relativeTime(value: string) {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
-  return new Date(value).toLocaleDateString();
+  return formatBusinessDateTime(value, { dateStyle: "medium" });
 }

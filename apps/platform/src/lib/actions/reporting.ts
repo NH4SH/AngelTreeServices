@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getBusinessDateKey } from "@/lib/business-time";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
@@ -66,7 +67,7 @@ export async function addJobCost(_state: ReportingActionState, formData: FormDat
   const reviewStatus = canApprove && formData.get("approve_now") === "on" ? "approved" : "pending";
   const { error } = await auth.supabase.from("job_cost_entries").insert({
     job_id: jobId, category, description, vendor_name: optional(formData, "vendor_name", 200), amount_cents: amountCents,
-    incurred_on: date(formData, "incurred_on") ?? new Date().toISOString().slice(0, 10), notes: optional(formData, "notes", 2000), receipt_storage_path: receiptStoragePath,
+    incurred_on: date(formData, "incurred_on") ?? getBusinessDateKey(new Date()), notes: optional(formData, "notes", 2000), receipt_storage_path: receiptStoragePath,
     review_status: reviewStatus, submitted_by_user_id: auth.userId, reviewed_by_user_id: reviewStatus === "approved" ? auth.userId : null, reviewed_at: reviewStatus === "approved" ? new Date().toISOString() : null,
   });
   if (error) { if (receiptStoragePath) await auth.supabase.storage.from("job-cost-receipts").remove([receiptStoragePath]); return fail(error.message); }

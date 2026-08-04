@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRoles, getUserRoles } from "@/lib/auth/roles";
 import {
   canReviewTimeClock,
@@ -365,8 +366,7 @@ function parseDateTime(value: FormDataEntryValue | null, optional = false) {
     return null;
   }
 
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseBusinessDateTime(text);
 }
 
 function getBreakMinutes(value: FormDataEntryValue | null) {

@@ -3,6 +3,7 @@ import { AlertTriangle, Camera, CheckCircle2, ClipboardList, FileCheck2, MapPin 
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { getCloseoutQueue } from "@/lib/data/job-closeouts";
 import type { CloseoutQueueItem } from "@/lib/data/job-closeouts";
 
@@ -80,7 +81,7 @@ function QueueLane({ icon, items, title }: { icon: React.ReactNode; items: Close
                 <span className={`closeout-status-chip status-${item.status}`}>{formatCloseoutStatus(item.status)}</span>
               </div>
               <dl className="closeout-queue-meta">
-                <div><dt>Completed</dt><dd>{job?.completed_at ? new Date(job.completed_at).toLocaleDateString() : "Not set"}</dd></div>
+                <div><dt>Completed</dt><dd>{job?.completed_at ? formatBusinessDateTime(job.completed_at, { dateStyle: "medium" }) : "Not set"}</dd></div>
                 <div><dt>Assigned crew</dt><dd>{item.assigned_crew_label ?? "Unassigned"}</dd></div>
                 <div><dt>Photos</dt><dd><Camera aria-hidden="true" size={15} />{photoCount}</dd></div>
                 <div><dt>Invoice</dt><dd>{invoice ? invoice.status.replaceAll("_", " ") : "Not generated"}</dd></div>

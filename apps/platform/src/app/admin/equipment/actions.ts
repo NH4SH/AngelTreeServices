@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { createClient } from "@/lib/supabase/server";
@@ -397,7 +398,7 @@ function optional(formData: FormData, key: string, max: number) { return text(fo
 function number(formData: FormData, key: string) { const raw = text(formData, key, 40); if (!raw) return null; const value = Number(raw); return Number.isFinite(value) ? value : null; }
 function integer(formData: FormData, key: string) { const value = number(formData, key); return value === null ? null : Math.trunc(value); }
 function date(formData: FormData, key: string) { const value = text(formData, key, 40); return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null; }
-function dateTime(formData: FormData, key: string) { const value = text(formData, key, 60); if (!value) return null; const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString(); }
+function dateTime(formData: FormData, key: string) { const value = text(formData, key, 60); if (!value) return null; return parseBusinessDateTime(value)?.toISOString() ?? null; }
 function moneyCents(formData: FormData, key: string) { const value = number(formData, key); return value === null ? null : Math.round(value * 100); }
 function escapeFilter(value: string) { return value.replace(/[,%()]/g, ""); }
 function safeFileName(value: string) { return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "document"; }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
+import { getBusinessDateKey, parseBusinessDateTime } from "@/lib/business-time";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import {
   crewInventoryTransactionTypes,
@@ -315,7 +316,7 @@ export async function recordMaterialPurchase(_state: MaterialActionState, formDa
   const { data: purchase, error: purchaseError } = await context.supabase.from("material_purchases").insert({
     vendor_organization_id: optional(formData, "vendor_organization_id", 80),
     vendor_name: optional(formData, "vendor_name", 160),
-    purchase_date: text(formData, "purchase_date", 20) || new Date().toISOString().slice(0, 10),
+    purchase_date: text(formData, "purchase_date", 20) || getBusinessDateKey(new Date()),
     purchase_order_reference: optional(formData, "purchase_order_reference", 120),
     taxes_fees_cents: taxes, delivery_charge_cents: deliveryCharge, total_cents: total,
     receipt_storage_path: receipt.path, received_location_id: locationId,
@@ -381,7 +382,7 @@ export async function recordDisposal(_state: MaterialActionState, formData: Form
   if (fee !== null && fee > 0) {
     const { data: cost } = await context.supabase.from("job_cost_entries").insert({
       job_id: jobId, category: "disposal", description: `Disposal fee - ${destinationName}`,
-      amount_cents: fee, incurred_on: new Date().toISOString().slice(0, 10), receipt_storage_path: receipt.path,
+      amount_cents: fee, incurred_on: getBusinessDateKey(new Date()), receipt_storage_path: receipt.path,
       review_status: "approved", submitted_by_user_id: context.user.id, reviewed_by_user_id: context.user.id,
       reviewed_at: new Date().toISOString(), notes: optional(formData, "notes", 1000),
     }).select("id").single();
@@ -562,7 +563,7 @@ export async function reviewInventoryTransactionCost(_state: MaterialActionState
     const { data: material } = await context.supabase.from("material_catalog").select("name").eq("id", transaction.material_id).single();
     const { data: jobCost, error: jobCostError } = await context.supabase.from("job_cost_entries").insert({
       job_id: transaction.job_id, category: "materials", description: `${material?.name ?? "Material"} used`,
-      amount_cents: cost.direct_cost_cents, incurred_on: new Date().toISOString().slice(0, 10),
+      amount_cents: cost.direct_cost_cents, incurred_on: getBusinessDateKey(new Date()),
       review_status: "approved", submitted_by_user_id: context.user.id, reviewed_by_user_id: context.user.id,
       reviewed_at: new Date().toISOString(), notes: `Approved inventory transaction ${transactionId}. Historical unit cost snapshot preserved.`,
     }).select("id").single();
@@ -586,7 +587,7 @@ async function recognizeTransactionCost(context: NonNullable<Awaited<ReturnType<
   const directCost = Math.round(Number(quantity) * Number(unitCost));
   const { data: cost } = await context.supabase.from("job_cost_entries").insert({
     job_id: jobId, category: "materials", description: `${materialName} used`, amount_cents: directCost,
-    incurred_on: new Date().toISOString().slice(0, 10), review_status: "approved", submitted_by_user_id: context.user.id,
+    incurred_on: getBusinessDateKey(new Date()), review_status: "approved", submitted_by_user_id: context.user.id,
     reviewed_by_user_id: context.user.id, reviewed_at: new Date().toISOString(), notes: `Inventory transaction ${transactionId}`,
   }).select("id").single();
   await context.supabase.from("inventory_transaction_costs").upsert({
@@ -634,7 +635,7 @@ function text(formData: FormData, key: string, max: number) { return String(form
 function optional(formData: FormData, key: string, max: number) { return text(formData, key, max) || null; }
 function decimal(formData: FormData, key: string) { const raw = text(formData, key, 40); if (!raw) return null; const value = Number(raw); return Number.isFinite(value) ? value : null; }
 function money(formData: FormData, key: string) { const value = decimal(formData, key); return value === null ? null : Math.round(value * 100); }
-function dateTime(formData: FormData, key: string) { const value = text(formData, key, 40); if (!value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date.toISOString(); }
+function dateTime(formData: FormData, key: string) { const value = text(formData, key, 40); if (!value) return null; return parseBusinessDateTime(value)?.toISOString() ?? null; }
 function clean(message: string) { return message.replace(/^.*?: /, "").replace(/\.$/, "") + "."; }
 function ok(message: string): MaterialActionState { return { status: "success", message }; }
 function fail(message: string): MaterialActionState { return { status: "error", message: safeStaffMessage(message) }; }

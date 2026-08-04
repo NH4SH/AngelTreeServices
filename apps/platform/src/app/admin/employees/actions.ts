@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
+import { getBusinessDateKey, parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { createClient } from "@/lib/supabase/server";
@@ -192,7 +193,7 @@ export async function markEmployeeInactive(formData: FormData) {
   const context = await getStaffContext(true); if (!context) return;
   const employeeId = text(formData, "employee_id", 80); const reason = text(formData, "reason", 1000); if (!employeeId || !reason) return;
   const { data: employee } = await context.supabase.from("employee_records").select("auth_user_id").eq("id", employeeId).single(); if (!employee) return;
-  await context.supabase.from("employee_records").update({ employment_status: "inactive", is_active: false, separation_date: new Date().toISOString().slice(0, 10), separation_reason: reason }).eq("id", employeeId);
+  await context.supabase.from("employee_records").update({ employment_status: "inactive", is_active: false, separation_date: getBusinessDateKey(new Date()), separation_reason: reason }).eq("id", employeeId);
   if (employee.auth_user_id) { await context.supabase.from("profiles").update({ status: "disabled" }).eq("id", employee.auth_user_id); await context.supabase.from("time_clock_permissions").update({ is_enabled: false, notes: "Disabled when employee was marked inactive." }).eq("user_id", employee.auth_user_id); }
   await seedSeparationItems(context.supabase, employeeId); await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_marked_inactive", subjectId: employeeId, subjectType: "employee" }); revalidateEmployee(employeeId);
 }
@@ -240,7 +241,7 @@ function revalidateEmployeePages() { revalidatePath("/admin"); revalidatePath("/
 function text(formData: FormData, key: string, max: number) { return String(formData.get(key) ?? "").trim().slice(0, max); }
 function optional(formData: FormData, key: string, max: number) { return text(formData, key, max) || null; }
 function date(formData: FormData, key: string) { const value = text(formData, key, 40); return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null; }
-function dateTime(formData: FormData, key: string) { const value = text(formData, key, 60); if (!value) return null; const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString(); }
+function dateTime(formData: FormData, key: string) { const value = text(formData, key, 60); if (!value) return null; return parseBusinessDateTime(value)?.toISOString() ?? null; }
 function integer(formData: FormData, key: string) { const value = Number(text(formData, key, 20)); return Number.isFinite(value) && value > 0 ? Math.trunc(value) : null; }
 function safeFilter(value: string) { return value.replace(/[,%()]/g, ""); }
 function safeFileName(value: string) { return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "file"; }

@@ -1,3 +1,4 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BriefcaseBusiness, CalendarClock, ClipboardList, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, StickyNote, UsersRound } from "lucide-react";
@@ -283,8 +284,8 @@ function formatCurrency(cents: number) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return formatBusinessDateTime(new Date(value), {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }

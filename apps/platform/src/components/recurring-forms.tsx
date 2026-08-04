@@ -1,5 +1,6 @@
 "use client";
 
+import { toBusinessDateTimeLocal } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -686,7 +687,7 @@ export function RecommendationActions({
         <input
           name="due_at"
           type="hidden"
-          value={new Date().toISOString().slice(0, 16)}
+          value={toBusinessDateTimeLocal(new Date())}
         />
         <button className="secondary-action" disabled={pending} type="submit">
           <ListPlus size={16} />

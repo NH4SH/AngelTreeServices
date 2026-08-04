@@ -9,6 +9,7 @@ import {
   hashPortalToken,
   QUOTE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
+import { getEncryptedPortalToken, type PortalTokenRpcRecord } from "@/lib/portal/token-record";
 
 export const LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR =
   "An existing customer link is still active but was created before link recovery was enabled. Use Regenerate link only if you intend to replace it.";
@@ -17,13 +18,6 @@ export type ActiveQuotePortalToken = {
   id: string;
   expires_at: string | null;
   revoked_at: string | null;
-};
-
-type PortalTokenRecord = {
-  created: boolean;
-  encrypted_token: string | null;
-  expires_at: string | null;
-  id: string;
 };
 
 export async function createOrGetQuotePortalTokenRecord({
@@ -62,12 +56,12 @@ export async function createOrGetQuotePortalTokenRecord({
     return { created: false, error: error?.message ?? "Could not create a secure quote portal link.", expiresAt: "", rawToken: "", tokenId: "" };
   }
 
-  const token = data as PortalTokenRecord;
+  const token = data as PortalTokenRpcRecord;
   if (token.created) {
     return { created: true, error: null, expiresAt: token.expires_at ?? expiresAt, rawToken, tokenId: token.id };
   }
 
-  const recoveredToken = decryptPortalToken(token.encrypted_token);
+  const recoveredToken = decryptPortalToken(getEncryptedPortalToken(token));
   if (!recoveredToken) {
     return {
       created: false,

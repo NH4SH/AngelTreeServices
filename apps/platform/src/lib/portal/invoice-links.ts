@@ -10,19 +10,12 @@ import {
   INVOICE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
 import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
+import { getEncryptedPortalToken, type PortalTokenRpcRecord } from "@/lib/portal/token-record";
 
 export type ActiveInvoicePortalToken = {
   id: string;
-  encrypted_token: string | null;
   expires_at: string | null;
   revoked_at: string | null;
-};
-
-type PortalTokenRecord = {
-  created: boolean;
-  encrypted_token: string | null;
-  expires_at: string | null;
-  id: string;
 };
 
 export async function createOrGetInvoicePortalTokenRecord({
@@ -61,12 +54,12 @@ export async function createOrGetInvoicePortalTokenRecord({
     return { created: false, error: formatInvoicePortalTokenError(error?.message ?? "Could not save the secure invoice link."), expiresAt: "", rawToken: "", tokenId: "" };
   }
 
-  const token = data as PortalTokenRecord;
+  const token = data as PortalTokenRpcRecord;
   if (token.created) {
     return { created: true, error: null, expiresAt: token.expires_at ?? expiresAt, rawToken, tokenId: token.id };
   }
 
-  const recoveredToken = decryptPortalToken(token.encrypted_token);
+  const recoveredToken = decryptPortalToken(getEncryptedPortalToken(token));
   if (!recoveredToken) {
     return {
       created: false,
@@ -144,7 +137,7 @@ export async function getActiveInvoicePortalTokens(
 ): Promise<{ tokens: ActiveInvoicePortalToken[]; error: string | null }> {
   const { data, error } = await supabase
     .from("invoice_portal_tokens")
-    .select("id, encrypted_token, expires_at, revoked_at")
+    .select("id, expires_at, revoked_at")
     .eq("invoice_id", invoiceId)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });

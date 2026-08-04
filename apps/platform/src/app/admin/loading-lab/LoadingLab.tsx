@@ -5,10 +5,10 @@ import { useState } from "react";
 import { ArtisticTreeLoader, type ArtisticTreeVariant } from "./TreeArtwork";
 
 const variants = [
-  { id: "a", name: "Botanical Line Tree", description: "Fine, hand-drawn, and graceful", detail: "A tapered sketch with curved limbs, delicate twigs, and sparse leaves." },
-  { id: "b", name: "Graceful Canopy Tree", description: "Mature, layered, and recognizable", detail: "An open deciduous crown built from irregular overlapping foliage." },
-  { id: "c", name: "Ink / Brush Tree", description: "Expressive, restrained, and artistic", detail: "Brush-weight structure and loose foliage washes form through negative space." },
-  { id: "d", name: "Angel Tree Signature", description: "Grounded, crafted, and distinctive", detail: "Root gestures, strong branching, and a broad crown grow from the center outward." },
+  { id: "a", name: "Living Ink Tree", description: "Botanical, fluid, and quietly expressive", detail: "Tapered ink structure grows into hand-shaped leaves and an airy crown." },
+  { id: "b", name: "Canopy Unfold", description: "Layered, mature, and softly dimensional", detail: "Visible limbs support an irregular canopy revealed outward from the tree's heart." },
+  { id: "c", name: "Angel Tree Signature", description: "Enduring, crafted, and unmistakably grounded", detail: "Roots, a strong tapering trunk, and a balanced crown express skilled tree care." },
+  { id: "d", name: "Golden Ratio Growth", description: "Harmonious, flowing, and naturally composed", detail: "Proportional curves and phyllotactic rhythms create hidden mathematical balance." },
 ] as const satisfies ReadonlyArray<{ id: ArtisticTreeVariant; name: string; description: string; detail: string }>;
 
 type VariantId = (typeof variants)[number]["id"];
@@ -101,7 +101,7 @@ export function LoadingLab() {
               </aside>
               <div>
                 <ArtisticTreeLoader context key={`${variant.id}-context-${replays[variant.id]}`} variant={variant.id} />
-                <strong>Loading operations...</strong>
+                <strong>Preparing your workspace...</strong>
                 <span>{variant.name}</span>
               </div>
             </article>

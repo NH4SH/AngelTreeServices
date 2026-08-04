@@ -2,7 +2,7 @@
 
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
-import { ArtisticTreeLoader, type ArtisticTreeVariant } from "./TreeArtwork";
+import { ArtisticTreeLoader, type ArtisticTreeVariant } from "@/components/TreeArtwork";
 
 const variants = [
   { id: "sparse", name: "Sparse Calligraphy", description: "Minimal, airy, and quietly assured", detail: "Nine hand-shaped leaves punctuate a fine sweeping silhouette with generous negative space." },

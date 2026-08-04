@@ -10323,6 +10323,37 @@ h1 {
   margin: 0;
 }
 
+.email-portal-recovery-notice {
+  align-items: center;
+  background: oklch(.97 .025 82);
+  border: 1px solid oklch(.82 .11 82);
+  border-radius: 8px;
+  color: var(--color-charcoal);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.email-portal-recovery-notice > svg {
+  color: oklch(.5 .12 70);
+}
+
+.email-portal-recovery-notice strong,
+.email-portal-recovery-notice p {
+  display: block;
+}
+
+.email-portal-recovery-notice p {
+  color: var(--color-muted);
+  line-height: 1.5;
+  margin: 3px 0 0;
+}
+
+.email-portal-recovery-notice button {
+  white-space: nowrap;
+}
+
 .email-composer-header-actions {
   align-items: center;
   display: flex;
@@ -11079,6 +11110,16 @@ h1 {
     align-items: stretch;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .email-portal-recovery-notice {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .email-portal-recovery-notice button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .email-composer-header-actions {
@@ -19598,8 +19639,16 @@ body:has(.appointment-overlay) {
   color: var(--color-muted);
 }
 
+.app-loading-tree {
+  align-items: end;
+  display: grid;
+  height: 126px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
 .app-loading-copy {
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .app-loading-copy h1 {

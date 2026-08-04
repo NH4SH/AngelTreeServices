@@ -12,7 +12,6 @@ import {
 
 export type ActiveQuotePortalToken = {
   id: string;
-  encrypted_token: string | null;
   expires_at: string | null;
   revoked_at: string | null;
 };
@@ -135,7 +134,7 @@ export async function createNewQuotePortalTokenRecord({
 export async function getActiveQuotePortalTokens(supabase: SupabaseClient, quoteId: string) {
   const { data, error } = await supabase
     .from("quote_portal_tokens")
-    .select("id, encrypted_token, expires_at, revoked_at")
+    .select("id, expires_at, revoked_at")
     .eq("quote_id", quoteId)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
+import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
@@ -100,6 +101,11 @@ export async function regenerateQuotePortalLink(
 
   if (!user) {
     return { ok: false, status: "error", message: "Sign in before regenerating customer links." };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { ok: false, status: "error", message: "Only internal staff can regenerate customer links." };
   }
 
   const quoteId = getString(formData, "quote_id");

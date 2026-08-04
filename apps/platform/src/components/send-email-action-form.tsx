@@ -1,10 +1,12 @@
 "use client";
 
-import { Expand, FileText, Mail, Maximize2, Monitor, RotateCcw, Send, Smartphone, X } from "lucide-react";
+import { AlertTriangle, Expand, FileText, Mail, Maximize2, Monitor, RefreshCw, RotateCcw, Send, Smartphone, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ChangeEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { usePortalLinkAction } from "@/components/use-portal-link-action";
+import { regenerateQuotePortalLink, type PortalTokenActionState } from "@/lib/actions/portal-tokens";
 import {
   sendInvoiceEmail,
   sendQuoteEmail,
@@ -16,8 +18,15 @@ import {
   type CustomerDocumentEmailDraft,
   type CustomerDocumentEmailEdits,
 } from "@/lib/documents/email-drafts";
+import type { QuoteEmailPortalLinkState } from "@/lib/portal/quote-email-link-state";
 
 const initialState: TransactionalEmailActionState = {
+  status: "idle",
+  message: "",
+};
+
+const initialPortalLinkState: PortalTokenActionState = {
+  ok: false,
   status: "idle",
   message: "",
 };
@@ -35,10 +44,25 @@ export function SendQuoteEmailForm({
   documentHref,
   draft,
   portalUrl,
+  portalLinkState = "none",
   quoteId,
   recipient,
-}: ComposerProps & { quoteId: string }) {
+}: ComposerProps & { portalLinkState?: QuoteEmailPortalLinkState; quoteId: string }) {
   const [state, formAction, pending] = useReliableActionState(sendQuoteEmail, initialState);
+  const regeneration = usePortalLinkAction(regenerateQuotePortalLink, initialPortalLinkState);
+  const resolvedPortalUrl = regeneration.state.portalUrl ?? portalUrl;
+  const replacementRequired = portalLinkState === "legacy_unrecoverable" && !resolvedPortalUrl;
+
+  function regenerateLegacyLink() {
+    if (!window.confirm("Replace this older customer link? The previous URL will stop working, and a new secure link will be used for this email.")) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("quote_id", quoteId);
+    void regeneration.submit(formData);
+  }
+
   return (
     <CustomerDocumentEmailComposer
       disabled={disabled}
@@ -47,7 +71,14 @@ export function SendQuoteEmailForm({
       formAction={formAction}
       hiddenField={<input name="quote_id" type="hidden" value={quoteId} />}
       pending={pending}
-      portalUrl={portalUrl}
+      portalLinkRecovery={{
+        message: regeneration.state.message,
+        onRegenerate: regenerateLegacyLink,
+        pending: regeneration.pending,
+        required: replacementRequired,
+        status: regeneration.state.status,
+      }}
+      portalUrl={resolvedPortalUrl}
       recipient={recipient}
       state={state}
     />
@@ -85,6 +116,7 @@ function CustomerDocumentEmailComposer({
   formAction,
   hiddenField,
   pending,
+  portalLinkRecovery,
   portalUrl,
   recipient,
   state,
@@ -92,6 +124,13 @@ function CustomerDocumentEmailComposer({
   formAction: (payload: FormData) => Promise<void>;
   hiddenField: ReactNode;
   pending: boolean;
+  portalLinkRecovery?: {
+    message: string;
+    onRegenerate: () => void;
+    pending: boolean;
+    required: boolean;
+    status: string;
+  };
   state: TransactionalEmailActionState;
 }) {
   const router = useRouter();
@@ -106,6 +145,7 @@ function CustomerDocumentEmailComposer({
   const formId = useId();
   const previewDraft = { ...draft, ...edits, portalUrl: portalUrl ?? draft.portalUrl };
   const plainText = buildCustomerDocumentEmailText(previewDraft);
+  const sendBlocked = disabled || pending || Boolean(portalLinkRecovery?.required);
 
   useEffect(() => {
     if (refreshing || !regenerationRequestedRef.current) return;
@@ -159,7 +199,7 @@ function CustomerDocumentEmailComposer({
           <p>Financial details and the secure customer destination stay synced to the CRM record.</p>
         </div>
         <div className="email-composer-header-actions">
-          <button className="primary-action" disabled={disabled || pending} form={formId} type="submit">
+          <button className="primary-action" disabled={sendBlocked} form={formId} type="submit">
             <Send aria-hidden="true" size={17} />
             {pending ? "Sending..." : draft.documentType === "quote" ? "Send proposal" : "Send invoice"}
           </button>
@@ -175,11 +215,35 @@ function CustomerDocumentEmailComposer({
         </div>
       </header>
 
+      {portalLinkRecovery?.required ? (
+        <section className="email-portal-recovery-notice" role="alert">
+          <AlertTriangle aria-hidden="true" size={21} />
+          <div>
+            <strong>Older customer link needs replacement</strong>
+            <p>This proposal has an active link that predates secure link recovery. Replacing it will disable the previous customer URL and create a new secure link for this email.</p>
+            {portalLinkRecovery.message ? (
+              <p className={`form-message ${portalLinkRecovery.status}`} role={portalLinkRecovery.status === "error" ? "alert" : "status"}>
+                {portalLinkRecovery.message}
+              </p>
+            ) : null}
+          </div>
+          <button className="secondary-action" disabled={portalLinkRecovery.pending} onClick={portalLinkRecovery.onRegenerate} type="button">
+            <RefreshCw aria-hidden="true" size={17} />
+            {portalLinkRecovery.pending ? "Regenerating..." : "Regenerate link and continue"}
+          </button>
+        </section>
+      ) : portalLinkRecovery?.message ? (
+        <p className={`form-message ${portalLinkRecovery.status}`} role={portalLinkRecovery.status === "error" ? "alert" : "status"}>
+          {portalLinkRecovery.message}
+        </p>
+      ) : null}
+
       <form
         className="customer-email-composer-form"
         id={formId}
         onSubmit={(event) => {
           event.preventDefault();
+          if (sendBlocked) return;
           void formAction(new FormData(event.currentTarget));
         }}
       >
@@ -190,7 +254,7 @@ function CustomerDocumentEmailComposer({
           <div><span>{draft.summaryLabel}</span><strong>{draft.summaryValue}</strong></div>
           <div><span>{draft.timingLabel}</span><strong>{draft.timingValue}</strong></div>
           <div><span>PDF attachment</span><strong>Available through the secure page</strong></div>
-          <div><span>Secure link</span><strong>{portalUrl ? "Active" : "Created securely when sent"}</strong></div>
+          <div><span>Secure link</span><strong>{portalLinkRecovery?.required ? "Replacement required" : portalUrl ? "Active" : "Created securely when sent"}</strong></div>
         </div>
         <FormMessage state={state} />
         <div className="email-composer-fields">
@@ -240,7 +304,7 @@ function CustomerDocumentEmailComposer({
             <RotateCcw aria-hidden="true" size={17} />
             Reset draft
           </button>
-          <button className="primary-action" disabled={disabled || pending} type="submit">
+          <button className="primary-action" disabled={sendBlocked} type="submit">
             <Send aria-hidden="true" size={17} />
             {pending ? "Sending..." : draft.documentType === "quote" ? "Send proposal" : "Send invoice"}
           </button>

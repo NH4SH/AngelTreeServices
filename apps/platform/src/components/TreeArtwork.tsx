@@ -1,6 +1,7 @@
 import { useId } from "react";
+import type { ArtisticTreeVariant } from "@/lib/loading/tree-variants";
 
-export type ArtisticTreeVariant = "sparse" | "balanced" | "golden";
+export type { ArtisticTreeVariant } from "@/lib/loading/tree-variants";
 
 type LeafShape = "arc" | "lance" | "fold" | "pair";
 type LeafTone = "deep" | "light";

@@ -1,4 +1,5 @@
 import { HardHat, Leaf } from "lucide-react";
+import { RandomTreeLoader } from "@/components/RandomTreeLoader";
 
 type AppLoadingShellProps = {
   title: string;
@@ -28,6 +29,8 @@ export function AppLoadingShell({
             <small>{isCrew ? "Crew workspace" : "Operations workspace"}</small>
           </div>
         </div>
+
+        <RandomTreeLoader />
 
         <div className="app-loading-copy">
           <p className="surface-label">

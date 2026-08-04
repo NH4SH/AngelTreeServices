@@ -34,6 +34,7 @@ import { getAssignableUsers } from "@/lib/data/appointments";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getQuotePortalTokens } from "@/lib/data/portal-quote";
+import { getQuoteEmailPortalLinkState } from "@/lib/portal/quote-email-link-state";
 import { getQuoteApprovalSource, getQuoteDetail } from "@/lib/data/quotes";
 import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
 import { generateQuoteFollowUpMessage } from "@/lib/documents/scheduling-drafts";
@@ -79,6 +80,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
       ?? ""
     : "";
   const activePortalUrl = portalTokens.data.find((token) => token.portalUrl)?.portalUrl ?? undefined;
+  const emailPortalLinkState = getQuoteEmailPortalLinkState(portalTokens.data);
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
@@ -146,6 +148,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
                 documentHref={`/admin/quotes/${detail.data.id}/print`}
                 draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                portalLinkState={emailPortalLinkState}
                 portalUrl={activePortalUrl}
                 quoteId={detail.data.id}
                 recipient={recipient}

@@ -361,6 +361,128 @@ class Validator:
                 route, identity = key.split("\0", 1)
                 self.error(f"{route}: duplicate VideoObject emitted for {identity}")
 
+    def validate_public_entity_graph(self) -> None:
+        homepage = self.pages.get("/")
+        if not homepage:
+            return
+
+        direct_nodes: list[dict] = []
+        for index, document in enumerate(homepage.json_ld, start=1):
+            try:
+                schema = json.loads(document)
+            except Exception:
+                continue
+
+            graph = schema.get("@graph", [schema])
+            if not isinstance(graph, list):
+                self.error(f"/: JSON-LD block {index} must use an object or @graph array")
+                continue
+            direct_nodes.extend(node for node in graph if isinstance(node, dict))
+
+        websites = [node for node in direct_nodes if node.get("@type") == "WebSite"]
+        businesses = [node for node in direct_nodes if node.get("@type") == "LocalBusiness"]
+        if len(websites) != 1:
+            self.error(f"/: expected one WebSite entity, found {len(websites)}")
+        if len(businesses) != 1:
+            self.error(f"/: expected one LocalBusiness entity, found {len(businesses)}")
+            return
+
+        business_id = f"{SITE}/#business"
+        website_id = f"{SITE}/#website"
+        business = businesses[0]
+        expected_business_values = {
+            "@id": business_id,
+            "name": "Angel Tree Services",
+            "legalName": "Angel Tree Services LLC",
+            "url": f"{SITE}/",
+            "telephone": "+1-540-388-8715",
+            "foundingDate": "2015",
+        }
+        for key, expected in expected_business_values.items():
+            if business.get(key) != expected:
+                self.error(f"/: LocalBusiness {key} must be {expected!r}")
+
+        if "address" in business:
+            self.error("/: service-area LocalBusiness must not publish an unverified or private street address")
+
+        expected_areas = {
+            "Fredericksburg, Virginia",
+            "Spotsylvania County, Virginia",
+            "Stafford County, Virginia",
+            "King George County, Virginia",
+            "Caroline County, Virginia",
+            "Orange County, Virginia",
+            "Louisa County, Virginia",
+            "Culpeper County, Virginia",
+        }
+        actual_areas = {
+            area.get("name")
+            for area in business.get("areaServed", [])
+            if isinstance(area, dict) and isinstance(area.get("name"), str)
+        }
+        if actual_areas != expected_areas:
+            self.error("/: LocalBusiness areaServed must contain the eight verified core service areas")
+
+        expected_topics = {
+            "Tree removal",
+            "Tree pruning",
+            "Stump grinding",
+            "Storm-damaged tree work",
+            "Commercial and HOA tree care",
+            "Scientific arboriculture",
+        }
+        if set(business.get("knowsAbout", [])) != expected_topics:
+            self.error("/: LocalBusiness knowsAbout must contain only the approved service topics")
+
+        expected_profiles = {
+            "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
+            "https://www.angi.com/companylist/us/va/fredericksburg/angel-tree-services-llc-reviews-9311977.htm",
+            "https://www.bbb.org/us/va/fredericksburg/profile/tree-service/angel-tree-services-llc-0603-63424263",
+            "https://www.instagram.com/angeltreeservices/",
+        }
+        if set(business.get("sameAs", [])) != expected_profiles:
+            self.error("/: LocalBusiness sameAs must contain the four verified public profiles")
+
+        if websites:
+            website = websites[0]
+            if website.get("@id") != website_id or website.get("url") != f"{SITE}/":
+                self.error("/: WebSite identity must use the canonical homepage and stable @id")
+            if website.get("publisher") != {"@id": business_id}:
+                self.error("/: WebSite publisher must reference the LocalBusiness entity")
+
+        service_areas = {
+            "Fredericksburg",
+            "Spotsylvania",
+            "Stafford",
+            "King George",
+            "Caroline",
+            "Orange",
+            "Louisa",
+            "Culpeper",
+        }
+        for route, page in self.pages.items():
+            if not route.startswith("/services/") or route == "/services/":
+                continue
+            service_nodes: list[dict] = []
+            for document in page.json_ld:
+                try:
+                    schema = json.loads(document)
+                except Exception:
+                    continue
+                graph = schema.get("@graph", [schema])
+                if isinstance(graph, list):
+                    service_nodes.extend(
+                        node for node in graph if isinstance(node, dict) and node.get("@type") == "Service"
+                    )
+            if len(service_nodes) != 1:
+                self.error(f"{route}: expected one Service entity, found {len(service_nodes)}")
+                continue
+            service = service_nodes[0]
+            if service.get("provider") != {"@id": business_id}:
+                self.error(f"{route}: Service provider must reference the homepage LocalBusiness")
+            if set(service.get("areaServed", [])) != service_areas:
+                self.error(f"{route}: Service areaServed must contain the eight verified core areas")
+
     @staticmethod
     def is_external_reference(reference: str) -> bool:
         reference = reference.strip()
@@ -1149,6 +1271,7 @@ class Validator:
         else:
             self.parse_pages()
             self.validate_metadata()
+            self.validate_public_entity_graph()
             self.validate_video_structured_data()
             self.validate_references()
             self.validate_prefill_links()

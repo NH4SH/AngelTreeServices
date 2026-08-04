@@ -38,6 +38,16 @@ GOOGLE_REVIEW_PROOF = "4.9 stars from 120+ Google reviews"
 COMPANY_EXPERIENCE_PROOF = "more than 30 years of tree-industry experience"
 COMPANY_SERVICE_SINCE = "serving the Fredericksburg region since 2015"
 FOUNDER_PRIOR_EXPERIENCE = "more than 20 years in the tree industry before founding Angel Tree Services"
+SERVICE_AREAS = (
+    "Fredericksburg",
+    "Spotsylvania",
+    "Stafford",
+    "King George",
+    "Caroline",
+    "Orange",
+    "Louisa",
+    "Culpeper",
+)
 CHAMBER_MEMBER_URL = (
     "https://members.fredericksburgchamber.org/list/member/"
     "angel-tree-services-llc-29385"
@@ -209,13 +219,7 @@ def schema_for_page(page: dict) -> dict:
                 "description": page["description"],
                 "url": url,
                 "provider": {"@id": f"{SITE}/#business"},
-                "areaServed": [
-                    "Fredericksburg",
-                    "Spotsylvania",
-                    "Stafford",
-                    "King George",
-                    "Caroline",
-                ],
+                "areaServed": list(SERVICE_AREAS),
             }
         )
     else:

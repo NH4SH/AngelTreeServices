@@ -14216,6 +14216,37 @@ h1,
     box-shadow: none;
   }
 
+  body:has(.schedule-print-region) .app-shell {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  body:has(.schedule-print-region) .app-sidebar,
+  body:has(.schedule-print-region) .app-mobilebar,
+  body:has(.schedule-print-region) .role-strip,
+  body:has(.schedule-print-region) .company-calendar-page > :not(.schedule-print-region) {
+    display: none !important;
+  }
+
+  body:has(.schedule-print-region) .app-main,
+  body:has(.schedule-print-region) .company-calendar-page,
+  body:has(.schedule-print-region) .schedule-print-region {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  body:has(.schedule-print-region) .schedule-print-region {
+    position: static;
+  }
+
   .schedule-print-region {
     display: block;
     color: oklch(0.24 0.018 145);
@@ -20629,5 +20660,703 @@ body:has(.appointment-overlay) {
 
   .change-order-total-comparison {
     max-width: none;
+  }
+}
+
+/* Loading animation prototype gallery */
+
+.loading-lab-page {
+  display: grid;
+  gap: 28px;
+}
+
+.loading-lab {
+  --lab-preview-background: oklch(0.997 0.002 154);
+  display: grid;
+  gap: 38px;
+}
+
+.loading-lab.is-soft-green {
+  --lab-preview-background: oklch(0.958 0.018 154);
+}
+
+.loading-lab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-block: 1px solid var(--color-border);
+  padding: 14px 0;
+}
+
+.loading-lab-toolbar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.loading-lab-toolbar strong {
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+}
+
+.loading-lab-toolbar > div:first-child span,
+.loading-lab-section-heading > p {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.loading-lab-toolbar-actions,
+.loading-lab-background-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-lab-background-control {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-subtle);
+  padding: 3px;
+}
+
+.loading-lab-background-control button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0 11px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.loading-lab-background-control button[aria-pressed="true"] {
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px oklch(0.22 0.008 154 / 0.08);
+  color: var(--color-forest);
+}
+
+.loading-lab-background-control button:focus-visible,
+.loading-variant-card button:focus-visible,
+.loading-lab-replay-all:focus-visible {
+  outline: 3px solid oklch(0.66 0.11 145 / 0.3);
+  outline-offset: 2px;
+}
+
+.loading-lab-swatch {
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+}
+
+.loading-lab-swatch.is-white {
+  background: oklch(0.997 0.002 154);
+}
+
+.loading-lab-swatch.is-green {
+  background: oklch(0.958 0.018 154);
+}
+
+.loading-lab-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.loading-lab-section-heading h2,
+.loading-lab-section-heading p {
+  margin: 0;
+}
+
+.loading-lab-section-heading h2 {
+  margin-top: 4px;
+  color: var(--color-charcoal);
+  font-size: 1.25rem;
+}
+
+.loading-lab-section-heading > p {
+  max-width: 56ch;
+  text-align: right;
+}
+
+.loading-variant-grid,
+.loading-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.loading-variant-card {
+  display: grid;
+  grid-template-rows: auto minmax(150px, 1fr) auto;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.loading-variant-card > header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  padding: 15px 16px 13px;
+}
+
+.loading-variant-card > header > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  color: var(--color-forest);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.loading-variant-card h3,
+.loading-variant-card header p,
+.loading-variant-card footer p {
+  margin: 0;
+}
+
+.loading-variant-card h3 {
+  color: var(--color-charcoal);
+  font-size: 1rem;
+}
+
+.loading-variant-card header p {
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.loading-variant-stage {
+  display: grid;
+  min-height: 164px;
+  place-items: center;
+  border-block: 1px solid var(--color-border);
+  background: var(--lab-preview-background);
+  transition: background-color 180ms ease-out;
+}
+
+.loading-variant-card > footer {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.loading-variant-card footer p {
+  max-width: 42ch;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.loading-variant-card footer button,
+.loading-lab-replay-all {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+.loading-context-preview {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  min-height: 230px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--lab-preview-background);
+  transition: background-color 180ms ease-out;
+}
+
+.loading-context-preview > aside {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+  border-right: 1px solid var(--color-border);
+  background: oklch(0.975 0.006 154);
+  padding: 16px 13px;
+}
+
+.loading-context-preview > aside i,
+.loading-context-brand {
+  display: block;
+  border-radius: 4px;
+  background: oklch(0.88 0.012 154);
+}
+
+.loading-context-brand {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 7px;
+  background: oklch(0.36 0.075 154);
+}
+
+.loading-context-preview > aside i {
+  width: 100%;
+  height: 6px;
+}
+
+.loading-context-preview > aside i:nth-of-type(2) {
+  width: 72%;
+}
+
+.loading-context-preview > aside i:nth-of-type(4) {
+  width: 82%;
+}
+
+.loading-context-preview > div {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 22px;
+  text-align: center;
+}
+
+.loading-context-preview > div > strong {
+  color: var(--color-charcoal);
+  font-size: 0.94rem;
+}
+
+.loading-context-preview > div > span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}
+
+.tree-loader {
+  --tree-duration: 1.8s;
+  --tree-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tree-scale: 1;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+}
+
+.tree-loader.is-context {
+  --tree-scale: 0.78;
+  width: 88px;
+  height: 88px;
+}
+
+.tree-loader-art {
+  position: relative;
+  width: 86px;
+  height: 88px;
+  transform: scale(var(--tree-scale));
+}
+
+.tree-growth {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.tree-ground,
+.tree-root,
+.tree-trunk,
+.tree-branch,
+.tree-leaf,
+.tree-canopy {
+  position: absolute;
+  display: block;
+  background: var(--color-forest);
+}
+
+.tree-ground {
+  bottom: 8px;
+  left: 25px;
+  width: 36px;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: center;
+  border-radius: 2px;
+  opacity: 0;
+  animation: treeGround var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.tree-root {
+  bottom: 9px;
+  left: 42px;
+  width: 14px;
+  height: 1.5px;
+  transform: rotate(var(--root-angle)) scaleX(0);
+  transform-origin: left center;
+  border-radius: 2px;
+  opacity: 0;
+  animation: treeRoot var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.tree-root-left {
+  --root-angle: 160deg;
+}
+
+.tree-root-right {
+  --root-angle: 20deg;
+}
+
+.tree-trunk {
+  bottom: 9px;
+  left: 41px;
+  width: 3px;
+  height: 51px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  border-radius: 3px 3px 1px 1px;
+  opacity: 0;
+  animation: treeTrunk var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.tree-branch {
+  height: 2px;
+  transform: rotate(var(--branch-angle)) scaleX(0);
+  border-radius: 2px;
+  opacity: 0;
+}
+
+.branch-1,
+.branch-3,
+.branch-5 {
+  left: 43px;
+  transform-origin: left center;
+}
+
+.branch-2,
+.branch-4,
+.branch-6 {
+  right: 43px;
+  transform-origin: right center;
+}
+
+.branch-1 {
+  --branch-angle: -37deg;
+  bottom: 36px;
+  width: 25px;
+  animation: treeBranchEarly var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.branch-2 {
+  --branch-angle: 39deg;
+  bottom: 40px;
+  width: 22px;
+  animation: treeBranchEarly var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.branch-3 {
+  --branch-angle: -30deg;
+  bottom: 50px;
+  width: 20px;
+  animation: treeBranchMiddle var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.branch-4 {
+  --branch-angle: 31deg;
+  bottom: 54px;
+  width: 19px;
+  animation: treeBranchMiddle var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.branch-5 {
+  --branch-angle: -40deg;
+  bottom: 63px;
+  width: 15px;
+  animation: treeBranchLate var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.branch-6 {
+  --branch-angle: 42deg;
+  bottom: 66px;
+  width: 13px;
+  animation: treeBranchLate var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.tree-leaf {
+  width: 9px;
+  height: 5px;
+  transform: rotate(var(--leaf-angle, 0deg)) scale(0);
+  border-radius: 80% 18% 78% 20%;
+  opacity: 0;
+}
+
+.leaf-1 { --leaf-angle: -24deg; left: 62px; bottom: 49px; animation: treeLeafEarly var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-2 { --leaf-angle: 18deg; left: 67px; bottom: 56px; animation: treeLeafMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-3 { --leaf-angle: 25deg; left: 15px; bottom: 50px; animation: treeLeafEarly var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-4 { --leaf-angle: -12deg; left: 10px; bottom: 57px; animation: treeLeafMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-5 { --leaf-angle: -34deg; left: 57px; bottom: 66px; animation: treeLeafMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-6 { --leaf-angle: 13deg; left: 65px; bottom: 71px; animation: treeLeafLate var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-7 { --leaf-angle: 30deg; left: 18px; bottom: 68px; animation: treeLeafMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-8 { --leaf-angle: -16deg; left: 11px; bottom: 74px; animation: treeLeafLate var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-9 { --leaf-angle: -8deg; left: 39px; bottom: 78px; animation: treeLeafLate var(--tree-duration) var(--tree-ease) infinite both; }
+.leaf-10 { --leaf-angle: 27deg; left: 47px; bottom: 75px; animation: treeLeafLate var(--tree-duration) var(--tree-ease) infinite both; }
+
+.tree-canopy {
+  display: none;
+  width: 24px;
+  height: 16px;
+  transform: rotate(var(--canopy-angle, 0deg)) scale(0.35);
+  border: 1px solid oklch(0.44 0.08 151);
+  border-radius: 58% 42% 54% 46% / 56% 48% 52% 44%;
+  background: oklch(0.82 0.075 145);
+  opacity: 0;
+}
+
+.canopy-1 { --canopy-angle: -9deg; left: 9px; bottom: 49px; width: 28px; height: 12px; animation: treeCanopyEarly var(--tree-duration) var(--tree-ease) infinite both; }
+.canopy-2 { --canopy-angle: 4deg; left: 29px; bottom: 61px; width: 24px; height: 14px; animation: treeCanopyEarly var(--tree-duration) var(--tree-ease) infinite both; }
+.canopy-3 { --canopy-angle: 8deg; left: 46px; bottom: 53px; width: 29px; height: 12px; animation: treeCanopyMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.canopy-4 { --canopy-angle: -5deg; left: 17px; bottom: 70px; width: 27px; height: 13px; animation: treeCanopyMiddle var(--tree-duration) var(--tree-ease) infinite both; }
+.canopy-5 { --canopy-angle: 5deg; left: 41px; bottom: 72px; width: 28px; height: 12px; animation: treeCanopyLate var(--tree-duration) var(--tree-ease) infinite both; }
+
+.tree-loader-a {
+  --tree-duration: 1.65s;
+  --tree-scale: 0.84;
+}
+
+.tree-loader-a.is-context {
+  --tree-scale: 0.68;
+}
+
+.tree-loader-a .branch-4,
+.tree-loader-a .branch-5,
+.tree-loader-a .branch-6,
+.tree-loader-a .leaf-7,
+.tree-loader-a .leaf-8,
+.tree-loader-a .leaf-9,
+.tree-loader-a .leaf-10,
+.tree-loader-a .tree-root,
+.tree-loader-a .tree-canopy {
+  display: none;
+}
+
+.tree-loader-a .tree-trunk {
+  width: 2px;
+}
+
+.tree-loader-a .tree-branch {
+  height: 1.5px;
+}
+
+.tree-loader-b {
+  --tree-duration: 2.05s;
+  --tree-scale: 0.94;
+}
+
+.tree-loader-b.is-context {
+  --tree-scale: 0.74;
+}
+
+.tree-loader-b .tree-root,
+.tree-loader-b .tree-canopy {
+  display: none;
+}
+
+.tree-loader-c {
+  --tree-duration: 1.8s;
+  --tree-scale: 0.9;
+}
+
+.tree-loader-c.is-context {
+  --tree-scale: 0.72;
+}
+
+.tree-loader-c .tree-root,
+.tree-loader-c .tree-leaf {
+  display: none;
+}
+
+.tree-loader-c .tree-canopy {
+  display: block;
+}
+
+.tree-loader-c .tree-branch {
+  background: oklch(0.34 0.065 154);
+}
+
+.tree-loader-d {
+  --tree-duration: 2.3s;
+}
+
+.tree-loader-d.is-context {
+  --tree-scale: 0.78;
+}
+
+.tree-loader-d .tree-growth {
+  animation: treeSettle var(--tree-duration) var(--tree-ease) infinite both;
+}
+
+.tree-loader-d .tree-ground {
+  width: 42px;
+  left: 22px;
+}
+
+@keyframes treeGround {
+  0% { opacity: 0; transform: scaleX(0); }
+  10%, 88% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+
+@keyframes treeRoot {
+  0%, 5% { opacity: 0; transform: rotate(var(--root-angle)) scaleX(0); }
+  18%, 88% { opacity: 0.75; transform: rotate(var(--root-angle)) scaleX(1); }
+  100% { opacity: 0; transform: rotate(var(--root-angle)) scaleX(1); }
+}
+
+@keyframes treeTrunk {
+  0%, 9% { opacity: 0; transform: scaleY(0); }
+  32%, 88% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+
+@keyframes treeBranchEarly {
+  0%, 24% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(0); }
+  44%, 88% { opacity: 1; transform: rotate(var(--branch-angle)) scaleX(1); }
+  100% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(1); }
+}
+
+@keyframes treeBranchMiddle {
+  0%, 34% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(0); }
+  55%, 88% { opacity: 1; transform: rotate(var(--branch-angle)) scaleX(1); }
+  100% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(1); }
+}
+
+@keyframes treeBranchLate {
+  0%, 44% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(0); }
+  64%, 88% { opacity: 1; transform: rotate(var(--branch-angle)) scaleX(1); }
+  100% { opacity: 0; transform: rotate(var(--branch-angle)) scaleX(1); }
+}
+
+@keyframes treeLeafEarly {
+  0%, 44% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(0); }
+  59%, 88% { opacity: 0.92; transform: rotate(var(--leaf-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(1); }
+}
+
+@keyframes treeLeafMiddle {
+  0%, 53% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(0); }
+  68%, 88% { opacity: 0.92; transform: rotate(var(--leaf-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(1); }
+}
+
+@keyframes treeLeafLate {
+  0%, 61% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(0); }
+  76%, 88% { opacity: 0.92; transform: rotate(var(--leaf-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--leaf-angle)) scale(1); }
+}
+
+@keyframes treeCanopyEarly {
+  0%, 43% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(0.35); }
+  61%, 88% { opacity: 0.82; transform: rotate(var(--canopy-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(1); }
+}
+
+@keyframes treeCanopyMiddle {
+  0%, 51% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(0.35); }
+  69%, 88% { opacity: 0.82; transform: rotate(var(--canopy-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(1); }
+}
+
+@keyframes treeCanopyLate {
+  0%, 59% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(0.35); }
+  76%, 88% { opacity: 0.82; transform: rotate(var(--canopy-angle)) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--canopy-angle)) scale(1); }
+}
+
+@keyframes treeSettle {
+  0%, 72% { transform: translateY(-1px); }
+  82%, 88% { transform: translateY(1px); }
+  100% { transform: translateY(1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-lab *,
+  .loading-lab *::before,
+  .loading-lab *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tree-ground,
+  .tree-root,
+  .tree-trunk,
+  .tree-branch,
+  .tree-leaf,
+  .tree-canopy {
+    opacity: 1;
+  }
+
+  .tree-ground { transform: scaleX(1); }
+  .tree-root { transform: rotate(var(--root-angle)) scaleX(1); }
+  .tree-trunk { transform: scaleY(1); }
+  .tree-branch { transform: rotate(var(--branch-angle)) scaleX(1); }
+  .tree-leaf { transform: rotate(var(--leaf-angle)) scale(1); }
+  .tree-canopy { transform: rotate(var(--canopy-angle)) scale(1); }
+  .tree-loader-d .tree-growth { transform: none; }
+}
+
+@media (max-width: 840px) {
+  .loading-lab-toolbar,
+  .loading-lab-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .loading-lab-section-heading > p {
+    text-align: left;
+  }
+
+  .loading-variant-grid,
+  .loading-context-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .loading-lab-toolbar-actions {
+    display: grid;
+    width: 100%;
+  }
+
+  .loading-lab-background-control {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loading-lab-background-control button,
+  .loading-lab-replay-all {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .loading-variant-card > footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .loading-variant-card footer button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .loading-context-preview {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .loading-context-preview > aside {
+    padding-inline: 10px;
   }
 }

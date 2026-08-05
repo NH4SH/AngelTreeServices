@@ -252,6 +252,7 @@ export type Job = {
   notification_error: string | null;
   lead_disposition: "active" | "spam" | "archived";
   assigned_crew_user_id: string | null;
+  assigned_crew_employee_id: string | null;
   status: JobStatus;
   service_type: JobServiceType | string | null;
   priority: JobPriority;
@@ -308,6 +309,7 @@ export type Quote = {
   sent_method: QuoteSentMethod | null;
   sent_by_user_id: string | null;
   estimator_user_id: string | null;
+  estimator_employee_id: string | null;
   automatic_follow_ups_enabled: boolean;
   approved_at: string | null;
   expires_at: string | null;
@@ -738,6 +740,7 @@ export type Appointment = {
   job_id: string;
   service_location_id: string;
   assigned_user_id: string | null;
+  assigned_employee_id: string | null;
   appointment_type: AppointmentType;
   status: AppointmentStatus;
   starts_at: string;
@@ -751,6 +754,7 @@ export type AssignableUser = {
   id: string;
   full_name: string | null;
   email: string | null;
+  auth_user_id?: string | null;
 };
 
 export type ScheduleUser = AssignableUser & {
@@ -784,8 +788,10 @@ export type ScheduleEvent = {
 };
 
 export type ScheduleEventAssignment = {
+  id: string;
   event_id: string;
-  user_id: string;
+  user_id: string | null;
+  employee_id: string | null;
   assignment_role: string;
   created_at: string;
 };
@@ -1060,6 +1066,7 @@ export type JobWithRelations = Job & {
     "id" | "label" | "street" | "city" | "state" | "postal_code" | "access_notes" | "service_notes"
   > | null;
   assigned_crew?: { id: string; full_name: string | null; email: string | null } | null;
+  assigned_employee?: Pick<EmployeeRecord, "id" | "auth_user_id" | "legal_name" | "preferred_name" | "contact_email"> | null;
 };
 
 export type JobOperationsIndexRow = {
@@ -1068,6 +1075,7 @@ export type JobOperationsIndexRow = {
   organization_id: string | null;
   service_location_id: string;
   assigned_crew_user_id: string | null;
+  assigned_crew_employee_id: string | null;
   source_quote_id: string | null;
   job_status: JobStatus;
   operational_state: "to_be_scheduled" | "scheduled" | "in_progress" | "work_complete" | "invoiced" | "paid" | "needs_attention" | "cancelled";
@@ -1198,10 +1206,12 @@ export type AppointmentWithRelations = Appointment & {
   jobs?: ScheduleLinkedJobSummary | null;
   service_locations?: ScheduleLocationSummary | null;
   profiles?: AssignableUser | null;
+  employee_records?: EmployeeRecord | null;
 };
 
 export type ScheduleEventAssignmentWithUser = ScheduleEventAssignment & {
   profiles?: AssignableUser | null;
+  employee_records?: EmployeeRecord | null;
 };
 
 export type ScheduleEventWithRelations = ScheduleEvent & {

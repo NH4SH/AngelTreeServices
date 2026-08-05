@@ -21,7 +21,7 @@ export async function getAppointments(filters: AppointmentFilters = {}): Promise
   let query = supabase
     .from("appointments")
     .select(
-      "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles(id, full_name, email)",
+      "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles(id, full_name, email), employee_records:employee_records!appointments_assigned_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .order("starts_at", { ascending: true });
 
@@ -34,9 +34,9 @@ export async function getAppointments(filters: AppointmentFilters = {}): Promise
   }
 
   if (filters.assignedUserId === "unassigned") {
-    query = query.is("assigned_user_id", null);
+    query = query.is("assigned_employee_id", null);
   } else if (filters.assignedUserId && filters.assignedUserId !== "all") {
-    query = query.eq("assigned_user_id", filters.assignedUserId);
+    query = query.eq("assigned_employee_id", filters.assignedUserId);
   }
 
   if (filters.startsAtOrAfter) {
@@ -64,16 +64,18 @@ export async function getAssignableUsers(): Promise<DataResult<AssignableUser[]>
   }
 
   const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email")
-    .eq("status", "active")
-    .order("full_name", { ascending: true });
+    .from("employee_records")
+    .select("id, auth_user_id, legal_name, preferred_name, contact_email")
+    .eq("is_active", true)
+    .is("archived_at", null)
+    .order("preferred_name", { ascending: true, nullsFirst: false })
+    .order("legal_name", { ascending: true });
 
   if (error) {
     return { data: [], error: safeStaffMessage(error.message) };
   }
 
-  return { data: (data ?? []) as AssignableUser[], error: null };
+  return { data: (data ?? []).map((employee) => ({ id: employee.id, auth_user_id: employee.auth_user_id, full_name: employee.preferred_name || employee.legal_name, email: employee.contact_email })) as AssignableUser[], error: null };
 }
 
 export async function getFollowUpsDue() {
@@ -87,7 +89,7 @@ export async function getFollowUpsDue() {
   const { data, error } = await supabase
     .from("appointments")
     .select(
-      "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles(id, full_name, email)",
+      "*, jobs(id, status, service_type, requested_scope), service_locations(id, label, street, city, state, postal_code), profiles(id, full_name, email), employee_records:employee_records!appointments_assigned_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .eq("appointment_type", "follow_up")
     .in("status", ["scheduled", "confirmed", "in_progress", "no_show"])

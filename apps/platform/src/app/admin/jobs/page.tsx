@@ -273,7 +273,7 @@ function easternDateString(value: Date) {
 function jobWarnings(job: JobOperationsIndexRow) {
   const warnings: string[] = [];
   if (job.operational_state === "to_be_scheduled" && job.job_status === "accepted") warnings.push("Needs scheduling");
-  if (["scheduled", "in_progress"].includes(job.operational_state) && !job.assigned_crew_user_id) warnings.push("No crew assigned");
+  if (["scheduled", "in_progress"].includes(job.operational_state) && !job.assigned_crew_employee_id) warnings.push("No crew assigned");
   if (job.appointment_starts_at && new Date(job.appointment_starts_at) <= new Date() && job.job_status !== "in_progress" && job.appointment_status !== "in_progress") warnings.push("Start time passed");
   if (job.approved_unbilled_change_order_count > 0) warnings.push(`${job.approved_unbilled_change_order_count} approved ${job.approved_unbilled_change_order_count === 1 ? "addition" : "additions"} not billed`);
   if (job.invoice_status === "overdue") warnings.push("Invoice overdue");

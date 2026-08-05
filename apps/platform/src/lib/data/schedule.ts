@@ -9,6 +9,7 @@ import type {
   CalendarEntry,
   CrewDaySchedule,
   DataResult,
+  EmployeeRecord,
   ScheduleConflict,
   ScheduleDashboardSummary,
   ScheduleEventType,
@@ -28,6 +29,15 @@ type UserRow = {
   full_name: string | null;
   email: string | null;
   user_roles?: RoleNameRow[] | null;
+};
+
+type EmployeeScheduleRow = {
+  id: string;
+  auth_user_id: string | null;
+  legal_name: string | null;
+  preferred_name: string | null;
+  contact_email: string | null;
+  profiles?: UserRow | UserRow[] | null;
 };
 
 export type ScheduleFilters = {
@@ -66,19 +76,34 @@ export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
   }
 
   const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, user_roles(roles(name))")
-    .eq("status", "active")
-    .order("full_name", { ascending: true });
+    .from("employee_records")
+    .select("id, auth_user_id, legal_name, preferred_name, contact_email, profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email, user_roles(roles(name)))")
+    .eq("is_active", true)
+    .is("archived_at", null)
+    .order("preferred_name", { ascending: true, nullsFirst: false })
+    .order("legal_name", { ascending: true });
 
   if (error) {
     return { data: [], error: safeStaffMessage(error.message) };
   }
 
   return {
-    data: mapScheduleUsers((data ?? []) as UserRow[]),
+    data: mapScheduleEmployees((data ?? []) as EmployeeScheduleRow[]),
     error: null,
   };
+}
+
+export async function getPlatformUsers(): Promise<DataResult<ScheduleUser[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, user_roles(roles(name))")
+    .eq("status", "active")
+    .order("full_name", { ascending: true });
+  return error
+    ? { data: [], error: safeStaffMessage(error.message) }
+    : { data: mapScheduleUsers((data ?? []) as UserRow[]), error: null };
 }
 
 export async function getEstimateScheduleEventOptions(): Promise<DataResult<EstimateScheduleEventOption[]>> {
@@ -149,7 +174,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let appointmentsQuery = supabase
     .from("appointments")
     .select(
-      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
+      "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email), employee_records:employee_records!appointments_assigned_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .order("starts_at", { ascending: true });
   if (searchMatches) appointmentsQuery = matchingAppointmentIds.length ? appointmentsQuery.in("id", matchingAppointmentIds) : appointmentsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
@@ -167,13 +192,13 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   }
 
   if (filters.assignedUserId === "unassigned") {
-    appointmentsQuery = appointmentsQuery.is("assigned_user_id", null);
+    appointmentsQuery = appointmentsQuery.is("assigned_employee_id", null);
   } else if (
     filters.assignedUserId &&
     filters.assignedUserId !== "all" &&
     filters.assignedUserId !== "crew"
   ) {
-    appointmentsQuery = appointmentsQuery.eq("assigned_user_id", filters.assignedUserId);
+    appointmentsQuery = appointmentsQuery.eq("assigned_employee_id", filters.assignedUserId);
   }
 
   if (filters.startsAtOrAfter) {
@@ -187,7 +212,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
   let eventsQuery = supabase
     .from("schedule_events")
     .select(
-      "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), source_customer:customers!schedule_events_source_customer_id_fkey(id, display_name, phone, email), source_organization:organizations!schedule_events_source_organization_id_fkey(id, name, billing_phone, billing_email), source_contact:organization_contacts!schedule_events_source_contact_id_fkey(id, full_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+      "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email), job_material_requirements(planned_quantity, unit, notes, material_catalog(name))), source_customer:customers!schedule_events_source_customer_id_fkey(id, display_name, phone, email), source_organization:organizations!schedule_events_source_organization_id_fkey(id, name, billing_phone, billing_email), source_contact:organization_contacts!schedule_events_source_contact_id_fkey(id, full_name, phone, email), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
     )
     .order("starts_at", { ascending: true });
   if (searchMatches) eventsQuery = matchingEventIds.length ? eventsQuery.in("id", matchingEventIds) : eventsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
@@ -221,7 +246,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
       return true;
     }
 
-    return appointment.assigned_user_id ? crewUserIds.has(appointment.assigned_user_id) : false;
+    return appointment.assigned_employee_id ? crewUserIds.has(appointment.assigned_employee_id) : false;
   });
 
   const scheduleEvents = ((eventsResult.data ?? []) as ScheduleEventWithRelations[]).filter((event) => {
@@ -234,7 +259,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
       return false;
     }
 
-    const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.user_id);
+    const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.employee_id).filter((id): id is string => Boolean(id));
 
     if (filters.assignedUserId === "unassigned") {
       return assignedUserIds.length === 0;
@@ -276,7 +301,7 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
 
 function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry {
   const assignees = (event.schedule_event_assignments ?? [])
-    .map((assignment) => assignment.profiles)
+    .map((assignment) => assignment.employee_records ? employeeToAssignable(assignment.employee_records) : assignment.profiles)
     .filter(Boolean) as AssignableUser[];
   const locationLabel =
     event.location_label ||
@@ -313,7 +338,9 @@ function toScheduleEventEntry(event: ScheduleEventWithRelations): CalendarEntry 
 }
 
 function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntry {
-  const assignees = appointment.profiles ? [appointment.profiles] : [];
+  const assignees = appointment.employee_records
+    ? [employeeToAssignable(appointment.employee_records)]
+    : appointment.profiles ? [appointment.profiles] : [];
 
   return {
     id: appointment.id,
@@ -340,6 +367,15 @@ function toAppointmentEntry(appointment: AppointmentWithRelations): CalendarEntr
     access_instructions: buildAccessInstructions(appointment.service_locations),
     equipment_details: [],
     material_details: formatMaterialDetails(appointment.jobs?.job_material_requirements),
+  };
+}
+
+function employeeToAssignable(employee: EmployeeScheduleRow | EmployeeRecord): AssignableUser {
+  return {
+    id: employee.id,
+    auth_user_id: employee.auth_user_id,
+    full_name: employee.preferred_name || employee.legal_name,
+    email: employee.contact_email,
   };
 }
 
@@ -445,7 +481,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("schedule_events")
       .select(
-        "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+        "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
       )
       .gte("starts_at", start.toISOString())
       .lt("starts_at", end.toISOString())
@@ -463,7 +499,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
     supabase
       .from("schedule_events")
       .select(
-        "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
+        "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
       )
       .eq("event_type", "estimate")
       .gte("starts_at", start.toISOString())
@@ -520,7 +556,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
   };
 }
 
-function mapScheduleUsers(data: UserRow[]) {
+function mapScheduleUsers(data: UserRow[]): ScheduleUser[] {
   return data.map((user) => ({
     id: user.id,
     full_name: user.full_name,
@@ -529,6 +565,21 @@ function mapScheduleUsers(data: UserRow[]) {
       .flatMap((row) => row.roles ?? [])
       .map((role) => role.name),
   }));
+}
+
+function mapScheduleEmployees(data: EmployeeScheduleRow[]): ScheduleUser[] {
+  return data.map((employee) => {
+    const profile = Array.isArray(employee.profiles) ? employee.profiles[0] : employee.profiles;
+    return {
+      id: employee.id,
+      auth_user_id: employee.auth_user_id,
+      full_name: employee.preferred_name || employee.legal_name,
+      email: employee.contact_email || profile?.email || null,
+      role_names: (profile?.user_roles ?? [])
+        .flatMap((row) => row.roles ?? [])
+        .map((role) => role.name),
+    };
+  });
 }
 
 function detectScheduleConflicts(entries: CalendarEntry[], users: ScheduleUser[]) {

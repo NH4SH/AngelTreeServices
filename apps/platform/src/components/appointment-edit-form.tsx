@@ -37,7 +37,7 @@ export function AppointmentEditForm({
       </div>
       <label>
         <span>Assign staff</span>
-        <select defaultValue={appointment.assigned_user_id ?? ""} name="assigned_user_id">
+        <select defaultValue={appointment.assigned_employee_id ?? ""} name="assigned_user_id">
           <option value="">Unassigned</option>
           {assignedUsers.map((user) => (
             <option key={user.id} value={user.id}>{user.full_name || user.email || "Unnamed staff user"}</option>

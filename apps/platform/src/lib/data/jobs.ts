@@ -31,8 +31,10 @@ export async function getJobsOperationsPage(filters: JobsIndexFilters): Promise<
   const supabase = await createClient();
   if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
 
+  const crewJobIds = await getCrewFilteredJobIds(supabase, filters.assignedCrewId);
   let query = supabase.from("job_operations_search_index").select("*", { count: "exact" });
   query = applyJobsIndexFilters(query, filters, true);
+  if (crewJobIds) query = crewJobIds.length ? query.in("id", crewJobIds) : query.eq("id", "00000000-0000-0000-0000-000000000000");
 
   if (filters.sort === "scheduled") {
     query = query.order("appointment_starts_at", { ascending: true, nullsFirst: false }).order("updated_at", { ascending: false });
@@ -48,22 +50,43 @@ export async function getJobsOperationsPage(filters: JobsIndexFilters): Promise<
 
   const from = (filters.page - 1) * filters.pageSize;
   const { data, error, count } = await query.range(from, from + filters.pageSize - 1);
+  const rows = (data ?? []) as JobOperationsIndexRow[];
+  const assignments = rows.length ? await supabase
+    .from("jobs")
+    .select("id, assigned_crew_employee_id, assigned_employee:employee_records!jobs_assigned_crew_employee_id_fkey(preferred_name, legal_name, contact_email)")
+    .in("id", rows.map((row) => row.id)) : { data: [], error: null };
+  const assignmentByJob = new Map((assignments.data ?? []).map((assignment) => [assignment.id, assignment]));
   return {
-    data: (data ?? []) as JobOperationsIndexRow[],
+    data: rows.map((row) => {
+      const assignment = assignmentByJob.get(row.id);
+      const relation = assignment?.assigned_employee;
+      const employee = Array.isArray(relation) ? relation[0] : relation;
+      return {
+        ...row,
+        assigned_crew_employee_id: assignment?.assigned_crew_employee_id ?? null,
+        assigned_crew_name: employee?.preferred_name || employee?.legal_name || row.assigned_crew_name,
+        assigned_crew_email: employee?.contact_email || row.assigned_crew_email,
+      };
+    }),
     count: count ?? 0,
-    error: error?.message ?? null,
+    error: error?.message ?? assignments.error?.message ?? null,
   };
 }
 
 export async function getJobsIndexMetrics(filters: JobsIndexFilters) {
   const supabase = await createClient();
   if (!supabase) return { data: { toBeScheduled: 0, today: 0, inProgress: 0, awaitingInvoice: 0, unpaidInvoices: 0 }, error: "Supabase is not configured." };
+  const crewJobIds = await getCrewFilteredJobIds(supabase, filters.assignedCrewId);
 
-  const metricQuery = () => applyJobsIndexFilters(
+  const metricQuery = () => {
+    let query = applyJobsIndexFilters(
     supabase.from("job_operations_search_index").select("id", { count: "exact", head: true }),
     filters,
     false,
-  );
+    );
+    if (crewJobIds) query = crewJobIds.length ? query.in("id", crewJobIds) : query.eq("id", "00000000-0000-0000-0000-000000000000");
+    return query;
+  };
   const [toBeScheduled, today, inProgress, awaitingInvoice, unpaidInvoices] = await Promise.all([
     metricQuery().eq("job_status", "accepted").eq("operational_state", "to_be_scheduled"),
     metricQuery().in("job_status", activeJobStatuses).eq("is_today", true),
@@ -111,8 +134,6 @@ function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeVie
     const digits = search.replaceAll(/[^0-9]/g, "");
     query = query.ilike("expanded_search_text", `%${digits.length >= 4 ? digits : search}%`);
   }
-  if (filters.assignedCrewId === "unassigned") query = query.is("assigned_crew_user_id", null);
-  else if (filters.assignedCrewId) query = query.eq("assigned_crew_user_id", filters.assignedCrewId);
   if (filters.city) query = query.eq("city", filters.city);
   if (filters.priority) query = query.eq("priority", filters.priority);
   if (filters.invoiceStatus === "none") query = query.is("invoice_id", null);
@@ -120,6 +141,16 @@ function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeVie
   else if (filters.invoiceStatus) query = query.eq("invoice_status", filters.invoiceStatus);
   if (filters.scheduledDate) query = query.eq("appointment_local_date", filters.scheduledDate);
   return query;
+}
+
+async function getCrewFilteredJobIds(supabase: Awaited<ReturnType<typeof createClient>> & {}, assignedCrewId?: string) {
+  if (!assignedCrewId) return null;
+  let query = supabase.from("jobs").select("id").is("archived_at", null);
+  query = assignedCrewId === "unassigned"
+    ? query.is("assigned_crew_employee_id", null)
+    : query.eq("assigned_crew_employee_id", assignedCrewId);
+  const { data } = await query.limit(10000);
+  return (data ?? []).map((job) => job.id);
 }
 
 export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
@@ -132,7 +163,7 @@ export async function getJobs(): Promise<DataResult<JobWithRelations[]>> {
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), assigned_employee:employee_records!jobs_assigned_crew_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .is("archived_at", null)
     .order("created_at", { ascending: false });
@@ -178,7 +209,7 @@ export async function getJobsByCustomerId(customerId: string): Promise<DataResul
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), assigned_employee:employee_records!jobs_assigned_crew_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .is("archived_at", null)
     .eq("customer_id", customerId)
@@ -202,7 +233,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .select(
-      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email)",
+      "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), assigned_crew:profiles!jobs_assigned_crew_user_id_fkey(id, full_name, email), assigned_employee:employee_records!jobs_assigned_crew_employee_id_fkey(id, auth_user_id, legal_name, preferred_name, contact_email)",
     )
     .eq("id", jobId)
     .single();
@@ -243,7 +274,7 @@ export async function getJobDetail(jobId: string): Promise<DataResult<JobDetail 
       .order("starts_at", { ascending: true }),
     supabase
       .from("schedule_events")
-      .select("*, service_locations(id, label, street, city, state, postal_code), schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email))")
+      .select("*, service_locations(id, label, street, city, state, postal_code), schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email))")
       .eq("job_id", jobId)
       .eq("event_type", "job")
       .order("starts_at", { ascending: true }),
@@ -344,7 +375,7 @@ export async function getScheduleJobOptions(): Promise<DataResult<ScheduleJobOpt
   const { data, error } = await supabase
     .from("jobs")
     .select(
-      "id, status, service_type, customer_id, organization_id, service_location_id, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name), organizations:organizations!jobs_organization_id_fkey(id, name), service_locations:service_locations!jobs_service_location_id_fkey(id, label, street, city, state, postal_code), schedule_events:schedule_events!schedule_events_job_id_fkey(*, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))",
+      "id, status, service_type, customer_id, organization_id, service_location_id, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name), organizations:organizations!jobs_organization_id_fkey(id, name), service_locations:service_locations!jobs_service_location_id_fkey(id, label, street, city, state, postal_code), schedule_events:schedule_events!schedule_events_job_id_fkey(*, schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email)))",
     )
     .is("archived_at", null)
     .order("created_at", { ascending: false });

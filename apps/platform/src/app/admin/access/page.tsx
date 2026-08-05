@@ -9,7 +9,7 @@ import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getEmployeeAccessRequests } from "@/lib/data/access-requests";
 import { getEmailEvents } from "@/lib/data/email-events";
-import { getScheduleUsers } from "@/lib/data/schedule";
+import { getPlatformUsers } from "@/lib/data/schedule";
 import { getEmailSetupState } from "@/lib/email/config";
 
 export default async function AdminAccessPage() {
@@ -38,7 +38,7 @@ export default async function AdminAccessPage() {
 
   const [requests, users, emailEvents] = await Promise.all([
     getEmployeeAccessRequests(),
-    getScheduleUsers(),
+    getPlatformUsers(),
     getEmailEvents({
       types: ["access_request_admin_notice", "access_approved", "access_rejected", "password_reset_admin_triggered"],
       limit: 10,

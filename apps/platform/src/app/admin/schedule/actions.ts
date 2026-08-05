@@ -95,10 +95,11 @@ export async function scheduleLeadEstimate(
     eligibilityOverrideReason,
   );
   if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+  const assignedAuthUserId = await getEmployeeAuthUserId(supabase, assignedUserId);
 
   const { data, error } = await supabase.rpc("schedule_lead_estimate", {
     p_access_notes: accessNotes || null,
-    p_assigned_user_id: assignedUserId,
+    p_assigned_user_id: assignedAuthUserId,
     p_calendar_notes: calendarNotes || null,
     p_city: city,
     p_contact_name: contactName,
@@ -126,6 +127,8 @@ export async function scheduleLeadEstimate(
 
   const eventId = String((data as { event_id: string }).event_id);
   const created = Boolean((data as { event_created: boolean }).event_created);
+  const assignmentError = await replaceEventEmployeeAssignment(supabase, eventId, assignedUserId, "estimator");
+  if (assignmentError) return { status: "error", message: `The estimate was scheduled, but its estimator could not be saved: ${assignmentError}` };
   await recordActivity(supabase, {
     actorType: roles.includes("owner") ? "owner" : "admin",
     actorUserId: user.id,
@@ -222,10 +225,11 @@ export async function schedulePartyEstimate(
     eligibilityOverrideReason,
   );
   if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+  const assignedAuthUserId = await getEmployeeAuthUserId(supabase, assignedUserId);
 
   const { data, error } = await supabase.rpc("schedule_party_estimate", {
     p_access_notes: accessNotes || null,
-    p_assigned_user_id: assignedUserId,
+    p_assigned_user_id: assignedAuthUserId,
     p_calendar_notes: calendarNotes || null,
     p_city: city,
     p_contact_id: contactId,
@@ -253,6 +257,8 @@ export async function schedulePartyEstimate(
 
   const eventId = String((data as { event_id: string }).event_id);
   const created = Boolean((data as { event_created: boolean }).event_created);
+  const assignmentError = await replaceEventEmployeeAssignment(supabase, eventId, assignedUserId, "estimator");
+  if (assignmentError) return { status: "error", message: `The estimate was scheduled, but its estimator could not be saved: ${assignmentError}` };
   await recordActivity(supabase, {
     actorType: roles.includes("owner") ? "owner" : "admin",
     actorUserId: user.id,
@@ -424,7 +430,7 @@ export async function createAppointment(
       job_id: jobId,
       service_location_id: job.service_location_id,
       appointment_type: appointmentType,
-      assigned_user_id: assignedUserId,
+      assigned_employee_id: assignedUserId,
       starts_at: startsAt.toISOString(),
       ends_at: endsAt?.toISOString() ?? null,
       calendar_notes: calendarNotes,
@@ -562,7 +568,7 @@ export async function updateAppointmentDetails(
   const { data, error } = await supabase
     .from("appointments")
     .update({
-      assigned_user_id: assignedUserId,
+      assigned_employee_id: assignedUserId,
       starts_at: startsAt.toISOString(),
       ends_at: endsAt?.toISOString() ?? null,
       calendar_notes: calendarNotes,
@@ -702,7 +708,7 @@ export async function createScheduleEvent(
     const { error: assignmentError } = await supabase.from("schedule_event_assignments").insert(
       assignedUserIds.map((assignedUserId) => ({
         event_id: event.id,
-        user_id: assignedUserId,
+        employee_id: assignedUserId,
       })),
     );
 
@@ -901,7 +907,7 @@ export async function updateScheduleEventDetails(
     const { error: assignmentError } = await supabase.from("schedule_event_assignments").insert(
       assignedUserIds.map((assignedUserId) => ({
         event_id: eventId,
-        user_id: assignedUserId,
+        employee_id: assignedUserId,
       })),
     );
 
@@ -942,6 +948,32 @@ async function checkAssignmentEligibility(
   const canOverride = hasAllowedRole(roles, platformRoleGroups.accessApproval);
   if (!overrideReason || !canOverride) return { blocked: true, message: `${summary} Owner/admin can proceed only after entering an override reason.`, warningCount: warnings.length };
   return { blocked: false, message: summary, warningCount: warnings.length };
+}
+
+async function getEmployeeAuthUserId(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  employeeId: string | null,
+) {
+  if (!employeeId) return null;
+  const { data } = await supabase.from("employee_records").select("auth_user_id").eq("id", employeeId).maybeSingle();
+  return data?.auth_user_id ?? null;
+}
+
+async function replaceEventEmployeeAssignment(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  eventId: string,
+  employeeId: string | null,
+  assignmentRole: string,
+) {
+  const removed = await supabase.from("schedule_event_assignments").delete().eq("event_id", eventId);
+  if (removed.error) return removed.error.message;
+  if (!employeeId) return null;
+  const inserted = await supabase.from("schedule_event_assignments").insert({
+    assignment_role: assignmentRole,
+    employee_id: employeeId,
+    event_id: eventId,
+  });
+  return inserted.error?.message ?? null;
 }
 
 async function syncScheduleCommunications() {

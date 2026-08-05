@@ -154,7 +154,7 @@ export async function saveJobWorkSessions(
     }
   }
 
-  const { data, error } = await supabase.rpc("save_job_work_sessions", {
+  const { data, error } = await supabase.rpc("save_job_employee_work_sessions", {
     p_job_id: jobId,
     p_sessions: sessions,
     p_mode: mode,
@@ -213,7 +213,7 @@ async function findWorkSessionConflicts(supabase: Awaited<ReturnType<typeof crea
   const currentIds = sessions.map((session) => session.id).filter((id): id is string => Boolean(id));
   let query = supabase
     .from("schedule_events")
-    .select("id, title, starts_at, ends_at, jobs:jobs!schedule_events_job_id_fkey(id, service_type), schedule_event_assignments(user_id, profiles(full_name, email))")
+    .select("id, title, starts_at, ends_at, jobs:jobs!schedule_events_job_id_fkey(id, service_type), schedule_event_assignments(employee_id, employee_records(preferred_name, legal_name, contact_email))")
     .in("status", ["scheduled", "confirmed", "in_progress"])
     .lt("starts_at", rangeEnd.toISOString())
     .gt("ends_at", rangeStart.toISOString());
@@ -231,9 +231,9 @@ async function findWorkSessionConflicts(supabase: Awaited<ReturnType<typeof crea
       const eventEnd = zonedDateTime(event.ends_at ?? event.starts_at);
       if (eventStart.date !== session.date || eventStart.minutes >= sessionEnd || eventEnd.minutes <= sessionStart) continue;
       for (const assignment of event.schedule_event_assignments ?? []) {
-        if (!session.assigned_user_ids.includes(assignment.user_id)) continue;
-        const profile = Array.isArray(assignment.profiles) ? assignment.profiles[0] : assignment.profiles;
-        const label = profile?.full_name || profile?.email || "Assigned employee";
+        if (!assignment.employee_id || !session.assigned_user_ids.includes(assignment.employee_id)) continue;
+        const employee = Array.isArray(assignment.employee_records) ? assignment.employee_records[0] : assignment.employee_records;
+        const label = employee?.preferred_name || employee?.legal_name || employee?.contact_email || "Assigned employee";
         conflicts.add(`${label}: ${session.date}, ${session.start_time}–${session.end_time}, conflicts with ${event.title}.`);
       }
     }

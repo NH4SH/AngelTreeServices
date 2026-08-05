@@ -578,7 +578,7 @@ export function ScheduleEventEditForm({
   users: ScheduleUser[];
 }) {
   const [state, formAction, pending] = useReliableActionState(updateScheduleEventDetails, initialState);
-  const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.user_id);
+  const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.employee_id).filter((id): id is string => Boolean(id));
 
   return (
     <form action={formAction} className="appointment-edit-form schedule-event-edit-form">

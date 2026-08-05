@@ -94,7 +94,8 @@ test("revisiting an estimate keeps the existing event, estimator, and local time
       starts_at: "2026-07-30T14:30:00.000Z",
       calendar_notes: "Meet customer by driveway.",
       schedule_event_assignments: [{
-        user_id: "75000000-0000-0000-0000-000000000001",
+        employee_id: "75000000-0000-0000-0000-000000000001",
+        user_id: null,
       }],
     }],
   });

@@ -114,14 +114,16 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
 
 export async function getEmployeeFormOptions() {
   const supabase = await createClient();
-  if (!supabase) return { supervisors: [], credentialTypes: [], employees: [], qualificationRequirements: [], error: "Supabase is not configured." };
-  const [employees, credentialTypes, qualificationRequirements] = await Promise.all([
+  if (!supabase) return { supervisors: [], credentialTypes: [], employees: [], platformAccounts: [], qualificationRequirements: [], error: "Supabase is not configured." };
+  const [employees, credentialTypes, qualificationRequirements, profiles] = await Promise.all([
     supabase.rpc("get_employee_operational_directory"),
     supabase.from("credential_types").select("*").eq("is_active", true).order("label"),
     supabase.from("qualification_requirements").select("id, requirement_scope, scope_value, credential_type_id, warning_only, is_active, notes, credential_types(label)").eq("is_active", true).order("requirement_scope").order("scope_value"),
+    supabase.from("profiles").select("id, full_name, email, status").order("full_name"),
   ]);
   const directory = ((employees.data as { employees?: Array<{ id: string; legal_name: string; preferred_name: string | null; crew_name: string | null; is_supervisor: boolean; auth_user_id: string | null }> } | null)?.employees ?? []);
-  return { supervisors: directory.filter((employee) => employee.is_supervisor), employees: directory, credentialTypes: (credentialTypes.data ?? []) as CredentialType[], qualificationRequirements: qualificationRequirements.data ?? [], error: employees.error ? safeStaffMessage(employees.error.message) : credentialTypes.error ? safeStaffMessage(credentialTypes.error.message) : qualificationRequirements.error ? safeStaffMessage(qualificationRequirements.error.message) : null };
+  const linkedIds = new Set(directory.map((employee) => employee.auth_user_id).filter(Boolean));
+  return { supervisors: directory.filter((employee) => employee.is_supervisor), employees: directory, platformAccounts: (profiles.data ?? []).filter((profile) => !linkedIds.has(profile.id)), credentialTypes: (credentialTypes.data ?? []) as CredentialType[], qualificationRequirements: qualificationRequirements.data ?? [], error: employees.error ? safeStaffMessage(employees.error.message) : credentialTypes.error ? safeStaffMessage(credentialTypes.error.message) : qualificationRequirements.error ? safeStaffMessage(qualificationRequirements.error.message) : profiles.error ? safeStaffMessage(profiles.error.message) : null };
 }
 
 export async function getEmployeeDashboardSummary() {
@@ -186,14 +188,13 @@ export async function getEmployeeEligibilityWarnings(userIds: string[], scope: {
   const supabase = await createClient();
   if (!supabase || !userIds.length) return [];
   const { data: directory } = await supabase.rpc("get_employee_operational_directory");
-  const employees = (((directory as { employees?: Array<{ id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string; employment_status: string; is_active: boolean; employee_credentials?: Array<{ status: string; expiration_date: string | null; credential_type_id: string }> }> } | null)?.employees ?? [])).filter((employee) => employee.auth_user_id && userIds.includes(employee.auth_user_id));
+  const employees = (((directory as { employees?: Array<{ id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string; employment_status: string; is_active: boolean; employee_credentials?: Array<{ status: string; expiration_date: string | null; credential_type_id: string }> }> } | null)?.employees ?? [])).filter((employee) => userIds.includes(employee.id) || Boolean(employee.auth_user_id && userIds.includes(employee.auth_user_id)));
   const { data: requirements } = await supabase.from("qualification_requirements").select("credential_type_id, warning_only, credential_types(label)").eq("requirement_scope", scope.type).eq("scope_value", scope.value).eq("is_active", true);
   const today = getBusinessDateKey(new Date());
-  const foundUserIds = new Set((employees ?? []).map((employee) => employee.auth_user_id));
+  const foundUserIds = new Set((employees ?? []).flatMap((employee) => [employee.id, employee.auth_user_id].filter(Boolean)));
   const missingRecords = userIds.filter((userId) => !foundUserIds.has(userId)).map((userId) => ({ userId, message: "This assigned user has no linked employee readiness record. Review the assignment.", requiresOverride: false }));
   const employeeWarnings = (employees ?? []).flatMap((employee) => {
-    const userId = employee.auth_user_id;
-    if (!userId) return [];
+    const userId = employee.id;
     const label = employee.preferred_name || employee.legal_name || "Employee";
     const warnings: { userId: string; message: string; requiresOverride: boolean }[] = [];
     if (!employee.is_active || ["inactive", "separated", "leave"].includes(employee.employment_status)) warnings.push({ userId, message: `${label} is ${employee.employment_status} and is not normally scheduling-eligible.`, requiresOverride: true });

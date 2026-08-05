@@ -129,7 +129,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             <SummaryFact icon={<UserRound size={18} />} label="Customer" value={job.organizations?.name ?? job.customers?.display_name ?? "Not attached"} />
             <SummaryFact icon={<MapPin size={18} />} label="Service location" value={formatLocation(job.service_locations)} />
             <SummaryFact icon={<CalendarDays size={18} />} label="Scheduled" value={currentWorkSession ? formatDateTime(currentWorkSession.starts_at) : currentAppointment ? formatDateTime(currentAppointment.starts_at) : "Not scheduled"} />
-            <SummaryFact icon={<Truck size={18} />} label="Assigned crew" value={job.assigned_crew?.full_name ?? job.assigned_crew?.email ?? "Not assigned"} />
+            <SummaryFact icon={<Truck size={18} />} label="Assigned crew" value={job.assigned_employee?.preferred_name ?? job.assigned_employee?.legal_name ?? job.assigned_employee?.contact_email ?? job.assigned_crew?.full_name ?? job.assigned_crew?.email ?? "Not assigned"} />
             <SummaryFact icon={<FileSignature size={18} />} label="Approved quote" value={approvedQuote ? formatCurrency(approvedQuote.total_cents) : "Not linked"} />
             <SummaryFact icon={<ReceiptText size={18} />} label="Invoice" value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Not created"} />
           </dl>

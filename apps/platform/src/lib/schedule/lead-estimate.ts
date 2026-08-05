@@ -72,7 +72,7 @@ export type LeadEstimateSourceRecord = {
     title: string;
     starts_at: string;
     calendar_notes: string | null;
-    schedule_event_assignments?: { user_id: string }[];
+    schedule_event_assignments?: { employee_id: string | null; user_id: string | null }[];
   }[] | null;
 };
 
@@ -97,7 +97,7 @@ export function buildLeadEstimatePrefill(record: LeadEstimateSourceRecord): Lead
 
   return {
     accessNotes: location?.access_notes ?? "",
-    assignedUserId: event?.schedule_event_assignments?.[0]?.user_id ?? "",
+    assignedUserId: event?.schedule_event_assignments?.[0]?.employee_id ?? "",
     calendarNotes: event?.calendar_notes ?? buildCalendarNotes({
       accessNotes: location?.access_notes,
       preferredTiming: record.preferred_appointment_timing,

@@ -189,6 +189,25 @@ export async function updateEmployeeRoles(_state: EmployeeActionState, formData:
   revalidateEmployee(employeeId); return warnings.length ? { status: "warning", message: `Platform roles updated with a qualification warning. ${warnings.map((warning) => warning.message).join(" ")}` } : ok("Platform roles updated.");
 }
 
+export async function linkEmployeePlatformAccount(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  const context = await getStaffContext(true); if (!context) return fail("Only owner/admin can link platform accounts.");
+  const employeeId = text(formData, "employee_id", 80); const authUserId = text(formData, "auth_user_id", 80);
+  if (!employeeId || !authUserId) return fail("Choose an existing platform account.");
+  const [employeeResult, profileResult, existingLinkResult] = await Promise.all([
+    context.supabase.from("employee_records").select("id, auth_user_id").eq("id", employeeId).is("archived_at", null).maybeSingle(),
+    context.supabase.from("profiles").select("id, email").eq("id", authUserId).maybeSingle(),
+    context.supabase.from("employee_records").select("id").eq("auth_user_id", authUserId).neq("id", employeeId).maybeSingle(),
+  ]);
+  if (!employeeResult.data) return fail("Employee record not found.");
+  if (employeeResult.data.auth_user_id) return fail("This employee already has a linked platform account.");
+  if (!profileResult.data) return fail("The selected platform account no longer exists.");
+  if (existingLinkResult.data) return fail("That platform account is already linked to another employee.");
+  const { data: linked, error } = await context.supabase.from("employee_records").update({ auth_user_id: authUserId, manual_review_required: false }).eq("id", employeeId).is("auth_user_id", null).select("id").maybeSingle();
+  if (error || !linked) return fail(error?.message ?? "The account could not be linked. Refresh and try again.");
+  await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_platform_account_linked", subjectId: employeeId, subjectType: "employee", metadata: { auth_user_id: authUserId } });
+  revalidateEmployee(employeeId); return ok(`Platform account linked${profileResult.data.email ? ` to ${profileResult.data.email}` : ""}. You can now assign its access roles.`);
+}
+
 export async function markEmployeeInactive(formData: FormData) {
   const context = await getStaffContext(true); if (!context) return;
   const employeeId = text(formData, "employee_id", 80); const reason = text(formData, "reason", 1000); if (!employeeId || !reason) return;

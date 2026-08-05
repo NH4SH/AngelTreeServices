@@ -1,7 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AlertTriangle, CalendarClock, Globe2, MailCheck, MessageSquareMore, PhoneCall, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, Globe2, MailCheck, MessageSquareMore, Settings2 } from "lucide-react";
 import { CommunicationSettingsForm, RunCommunicationWorkerForm } from "@/components/communication-settings-form";
 import { EmailHistoryList } from "@/components/email-history";
 import { ListPagination } from "@/components/list-pagination";
@@ -27,24 +27,27 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const context = await getAuthenticatedPlatformContext("/admin/communications");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening communications" />;
 
-  const [settings, communications, websiteLeads, emailEvents] = await Promise.all([
+  const [settings, pendingCommunications, failedCommunications, recentCommunications, websiteLeads, emailEvents] = await Promise.all([
     getCommunicationSettings(),
-    getCustomerCommunications({ limit: 100 }),
+    getCustomerCommunications({ statuses: ["pending"], limit: 30 }),
+    getCustomerCommunications({ statuses: ["failed"], limit: 20 }),
+    getCustomerCommunications({ statuses: ["processing", "sent", "skipped", "cancelled"], limit: 20 }),
     getWebsiteLeadInbox({ disposition: leadView, limit: 24, page, query: params.q }),
-    getEmailEvents({ types: ["quote", "invoice", "change_order"], limit: 100 }),
+    getEmailEvents({ types: ["quote", "invoice", "change_order"], limit: 30 }),
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const canDeleteLeads = context.roles.includes("owner");
-  const pending = communications.data.filter((item) => item.status === "pending").sort(byScheduledDate);
-  const failed = communications.data.filter((item) => item.status === "failed");
-  const recent = communications.data.filter((item) => !["pending", "failed"].includes(item.status)).slice(0, 20);
+  const pending = pendingCommunications.data.sort(byScheduledDate);
+  const failed = failedCommunications.data;
+  const recent = recentCommunications.data;
+  const communicationsError = pendingCommunications.error ?? failedCommunications.error ?? recentCommunications.error;
   const acceptedEmailCount = emailEvents.data.filter((item) => item.status === "sent").length;
   const failedEmailCount = emailEvents.data.filter((item) => item.status === "failed").length;
   const leadViewLabel = leadView === "active" ? "Active leads" : leadView === "spam" ? "Spam leads" : "Archived leads";
 
   return (
     <PlatformFrame active="communications" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content">
+      <div className="shell app-content communication-page">
         <section className="page-heading">
           <div>
             <p className="surface-label"><MessageSquareMore aria-hidden="true" size={18} />Office inbox</p>
@@ -54,26 +57,26 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
           {canManageSettings ? <RunCommunicationWorkerForm /> : null}
         </section>
 
-        <nav className="local-workflow-tabs" aria-label="Lead and communication views">
-          <a aria-current="page" href="#inbox"><MessageSquareMore size={16} />Inbox</a>
+        <nav className="local-workflow-tabs" aria-label="Lead and communication sections">
+          <a href="#inbox"><MessageSquareMore size={16} />Inbox</a>
           <a href="#website-leads"><Globe2 size={16} />Website leads</a>
           <Link href="/admin/schedule?event_type=estimate"><CalendarClock size={16} />Estimate appointments</Link>
           <a href="#history"><MailCheck size={16} />Communication history</a>
         </nav>
 
         {settings.error ? <Warning message={settings.error} /> : null}
-        {communications.error ? <Warning message={communications.error} /> : null}
+        {communicationsError ? <Warning message={communicationsError} /> : null}
         {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
         {emailEvents.error ? <Warning message={`Email delivery history: ${emailEvents.error}`} /> : null}
 
-        <section className="communication-metric-grid">
+        <dl aria-label="Communication summary" className="communication-summary-strip">
           <Metric icon={<Globe2 size={19} />} label={leadViewLabel} value={websiteLeads.count} />
           <Metric icon={<CalendarClock size={19} />} label="Pending messages" value={pending.length} />
-          <Metric icon={<AlertTriangle size={19} />} label="Failed" value={failed.length + failedEmailCount} />
-          <Metric icon={<MailCheck size={19} />} label="Provider accepted" value={acceptedEmailCount} />
-        </section>
+          <Metric icon={<AlertTriangle size={19} />} label="Recent failures" value={failed.length + failedEmailCount} />
+          <Metric icon={<MailCheck size={19} />} label="Recent accepted" value={acceptedEmailCount} />
+        </dl>
 
-        <section className="detail-panel" id="website-leads">
+        <section className="website-lead-workspace" id="website-leads">
           <div className="panel-heading-row">
             <div>
               <h2 className="panel-title"><Globe2 size={18} />Website lead inbox</h2>
@@ -83,9 +86,9 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
           </div>
           <ListSearch initialValue={params.q} label="Search website leads" placeholder="Search lead name, phone, email, address, service, status, or crew" />
           <nav className="filter-pills lead-view-filters" aria-label="Website lead view">
-            <Link aria-current={leadView === "active" ? "page" : undefined} href={leadViewHref("active", params.q)}>Active</Link>
-            <Link aria-current={leadView === "spam" ? "page" : undefined} href={leadViewHref("spam", params.q)}>Spam</Link>
-            <Link aria-current={leadView === "archived" ? "page" : undefined} href={leadViewHref("archived", params.q)}>Archived</Link>
+            <LeadViewLink current={leadView === "active"} href={leadViewHref("active", params.q)} label="Active" />
+            <LeadViewLink current={leadView === "spam"} href={leadViewHref("spam", params.q)} label="Spam" />
+            <LeadViewLink current={leadView === "archived"} href={leadViewHref("archived", params.q)} label="Archived" />
           </nav>
           <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} />
           <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ lead_view: leadView === "active" ? undefined : leadView, q: params.q }} />
@@ -123,6 +126,10 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   );
 }
 
+function LeadViewLink({ current, href, label }: { current: boolean; href: string; label: string }) {
+  return <Link aria-current={current ? "page" : undefined} href={href}>{current ? <Check aria-hidden="true" size={15} /> : null}{label}</Link>;
+}
+
 function positivePage(value?: string) {
   const page = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(page) && page > 0 ? page : 1;
@@ -156,11 +163,12 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
           <dl className="record-details website-lead-details">
             <Detail label="Phone" value={lead.phone ?? "Not provided"} />
             <Detail label="Email" value={lead.email ?? "Not provided"} />
+            <Detail emphasis label="Preferred contact" value={formatPreferredContactMethod(lead.preferredContactMethod)} />
             <Detail label="Service" value={lead.serviceRequested ?? "Not selected"} />
             <Detail label="Address" value={lead.address || "Needs confirmation"} />
             <Detail label="Assigned" value={lead.assignedStaff ?? "Unassigned"} />
             <Detail label="Last communication" value={lead.lastCommunication ?? "No staff communication yet"} />
-            <Detail label="Next action" value={lead.nextAction ?? "Review lead"} />
+            <Detail emphasis label="Next action" value={lead.nextAction ?? "Review lead"} />
             <Detail label="Office notification" value={lead.notificationStatus} />
             <div className="website-lead-project-details">
               <dt>Project details</dt>
@@ -185,8 +193,23 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd></div>;
+function Detail({ emphasis = false, label, value }: { emphasis?: boolean; label: string; value: string }) {
+  return <div className={emphasis ? "website-lead-emphasis" : undefined}><dt>{label}</dt><dd>{value}</dd></div>;
+}
+
+function formatPreferredContactMethod(value: string | null) {
+  switch (value) {
+    case "phone":
+      return "Phone call";
+    case "text":
+      return "Text message";
+    case "email":
+      return "Email";
+    case "other":
+      return "Other";
+    default:
+      return "No preference provided";
+  }
 }
 
 function CommunicationRows({ empty, rows }: { empty: string; rows: CustomerCommunication[] }) {
@@ -209,7 +232,7 @@ function CommunicationRows({ empty, rows }: { empty: string; rows: CustomerCommu
 }
 
 function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return <article className="communication-metric"><span>{icon}</span><div><strong>{value}</strong><small>{label}</small></div></article>;
+  return <div><dt><span aria-hidden="true">{icon}</span>{label}</dt><dd>{value}</dd></div>;
 }
 
 function Warning({ message }: { message: string }) {

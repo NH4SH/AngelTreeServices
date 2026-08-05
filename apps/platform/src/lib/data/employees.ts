@@ -14,7 +14,6 @@ import type {
 const detailSelect = `
   *,
   profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email),
-  supervisor:employee_records!employee_records_supervisor_employee_id_fkey(id, preferred_name, legal_name),
   employee_emergency_contacts(*),
   employee_onboarding_items(*),
   employee_credentials(*, credential_types(*)),
@@ -88,13 +87,17 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
   if (error || !data) return { data: null, error: error ? safeStaffMessage(error.message, "Employee not found or no access.") : "Employee not found or no access." };
   const employee = data as EmployeeDetail;
   const authId = employee.auth_user_id;
-  const [roles, timer, equipment, activity, privateRecord] = await Promise.all([
+  const [supervisor, roles, timer, equipment, activity, privateRecord] = await Promise.all([
+    employee.supervisor_employee_id
+      ? supabase.from("employee_records").select("id, preferred_name, legal_name").eq("id", employee.supervisor_employee_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
     authId ? supabase.from("user_roles").select("roles(name)").eq("user_id", authId) : Promise.resolve({ data: [], error: null }),
     authId ? supabase.from("time_clock_permissions").select("is_enabled").eq("user_id", authId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     authId ? supabase.from("equipment_assignments").select("*, equipment_assets(id, asset_number, name, category, status)").eq("assigned_user_id", authId).order("starts_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
     supabase.from("activity_log").select("id, event_type, actor_user_id, metadata_json, created_at").eq("subject_type", "employee").eq("subject_id", employeeId).order("created_at", { ascending: false }).limit(50),
     includePrivateNotes ? supabase.from("employee_private_records").select("private_hr_notes").eq("employee_id", employeeId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
+  employee.supervisor = supervisor.data;
 
   const documents = employee.employee_documents ?? [];
   if (documents.length) {
@@ -108,7 +111,7 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
   });
   return {
     data: { employee, roles: roleNames, timeClockEnabled: Boolean(timer.data?.is_enabled), equipmentAssignments: equipment.data ?? [], activity: activity.data ?? [], privateNotes: privateRecord.data?.private_hr_notes ?? null },
-    error: roles.error ? safeStaffMessage(roles.error.message) : timer.error ? safeStaffMessage(timer.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : activity.error ? safeStaffMessage(activity.error.message) : privateRecord.error ? safeStaffMessage(privateRecord.error.message) : null,
+    error: supervisor.error ? safeStaffMessage(supervisor.error.message) : roles.error ? safeStaffMessage(roles.error.message) : timer.error ? safeStaffMessage(timer.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : activity.error ? safeStaffMessage(activity.error.message) : privateRecord.error ? safeStaffMessage(privateRecord.error.message) : null,
   };
 }
 

@@ -38,6 +38,7 @@ export type WebsiteLeadInboxItem = {
   nextAction: string | null;
   notificationStatus: "pending" | "sent" | "failed" | "skipped";
   phone: string | null;
+  preferredContactMethod: string | null;
   projectDetails: string | null;
   serviceRequested: string | null;
   sourceBadge: string;
@@ -202,7 +203,7 @@ export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "s
   let jobsQuery: any = supabase
     .from("jobs")
     .select(
-      "id, status, submitted_at, created_at, service_type, requested_scope, duplicate_of_job_id, notification_status, lead_disposition, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
+      "id, status, submitted_at, created_at, service_type, requested_scope, preferred_contact_method, duplicate_of_job_id, notification_status, lead_disposition, customers:customers!jobs_customer_id_fkey(display_name, phone, email), organizations(name, billing_phone, billing_email), service_locations(street, city, state, postal_code), profiles:profiles!jobs_assigned_crew_user_id_fkey(full_name, email)",
       { count: "exact" },
     )
     .not("website_submission_id", "is", null)
@@ -291,6 +292,7 @@ export async function getWebsiteLeadInbox(filters: { disposition?: "active" | "s
         nextAction: pending ? `Pending ${pending.communication_type.replaceAll("_", " ")} · ${formatDateTime(pending.scheduled_for)}` : defaultNextAction(job.status as JobStatus),
         notificationStatus: (job.notification_status ?? "pending") as WebsiteLeadInboxItem["notificationStatus"],
         phone: customer?.phone || organization?.billing_phone || null,
+        preferredContactMethod: job.preferred_contact_method ?? null,
         projectDetails: job.requested_scope?.trim() || null,
         serviceRequested: job.service_type ? job.service_type.replaceAll("_", " ") : null,
         sourceBadge: "Website",

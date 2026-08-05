@@ -18,9 +18,13 @@ export function ListPagination({
 
   return (
     <nav aria-label="Results pages" className="list-pagination">
-      <Link aria-disabled={page <= 1} href={href(Math.max(1, page - 1))}>Previous</Link>
-      <span>Page {Math.min(page, totalPages)} of {totalPages}</span>
-      <Link aria-disabled={page >= totalPages} href={href(Math.min(totalPages, page + 1))}>Next</Link>
+      {page <= 1
+        ? <span aria-disabled="true" className="pagination-disabled">Previous</span>
+        : <Link href={href(page - 1)}>Previous</Link>}
+      <span className="pagination-position">Page {Math.min(page, totalPages)} of {totalPages}</span>
+      {page >= totalPages
+        ? <span aria-disabled="true" className="pagination-disabled">Next</span>
+        : <Link href={href(page + 1)}>Next</Link>}
     </nav>
   );
 

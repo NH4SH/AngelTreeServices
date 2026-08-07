@@ -1,5 +1,6 @@
+import { after } from "next/server";
 import { runAllHealthChecks } from "@/lib/system-health/checks";
-import { persistHealthRun } from "@/lib/system-health/store";
+import { persistHealthRun, pruneHealthHistory } from "@/lib/system-health/store";
 import { bearerToken, monitoringSecretMatches } from "@/lib/security/monitoring-secret";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
@@ -35,6 +36,12 @@ export async function POST(request: Request) {
   if (stored.error) {
     return Response.json({ ok: false, message: "Health results could not be recorded." }, { status: 503 });
   }
+
+  after(async () => {
+    const cleanupError = await pruneHealthHistory(supabase);
+    if (cleanupError) console.warn("System health retention cleanup failed.");
+  });
+
   const criticalFailure = checks.some(({ component, result }) =>
     component.critical && (result.status === "outage" || result.status === "degraded"));
   return Response.json(

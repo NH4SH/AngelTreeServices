@@ -50,11 +50,25 @@ jobs:
 
           if [ -z "${MONITOR_SECRET}" ]; then
             failures="${failures}SYSTEM_HEALTH_MONITOR_SECRET is not configured in GitHub Actions; "
-          elif ! curl --fail --silent --show-error \
-            --connect-timeout 8 --max-time 90 --retry 1 --retry-delay 15 \
-            -X POST -H "Authorization: Bearer ${MONITOR_SECRET}" \
-            "${ADMIN_URL}/api/internal/system-health/run" >/dev/null; then
-            failures="${failures}Detailed readiness checks failed; "
+          else
+            curl --fail --silent --show-error \
+              --connect-timeout 8 --max-time 90 --retry 1 --retry-delay 15 \
+              -X POST -H "Authorization: Bearer ${MONITOR_SECRET}" \
+              "${ADMIN_URL}/api/internal/system-health/run" >/dev/null
+            detailed_exit=$?
+            if [ "${detailed_exit}" -ne 0 ]; then
+              case "${detailed_exit}" in
+                22)
+                  failures="${failures}Detailed readiness checks reported attention required; "
+                  ;;
+                28)
+                  failures="${failures}Detailed readiness request timed out; "
+                  ;;
+                *)
+                  failures="${failures}Detailed readiness request failed; "
+                  ;;
+              esac
+            fi
           fi
 
           if [ -n "${failures}" ]; then

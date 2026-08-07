@@ -35,13 +35,17 @@ export async function persistHealthRun(
     recorded += 1;
   }
 
+  return { error: null, recorded };
+}
+
+export async function pruneHealthHistory(supabase: ServiceClient) {
   const retentionBefore = new Date(Date.now() - 35 * 24 * 60 * 60_000).toISOString();
   const incidentRetentionBefore = new Date(Date.now() - 365 * 24 * 60 * 60_000).toISOString();
-  await Promise.all([
+  const [checks, incidents] = await Promise.all([
     supabase.from("system_health_checks").delete().lt("checked_at", retentionBefore),
     supabase.from("system_health_incidents").delete().not("resolved_at", "is", null).lt("resolved_at", incidentRetentionBefore),
   ]);
-  return { error: null, recorded };
+  return checks.error?.message ?? incidents.error?.message ?? null;
 }
 
 async function persistHealthCheck(

@@ -7,12 +7,14 @@ import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CalendarPlus, Clock3, MapPinned, Save, Search, UserRound, X } from "lucide-react";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
+import { updateJobWorkSessionTime } from "@/app/admin/jobs/actions";
 import {
   createScheduleEvent,
   createScheduleCustomerJob,
   scheduleLeadEstimate,
   schedulePartyEstimate,
   updateScheduleEventDetails,
+  updateScheduleEventTime,
   type AppointmentActionState,
 } from "./actions";
 import type { ScheduleCustomerOption, ScheduleEventType, ScheduleEventStatus, ScheduleEventWithRelations, ScheduleJobOption, ScheduleUser } from "@/lib/types/database";
@@ -45,6 +47,82 @@ const statuses: ScheduleEventStatus[] = [
   "cancelled",
   "no_show",
 ];
+
+export function ScheduleEventQuickTimeForm({ event }: { event: ScheduleEventWithRelations }) {
+  return event.event_type === "job"
+    ? <JobWorkSessionQuickTimeForm event={event} />
+    : <StandardEventQuickTimeForm event={event} />;
+}
+
+function JobWorkSessionQuickTimeForm({ event }: { event: ScheduleEventWithRelations }) {
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(updateJobWorkSessionTime, initialState);
+  const [allowConflicts, setAllowConflicts] = useState(false);
+
+  useEffect(() => {
+    if (state.status === "success") router.refresh();
+  }, [router, state.status]);
+
+  return <QuickTimeFields
+    action={action}
+    allowConflicts={allowConflicts}
+    event={event}
+    onAllowConflicts={setAllowConflicts}
+    pending={pending}
+    state={state}
+  />;
+}
+
+function StandardEventQuickTimeForm({ event }: { event: ScheduleEventWithRelations }) {
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(updateScheduleEventTime, initialState);
+
+  useEffect(() => {
+    if (state.status === "success") router.refresh();
+  }, [router, state.status]);
+
+  return <QuickTimeFields action={action} event={event} pending={pending} state={state} />;
+}
+
+function QuickTimeFields({
+  action,
+  allowConflicts = false,
+  event,
+  onAllowConflicts,
+  pending,
+  state,
+}: {
+  action: (formData: FormData) => void;
+  allowConflicts?: boolean;
+  event: ScheduleEventWithRelations;
+  onAllowConflicts?: (value: boolean) => void;
+  pending: boolean;
+  state: AppointmentActionState & { conflicts?: string[] };
+}) {
+  const start = toScheduleDateTimeLocal(event.starts_at);
+  const end = event.ends_at ? toScheduleDateTimeLocal(event.ends_at) : "";
+
+  return <form action={action} className="schedule-quick-time-form">
+    <div className="schedule-quick-time-heading">
+      <Clock3 aria-hidden="true" size={18} />
+      <div><strong>Date &amp; time</strong><span>Edit this calendar item directly.</span></div>
+    </div>
+    <input name="event_id" type="hidden" value={event.id} />
+    <input name="allow_conflicts" type="hidden" value={allowConflicts ? "1" : "0"} />
+    <label>Date<input defaultValue={start.slice(0, 10)} name="date" required type="date" /></label>
+    <label>Start<input defaultValue={start.slice(11, 16)} name="start_time" required type="time" /></label>
+    <label>End<input defaultValue={end.slice(11, 16)} name="end_time" required type="time" /></label>
+    <button disabled={pending} type="submit"><Save aria-hidden="true" size={17} />{pending ? "Saving..." : "Save"}</button>
+    {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
+      <strong>{state.message}</strong>
+      {state.conflicts?.map((conflict) => <span key={conflict}>{conflict}</span>)}
+    </div> : null}
+    {state.status === "warning" && onAllowConflicts ? <label className="schedule-quick-conflict-override">
+      <input checked={allowConflicts} onChange={(change) => onAllowConflicts(change.target.checked)} type="checkbox" />
+      Save despite these crew conflicts
+    </label> : null}
+  </form>;
+}
 
 export function ScheduleEventDrawerContent({
   closeHref,

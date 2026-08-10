@@ -294,6 +294,7 @@ export function JobScheduleManager({
                     <button aria-label={`Remove ${formatDateLong(session.date)}`} className="icon-action" onClick={() => removeDate(session.date)} title="Remove workday" type="button"><Trash2 size={17} /></button>
                   </div>
                   <div className="selected-workday-fields">
+                    <label>Date<input aria-label={`${formatDateLong(session.date)} workday date`} onChange={(event) => updateSession(session.clientId, { date: event.target.value })} required type="date" value={session.date} /></label>
                     <label>Start time<input onChange={(event) => updateSession(session.clientId, { start_time: event.target.value })} required type="time" value={session.start_time} /></label>
                     <span className="time-separator">to</span>
                     <label>End time<input min={session.start_time} onChange={(event) => updateSession(session.clientId, { end_time: event.target.value })} required type="time" value={session.end_time} /></label>

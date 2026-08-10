@@ -797,6 +797,52 @@ export async function updateScheduleEventStatusFromForm(formData: FormData) {
   await updateScheduleEventStatus({ status: "idle", message: "" }, formData);
 }
 
+export async function updateScheduleEventTime(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before rescheduling events." };
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const date = String(formData.get("date") ?? "").trim();
+  const startTime = String(formData.get("start_time") ?? "").trim();
+  const endTime = String(formData.get("end_time") ?? "").trim();
+  const startsAt = parseScheduleDateTime(`${date}T${startTime}`);
+  const endsAt = parseScheduleDateTime(`${date}T${endTime}`);
+
+  if (!eventId || !startsAt || !endsAt) {
+    return { status: "error", message: "Choose a valid date, start time, and end time." };
+  }
+  if (endsAt <= startsAt) return { status: "error", message: "End time must be after the start time." };
+
+  const { data, error } = await supabase
+    .from("schedule_events")
+    .update({ starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString(), all_day: false })
+    .eq("id", eventId)
+    .in("event_type", ["estimate", "emergency"])
+    .in("status", ["scheduled", "confirmed", "in_progress"])
+    .select("id, job_id")
+    .maybeSingle();
+
+  if (error) return { status: "error", message: safeStaffMessage(error.message) };
+  if (!data) return { status: "error", message: "The event is no longer active or cannot be rescheduled here." };
+
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "schedule_event_rescheduled",
+    metadata: { ends_at: endsAt.toISOString(), starts_at: startsAt.toISOString() },
+    subjectId: eventId,
+    subjectType: "schedule_event",
+  });
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: "Date and time updated." };
+}
+
 export async function updateScheduleEventDetails(
   _previousState: AppointmentActionState,
   formData: FormData,

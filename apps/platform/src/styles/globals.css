@@ -3092,6 +3092,107 @@
   }
 }
 
+/* Compact schedule editing keeps routine date changes inside the event panel. */
+.schedule-quick-time-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.35fr) repeat(2, minmax(110px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 16px 0 0;
+  border-block: 1px solid var(--color-border);
+  background: var(--color-surface-green);
+  padding: 14px;
+}
+
+.schedule-quick-time-heading {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-forest);
+}
+
+.schedule-quick-time-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.schedule-quick-time-heading span {
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+
+.schedule-quick-time-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-charcoal);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.schedule-quick-time-form input[type="date"],
+.schedule-quick-time-form input[type="time"] {
+  min-width: 0;
+  min-height: 44px;
+}
+
+.schedule-quick-time-form > button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.schedule-quick-time-form .form-message,
+.schedule-quick-conflict-override {
+  grid-column: 1 / -1;
+}
+
+.schedule-quick-conflict-override {
+  display: flex !important;
+  grid-template-columns: none !important;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.selected-workday-fields {
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 1fr) auto minmax(120px, 1fr) minmax(130px, auto) minmax(180px, 1.1fr);
+}
+
+.drawer-job-schedule-manager .selected-workday-fields {
+  grid-template-columns: repeat(3, minmax(110px, 1fr)) auto minmax(95px, auto) minmax(150px, 1.15fr);
+}
+
+@media (max-width: 760px) {
+  .schedule-quick-time-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: -2px;
+    padding-inline: 12px;
+  }
+
+  .schedule-quick-time-form label:first-of-type,
+  .schedule-quick-time-form > button {
+    grid-column: 1 / -1;
+  }
+
+  .schedule-quick-time-form > button {
+    justify-content: center;
+  }
+
+  .selected-workday-fields,
+  .drawer-job-schedule-manager .selected-workday-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .selected-workday-fields .time-separator {
+    display: none;
+  }
+
+  .selected-workday-fields .workday-duration,
+  .selected-workday-fields .workday-crew {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 430px) {
   .job-schedule-form {
     padding: 15px;

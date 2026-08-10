@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
+import { syncAutomatedCommunications } from "@/lib/communications/queue";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { buildActiveJobWorkSessions, replaceJobWorkSessionTiming } from "@/lib/schedule/job-work-sessions";
 import type { JobPriority, JobStatus } from "@/lib/types/database";
 
 export type JobActionState = {
@@ -171,6 +174,9 @@ export async function saveJobWorkSessions(
     subjectType: "job",
   });
 
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
@@ -186,6 +192,70 @@ export async function saveJobWorkSessions(
       ? `Schedule saved for ${sessionCount} ${sessionCount === 1 ? "workday" : "workdays"}.`
       : "The job schedule was cleared. No work records were deleted.",
   };
+}
+
+export async function updateJobWorkSessionTime(
+  _previousState: JobScheduleActionState,
+  formData: FormData,
+): Promise<JobScheduleActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before rescheduling work." };
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const date = String(formData.get("date") ?? "").trim();
+  const startTime = String(formData.get("start_time") ?? "").trim();
+  const endTime = String(formData.get("end_time") ?? "").trim();
+
+  if (!eventId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+    return { status: "error", message: "Choose a valid date, start time, and end time." };
+  }
+  if (endTime <= startTime) return { status: "error", message: "End time must be after the start time." };
+
+  const { data: selectedEvent, error: selectedEventError } = await supabase
+    .from("schedule_events")
+    .select("id, job_id")
+    .eq("id", eventId)
+    .eq("event_type", "job")
+    .in("status", ["scheduled", "confirmed", "in_progress"])
+    .maybeSingle();
+
+  if (selectedEventError) return { status: "error", message: safeStaffMessage(selectedEventError.message) };
+  if (!selectedEvent?.job_id) return { status: "error", message: "The selected workday is no longer active or linked to a job." };
+
+  const { data: events, error: eventsError } = await supabase
+    .from("schedule_events")
+    .select("id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(employee_id)")
+    .eq("job_id", selectedEvent.job_id)
+    .eq("event_type", "job")
+    .in("status", ["scheduled", "confirmed", "in_progress"])
+    .order("starts_at", { ascending: true });
+
+  if (eventsError) return { status: "error", message: safeStaffMessage(eventsError.message) };
+
+  let sessions: WorkSessionInput[];
+  try {
+    sessions = replaceJobWorkSessionTiming(
+      buildActiveJobWorkSessions(events ?? []),
+      eventId,
+      { date, start_time: startTime, end_time: endTime },
+    );
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "The selected workday could not be updated." };
+  }
+
+  const replacement = new FormData();
+  replacement.set("job_id", selectedEvent.job_id);
+  replacement.set("save_mode", "replace");
+  replacement.set("sessions_json", JSON.stringify(sessions));
+  if (formData.get("allow_conflicts") === "1") replacement.set("allow_conflicts", "1");
+
+  const result = await saveJobWorkSessions(_previousState, replacement);
+  return result.status === "success"
+    ? { ...result, message: "Workday schedule updated. Crew assignments and notes were preserved." }
+    : result;
 }
 
 function validateWorkSessions(sessions: WorkSessionInput[]) {

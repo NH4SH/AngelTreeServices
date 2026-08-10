@@ -26,6 +26,14 @@ test("multi-day work sessions persist employee IDs through the compatibility RPC
   assert.match(migration, /assigned_crew_employee_id/);
 });
 
+test("the additive employee scheduling wrapper uses unambiguous local identifiers", async () => {
+  const migration = await source("supabase/migrations/20260810225226_align_employee_work_session_identifiers.sql");
+  assert.match(migration, /target_event_id/);
+  assert.match(migration, /target_employee_id/);
+  assert.doesNotMatch(migration, /where assignment\.event_id = event_id/);
+  assert.doesNotMatch(migration, /values \(event_id, employee_id,/);
+});
+
 test("admin promotion stays behind the existing audited role RPC", async () => {
   const employeeActions = await source("apps/platform/src/app/admin/employees/actions.ts");
   assert.match(employeeActions, /getStaffContext\(true\)/);

@@ -19,7 +19,7 @@ import { MarkJobCompleteAction } from "@/components/workflow-actions";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
 import { ScheduleDaySheet } from "./ScheduleDaySheet";
-import { ScheduleEventDrawerContent, ScheduleEventEditForm } from "./ScheduleEventForm";
+import { ScheduleEventDrawerContent, ScheduleEventEditForm, ScheduleEventQuickTimeForm } from "./ScheduleEventForm";
 import { AppointmentStatusAction, ScheduleEventStatusAction } from "./ScheduleStatusAction";
 import {
   appointmentStatuses,
@@ -792,6 +792,12 @@ function ScheduleEventDetailPanel({
             <X aria-hidden="true" size={17} />
           </Link>
         </div>
+
+        {["estimate", "job", "emergency"].includes(event.event_type)
+          && ["scheduled", "confirmed", "in_progress"].includes(event.status)
+          && !event.all_day ? (
+            <ScheduleEventQuickTimeForm event={event} key={`${event.id}-${event.starts_at}-${event.ends_at ?? ""}`} />
+          ) : null}
 
         {detailWarnings.length ? (
           <div className="schedule-detail-warning-list">

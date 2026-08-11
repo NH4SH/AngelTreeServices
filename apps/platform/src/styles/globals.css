@@ -10384,9 +10384,12 @@ h1 {
 
 .customer-email-composer {
   border-top: 1px solid var(--color-border);
+  container-name: email-composer;
+  container-type: inline-size;
   display: grid;
   gap: 18px;
   margin-top: 4px;
+  min-width: 0;
   padding-top: 18px;
 }
 
@@ -10397,10 +10400,17 @@ h1 {
   justify-content: space-between;
 }
 
+.customer-email-composer > header > *,
+.email-composer-field-heading > span,
+.email-full-preview-content {
+  min-width: 0;
+}
+
 .customer-email-composer > header h3 {
   color: var(--color-charcoal);
   font-size: 1.18rem;
   margin: 5px 0;
+  overflow-wrap: anywhere;
 }
 
 .customer-email-composer > header p:not(.surface-label) {
@@ -10447,6 +10457,7 @@ h1 {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .email-composer-header-actions .primary-action,
@@ -10600,6 +10611,7 @@ h1 {
   gap: 14px;
   justify-content: space-between;
   min-height: 54px;
+  min-width: 0;
   padding: 8px 12px;
   position: sticky;
   top: 0;
@@ -10613,6 +10625,9 @@ h1 {
 
 .email-preview-toolbar .segmented-control {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .email-preview-controls {
@@ -10621,6 +10636,7 @@ h1 {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .email-preview-toolbar .segmented-control button {
@@ -10870,7 +10886,10 @@ h1 {
   margin: 16px;
   max-height: 680px;
   overflow: auto;
+  overflow-wrap: anywhere;
   padding: 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .email-full-preview-dialog {
@@ -11168,6 +11187,134 @@ h1 {
 
   .email-preview-toolbar {
     position: static;
+  }
+}
+
+@container email-composer (max-width: 900px) {
+  .customer-email-composer-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .email-authoritative-summary,
+  .multi-quote-authoritative-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .email-authoritative-summary > div + div {
+    border-left: 0;
+  }
+
+  .email-authoritative-summary > div:nth-child(even) {
+    border-left: 1px solid var(--color-border);
+  }
+
+  .email-authoritative-summary > div:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .email-composer-preview-panel {
+    max-height: none;
+    position: static;
+  }
+
+  .email-preview-toolbar {
+    flex-wrap: wrap;
+    position: static;
+  }
+}
+
+@container email-composer (max-width: 620px) {
+  .customer-email-composer > header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .email-portal-recovery-notice {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .email-portal-recovery-notice button {
+    grid-column: 1 / -1;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .email-composer-header-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .email-composer-header-actions .primary-action,
+  .email-composer-header-actions .secondary-action {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .email-composer-header-actions .secondary-action {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .email-authoritative-summary,
+  .multi-quote-authoritative-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .email-authoritative-summary > div:nth-child(even) {
+    border-left: 0;
+  }
+
+  .email-authoritative-summary > div + div {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .customer-email-composer-form > footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-email-composer-form > footer button,
+  .email-document-link {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .email-preview-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .email-preview-controls {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .email-preview-toolbar .segmented-control button {
+    flex: 1 1 120px;
+    min-height: 44px;
+  }
+
+  .email-full-preview-button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .email-composer-field-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .email-composer-field-heading > span {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
   }
 }
 
@@ -13747,6 +13894,16 @@ h1,
   gap: 18px;
   align-items: stretch;
   margin-bottom: 18px;
+}
+
+.invoice-delivery-grid > *,
+.invoice-email-delivery-panel,
+.quote-email-workspace {
+  min-width: 0;
+}
+
+.invoice-delivery-grid:has(.customer-email-composer) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .invoice-delivery-grid .portal-link-panel {

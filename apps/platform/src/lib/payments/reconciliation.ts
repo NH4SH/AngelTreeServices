@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+import { resolveInvoicePaymentStatus } from "@/lib/payments/invoice-payment-state";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
@@ -39,7 +40,7 @@ export async function reconcileInvoiceBalance(
 ): Promise<ReconcileResult> {
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .select("id, status, total_cents, paid_at, due_at")
+    .select("id, status, total_cents, paid_at, due_at, sent_at")
     .eq("id", invoiceId)
     .single();
 
@@ -58,6 +59,7 @@ export async function reconcileInvoiceBalance(
     currentStatus: invoice.status as InvoiceStatus,
     dueAt: invoice.due_at,
     paidCents: payments.totalCents,
+    sentAt: invoice.sent_at,
   });
   const paidAt = balanceDueCents === 0 ? invoice.paid_at ?? new Date().toISOString() : null;
 
@@ -84,38 +86,4 @@ export async function reconcileInvoiceBalance(
   }
 
   return { ok: true, balanceDueCents, paidCents: payments.totalCents, status };
-}
-
-function resolveInvoicePaymentStatus({
-  balanceDueCents,
-  currentStatus,
-  dueAt,
-  paidCents,
-}: {
-  balanceDueCents: number;
-  currentStatus: InvoiceStatus;
-  dueAt: string | null;
-  paidCents: number;
-}): InvoiceStatus {
-  if (currentStatus === "void") {
-    return "void";
-  }
-
-  if (balanceDueCents === 0) {
-    return "paid";
-  }
-
-  if (paidCents > 0) {
-    return "partially_paid";
-  }
-
-  if (currentStatus === "draft") {
-    return "draft";
-  }
-
-  if (currentStatus === "overdue" || (dueAt && new Date(dueAt).getTime() < Date.now())) {
-    return "overdue";
-  }
-
-  return "sent";
 }

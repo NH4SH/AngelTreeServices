@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  ExternalLink,
   Filter,
   MapPinned,
   Navigation,
@@ -772,6 +773,12 @@ function ScheduleEventDetailPanel({
         .filter(Boolean)
         .join(", ")
     : (event.location_label || "No location yet.");
+  const linkedParty = resolveScheduleParty({
+    customerId: event.jobs?.customer_id ?? event.source_customer_id,
+    customerName: event.jobs?.customers?.display_name ?? event.source_customer?.display_name,
+    organizationId: event.jobs?.organization_id ?? event.source_organization_id,
+    organizationName: event.jobs?.organizations?.name ?? event.source_organization?.name,
+  });
   const customerSummary = event.jobs?.organizations?.name
     || event.jobs?.customers?.display_name
     || event.source_organization?.name
@@ -853,8 +860,15 @@ function ScheduleEventDetailPanel({
             <dd>{event.job_id ? `Job ${event.job_id.slice(0, 8)}` : "No linked job"}</dd>
           </div>
           <div>
-            <dt>Customer</dt>
-            <dd>{customerSummary}</dd>
+            <dt>{linkedParty?.detailLabel ?? "Customer"}</dt>
+            <dd>
+              {linkedParty ? (
+                <Link className="schedule-party-link" href={linkedParty.href}>
+                  <span>{linkedParty.name}</span>
+                  <ExternalLink aria-hidden="true" size={15} />
+                </Link>
+              ) : customerSummary}
+            </dd>
           </div>
           <div>
             <dt>Location</dt>
@@ -882,6 +896,7 @@ function ScheduleEventDetailPanel({
             <Link className="primary-action" href={buildScheduleHref(current, { event: undefined, job: event.job_id, new: "1" })}>Edit job schedule</Link>
           ) : null}
           {event.job_id ? <Link href={`/admin/jobs/${event.job_id}`}>Open job</Link> : null}
+          {linkedParty ? <Link href={linkedParty.href}>{linkedParty.actionLabel}</Link> : null}
           <Link href="/admin/equipment">Assign equipment</Link>
           {directionsUrl ? (
             <a href={directionsUrl} rel="noreferrer" target="_blank">
@@ -931,6 +946,15 @@ function AppointmentDetailPanel({
   users: ScheduleUser[];
 }) {
   const directionsUrl = getDirectionsUrl(appointment.service_locations);
+  const linkedParty = resolveScheduleParty({
+    customerId: appointment.jobs?.customer_id,
+    customerName: appointment.jobs?.customers?.display_name,
+    organizationId: appointment.jobs?.organization_id,
+    organizationName: appointment.jobs?.organizations?.name,
+  });
+  const partySummary = appointment.jobs?.organizations?.name
+    || appointment.jobs?.customers?.display_name
+    || "No linked contracting party";
 
   return (
     <div className="appointment-overlay" role="dialog" aria-labelledby="appointment-detail-title" aria-modal="true">
@@ -960,6 +984,17 @@ function AppointmentDetailPanel({
             <dd>{appointment.profiles?.full_name || appointment.profiles?.email || "Unassigned"}</dd>
           </div>
           <div>
+            <dt>{linkedParty?.detailLabel ?? "Customer"}</dt>
+            <dd>
+              {linkedParty ? (
+                <Link className="schedule-party-link" href={linkedParty.href}>
+                  <span>{linkedParty.name}</span>
+                  <ExternalLink aria-hidden="true" size={15} />
+                </Link>
+              ) : partySummary}
+            </dd>
+          </div>
+          <div>
             <dt>Address</dt>
             <dd>{formatAppointmentLocation(appointment)}</dd>
           </div>
@@ -971,6 +1006,7 @@ function AppointmentDetailPanel({
 
         <div className="appointment-detail-actions">
           <Link href={`/admin/jobs/${appointment.job_id}`}>Open job</Link>
+          {linkedParty ? <Link href={linkedParty.href}>{linkedParty.actionLabel}</Link> : null}
           {directionsUrl ? (
             <a href={directionsUrl} rel="noreferrer" target="_blank">
               <Navigation aria-hidden="true" size={15} />
@@ -1003,6 +1039,38 @@ function AppointmentDetailPanel({
       </aside>
     </div>
   );
+}
+
+function resolveScheduleParty({
+  customerId,
+  customerName,
+  organizationId,
+  organizationName,
+}: {
+  customerId?: string | null;
+  customerName?: string | null;
+  organizationId?: string | null;
+  organizationName?: string | null;
+}) {
+  if (organizationId) {
+    return {
+      actionLabel: "Open organization",
+      detailLabel: "Contracting party",
+      href: `/admin/organizations/${organizationId}`,
+      name: organizationName || "Organization record",
+    };
+  }
+
+  if (customerId) {
+    return {
+      actionLabel: "Open customer",
+      detailLabel: "Customer",
+      href: `/admin/customers/${customerId}`,
+      name: customerName || "Customer record",
+    };
+  }
+
+  return null;
 }
 
 function QuickScheduleStatusButton({

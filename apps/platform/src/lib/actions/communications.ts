@@ -6,6 +6,7 @@ import { processCommunicationById, processDueCommunications } from "@/lib/commun
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { isInvoiceReminderEligible } from "@/lib/payments/invoice-payment-state";
 import type {
   CommunicationRecipientSource,
   CommunicationType,
@@ -266,7 +267,7 @@ async function resolveCommunicationContext(
       .eq("id", recordId)
       .maybeSingle();
     if (error || !data) return failedContext(error?.message ?? "Invoice not found.");
-    if (["paid", "void"].includes(data.status) || Number(data.balance_due_cents) <= 0) {
+    if (!isInvoiceReminderEligible(data.status, Number(data.balance_due_cents))) {
       return failedContext("This invoice does not have an eligible balance for a reminder.");
     }
     return contextFromParty(data.customers, data.organizations, { invoiceId: data.id, jobId: data.job_id, sourceVersion: data.updated_at });

@@ -261,14 +261,16 @@ const manualInvoiceSentConfirmation =
 
 export function ManualInvoiceSentAction({
   invoiceId,
+  sentAt,
   status,
 }: {
   invoiceId: string;
+  sentAt: string | null;
   status: InvoiceStatus;
 }) {
   const [state, formAction, pending] = useReliableActionState(markInvoiceSentManually, initialState);
 
-  if (status !== "draft") {
+  if (sentAt || status === "void") {
     return null;
   }
 

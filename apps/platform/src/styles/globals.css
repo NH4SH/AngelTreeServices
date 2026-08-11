@@ -20738,6 +20738,27 @@ body:has(.appointment-overlay) {
   font-size: 0.96rem;
 }
 
+.schedule-party-link {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-forest);
+  font-weight: 720;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.schedule-party-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.schedule-party-link svg {
+  flex: 0 0 auto;
+}
+
 .appointment-detail-actions {
   gap: 10px;
   margin-top: 16px;

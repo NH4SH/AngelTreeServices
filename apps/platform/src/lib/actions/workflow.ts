@@ -393,12 +393,10 @@ export async function markInvoiceSentManually(
   const invoiceId = getString(formData, "invoice_id");
   const { data: invoice, error } = await supabase
     .from("invoices")
-    .update({
-      status: "sent",
-      sent_at: new Date().toISOString(),
-    })
+    .update({ sent_at: new Date().toISOString() })
     .eq("id", invoiceId)
-    .eq("status", "draft")
+    .is("sent_at", null)
+    .neq("status", "void")
     .select("id")
     .maybeSingle();
 
@@ -407,7 +405,12 @@ export async function markInvoiceSentManually(
   }
 
   if (!invoice) {
-    return { status: "error", message: "Only an unsent invoice can be manually marked sent." };
+    return { status: "error", message: "Only an unsent, non-void invoice can be manually marked sent." };
+  }
+
+  const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
+  if (!reconciliation.ok) {
+    return { status: "error", message: `Delivery was recorded, but payment state could not be reconciled: ${reconciliation.message}` };
   }
 
   await recordActivity(supabase, {

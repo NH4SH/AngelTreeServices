@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { syncAutomatedCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import {
   buildMultiQuoteEmailDraft,
   normalizeMultiQuoteIds,
@@ -299,8 +300,8 @@ export async function sendInvoiceEmail(
     return { status: "error", message: "The contracting party does not have a billing email address." };
   }
 
-  if (["paid", "void"].includes(detail.data.status)) {
-    return { status: "error", message: "Paid and void invoices are closed for regular sending." };
+  if (detail.data.status === "void") {
+    return { status: "error", message: "Void invoices cannot be sent." };
   }
 
   const submittedDraft = readCustomerDocumentEmailEdits(formData);
@@ -334,16 +335,21 @@ export async function sendInvoiceEmail(
   });
 
   if (result.ok) {
-    const { error: statusError } = await auth.supabase
+    const sentAt = new Date().toISOString();
+    const { data: deliveredInvoice, error: statusError } = await auth.supabase
       .from("invoices")
-      .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-      })
-      .eq("id", detail.data.id);
+      .update({ sent_at: sentAt })
+      .eq("id", detail.data.id)
+      .neq("status", "void")
+      .select("id")
+      .maybeSingle();
 
-    if (statusError) {
-      return { status: "error", message: `Invoice email sent, but status update failed: ${statusError.message}` };
+    if (statusError || !deliveredInvoice) {
+      return { status: "error", message: `Invoice email sent, but delivery state could not be updated: ${statusError?.message ?? "Invoice is no longer eligible."}` };
+    }
+    const reconciliation = await reconcileInvoiceBalance(auth.supabase, detail.data.id);
+    if (!reconciliation.ok) {
+      return { status: "error", message: `Invoice email sent, but payment state could not be reconciled: ${reconciliation.message}` };
     }
     await recordActivity(auth.supabase, {
       actorUserId: auth.userId,

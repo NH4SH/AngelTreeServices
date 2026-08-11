@@ -22,19 +22,23 @@ type RecipientOption = {
 };
 
 export function CommunicationControls({
+  actionsEnabled = true,
   automaticEnabled,
   communicationType,
   communications,
   recordId,
   recordType,
   recipientOptions,
+  unavailableMessage,
 }: {
+  actionsEnabled?: boolean;
   automaticEnabled?: boolean;
   communicationType: CommunicationType;
   communications: CustomerCommunication[];
   recordId: string;
   recordType: "appointment" | "invoice" | "job" | "quote" | "schedule_event";
   recipientOptions: RecipientOption[];
+  unavailableMessage?: string;
 }) {
   const [sendState, sendAction, sending] = useReliableActionState(sendCommunicationNow, initialState);
   const [scheduleState, scheduleAction, scheduling] = useReliableActionState(scheduleCommunication, initialState);
@@ -64,7 +68,11 @@ export function CommunicationControls({
         </span>
       </div>
 
-      {availableRecipients.length ? (
+      {!actionsEnabled && unavailableMessage ? (
+        <p className="inline-empty">{unavailableMessage}</p>
+      ) : null}
+
+      {actionsEnabled && availableRecipients.length ? (
         <label className="communication-recipient-field">
           Send to
           <select value={recipientKey} onChange={(event) => setRecipientKey(event.target.value)}>
@@ -76,11 +84,11 @@ export function CommunicationControls({
           </select>
           <small>Only the current customer or linked organization email can be used.</small>
         </label>
-      ) : (
+      ) : actionsEnabled ? (
         <p className="form-message error" role="status">Add a valid customer or organization email before sending reminders.</p>
-      )}
+      ) : null}
 
-      <div className="communication-action-grid">
+      {actionsEnabled ? <div className="communication-action-grid">
         <form
           action={sendAction}
           className="communication-action-card"
@@ -123,9 +131,9 @@ export function CommunicationControls({
           </button>
           <ActionMessage state={scheduleState} />
         </form>
-      </div>
+      </div> : null}
 
-      {typeof automaticEnabled === "boolean" ? (
+      {actionsEnabled && typeof automaticEnabled === "boolean" ? (
         <form action={automationAction} className="communication-automation-row">
           <input name="record_id" type="hidden" value={recordId} />
           <input name="record_type" type="hidden" value={recordType} />

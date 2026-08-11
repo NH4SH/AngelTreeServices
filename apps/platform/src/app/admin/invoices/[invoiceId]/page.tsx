@@ -30,6 +30,11 @@ import { getEmailSetupState } from "@/lib/email/config";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+import {
+  canRecordManualInvoicePayment,
+  isInvoiceCustomerPayable,
+  isInvoiceReminderEligible,
+} from "@/lib/payments/invoice-payment-state";
 import type { InvoiceStatus, Payment } from "@/lib/types/database";
 
 type InvoiceDetailPageProps = {
@@ -86,7 +91,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
         {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
         {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
         {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
-        {detail.data && canManageDelivery && isInvoicePayable(detail.data.status, detail.data.balance_due_cents) && !stripeSetup.configured ? (
+        {detail.data && canManageDelivery && isInvoiceCustomerPayable(detail.data.status, detail.data.balance_due_cents) && !stripeSetup.configured ? (
           <DataWarning message="Stripe Checkout is not configured, so customers will not see an online payment button." />
         ) : null}
         {!detail.data ? (
@@ -114,7 +119,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                     Edit invoice
                   </Link>
                 ) : null}
-                {["sent", "partially_paid", "overdue"].includes(detail.data.status) ? (
+                {canManageDelivery && canRecordManualInvoicePayment(detail.data.status, detail.data.balance_due_cents) ? (
                   <a className="primary-action" href="#invoice-payments">Record payment</a>
                 ) : null}
                 {detail.data.status === "paid" ? <Link className="primary-action" href="/admin/follow-ups">Create follow-up</Link> : null}
@@ -145,7 +150,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                     disabled={
                       !emailSetup.configured ||
                       !recipient ||
-                      ["paid", "void"].includes(detail.data.status)
+                      detail.data.status === "void"
                     }
                     documentHref={`/admin/invoices/${detail.data.id}/print`}
                     draft={generateInvoiceEmailDraft(detail.data, { portalUrl: activePortalUrl })}
@@ -213,12 +218,14 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Payment reminders" />
                   <CommunicationControls
+                    actionsEnabled={isInvoiceReminderEligible(detail.data.status, detail.data.balance_due_cents)}
                     automaticEnabled={detail.data.automatic_reminders_enabled}
                     communicationType={detail.data.due_at && new Date(detail.data.due_at).getTime() < Date.now() ? "overdue_invoice_reminder" : "invoice_payment_reminder"}
                     communications={communications.data}
                     recipientOptions={recipientOptions.data}
                     recordId={detail.data.id}
                     recordType="invoice"
+                    unavailableMessage="Payment reminders become available after the invoice is sent and while a balance remains."
                   />
                 </section>
               </main>
@@ -233,7 +240,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                     Email delivery marks this invoice sent. Manual sent is only for delivery outside the CRM.
                   </p>
                   {canManageDelivery ? (
-                    <ManualInvoiceSentAction invoiceId={detail.data.id} status={detail.data.status} />
+                    <ManualInvoiceSentAction invoiceId={detail.data.id} sentAt={detail.data.sent_at} status={detail.data.status} />
                   ) : null}
                   <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />
                 </section>
@@ -348,8 +355,12 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                       ))}
                     </div>
                   ) : <EmptyInline>No payments recorded yet.</EmptyInline>}
-                  {canManageDelivery && isInvoicePayable(detail.data.status, detail.data.balance_due_cents) ? (
-                    <ManualPaymentForm balanceDueCents={detail.data.balance_due_cents} invoiceId={detail.data.id} />
+                  {canManageDelivery && canRecordManualInvoicePayment(detail.data.status, detail.data.balance_due_cents) ? (
+                    <ManualPaymentForm
+                      balanceDueCents={detail.data.balance_due_cents}
+                      invoiceId={detail.data.id}
+                      isUnsent={!detail.data.sent_at}
+                    />
                   ) : null}
                 </section>
 
@@ -402,10 +413,6 @@ function formatDate(value?: string | null) {
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
-
-function isInvoicePayable(status: InvoiceStatus, balanceDueCents: number) {
-  return balanceDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(status);
 }
 
 function formatPaymentMeta(payment: Payment) {

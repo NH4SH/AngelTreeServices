@@ -1,6 +1,7 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { StructuredAddressFields } from "@/components/address-autocomplete";
 import Link from "next/link";
 import {
   useEffect,
@@ -104,10 +105,17 @@ export function AddInvoiceForm({
               <label>Name<input name="new_customer_name" required /></label>
               <label>Phone<input inputMode="tel" name="new_customer_phone" /></label>
               <label>Email<input name="new_customer_email" type="email" /></label>
-              <label>Street address<input name="new_customer_street" required /></label>
-              <label>City<input defaultValue="Fredericksburg" name="new_customer_city" required /></label>
-              <label>State<input defaultValue="VA" maxLength={2} name="new_customer_state" required /></label>
-              <label>ZIP<input inputMode="numeric" name="new_customer_postal_code" /></label>
+              <StructuredAddressFields
+                className="quick-address-fields"
+                defaultValues={{ city: "Fredericksburg", state: "VA" }}
+                names={{
+                  street: "new_customer_street",
+                  city: "new_customer_city",
+                  state: "new_customer_state",
+                  postalCode: "new_customer_postal_code",
+                }}
+                required={{ street: true, city: true, state: true }}
+              />
             </div>
             <p>Enter either a phone number or email. The customer and property are created with this invoice.</p>
           </fieldset>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { StructuredAddressFields } from "@/components/address-autocomplete";
 import Link from "next/link";
 import type { CustomerActionState } from "./actions";
 import { createCustomer, createServiceLocation, updateCustomer } from "./actions";
@@ -50,12 +51,10 @@ export function AddCustomerForm() {
       </label>
       <fieldset className="nested-fieldset">
         <legend>Optional first service location</legend>
-        <input name="street" placeholder="Street address" />
-        <div className="form-grid-three">
-          <input name="city" placeholder="City" />
-          <input name="state" placeholder="VA" defaultValue="VA" />
-          <input name="postal_code" placeholder="ZIP" />
-        </div>
+        <StructuredAddressFields
+          defaultValues={{ state: "VA" }}
+          names={{ street: "street", city: "city", state: "state", postalCode: "postal_code" }}
+        />
       </fieldset>
       <button disabled={pending} type="submit">
         {pending ? "Saving..." : "Add customer"}
@@ -128,24 +127,16 @@ export function EditCustomerForm({
                   Location label
                   <input defaultValue={location.label ?? ""} name="service_location_label" placeholder="Primary service location, home, rental property" />
                 </label>
-                <label>
-                  Street address
-                  <input defaultValue={location.street} name="service_location_street" placeholder="Street address" required />
-                </label>
-                <div className="form-grid-three">
-                  <label>
-                    City
-                    <input defaultValue={location.city} name="service_location_city" placeholder="City" required />
-                  </label>
-                  <label>
-                    State
-                    <input defaultValue={location.state} name="service_location_state" placeholder="VA" />
-                  </label>
-                  <label>
-                    ZIP
-                    <input defaultValue={location.postal_code ?? ""} name="service_location_postal_code" placeholder="ZIP" />
-                  </label>
-                </div>
+                <StructuredAddressFields
+                  defaultValues={{ street: location.street, city: location.city, state: location.state, postalCode: location.postal_code ?? "" }}
+                  names={{
+                    street: "service_location_street",
+                    city: "service_location_city",
+                    state: "service_location_state",
+                    postalCode: "service_location_postal_code",
+                  }}
+                  required={{ street: true, city: true }}
+                />
                 <div className="form-grid-two">
                   <label>
                     Access notes
@@ -188,24 +179,15 @@ export function EditCustomerForm({
             Location label
             <input name="new_service_location_label" placeholder="Home, HOA entrance, rental property" />
           </label>
-          <label>
-            Street address
-            <input name="new_service_location_street" placeholder="Street address" />
-          </label>
-          <div className="form-grid-three">
-            <label>
-              City
-              <input name="new_service_location_city" placeholder="City" />
-            </label>
-            <label>
-              State
-              <input defaultValue="VA" name="new_service_location_state" placeholder="VA" />
-            </label>
-            <label>
-              ZIP
-              <input name="new_service_location_postal_code" placeholder="ZIP" />
-            </label>
-          </div>
+          <StructuredAddressFields
+            defaultValues={{ state: "VA" }}
+            names={{
+              street: "new_service_location_street",
+              city: "new_service_location_city",
+              state: "new_service_location_state",
+              postalCode: "new_service_location_postal_code",
+            }}
+          />
           <div className="form-grid-two">
             <label>
               Access notes
@@ -312,15 +294,12 @@ export function AddServiceLocationForm({
         Label
         <input name="label" placeholder="Home, HOA entrance, rental property" />
       </label>
-      <label>
-        Street
-        <input name="street" placeholder="Street address" required />
-      </label>
-      <div className="form-grid-three">
-        <input name="city" placeholder="City" required />
-        <input name="state" placeholder="VA" defaultValue="VA" />
-        <input name="postal_code" placeholder="ZIP" />
-      </div>
+      <StructuredAddressFields
+        defaultValues={{ state: "VA" }}
+        names={{ street: "street", city: "city", state: "state", postalCode: "postal_code" }}
+        required={{ street: true, city: true }}
+        streetLabel="Street"
+      />
       <label>
         Service notes
         <textarea name="service_notes" placeholder="Access notes, gates, hazards, parking" rows={3} />

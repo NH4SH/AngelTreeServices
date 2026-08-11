@@ -1,6 +1,7 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { StructuredAddressFields } from "@/components/address-autocomplete";
 import Link from "next/link";
 import { Building2, MapPin, UserPlus } from "lucide-react";
 import { createOrganization, createOrganizationContact, createOrganizationProperty, updateOrganization, type OrganizationActionState } from "./actions";
@@ -191,15 +192,12 @@ export function AddOrganizationPropertyForm({ customers, organizationId }: { cus
         Property label
         <input name="label" placeholder="North entrance, rental home, common area" />
       </label>
-      <label>
-        Street
-        <input name="street" placeholder="Street address" required />
-      </label>
-      <div className="form-grid-three">
-        <input name="city" placeholder="City" required />
-        <input defaultValue="VA" name="state" placeholder="VA" />
-        <input name="postal_code" placeholder="ZIP" />
-      </div>
+      <StructuredAddressFields
+        defaultValues={{ state: "VA" }}
+        names={{ street: "street", city: "city", state: "state", postalCode: "postal_code" }}
+        required={{ street: true, city: true }}
+        streetLabel="Street"
+      />
       <label>
         Service notes
         <textarea name="service_notes" placeholder="Access notes, parking, equipment concerns" rows={3} />

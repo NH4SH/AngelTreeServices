@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { StructuredAddressFields } from "@/components/address-autocomplete";
 import { CalendarPlus, Clock3, MapPinned, Save, Search, UserRound, X } from "lucide-react";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
 import { updateJobWorkSessionTime } from "@/app/admin/jobs/actions";
@@ -326,12 +327,11 @@ function PartyEstimateDrawer({
           </label>
         ) : <input name="service_location_id" type="hidden" value={locationId} />}
         {selectedLocation ? <div key={selectedLocation.id}>
-          <label>Street address<input defaultValue={selectedLocation.street} name="street" required /></label>
-          <div className="form-grid-three">
-            <label>City<input defaultValue={selectedLocation.city} name="city" required /></label>
-            <label>State<input defaultValue={selectedLocation.state} maxLength={2} name="state" required /></label>
-            <label>ZIP<input defaultValue={selectedLocation.postalCode} name="postal_code" /></label>
-          </div>
+          <StructuredAddressFields
+            defaultValues={{ street: selectedLocation.street, city: selectedLocation.city, state: selectedLocation.state, postalCode: selectedLocation.postalCode }}
+            names={{ street: "street", city: "city", state: "state", postalCode: "postal_code" }}
+            required={{ street: true, city: true, state: true }}
+          />
           <label>Access instructions<textarea defaultValue={selectedLocation.accessNotes} name="access_notes" rows={2} /></label>
           <label>Property notes<textarea defaultValue={selectedLocation.serviceNotes} name="service_notes" rows={2} /></label>
         </div> : (
@@ -456,12 +456,11 @@ function LeadEstimateDrawer({
 
       <fieldset>
         <legend>Service location</legend>
-        <label>Street address<input defaultValue={lead.street} name="street" required /></label>
-        <div className="form-grid-three">
-          <label>City<input defaultValue={lead.city} name="city" required /></label>
-          <label>State<input defaultValue={lead.state} maxLength={2} name="state" required /></label>
-          <label>ZIP<input defaultValue={lead.postalCode} name="postal_code" /></label>
-        </div>
+        <StructuredAddressFields
+          defaultValues={{ street: lead.street, city: lead.city, state: lead.state, postalCode: lead.postalCode }}
+          names={{ street: "street", city: "city", state: "state", postalCode: "postal_code" }}
+          required={{ street: true, city: true, state: true }}
+        />
         <label>Access instructions<textarea defaultValue={lead.accessNotes} name="access_notes" placeholder="Gate, parking, pets, or where to meet" rows={2} /></label>
         <label>Property/customer notes<textarea defaultValue={lead.serviceNotes} name="service_notes" rows={2} /></label>
       </fieldset>
@@ -536,10 +535,17 @@ function QuickScheduleJobForm({ customers }: { customers: ScheduleCustomerOption
           <label>Name<input name="new_customer_name" required /></label>
           <label>Phone<input inputMode="tel" name="new_customer_phone" /></label>
           <label>Email<input name="new_customer_email" type="email" /></label>
-          <label>Street<input name="new_customer_street" required /></label>
-          <label>City<input defaultValue="Fredericksburg" name="new_customer_city" required /></label>
-          <label>State<input defaultValue="VA" maxLength={2} name="new_customer_state" required /></label>
-          <label>ZIP<input name="new_customer_postal_code" /></label>
+          <StructuredAddressFields
+            className="quick-address-fields"
+            defaultValues={{ city: "Fredericksburg", state: "VA" }}
+            names={{
+              street: "new_customer_street",
+              city: "new_customer_city",
+              state: "new_customer_state",
+              postalCode: "new_customer_postal_code",
+            }}
+            required={{ street: true, city: true, state: true }}
+          />
         </div>}
         <label>Service type<select defaultValue="tree_removal" name="service_type"><option value="tree_removal">Tree removal</option><option value="trimming">Trimming</option><option value="stump_grinding">Stump grinding</option><option value="landscaping">Landscaping</option><option value="lawn_care">Lawn care</option><option value="emergency">Emergency</option><option value="other">Other</option></select></label>
         <label>Scope<textarea name="requested_scope" placeholder="Work to schedule" required rows={3} /></label>

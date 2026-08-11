@@ -69,12 +69,17 @@ Fill in:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
 PORTAL_TOKEN_ENCRYPTION_KEY=
 ```
 
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the only values that browser code should use.
+Only variables intentionally prefixed with `NEXT_PUBLIC_` should be used by browser code. Server credentials must never be imported into client components.
+
+### CRM address autocomplete
+
+Structured customer and service-location forms progressively enhance manual address entry with the Google Place Autocomplete Data API. Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` locally and on the Netlify project that serves `admin.angeltreeservices.org`. The browser key is intentionally client-visible, so restrict it in Google Cloud by HTTP referrer to the admin origin and approved localhost origins, and restrict its API access to **Maps JavaScript API** and **Places API (New)**. If the variable is absent or Google is unavailable, every address field remains manually editable and forms continue to submit normally.
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only, bypasses Row Level Security, and must never be imported into client components, exposed in browser JavaScript, committed with real values, or printed to public logs.
 

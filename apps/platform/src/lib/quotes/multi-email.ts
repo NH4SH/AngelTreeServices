@@ -210,11 +210,12 @@ function buildItem(quote: QuoteDetail, portalUrl: string, index: number): MultiQ
   const sortedItems = [...(quote.quote_line_items ?? [])].sort((left, right) => left.sort_order - right.sort_order);
   const firstItem = sortedItems[0];
   const serviceType = quote.jobs?.service_type?.replaceAll("_", " ");
-  const scopeParts = sortedItems.map((item) => item.name.trim()).filter(Boolean);
-  const description = firstItem?.description?.trim().replaceAll(/\s+/g, " ") ?? "";
-  const scopeSummary = scopeParts.length > 1
-    ? `${scopeParts.slice(0, 3).join("; ")}${scopeParts.length > 3 ? `; plus ${scopeParts.length - 3} more item(s)` : ""}`
-    : description || scopeParts[0] || quote.jobs?.requested_scope?.trim() || "See the secure proposal for the complete scope.";
+  const scopeSummary = sortedItems
+    .map((item) => normalizeScopeText(item.description ?? "") || item.name.trim())
+    .filter(Boolean)
+    .join("\n\n")
+    || normalizeScopeText(quote.jobs?.requested_scope ?? "")
+    || "See the secure proposal for the complete scope.";
 
   return {
     quoteId: quote.id,
@@ -232,7 +233,16 @@ function renderProposal(item: MultiQuoteEmailItem, index: number) {
   const action = item.portalUrl
     ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0 8px;"><tr><td bgcolor="#174b32" style="border-radius:6px;"><a href="${escapeAttribute(item.portalUrl)}" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:15px;line-height:1.2;font-weight:700;">Review proposal</a></td></tr></table><p style="margin:0;color:#667169;font-size:11px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;">Secure link: <a href="${escapeAttribute(item.portalUrl)}" style="color:#496356;text-decoration:underline;">${escapeHtml(item.portalUrl)}</a></p>`
     : "";
-  return `<tr><td style="padding:0 28px 24px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:3px solid #3f7a58;border-bottom:1px solid #d7e3da;background:#ffffff;"><tr><td style="padding:18px 0;"><p style="margin:0 0 5px;color:#667169;font-size:12px;font-weight:800;text-transform:uppercase;">Proposal ${index + 1}</p><h2 style="margin:0;color:#174b32;font-size:20px;line-height:1.3;">${escapeHtml(item.title)}</h2><p style="margin:5px 0 0;color:#4f5d54;font-size:13px;line-height:1.5;">${escapeHtml(item.quoteLabel)} · ${escapeHtml(item.propertyLabel)}</p><p style="margin:15px 0 0;color:#303934;font-size:15px;line-height:1.6;">${escapeHtml(item.scopeSummary)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:16px;border-collapse:collapse;"><tr><td style="color:#5c675f;font-size:13px;">Proposal total<br /><span style="font-size:12px;">${escapeHtml(item.validityLabel)}</span></td><td align="right" style="color:#174b32;font-size:20px;font-weight:800;">${escapeHtml(item.totalLabel)}</td></tr></table>${action}</td></tr></table></td></tr>`;
+  return `<tr><td style="padding:0 28px 24px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:3px solid #3f7a58;border-bottom:1px solid #d7e3da;background:#ffffff;"><tr><td style="padding:18px 0;"><p style="margin:0 0 5px;color:#667169;font-size:12px;font-weight:800;text-transform:uppercase;">Proposal ${index + 1}</p><h2 style="margin:0;color:#174b32;font-size:20px;line-height:1.3;">${escapeHtml(item.title)}</h2><p style="margin:5px 0 0;color:#4f5d54;font-size:13px;line-height:1.5;">${escapeHtml(item.quoteLabel)} · ${escapeHtml(item.propertyLabel)}</p><p style="margin:15px 0 0;color:#303934;font-size:15px;line-height:1.7;">${formatPlainText(item.scopeSummary)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:16px;border-collapse:collapse;"><tr><td style="color:#5c675f;font-size:13px;">Proposal total<br /><span style="font-size:12px;">${escapeHtml(item.validityLabel)}</span></td><td align="right" style="color:#174b32;font-size:20px;font-weight:800;">${escapeHtml(item.totalLabel)}</td></tr></table>${action}</td></tr></table></td></tr>`;
+}
+
+function normalizeScopeText(value: string) {
+  return value
+    .replaceAll(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim().replaceAll(/[\t ]+/g, " "))
+    .join("\n")
+    .trim();
 }
 
 function firstNameFrom(value?: string | null) {

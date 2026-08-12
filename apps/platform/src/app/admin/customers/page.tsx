@@ -4,7 +4,7 @@ import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { AddCustomerForm, AddServiceLocationForm } from "./CustomerForms";
+import { CustomerCreationTools } from "./CustomerCreationTools";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomersPage } from "@/lib/data/customers";
 import type { CustomerWithLocations, Note } from "@/lib/types/database";
@@ -47,7 +47,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
         {customers.error ? <DataWarning message={customers.error} /> : null}
 
-        <section className="crm-layout">
+        <section className="crm-layout customers-crm-layout">
+          {!archived ? <CustomerCreationTools customers={customerRecords} /> : null}
           <div className="crm-main">
             {customerRecords.length === 0 ? (
               <EmptyState title={params.q ? "No matching customers" : archived ? "No archived customers" : "No customers yet"} body={params.q ? "Try another name, phone number, email, or address." : archived ? "Archived customer records will appear here." : "Add a customer when the first request is ready to enter."} />
@@ -95,18 +96,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             )}
           </div>
 
-          {!archived ? <aside className="crm-side">
-            <section className="form-panel">
-              <h2>Add customer</h2>
-              <p className="form-panel-copy">Start the account record with the main contact, then add the first property if it is ready.</p>
-              <AddCustomerForm />
-            </section>
-            <section className="form-panel">
-              <h2>Add service location</h2>
-              <p className="form-panel-copy">Keep addresses and access notes separate so jobs, quotes, and crew directions stay tidy later.</p>
-              <AddServiceLocationForm customers={customerRecords} />
-            </section>
-          </aside> : null}
         </section>
         <ListPagination basePath="/admin/customers" count={customers.count} page={page} pageSize={pageSize} params={{ archived: archived ? "1" : undefined, q: params.q }} />
       </div>

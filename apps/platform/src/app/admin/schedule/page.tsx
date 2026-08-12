@@ -244,10 +244,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
               entriesByDate={groupedEntries}
             />
           ) : (
-            <>
-              <CalendarWeekView current={query} days={days} entriesByDate={groupedEntries} />
-              <CalendarMobileAgenda current={query} date={date} entries={groupedEntries[formatDateInput(date)] ?? []} />
-            </>
+            <CalendarWeekView current={query} days={days} entriesByDate={groupedEntries} />
           )}
         </section>
 
@@ -568,22 +565,6 @@ function CalendarDayView({
           </Link>
         </section>
       )}
-    </section>
-  );
-}
-
-function CalendarMobileAgenda({
-  current,
-  date,
-  entries,
-}: {
-  current: ScheduleQuery;
-  date: Date;
-  entries: CalendarEntry[];
-}) {
-  return (
-    <section className="calendar-mobile-agenda" aria-label="Mobile agenda">
-      <CalendarDayView current={current} date={date} entries={entries} />
     </section>
   );
 }

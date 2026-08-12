@@ -12695,10 +12695,6 @@ h1,
   color: var(--color-muted);
 }
 
-.calendar-mobile-agenda {
-  display: none;
-}
-
 .calendar-month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -14407,14 +14403,6 @@ h1,
     width: 100%;
     margin-top: 8px;
     box-shadow: var(--shadow-small);
-  }
-
-  .calendar-week-grid {
-    display: none;
-  }
-
-  .calendar-mobile-agenda {
-    display: block;
   }
 
   .calendar-day-view {
@@ -20583,6 +20571,85 @@ body:has(.appointment-overlay) {
   overflow-x: auto;
 }
 
+.customers-crm-layout {
+  grid-template-areas: "main tools";
+}
+
+.customers-crm-layout > .crm-main {
+  grid-area: main;
+}
+
+.customer-creation-tools {
+  grid-area: tools;
+  min-width: 0;
+}
+
+.customer-creation-content {
+  display: grid;
+  gap: 14px;
+}
+
+.customer-creation-trigger,
+.customer-creation-close {
+  display: none;
+}
+
+.customer-creation-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customer-creation-heading h2 {
+  margin-top: 0;
+}
+
+.multi-quote-party-action {
+  display: flex;
+  margin-top: 12px;
+}
+
+@media (max-width: 820px) {
+  .customers-crm-layout {
+    grid-template-areas:
+      "tools"
+      "main";
+  }
+
+  .customer-creation-trigger {
+    display: inline-flex;
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .customer-creation-content {
+    display: none;
+    margin-top: 10px;
+  }
+
+  .customer-creation-tools.is-open .customer-creation-content {
+    display: grid;
+  }
+
+  .customer-creation-close {
+    display: inline-grid;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-charcoal);
+  }
+
+  .customer-creation-content .form-panel {
+    padding: 16px;
+  }
+}
+
 .calendar-day-column {
   min-width: 0;
   overflow: hidden;
@@ -20826,6 +20893,18 @@ body:has(.appointment-overlay) {
 }
 
 @media (max-width: 760px) {
+  .calendar-week-grid {
+    grid-template-columns: repeat(7, minmax(190px, 82vw));
+    min-height: 480px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+
+  .calendar-week-grid .calendar-day-column {
+    scroll-snap-align: start;
+  }
+
   .app-loading-shell,
   .access-shell {
     width: min(100% - 18px, 980px);

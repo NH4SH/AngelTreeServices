@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
-import { Mail, ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck, UsersRound } from "lucide-react";
 import { MultiQuoteEmailComposer } from "@/components/multi-quote-email-composer";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -60,6 +60,12 @@ export default async function MultiQuoteEmailPage({ searchParams }: MultiQuoteEm
           <p className="surface-label"><Mail aria-hidden="true" size={18} />Combined proposal email</p>
           <h1>Review {quotes.length} proposals</h1>
           <p>One customer email, with a separate secure review and approval path for every quote.</p>
+        </div>
+        <div className="page-heading-actions multi-quote-party-action">
+          <Link className="secondary-action" href={backHref}>
+            <UsersRound aria-hidden="true" size={17} />
+            {validation.organizationId ? "Open organization" : "Open customer"}
+          </Link>
         </div>
       </section>
       {tokenWarning ? <section className="data-warning" role="status"><strong>Secure link preview notice</strong><p>{tokenWarning} Links will be checked again when sent.</p></section> : null}

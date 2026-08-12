@@ -129,6 +129,20 @@ test("HTML includes a separate safe call to action for each proposal", () => {
   assert.match(html, /token-b/);
 });
 
+test("combined proposal scope preserves newlines and escapes customer-entered HTML", () => {
+  const multilineScope = "Remove <oak> & debris\r\nGrind stump\r\n\r\nLeave firewood onsite.";
+  const draft = buildMultiQuoteEmailDraft([
+    { quote: quote({ quote_line_items: [{ name: "Tree removal", description: multilineScope, sort_order: 0 }] }) },
+    { quote: quote({ id: "20000000-0000-4000-8000-000000000002" }) },
+  ]);
+  const html = renderMultiQuoteEmailHtml(draft);
+
+  assert.equal(draft.items[0].scopeSummary, "Remove <oak> & debris\nGrind stump\n\nLeave firewood onsite.");
+  assert.match(draft.body, /Remove <oak> & debris\nGrind stump\n\nLeave firewood onsite\./);
+  assert.match(html, /Remove &lt;oak&gt; &amp; debris<br \/>Grind stump<br \/><br \/>Leave firewood onsite\./);
+  assert.doesNotMatch(html, /Remove <oak>/);
+});
+
 test("legacy link recovery updates only affected proposal destinations and preserves edits", () => {
   const firstId = "20000000-0000-4000-8000-000000000001";
   const secondId = "20000000-0000-4000-8000-000000000002";

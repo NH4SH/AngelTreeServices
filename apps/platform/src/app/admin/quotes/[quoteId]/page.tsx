@@ -123,6 +123,15 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                     Edit quote
                   </Link>
                 ) : null}
+                <Link
+                  className="secondary-action"
+                  href={detail.data.organization_id
+                    ? `/admin/organizations/${detail.data.organization_id}`
+                    : `/admin/customers/${detail.data.customer_id}`}
+                >
+                  <UsersRound aria-hidden="true" size={17} />
+                  {detail.data.organization_id ? "Open organization" : "Open customer"}
+                </Link>
                 {["sent", "change_requested"].includes(detail.data.status) ? (
                   <a className="primary-action" href="#quote-follow-up">Follow up</a>
                 ) : null}

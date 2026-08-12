@@ -34,7 +34,7 @@ type PopupPosition = {
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? "";
 const FREDERICKSBURG_BIAS = {
   center: { lat: 38.3032, lng: -77.4605 },
-  radius: 100_000,
+  radius: 50_000,
 };
 
 export function StructuredAddressFields({

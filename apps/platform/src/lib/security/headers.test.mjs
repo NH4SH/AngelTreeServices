@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contentSecurityPolicyReportOnly, platformSecurityHeaders, privateNoStoreHeaders } from "./headers.ts";
+import { contentSecurityPolicy, platformSecurityHeaders, privateNoStoreHeaders } from "./headers.ts";
 
 test("platform headers block framing and limit browser capabilities", () => {
   const headers = new Map(platformSecurityHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
@@ -8,11 +8,14 @@ test("platform headers block framing and limit browser capabilities", () => {
   assert.equal(headers.get("x-content-type-options"), "nosniff");
   assert.equal(headers.get("referrer-policy"), "strict-origin-when-cross-origin");
   assert.match(headers.get("permissions-policy"), /camera=\(\)/);
-  assert.match(contentSecurityPolicyReportOnly, /frame-ancestors 'none'/);
-  assert.match(contentSecurityPolicyReportOnly, /https:\/\/js\.stripe\.com/);
-  assert.match(contentSecurityPolicyReportOnly, /https:\/\/\*\.supabase\.co/);
-  assert.match(contentSecurityPolicyReportOnly, /https:\/\/maps\.googleapis\.com/);
-  assert.match(contentSecurityPolicyReportOnly, /https:\/\/places\.googleapis\.com/);
+  assert.equal(headers.has("content-security-policy-report-only"), false);
+  assert.equal(headers.get("content-security-policy"), contentSecurityPolicy);
+  assert.match(contentSecurityPolicy, /script-src 'self' 'unsafe-inline'/);
+  assert.match(contentSecurityPolicy, /frame-ancestors 'none'/);
+  assert.match(contentSecurityPolicy, /https:\/\/js\.stripe\.com/);
+  assert.match(contentSecurityPolicy, /https:\/\/\*\.supabase\.co/);
+  assert.match(contentSecurityPolicy, /https:\/\/maps\.googleapis\.com/);
+  assert.match(contentSecurityPolicy, /https:\/\/places\.googleapis\.com/);
 });
 
 test("private route headers disable browser and intermediary caching", () => {

@@ -1,10 +1,12 @@
-export const contentSecurityPolicyReportOnly = [
+const scriptDevelopmentSources = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
+export const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self' https://checkout.stripe.com",
-  "script-src 'self' https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com",
+  `script-src 'self' 'unsafe-inline'${scriptDevelopmentSources} https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://maps.gstatic.com",
   "font-src 'self' data:",
@@ -14,7 +16,7 @@ export const contentSecurityPolicyReportOnly = [
 ].join("; ");
 
 export const platformSecurityHeaders = [
-  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicyReportOnly },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },

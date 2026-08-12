@@ -189,7 +189,7 @@ function MultiQuotePreview({ draft }: { draft: MultiQuoteEmailDraft }) {
         <span>Proposal {index + 1}</span>
         <h4>{item.title}</h4>
         <p>{item.quoteLabel} · {item.propertyLabel}</p>
-        <p>{item.scopeSummary}</p>
+        <p className="email-preview-prewrap">{item.scopeSummary}</p>
         <dl><div><dt>Proposal total</dt><dd>{item.totalLabel}</dd></div></dl>
         <small>{item.validityLabel}</small>
         <span className="email-preview-cta">Review proposal</span>

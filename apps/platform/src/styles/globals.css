@@ -10720,6 +10720,11 @@ h1 {
   margin: 0;
 }
 
+.branded-email-preview-body .email-preview-prewrap {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .branded-email-preview-body section {
   display: grid;
   gap: 8px;

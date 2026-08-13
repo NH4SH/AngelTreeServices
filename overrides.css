@@ -1449,9 +1449,17 @@ body.ats-form-submitted .ats-form-success {
   color: #fff;
 }
 
+.ats-home-testimonial picture,
 .ats-home-testimonial img {
   width: 100%;
   height: 100%;
+}
+
+.ats-home-testimonial picture {
+  display: block;
+}
+
+.ats-home-testimonial img {
   min-height: 310px;
   object-fit: cover;
   object-position: center;
@@ -2018,6 +2026,7 @@ body.ats-form-submitted .ats-form-success {
     grid-template-columns: 1fr;
   }
 
+  .ats-home-testimonial picture,
   .ats-home-testimonial img {
     min-height: 0;
     aspect-ratio: 16 / 10;

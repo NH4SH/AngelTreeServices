@@ -93,6 +93,7 @@ class PublicHTMLParser(HTMLParser):
         self.links: list[dict[str, str]] = []
         self.scripts: list[dict[str, str]] = []
         self.images: list[dict[str, str]] = []
+        self.sources: list[dict[str, str]] = []
         self.references: list[tuple[str, str]] = []
         self.json_ld: list[str] = []
         self._json_ld_depth = 0
@@ -141,6 +142,8 @@ class PublicHTMLParser(HTMLParser):
                     if source:
                         self.references.append(("srcset", source))
         elif tag in {"source", "video", "audio", "iframe"}:
+            if tag == "source":
+                self.sources.append(values)
             for attribute in ("src", "poster"):
                 if values.get(attribute):
                     self.references.append((attribute, values[attribute]))
@@ -482,6 +485,38 @@ class Validator:
                 self.error(f"{route}: Service provider must reference the homepage LocalBusiness")
             if set(service.get("areaServed", [])) != service_areas:
                 self.error(f"{route}: Service areaServed must contain the eight verified core areas")
+
+    def validate_homepage_responsive_images(self) -> None:
+        homepage = self.pages.get("/")
+        if not homepage:
+            return
+
+        references = [reference for _, reference in homepage.references]
+        if "assets/AngelChainsawSquooshed_008.jpg" in references:
+            self.error("/: testimonial must not deliver the full-size legacy JPEG")
+
+        testimonial_candidates = set(
+            reference
+            for reference in references
+            if re.fullmatch(
+                r"assets/versioned/testimonial-chainsaw-(?:320|560|840)\.[a-f0-9]{10}\.(?:avif|webp)",
+                reference,
+            )
+        )
+        if len(testimonial_candidates) != 6:
+            self.error("/: testimonial must provide three hashed AVIF and three hashed WebP candidates")
+
+        testimonial_sizes = sum(
+            1
+            for values in homepage.sources
+            if values.get("sizes") == "(max-width: 700px) 100vw, 36vw"
+        )
+        if testimonial_sizes != 2:
+            self.error("/: testimonial AVIF and WebP sources must share accurate responsive sizes")
+
+        service_sizes = "(max-width: 575px) 70vw, (max-width: 1099px) 28vw, 263px"
+        if sum(image.get("sizes") == service_sizes for image in homepage.images) != 3:
+            self.error("/: service-card images must use the measured desktop width hint")
 
     @staticmethod
     def is_external_reference(reference: str) -> bool:
@@ -1272,6 +1307,7 @@ class Validator:
             self.parse_pages()
             self.validate_metadata()
             self.validate_public_entity_graph()
+            self.validate_homepage_responsive_images()
             self.validate_video_structured_data()
             self.validate_references()
             self.validate_prefill_links()

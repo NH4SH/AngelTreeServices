@@ -5,16 +5,9 @@ struct JobsView: View {
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
 
-    @StateObject private var store: JobDirectoryStore
-    @State private var scope: MobileJobDirectoryScope = .upcoming
-    @State private var searchText = ""
-
-    init(access: AppAccess, fieldService: any FieldDataService, photoService: any JobPhotoService) {
-        self.access = access
-        self.fieldService = fieldService
-        self.photoService = photoService
-        _store = StateObject(wrappedValue: JobDirectoryStore(service: fieldService, userID: access.userID))
-    }
+    @ObservedObject var store: JobDirectoryStore
+    @Binding var scope: MobileJobDirectoryScope
+    @Binding var searchText: String
 
     var body: some View {
         List {
@@ -36,7 +29,6 @@ struct JobsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(AngelTreeTheme.canvas)
-        .navigationTitle("Jobs")
         .searchable(text: $searchText, prompt: "Customer, address, or job")
         .autocorrectionDisabled()
         .textInputAutocapitalization(.words)

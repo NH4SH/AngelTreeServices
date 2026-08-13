@@ -50,6 +50,8 @@
 		7FB6C0DEB892D80F13D46DC0 /* SchedulePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A38E57D32E2E0B9780B063 /* SchedulePresentation.swift */; };
 		80DD2220B04A225774980604 /* AngelTreeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD5BC950B19E1364B7049943 /* AngelTreeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		876998A4BF9C8AD3F73700FD /* FieldModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7896678827290E9400F7C4D9 /* FieldModels.swift */; };
+		8BD6E6D224478CD310CD0AFF /* WorkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D21194E1A9AB1B5918182EB /* WorkView.swift */; };
+		939FD49BF6E3AB5C1F7895FB /* WorkNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC41B7BD587E00D90E31FF71 /* WorkNavigationTests.swift */; };
 		93B0A6EA078949306182FD38 /* JobPhotosSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480DE1CA596BFA7B21A265FC /* JobPhotosSection.swift */; };
 		96E5B34418FD0386C44ECF26 /* MobileAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7FFB74CB75E332CD6D97B4 /* MobileAPIClientTests.swift */; };
 		98ABCE7306A47728F34DC7AA /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D006ED6F1818F73A10A0A9F /* AppConfigurationTests.swift */; };
@@ -145,6 +147,7 @@
 		5B96AA323BD7D0E65541E310 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 		60FB8684D894EE9C4D2D6089 /* MobileAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAPIClient.swift; sourceTree = "<group>"; };
 		6B7BAC3BC0BD7B45B39C8BE4 /* AngelTree.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AngelTree.entitlements; sourceTree = "<group>"; };
+		6D21194E1A9AB1B5918182EB /* WorkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkView.swift; sourceTree = "<group>"; };
 		6D5EF40D8282FF6118835E85 /* WidgetDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDeepLink.swift; sourceTree = "<group>"; };
 		6F437299B339CAD164494B60 /* AngelTreeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AngelTreeWidget.entitlements; sourceTree = "<group>"; };
 		72DA397D786FC85629A71265 /* CustomerDirectoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerDirectoryStore.swift; sourceTree = "<group>"; };
@@ -175,6 +178,7 @@
 		C479E015228AA4E0BFE795D1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		C5EAC120EAE1985B741C4418 /* ServiceLocationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceLocationDetailView.swift; sourceTree = "<group>"; };
 		C8133C02D0A6F86B600C56C3 /* AccessModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessModels.swift; sourceTree = "<group>"; };
+		CC41B7BD587E00D90E31FF71 /* WorkNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkNavigationTests.swift; sourceTree = "<group>"; };
 		CD5ADA2A989F3FE5F7EAC5F2 /* WorkQuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkQuickActions.swift; sourceTree = "<group>"; };
 		CF57003CC53985392D350C73 /* SystemActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemActions.swift; sourceTree = "<group>"; };
 		DD5BC950B19E1364B7049943 /* AngelTreeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AngelTreeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -274,6 +278,7 @@
 				555DEF874C6D82B264080E58 /* ScheduleLogicTests.swift */,
 				C0693DD4648696744203E607 /* TestFixtures.swift */,
 				DE8E641304197E8B6AA3464E /* WidgetScheduleTests.swift */,
+				CC41B7BD587E00D90E31FF71 /* WorkNavigationTests.swift */,
 			);
 			path = AngelTreeTests;
 			sourceTree = "<group>";
@@ -439,6 +444,7 @@
 				480DE1CA596BFA7B21A265FC /* JobPhotosSection.swift */,
 				529FB07BAE2CE0625273996B /* JobsView.swift */,
 				2A80BD85E32B75AD1D08B9E3 /* WorkDetailView.swift */,
+				6D21194E1A9AB1B5918182EB /* WorkView.swift */,
 			);
 			path = Work;
 			sourceTree = "<group>";
@@ -654,6 +660,7 @@
 				066862EC5A19ACC4A7A07C48 /* WorkCard.swift in Sources */,
 				D165C3E35FABC20C8D37588C /* WorkDetailView.swift in Sources */,
 				D16342EB4598B1D374E9A670 /* WorkQuickActions.swift in Sources */,
+				8BD6E6D224478CD310CD0AFF /* WorkView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -676,6 +683,7 @@
 				A5558C2F31A8985901F9934E /* ScheduleLogicTests.swift in Sources */,
 				659C0AF4609E5529A6B07BCC /* TestFixtures.swift in Sources */,
 				12B7505120B41551F4ED8137 /* WidgetScheduleTests.swift in Sources */,
+				939FD49BF6E3AB5C1F7895FB /* WorkNavigationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

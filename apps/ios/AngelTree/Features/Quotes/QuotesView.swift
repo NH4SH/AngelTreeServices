@@ -4,23 +4,17 @@ struct QuotesView: View {
     let access: AppAccess
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
-    @StateObject private var store: QuoteDirectoryStore
-    @State private var scope: MobileQuoteScope = .draft
-    @State private var searchText = ""
+    @ObservedObject var store: QuoteDirectoryStore
+    @Binding var scope: MobileQuoteScope
+    @Binding var searchText: String
     @State private var createdQuote: MobileQuoteDetail?
     @State private var showCreate = false
-
-    init(access: AppAccess, fieldService: any FieldDataService, photoService: any JobPhotoService) {
-        self.access = access; self.fieldService = fieldService; self.photoService = photoService
-        _store = StateObject(wrappedValue: QuoteDirectoryStore(service: fieldService, userID: access.userID))
-    }
 
     var body: some View {
         List {
             Section { Picker("Proposal status", selection: $scope) { ForEach(MobileQuoteScope.allCases, id: \.self) { Text($0.label).tag($0) } }.pickerStyle(.segmented) }
             if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { directory } else { search }
         }
-        .navigationTitle("Quotes")
         .searchable(text: $searchText, prompt: "Proposal, customer, or address")
         .scrollContentBackground(.hidden).background(AngelTreeTheme.canvas)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showCreate = true } label: { Image(systemName: "plus") }.accessibilityLabel("Create proposal") } }

@@ -145,12 +145,42 @@ struct CustomerDetailView: View {
     private func officeRecordsSection(_ detail: MobilePartyDetail) -> some View {
         if !detail.proposals.isEmpty {
             Section("Active proposals") {
-                ForEach(detail.proposals) { record in RecordSummaryRow(prefix: "Proposal", record: record) }
+                ForEach(detail.proposals) { record in
+                    if access.canManageProposals {
+                        NavigationLink {
+                            ProposalDetailView(
+                                quoteID: record.id,
+                                access: access,
+                                fieldService: fieldService,
+                                photoService: photoService
+                            )
+                        } label: {
+                            RecordSummaryRow(prefix: "Proposal", record: record)
+                        }
+                    } else {
+                        RecordSummaryRow(prefix: "Proposal", record: record)
+                    }
+                }
             }
         }
         if !detail.invoices.isEmpty {
             Section("Recent invoices") {
-                ForEach(detail.invoices) { record in RecordSummaryRow(prefix: "Invoice", record: record) }
+                ForEach(detail.invoices) { record in
+                    if access.canViewInvoices {
+                        NavigationLink {
+                            InvoiceDetailView(
+                                invoiceID: record.id,
+                                access: access,
+                                fieldService: fieldService,
+                                photoService: photoService
+                            )
+                        } label: {
+                            RecordSummaryRow(prefix: "Invoice", record: record)
+                        }
+                    } else {
+                        RecordSummaryRow(prefix: "Invoice", record: record)
+                    }
+                }
             }
         }
     }

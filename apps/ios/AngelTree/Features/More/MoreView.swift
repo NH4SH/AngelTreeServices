@@ -4,8 +4,6 @@ struct MoreView: View {
     @ObservedObject var model: AppModel
     let access: AppAccess
     let apiBaseURL: URL
-    let fieldService: any FieldDataService
-    let photoService: any JobPhotoService
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -31,31 +29,6 @@ struct MoreView: View {
                     }
                     if let jobTitle = access.employee?.jobTitle {
                         Label(jobTitle, systemImage: "briefcase.fill")
-                    }
-                }
-
-                Section("Work") {
-                    NavigationLink {
-                        JobsView(access: access, fieldService: fieldService, photoService: photoService)
-                    } label: {
-                        Label("Jobs", systemImage: "leaf.fill")
-                            .frame(minHeight: 44)
-                    }
-                    if access.canManageProposals {
-                        NavigationLink {
-                            QuotesView(access: access, fieldService: fieldService, photoService: photoService)
-                        } label: {
-                            Label("Quotes", systemImage: "doc.text.fill")
-                                .frame(minHeight: 44)
-                        }
-                    }
-                    if access.canViewInvoices {
-                        NavigationLink {
-                            InvoicesView(access: access, fieldService: fieldService, photoService: photoService)
-                        } label: {
-                            Label("Invoices", systemImage: "doc.plaintext.fill")
-                                .frame(minHeight: 44)
-                        }
                     }
                 }
 

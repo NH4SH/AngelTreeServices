@@ -76,7 +76,18 @@ struct ProposalDetailView: View {
                 if let jobID = quote.linkedJobId {
                     NavigationLink { JobDetailView(jobID: jobID, summary: nil, scheduleItem: nil, access: access, fieldService: fieldService, photoService: photoService) } label: { Label("Open linked job", systemImage: "leaf") }
                 }
-                if quote.linkedInvoiceId != nil { Label("Linked invoice available in the full CRM", systemImage: "doc.plaintext").foregroundStyle(.secondary) }
+                if let invoiceID = quote.linkedInvoiceId, access.canViewInvoices {
+                    NavigationLink {
+                        InvoiceDetailView(
+                            invoiceID: invoiceID,
+                            access: access,
+                            fieldService: fieldService,
+                            photoService: photoService
+                        )
+                    } label: {
+                        Label("Open linked invoice", systemImage: "doc.plaintext")
+                    }
+                }
             }
             if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
         }.scrollContentBackground(.hidden)

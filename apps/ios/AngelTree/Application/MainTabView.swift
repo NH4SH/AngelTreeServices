@@ -5,6 +5,7 @@ struct MainTabView: View {
         case today
         case schedule
         case customers
+        case work
         case more
     }
 
@@ -48,12 +49,20 @@ struct MainTabView: View {
                 }
                 .tag(Tab.customers)
 
+            WorkView(
+                access: access,
+                fieldService: fieldService,
+                photoService: photoService
+            )
+                .tabItem {
+                    Label("Work", systemImage: "briefcase.fill")
+                }
+                .tag(Tab.work)
+
             MoreView(
                 model: model,
                 access: access,
-                apiBaseURL: apiBaseURL,
-                fieldService: fieldService,
-                photoService: photoService
+                apiBaseURL: apiBaseURL
             )
                 .tabItem {
                     Label("More", systemImage: "ellipsis.circle.fill")

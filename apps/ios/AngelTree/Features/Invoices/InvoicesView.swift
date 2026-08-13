@@ -2,10 +2,9 @@ import SwiftUI
 
 struct InvoicesView: View {
     let access: AppAccess; let fieldService: any FieldDataService; let photoService: any JobPhotoService
-    @StateObject private var store: InvoiceDirectoryStore; @State private var scope: MobileInvoiceScope = .outstanding; @State private var query = ""
-    init(access: AppAccess, fieldService: any FieldDataService, photoService: any JobPhotoService) { self.access = access; self.fieldService = fieldService; self.photoService = photoService; _store = StateObject(wrappedValue: InvoiceDirectoryStore(service: fieldService, userID: access.userID)) }
+    @ObservedObject var store: InvoiceDirectoryStore; @Binding var scope: MobileInvoiceScope; @Binding var query: String
     var body: some View { List { Section { Picker("Invoice status", selection: $scope) { ForEach(MobileInvoiceScope.allCases, id: \.self) { Text($0.label).tag($0) } }.pickerStyle(.segmented) }; if normalized.isEmpty { directory } else { search } }
-        .navigationTitle("Invoices").searchable(text: $query, prompt: "Invoice, customer, or address").scrollContentBackground(.hidden).background(AngelTreeTheme.canvas)
+        .searchable(text: $query, prompt: "Invoice, customer, or address").scrollContentBackground(.hidden).background(AngelTreeTheme.canvas)
         .safeAreaInset(edge: .top) { if store.stale { Text("Showing saved invoices. Pull to refresh.").font(.caption.weight(.semibold)).foregroundStyle(AngelTreeTheme.warning).frame(maxWidth: .infinity).padding(8).background(AngelTreeTheme.canvas) } }
         .task(id: scope) { query = ""; store.clearSearch(); await store.load(scope) }.task(id: query) { await updateSearch() }.refreshable { await store.refresh(scope) }
     }

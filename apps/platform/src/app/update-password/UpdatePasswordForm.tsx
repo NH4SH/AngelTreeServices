@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, LockKeyhole } from "lucide-react";
+import {
+  grantPasswordRecovery,
+  recoveryGrantMatchesUser,
+  type PasswordRecoveryGrant,
+} from "@/lib/security/password-recovery";
 import { createClient } from "@/lib/supabase/client";
 
 type FormStatus = {
@@ -19,6 +24,8 @@ export function UpdatePasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recoveryGrant, setRecoveryGrant] = useState<PasswordRecoveryGrant | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -33,22 +40,6 @@ export function UpdatePasswordForm() {
 
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) {
-        return;
-      }
-
-      if (data.session) {
-        setIsReady(true);
-        setStatus({ tone: "info", message: "Reset link accepted. Enter your new password." });
-      } else {
-        setStatus({
-          tone: "info",
-          message: "Open this page from the password reset email so the secure reset link can be verified.",
-        });
-      }
-    });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -56,24 +47,45 @@ export function UpdatePasswordForm() {
         return;
       }
 
-      if (event === "PASSWORD_RECOVERY" || session) {
-        setIsReady(true);
-        setStatus({ tone: "info", message: "Reset link accepted. Enter your new password." });
-      }
+      const grant = grantPasswordRecovery(event, session);
+      if (!grant) return;
+
+      setRecoveryGrant(grant);
+      setIsReady(true);
+      setStatus({ tone: "info", message: "Secure recovery link accepted. Enter a new password for this account." });
     });
+
+    const verificationTimeout = window.setTimeout(() => {
+      if (!mounted) return;
+      setStatus((current) => current.message === "Checking your reset link..."
+        ? {
+            tone: "error",
+            message: "This password recovery link is invalid or expired. Ask an owner or admin to send a new reset email.",
+          }
+        : current);
+    }, 4_000);
 
     return () => {
       mounted = false;
+      window.clearTimeout(verificationTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current) return;
+
     const supabase = createClient();
 
     if (!supabase) {
       setStatus({ tone: "error", message: "Supabase is not configured." });
+      return;
+    }
+
+    if (!recoveryGrant) {
+      setIsReady(false);
+      setStatus({ tone: "error", message: "This password recovery link is invalid or expired. Request a new reset email." });
       return;
     }
 
@@ -87,20 +99,47 @@ export function UpdatePasswordForm() {
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setIsSubmitting(false);
 
-    if (error) {
-      setStatus({ tone: "error", message: "The password could not be updated. Request a new reset link and try again." });
-      return;
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !recoveryGrantMatchesUser(recoveryGrant, user)) {
+        setIsReady(false);
+        setRecoveryGrant(null);
+        setStatus({
+          tone: "error",
+          message: "The active account does not match this recovery link. Request a new reset email and try again.",
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({ password });
+
+      if (error) {
+        setStatus({ tone: "error", message: "The password could not be updated. Request a new reset link and try again." });
+        return;
+      }
+
+      await supabase.auth.signOut({ scope: "global" });
+      setPassword("");
+      setConfirmPassword("");
+      setIsReady(false);
+      setRecoveryGrant(null);
+      setStatus({ tone: "success", message: "Password updated. You can sign in with your new password." });
+    } catch {
+      setStatus({
+        tone: "error",
+        message: "The password could not be updated because the secure session could not be verified. Try again or request a new reset email.",
+      });
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    await supabase.auth.signOut();
-    setPassword("");
-    setConfirmPassword("");
-    setIsReady(false);
-    setStatus({ tone: "success", message: "Password updated. You can sign in with your new password." });
   }
 
   return (

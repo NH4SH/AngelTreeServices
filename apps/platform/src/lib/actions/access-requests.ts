@@ -21,6 +21,7 @@ import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { createPasswordRecoveryRequestClient } from "@/lib/supabase/password-recovery";
 
 const allowedRequestedRoles = new Set(employeeRequestedRoleOptions.map((option) => option.value));
 const allowedApprovalRoles = new Set<AccessApprovalRole>(["admin", "estimator", "crew", "payroll_admin"]);
@@ -469,7 +470,13 @@ export async function sendEmployeePasswordReset(
     return { status: "error", message: "This employee profile is missing an email address." };
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const passwordRecoveryClient = createPasswordRecoveryRequestClient();
+
+  if (!passwordRecoveryClient) {
+    return { status: "error", message: "Supabase is not configured yet." };
+  }
+
+  const { error } = await passwordRecoveryClient.auth.resetPasswordForEmail(email, {
     redirectTo: await getPasswordResetRedirectTo(),
   });
 

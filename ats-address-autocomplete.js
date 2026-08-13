@@ -27,6 +27,7 @@
       var script = document.createElement("script");
       var timeout = window.setTimeout(function () {
         cleanup();
+        script.remove();
         reject(new Error("Google Maps took too long to load."));
       }, 10000);
 
@@ -67,6 +68,7 @@
         callbackName;
       script.onerror = function () {
         cleanup();
+        script.remove();
         reject(new Error("Google Maps could not load."));
       };
       document.head.appendChild(script);
@@ -160,6 +162,7 @@
     input.setAttribute("autocomplete", "street-address");
     input.setAttribute("role", "combobox");
     input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-expanded", "false");
 
     var status = createStatus(input);
     var popup = null;
@@ -170,6 +173,7 @@
     var library = null;
     var sessionToken = null;
     var focused = false;
+    var suppressNextInput = false;
 
     function setStatus(message) {
       if (!status) {
@@ -179,11 +183,14 @@
       status.hidden = !message;
     }
 
-    function closePopup() {
-      suggestions = [];
+    function closePopup(preserveSuggestions) {
+      if (!preserveSuggestions) {
+        suggestions = [];
+      }
       activeIndex = -1;
       input.setAttribute("aria-expanded", "false");
       input.removeAttribute("aria-activedescendant");
+      input.removeAttribute("aria-controls");
       if (popup) {
         popup.remove();
         popup = null;
@@ -201,8 +208,8 @@
       var availableBelow = window.innerHeight - rect.bottom - margin;
       var availableAbove = rect.top - margin;
       var openAbove = availableBelow < 190 && availableAbove > availableBelow;
-      var width = Math.min(Math.max(rect.width, 280), window.innerWidth - margin * 2);
-      var left = Math.min(Math.max(rect.left, margin), window.innerWidth - width - margin);
+      var width = Math.min(Math.max(rect.width, 280), Math.max(240, window.innerWidth - margin * 2));
+      var left = Math.min(Math.max(rect.left, margin), Math.max(margin, window.innerWidth - width - margin));
 
       popup.style.left = left + "px";
       popup.style.width = width + "px";
@@ -212,7 +219,7 @@
     }
 
     function renderPopup() {
-      closePopup();
+      closePopup(true);
       if (!focused || !suggestions.length) {
         return;
       }
@@ -286,7 +293,7 @@
     }
 
     function selectPrediction(prediction) {
-      closePopup();
+      closePopup(false);
       setStatus("Finding the full address…");
 
       Promise.resolve(prediction.toPlace())
@@ -303,6 +310,7 @@
             throw new Error("No usable address was returned.");
           }
 
+          suppressNextInput = true;
           input.value = address;
           input.dispatchEvent(new Event("input", { bubbles: true }));
           input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -318,7 +326,7 @@
     function requestSuggestions() {
       var query = input.value.trim();
       if (query.length < 3) {
-        closePopup();
+        closePopup(false);
         return;
       }
 
@@ -355,7 +363,7 @@
           if (thisRequest !== requestId) {
             return;
           }
-          closePopup();
+          closePopup(false);
           sessionToken = null;
           setStatus("Address suggestions are unavailable. You can keep typing the address manually.");
         });
@@ -371,18 +379,22 @@
     input.addEventListener("blur", function () {
       window.setTimeout(function () {
         focused = false;
-        closePopup();
+        closePopup(false);
       }, 120);
     });
 
     input.addEventListener("input", function () {
+      if (suppressNextInput) {
+        suppressNextInput = false;
+        return;
+      }
       window.clearTimeout(debounceTimer);
       debounceTimer = window.setTimeout(requestSuggestions, 250);
     });
 
     input.addEventListener("keydown", function (event) {
       if (event.key === "Escape") {
-        closePopup();
+        closePopup(false);
         return;
       }
 

@@ -26,6 +26,7 @@
 		3846B83781223623A68B69B8 /* FieldUnavailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F25966C6F09B80BBB43C0E9 /* FieldUnavailableView.swift */; };
 		38556BF786138F5F3D4412C4 /* AngelTreeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3522271D7D09C3BBAA74ABFF /* AngelTreeApp.swift */; };
 		3B09FA2F51DF848EAEEFFAE1 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383C66802D1DC9177502AC3C /* RootView.swift */; };
+		3FE4FF7954CF0588B142F2F0 /* CustomerPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A779C7BF6E4A8DDB4C9BC6 /* CustomerPreviewTests.swift */; };
 		45B5E1F1F3C2F3E8B6417891 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9117C3353831CBB919479A /* LoginView.swift */; };
 		47A25671FCD1BD8B00F9E199 /* FieldCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9E7A080B9AE922F417C83C /* FieldCache.swift */; };
 		4C9FC1807CE391892110E810 /* CustomersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E36D87375E7223C2000D1A /* CustomersView.swift */; };
@@ -152,6 +153,7 @@
 		DD5BC950B19E1364B7049943 /* AngelTreeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AngelTreeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE8E641304197E8B6AA3464E /* WidgetScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetScheduleTests.swift; sourceTree = "<group>"; };
 		DEF5536684303B7A455A28A9 /* StatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBadge.swift; sourceTree = "<group>"; };
+		E5A779C7BF6E4A8DDB4C9BC6 /* CustomerPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerPreviewTests.swift; sourceTree = "<group>"; };
 		E63F5CAA592F884818E617D6 /* ScheduleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleModels.swift; sourceTree = "<group>"; };
 		E9C0F21CFF7F4CDD649AB0E9 /* BusinessCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusinessCalendar.swift; sourceTree = "<group>"; };
 		F18D93199CDE0AB87EFA24AF /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 				B303CF93EAF63B37AD78E877 /* AccessResolutionTests.swift */,
 				7D006ED6F1818F73A10A0A9F /* AppConfigurationTests.swift */,
 				5160443FD9636E817827636C /* BusinessCalendarTests.swift */,
+				E5A779C7BF6E4A8DDB4C9BC6 /* CustomerPreviewTests.swift */,
 				35CB14674A348A7C1B00353C /* FieldCacheTests.swift */,
 				A67BC37D61B41A87ABC968DE /* FieldModelTests.swift */,
 				FC7FFB74CB75E332CD6D97B4 /* MobileAPIClientTests.swift */,
@@ -589,6 +592,7 @@
 				E827F20BB3F9EC5DAA45FD8C /* AccessResolutionTests.swift in Sources */,
 				98ABCE7306A47728F34DC7AA /* AppConfigurationTests.swift in Sources */,
 				A9B89D3211AB2441F92E7B04 /* BusinessCalendarTests.swift in Sources */,
+				3FE4FF7954CF0588B142F2F0 /* CustomerPreviewTests.swift in Sources */,
 				35DE9418B4561353701ADCFA /* FieldCacheTests.swift in Sources */,
 				0D5BC39BB8B6F95FF5BC01E7 /* FieldModelTests.swift in Sources */,
 				96E5B34418FD0386C44ECF26 /* MobileAPIClientTests.swift in Sources */,

@@ -15,6 +15,7 @@ struct MainTabView: View {
     let apiBaseURL: URL
     @ObservedObject var todayStore: ScheduleStore
     @ObservedObject var scheduleStore: ScheduleStore
+    @ObservedObject var customerPreviewStore: ScheduleStore
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
 
@@ -38,7 +39,12 @@ struct MainTabView: View {
                 }
                 .tag(Tab.schedule)
 
-            CustomersView(access: access, fieldService: fieldService, photoService: photoService)
+            CustomersView(
+                access: access,
+                previewStore: customerPreviewStore,
+                fieldService: fieldService,
+                photoService: photoService
+            )
                 .tabItem {
                     Label("Customers", systemImage: "person.2.fill")
                 }

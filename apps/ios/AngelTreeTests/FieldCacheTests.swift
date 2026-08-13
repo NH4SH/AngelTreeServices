@@ -34,9 +34,38 @@ final class FieldCacheTests: XCTestCase {
         XCTAssertEqual(loaded?.assignedEmployees.map(\.name), ["Saul Sierra"])
         await cache.removeAll()
     }
+
+    func testRecentPartiesAreOrderedDeduplicatedBoundedAndUserIsolated() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AngelTreeRecentPartyTests-\(UUID().uuidString)")
+        let cache = FieldCache(directory: directory)
+
+        for index in 0..<10 {
+            await cache.writeParty(
+                makePartyDetail(id: "party-\(index)", name: "Customer \(index)"),
+                userID: "user-one"
+            )
+        }
+        await cache.writeParty(
+            makePartyDetail(id: "party-4", name: "Customer Four Updated"),
+            userID: "user-one"
+        )
+
+        let firstUser = await cache.readRecentParties(userID: "user-one")
+        let secondUser = await cache.readRecentParties(userID: "user-two")
+
+        XCTAssertEqual(firstUser.count, 8)
+        XCTAssertEqual(firstUser.first?.id, "party-4")
+        XCTAssertEqual(firstUser.first?.name, "Customer Four Updated")
+        XCTAssertEqual(firstUser.filter { $0.id == "party-4" }.count, 1)
+        XCTAssertTrue(secondUser.isEmpty)
+        await cache.removeAll()
+    }
 }
 
 func makePartyDetail(
+    id: String = "party-one",
+    name: String? = nil,
     kind: MobilePartyKind = .customer,
     locations: [MobileServiceLocation] = [
         .init(
@@ -50,9 +79,9 @@ func makePartyDetail(
     ]
 ) -> MobilePartyDetail {
     .init(
-        id: "party-one",
+        id: id,
         kind: kind,
-        name: kind == .organization ? "Rappahannock Properties Inc" : "Donna Goodwin",
+        name: name ?? (kind == .organization ? "Rappahannock Properties Inc" : "Donna Goodwin"),
         contactName: kind == .organization ? "Site manager" : nil,
         email: nil,
         phone: "540-555-0100",

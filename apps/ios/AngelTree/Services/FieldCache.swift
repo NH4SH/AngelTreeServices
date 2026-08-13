@@ -19,6 +19,26 @@ actor FieldCache {
 
     func writeParty(_ party: MobilePartyDetail, userID: String) {
         write(party, key: "\(userID)-party-\(party.kind.rawValue)-\(party.id)")
+        recordRecentParty(party, userID: userID)
+    }
+
+    func readRecentParties(userID: String) -> [MobilePartySearchResult] {
+        read([MobilePartySearchResult].self, key: "\(userID)-recent-parties") ?? []
+    }
+
+    func recordRecentParty(_ party: MobilePartyDetail, userID: String) {
+        let result = MobilePartySearchResult(
+            id: party.id,
+            kind: party.kind,
+            name: party.name,
+            contactName: party.contactName,
+            email: party.email,
+            phone: party.phone,
+            address: party.serviceLocations.first?.fullAddress
+        )
+        let existing = readRecentParties(userID: userID)
+            .filter { $0.id != result.id || $0.kind != result.kind }
+        write(Array(([result] + existing).prefix(8)), key: "\(userID)-recent-parties")
     }
 
     func readJob(userID: String, id: String) -> MobileJobDetail? {

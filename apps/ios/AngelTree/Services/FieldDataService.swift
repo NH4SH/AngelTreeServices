@@ -2,6 +2,7 @@ import Foundation
 
 protocol FieldDataService: Sendable {
     func searchParties(query: String) async throws -> [MobilePartySearchResult]
+    func recentParties(userID: String) async -> [MobilePartySearchResult]
     func partyDetail(
         kind: MobilePartyKind,
         id: String,
@@ -27,6 +28,10 @@ actor LiveFieldDataService: FieldDataService {
         return try await api.searchCustomers(query: query, accessToken: token)
     }
 
+    func recentParties(userID: String) async -> [MobilePartySearchResult] {
+        await cache.readRecentParties(userID: userID)
+    }
+
     func partyDetail(
         kind: MobilePartyKind,
         id: String,
@@ -34,6 +39,7 @@ actor LiveFieldDataService: FieldDataService {
         allowCached: Bool
     ) async throws -> (detail: MobilePartyDetail, cached: Bool) {
         if allowCached, let cached = await cache.readParty(userID: userID, kind: kind, id: id) {
+            await cache.recordRecentParty(cached, userID: userID)
             return (cached, true)
         }
         let token = try await authentication.validAccessToken()

@@ -518,6 +518,24 @@ class Validator:
         if sum(image.get("sizes") == service_sizes for image in homepage.images) != 3:
             self.error("/: service-card images must use the measured desktop width hint")
 
+    def validate_homepage_footer_visibility(self) -> None:
+        homepage_path = self.site_dir / "index.html"
+        if not homepage_path.is_file():
+            return
+
+        source = homepage_path.read_text(encoding="utf-8")
+        footer_match = re.search(
+            r'<footer\b[^>]*\bid="footer-sections"[^>]*>(.*?)</footer>',
+            source,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if not footer_match:
+            self.error("/: homepage must include the public footer section")
+            return
+
+        if re.search(r'class="[^"]*\bpreFade\b', footer_match.group(1)):
+            self.error("/: static footer content must not retain an unresolved preFade animation state")
+
     @staticmethod
     def is_external_reference(reference: str) -> bool:
         reference = reference.strip()
@@ -1308,6 +1326,7 @@ class Validator:
             self.validate_metadata()
             self.validate_public_entity_graph()
             self.validate_homepage_responsive_images()
+            self.validate_homepage_footer_visibility()
             self.validate_video_structured_data()
             self.validate_references()
             self.validate_prefill_links()

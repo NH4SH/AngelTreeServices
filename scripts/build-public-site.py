@@ -26,6 +26,26 @@ STATIC_DIRECTORIES = (
     "angeltreeservices_backup_files",
 )
 
+HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
+
+/* Center the legacy Chamber membership block in the homepage footer. */
+@media (min-width: 768px) {
+  #footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 {
+    grid-column: 1 / -1 !important;
+    justify-self: center !important;
+    width: min(320px, 100%) !important;
+  }
+}
+
+#footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 .sqs-block,
+#footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 .sqs-block-content,
+#footer-sections #mni-membership-638313265276444260 {
+  width: 100%;
+  margin-inline: auto;
+  text-align: center;
+}
+"""
+
 
 def require_source(path: Path) -> None:
     if not path.exists():
@@ -56,6 +76,12 @@ def copy_static_sources() -> None:
         shutil.copytree(source, OUTPUT / relative_path)
 
 
+def apply_homepage_footer_alignment() -> None:
+    stylesheet = OUTPUT / "overrides.css"
+    with stylesheet.open("a", encoding="utf-8") as output:
+        output.write(HOMEPAGE_FOOTER_ALIGNMENT_CSS)
+
+
 def generate_pages() -> None:
     subprocess.run(
         [
@@ -72,6 +98,7 @@ def generate_pages() -> None:
 def build() -> None:
     prepare_output()
     copy_static_sources()
+    apply_homepage_footer_alignment()
     generate_pages()
     print(f"Public release artifact assembled at {OUTPUT.relative_to(ROOT)}/")
 

@@ -186,9 +186,9 @@ function MultiQuotePreview({ draft }: { draft: MultiQuoteEmailDraft }) {
       <p>{draft.greeting}</p>
       <p className="email-preview-prewrap">{draft.intro}</p>
       {draft.items.map((item, index) => <section className="multi-quote-preview-item" key={item.quoteId}>
-        <span>Proposal {index + 1}</span>
+        <span>Proposal {index + 1}{item.proposalNumber ? ` · #${item.proposalNumber}` : ""}</span>
         <h4>{item.title}</h4>
-        <p>{item.quoteLabel} · {item.propertyLabel}</p>
+        <p>{item.propertyLabel}</p>
         <p className="email-preview-prewrap">{item.scopeSummary}</p>
         <dl><div><dt>Proposal total</dt><dd>{item.totalLabel}</dd></div></dl>
         <small>{item.validityLabel}</small>

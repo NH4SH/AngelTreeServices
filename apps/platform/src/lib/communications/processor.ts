@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatProposalNumber } from "../quotes/proposal-number.ts";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { getExistingCommunicationPortalUrl } from "@/lib/communications/portal-links";
 import { syncAutomatedCommunications, getCommunicationSettingsFromClient } from "@/lib/communications/queue";
@@ -344,7 +345,7 @@ async function prepareQuoteFollowUp(
         customerName,
         lineItems,
         portalUrl: portal.url,
-        quoteNumber: quote.quote_number || "Draft",
+        proposalNumber: formatProposalNumber(quote.quote_number),
       }),
     },
   };

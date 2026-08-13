@@ -339,6 +339,7 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
       <div className="branded-email-preview-body">
         <p>{draft.greeting}</p>
         <p className="email-preview-prewrap">{draft.intro}</p>
+        {draft.referenceLabel ? <p><strong>{draft.referenceLabel}</strong></p> : null}
         <section>
           <strong>{draft.scopeHeading}</strong>
           <div className="email-preview-scope">

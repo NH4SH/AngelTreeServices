@@ -13,6 +13,7 @@
     "test:schedule": "node --test --experimental-strip-types src/lib/schedule/*.test.mjs",
     "test:security": "node --test --experimental-strip-types src/lib/security/*.test.mjs",
     "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs",
+    "test:mobile": "node --test --experimental-strip-types src/lib/api/mobile-contract.test.mjs",
     "test:email": "node --test --experimental-strip-types src/lib/email/*.test.mjs",
     "test:notifications": "node --test --experimental-strip-types src/lib/notifications/*.test.mjs",
     "test:address": "node --test --experimental-strip-types src/lib/address/*.test.mjs",

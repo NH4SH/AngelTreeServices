@@ -1,0 +1,4 @@
+// Copy this file to Local.xcconfig. Never commit Local.xcconfig.
+// Use the same Supabase project as apps/platform and only a publishable/anon key.
+SUPABASE_URL = https:/$()/YOUR_PROJECT.supabase.co
+SUPABASE_PUBLISHABLE_KEY = YOUR_PUBLISHABLE_OR_ANON_KEY

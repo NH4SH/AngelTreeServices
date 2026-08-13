@@ -75,7 +75,6 @@ export async function duplicateQuote(
       purchase_order_reference: typedQuote.purchase_order_reference,
       payment_terms: typedQuote.payment_terms,
       status: "draft",
-      quote_number: await getNextRecordNumber(auth.supabase, "quotes", "quote_number", "Q", typedQuote.quote_number),
       subtotal_cents: typedQuote.subtotal_cents,
       tax_cents: typedQuote.tax_cents,
       total_cents: typedQuote.total_cents,

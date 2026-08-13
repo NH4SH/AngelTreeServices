@@ -102,16 +102,35 @@ test("archived and unreviewed recurring quotes are not sendable", () => {
 
 test("combined draft keeps proposals independent and formats money for customers", () => {
   const draft = buildMultiQuoteEmailDraft([
-    { quote: quote(), portalUrl: "https://admin.example.test/portal/quote/token-a" },
-    { quote: quote({ id: "20000000-0000-4000-8000-000000000002", total_cents: 40050 }), portalUrl: "https://admin.example.test/portal/quote/token-b" },
+    { quote: quote({ quote_number: "Q-20260812-002" }), portalUrl: "https://admin.example.test/portal/quote/token-a" },
+    { quote: quote({ id: "20000000-0000-4000-8000-000000000002", quote_number: "Q-20260812-003", total_cents: 40050 }), portalUrl: "https://admin.example.test/portal/quote/token-b" },
   ]);
 
   assert.equal(draft.items[0].totalLabel, "$1,600");
   assert.equal(draft.items[1].totalLabel, "$400.50");
+  assert.equal(draft.items[0].proposalNumber, "260812-02");
+  assert.match(draft.body, /PROPOSAL 1 · #260812-02/);
+  assert.match(draft.body, /PROPOSAL 2 · #260812-03/);
+  assert.doesNotMatch(draft.body, /Quote Q-/);
   assert.match(draft.body, /token-a/);
   assert.match(draft.body, /token-b/);
   assert.doesNotMatch(draft.body, /grand total/i);
   assert.match(draft.intro, /independently/i);
+});
+
+test("combined draft handles a missing historical number without UUID or repeated fallback copy", () => {
+  const draft = buildMultiQuoteEmailDraft([
+    { quote: quote({ quote_number: "Q-20260812-002" }) },
+    { quote: quote({ id: "20000000-0000-4000-8000-000000000002", quote_number: null }) },
+  ]);
+  const html = renderMultiQuoteEmailHtml(draft);
+
+  assert.match(draft.body, /PROPOSAL 1 · #260812-02/);
+  assert.match(draft.body, /PROPOSAL 2\nTree removal/);
+  assert.doesNotMatch(draft.body, /20000000-/);
+  assert.doesNotMatch(draft.body, /PROPOSAL 2\nProposal 2/);
+  assert.match(html, /Proposal 1 · #260812-02/);
+  assert.doesNotMatch(html, /Quote Q-/);
 });
 
 test("HTML includes a separate safe call to action for each proposal", () => {

@@ -1,8 +1,9 @@
 import type { QuoteDetail, QuoteStatus } from "@/lib/types/database";
+import { formatProposalNumber } from "./proposal-number.ts";
 
 export type MultiQuoteEmailItem = {
   quoteId: string;
-  quoteLabel: string;
+  proposalNumber: string | null;
   title: string;
   propertyLabel: string;
   scopeSummary: string;
@@ -159,8 +160,7 @@ export function applyMultiQuotePortalUrls(
 
 export function buildMultiQuoteEmailText(draft: Omit<MultiQuoteEmailDraft, "body">) {
   const proposals = draft.items.flatMap((item, index) => [
-    `PROPOSAL ${index + 1}`,
-    item.quoteLabel,
+    `PROPOSAL ${index + 1}${item.proposalNumber ? ` · #${item.proposalNumber}` : ""}`,
     item.title,
     item.propertyLabel,
     item.scopeSummary,
@@ -219,7 +219,7 @@ function buildItem(quote: QuoteDetail, portalUrl: string, index: number): MultiQ
 
   return {
     quoteId: quote.id,
-    quoteLabel: quote.quote_number ? `Quote ${quote.quote_number}` : `Proposal ${index + 1}`,
+    proposalNumber: formatProposalNumber(quote.quote_number),
     title: firstItem?.name?.trim() || titleCase(serviceType) || "Tree service proposal",
     propertyLabel: formatQuoteAddress(quote.service_locations ?? quote.jobs?.service_locations) || "Service property",
     scopeSummary,
@@ -233,7 +233,8 @@ function renderProposal(item: MultiQuoteEmailItem, index: number) {
   const action = item.portalUrl
     ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0 8px;"><tr><td bgcolor="#174b32" style="border-radius:6px;"><a href="${escapeAttribute(item.portalUrl)}" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:15px;line-height:1.2;font-weight:700;">Review proposal</a></td></tr></table><p style="margin:0;color:#667169;font-size:11px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;">Secure link: <a href="${escapeAttribute(item.portalUrl)}" style="color:#496356;text-decoration:underline;">${escapeHtml(item.portalUrl)}</a></p>`
     : "";
-  return `<tr><td style="padding:0 28px 24px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:3px solid #3f7a58;border-bottom:1px solid #d7e3da;background:#ffffff;"><tr><td style="padding:18px 0;"><p style="margin:0 0 5px;color:#667169;font-size:12px;font-weight:800;text-transform:uppercase;">Proposal ${index + 1}</p><h2 style="margin:0;color:#174b32;font-size:20px;line-height:1.3;">${escapeHtml(item.title)}</h2><p style="margin:5px 0 0;color:#4f5d54;font-size:13px;line-height:1.5;">${escapeHtml(item.quoteLabel)} · ${escapeHtml(item.propertyLabel)}</p><p style="margin:15px 0 0;color:#303934;font-size:15px;line-height:1.7;">${formatPlainText(item.scopeSummary)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:16px;border-collapse:collapse;"><tr><td style="color:#5c675f;font-size:13px;">Proposal total<br /><span style="font-size:12px;">${escapeHtml(item.validityLabel)}</span></td><td align="right" style="color:#174b32;font-size:20px;font-weight:800;">${escapeHtml(item.totalLabel)}</td></tr></table>${action}</td></tr></table></td></tr>`;
+  const heading = `Proposal ${index + 1}${item.proposalNumber ? ` · #${item.proposalNumber}` : ""}`;
+  return `<tr><td style="padding:0 28px 24px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:3px solid #3f7a58;border-bottom:1px solid #d7e3da;background:#ffffff;"><tr><td style="padding:18px 0;"><p style="margin:0 0 5px;color:#667169;font-size:12px;font-weight:800;text-transform:uppercase;">${escapeHtml(heading)}</p><h2 style="margin:0;color:#174b32;font-size:20px;line-height:1.3;">${escapeHtml(item.title)}</h2><p style="margin:5px 0 0;color:#4f5d54;font-size:13px;line-height:1.5;">${escapeHtml(item.propertyLabel)}</p><p style="margin:15px 0 0;color:#303934;font-size:15px;line-height:1.7;">${formatPlainText(item.scopeSummary)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:16px;border-collapse:collapse;"><tr><td style="color:#5c675f;font-size:13px;">Proposal total<br /><span style="font-size:12px;">${escapeHtml(item.validityLabel)}</span></td><td align="right" style="color:#174b32;font-size:20px;font-weight:800;">${escapeHtml(item.totalLabel)}</td></tr></table>${action}</td></tr></table></td></tr>`;
 }
 
 function normalizeScopeText(value: string) {

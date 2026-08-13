@@ -62,10 +62,10 @@ export function getQuoteEmailTemplate(input: EmailTemplateInput = {}): DocumentT
 
   return {
     id: "quote-email",
-    name: "Quote email",
+    name: "Proposal email",
     purpose: "quote_email",
     subject: `Your ${companyName} quote is ready`,
-    body: `Hi ${customerName}, your quote is ready for review. Please open the secure portal link when customer-token access is implemented.`,
+    body: `Hi ${customerName}, your proposal is ready for review. Please open the secure portal link when customer-token access is implemented.`,
   };
 }
 

@@ -40,3 +40,11 @@ out
 # Local environment files
 .env*
 !.env.example
+
+# Native Apple build state and local credentials
+apps/ios/Config/Local.xcconfig
+apps/ios/DerivedData/
+apps/ios/.build/
+apps/ios/.swiftpm/
+**/xcuserdata/
+*.xcuserstate

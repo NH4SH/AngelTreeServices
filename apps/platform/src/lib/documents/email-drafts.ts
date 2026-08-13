@@ -1,4 +1,5 @@
 import type { InvoiceDetail, InvoiceLineItem, JobDetail, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
+import { formatProposalReference } from "../quotes/proposal-number.ts";
 
 export type EmailDraft = {
   subject: string;
@@ -9,6 +10,7 @@ export type CustomerDocumentEmailDraft = EmailDraft & {
   documentType: "quote" | "invoice";
   greeting: string;
   intro: string;
+  referenceLabel?: string;
   propertyLabel: string;
   scopeHeading: string;
   scopeText: string;
@@ -142,6 +144,7 @@ export function generateQuoteEmailDraft(
     subject: `${companyName} Proposal – ${quoteSubjectLocation(quote)}`,
     greeting: `Hi ${firstName || "there"},`,
     intro: buildQuoteIntroduction(quote, workDescription, revised),
+    referenceLabel: formatProposalReference(quote.quote_number),
     propertyLabel,
     scopeHeading: "The proposed work includes",
     scopeText: formatLineItemScope(quote.quote_line_items, quote.jobs?.requested_scope, {
@@ -228,6 +231,7 @@ export function buildCustomerDocumentEmailText(draft: Omit<CustomerDocumentEmail
     draft.greeting,
     "",
     draft.intro,
+    draft.referenceLabel ?? "",
     "",
     draft.scopeHeading,
     draft.scopeText,
@@ -537,11 +541,11 @@ export function generateQuoteFollowUpDraft(quote: QuoteDetail): EmailDraft {
   const customerName = quote.organizations?.name ?? quote.customers?.display_name ?? "there";
 
   return {
-    subject: `${companyName}: following up on your quote`,
+    subject: `${companyName}: following up on your proposal`,
     body: [
       `Hi ${customerName},`,
       "",
-      "We wanted to follow up on your tree service quote and see if you have any questions.",
+      "We wanted to follow up on your tree service proposal and see if you have any questions.",
       "",
       "Reply here or call our office when you are ready. We are happy to talk through the scope or make adjustments.",
       "",

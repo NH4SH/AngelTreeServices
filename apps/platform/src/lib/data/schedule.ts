@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getScheduleDateKey, parseScheduleDateTime, shiftScheduleDateKey } from "@/lib/schedule/event-form";
 import { getAdminSearchPage } from "@/lib/data/admin-search";
 import { safeStaffMessage } from "@/lib/security/errors";
@@ -74,6 +75,13 @@ export async function getScheduleUsers(): Promise<DataResult<ScheduleUser[]>> {
   if (!supabase) {
     return { data: [], error: "Supabase is not configured." };
   }
+
+  return getScheduleUsersForClient(supabase);
+}
+
+export async function getScheduleUsersForClient(
+  supabase: SupabaseClient<any, "public", any>,
+): Promise<DataResult<ScheduleUser[]>> {
 
   const { data, error } = await supabase
     .from("employee_records")
@@ -160,7 +168,15 @@ export async function getScheduleCalendarData(filters: ScheduleFilters = {}): Pr
     };
   }
 
-  const usersResult = await getScheduleUsers();
+  return getScheduleCalendarDataForClient(supabase, filters);
+}
+
+export async function getScheduleCalendarDataForClient(
+  supabase: SupabaseClient<any, "public", any>,
+  filters: ScheduleFilters = {},
+): Promise<DataResult<ScheduleCalendarData>> {
+
+  const usersResult = await getScheduleUsersForClient(supabase);
   const users = usersResult.data;
   const crewUserIds = new Set(
     users.filter((user) => user.role_names.includes("crew")).map((user) => user.id),

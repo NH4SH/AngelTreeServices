@@ -26,11 +26,11 @@ export function generateQuoteFollowUpMessage(quote: QuoteDetail): EmailDraft {
   const customerName = quote.organizations?.name ?? quote.customers?.display_name ?? "there";
 
   return {
-    subject: `${companyName}: following up on your quote`,
+    subject: `${companyName}: following up on your proposal`,
     body: [
       `Hi ${customerName},`,
       "",
-      "We wanted to check in on your Angel Tree Services quote and see if you have any questions.",
+      "We wanted to check in on your Angel Tree Services proposal and see if you have any questions.",
       "",
       "Reply here or call our office when you are ready. We are happy to talk through the scope or make adjustments.",
       "",

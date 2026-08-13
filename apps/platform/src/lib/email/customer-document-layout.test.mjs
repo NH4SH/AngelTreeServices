@@ -51,6 +51,7 @@ test("quote draft preserves scope, optional work, first name, total, and secure 
   assert.match(draft.customerNotes, /utility-line clearance/);
   assert.doesNotMatch(draft.body, /Private margin discussion/);
   assert.match(draft.body, /Proposal total: \$1,500/);
+  assert.match(draft.body, /Proposal #1042/);
   assert.doesNotMatch(draft.body, /Proposal total: \$1,500\.00/);
   assert.match(draft.body, /safe-token/);
 });
@@ -125,6 +126,7 @@ test("branded HTML escapes edited customer content and includes responsive opera
   assert.match(html, /max-width:640px/);
   assert.match(html, /info@angeltreeservice\.org/);
   assert.match(html, /Review and approve proposal/);
+  assert.match(html, /Prepared proposal/);
 });
 
 test("missing optional dates use a narrow document fallback instead of inventing terms", () => {

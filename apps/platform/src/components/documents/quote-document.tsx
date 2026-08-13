@@ -4,6 +4,7 @@ import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { getQuoteTerms } from "@/lib/documents/terms";
 import { formatBusinessDateTime } from "@/lib/business-time";
+import { formatProposalNumber } from "../../lib/quotes/proposal-number.ts";
 import type { QuoteDetail } from "@/lib/types/database";
 
 export function QuoteDocument({
@@ -26,7 +27,7 @@ export function QuoteDocument({
       brandLogoSrc="/angel-tree-services-logo.jpg"
       className="quote-proposal-document"
       documentLabel="Proposal"
-      documentNumber={quote.quote_number ?? "Prepared proposal"}
+      documentNumber={formatDocumentProposalNumber(quote.quote_number)}
       footerDetails={
         <>
           <div>
@@ -80,6 +81,11 @@ export function QuoteDocument({
       ) : null}
     </DocumentShell>
   );
+}
+
+function formatDocumentProposalNumber(quoteNumber?: string | null) {
+  const formatted = formatProposalNumber(quoteNumber);
+  return formatted ? `#${formatted}` : "Prepared proposal";
 }
 
 function QuoteScopeItems({

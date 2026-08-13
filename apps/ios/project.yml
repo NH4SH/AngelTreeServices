@@ -1,0 +1,73 @@
+name: AngelTree
+options:
+  bundleIdPrefix: org.angeltreeservices
+  deploymentTarget:
+    iOS: "16.0"
+  groupSortPosition: top
+  minimumXcodeGenVersion: 2.43.0
+  xcodeVersion: "16.4"
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Config/Shared.xcconfig
+  Release: Config/Shared.xcconfig
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    exactVersion: 2.55.0
+settings:
+  base:
+    CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
+    DEVELOPMENT_ASSET_PATHS: '"AngelTree/Preview Content"'
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_STRICT_CONCURRENCY: targeted
+targets:
+  AngelTree:
+    type: application
+    platform: iOS
+    sources:
+      - path: AngelTree
+        excludes:
+          - "Preview Content"
+    resources:
+      - path: AngelTree/Assets.xcassets
+      - path: AngelTree/Preview Content/Preview Assets.xcassets
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: AngelTree/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: org.angeltreeservices.field
+        SUPPORTS_MACCATALYST: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+  AngelTreeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AngelTreeTests
+    dependencies:
+      - target: AngelTree
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: org.angeltreeservices.field.tests
+schemes:
+  AngelTree:
+    build:
+      targets:
+        AngelTree: all
+        AngelTreeTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - AngelTreeTests
+    archive:
+      config: Release

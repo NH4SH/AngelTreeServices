@@ -40,6 +40,7 @@ export function renderCustomerDocumentEmailHtml(
         <tr><td style="padding:28px 28px 18px;">
           <p style="margin:0 0 18px;color:#27312b;font-size:17px;line-height:1.55;">${escapeHtml(draft.greeting)}</p>
           <p style="margin:0;color:#303934;font-size:16px;line-height:1.65;">${formatPlainText(draft.intro)}</p>
+          ${draft.referenceLabel ? `<p style="margin:14px 0 0;color:#174b32;font-size:13px;line-height:1.4;font-weight:800;">${escapeHtml(draft.referenceLabel)}</p>` : ""}
         </td></tr>
         <tr><td style="padding:0 28px 24px;">
           <p style="margin:0 0 10px;color:#174b32;font-size:13px;line-height:1.3;font-weight:800;text-transform:uppercase;">${escapeHtml(draft.scopeHeading)}</p>

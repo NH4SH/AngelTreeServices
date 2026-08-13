@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -85,10 +86,35 @@ export async function updateRecordLifecycle(_state: LifecycleActionState, formDa
 }
 
 export async function getRecordLifecyclePreview(recordType: LifecycleRecordType, recordId: string): Promise<RecordLifecyclePreview> {
-  const supabase = await createClient();
-  const empty = { archivedAt: null, blockers: ["Record could not be inspected."], canPermanentDelete: false, counts: {}, label: "Record", recordId, recordType };
-  if (!supabase) return empty;
+  const empty: RecordLifecyclePreview = { archivedAt: null, blockers: ["Record could not be inspected."], canPermanentDelete: false, counts: {}, label: "Record", recordId, recordType };
+  const authClient = await createClient();
+  if (!authClient) return empty;
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) return empty;
+  const roles = await getUserRoles(authClient, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) return empty;
 
+  // Dependency tables such as Stripe checkout sessions are intentionally
+  // server-only. Authorization is established above before using this client.
+  const supabase = getServiceRoleClient() ?? authClient;
+
+  try {
+    return await inspectRecordLifecycle(supabase, recordType, recordId, empty);
+  } catch (error) {
+    console.error("Record dependency preview failed closed", { error, recordId, recordType });
+    return {
+      ...empty,
+      blockers: ["Linked records could not be fully inspected. Permanent deletion is disabled."],
+    };
+  }
+}
+
+async function inspectRecordLifecycle(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  recordType: LifecycleRecordType,
+  recordId: string,
+  empty: RecordLifecyclePreview,
+) {
   if (recordType === "invoice") {
     const [record, payments, checkouts, documents, lines, tokens] = await Promise.all([
       supabase.from("invoices").select("id, invoice_number, status, archived_at").eq("id", recordId).maybeSingle(),
@@ -144,7 +170,7 @@ export async function getRecordLifecyclePreview(recordType: LifecycleRecordType,
       countRows(supabase, "documents", "job_id", recordId),
       countRows(supabase, "change_orders", "job_id", recordId),
       countRows(supabase, "customer_communications", "job_id", recordId),
-      countRows(supabase, "email_events", "job_id", recordId),
+      countRows(supabase, "email_events", "related_job_id", recordId),
     ]);
     if (!record.data) return empty;
     const unsafeQuotes = (quotes.data ?? []).filter((quote) => quote.status !== "draft");
@@ -249,13 +275,15 @@ async function permanentlyDeleteRecord(supabase: any, record: RecordLifecyclePre
 }
 
 async function countRows(supabase: any, table: string, column: string, value: string) {
-  const { count } = await supabase.from(table).select("id", { count: "exact", head: true }).eq(column, value);
+  const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true }).eq(column, value);
+  if (error) throw error;
   return count ?? 0;
 }
 
 async function countIn(supabase: any, table: string, column: string, values: string[]) {
   if (!values.length) return 0;
-  const { count } = await supabase.from(table).select("id", { count: "exact", head: true }).in(column, values);
+  const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true }).in(column, values);
+  if (error) throw error;
   return count ?? 0;
 }
 

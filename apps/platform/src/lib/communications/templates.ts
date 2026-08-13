@@ -46,20 +46,21 @@ export function quoteFollowUpTemplate(input: {
   customerName: string;
   lineItems: { description: string | null; name: string }[];
   portalUrl: string;
-  quoteNumber: string;
+  proposalNumber: string | null;
 }) {
-  const subject = `Following up on Quote #${input.quoteNumber} from ${companyName}`;
+  const proposalLabel = input.proposalNumber ? `Proposal #${input.proposalNumber}` : "your proposal";
+  const subject = `Following up on ${proposalLabel} from ${companyName}`;
   const scope = input.lineItems
     .slice(0, 4)
     .map((item) => `- ${item.name}${item.description ? `: ${compactDescription(item.description)}` : ""}`);
   const text = [
     `Hi ${input.customerName},`,
     "",
-    `We are following up on Quote #${input.quoteNumber} and wanted to see if you have any questions.`,
+    `We are following up on ${proposalLabel} and wanted to see if you have any questions.`,
     scope.length ? "Current scope:" : "",
     ...scope,
     "",
-    `Review the latest quote securely: ${input.portalUrl}`,
+    `Review the latest proposal securely: ${input.portalUrl}`,
     "",
     "Reply to this email or call our office if you would like to talk through the work or request an adjustment.",
     "",
@@ -67,7 +68,7 @@ export function quoteFollowUpTemplate(input: {
     companyName,
   ].filter(Boolean).join("\n");
 
-  return brandedTemplate(subject, text, "Quote follow-up");
+  return brandedTemplate(subject, text, "Proposal follow-up");
 }
 
 export function invoiceReminderTemplate(input: {

@@ -64,6 +64,10 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 APP_BASE_URL=https://admin.angeltreeservices.org
 COMMUNICATION_WORKER_SECRET=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_TOKEN_ENCRYPTION_KEY=
+GOOGLE_CALENDAR_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
@@ -81,6 +85,7 @@ Notes:
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are server-only. Start with Stripe test keys and never expose them through browser configuration.
 - `APP_BASE_URL` must be `https://admin.angeltreeservices.org` in production so Checkout returns to the same customer portal link.
 - `COMMUNICATION_WORKER_SECRET` must be a server-only random value of at least 32 characters shared only by the Netlify Scheduled Function and internal processor route.
+- Google Calendar credentials, token-encryption key, and worker secret are server-only and must exist only on the admin project. Follow `GOOGLE_CALENDAR_INTEGRATION.md`.
 - Do not add the service role key to the public website Netlify site.
 - `SUPABASE_DB_URL` is not required for normal app page runtime right now.
 - Secure invoice links require `supabase/migrations/20260709132222_invoice_portal_tokens.sql`
@@ -282,6 +287,21 @@ After applying `supabase/migrations/20260716212545_harden_security_definer_funct
 10. In Supabase Auth settings, enable **Prevent the use of leaked passwords** if the advisor still reports it disabled.
 
 Keep `app_private` out of the Supabase Data API exposed-schema list. See `SECURITY_HARDENING.md` for the full function findings and expected grants.
+
+## Google Calendar Mirror Regression
+
+Apply `supabase/migrations/20260813020719_google_calendar_one_way_sync.sql`, configure the Google Web OAuth client and server-only admin-project environment values, and use an isolated Google test calendar. Follow `GOOGLE_CALENDAR_INTEGRATION.md` for exact callbacks and scopes.
+
+1. Sign in as crew/staff, connect Google, and confirm the account email and only writable calendars appear.
+2. Enable assigned estimates/jobs, press **Sync now**, and confirm only active events from the current Eastern day through 90 days are mirrored.
+3. Verify a two-day job becomes two Google events, while repeat sync creates no duplicates.
+4. Change date, time, title, service location, and assignment in Angel Tree; confirm the same managed events update or are removed as appropriate.
+5. Cancel one workday and confirm only its integration-managed event is removed. Confirm unrelated personal Google events remain untouched.
+6. Inspect event content and confirm no prices, balances, contact details, office/crew notes, or long scope text is present.
+7. Temporarily deny provider access or revoke the test grant. Confirm the CRM schedule save still succeeds and the integration reports a clean reconnect state.
+8. Confirm crew cannot enable all-company sync, another user cannot read the connection, and browser responses contain no refresh token or ciphertext.
+9. Disconnect without cleanup, reconnect, then disconnect with future-event cleanup in the isolated calendar. Confirm no CRM schedule row changes.
+10. Confirm `process-google-calendar` runs every five minutes and exhausted retries stop instead of looping indefinitely.
 
 ## 11. Rollback Notes
 

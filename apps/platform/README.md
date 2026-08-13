@@ -58,7 +58,7 @@ For a staging/private deployment pass, use:
 DEPLOYMENT_CHECKLIST.md
 ```
 
-Create a Supabase project at `https://supabase.com`, then copy `.env.example` from the repo root to:
+Create a Supabase project at `https://supabase.com`, then create this gitignored local file:
 
 ```text
 apps/platform/.env.local
@@ -73,9 +73,18 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
 PORTAL_TOKEN_ENCRYPTION_KEY=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_TOKEN_ENCRYPTION_KEY=
+GOOGLE_CALENDAR_WORKER_SECRET=
+APP_BASE_URL=http://localhost:3000
 ```
 
 Only variables intentionally prefixed with `NEXT_PUBLIC_` should be used by browser code. Server credentials must never be imported into client components.
+
+### Google Calendar mirror
+
+The optional Google Calendar integration mirrors assigned estimates and job workdays from Angel Tree without making Google authoritative. See [GOOGLE_CALENDAR_INTEGRATION.md](./GOOGLE_CALENDAR_INTEGRATION.md) for the exact Google Cloud callbacks/scopes, server-only environment values, migration, one-way behavior, retry policy, and production smoke test.
 
 ### CRM address autocomplete
 
@@ -194,6 +203,7 @@ supabase/migrations/20260723013121_manage_private_job_photo_bucket.sql
 supabase/migrations/20260723013504_durable_security_rate_limits.sql
 supabase/migrations/20260723013922_employee_pii_least_privilege.sql
 supabase/migrations/20260723014156_least_privilege_public_grants.sql
+supabase/migrations/20260813020719_google_calendar_one_way_sync.sql
 ```
 
 For the first pass, you can paste the migration into the Supabase SQL editor. Later, use the Supabase CLI for repeatable local and remote migrations.

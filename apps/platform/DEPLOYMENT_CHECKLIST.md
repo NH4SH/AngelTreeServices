@@ -45,11 +45,26 @@ STRIPE_UNSURCHARGED_CARD_ENABLED=false
 BUSINESS_CHECK_MAILING_ADDRESS=
 APP_BASE_URL=https://admin.angeltreeservices.org
 COMMUNICATION_WORKER_SECRET=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_TOKEN_ENCRYPTION_KEY=
+GOOGLE_CALENDAR_WORKER_SECRET=
 NEXT_PUBLIC_GOOGLE_REVIEW_URL=
 LEAD_INTAKE_ALLOWED_ORIGINS=https://angeltreeservices.org,https://www.angeltreeservices.org,https://angeltreeservice.org,https://www.angeltreeservice.org
 ```
 
 `SYSTEM_HEALTH_MONITOR_SECRET` must be a random value of at least 32 characters. Configure the same value as a GitHub Actions repository secret, but never expose it to the browser or public-site Netlify project.
+
+The four `GOOGLE_*` Calendar values are server-only and belong only to the `angel-tree-admin` Netlify project. Generate `GOOGLE_TOKEN_ENCRYPTION_KEY` with `openssl rand -base64 32` and `GOOGLE_CALENDAR_WORKER_SECRET` with `openssl rand -hex 32`. Follow [GOOGLE_CALENDAR_INTEGRATION.md](./GOOGLE_CALENDAR_INTEGRATION.md) before enabling the integration.
+
+## Google Calendar production setup
+
+1. Review and apply `supabase/migrations/20260813020719_google_calendar_one_way_sync.sql`; do not apply it from Netlify.
+2. Enable Google Calendar API, configure the OAuth consent screen, and create a Web application OAuth client.
+3. Register the production and localhost callback URIs exactly as listed in `GOOGLE_CALENDAR_INTEGRATION.md`.
+4. Add `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_TOKEN_ENCRYPTION_KEY`, and `GOOGLE_CALENDAR_WORKER_SECRET` only to the admin Netlify project.
+5. Confirm `APP_BASE_URL=https://admin.angeltreeservices.org`, deploy the admin app, then run the documented isolated-account smoke test.
+6. Confirm the five-minute `process-google-calendar` scheduled function is running and that a forced Google failure does not affect an Angel Tree schedule save.
 
 ## System health production setup
 

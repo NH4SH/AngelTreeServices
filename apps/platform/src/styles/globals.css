@@ -399,6 +399,343 @@
   color: var(--color-muted);
 }
 
+.google-calendar-page {
+  max-width: 1040px;
+}
+
+.google-calendar-settings {
+  display: grid;
+  gap: 18px;
+}
+
+.integration-notice {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 13px 15px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+  font-weight: 750;
+}
+
+.integration-notice.warning {
+  border-color: oklch(0.78 0.09 75);
+  background: oklch(0.97 0.025 82);
+  color: oklch(0.39 0.08 65);
+}
+
+.integration-empty-state,
+.integration-connect-panel,
+.integration-connection-summary,
+.google-calendar-preference-form,
+.integration-sync-actions,
+.integration-boundary-note,
+.integration-disconnect {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.integration-empty-state,
+.integration-connect-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.integration-empty-state {
+  grid-template-columns: auto minmax(0, 1fr);
+  background: var(--color-surface-subtle);
+}
+
+.integration-empty-state > svg,
+.integration-heading-icon {
+  color: var(--color-green);
+}
+
+.integration-heading-icon,
+.integration-status-icon {
+  display: inline-flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--color-surface-green);
+}
+
+.integration-empty-state h2,
+.integration-connect-panel h2,
+.integration-connection-summary h2,
+.integration-section-heading h2,
+.integration-sync-actions h2 {
+  margin: 0;
+  color: var(--color-forest);
+  font-size: 1.08rem;
+}
+
+.integration-empty-state p,
+.integration-connect-panel p,
+.integration-connection-summary p,
+.integration-section-heading p,
+.integration-sync-actions p,
+.integration-boundary-note p,
+.integration-disconnect p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.integration-connection-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(260px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.integration-status-icon.connected {
+  color: var(--color-green);
+}
+
+.integration-status-icon.attention {
+  background: oklch(0.97 0.025 82);
+  color: oklch(0.5 0.12 70);
+}
+
+.integration-kicker {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.integration-connection-summary dl {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+}
+
+.integration-connection-summary dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.integration-connection-summary dt {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.integration-connection-summary dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--color-charcoal);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.google-calendar-preference-form {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.integration-calendar-select {
+  display: grid;
+  max-width: 580px;
+  gap: 7px;
+  color: var(--color-forest);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.integration-calendar-select select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  font: inherit;
+}
+
+.google-calendar-preference-form fieldset {
+  display: grid;
+  gap: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  padding: 14px 0 0;
+}
+
+.google-calendar-preference-form legend {
+  padding: 0 10px 0 0;
+  color: var(--color-forest);
+  font-weight: 850;
+}
+
+.integration-preference-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-height: 64px;
+  padding: 12px 4px;
+  cursor: pointer;
+}
+
+.integration-preference-row + .integration-preference-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.integration-preference-row input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--color-green);
+}
+
+.integration-preference-row span,
+.integration-preference-row strong,
+.integration-preference-row small {
+  display: block;
+}
+
+.integration-preference-row strong {
+  color: var(--color-charcoal);
+}
+
+.integration-preference-row small {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.google-calendar-preference-form > button,
+.integration-connect-panel .primary-action {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.google-calendar-preference-form > button {
+  border: 1px solid var(--color-forest);
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: var(--color-forest);
+  color: var(--color-surface);
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.google-calendar-preference-form > button:disabled,
+.integration-inline-action button:disabled,
+.integration-disconnect button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.integration-sync-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+}
+
+.integration-inline-action {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.integration-inline-action .form-message {
+  max-width: 420px;
+  margin: 0;
+}
+
+.integration-boundary-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--color-surface-green);
+  color: var(--color-forest);
+}
+
+.integration-boundary-note strong {
+  color: var(--color-forest);
+}
+
+.integration-disconnect {
+  overflow: clip;
+}
+
+.integration-disconnect summary {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 18px;
+  color: var(--color-charcoal);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.integration-disconnect form {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--color-border);
+  padding: 18px;
+}
+
+.integration-disconnect .danger-action {
+  width: fit-content;
+}
+
+.employee-integration-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .integration-connect-panel,
+  .integration-empty-state,
+  .integration-connection-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .integration-connect-panel .primary-action,
+  .google-calendar-preference-form > button,
+  .integration-inline-action,
+  .integration-inline-action button,
+  .integration-disconnect .danger-action {
+    width: 100%;
+  }
+
+  .integration-connection-summary dl > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .integration-sync-actions,
+  .employee-integration-link {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .notification-preferences-form {
   display: grid;
   max-width: 780px;

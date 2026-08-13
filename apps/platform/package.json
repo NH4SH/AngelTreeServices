@@ -14,6 +14,7 @@
     "test:security": "node --test --experimental-strip-types src/lib/security/*.test.mjs",
     "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs",
     "test:mobile": "node --test --experimental-strip-types src/lib/api/mobile-contract.test.mjs",
+    "test:google-calendar": "NODE_OPTIONS=--conditions=react-server node --test --experimental-strip-types src/lib/integrations/google-calendar/*.test.mjs",
     "test:email": "node --test --experimental-strip-types src/lib/email/*.test.mjs",
     "test:notifications": "node --test --experimental-strip-types src/lib/notifications/*.test.mjs",
     "test:address": "node --test --experimental-strip-types src/lib/address/*.test.mjs",
@@ -29,6 +30,7 @@
     "next": "^16.2.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "server-only": "0.0.1",
     "sharp": "^0.35.3",
     "stripe": "^22.3.2"
   },

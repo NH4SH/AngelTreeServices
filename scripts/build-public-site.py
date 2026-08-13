@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import subprocess
 import sys
@@ -17,6 +19,7 @@ STATIC_FILES = (
     "index.html",
     "overrides.css",
     "ats-form-enhancements.js",
+    "ats-address-autocomplete.js",
     "site-pages.css",
     "site-pages.js",
 )
@@ -45,6 +48,10 @@ HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
   text-align: center;
 }
 """
+
+GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
+FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=release1"></script>'
+ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release1"></script>'
 
 
 def require_source(path: Path) -> None:
@@ -82,6 +89,37 @@ def apply_homepage_footer_alignment() -> None:
         output.write(HOMEPAGE_FOOTER_ALIGNMENT_CSS)
 
 
+def configure_public_address_autocomplete() -> None:
+    api_key = os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "").strip()
+    script_path = OUTPUT / "ats-address-autocomplete.js"
+    script = script_path.read_text(encoding="utf-8")
+
+    if GOOGLE_MAPS_API_KEY_PLACEHOLDER not in script:
+        raise RuntimeError("Public address autocomplete API-key placeholder is missing.")
+
+    escaped_api_key = json.dumps(api_key)[1:-1]
+    script_path.write_text(
+        script.replace(GOOGLE_MAPS_API_KEY_PLACEHOLDER, escaped_api_key),
+        encoding="utf-8",
+    )
+
+    if not api_key:
+        print("Public Google address autocomplete disabled: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.")
+        return
+
+    homepage_path = OUTPUT / "index.html"
+    homepage = homepage_path.read_text(encoding="utf-8")
+    if ADDRESS_AUTOCOMPLETE_SCRIPT not in homepage:
+        if FORM_ENHANCEMENT_SCRIPT not in homepage:
+            raise RuntimeError("Could not find the public form enhancement script tag for autocomplete injection.")
+        homepage = homepage.replace(
+            FORM_ENHANCEMENT_SCRIPT,
+            ADDRESS_AUTOCOMPLETE_SCRIPT + "\n" + FORM_ENHANCEMENT_SCRIPT,
+            1,
+        )
+        homepage_path.write_text(homepage, encoding="utf-8")
+
+
 def generate_pages() -> None:
     subprocess.run(
         [
@@ -99,6 +137,7 @@ def build() -> None:
     prepare_output()
     copy_static_sources()
     apply_homepage_footer_alignment()
+    configure_public_address_autocomplete()
     generate_pages()
     print(f"Public release artifact assembled at {OUTPUT.relative_to(ROOT)}/")
 

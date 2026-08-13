@@ -9,7 +9,24 @@ protocol MobileAPIClientProtocol: Sendable {
         accessToken: String
     ) async throws -> MobileSchedulePayload
     func jobPhotos(jobID: String, accessToken: String) async throws -> [JobPhotoSummary]
+    func customerDirectory(cursor: String?, limit: Int, accessToken: String) async throws -> MobilePartyDirectoryPage
     func searchCustomers(query: String, accessToken: String) async throws -> [MobilePartySearchResult]
+    func createParty(_ input: MobilePartyCreateRequest, accessToken: String) async throws -> MobilePartySearchResult
+    func jobs(
+        scope: MobileJobDirectoryScope,
+        cursor: String?,
+        limit: Int,
+        query: String?,
+        accessToken: String
+    ) async throws -> MobileJobDirectoryPage
+    func quotes(scope: MobileQuoteScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileQuotePage
+    func quoteDetail(id: String, accessToken: String) async throws -> MobileQuoteDetail
+    func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
+    func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
+    func duplicateQuote(id: String, accessToken: String) async throws -> MobileQuoteDetail
+    func invoices(scope: MobileInvoiceScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileInvoicePage
+    func invoiceDetail(id: String, accessToken: String) async throws -> MobileInvoicePayload
+    func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest, accessToken: String) async throws -> MobileInvoicePayload
     func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail
     func jobDetail(jobID: String, accessToken: String) async throws -> MobileJobDetail
     func uploadJobPhoto(
@@ -75,6 +92,107 @@ actor MobileAPIClient: MobileAPIClientProtocol {
         guard let url = components?.url else { throw MobileAPIError.invalidRequest }
         let payload: CustomerSearchPayload = try await get(url: url, accessToken: accessToken)
         return payload.results
+    }
+
+    func customerDirectory(
+        cursor: String?,
+        limit: Int,
+        accessToken: String
+    ) async throws -> MobilePartyDirectoryPage {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/mobile/customers"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+        if let cursor { components?.queryItems?.append(URLQueryItem(name: "cursor", value: cursor)) }
+        guard let url = components?.url else { throw MobileAPIError.invalidRequest }
+        let payload: CustomerSearchPayload = try await get(url: url, accessToken: accessToken)
+        return MobilePartyDirectoryPage(results: payload.results, nextCursor: payload.nextCursor)
+    }
+
+    func createParty(
+        _ input: MobilePartyCreateRequest,
+        accessToken: String
+    ) async throws -> MobilePartySearchResult {
+        let payload: CreatedPartyPayload = try await sendJSON(
+            path: "api/mobile/customers",
+            method: "POST",
+            body: input,
+            accessToken: accessToken
+        )
+        return payload.party
+    }
+
+    func jobs(
+        scope: MobileJobDirectoryScope,
+        cursor: String?,
+        limit: Int,
+        query: String?,
+        accessToken: String
+    ) async throws -> MobileJobDirectoryPage {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/mobile/jobs"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "scope", value: scope.rawValue),
+            URLQueryItem(name: "limit", value: String(limit)),
+        ]
+        if let cursor { components?.queryItems?.append(URLQueryItem(name: "cursor", value: cursor)) }
+        if let query, !query.isEmpty {
+            components?.queryItems?.append(URLQueryItem(name: "q", value: query))
+        }
+        guard let url = components?.url else { throw MobileAPIError.invalidRequest }
+        let payload: MobileJobDirectoryPayload = try await get(url: url, accessToken: accessToken)
+        return .init(results: payload.results, nextCursor: payload.nextCursor)
+    }
+
+    func quotes(scope: MobileQuoteScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileQuotePage {
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/mobile/quotes"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [.init(name: "scope", value: scope.rawValue), .init(name: "limit", value: String(limit))]
+        if let cursor { components?.queryItems?.append(.init(name: "cursor", value: cursor)) }
+        if let query, !query.isEmpty { components?.queryItems?.append(.init(name: "q", value: query)) }
+        guard let url = components?.url else { throw MobileAPIError.invalidRequest }
+        let payload: MobileQuoteDirectoryPayload = try await get(url: url, accessToken: accessToken)
+        return .init(results: payload.results, nextCursor: payload.nextCursor)
+    }
+
+    func quoteDetail(id: String, accessToken: String) async throws -> MobileQuoteDetail {
+        let payload: MobileQuotePayload = try await get(path: "api/mobile/quotes/\(id)", accessToken: accessToken)
+        return payload.quote
+    }
+
+    func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
+        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes", method: "POST", body: input, accessToken: accessToken)
+        return payload.quote
+    }
+
+    func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
+        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes/\(id)", method: "PATCH", body: input, accessToken: accessToken)
+        return payload.quote
+    }
+
+    func duplicateQuote(id: String, accessToken: String) async throws -> MobileQuoteDetail {
+        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes/\(id)/duplicate", method: "POST", body: EmptyRequest(), accessToken: accessToken)
+        return payload.quote
+    }
+
+    func invoices(scope: MobileInvoiceScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileInvoicePage {
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/mobile/invoices"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [.init(name: "scope", value: scope.rawValue), .init(name: "limit", value: String(limit))]
+        if let cursor { components?.queryItems?.append(.init(name: "cursor", value: cursor)) }
+        if let query, !query.isEmpty { components?.queryItems?.append(.init(name: "q", value: query)) }
+        guard let url = components?.url else { throw MobileAPIError.invalidRequest }
+        let payload: MobileInvoiceDirectoryPayload = try await get(url: url, accessToken: accessToken)
+        return .init(results: payload.results, nextCursor: payload.nextCursor)
+    }
+
+    func invoiceDetail(id: String, accessToken: String) async throws -> MobileInvoicePayload {
+        try await get(path: "api/mobile/invoices/\(id)", accessToken: accessToken)
+    }
+
+    func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest, accessToken: String) async throws -> MobileInvoicePayload {
+        try await sendJSON(path: "api/mobile/invoices/\(invoiceID)/manual-payment", method: "POST", body: input, accessToken: accessToken)
     }
 
     func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail {
@@ -185,6 +303,42 @@ actor MobileAPIClient: MobileAPIClientProtocol {
 
         return payload
     }
+
+    private func sendJSON<Body: Encodable, Response: Decodable>(
+        path: String,
+        method: String,
+        body: Body,
+        accessToken: String
+    ) async throws -> Response {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = method
+        request.timeoutInterval = 20
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw MobileAPIError.invalidRequest
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw MobileAPIError.networkUnavailable
+        }
+        guard let http = response as? HTTPURLResponse else { throw MobileAPIError.invalidResponse }
+        let envelope = try? decoder.decode(APIEnvelope<Response>.self, from: data)
+        guard (200..<300).contains(http.statusCode), let payload = envelope?.data else {
+            if http.statusCode == 401 { throw MobileAPIError.authenticationRequired }
+            if http.statusCode == 403 { throw MobileAPIError.accessDenied(envelope?.error?.message) }
+            if (400..<500).contains(http.statusCode) { throw MobileAPIError.requestRejected(envelope?.error?.message) }
+            throw MobileAPIError.serverUnavailable(envelope?.error?.message)
+        }
+        return payload
+    }
 }
 
 private struct APIEnvelope<Payload: Decodable>: Decodable {
@@ -225,6 +379,7 @@ enum MobileAPIError: LocalizedError, Equatable {
 }
 
 private struct EmptyPayload: Decodable {}
+private struct EmptyRequest: Encodable {}
 
 private struct MultipartFormData {
     let boundary: String

@@ -49,6 +49,23 @@ actor FieldCache {
         write(job, key: "\(userID)-job-\(job.id)")
     }
 
+    func readJobDirectory(userID: String, scope: MobileJobDirectoryScope) -> [MobileJobDirectoryItem]? {
+        read([MobileJobDirectoryItem].self, key: "\(userID)-jobs-\(scope.rawValue)")
+    }
+
+    func writeJobDirectory(_ jobs: [MobileJobDirectoryItem], userID: String, scope: MobileJobDirectoryScope) {
+        write(jobs, key: "\(userID)-jobs-\(scope.rawValue)")
+    }
+
+    func readQuote(userID: String, id: String) -> MobileQuoteDetail? { read(MobileQuoteDetail.self, key: "\(userID)-quote-\(id)") }
+    func writeQuote(_ quote: MobileQuoteDetail, userID: String) { write(quote, key: "\(userID)-quote-\(quote.id)") }
+    func readQuoteDirectory(userID: String, scope: MobileQuoteScope) -> [MobileQuoteDirectoryItem]? { read([MobileQuoteDirectoryItem].self, key: "\(userID)-quotes-\(scope.rawValue)") }
+    func writeQuoteDirectory(_ quotes: [MobileQuoteDirectoryItem], userID: String, scope: MobileQuoteScope) { write(quotes, key: "\(userID)-quotes-\(scope.rawValue)") }
+    func readInvoice(userID: String, id: String) -> MobileInvoiceDetail? { read(MobileInvoiceDetail.self, key: "\(userID)-invoice-\(id)") }
+    func writeInvoice(_ invoice: MobileInvoiceDetail, userID: String) { write(invoice, key: "\(userID)-invoice-\(invoice.id)") }
+    func readInvoiceDirectory(userID: String, scope: MobileInvoiceScope) -> [MobileInvoiceDirectoryItem]? { read([MobileInvoiceDirectoryItem].self, key: "\(userID)-invoices-\(scope.rawValue)") }
+    func writeInvoiceDirectory(_ invoices: [MobileInvoiceDirectoryItem], userID: String, scope: MobileInvoiceScope) { write(invoices, key: "\(userID)-invoices-\(scope.rawValue)") }
+
     func removeAll() {
         try? FileManager.default.removeItem(at: directory)
     }

@@ -15,7 +15,6 @@ struct MainTabView: View {
     let apiBaseURL: URL
     @ObservedObject var todayStore: ScheduleStore
     @ObservedObject var scheduleStore: ScheduleStore
-    @ObservedObject var customerPreviewStore: ScheduleStore
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
 
@@ -41,7 +40,6 @@ struct MainTabView: View {
 
             CustomersView(
                 access: access,
-                previewStore: customerPreviewStore,
                 fieldService: fieldService,
                 photoService: photoService
             )
@@ -50,7 +48,13 @@ struct MainTabView: View {
                 }
                 .tag(Tab.customers)
 
-            MoreView(model: model, access: access, apiBaseURL: apiBaseURL)
+            MoreView(
+                model: model,
+                access: access,
+                apiBaseURL: apiBaseURL,
+                fieldService: fieldService,
+                photoService: photoService
+            )
                 .tabItem {
                     Label("More", systemImage: "ellipsis.circle.fill")
                 }

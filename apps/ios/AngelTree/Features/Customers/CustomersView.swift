@@ -2,68 +2,33 @@ import SwiftUI
 
 struct CustomersView: View {
     let access: AppAccess
-    @ObservedObject var previewStore: ScheduleStore
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
 
+    @StateObject private var store: CustomerDirectoryStore
+    @State private var path: [MobilePartySearchResult] = []
     @State private var searchText = ""
-    @State private var results: [MobilePartySearchResult] = []
-    @State private var recentParties: [MobilePartySearchResult] = []
-    @State private var isSearching = false
-    @State private var errorMessage: String?
+    @State private var isShowingAddParty = false
+    @State private var pendingCreatedParty: MobilePartySearchResult?
+
+    init(
+        access: AppAccess,
+        fieldService: any FieldDataService,
+        photoService: any JobPhotoService
+    ) {
+        self.access = access
+        self.fieldService = fieldService
+        self.photoService = photoService
+        _store = StateObject(wrappedValue: CustomerDirectoryStore(service: fieldService))
+    }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
-                if hasSearchQuery && isSearching {
-                    Section {
-                        HStack(spacing: 12) {
-                            ProgressView()
-                            Text("Searching customers and organizations")
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(minHeight: 44)
-                    }
-                } else if hasSearchQuery, let errorMessage {
-                    Section {
-                        FieldUnavailableView(
-                            title: "Couldn't search customers",
-                            systemImage: "wifi.exclamationmark",
-                            detail: errorMessage
-                        )
-                    }
-                } else if hasSearchQuery && normalizedQuery.count < 2 {
-                    Section {
-                        Text("Enter at least 2 characters to search.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical, 8)
-                    }
-                } else if hasSearchQuery && results.isEmpty {
-                    Section {
-                        FieldUnavailableView(
-                            title: "No matching customers",
-                            systemImage: "magnifyingglass",
-                            detail: "Try a different name, phone number, or address."
-                        )
-                    }
-                } else if hasSearchQuery {
-                    Section("Results") {
-                        ForEach(results) { result in
-                            NavigationLink {
-                                CustomerDetailView(
-                                    reference: result,
-                                    access: access,
-                                    fieldService: fieldService,
-                                    photoService: photoService
-                                )
-                            } label: {
-                                PartySearchRow(result: result)
-                            }
-                        }
-                    }
+                if hasSearchQuery {
+                    searchContent
                 } else {
-                    defaultContent
+                    directoryContent
                 }
             }
             .scrollContentBackground(.hidden)
@@ -72,62 +37,122 @@ struct CustomersView: View {
             .searchable(text: $searchText, prompt: "Name, phone, or address")
             .autocorrectionDisabled()
             .textInputAutocapitalization(.words)
-            .task(id: searchText) { await search() }
-            .task(id: access.userID) { await loadPreviews() }
-            .onAppear {
-                Task { recentParties = await fieldService.recentParties(userID: access.userID) }
+            .toolbar {
+                if access.canCreateParties {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isShowingAddParty = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel("Add customer or organization")
+                    }
+                }
             }
+            .navigationDestination(for: MobilePartySearchResult.self) { result in
+                CustomerDetailView(
+                    reference: result,
+                    access: access,
+                    fieldService: fieldService,
+                    photoService: photoService
+                )
+            }
+            .task { await store.loadDirectory() }
+            .task(id: searchText) { await updateSearch() }
             .refreshable {
                 if hasSearchQuery {
-                    await search(immediate: true)
+                    await store.search(query: normalizedQuery)
                 } else {
-                    await loadPreviews(force: true)
+                    await store.loadDirectory(force: true)
+                }
+            }
+            .sheet(isPresented: $isShowingAddParty) {
+                AddPartyView(fieldService: fieldService) { party in
+                    pendingCreatedParty = party
+                    isShowingAddParty = false
+                }
+            }
+            .onChange(of: isShowingAddParty) { isPresented in
+                guard !isPresented, let party = pendingCreatedParty else { return }
+                pendingCreatedParty = nil
+                Task {
+                    await store.loadDirectory(force: true)
+                    path.append(party)
                 }
             }
         }
     }
 
     @ViewBuilder
-    private var defaultContent: some View {
-        let upcoming = CustomerPreviewPresentation.upcoming(from: previewStore.items)
-        let upcomingIDs = Set(upcoming.map(\.partyKey))
-        let recent = recentParties.filter { !upcomingIDs.contains($0.partyKey) }
-
-        if !upcoming.isEmpty {
-            Section("Upcoming") {
-                ForEach(upcoming) { item in
-                    partyLink(item.reference, context: item.context)
-                }
-            }
-        }
-
-        if !recent.isEmpty {
-            Section("Recently Viewed") {
-                ForEach(recent) { result in
-                    partyLink(result)
-                }
-            }
-        }
-
-        if upcoming.isEmpty && recent.isEmpty {
+    private var directoryContent: some View {
+        if store.isLoadingDirectory && store.directoryResults.isEmpty {
             Section {
-                if previewStore.isLoading {
-                    HStack(spacing: 12) {
-                        ProgressView()
-                        Text("Loading customers")
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(minHeight: 44)
-                } else {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("No customers to show yet.")
-                            .font(.headline)
-                        Text("Search by name, phone, or address.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
+                loadingRow("Loading customer directory")
+            }
+        } else if let error = store.directoryError, store.directoryResults.isEmpty {
+            Section {
+                retryView(message: error) { await store.loadDirectory(force: true) }
+            }
+        } else if store.directoryResults.isEmpty {
+            Section {
+                compactEmptyState(
+                    title: "No customers to show yet.",
+                    detail: access.canCreateParties
+                        ? "Search by name, phone, or address, or add the first customer."
+                        : "Search by name, phone, or address."
+                )
+            }
+        } else {
+            Section("Recent customers") {
+                ForEach(store.directoryResults) { result in
+                    partyLink(result)
+                        .task { await store.loadMoreIfNeeded(current: result) }
                 }
+            }
+
+            Section {
+                if store.isLoadingMore {
+                    loadingRow("Loading more")
+                } else if let error = store.directoryError, store.hasMore {
+                    Button("Try loading more") { Task { await store.loadNextPage() } }
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityHint(error)
+                } else if !store.hasMore {
+                    Text("All available customers are loaded.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var searchContent: some View {
+        if normalizedQuery.count < 2 {
+            Section {
+                Text("Enter at least 2 characters to search.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            }
+        } else if store.isSearching {
+            Section { loadingRow("Searching customers and organizations") }
+        } else if let error = store.searchError {
+            Section {
+                retryView(message: error) { await store.search(query: normalizedQuery) }
+            }
+        } else if store.searchResults.isEmpty {
+            Section {
+                compactEmptyState(
+                    title: "No matching customers",
+                    detail: "Try a different name, phone number, or address."
+                )
+            }
+        } else {
+            Section("Results") {
+                ForEach(store.searchResults) { partyLink($0) }
             }
         }
     }
@@ -138,64 +163,60 @@ struct CustomersView: View {
 
     private var hasSearchQuery: Bool { !normalizedQuery.isEmpty }
 
-    private func partyLink(_ result: MobilePartySearchResult, context: String? = nil) -> some View {
-        NavigationLink {
-            CustomerDetailView(
-                reference: result,
-                access: access,
-                fieldService: fieldService,
-                photoService: photoService
-            )
-        } label: {
-            PartySearchRow(result: result, context: context)
+    private func partyLink(_ result: MobilePartySearchResult) -> some View {
+        NavigationLink(value: result) {
+            PartyDirectoryRow(result: result)
         }
     }
 
-    private func loadPreviews(force: Bool = false) async {
-        async let recent = fieldService.recentParties(userID: access.userID)
-        let start = Date()
-        let end = BusinessCalendar.addingDays(6, to: start)
-        await previewStore.load(
-            startDate: BusinessCalendar.dateKey(for: start),
-            endDate: BusinessCalendar.dateKey(for: end),
-            scope: CustomerPreviewPresentation.scheduleScope,
-            force: force
-        )
-        recentParties = await recent
+    private func loadingRow(_ label: String) -> some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(label).foregroundStyle(.secondary)
+        }
+        .frame(minHeight: 44)
     }
 
-    private func search(immediate: Bool = false) async {
+    private func compactEmptyState(title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.headline)
+            Text(detail).font(.subheadline).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func retryView(message: String, action: @escaping () async -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(message).font(.subheadline).foregroundStyle(.secondary)
+            Button("Try again") { Task { await action() } }
+                .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func updateSearch() async {
         let query = normalizedQuery
         guard query.count >= 2 else {
-            results = []
-            errorMessage = nil
-            isSearching = false
+            store.clearSearch()
             return
         }
-
         do {
-            if !immediate { try await Task.sleep(for: .milliseconds(350)) }
+            try await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
-            isSearching = true
-            errorMessage = nil
-            results = try await fieldService.searchParties(query: query)
+            await store.search(query: query)
         } catch is CancellationError {
             return
         } catch {
-            results = []
-            errorMessage = (error as? LocalizedError)?.errorDescription
-                ?? "Check your connection and try again."
+            return
         }
-        isSearching = false
     }
 }
 
-private struct PartySearchRow: View {
+private struct PartyDirectoryRow: View {
     let result: MobilePartySearchResult
-    var context: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(result.name)
                     .font(.headline)
@@ -206,99 +227,20 @@ private struct PartySearchRow: View {
                     .foregroundStyle(AngelTreeTheme.forest)
             }
             if let contactName = result.contactName, contactName != result.name {
-                Text(contactName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            if let context {
-                Label(context, systemImage: "calendar")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AngelTreeTheme.forest)
-                    .lineLimit(2)
+                Text(contactName).font(.subheadline).foregroundStyle(.secondary)
             }
             if let address = result.address {
                 Label(address, systemImage: "mappin.and.ellipse")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-            } else if let phone = result.phone {
+            }
+            if let phone = result.phone {
                 Label(phone, systemImage: "phone")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 5)
     }
-}
-
-struct CustomerPreviewItem: Equatable, Identifiable {
-    let reference: MobilePartySearchResult
-    let context: String
-
-    var id: String { reference.partyKey }
-    var partyKey: String { reference.partyKey }
-}
-
-enum CustomerPreviewPresentation {
-    static let scheduleScope: ScheduleScope = .mine
-
-    static func showsDefaultContent(for query: String) -> Bool {
-        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    static func upcoming(
-        from items: [MobileScheduleItem],
-        now: Date = Date(),
-        limit: Int = 8
-    ) -> [CustomerPreviewItem] {
-        let blockedStatuses = Set(["cancelled", "canceled", "completed", "void", "voided"])
-        var seen = Set<String>()
-
-        return items
-            .filter { item in
-                guard !blockedStatuses.contains(item.status.lowercased()),
-                      let start = item.startsAtDate else { return false }
-                return (item.endsAtDate ?? start) >= now
-            }
-            .sorted { ($0.startsAtDate ?? .distantFuture) < ($1.startsAtDate ?? .distantFuture) }
-            .compactMap { item -> CustomerPreviewItem? in
-                guard let party = item.party,
-                      let id = party.id?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !id.isEmpty else { return nil }
-                let kind: MobilePartyKind = party.kind == .organization ? .organization : .customer
-                let reference = MobilePartySearchResult(
-                    id: id,
-                    kind: kind,
-                    name: party.name,
-                    contactName: nil,
-                    email: party.email,
-                    phone: party.phone,
-                    address: item.location?.fullAddress
-                )
-                guard seen.insert(reference.partyKey).inserted else { return nil }
-                return CustomerPreviewItem(
-                    reference: reference,
-                    context: "\(item.typeLabel) · \(scheduleLabel(item.startsAtDate, now: now))"
-                )
-            }
-            .prefix(limit)
-            .map { $0 }
-    }
-
-    private static func scheduleLabel(_ date: Date?, now: Date) -> String {
-        guard let date else { return "Upcoming" }
-        if BusinessCalendar.calendar.isDate(date, inSameDayAs: now) {
-            return "Today at \(BusinessCalendar.time(date))"
-        }
-        let formatter = DateFormatter()
-        formatter.calendar = BusinessCalendar.calendar
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.timeZone = BusinessCalendar.timeZone
-        formatter.dateFormat = "MMM d 'at' h:mm a"
-        return formatter.string(from: date)
-    }
-}
-
-extension MobilePartySearchResult {
-    var partyKey: String { "\(kind.rawValue):\(id)" }
 }

@@ -24,6 +24,13 @@ final class AccessResolutionTests: XCTestCase {
         }
     }
 
+    func testInternalStaffCanCreatePartiesButCrewCannot() throws {
+        for role in ["owner", "admin", "payroll_admin", "estimator"] {
+            XCTAssertTrue(try AppAccess.resolve(payload(roles: [role])).canCreateParties)
+        }
+        XCTAssertFalse(try AppAccess.resolve(payload(roles: ["crew"])).canCreateParties)
+    }
+
     private func payload(
         roles: [String],
         employee: BootstrapPayload.EmployeeSummary? = .init(

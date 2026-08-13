@@ -33,6 +33,81 @@ final class MobileAPIClientTests: XCTestCase {
         XCTAssertTrue(results.isEmpty)
     }
 
+    func testCustomerDirectorySendsBoundedCursorAndMapsNextPage() async throws {
+        URLProtocolStub.handler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "limit" })?.value, "25")
+            XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "cursor" })?.value, "next-page")
+            return Self.response(request, status: 200, json: """
+            {"data":{"results":[{"id":"org-one","kind":"organization","name":"Fox Point HOA","contactName":null,"email":null,"phone":"540-555-0199","address":"100 Danford St"}],"nextCursor":"last-page"},"meta":{"apiVersion":"test"}}
+            """)
+        }
+
+        let page = try await makeClient().customerDirectory(
+            cursor: "next-page",
+            limit: 25,
+            accessToken: "access-token"
+        )
+        XCTAssertEqual(page.results.first?.kind, .organization)
+        XCTAssertEqual(page.nextCursor, "last-page")
+    }
+
+    func testCreateCustomerSendsStructuredServiceLocationAndMapsCreatedParty() async throws {
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+            return Self.response(request, status: 201, json: """
+            {"data":{"party":{"id":"customer-new","kind":"customer","name":"Donna Goodwin","contactName":"Donna Goodwin","email":null,"phone":"540-555-0100","address":"6917 Bloomsbury Ln, Spotsylvania, VA 22553"}},"meta":{"apiVersion":"test"}}
+            """)
+        }
+
+        let input = MobilePartyCreateRequest(
+            kind: .customer,
+            name: "Donna Goodwin",
+            contactName: nil,
+            email: nil,
+            phone: "540-555-0100",
+            organizationType: nil,
+            serviceLocation: .init(
+                street: "6917 Bloomsbury Ln",
+                city: "Spotsylvania",
+                state: "VA",
+                postalCode: "22553"
+            )
+        )
+        XCTAssertEqual(input.serviceLocation?.street, "6917 Bloomsbury Ln")
+        let party = try await makeClient().createParty(
+            input,
+            accessToken: "access-token"
+        )
+        XCTAssertEqual(party.id, "customer-new")
+    }
+
+    func testJobDirectorySendsScopeSearchAndCursorAndMapsMultiDayWork() async throws {
+        URLProtocolStub.handler = { request in
+            let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+            XCTAssertEqual(request.url?.path, "/api/mobile/jobs")
+            XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "scope" })?.value, "upcoming")
+            XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "cursor" })?.value, "next-page")
+            XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "q" })?.value, "Donna")
+            return Self.response(request, status: 200, json: """
+            {"data":{"results":[{"id":"job-one","status":"scheduled","operationalState":"scheduled","priority":"normal","serviceType":"tree_removal","title":"Tree Removal","party":{"id":"customer-one","kind":"customer","name":"Donna Goodwin"},"serviceLocation":{"id":"location-one","fullAddress":"6917 Bloomsbury Ln, Spotsylvania, VA 22553","city":"Spotsylvania"},"scheduledStartAt":"2026-08-14T12:00:00.000Z","scheduledEndAt":"2026-08-14T16:00:00.000Z","completedAt":null,"updatedAt":"2026-08-13T12:00:00.000Z","assignedCrewNames":["Saul Sierra"],"workdayCount":2}],"nextCursor":"last-page"},"meta":{"apiVersion":"test"}}
+            """)
+        }
+
+        let page = try await makeClient().jobs(
+            scope: .upcoming,
+            cursor: "next-page",
+            limit: 25,
+            query: "Donna",
+            accessToken: "access-token"
+        )
+        XCTAssertEqual(page.results.first?.party?.kind, .customer)
+        XCTAssertEqual(page.results.first?.workdayCount, 2)
+        XCTAssertEqual(page.nextCursor, "last-page")
+    }
+
     func testPartyDetailMapsCustomerAndOrganizationLocationStates() async throws {
         URLProtocolStub.handler = { request in
             if request.url?.path.contains("/organization/") == true {

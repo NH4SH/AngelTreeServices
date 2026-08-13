@@ -85,6 +85,14 @@ struct AppAccess: Equatable, Sendable {
             .map(\.displayName)
             .joined(separator: ", ")
     }
+
+    var canCreateParties: Bool {
+        !roles.isDisjoint(with: [.owner, .admin, .payrollAdmin, .estimator])
+    }
+
+    var canManageProposals: Bool { canCreateParties }
+    var canViewInvoices: Bool { canCreateParties }
+    var canRecordManualPayments: Bool { !roles.isDisjoint(with: [.owner, .admin]) }
 }
 
 enum AccessResolutionError: LocalizedError, Equatable {

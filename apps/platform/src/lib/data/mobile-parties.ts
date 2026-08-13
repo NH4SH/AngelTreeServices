@@ -5,7 +5,11 @@ import type { PlatformRoleName } from "@/lib/auth/roles";
 import {
   cleanMobileSearchTerm,
   mergeMobilePartyResults,
+  mergeMobilePartyDirectoryRows,
   toMobileServiceLocation,
+  type MobilePartyCreateInput,
+  type MobilePartyDirectoryPage,
+  type MobilePartyDirectorySourceRow,
   type MobilePartyDetail,
   type MobilePartyKind,
   type MobilePartySearchResult,
@@ -15,6 +19,157 @@ import {
 
 const resultLimit = 25;
 const officeRecordRoles: PlatformRoleName[] = ["owner", "admin", "payroll_admin", "estimator"];
+
+type DirectoryCursor = { customerOffset: number; organizationOffset: number };
+
+export async function listMobileParties(
+  supabase: SupabaseClient<any, "public", any>,
+  { cursor, limit }: { cursor: string | null; limit: number },
+): Promise<MobilePartyDirectoryPage> {
+  const offsets = decodeDirectoryCursor(cursor);
+  const [customers, organizations] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("id, display_name, primary_contact_name, email, phone, updated_at")
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offsets.customerOffset, offsets.customerOffset + limit),
+    supabase
+      .from("organizations")
+      .select("id, name, billing_email, billing_phone, updated_at")
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offsets.organizationOffset, offsets.organizationOffset + limit),
+  ]);
+
+  const firstError = customers.error ?? organizations.error;
+  if (firstError) throw firstError;
+
+  const customerRows = (customers.data ?? []).map((customer): MobilePartyDirectorySourceRow => ({
+    ...mapCustomerSearchResult(customer, null),
+    updatedAt: customer.updated_at,
+  }));
+  const organizationRows = (organizations.data ?? []).map((organization): MobilePartyDirectorySourceRow => ({
+    ...mapOrganizationSearchResult(organization, null),
+    updatedAt: organization.updated_at,
+  }));
+  const merged = mergeMobilePartyDirectoryRows(customerRows, organizationRows, limit);
+  const customerIDs = merged.rows.filter((row) => row.kind === "customer").map((row) => row.id);
+  const organizationIDs = merged.rows.filter((row) => row.kind === "organization").map((row) => row.id);
+  const addressByParty = await loadPartyAddresses(supabase, customerIDs, organizationIDs);
+  const results = merged.rows.map(({ updatedAt: _updatedAt, ...row }) => ({
+    ...row,
+    address: addressByParty.get(`${row.kind}:${row.id}`) ?? null,
+  }));
+
+  return {
+    results,
+    nextCursor: merged.hasMore ? encodeDirectoryCursor({
+      customerOffset: offsets.customerOffset + merged.consumedCustomers,
+      organizationOffset: offsets.organizationOffset + merged.consumedOrganizations,
+    }) : null,
+  };
+}
+
+export async function createMobileParty(
+  supabase: SupabaseClient<any, "public", any>,
+  input: MobilePartyCreateInput,
+): Promise<MobilePartySearchResult> {
+  if (input.kind === "customer") {
+    const { data: customer, error } = await supabase
+      .from("customers")
+      .insert({
+        display_name: input.name,
+        primary_contact_name: input.contactName || input.name,
+        email: input.email,
+        phone: input.phone,
+        customer_type: "residential",
+      })
+      .select("id, display_name, primary_contact_name, email, phone")
+      .single();
+    if (error || !customer) throw error ?? new Error("Customer was not created.");
+
+    if (input.serviceLocation) {
+      const { error: locationError } = await supabase.from("service_locations").insert({
+        customer_id: customer.id,
+        label: "Primary service location",
+        street: input.serviceLocation.street,
+        city: input.serviceLocation.city,
+        state: input.serviceLocation.state,
+        postal_code: input.serviceLocation.postalCode,
+      });
+      if (locationError) {
+        await supabase.from("customers").delete().eq("id", customer.id);
+        throw locationError;
+      }
+    }
+
+    return mapCustomerSearchResult(customer, input.serviceLocation ? formatLocation(input.serviceLocation) : null);
+  }
+
+  const { data: organization, error } = await supabase
+    .from("organizations")
+    .insert({
+      name: input.name,
+      organization_type: input.organizationType,
+      billing_email: input.email,
+      billing_phone: input.phone,
+      status: "active",
+    })
+    .select("id, name, billing_email, billing_phone")
+    .single();
+  if (error || !organization) throw error ?? new Error("Organization was not created.");
+
+  let locationID: string | null = null;
+  if (input.serviceLocation) {
+    const { data: location, error: locationError } = await supabase
+      .from("service_locations")
+      .insert({
+        organization_id: organization.id,
+        label: "Primary service location",
+        street: input.serviceLocation.street,
+        city: input.serviceLocation.city,
+        state: input.serviceLocation.state,
+        postal_code: input.serviceLocation.postalCode,
+      })
+      .select("id")
+      .single();
+    if (locationError || !location) {
+      await supabase.from("organizations").delete().eq("id", organization.id);
+      throw locationError ?? new Error("Organization property was not created.");
+    }
+    locationID = location.id;
+  }
+
+  if (input.contactName) {
+    const { error: contactError } = await supabase.from("organization_contacts").insert({
+      organization_id: organization.id,
+      service_location_id: locationID,
+      full_name: input.contactName,
+      email: input.email,
+      phone: input.phone,
+      contact_roles: ["primary"],
+      preferred_contact_method: input.email ? "email" : input.phone ? "phone" : null,
+      receives_invoices: false,
+      receives_job_updates: true,
+    });
+    if (contactError) {
+      if (locationID) await supabase.from("service_locations").delete().eq("id", locationID);
+      await supabase.from("organizations").delete().eq("id", organization.id);
+      throw contactError;
+    }
+  }
+
+  return {
+    ...mapOrganizationSearchResult(
+      organization,
+      input.serviceLocation ? formatLocation(input.serviceLocation) : null,
+    ),
+    contactName: input.contactName,
+  };
+}
 
 export async function searchMobileParties(
   supabase: SupabaseClient<any, "public", any>,
@@ -87,7 +242,16 @@ export async function searchMobileParties(
     )),
   ];
 
-  return mergeMobilePartyResults(direct, byLocation, resultLimit);
+  const merged = mergeMobilePartyResults(direct, byLocation, resultLimit);
+  const addresses = await loadPartyAddresses(
+    supabase,
+    merged.filter((party) => party.kind === "customer").map((party) => party.id),
+    merged.filter((party) => party.kind === "organization").map((party) => party.id),
+  );
+  return merged.map((party) => ({
+    ...party,
+    address: party.address ?? addresses.get(`${party.kind}:${party.id}`) ?? null,
+  }));
 }
 
 export async function getMobilePartyDetail({
@@ -252,6 +416,74 @@ function mapWorkSummary(job: any): MobilePartyWorkSummary {
 
 function unique(values: (string | null | undefined)[]) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+async function loadPartyAddresses(
+  supabase: SupabaseClient<any, "public", any>,
+  customerIDs: string[],
+  organizationIDs: string[],
+) {
+  const [customerLocations, organizationLocations] = await Promise.all([
+    customerIDs.length
+      ? supabase
+          .from("service_locations")
+          .select("customer_id, label, street, city, state, postal_code, updated_at")
+          .in("customer_id", customerIDs)
+          .is("archived_at", null)
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    organizationIDs.length
+      ? supabase
+          .from("service_locations")
+          .select("organization_id, label, street, city, state, postal_code, updated_at")
+          .in("organization_id", organizationIDs)
+          .is("archived_at", null)
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const firstError = customerLocations.error ?? organizationLocations.error;
+  if (firstError) throw firstError;
+
+  const addressByParty = new Map<string, string>();
+  for (const location of customerLocations.data ?? []) {
+    if (!location.customer_id) continue;
+    const key = `customer:${location.customer_id}`;
+    if (location.label === "Primary service location" || !addressByParty.has(key)) {
+      addressByParty.set(key, toMobileServiceLocation(location as any).fullAddress);
+    }
+  }
+  for (const location of organizationLocations.data ?? []) {
+    if (!location.organization_id) continue;
+    const key = `organization:${location.organization_id}`;
+    if (location.label === "Primary service location" || !addressByParty.has(key)) {
+      addressByParty.set(key, toMobileServiceLocation(location as any).fullAddress);
+    }
+  }
+  return addressByParty;
+}
+
+function decodeDirectoryCursor(cursor: string | null): DirectoryCursor {
+  if (!cursor) return { customerOffset: 0, organizationOffset: 0 };
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Partial<DirectoryCursor>;
+    const customerOffset = Number.isInteger(parsed.customerOffset) ? parsed.customerOffset! : -1;
+    const organizationOffset = Number.isInteger(parsed.organizationOffset) ? parsed.organizationOffset! : -1;
+    if (customerOffset < 0 || organizationOffset < 0 || customerOffset > 1_000_000 || organizationOffset > 1_000_000) {
+      throw new Error("Invalid cursor offsets.");
+    }
+    return { customerOffset, organizationOffset };
+  } catch {
+    throw new Error("Invalid customer directory cursor.");
+  }
+}
+
+function encodeDirectoryCursor(cursor: DirectoryCursor) {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+function formatLocation(location: NonNullable<MobilePartyCreateInput["serviceLocation"]>) {
+  const locality = [location.city, location.state].filter(Boolean).join(", ");
+  return [location.street, [locality, location.postalCode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 }
 
 function clean(value: string | null | undefined) {

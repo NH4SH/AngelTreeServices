@@ -4,6 +4,8 @@ struct MoreView: View {
     @ObservedObject var model: AppModel
     let access: AppAccess
     let apiBaseURL: URL
+    let fieldService: any FieldDataService
+    let photoService: any JobPhotoService
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -32,25 +34,39 @@ struct MoreView: View {
                     }
                 }
 
+                Section("Work") {
+                    NavigationLink {
+                        JobsView(access: access, fieldService: fieldService, photoService: photoService)
+                    } label: {
+                        Label("Jobs", systemImage: "leaf.fill")
+                            .frame(minHeight: 44)
+                    }
+                    if access.canManageProposals {
+                        NavigationLink {
+                            QuotesView(access: access, fieldService: fieldService, photoService: photoService)
+                        } label: {
+                            Label("Quotes", systemImage: "doc.text.fill")
+                                .frame(minHeight: 44)
+                        }
+                    }
+                    if access.canViewInvoices {
+                        NavigationLink {
+                            InvoicesView(access: access, fieldService: fieldService, photoService: photoService)
+                        } label: {
+                            Label("Invoices", systemImage: "doc.plaintext.fill")
+                                .frame(minHeight: 44)
+                        }
+                    }
+                }
+
                 Section("Full CRM") {
+                    Text("Advanced billing, delivery, reminders, and corrections remain available in the admin CRM.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     CRMRouteButton(
-                        title: "Jobs",
-                        systemImage: "leaf.fill",
-                        route: "admin/jobs",
-                        baseURL: apiBaseURL,
-                        openURL: openURL
-                    )
-                    CRMRouteButton(
-                        title: "Quotes",
-                        systemImage: "doc.text.fill",
-                        route: "admin/quotes",
-                        baseURL: apiBaseURL,
-                        openURL: openURL
-                    )
-                    CRMRouteButton(
-                        title: "Invoices",
-                        systemImage: "doc.plaintext.fill",
-                        route: "admin/invoices",
+                        title: "Open admin CRM",
+                        systemImage: "rectangle.on.rectangle",
+                        route: "admin",
                         baseURL: apiBaseURL,
                         openURL: openURL
                     )

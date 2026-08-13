@@ -61,6 +61,48 @@ final class FieldCacheTests: XCTestCase {
         XCTAssertTrue(secondUser.isEmpty)
         await cache.removeAll()
     }
+
+    func testJobDirectoryCacheIsScopedByUserAndOperationalView() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AngelTreeJobDirectoryCacheTests-\(UUID().uuidString)")
+        let cache = FieldCache(directory: directory)
+        let upcoming = makeJobDirectoryItem(id: "upcoming-one", status: "scheduled")
+        let completed = makeJobDirectoryItem(id: "completed-one", status: "completed")
+
+        await cache.writeJobDirectory([upcoming], userID: "user-one", scope: .upcoming)
+        await cache.writeJobDirectory([completed], userID: "user-one", scope: .completed)
+
+        let firstUserUpcoming = await cache.readJobDirectory(userID: "user-one", scope: .upcoming)
+        let firstUserCompleted = await cache.readJobDirectory(userID: "user-one", scope: .completed)
+        let secondUserUpcoming = await cache.readJobDirectory(userID: "user-two", scope: .upcoming)
+        XCTAssertEqual(firstUserUpcoming, [upcoming])
+        XCTAssertEqual(firstUserCompleted, [completed])
+        XCTAssertNil(secondUserUpcoming)
+        await cache.removeAll()
+    }
+}
+
+func makeJobDirectoryItem(id: String, status: String = "scheduled") -> MobileJobDirectoryItem {
+    .init(
+        id: id,
+        status: status,
+        operationalState: status == "completed" ? "work_complete" : "scheduled",
+        priority: "normal",
+        serviceType: "tree_removal",
+        title: "Tree Removal",
+        party: .init(id: "customer-one", kind: .customer, name: "Donna Goodwin"),
+        serviceLocation: .init(
+            id: "location-one",
+            fullAddress: "6917 Bloomsbury Ln, Spotsylvania, VA 22553",
+            city: "Spotsylvania"
+        ),
+        scheduledStartAt: "2026-08-14T12:00:00.000Z",
+        scheduledEndAt: "2026-08-14T16:00:00.000Z",
+        completedAt: status == "completed" ? "2026-08-14T16:00:00.000Z" : nil,
+        updatedAt: "2026-08-14T16:00:00.000Z",
+        assignedCrewNames: ["Saul Sierra"],
+        workdayCount: 2
+    )
 }
 
 func makePartyDetail(

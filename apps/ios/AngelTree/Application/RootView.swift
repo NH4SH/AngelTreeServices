@@ -20,7 +20,6 @@ struct RootView: View {
             case .signedIn(let access):
                 if let todayStore = model.todayStore,
                    let scheduleStore = model.scheduleStore,
-                   let customerPreviewStore = model.customerPreviewStore,
                    let fieldService = model.fieldService,
                    let photoService = model.photoService,
                    let apiBaseURL = model.apiBaseURL {
@@ -30,7 +29,6 @@ struct RootView: View {
                         apiBaseURL: apiBaseURL,
                         todayStore: todayStore,
                         scheduleStore: scheduleStore,
-                        customerPreviewStore: customerPreviewStore,
                         fieldService: fieldService,
                         photoService: photoService
                     )

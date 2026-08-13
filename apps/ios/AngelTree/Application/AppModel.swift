@@ -19,7 +19,6 @@ final class AppModel: ObservableObject {
     let apiBaseURL: URL?
     let todayStore: ScheduleStore?
     let scheduleStore: ScheduleStore?
-    let customerPreviewStore: ScheduleStore?
     let photoService: (any JobPhotoService)?
     let fieldService: (any FieldDataService)?
 
@@ -56,12 +55,6 @@ final class AppModel: ObservableObject {
                 cache: cache,
                 widgetSync: widgetSync
             )
-            customerPreviewStore = ScheduleStore(
-                authentication: authentication,
-                api: api,
-                cache: cache,
-                widgetSync: widgetSync
-            )
             photoService = LiveJobPhotoService(authentication: authentication, api: api)
             fieldService = LiveFieldDataService(authentication: authentication, api: api, cache: fieldCache)
         } catch {
@@ -73,7 +66,6 @@ final class AppModel: ObservableObject {
             apiBaseURL = nil
             todayStore = nil
             scheduleStore = nil
-            customerPreviewStore = nil
             photoService = nil
             fieldService = nil
             phase = .configurationRequired(
@@ -151,7 +143,6 @@ final class AppModel: ObservableObject {
         try? await authentication?.signOut()
         todayStore?.clear()
         scheduleStore?.clear()
-        customerPreviewStore?.clear()
         await cache?.removeAll()
         await fieldCache?.removeAll()
         widgetSync?.clear()

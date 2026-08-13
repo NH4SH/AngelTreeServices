@@ -19,6 +19,8 @@ iOS 16 is the minimum because it provides `NavigationStack`, adaptive SwiftUI na
 - `AngelTree/Services`: Supabase Auth, authenticated API, cache, and photo boundaries
 - `AngelTree/Features`: Login, Today, Schedule, Customers, work detail, and More
 - `AngelTree/Design`: native color, status, and surface tokens
+- `AngelTreeWidget`: WidgetKit extension for Next Job and Today
+- `Shared/Widget`: privacy-safe snapshot, Eastern-time selection, and deep-link contracts shared by the app and widget
 - `AngelTreeTests`: configuration, access, timezone, mapping, and cache tests
 - `project.yml`: reproducible XcodeGen project definition
 
@@ -81,10 +83,13 @@ Job detail reuses `GET /api/crew/jobs/[jobId]`. Private photo reads and validate
 - Last-loaded Today/week cache with a visible saved-data warning
 - Dynamic Type, VoiceOver labels, semantic status icons, and 44-point controls
 - V1 uses a fixed light appearance so system controls remain readable when the device uses Dark Mode
+- Small Next Job and medium Today widgets backed by the authenticated app's shared schedule snapshot
 
 ## Offline behavior
 
 Today, schedule, recently opened party details, and recently opened job details are stored as JSON in Application Support. Field cache keys include the authenticated user ID and all app caches are removed on sign-out. When refresh fails, saved detail remains visible with a warning. Photo upload requires a working connection and is never reported as complete before server confirmation. The app does not queue offline business or financial mutations.
+
+The widget uses `group.org.angeltreeservices.field` to read one privacy-reduced current-user schedule snapshot. Successful **My work** refreshes containing the current Eastern business day update it; logout removes it. The extension does not authenticate, call Supabase, or call the CRM.
 
 ## Tests
 
@@ -104,6 +109,7 @@ Choose an available simulator from `xcrun simctl list devices available` if that
 - Supabase RLS and server authorization remain mandatory.
 - Client role strings only shape the interface; the API and database enforce access.
 - No service-role or private server credential belongs in the app.
+- Before distribution signing, enable the `group.org.angeltreeservices.field` App Group for both `org.angeltreeservices.field` and `org.angeltreeservices.field.widget` in the Apple Developer portal, then regenerate the provisioning profiles.
 - The initial app is read-only for financial and privileged CRM workflows.
 - Internal/team notes are presented separately and are never relabeled as customer-facing scope.
 
@@ -113,6 +119,6 @@ Choose an available simulator from `xcrun simctl list devices available` if that
 2. Durable offline photo upload queue
 3. Estimator customer, location, appointment, and proposal workflows
 4. Owner/office dispatch and read-only financial overview
-5. Push notifications, offline mutation queue, background uploads, deep links, and Face ID convenience unlock
+5. Push notifications, offline mutation queue, background uploads, and Face ID convenience unlock
 
 Legacy appointments remain governed by their existing RLS. Crew visibility is strongest for normalized `schedule_events`; any remaining crew-assigned legacy appointment gap should be handled with a narrowly scoped reviewed policy or migration, not a client bypass.

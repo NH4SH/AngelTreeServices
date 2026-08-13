@@ -12,16 +12,24 @@ final class ScheduleStore: ObservableObject {
     private let authentication: any AuthenticationService
     private let api: any MobileAPIClientProtocol
     private let cache: ScheduleCache
+    private let widgetSync: any WidgetSyncing
     private var activeRequestKey: String?
+    private var widgetUserID: String?
 
     init(
         authentication: any AuthenticationService,
         api: any MobileAPIClientProtocol,
-        cache: ScheduleCache
+        cache: ScheduleCache,
+        widgetSync: any WidgetSyncing
     ) {
         self.authentication = authentication
         self.api = api
         self.cache = cache
+        self.widgetSync = widgetSync
+    }
+
+    func configureWidget(userID: String) {
+        widgetUserID = userID
     }
 
     func load(
@@ -43,6 +51,9 @@ final class ScheduleStore: ObservableObject {
             items = SchedulePresentation.visibleItems(cached.payload.items)
             lastUpdated = cached.savedAt
             isStale = CacheFreshness.isStale(savedAt: cached.savedAt)
+            if let widgetUserID {
+                widgetSync.sync(payload: cached.payload, userID: widgetUserID, savedAt: cached.savedAt)
+            }
         }
 
         do {
@@ -61,6 +72,9 @@ final class ScheduleStore: ObservableObject {
             isStale = false
             errorMessage = nil
             await cache.write(CachedSchedule(payload: payload, savedAt: savedAt), key: key)
+            if let widgetUserID {
+                widgetSync.sync(payload: payload, userID: widgetUserID, savedAt: savedAt)
+            }
         } catch {
             guard activeRequestKey == key else { return }
             isStale = cached != nil || !items.isEmpty
@@ -80,5 +94,6 @@ final class ScheduleStore: ObservableObject {
         lastUpdated = nil
         errorMessage = nil
         activeRequestKey = nil
+        widgetUserID = nil
     }
 }

@@ -13,6 +13,7 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var phase: Phase = .launching
     @Published private(set) var isWorking = false
+    @Published private(set) var pendingDeepLink: WidgetDeepLink?
     @Published var message: String?
 
     let apiBaseURL: URL?
@@ -25,6 +26,7 @@ final class AppModel: ObservableObject {
     private let api: (any MobileAPIClientProtocol)?
     private let cache: ScheduleCache?
     private let fieldCache: FieldCache?
+    private let widgetSync: (any WidgetSyncing)?
 
     init(bundle: Bundle = .main) {
         do {
@@ -33,21 +35,25 @@ final class AppModel: ObservableObject {
             let api = MobileAPIClient(baseURL: configuration.apiBaseURL)
             let cache = ScheduleCache()
             let fieldCache = FieldCache()
+            let widgetSync = LiveWidgetSyncService()
 
             self.authentication = authentication
             self.api = api
             self.cache = cache
             self.fieldCache = fieldCache
+            self.widgetSync = widgetSync
             apiBaseURL = configuration.apiBaseURL
             todayStore = ScheduleStore(
                 authentication: authentication,
                 api: api,
-                cache: cache
+                cache: cache,
+                widgetSync: widgetSync
             )
             scheduleStore = ScheduleStore(
                 authentication: authentication,
                 api: api,
-                cache: cache
+                cache: cache,
+                widgetSync: widgetSync
             )
             photoService = LiveJobPhotoService(authentication: authentication, api: api)
             fieldService = LiveFieldDataService(authentication: authentication, api: api, cache: fieldCache)
@@ -56,6 +62,7 @@ final class AppModel: ObservableObject {
             api = nil
             cache = nil
             fieldCache = nil
+            widgetSync = nil
             apiBaseURL = nil
             todayStore = nil
             scheduleStore = nil
@@ -75,6 +82,7 @@ final class AppModel: ObservableObject {
 
         do {
             guard try await authentication.restoreSession() != nil else {
+                widgetSync?.clear()
                 phase = .signedOut
                 return
             }
@@ -98,6 +106,7 @@ final class AppModel: ObservableObject {
         defer { isWorking = false }
 
         do {
+            widgetSync?.clear()
             _ = try await authentication.signIn(email: email, password: password)
             try await resolveAccess(authentication: authentication, api: api)
         } catch let error as AccessResolutionError {
@@ -136,6 +145,8 @@ final class AppModel: ObservableObject {
         scheduleStore?.clear()
         await cache?.removeAll()
         await fieldCache?.removeAll()
+        widgetSync?.clear()
+        pendingDeepLink = nil
         message = nil
         phase = .signedOut
     }
@@ -146,8 +157,20 @@ final class AppModel: ObservableObject {
     ) async throws {
         let token = try await authentication.validAccessToken()
         let payload = try await api.bootstrap(accessToken: token)
-        phase = .signedIn(try AppAccess.resolve(payload))
+        let access = try AppAccess.resolve(payload)
+        todayStore?.configureWidget(userID: access.userID)
+        scheduleStore?.configureWidget(userID: access.userID)
+        phase = .signedIn(access)
         message = nil
+    }
+
+    func open(url: URL) {
+        guard let deepLink = WidgetDeepLink(url: url) else { return }
+        pendingDeepLink = deepLink
+    }
+
+    func consumeDeepLink() {
+        pendingDeepLink = nil
     }
 
     private func friendlyMessage(for error: Error, fallback: String) -> String {

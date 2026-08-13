@@ -1,17 +1,23 @@
 import SwiftUI
 
 struct TodayView: View {
+    private struct WidgetJobRoute: Hashable {
+        let id: String
+    }
+
+    @ObservedObject var model: AppModel
     let access: AppAccess
     @ObservedObject var store: ScheduleStore
     let fieldService: any FieldDataService
     let photoService: any JobPhotoService
     @State private var scope: ScheduleScope = .mine
+    @State private var path = NavigationPath()
 
     private var today: Date { Date() }
     private var dateKey: String { BusinessCalendar.dateKey(for: today) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     header
@@ -61,8 +67,19 @@ struct TodayView: View {
                     WorkDetailView(item: item)
                 }
             }
+            .navigationDestination(for: WidgetJobRoute.self) { route in
+                JobDetailView(
+                    jobID: route.id,
+                    summary: nil,
+                    scheduleItem: nil,
+                    access: access,
+                    fieldService: fieldService,
+                    photoService: photoService
+                )
+            }
             .refreshable { await load(force: true) }
             .task(id: "\(dateKey)-\(scope.rawValue)") { await load() }
+            .task(id: model.pendingDeepLink) { await openPendingDeepLink() }
         }
     }
 
@@ -104,6 +121,25 @@ struct TodayView: View {
             scope: scope,
             force: force
         )
+    }
+
+    private func openPendingDeepLink() async {
+        guard let deepLink = model.pendingDeepLink else { return }
+        scope = .mine
+        switch deepLink {
+        case .job(let id):
+            path.append(WidgetJobRoute(id: id))
+        case .scheduleEvent(let id):
+            if store.items.first(where: { $0.id == id }) == nil {
+                await load(force: true)
+            }
+            if let item = store.items.first(where: { $0.id == id }) {
+                path.append(item)
+            }
+        case .today:
+            break
+        }
+        model.consumeDeepLink()
     }
 }
 

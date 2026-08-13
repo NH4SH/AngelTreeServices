@@ -38,6 +38,7 @@ struct RootView: View {
             }
         }
         .tint(AngelTreeTheme.forest)
+        .onOpenURL { model.open(url: $0) }
     }
 }
 

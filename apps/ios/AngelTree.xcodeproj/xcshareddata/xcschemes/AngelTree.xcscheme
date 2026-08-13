@@ -35,6 +35,20 @@
                ReferencedContainer = "container:AngelTree.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "953F1DCD4FC1797CF8B34D0F"
+               BuildableName = "AngelTreeWidget.appex"
+               BlueprintName = "AngelTreeWidget"
+               ReferencedContainer = "container:AngelTree.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

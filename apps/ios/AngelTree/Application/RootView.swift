@@ -20,13 +20,17 @@ struct RootView: View {
             case .signedIn(let access):
                 if let todayStore = model.todayStore,
                    let scheduleStore = model.scheduleStore,
+                   let fieldService = model.fieldService,
+                   let photoService = model.photoService,
                    let apiBaseURL = model.apiBaseURL {
                     MainTabView(
                         model: model,
                         access: access,
                         apiBaseURL: apiBaseURL,
                         todayStore: todayStore,
-                        scheduleStore: scheduleStore
+                        scheduleStore: scheduleStore,
+                        fieldService: fieldService,
+                        photoService: photoService
                     )
                 } else {
                     ConfigurationRequiredView(message: "The app services could not be started.")

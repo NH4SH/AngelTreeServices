@@ -40,6 +40,7 @@ targets:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        DEVELOPMENT_TEAM: 6X43R56RLW
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: AngelTree/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: org.angeltreeservices.field

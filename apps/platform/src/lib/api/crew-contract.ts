@@ -43,7 +43,15 @@ export type CrewApiJobListItem = {
 
 export type CrewApiJobDetail = CrewApiJobListItem & {
   completedAt: string | null;
+  contractingParty: {
+    id: string;
+    kind: "customer" | "organization";
+    name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
   serviceLocation: (NonNullable<CrewApiJobListItem["serviceLocation"]> & {
+    id: string;
     accessNotes: string | null;
     gateCode: string | null;
     serviceNotes: string | null;
@@ -53,6 +61,19 @@ export type CrewApiJobDetail = CrewApiJobListItem & {
     body: string;
     createdAt: string;
   }[];
+  assignedEmployees: {
+    id: string;
+    name: string;
+  }[];
+  workSessions: {
+    id: string;
+    startsAt: string;
+    endsAt: string | null;
+    status: string;
+    notes: string | null;
+  }[];
+  equipment: string[];
+  materials: string[];
   completionChecklist: {
     persisted: boolean;
     items: {
@@ -72,7 +93,7 @@ export type CrewApiJobPhoto = {
 };
 
 export function toCrewApiJobListItem(job: CrewJob): CrewApiJobListItem {
-  const phone = job.customers?.phone ?? null;
+  const phone = job.organizations?.billing_phone ?? job.customers?.phone ?? null;
   const location = job.service_locations;
 
   return {
@@ -83,7 +104,12 @@ export function toCrewApiJobListItem(job: CrewJob): CrewApiJobListItem {
     scheduledStartAt: job.scheduled_start_at,
     scheduledEndAt: job.scheduled_end_at,
     scope: job.requested_scope,
-    customer: job.customers
+    customer: job.organizations
+      ? {
+          name: job.organizations.name,
+          phone,
+        }
+      : job.customers
       ? {
           name: job.customers.display_name,
           phone,
@@ -114,9 +140,27 @@ export function toCrewApiJobDetail(job: CrewJob, closeout?: JobCloseoutBundle | 
   return {
     ...listItem,
     completedAt: job.completed_at,
+    contractingParty: job.organizations
+      ? {
+          id: job.organizations.id,
+          kind: "organization",
+          name: job.organizations.name,
+          email: job.organizations.billing_email,
+          phone: job.organizations.billing_phone,
+        }
+      : job.customers
+        ? {
+            id: job.customers.id,
+            kind: "customer",
+            name: job.customers.display_name,
+            email: job.customers.email,
+            phone: job.customers.phone,
+          }
+        : null,
     serviceLocation: location
       ? {
           ...listItem.serviceLocation!,
+          id: location.id,
           accessNotes: location.access_notes,
           gateCode: location.gate_code,
           serviceNotes: location.service_notes,
@@ -129,6 +173,26 @@ export function toCrewApiJobDetail(job: CrewJob, closeout?: JobCloseoutBundle | 
         body: note.body,
         createdAt: note.created_at,
       })),
+    assignedEmployees: getAssignedEmployees(job),
+    workSessions: (job.schedule_events ?? [])
+      .filter((event) => event.status !== "cancelled")
+      .sort((left, right) => Date.parse(left.starts_at) - Date.parse(right.starts_at))
+      .map((event) => ({
+        id: event.id,
+        startsAt: event.starts_at,
+        endsAt: event.ends_at,
+        status: event.status,
+        notes: event.calendar_notes,
+      })),
+    equipment: (job.equipment_assignments ?? []).map((assignment) => {
+      const asset = assignment.equipment_assets;
+      return asset ? [asset.asset_number, asset.name].filter(Boolean).join(" · ") : "Assigned equipment";
+    }),
+    materials: (job.job_material_requirements ?? []).map((requirement) => [
+      requirement.material_catalog?.name ?? "Material",
+      [requirement.planned_quantity, requirement.unit].filter(Boolean).join(" "),
+      requirement.notes,
+    ].filter(Boolean).join(" · ")),
     completionChecklist: {
       persisted: Boolean(closeout),
       items: closeout
@@ -144,6 +208,28 @@ export function toCrewApiJobDetail(job: CrewJob, closeout?: JobCloseoutBundle | 
           })),
     },
   };
+}
+
+function getAssignedEmployees(job: CrewJob) {
+  const employees = new Map<string, { id: string; name: string }>();
+  (job.schedule_events ?? []).forEach((event) => {
+    (event.schedule_event_assignments ?? []).forEach((assignment) => {
+      const employee = assignment.employee_records;
+      const profile = assignment.profiles;
+      const id = employee?.id ?? assignment.employee_id ?? profile?.id ?? assignment.user_id;
+      if (!id) return;
+      employees.set(id, {
+        id,
+        name: employee?.preferred_name
+          ?? employee?.legal_name
+          ?? profile?.full_name
+          ?? employee?.contact_email
+          ?? profile?.email
+          ?? "Assigned employee",
+      });
+    });
+  });
+  return [...employees.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function toCrewApiJobPhoto(photo: SignedJobPhoto): CrewApiJobPhoto {

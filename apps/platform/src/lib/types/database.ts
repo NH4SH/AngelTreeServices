@@ -1140,10 +1140,11 @@ export type CrewJob = Pick<
   | "created_at"
   | "updated_at"
 > & {
-  customers?: Pick<Customer, "display_name" | "phone"> | null;
-  organizations?: Pick<Organization, "name" | "billing_phone"> | null;
+  customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
+  organizations?: Pick<Organization, "id" | "name" | "billing_phone" | "billing_email"> | null;
   service_locations?: Pick<
     ServiceLocation,
+    | "id"
     | "label"
     | "street"
     | "city"
@@ -1156,8 +1157,21 @@ export type CrewJob = Pick<
   job_photos?: Pick<JobPhoto, "photo_type">[];
   notes?: Pick<Note, "id" | "visibility" | "body" | "created_at">[];
   schedule_events?: (Pick<ScheduleEvent, "id" | "starts_at" | "ends_at" | "status" | "calendar_notes"> & {
-    schedule_event_assignments?: ScheduleEventAssignmentWithUser[];
+    schedule_event_assignments?: (ScheduleEventAssignmentWithUser & {
+      employee_records?: Pick<EmployeeRecord, "id" | "preferred_name" | "legal_name" | "contact_email"> | null;
+    })[];
   })[];
+  equipment_assignments?: {
+    id: string;
+    equipment_assets?: Pick<EquipmentAsset, "id" | "asset_number" | "name" | "category" | "status"> | null;
+  }[];
+  job_material_requirements?: {
+    id: string;
+    planned_quantity: number;
+    unit: string;
+    notes: string | null;
+    material_catalog?: { name: string } | null;
+  }[];
 };
 
 export type QuoteWithRelations = Quote & {

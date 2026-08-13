@@ -3,8 +3,6 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { canAccessAssignedCrewJob } from "@/lib/auth/crewAccess";
-import type { PlatformRoleName } from "@/lib/auth/roles";
 import { buildJobPhotoPath, JOB_PHOTO_BUCKET } from "@/lib/storage/job-photo-paths";
 import type { JobPhotoType, JobPhotoUploadCategory } from "@/lib/types/database";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
@@ -31,7 +29,6 @@ export async function uploadJobPhotoForUser({
   category,
   file,
   jobId,
-  roles,
   supabase,
   userId,
 }: {
@@ -39,7 +36,6 @@ export async function uploadJobPhotoForUser({
   category: JobPhotoUploadCategory;
   file: FormDataEntryValue | null;
   jobId: string;
-  roles: PlatformRoleName[];
   supabase: SupabaseClient<any, "public", any>;
   userId: string;
 }): Promise<JobPhotoUploadState & { jobId?: string }> {
@@ -68,16 +64,6 @@ export async function uploadJobPhotoForUser({
 
   if (jobError || !job) {
     return { status: "error", message: jobError?.message ?? "Could not find this job." };
-  }
-
-  if (
-    !canAccessAssignedCrewJob({
-      assignedCrewUserId: job.assigned_crew_user_id,
-      roles,
-      userId,
-    })
-  ) {
-    return { status: "error", message: "This job is not assigned to this crew account." };
   }
 
   const storagePath = buildJobPhotoPath({

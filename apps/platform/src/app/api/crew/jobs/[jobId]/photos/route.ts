@@ -91,13 +91,16 @@ export async function POST(request: NextRequest, { params }: CrewJobPhotosApiRou
     category,
     file: formData.get("photo"),
     jobId,
-    roles: auth.context.roles,
     supabase: auth.context.supabase,
     userId: auth.context.user.id,
   });
 
   if (result.status !== "success") {
-    return apiError("photo_upload_failed", result.message, 400);
+    console.warn("Crew job photo upload rejected", { jobId, message: result.message });
+    const safeMessage = /^(Choose|Upload a valid|Job is required|This job is not assigned)/.test(result.message)
+      ? result.message
+      : "Photo upload failed. Check the image and try again.";
+    return apiError("photo_upload_failed", safeMessage, 400);
   }
 
   await revalidateJobPhotoPaths(jobId);

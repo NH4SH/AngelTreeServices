@@ -1,72 +1,63 @@
 import SwiftUI
 
 struct CustomersView: View {
-    @ObservedObject var todayStore: ScheduleStore
-    @ObservedObject var scheduleStore: ScheduleStore
+    let access: AppAccess
+    let fieldService: any FieldDataService
+    let photoService: any JobPhotoService
+
     @State private var searchText = ""
-
-    private var scheduledParties: [ScheduledParty] {
-        let items = todayStore.items + scheduleStore.items
-        var parties: [String: ScheduledParty] = [:]
-
-        for item in items {
-            guard let party = item.party else { continue }
-            let key = "\(party.kind.rawValue)-\(party.id ?? party.name.lowercased())"
-            let candidate = ScheduledParty(party: party, item: item)
-            if let existing = parties[key] {
-                let existingDate = existing.nextWorkAt ?? .distantFuture
-                let candidateDate = candidate.nextWorkAt ?? .distantFuture
-                if candidateDate < existingDate {
-                    parties[key] = candidate
-                }
-            } else {
-                parties[key] = candidate
-            }
-        }
-
-        return parties.values
-            .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-    }
+    @State private var results: [MobilePartySearchResult] = []
+    @State private var isSearching = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
             List {
-                if scheduledParties.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "person.2")
-                            .font(.system(size: 34))
-                            .foregroundStyle(AngelTreeTheme.forest)
-                        Text(searchText.isEmpty ? "No scheduled customers loaded" : "No matching customers")
-                            .font(.headline)
-                        Text("Customers from Today and Schedule appear here for quick field access.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                if isSearching {
+                    Section {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                            Text("Searching customers and organizations")
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(minHeight: 44)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 42)
-                    .listRowBackground(Color.clear)
+                } else if let errorMessage {
+                    Section {
+                        FieldUnavailableView(
+                            title: "Couldn't search customers",
+                            systemImage: "wifi.exclamationmark",
+                            detail: errorMessage
+                        )
+                    }
+                } else if searchText.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 {
+                    Section {
+                        FieldUnavailableView(
+                            title: "Find a customer",
+                            systemImage: "person.text.rectangle",
+                            detail: "Search by name, organization, phone, email, or service address."
+                        )
+                    }
+                } else if results.isEmpty {
+                    Section {
+                        FieldUnavailableView(
+                            title: "No matching customers",
+                            systemImage: "magnifyingglass",
+                            detail: "Try a different name, phone number, or address."
+                        )
+                    }
                 } else {
-                    Section("From your schedule") {
-                        ForEach(scheduledParties) { party in
-                            NavigationLink(value: party) {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(party.name)
-                                        .font(.headline)
-                                    if let address = party.address {
-                                        Label(address, systemImage: "mappin.and.ellipse")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
-                                    if let nextWorkAt = party.nextWorkAt {
-                                        Text("Scheduled \(nextWorkAt.formatted(date: .abbreviated, time: .shortened))")
-                                            .font(.caption.weight(.medium))
-                                            .foregroundStyle(AngelTreeTheme.forest)
-                                    }
-                                }
-                                .padding(.vertical, 5)
+                    Section("Results") {
+                        ForEach(results) { result in
+                            NavigationLink {
+                                CustomerDetailView(
+                                    reference: result,
+                                    access: access,
+                                    fieldService: fieldService,
+                                    photoService: photoService
+                                )
+                            } label: {
+                                PartySearchRow(result: result)
                             }
                         }
                     }
@@ -75,67 +66,69 @@ struct CustomersView: View {
             .scrollContentBackground(.hidden)
             .background(AngelTreeTheme.canvas)
             .navigationTitle("Customers")
-            .searchable(text: $searchText, prompt: "Search scheduled customers")
-            .navigationDestination(for: ScheduledParty.self) { party in
-                ScheduledPartyView(party: party)
-            }
+            .searchable(text: $searchText, prompt: "Name, phone, or address")
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.words)
+            .task(id: searchText) { await search() }
         }
     }
-}
 
-private struct ScheduledParty: Hashable, Identifiable {
-    let id: String
-    let name: String
-    let kind: MobileScheduleItem.Party.Kind
-    let phone: String?
-    let email: String?
-    let address: String?
-    let nextWorkAt: Date?
+    private func search() async {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            results = []
+            errorMessage = nil
+            isSearching = false
+            return
+        }
 
-    init(party: MobileScheduleItem.Party, item: MobileScheduleItem) {
-        id = "\(party.kind.rawValue)-\(party.id ?? party.name.lowercased())"
-        name = party.name
-        kind = party.kind
-        phone = party.phone
-        email = party.email
-        address = item.location?.fullAddress
-        nextWorkAt = item.startsAtDate
+        do {
+            try await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            isSearching = true
+            errorMessage = nil
+            results = try await fieldService.searchParties(query: query)
+        } catch is CancellationError {
+            return
+        } catch {
+            results = []
+            errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? "Check your connection and try again."
+        }
+        isSearching = false
     }
 }
 
-private struct ScheduledPartyView: View {
-    let party: ScheduledParty
+private struct PartySearchRow: View {
+    let result: MobilePartySearchResult
 
     var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(party.name)
-                        .font(.title2.bold())
-                    Text(party.kind == .organization ? "Organization" : "Customer")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AngelTreeTheme.forest)
-                }
-                .padding(.vertical, 6)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(result.name)
+                    .font(.headline)
+                    .foregroundStyle(AngelTreeTheme.charcoal)
+                Spacer(minLength: 8)
+                Text(result.kind.label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AngelTreeTheme.forest)
             }
-
-            Section("Quick actions") {
-                WorkQuickActions(address: party.address, phone: party.phone)
+            if let contactName = result.contactName, contactName != result.name {
+                Text(contactName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-
-            Section("Contact") {
-                if let phone = party.phone {
-                    Label(phone, systemImage: "phone.fill")
-                }
-                if let email = party.email {
-                    Label(email, systemImage: "envelope.fill")
-                }
-                if let address = party.address {
-                    Label(address, systemImage: "mappin.and.ellipse")
-                }
+            if let address = result.address {
+                Label(address, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            } else if let phone = result.phone {
+                Label(phone, systemImage: "phone")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(party.kind == .organization ? "Organization" : "Customer")
-        .navigationBarTitleDisplayMode(.inline)
+        .padding(.vertical, 6)
     }
 }

@@ -7,20 +7,22 @@ struct MainTabView: View {
     let apiBaseURL: URL
     @ObservedObject var todayStore: ScheduleStore
     @ObservedObject var scheduleStore: ScheduleStore
+    let fieldService: any FieldDataService
+    let photoService: any JobPhotoService
 
     var body: some View {
         TabView {
-            TodayView(access: access, store: todayStore)
+            TodayView(access: access, store: todayStore, fieldService: fieldService, photoService: photoService)
                 .tabItem {
                     Label("Today", systemImage: "sun.max.fill")
                 }
 
-            ScheduleView(access: access, store: scheduleStore)
+            ScheduleView(access: access, store: scheduleStore, fieldService: fieldService, photoService: photoService)
                 .tabItem {
                     Label("Schedule", systemImage: "calendar")
                 }
 
-            CustomersView(todayStore: todayStore, scheduleStore: scheduleStore)
+            CustomersView(access: access, fieldService: fieldService, photoService: photoService)
                 .tabItem {
                     Label("Customers", systemImage: "person.2.fill")
                 }

@@ -16,6 +16,7 @@ final class AppConfigurationTests: XCTestCase {
         let appEntry = try String(contentsOf: appEntryURL, encoding: .utf8)
 
         XCTAssertEqual(plist["UIUserInterfaceStyle"] as? String, "Light")
+        XCTAssertNotNil(plist["NSCameraUsageDescription"] as? String)
         XCTAssertTrue(appEntry.contains(".preferredColorScheme(.light)"))
     }
 

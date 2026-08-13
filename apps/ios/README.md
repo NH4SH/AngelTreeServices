@@ -60,7 +60,9 @@ The schedule endpoint reuses the CRM's current handling for:
 - customers, organizations, jobs, and service locations
 - America/New_York schedule boundaries
 
-Existing `GET /api/crew/jobs/[jobId]/photos` is wrapped behind `JobPhotoService` for the next read-only gallery phase. No photo mutation is enabled in this release.
+Customer search and detail use `GET /api/mobile/customers` and `GET /api/mobile/parties/[kind]/[partyId]`. Both use the caller-scoped Supabase client, so crew accounts only receive parties and work visible through assigned-job RLS. Owner/admin and other existing office-capable roles retain their current server-authorized visibility.
+
+Job detail reuses `GET /api/crew/jobs/[jobId]`. Private photo reads and validated uploads reuse `GET/POST /api/crew/jobs/[jobId]/photos`; signed URLs remain short-lived and the private bucket is unchanged.
 
 ## Current features
 
@@ -70,7 +72,10 @@ Existing `GET /api/crew/jobs/[jobId]/photos` is wrapped behind `JobPhotoService`
 - Day and real seven-day week schedule navigation
 - Work detail with separate work scope, team notes, and access/service notes
 - Directions, Call, and Text system actions
-- Scheduled-customer search scaffold populated from loaded field work
+- Server-backed customer and organization search by name, contact, phone, email, or service address
+- Native customer, organization, and service-location detail with linked accessible work
+- Rich assigned-job detail with crew, multi-day schedule, equipment, materials, scope, and distinct field notes
+- Private job-photo gallery plus camera/photo-picker upload with preview and compression
 - Links to the full web CRM for office-only Jobs, Quotes, and Invoices
 - Pull to refresh and foreground access refresh
 - Last-loaded Today/week cache with a visible saved-data warning
@@ -79,7 +84,7 @@ Existing `GET /api/crew/jobs/[jobId]/photos` is wrapped behind `JobPhotoService`
 
 ## Offline behavior
 
-Today and schedule responses are stored as JSON in Application Support. When refresh fails, the most recently loaded range remains visible and is marked as saved/stale. Cache age is also treated as stale after 15 minutes. The app does not queue offline business or financial mutations.
+Today, schedule, recently opened party details, and recently opened job details are stored as JSON in Application Support. Field cache keys include the authenticated user ID and all app caches are removed on sign-out. When refresh fails, saved detail remains visible with a warning. Photo upload requires a working connection and is never reported as complete before server confirmation. The app does not queue offline business or financial mutations.
 
 ## Tests
 
@@ -104,8 +109,8 @@ Choose an available simulator from `xcrun simctl list devices available` if that
 
 ## Deferred roadmap
 
-1. Full customer search and native customer detail
-2. Field job status, closeout, notes, and native photo capture/upload
+1. Field job status, closeout, and notes after their feature flags and visibility semantics are ready for native use
+2. Durable offline photo upload queue
 3. Estimator customer, location, appointment, and proposal workflows
 4. Owner/office dispatch and read-only financial overview
 5. Push notifications, offline mutation queue, background uploads, deep links, and Face ID convenience unlock

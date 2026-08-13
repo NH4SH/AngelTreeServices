@@ -9,6 +9,18 @@ protocol MobileAPIClientProtocol: Sendable {
         accessToken: String
     ) async throws -> MobileSchedulePayload
     func jobPhotos(jobID: String, accessToken: String) async throws -> [JobPhotoSummary]
+    func searchCustomers(query: String, accessToken: String) async throws -> [MobilePartySearchResult]
+    func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail
+    func jobDetail(jobID: String, accessToken: String) async throws -> MobileJobDetail
+    func uploadJobPhoto(
+        jobID: String,
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        category: String,
+        caption: String?,
+        accessToken: String
+    ) async throws
 }
 
 actor MobileAPIClient: MobileAPIClientProtocol {
@@ -52,6 +64,73 @@ actor MobileAPIClient: MobileAPIClientProtocol {
             accessToken: accessToken
         )
         return payload.photos
+    }
+
+    func searchCustomers(query: String, accessToken: String) async throws -> [MobilePartySearchResult] {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/mobile/customers"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "q", value: query)]
+        guard let url = components?.url else { throw MobileAPIError.invalidRequest }
+        let payload: CustomerSearchPayload = try await get(url: url, accessToken: accessToken)
+        return payload.results
+    }
+
+    func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail {
+        let payload: PartyDetailPayload = try await get(
+            path: "api/mobile/parties/\(kind.rawValue)/\(id)",
+            accessToken: accessToken
+        )
+        return payload.party
+    }
+
+    func jobDetail(jobID: String, accessToken: String) async throws -> MobileJobDetail {
+        let payload: JobDetailPayload = try await get(
+            path: "api/crew/jobs/\(jobID)",
+            accessToken: accessToken
+        )
+        return payload.job
+    }
+
+    func uploadJobPhoto(
+        jobID: String,
+        data: Data,
+        fileName: String,
+        mimeType: String,
+        category: String,
+        caption: String?,
+        accessToken: String
+    ) async throws {
+        let boundary = "AngelTree-\(UUID().uuidString)"
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/crew/jobs/\(jobID)/photos"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = MultipartFormData(boundary: boundary)
+            .addingField(name: "photo_type", value: category)
+            .addingField(name: "caption", value: caption ?? "")
+            .addingFile(name: "photo", fileName: fileName, mimeType: mimeType, data: data)
+            .finalized()
+
+        let (responseData, response): (Data, URLResponse)
+        do {
+            (responseData, response) = try await session.data(for: request)
+        } catch {
+            throw MobileAPIError.networkUnavailable
+        }
+        guard let http = response as? HTTPURLResponse else { throw MobileAPIError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let envelope = try? decoder.decode(APIEnvelope<EmptyPayload>.self, from: responseData)
+            if http.statusCode == 401 { throw MobileAPIError.authenticationRequired }
+            if http.statusCode == 403 { throw MobileAPIError.accessDenied(envelope?.error?.message) }
+            if [400, 413, 415].contains(http.statusCode) {
+                throw MobileAPIError.requestRejected(envelope?.error?.message)
+            }
+            throw MobileAPIError.serverUnavailable(nil)
+        }
     }
 
     private func get<Response: Decodable>(
@@ -124,6 +203,7 @@ enum MobileAPIError: LocalizedError, Equatable {
     case invalidResponse
     case authenticationRequired
     case accessDenied(String?)
+    case requestRejected(String?)
     case serverUnavailable(String?)
 
     var errorDescription: String? {
@@ -138,7 +218,40 @@ enum MobileAPIError: LocalizedError, Equatable {
             return "Your session expired. Sign in again."
         case .accessDenied(let message):
             return message ?? "Your account does not have access to this information."
+        case .requestRejected(let message):
+            return message ?? "That request could not be completed. Check the information and try again."
         }
+    }
+}
+
+private struct EmptyPayload: Decodable {}
+
+private struct MultipartFormData {
+    let boundary: String
+    private var data = Data()
+
+    init(boundary: String) {
+        self.boundary = boundary
+    }
+
+    func addingField(name: String, value: String) -> MultipartFormData {
+        var copy = self
+        copy.data.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".data(using: .utf8)!)
+        return copy
+    }
+
+    func addingFile(name: String, fileName: String, mimeType: String, data fileData: Data) -> MultipartFormData {
+        var copy = self
+        copy.data.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"; filename=\"\(fileName)\"\r\nContent-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        copy.data.append(fileData)
+        copy.data.append("\r\n".data(using: .utf8)!)
+        return copy
+    }
+
+    func finalized() -> Data {
+        var copy = data
+        copy.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        return copy
     }
 }
 

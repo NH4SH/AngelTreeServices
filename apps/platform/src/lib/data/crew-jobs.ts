@@ -17,12 +17,14 @@ const crewJobSelect = `
   completed_at,
   created_at,
   updated_at,
-  customers:customers!jobs_customer_id_fkey(display_name, phone),
-  organizations(name, billing_phone),
-  service_locations(label, street, city, state, postal_code, access_notes, gate_code, service_notes),
+  customers:customers!jobs_customer_id_fkey(id, display_name, phone, email),
+  organizations(id, name, billing_phone, billing_email),
+  service_locations(id, label, street, city, state, postal_code, access_notes, gate_code, service_notes),
   job_photos(photo_type),
   notes(id, visibility, body, created_at),
-  schedule_events:schedule_events!schedule_events_job_id_fkey(id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(event_id, user_id, assignment_role, profiles(id, full_name, email)))
+  schedule_events:schedule_events!schedule_events_job_id_fkey(id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(event_id, user_id, employee_id, assignment_role, profiles(id, full_name, email), employee_records(id, preferred_name, legal_name, contact_email))),
+  equipment_assignments(id, equipment_assets(id, asset_number, name, category, status)),
+  job_material_requirements(id, planned_quantity, unit, notes, material_catalog(name))
 `;
 
 type CrewAccessContext = {

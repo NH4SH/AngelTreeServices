@@ -121,7 +121,7 @@ struct WorkDetailView: View {
     }
 }
 
-private struct DetailRow: View {
+struct DetailRow: View {
     let label: String
     let value: String
     let systemImage: String
@@ -145,7 +145,7 @@ private struct DetailRow: View {
     }
 }
 
-private struct DetailTextBlock: View {
+struct DetailTextBlock: View {
     let title: String
     let text: String
 

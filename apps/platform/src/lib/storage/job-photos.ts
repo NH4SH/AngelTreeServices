@@ -1,6 +1,5 @@
 "use server";
 
-import { getUserRoles } from "@/lib/auth/roles";
 import {
   revalidateJobPhotoPaths,
   uploadJobPhotoForUser,
@@ -27,13 +26,11 @@ export async function uploadJobPhoto(
     return { status: "error", message: "Sign in before uploading job photos." };
   }
 
-  const roles = await getUserRoles(supabase, user.id);
   const result = await uploadJobPhotoForUser({
     caption: String(formData.get("caption") ?? ""),
     category: String(formData.get("photo_category") ?? "before") as JobPhotoUploadCategory,
     file: formData.get("photo"),
     jobId: String(formData.get("job_id") ?? ""),
-    roles,
     supabase,
     userId: user.id,
   });

@@ -19,10 +19,12 @@ final class AppModel: ObservableObject {
     let todayStore: ScheduleStore?
     let scheduleStore: ScheduleStore?
     let photoService: (any JobPhotoService)?
+    let fieldService: (any FieldDataService)?
 
     private let authentication: (any AuthenticationService)?
     private let api: (any MobileAPIClientProtocol)?
     private let cache: ScheduleCache?
+    private let fieldCache: FieldCache?
 
     init(bundle: Bundle = .main) {
         do {
@@ -30,10 +32,12 @@ final class AppModel: ObservableObject {
             let authentication = SupabaseAuthenticationService(configuration: configuration)
             let api = MobileAPIClient(baseURL: configuration.apiBaseURL)
             let cache = ScheduleCache()
+            let fieldCache = FieldCache()
 
             self.authentication = authentication
             self.api = api
             self.cache = cache
+            self.fieldCache = fieldCache
             apiBaseURL = configuration.apiBaseURL
             todayStore = ScheduleStore(
                 authentication: authentication,
@@ -46,14 +50,17 @@ final class AppModel: ObservableObject {
                 cache: cache
             )
             photoService = LiveJobPhotoService(authentication: authentication, api: api)
+            fieldService = LiveFieldDataService(authentication: authentication, api: api, cache: fieldCache)
         } catch {
             authentication = nil
             api = nil
             cache = nil
+            fieldCache = nil
             apiBaseURL = nil
             todayStore = nil
             scheduleStore = nil
             photoService = nil
+            fieldService = nil
             phase = .configurationRequired(
                 (error as? LocalizedError)?.errorDescription
                     ?? "The app configuration is incomplete."
@@ -128,6 +135,7 @@ final class AppModel: ObservableObject {
         todayStore?.clear()
         scheduleStore?.clear()
         await cache?.removeAll()
+        await fieldCache?.removeAll()
         message = nil
         phase = .signedOut
     }

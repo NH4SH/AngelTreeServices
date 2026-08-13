@@ -8,6 +8,8 @@ struct ScheduleView: View {
 
     let access: AppAccess
     @ObservedObject var store: ScheduleStore
+    let fieldService: any FieldDataService
+    let photoService: any JobPhotoService
     @State private var selectedDate = Date()
     @State private var mode: ViewMode = .day
     @State private var scope: ScheduleScope = .mine
@@ -70,7 +72,18 @@ struct ScheduleView: View {
             .navigationTitle("Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: MobileScheduleItem.self) { item in
-                WorkDetailView(item: item)
+                if let jobID = item.jobId {
+                    JobDetailView(
+                        jobID: jobID,
+                        summary: nil,
+                        scheduleItem: item,
+                        access: access,
+                        fieldService: fieldService,
+                        photoService: photoService
+                    )
+                } else {
+                    WorkDetailView(item: item)
+                }
             }
             .refreshable { await load(force: true) }
             .task(id: requestKey) { await load() }

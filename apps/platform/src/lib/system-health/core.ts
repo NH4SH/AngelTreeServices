@@ -1,4 +1,4 @@
-import type { HealthStatus } from "./registry";
+import type { HealthComponentDefinition, HealthStatus } from "./registry";
 
 export type HealthCheckResult = {
   details?: Record<string, string | number | boolean | null>;
@@ -9,6 +9,13 @@ export type HealthCheckResult = {
 };
 
 export type HealthTransition = "none" | "open_incident" | "update_incident" | "recover";
+
+export class HealthMonitorInvariantError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "HealthMonitorInvariantError";
+  }
+}
 
 export function getHealthTransition({
   activeIncident,
@@ -40,6 +47,52 @@ export function sanitizeHealthSummary(value: unknown, fallback = "The check did 
     .replace(/\b(?:password|secret|token|authorization|cookie|service[_-]?role)\s*[:=]\s*\S+/gi, "[redacted]")
     .trim();
   return (text || fallback).slice(0, 300);
+}
+
+export function safeHealthErrorMetadata(error: unknown) {
+  const errorRecord = typeof error === "object" && error !== null
+    ? error as { message?: unknown; name?: unknown }
+    : null;
+  const rawName = error instanceof Error ? error.name : errorRecord?.name;
+  const errorName = typeof rawName === "string"
+    ? rawName.replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 80) || "Error"
+    : "UnknownError";
+  const rawMessage = error instanceof Error ? error.message : errorRecord?.message ?? error;
+  const message = sanitizeHealthSummary(rawMessage);
+  return { errorName, message };
+}
+
+export async function runIsolatedHealthChecks(
+  components: readonly HealthComponentDefinition[],
+  execute: (componentKey: string) => Promise<HealthCheckResult>,
+) {
+  const settled = await Promise.allSettled(components.map((component) => execute(component.key)));
+  const invariantFailure = settled.find((outcome) =>
+    outcome.status === "rejected" && outcome.reason instanceof HealthMonitorInvariantError);
+  if (invariantFailure?.status === "rejected") throw invariantFailure.reason;
+
+  return components.map((component, index) => {
+    const outcome = settled[index];
+    return {
+      component,
+      result: outcome.status === "fulfilled"
+        ? outcome.value
+        : { latencyMs: null, status: "outage" as const, summary: "The component check could not complete." },
+    };
+  });
+}
+
+export async function runBestEffortHealthOperation(
+  operation: () => Promise<void>,
+  onFailure: (error: unknown) => void,
+) {
+  try {
+    await operation();
+    return true;
+  } catch (error) {
+    onFailure(error);
+    return false;
+  }
 }
 
 export function boundedLatency(value: number | null | undefined) {

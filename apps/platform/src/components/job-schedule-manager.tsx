@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, Plus, Save, Trash2, UsersRound } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, Plus, Save, Trash2 } from "lucide-react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { saveJobWorkSessions, type JobScheduleActionState } from "@/app/admin/jobs/actions";
+import { EmployeeMultiSelect } from "@/components/employee-multi-select";
 import type { AssignableUser, ScheduleEventWithRelations } from "@/lib/types/database";
 
 const timezone = "America/New_York";
@@ -271,9 +272,9 @@ export function JobScheduleManager({
                     <button className="secondary-action" onClick={copyFirstHoursToAll} type="button"><Copy size={15} />Copy first day's hours to all</button>
                   </div>
                   {users.length ? <div className="bulk-crew-actions">
-                    <label><UsersRound size={16} />Crew for bulk assignment<select multiple onChange={(event) => setBulkCrewIds(Array.from(event.target.selectedOptions, (option) => option.value))} size={Math.min(Math.max(users.length, 2), 4)} value={bulkCrewIds}>{users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Employee"}</option>)}</select></label>
-                    <button className="secondary-action" disabled={!bulkCrewIds.length} onClick={() => applyCrew(bulkCrewIds, "all")} type="button">Assign crew to all days</button>
-                    <button className="secondary-action" disabled={!bulkCrewIds.length || !selectedRows.length} onClick={() => applyCrew(bulkCrewIds, "selected")} type="button">Assign crew to selected days</button>
+                    <EmployeeMultiSelect disabled={pending} employees={users} label="Crew for bulk assignment" onChange={setBulkCrewIds} selectedIds={bulkCrewIds} />
+                    <button className="secondary-action" onClick={() => applyCrew(bulkCrewIds, "all")} type="button">{bulkCrewIds.length ? "Assign crew to all days" : "Clear crew from all days"}</button>
+                    <button className="secondary-action" disabled={!selectedRows.length} onClick={() => applyCrew(bulkCrewIds, "selected")} type="button">{bulkCrewIds.length ? "Assign crew to selected days" : "Clear crew from selected days"}</button>
                   </div> : null}
                   <button className="danger-secondary-action" disabled={!selectedRows.length} onClick={removeSelectedRows} type="button"><Trash2 size={16} />Remove selected days</button>
                 </details>
@@ -299,7 +300,7 @@ export function JobScheduleManager({
                     <span className="time-separator">to</span>
                     <label>End time<input min={session.start_time} onChange={(event) => updateSession(session.clientId, { end_time: event.target.value })} required type="time" value={session.end_time} /></label>
                     <strong className="workday-duration"><Clock3 size={16} />{formatDuration(session.start_time, session.end_time)}</strong>
-                    {users.length ? <label className="workday-crew">Assigned crew<select multiple onChange={(event) => updateSession(session.clientId, { assigned_user_ids: Array.from(event.target.selectedOptions, (option) => option.value) })} size={Math.min(Math.max(users.length, 2), 3)} value={session.assigned_user_ids}>{users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Employee"}</option>)}</select></label> : null}
+                    {users.length ? <div className="workday-crew"><EmployeeMultiSelect disabled={pending} employees={users} label={`Crew for ${formatDateLong(session.date)}`} onChange={(employeeIds) => updateSession(session.clientId, { assigned_user_ids: employeeIds })} selectedIds={session.assigned_user_ids} /></div> : null}
                   </div>
                   <div className="workday-time-presets" aria-label={`Time shortcuts for ${formatDateLong(session.date)}`}>
                     <button onClick={() => updateSession(session.clientId, { start_time: "08:00", end_time: "16:00" })} type="button">Full day</button>
@@ -317,7 +318,7 @@ export function JobScheduleManager({
           )}
 
           <div className={`schedule-crew-controls${mode === "multiple" ? " multi-day-options" : ""}`}>
-            {mode === "single" ? <label>Assigned crew<select multiple onChange={(event) => applyCrew(Array.from(event.target.selectedOptions, (option) => option.value))} size={Math.min(Math.max(users.length, 3), 6)} value={assignedIds}>{users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email || "Employee"}</option>)}</select></label> : null}
+            {mode === "single" ? <EmployeeMultiSelect disabled={pending} employees={users} label="Assigned crew" onChange={(employeeIds) => applyCrew(employeeIds)} selectedIds={assignedIds} /> : null}
             <label>Scheduling status<select onChange={(event) => setSessions((current) => current.map((session) => ({ ...session, status: event.target.value as SessionDraft["status"] })))} value={sessions[0]?.status ?? "scheduled"}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option></select></label>
             <label>Internal scheduling note<textarea onChange={(event) => setSessions((current) => current.map((session) => ({ ...session, notes: event.target.value })))} rows={3} value={sessions[0]?.notes ?? ""} /></label>
           </div>

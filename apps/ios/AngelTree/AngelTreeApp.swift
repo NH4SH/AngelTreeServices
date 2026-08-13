@@ -7,6 +7,7 @@ struct AngelTreeApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(model: model)
+                .preferredColorScheme(.light)
         }
     }
 }

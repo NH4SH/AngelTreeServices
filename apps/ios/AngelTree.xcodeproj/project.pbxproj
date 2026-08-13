@@ -65,7 +65,7 @@
 		2DF2363E4AD724384F2CB536 /* QuickActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionButton.swift; sourceTree = "<group>"; };
 		3522271D7D09C3BBAA74ABFF /* AngelTreeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngelTreeApp.swift; sourceTree = "<group>"; };
 		383C66802D1DC9177502AC3C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		3CCD2C2D17489C61000A3F0C /* AngelTreeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AngelTreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CCD2C2D17489C61000A3F0C /* AngelTreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AngelTreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		47121F3F34C37091B502D7B4 /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		5160443FD9636E817827636C /* BusinessCalendarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusinessCalendarTests.swift; sourceTree = "<group>"; };
 		555DEF874C6D82B264080E58 /* ScheduleLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleLogicTests.swift; sourceTree = "<group>"; };
@@ -80,7 +80,7 @@
 		9B7B62D2755F4592D7AC33B7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9D9117C3353831CBB919479A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		A2E3A8A6F17C748AB4913587 /* JobPhotoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobPhotoService.swift; sourceTree = "<group>"; };
-		ACF8D811D3E75EFDF0C3BD8C /* AngelTree.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AngelTree.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACF8D811D3E75EFDF0C3BD8C /* AngelTree.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AngelTree.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE77D917E826EE400BB3D5E5 /* WorkCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkCard.swift; sourceTree = "<group>"; };
 		B303CF93EAF63B37AD78E877 /* AccessResolutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessResolutionTests.swift; sourceTree = "<group>"; };
 		B6ED0BEF46EF6C6BA51558C9 /* ScheduleCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleCache.swift; sourceTree = "<group>"; };
@@ -598,6 +598,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6X43R56RLW;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AngelTree/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -617,6 +618,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6X43R56RLW;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AngelTree/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

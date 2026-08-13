@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { StructuredAddressFields } from "@/components/address-autocomplete";
+import { EmployeeMultiSelect } from "@/components/employee-multi-select";
 import { CalendarPlus, Clock3, MapPinned, Save, Search, UserRound, X } from "lucide-react";
 import { JobScheduleManager } from "@/components/job-schedule-manager";
 import { updateJobWorkSessionTime } from "@/app/admin/jobs/actions";
@@ -613,17 +614,13 @@ export function AddScheduleEventForm({
         <input name="all_day" type="checkbox" value="1" />
         <span>All-day availability block</span>
       </label>
-      <label>
-        Assigned employees
-        <select className="multi-select-field" defaultValue={[]} multiple name="assigned_user_ids" size={Math.min(Math.max(users.length, 4), 8)}>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name || user.email || "Unnamed team member"}
-              {user.role_names.length ? ` (${user.role_names.join(", ")})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <EmployeeMultiSelect
+        description="Choose everyone assigned to this event. Each employee toggles independently."
+        disabled={pending}
+        employees={users}
+        label="Assigned employees"
+        name="assigned_user_ids"
+      />
       <label>
         Location
         <input name="location_label" placeholder="Office, 123 Main St, north entrance, phone-only follow-up" />
@@ -718,17 +715,15 @@ export function ScheduleEventEditForm({
         <input defaultChecked={event.all_day} name="all_day" type="checkbox" value="1" />
         <span>All-day availability block</span>
       </label>
-      <label>
-        <span>Assigned employees</span>
-        <select className="multi-select-field" defaultValue={assignedUserIds} multiple name="assigned_user_ids" size={Math.min(Math.max(users.length, 4), 8)}>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name || user.email || "Unnamed team member"}
-              {user.role_names.length ? ` (${user.role_names.join(", ")})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <EmployeeMultiSelect
+        defaultSelectedIds={assignedUserIds}
+        description="Choose everyone assigned to this event. Existing assignments stay selected until you remove them."
+        disabled={pending}
+        employees={users}
+        key={`event-employees-${event.id}`}
+        label="Assigned employees"
+        name="assigned_user_ids"
+      />
       <label>
         <span>Location</span>
         <input defaultValue={event.location_label ?? ""} name="location_label" />

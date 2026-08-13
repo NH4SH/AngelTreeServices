@@ -5,17 +5,20 @@ import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 import { getStripeServerConfig, getStripeWebhookSecret } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { getSupabasePublicConfig } from "@/lib/supabase/config";
-import { boundedLatency, classifyResendCredentialCheck, sanitizeHealthSummary, type HealthCheckResult } from "./core";
+import {
+  boundedLatency,
+  classifyResendCredentialCheck,
+  runIsolatedHealthChecks,
+  sanitizeHealthSummary,
+  type HealthCheckResult,
+} from "./core";
 import { healthComponentByKey, healthComponents } from "./registry";
 
 const checkTimeoutMs = 8_000;
 const publicSiteUrl = "https://angeltreeservices.org";
 
 export async function runAllHealthChecks() {
-  return Promise.all(healthComponents.map(async (component) => ({
-    component,
-    result: await runHealthCheck(component.key),
-  })));
+  return runIsolatedHealthChecks(healthComponents, runHealthCheck);
 }
 
 export async function runHealthCheck(componentKey: string): Promise<HealthCheckResult> {

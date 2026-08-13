@@ -2946,7 +2946,7 @@
 
 .schedule-default-hours label,
 .selected-workday-fields label,
-.bulk-crew-actions label {
+.bulk-crew-actions > label {
   display: grid;
   font-weight: 700;
   gap: 6px;
@@ -3133,14 +3133,14 @@
   align-items: end;
 }
 
-.bulk-crew-actions label {
+.bulk-crew-actions > label {
   align-items: center;
   flex: 1 1 260px;
   grid-template-columns: auto minmax(180px, 260px);
   min-width: 0;
 }
 
-.bulk-crew-actions label select {
+.bulk-crew-actions > label select {
   grid-column: 1 / -1;
   max-width: 100%;
   min-width: 0;
@@ -3642,7 +3642,7 @@
     flex-wrap: nowrap;
   }
 
-  .bulk-crew-actions label {
+  .bulk-crew-actions > label {
     display: grid;
     flex-basis: auto;
     grid-template-columns: auto 1fr;
@@ -17459,15 +17459,220 @@ body:has(.appointment-overlay) {
   font-weight: 760;
 }
 
-.schedule-event-form .multi-select-field,
-.schedule-event-edit-form .multi-select-field {
-  min-height: 132px;
-  padding-block: 8px;
+.employee-multi-select {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-subtle);
+  padding: 12px;
 }
 
-.schedule-event-form .multi-select-field option,
-.schedule-event-edit-form .multi-select-field option {
-  padding: 6px 8px;
+.employee-multi-select legend {
+  padding: 0 5px;
+  color: var(--color-charcoal);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.employee-multi-select-description,
+.employee-selection-empty {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.employee-selection-summary,
+.employee-selection-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.employee-selection-summary strong {
+  color: var(--color-forest);
+  font-size: 0.84rem;
+}
+
+.employee-multi-select .employee-selection-clear,
+.employee-multi-select .employee-selection-actions button {
+  display: inline-flex;
+  min-height: 40px;
+  width: auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  background: var(--color-surface);
+  padding: 7px 11px;
+  color: var(--color-forest);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.employee-selection-chips {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.employee-selection-chip {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid oklch(0.76 0.06 151);
+  border-radius: 7px;
+  background: oklch(0.95 0.025 151);
+  padding-left: 10px;
+  color: var(--color-forest);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.employee-selection-chip > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.employee-multi-select .employee-selection-chip button {
+  display: inline-flex;
+  min-height: 38px;
+  width: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0;
+  color: currentColor;
+}
+
+.employee-multi-select .employee-selection-chip button:hover {
+  background: oklch(0.9 0.035 151);
+}
+
+.employee-selection-search {
+  display: grid !important;
+  min-width: 0;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px !important;
+  color: var(--color-muted);
+}
+
+.employee-selection-search input {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+}
+
+.employee-selection-options {
+  display: grid;
+  max-height: min(280px, 42vh);
+  min-width: 0;
+  gap: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1px;
+}
+
+.employee-selection-option {
+  display: grid !important;
+  min-height: 48px;
+  min-width: 0;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px !important;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+  padding: 8px 10px;
+  color: var(--color-charcoal) !important;
+  cursor: pointer;
+}
+
+.employee-selection-option:has(input:checked) {
+  border-color: oklch(0.65 0.09 151);
+  background: oklch(0.965 0.02 151);
+}
+
+.employee-selection-option:has(input:focus-visible) {
+  outline: 3px solid oklch(0.66 0.16 145 / 0.42);
+  outline-offset: 1px;
+}
+
+.employee-selection-option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-forest);
+}
+
+.employee-selection-option > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.employee-selection-option strong,
+.employee-selection-option small {
+  overflow-wrap: anywhere;
+}
+
+.employee-selection-option strong {
+  font-size: 0.86rem;
+}
+
+.employee-selection-option small {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 550;
+}
+
+.employee-multi-select:disabled {
+  opacity: 0.64;
+}
+
+.bulk-crew-actions > .employee-multi-select,
+.schedule-crew-controls > .employee-multi-select {
+  flex: 1 1 100%;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.workday-crew {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (min-width: 761px) {
+  .workday-crew .employee-selection-options {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .employee-multi-select {
+    padding: 10px;
+  }
+
+  .employee-selection-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .employee-multi-select .employee-selection-clear {
+    width: 100%;
+  }
 }
 
 @media (max-width: 900px) {

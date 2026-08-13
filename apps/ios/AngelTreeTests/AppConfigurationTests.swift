@@ -2,6 +2,23 @@ import XCTest
 @testable import AngelTree
 
 final class AppConfigurationTests: XCTestCase {
+    func testV1ForcesLightAppearanceAtTheUIKitAndSwiftUIBoundaries() throws {
+        let iosRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let infoPlistURL = iosRoot.appendingPathComponent("AngelTree/Info.plist")
+        let appEntryURL = iosRoot.appendingPathComponent("AngelTree/AngelTreeApp.swift")
+
+        let plistData = try Data(contentsOf: infoPlistURL)
+        let plist = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any]
+        )
+        let appEntry = try String(contentsOf: appEntryURL, encoding: .utf8)
+
+        XCTAssertEqual(plist["UIUserInterfaceStyle"] as? String, "Light")
+        XCTAssertTrue(appEntry.contains(".preferredColorScheme(.light)"))
+    }
+
     func testValidConfigurationAcceptsHTTPSAndPublishableKey() throws {
         let configuration = try AppConfiguration(values: [
             "SUPABASE_URL": "https://example.supabase.co",

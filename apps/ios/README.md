@@ -75,6 +75,7 @@ Existing `GET /api/crew/jobs/[jobId]/photos` is wrapped behind `JobPhotoService`
 - Pull to refresh and foreground access refresh
 - Last-loaded Today/week cache with a visible saved-data warning
 - Dynamic Type, VoiceOver labels, semantic status icons, and 44-point controls
+- V1 uses a fixed light appearance so system controls remain readable when the device uses Dark Mode
 
 ## Offline behavior
 

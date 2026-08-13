@@ -23,100 +23,162 @@ jobs:
       CUSTOMER_PORTAL_URL: ${{ vars.CUSTOMER_PORTAL_BASE_URL }}
       MONITOR_SECRET: ${{ secrets.SYSTEM_HEALTH_MONITOR_SECRET }}
     steps:
+      - name: Check out monitor classifier
+        uses: actions/checkout@v4
+
       - name: Check critical production paths
         id: checks
         shell: bash
         run: |
           set +e
+          healthy="true"
+          category="healthy"
+          http_status="none"
+          issue_title="[System Health] Production monitoring incident"
           failures=""
+          observations=""
+
+          record_failure() {
+            local failure_category="$1"
+            local failure_status="$2"
+            local failure_summary="$3"
+            local failure_title="$4"
+            if [ "${healthy}" = "true" ]; then
+              category="${failure_category}"
+              http_status="${failure_status}"
+              issue_title="${failure_title}"
+            fi
+            healthy="false"
+            failures="${failures}${failure_summary}; "
+          }
 
           check_url() {
             local label="$1"
             local url="$2"
+            local failure_category="$3"
+            local failure_title="$4"
+            local failure_summary="$5"
             if ! curl --fail --silent --show-error --location \
               --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 10 \
               "$url" >/dev/null; then
-              failures="${failures}${label}; "
+              observations="${observations}${label}: failed; "
+              record_failure "${failure_category}" "none" "${failure_summary}" "${failure_title}"
+            else
+              observations="${observations}${label}: passed; "
             fi
           }
 
-          check_url "Public website unavailable" "${PUBLIC_URL}/"
-          check_url "Essential public asset unavailable" "${PUBLIC_URL}/assets/favicon-32.png"
-          check_url "CRM liveness unavailable" "${ADMIN_URL}/api/health/live"
+          check_url "Public website" "${PUBLIC_URL}/" \
+            "customer_facing_endpoint" "[System Health] Public website unavailable" "Public website unavailable"
+          check_url "Essential public asset" "${PUBLIC_URL}/assets/favicon-32.png" \
+            "customer_facing_endpoint" "[System Health] Essential public asset unavailable" "Essential public asset unavailable"
+          check_url "CRM liveness" "${ADMIN_URL}/api/health/live" \
+            "crm_liveness" "[System Health] CRM liveness unavailable" "CRM liveness unavailable"
 
           if [ -n "${CUSTOMER_PORTAL_URL}" ]; then
-            check_url "Customer portal unavailable" "${CUSTOMER_PORTAL_URL}/portal/quote/system-health-invalid-token"
+            check_url "Customer portal" "${CUSTOMER_PORTAL_URL}/portal/quote/system-health-invalid-token" \
+              "customer_portal" "[System Health] Customer portal unavailable" "Customer portal unavailable"
+          else
+            observations="${observations}Customer portal: not configured for independent check; "
           fi
 
           if [ -z "${MONITOR_SECRET}" ]; then
-            failures="${failures}SYSTEM_HEALTH_MONITOR_SECRET is not configured in GitHub Actions; "
+            observations="${observations}Detailed system health: not run (monitor secret missing); "
+            record_failure \
+              "authentication_configuration" \
+              "none" \
+              "SYSTEM_HEALTH_MONITOR_SECRET is not configured in GitHub Actions" \
+              "[System Health] Monitor authentication/configuration problem"
           else
-            curl --fail --silent --show-error \
-              --connect-timeout 8 --max-time 90 --retry 1 --retry-delay 15 \
+            detailed_response="$(mktemp)"
+            detailed_status="$(curl --silent --show-error \
+              --output "${detailed_response}" --write-out "%{http_code}" \
+              --connect-timeout 8 --max-time 90 --retry 1 --retry-delay 15 --retry-all-errors \
               -X POST -H "Authorization: Bearer ${MONITOR_SECRET}" \
-              "${ADMIN_URL}/api/internal/system-health/run" >/dev/null
+              "${ADMIN_URL}/api/internal/system-health/run")"
             detailed_exit=$?
-            if [ "${detailed_exit}" -ne 0 ]; then
-              case "${detailed_exit}" in
-                22)
-                  failures="${failures}Detailed readiness checks reported attention required; "
-                  ;;
-                28)
-                  failures="${failures}Detailed readiness request timed out; "
-                  ;;
-                *)
-                  failures="${failures}Detailed readiness request failed; "
-                  ;;
-              esac
+            IFS=$'\t' read -r detailed_healthy detailed_category detailed_http detailed_summary detailed_title \
+              < <(node .github/scripts/system-health-monitor.mjs "${detailed_exit}" "${detailed_status}" "${detailed_response}")
+            if [ "${detailed_healthy}" = "true" ]; then
+              observations="${observations}Detailed system health: passed (HTTP ${detailed_http}); "
+            else
+              observations="${observations}Detailed system health: failed (${detailed_category}, HTTP ${detailed_http}); "
+              record_failure "${detailed_category}" "${detailed_http}" "${detailed_summary}" "${detailed_title}"
             fi
+            rm -f "${detailed_response}"
           fi
 
-          if [ -n "${failures}" ]; then
-            echo "healthy=false" >> "$GITHUB_OUTPUT"
-            echo "summary=${failures}" >> "$GITHUB_OUTPUT"
+          if [ "${healthy}" = "true" ]; then
+            summary="All independent and detailed checks passed."
           else
-            echo "healthy=true" >> "$GITHUB_OUTPUT"
-            echo "summary=All independent checks passed." >> "$GITHUB_OUTPUT"
+            summary="${failures}"
           fi
+
+          echo "healthy=${healthy}" >> "$GITHUB_OUTPUT"
+          echo "category=${category}" >> "$GITHUB_OUTPUT"
+          echo "http_status=${http_status}" >> "$GITHUB_OUTPUT"
+          echo "issue_title=${issue_title}" >> "$GITHUB_OUTPUT"
+          echo "observations=${observations}" >> "$GITHUB_OUTPUT"
+          echo "summary=${summary}" >> "$GITHUB_OUTPUT"
 
       - name: Open or recover monitoring incident
         uses: actions/github-script@v7
         env:
+          CATEGORY: ${{ steps.checks.outputs.category }}
           HEALTHY: ${{ steps.checks.outputs.healthy }}
+          HTTP_STATUS: ${{ steps.checks.outputs.http_status }}
+          ISSUE_TITLE: ${{ steps.checks.outputs.issue_title }}
+          OBSERVATIONS: ${{ steps.checks.outputs.observations }}
           SUMMARY: ${{ steps.checks.outputs.summary }}
         with:
           script: |
-            const title = "[System Health] Production monitoring incident";
+            const { pathToFileURL } = require("node:url");
+            const monitor = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/.github/scripts/system-health-monitor.mjs`).href);
+            const title = process.env.ISSUE_TITLE || "[System Health] Production monitoring incident";
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
               per_page: 100,
             });
-            const active = issues.find((issue) => issue.title === title);
+            const active = issues.find((issue) => issue.title.startsWith("[System Health]"));
             const healthy = process.env.HEALTHY === "true";
             const timestamp = new Date().toISOString();
+            const action = monitor.decideIssueAction({ activeIssue: active, healthy, title });
+            const incidentBody = monitor.buildIncidentBody({
+              category: process.env.CATEGORY,
+              detectedAt: timestamp,
+              httpStatus: process.env.HTTP_STATUS,
+              observations: process.env.OBSERVATIONS,
+              summary: process.env.SUMMARY,
+            });
 
-            if (!healthy && !active) {
+            if (action === "create") {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body: [
-                  "Independent production monitoring detected a confirmed failure after retries.",
-                  "",
-                  `Time: ${timestamp}`,
-                  `Summary: ${process.env.SUMMARY}`,
-                  "",
-                  "Open Settings → System Health after the CRM is reachable. This issue contains no credentials or customer data.",
-                ].join("\n"),
+                body: incidentBody,
               });
-            } else if (healthy && active) {
+            } else if (action === "update_category") {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: active.number,
-                body: `Independent checks recovered at ${timestamp}. All monitored production paths passed.`,
+                body: `A later monitor run observed a different failure category.\n\n${incidentBody}`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: active.number,
+                title,
+              });
+            } else if (action === "recover") {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: active.number,
+                body: monitor.buildRecoveryComment(timestamp),
               });
               await github.rest.issues.update({
                 owner: context.repo.owner,

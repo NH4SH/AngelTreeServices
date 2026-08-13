@@ -1,7 +1,9 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiError, apiSuccess } from "@/lib/api/responses";
 import {
   buildMobileSchedulePayload,
   mobileScheduleScopes,
+  type MobileSchedulePayload,
   type MobileScheduleScope,
 } from "@/lib/api/mobile-contract";
 import { getCrewApiContext } from "@/lib/auth/apiContext";
@@ -73,7 +75,7 @@ export async function GET(request: Request) {
     return apiError("mobile_schedule_unavailable", "The schedule could not be loaded.", 503);
   }
 
-  return apiSuccess(buildMobileSchedulePayload({
+  const payload = buildMobileSchedulePayload({
     data: result.data,
     endDate,
     identity: {
@@ -82,7 +84,135 @@ export async function GET(request: Request) {
     },
     scope,
     startDate,
-  }));
+  });
+
+  return apiSuccess(await addPrimaryServiceLocationFallback(auth.context.supabase, payload));
+}
+
+async function addPrimaryServiceLocationFallback(
+  supabase: SupabaseClient<any, "public", any>,
+  payload: MobileSchedulePayload,
+): Promise<MobileSchedulePayload> {
+  const missingLocationItems = payload.items.filter((item) => (
+    !item.location?.fullAddress && item.party?.id
+  ));
+
+  if (!missingLocationItems.length) return payload;
+
+  const customerIds = unique(
+    missingLocationItems
+      .filter((item) => item.party?.kind === "customer")
+      .map((item) => item.party?.id),
+  );
+  const organizationIds = unique(
+    missingLocationItems
+      .filter((item) => item.party?.kind === "organization")
+      .map((item) => item.party?.id),
+  );
+
+  type LocationRow = {
+    customer_id: string | null;
+    organization_id: string | null;
+    label: string | null;
+    street: string;
+    city: string;
+    state: string;
+    postal_code: string | null;
+    access_notes: string | null;
+    service_notes: string | null;
+    updated_at: string;
+  };
+
+  const rows: LocationRow[] = [];
+
+  if (customerIds.length) {
+    const { data, error } = await supabase
+      .from("service_locations")
+      .select("customer_id, organization_id, label, street, city, state, postal_code, access_notes, service_notes, updated_at")
+      .in("customer_id", customerIds)
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false });
+    if (!error) rows.push(...((data ?? []) as LocationRow[]));
+  }
+
+  if (organizationIds.length) {
+    const { data, error } = await supabase
+      .from("service_locations")
+      .select("customer_id, organization_id, label, street, city, state, postal_code, access_notes, service_notes, updated_at")
+      .in("organization_id", organizationIds)
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false });
+    if (!error) rows.push(...((data ?? []) as LocationRow[]));
+  }
+
+  if (!rows.length) return payload;
+
+  type FallbackLocation = {
+    label: string | null;
+    fullAddress: string;
+    accessNotes: string | null;
+    serviceNotes: string | null;
+    isPrimary: boolean;
+  };
+
+  const fallbackByParty = new Map<string, FallbackLocation>();
+
+  for (const row of rows) {
+    const kind = row.customer_id ? "customer" : row.organization_id ? "organization" : null;
+    const partyId = row.customer_id ?? row.organization_id;
+    if (!kind || !partyId) continue;
+
+    const fullAddress = formatFullAddress(row);
+    if (!fullAddress) continue;
+
+    const key = `${kind}:${partyId}`;
+    const candidate: FallbackLocation = {
+      label: row.label,
+      fullAddress,
+      accessNotes: row.access_notes,
+      serviceNotes: row.service_notes,
+      isPrimary: row.label === "Primary service location",
+    };
+    const current = fallbackByParty.get(key);
+
+    if (!current || (candidate.isPrimary && !current.isPrimary)) {
+      fallbackByParty.set(key, candidate);
+    }
+  }
+
+  return {
+    ...payload,
+    items: payload.items.map((item) => {
+      if (item.location?.fullAddress || !item.party?.id) return item;
+      const fallback = fallbackByParty.get(`${item.party.kind}:${item.party.id}`);
+      if (!fallback) return item;
+
+      return {
+        ...item,
+        location: {
+          label: item.location?.label ?? fallback.label,
+          fullAddress: fallback.fullAddress,
+          accessNotes: item.location?.accessNotes ?? fallback.accessNotes,
+          serviceNotes: item.location?.serviceNotes ?? fallback.serviceNotes,
+        },
+      };
+    }),
+  };
+}
+
+function formatFullAddress(location: {
+  street: string;
+  city: string;
+  state: string;
+  postal_code: string | null;
+}) {
+  const locality = [location.city, location.state].filter(Boolean).join(", ");
+  const localityWithPostalCode = [locality, location.postal_code].filter(Boolean).join(" ");
+  return [location.street, localityWithPostalCode].filter(Boolean).join(", ").trim();
+}
+
+function unique(values: (string | null | undefined)[]) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
 function getInclusiveRangeDays(startDate: string, endDate: string) {

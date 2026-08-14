@@ -803,6 +803,53 @@ class Validator:
         if 'credentials: "omit"' not in script:
             self.error("/: cross-origin lead request must omit credentials")
 
+    def validate_homepage_address_autocomplete(self) -> None:
+        homepage = self.page_sources.get("/", "")
+        script_path = self.site_dir / "ats-address-autocomplete.js"
+        if not homepage or not script_path.is_file():
+            self.error("/: address autocomplete source is missing from the public artifact")
+            return
+
+        script = script_path.read_text(encoding="utf-8")
+        if "__ATS_GOOGLE_MAPS_API_KEY__" in script:
+            self.error("/: address autocomplete API-key placeholder was not replaced")
+
+        key_assignment = re.search(r'^\s*var apiKey = "([^"]*)";', script, re.MULTILINE)
+        if not key_assignment:
+            self.error("/: address autocomplete API-key assignment is missing")
+            return
+
+        script_is_enabled = bool(key_assignment.group(1))
+        autocomplete_sources = [
+            item.get("src", "")
+            for item in self.pages["/"].scripts
+            if item.get("src", "").split("?", 1)[0] == "ats-address-autocomplete.js"
+        ]
+        if script_is_enabled:
+            if autocomplete_sources != ["ats-address-autocomplete.js?v=release3"]:
+                self.error("/: enabled address autocomplete must load the release3 script exactly once")
+        elif autocomplete_sources:
+            self.error("/: address autocomplete must remain optional when its public API key is absent")
+
+        source = self.page_sources["/"]
+        if 'class="ats-contact-form"' not in source or 'name="address"' not in source:
+            self.error("/: autocomplete target form or address field is missing")
+
+        required_runtime_terms = (
+            '.ats-contact-form input[name="address"]',
+            "enhanceAddressInput",
+            'input.dataset.atsAddressAutocomplete = "true"',
+            'setAttribute("role", "combobox")',
+            'setAttribute("aria-autocomplete", "list")',
+            'setAttribute("aria-expanded", "false")',
+            "ats-address-status",
+            'importLibrary("places")',
+            "AutocompleteSuggestion.fetchAutocompleteSuggestions",
+        )
+        for term in required_runtime_terms:
+            if term not in script:
+                self.error(f"/: address-autocomplete release invariant is missing: {term}")
+
     def validate_homepage_search_alignment(self) -> None:
         homepage = self.page_sources.get("/", "")
         page = self.pages.get("/")
@@ -1333,6 +1380,7 @@ class Validator:
             self.validate_navigation_graph()
             self.validate_shared_navigation()
             self.validate_homepage_form()
+            self.validate_homepage_address_autocomplete()
             self.validate_homepage_search_alignment()
             self.validate_homepage_faq()
             self.validate_recognition_layer()

@@ -51,7 +51,7 @@ HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
 
 GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
 FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=release1"></script>'
-ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release2"></script>'
+ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release3"></script>'
 
 
 def require_source(path: Path) -> None:
@@ -94,12 +94,16 @@ def configure_public_address_autocomplete() -> None:
     script_path = OUTPUT / "ats-address-autocomplete.js"
     script = script_path.read_text(encoding="utf-8")
 
-    if GOOGLE_MAPS_API_KEY_PLACEHOLDER not in script:
-        raise RuntimeError("Public address autocomplete API-key placeholder is missing.")
+    placeholder_count = script.count(GOOGLE_MAPS_API_KEY_PLACEHOLDER)
+    if placeholder_count != 1:
+        raise RuntimeError(
+            "Public address autocomplete must contain exactly one API-key placeholder; "
+            f"found {placeholder_count}."
+        )
 
     escaped_api_key = json.dumps(api_key)[1:-1]
     script_path.write_text(
-        script.replace(GOOGLE_MAPS_API_KEY_PLACEHOLDER, escaped_api_key),
+        script.replace(GOOGLE_MAPS_API_KEY_PLACEHOLDER, escaped_api_key, 1),
         encoding="utf-8",
     )
 
@@ -137,8 +141,10 @@ def build() -> None:
     prepare_output()
     copy_static_sources()
     apply_homepage_footer_alignment()
-    configure_public_address_autocomplete()
     generate_pages()
+    # Configure the final homepage artifact so future page-generation changes
+    # cannot overwrite the injected progressive-enhancement script.
+    configure_public_address_autocomplete()
     print(f"Public release artifact assembled at {OUTPUT.relative_to(ROOT)}/")
 
 

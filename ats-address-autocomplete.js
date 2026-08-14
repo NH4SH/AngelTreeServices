@@ -9,7 +9,9 @@
   };
   var placesLibraryPromise = null;
 
-  if (!apiKey || apiKey === "__ATS_GOOGLE_MAPS_API_KEY__") {
+  var unconfiguredApiKey = ["__ATS_", "GOOGLE_MAPS_API_KEY__"].join("");
+
+  if (!apiKey || apiKey === unconfiguredApiKey) {
     return;
   }
 

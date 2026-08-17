@@ -80,6 +80,15 @@ struct LoginView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+
+                HStack(spacing: 8) {
+                    Link("Privacy Policy", destination: URL(string: "https://angeltreeservices.org/privacy/")!)
+                    Text("·")
+                        .accessibilityHidden(true)
+                    Link("Privacy Request", destination: URL(string: "https://angeltreeservices.org/privacy-request/")!)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)

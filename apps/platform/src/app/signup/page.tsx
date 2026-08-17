@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Leaf } from "lucide-react";
 import { AccessStatusShell } from "@/components/access-status-shell";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -47,6 +48,11 @@ export default async function SignupPage() {
           owner or admin to approve the account before using the app.
         </p>
         <SignupForm configured />
+        <p className="login-privacy-links">
+          <Link href="https://angeltreeservices.org/privacy/">Privacy policy</Link>
+          <span aria-hidden="true"> · </span>
+          <Link href="https://angeltreeservices.org/privacy-request/">Privacy or account request</Link>
+        </p>
       </section>
     </main>
   );

@@ -394,6 +394,37 @@
   display: block;
 }
 
+.privacy-data-page {
+  max-width: 1100px;
+}
+
+.privacy-data-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.privacy-data-actions {
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.login-privacy-links {
+  margin-top: 20px;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.login-privacy-links a {
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .privacy-data-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .settings-link-grid small {
   margin-top: 4px;
   color: var(--color-muted);

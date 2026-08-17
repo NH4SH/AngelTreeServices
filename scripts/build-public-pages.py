@@ -184,7 +184,7 @@ def footer() -> str:
         </ul>
       </div>
     </div>
-    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, and Caroline. Service availability is confirmed during the estimate process.</p>
+    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, and Caroline. Service availability is confirmed during the estimate process. <a href="/privacy/">Privacy</a></p>
   </footer>
   <nav class="ats-mobile-actions" aria-label="Quick actions">
     <a class="ats-mobile-actions__call" href="tel:{PHONE_LINK}">Call now</a>
@@ -1020,6 +1020,85 @@ def recognition_body() -> str:
     {final_cta('Ready to discuss your property?', 'Share the service, property address, and a few project details. We’ll follow up about the next step for a free estimate.', '/#contact', 'Request a free estimate')}"""
 
 
+def privacy_body() -> str:
+    return """
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="privacy-overview-title">
+      <div class="ats-section-inner ats-privacy-layout">
+        <aside class="ats-privacy-summary" aria-label="Privacy policy summary">
+          <p class="ats-eyebrow">Effective August 15, 2026</p>
+          <h2 id="privacy-overview-title">Clear information about the data behind our service.</h2>
+          <p>This policy explains how Angel Tree Services LLC handles information across our public website, estimate requests, customer portals, internal web platform, and employee iOS app.</p>
+          <a class="ats-button ats-button--green" href="/privacy-request/">Make a privacy request</a>
+        </aside>
+        <div class="ats-prose ats-privacy-policy">
+          <h2>Who we are</h2>
+          <p>Angel Tree Services LLC is a family-operated tree-service and property-care company serving the Fredericksburg region. Questions may be sent to <a href="mailto:info@angeltreeservice.org">info@angeltreeservice.org</a> or discussed at <a href="tel:+15403888715">(540) 388-8715</a>.</p>
+          <h2>Scope</h2>
+          <p>This policy covers angeltreeservices.org, admin.angeltreeservices.org, proposal and invoice portal links, payment flows, and the Angel Tree employee iOS app. It covers customer, property, organization-contact, and employee/app-user information used to operate the business.</p>
+          <h2>Information customers and contacts provide</h2>
+          <p>We may receive names, phone numbers, email addresses, communication preferences, property or service-location addresses, requested services, project descriptions, gate or access instructions, photos, documents, and other details needed to prepare, schedule, perform, document, or follow up on work.</p>
+          <p>Estimate requests may also include whether the request is residential or commercial, marketing-consent choices, the page and referring page used to submit the request, campaign parameters present in the URL, and a submission identifier used to prevent accidental duplicates.</p>
+          <h2>Business and service records</h2>
+          <p>As work progresses, we may maintain customer and organization records, contacts, service locations, estimates, appointments, proposals, work orders, invoices, payment status and transaction references, communications, notes, job photos, documents, materials, equipment records, and activity history. Payment-card or bank details entered in a Stripe payment experience are processed by Stripe; Angel Tree systems retain business records such as amount, status, method category, and provider transaction reference rather than full card or bank credentials.</p>
+          <h2>Employee and app-user information</h2>
+          <p>Staff systems may process work-account identity, contact details, roles and permissions, employee-profile and work-assignment information, schedules, time and payroll-related operational records, credentials, training and safety records, documents, emergency contacts, job notes, photos, and actions taken in company systems. Access is limited according to assigned responsibilities.</p>
+          <h2>Authentication, devices, and local storage</h2>
+          <p>Our web platform and iOS app use Supabase authentication. Necessary session credentials are stored using supported browser or device session mechanisms. The web platform also uses limited browser storage for interface preferences, temporary work drafts, and portal-view session identifiers.</p>
+          <p>The iOS app may cache assigned schedules, customer or organization summaries, service locations, jobs, estimates, proposals, invoices, notes, and related field information on the device. A limited schedule snapshot may be stored in the shared App Group container for the Angel Tree widget. Signing out clears app-managed user caches and the widget snapshot.</p>
+          <h2>Website forms and address suggestions</h2>
+          <p>When address suggestions are enabled and a visitor types at least three characters in the property-address field, the browser requests suggestions from Google Maps Platform. Google may receive the typed address fragment, browser/network information, and a general Fredericksburg-area location bias. This assists typing only; it does not verify property ownership, service eligibility, or address accuracy. Manual entry remains available.</p>
+          <h2>Automatically collected information</h2>
+          <p>Our hosting, application, authentication, payment, and security providers may process IP address, request time, browser or device type, requested URL, response status, and similar operational logs. We use this to deliver and secure systems, diagnose failures, apply rate limits, prevent abuse, and maintain audit history.</p>
+          <p>The public website currently uses Google Analytics to understand aggregate website visits and interactions. This may use browser identifiers or cookies supplied by Google. We do not use the Angel Tree iOS app for advertising, and our application code contains no advertising SDK, IDFA integration, or data-broker integration.</p>
+          <h2>How we use information</h2>
+          <ul>
+            <li>Respond to requests and communicate about estimates, scheduling, work, proposals, invoices, and payments.</li>
+            <li>Deliver, document, and improve tree-care and property services.</li>
+            <li>Operate staff accounts, permissions, schedules, field workflows, and business records.</li>
+            <li>Generate customer documents and maintain accounting, safety, audit, and legal records.</li>
+            <li>Protect systems, prevent duplicate or abusive submissions, investigate errors, and support recovery.</li>
+            <li>Send optional seasonal tips, service reminders, or scheduling updates where consent or an existing service relationship supports them.</li>
+          </ul>
+          <h2>Service providers</h2>
+          <p>We use Supabase for authentication, database, and file storage; Netlify for hosting; Google for Maps/Places suggestions, staff-selected Calendar synchronization, and public-site analytics; Stripe for customer payment processing; Resend for transactional email; and Apple system services for the iOS app and widget.</p>
+          <p>Google Calendar receives only information needed for connected events, such as title, timing, location, status, and relevant work context. The iOS app contacts Supabase for authentication and the Angel Tree backend for operational data; it does not send customer records directly to Stripe, Resend, Google Calendar, or Google Analytics.</p>
+          <h2>Customer portals and payments</h2>
+          <p>Proposal, change-order, and invoice links use high-entropy tokens with expiration and revocation controls. A valid link may display a customer or organization name, service address, scope, pricing, approval or invoice status, and related documents. Portal-view security records may include a pseudonymous session identifier, document type, time, and technical request information. Recipients should protect portal links and avoid unnecessary forwarding.</p>
+          <h2>Security</h2>
+          <p>We use reasonable administrative, technical, and organizational safeguards, including authenticated access, role-based permissions, row-level database controls, protected storage, tokenized portal links, rate limits, security headers, and activity logging where appropriate. No internet or storage system can be guaranteed completely secure.</p>
+          <h2>Retention and deletion</h2>
+          <p>We retain information for as long as reasonably needed to provide service, maintain business continuity, support safety and security, meet accounting or legal obligations, resolve disputes, and preserve accurate operational history. Retention varies by record type and circumstances.</p>
+          <p>Login identity, employee records, customer records, service locations, operational history, financial records, and audit/security history are separate. Disabling or deleting a login does not automatically erase completed jobs, assignments, proposals, invoices, payment records, work history, or audit evidence reasonably needed by the business. We assess verified requests record by record and may remove, correct, restrict, de-identify, or retain information as appropriate.</p>
+          <h2>Your choices and requests</h2>
+          <p>You may ask for access, correction, deletion, account/access removal, or another privacy review through our <a href="/privacy-request/">Privacy &amp; Data Request page</a>. We verify identity and authority before disclosing or changing records. Submitting a request does not itself delete or alter data.</p>
+          <p>You can decline optional marketing messages, type an address without choosing a Google suggestion, and use browser controls to limit cookies or analytics. Blocking necessary authentication storage may prevent protected systems from working.</p>
+          <h2>Children</h2>
+          <p>Our services and company operations systems are intended for property owners, business contacts, customers, and authorized staff—not for children. We do not knowingly design these systems to collect information from children.</p>
+          <h2>Policy changes</h2>
+          <p>We may update this policy when our services, systems, or providers change. The effective date identifies the current version.</p>
+        </div>
+      </div>
+    </section>"""
+
+
+def privacy_request_body() -> str:
+    email_href = "mailto:info@angeltreeservice.org?subject=Privacy%20and%20Data%20Request&body=Request%20type%3A%20%0AName%3A%20%0ABest%20contact%20method%3A%20%0ARelationship%20to%20Angel%20Tree%20Services%3A%20%0ADetails%3A%20"
+    return f"""
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="privacy-request-title">
+      <div class="ats-section-inner ats-privacy-request">
+        <div class="ats-prose"><p class="ats-eyebrow">Access · Correction · Deletion · Account access</p><h2 id="privacy-request-title">Start with a request—not an automatic deletion.</h2><p>Angel Tree Services verifies identity and, when applicable, authority to act for a customer, organization, property, or employee account before disclosing or changing records.</p></div>
+        <div class="ats-card-grid ats-privacy-request__types">
+          <article class="ats-card"><span class="ats-card__number">01</span><h3>Access</h3><p>Ask what personal information Angel Tree Services maintains about you.</p></article>
+          <article class="ats-card"><span class="ats-card__number">02</span><h3>Correction</h3><p>Ask us to review inaccurate contact, account, or service information.</p></article>
+          <article class="ats-card"><span class="ats-card__number">03</span><h3>Deletion</h3><p>Ask us to evaluate information for deletion, restriction, or de-identification.</p></article>
+          <article class="ats-card"><span class="ats-card__number">04</span><h3>Account or access removal</h3><p>Ask to delete a login identity, revoke sessions, or unlink platform access.</p></article>
+        </div>
+        <div class="ats-privacy-request__action"><div><h2>Send the request securely</h2><p>Email only enough information for us to contact you. Do not include passwords, portal links, payment-card details, government identifiers, or sensitive documents in the first message.</p></div><a class="ats-button ats-button--green" href="{email_href}">Email a privacy request</a></div>
+        <div class="ats-prose ats-privacy-request__process"><h2>What happens next</h2><ol><li>We acknowledge and classify the request.</li><li>We verify identity and authority without revealing whether an arbitrary account exists.</li><li>We identify affected login, customer, organization, property, operational, financial, and audit records separately.</li><li>We respond with the available action or explain why a business, security, accounting, or legal record must be retained.</li></ol><p>Removing staff access does not automatically erase historical company records. If you cannot use email, call <a href="tel:+15403888715">(540) 388-8715</a>.</p></div>
+      </div>
+    </section>"""
+
+
 PAGES = [
     {
         "path": "/services/",
@@ -1115,6 +1194,34 @@ PAGES = [
         "estimate_href": "/#contact",
         "estimate_label": "Request a free estimate",
         "body": recognition_body(),
+    },
+    {
+        "path": "/privacy/",
+        "active": "",
+        "type": "page",
+        "schema_type": "WebPage",
+        "title": "Privacy Policy | Angel Tree Services",
+        "description": "Learn how Angel Tree Services handles information across its website, customer portals, internal platform, and employee iOS app.",
+        "h1": "Privacy at Angel Tree Services.",
+        "lead": "One clear policy for our website, customer service records, secure portals, staff platform, and field app.",
+        "breadcrumbs": [("Home", "/"), ("Privacy", "/privacy/")],
+        "estimate_href": "/privacy-request/",
+        "estimate_label": "Make a privacy request",
+        "body": privacy_body(),
+    },
+    {
+        "path": "/privacy-request/",
+        "active": "",
+        "type": "page",
+        "schema_type": "WebPage",
+        "title": "Privacy & Data Requests | Angel Tree Services",
+        "description": "Request access, correction, deletion review, or account-access removal from Angel Tree Services through a verified manual process.",
+        "h1": "Privacy & data requests.",
+        "lead": "Tell us what you need reviewed. We verify identity and authority before disclosing, correcting, deleting, or restricting records.",
+        "breadcrumbs": [("Home", "/"), ("Privacy", "/privacy/"), ("Privacy Request", "/privacy-request/")],
+        "estimate_href": "/privacy/",
+        "estimate_label": "Read the privacy policy",
+        "body": privacy_request_body(),
     },
 ]
 

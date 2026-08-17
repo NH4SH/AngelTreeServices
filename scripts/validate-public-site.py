@@ -31,6 +31,8 @@ EXPECTED_PATHS = (
     "/projects/",
     "/about/",
     "/recognition/",
+    "/privacy/",
+    "/privacy-request/",
 )
 
 EXPECTED_PREFILL = {
@@ -803,6 +805,39 @@ class Validator:
         if 'credentials: "omit"' not in script:
             self.error("/: cross-origin lead request must omit credentials")
 
+    def validate_privacy_layer(self) -> None:
+        policy = self.page_sources.get("/privacy/", "")
+        request = self.page_sources.get("/privacy-request/", "")
+        if not policy or not request:
+            self.error("Public privacy policy and request pages must both be generated")
+            return
+
+        policy_terms = (
+            "Google Analytics",
+            "Maps/Places",
+            "Supabase",
+            "Stripe",
+            "Resend",
+            "employee iOS app",
+            "authentication",
+            "retention",
+        )
+        for term in policy_terms:
+            if term.lower() not in policy.lower():
+                self.error(f"/privacy/: required disclosure is missing: {term}")
+
+        request_terms = ("Access", "Correction", "Deletion", "Account or access removal", "verify")
+        for term in request_terms:
+            if term.lower() not in request.lower():
+                self.error(f"/privacy-request/: required request guidance is missing: {term}")
+
+        if re.search(r"<(?:form|input|textarea|select)\b", request, re.IGNORECASE):
+            self.error("/privacy-request/: V1 must use the verified manual request workflow, not a direct mutation form")
+
+        for route, source in self.page_sources.items():
+            if 'href="/privacy/"' not in source:
+                self.error(f"{route}: footer must expose the public privacy policy")
+
     def validate_homepage_address_autocomplete(self) -> None:
         homepage = self.page_sources.get("/", "")
         script_path = self.site_dir / "ats-address-autocomplete.js"
@@ -1380,6 +1415,7 @@ class Validator:
             self.validate_navigation_graph()
             self.validate_shared_navigation()
             self.validate_homepage_form()
+            self.validate_privacy_layer()
             self.validate_homepage_address_autocomplete()
             self.validate_homepage_search_alignment()
             self.validate_homepage_faq()

@@ -45,6 +45,14 @@ struct MoreView: View {
                     )
                 }
 
+                Section("Privacy & Data") {
+                    NavigationLink {
+                        PrivacyDataView()
+                    } label: {
+                        Label("Privacy & Data", systemImage: "hand.raised.fill")
+                    }
+                }
+
                 Section {
                     Button(role: .destructive) {
                         Task { await model.signOut() }
@@ -59,6 +67,58 @@ struct MoreView: View {
             .background(AngelTreeTheme.canvas)
             .navigationTitle("More")
         }
+    }
+}
+
+private struct PrivacyDataView: View {
+    private let privacyURL = URL(string: "https://angeltreeservices.org/privacy/")!
+    private let requestURL = URL(string: "https://angeltreeservices.org/privacy-request/")!
+
+    private var versionDescription: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
+        return "Version \(version) (\(build))"
+    }
+
+    var body: some View {
+        List {
+            Section("Information in the app") {
+                Text("Depending on your role, Angel Tree can show your account details, assigned schedules, customer and property information, job records, estimates, invoices, notes, documents, and field photos.")
+                Text("Access is role-based and supports scheduling, field work, customer service, billing, safety, and company recordkeeping.")
+            }
+
+            Section("On this device") {
+                Label("Camera access is used only when you choose to document assigned job conditions or completed work.", systemImage: "camera.fill")
+                Label("The system photo picker lets you choose specific photos without giving the app unrestricted access to your library.", systemImage: "photo.on.rectangle")
+                Text("The app does not request location, microphone, contacts, calendar, or advertising-tracking permission.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Account & access") {
+                Text("Signing out clears the app's operational caches and widget summary from this device. Removing account access does not automatically erase historical company business records that must remain accurate.")
+                Link(destination: requestURL) {
+                    Label("Request account removal or a data review", systemImage: "person.crop.circle.badge.minus")
+                }
+            }
+
+            Section("Resources") {
+                Link(destination: privacyURL) {
+                    Label("Privacy policy", systemImage: "doc.text")
+                }
+                Link(destination: requestURL) {
+                    Label("Privacy request", systemImage: "envelope")
+                }
+            }
+
+            Section {
+                Text(versionDescription)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .accessibilityLabel("Angel Tree app \(versionDescription)")
+            }
+        }
+        .navigationTitle("Privacy & Data")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

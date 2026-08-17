@@ -92,6 +92,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             signedOut={params.signedOut === "true"}
           />
         )}
+        <p className="login-privacy-links">
+          <a href="https://angeltreeservices.org/privacy/">Privacy policy</a>
+          <span aria-hidden="true"> · </span>
+          <a href="https://angeltreeservices.org/privacy-request/">Privacy or account request</a>
+        </p>
       </section>
     </main>
   );

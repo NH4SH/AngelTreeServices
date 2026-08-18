@@ -53,6 +53,25 @@ GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
 FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=release1"></script>'
 ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release3"></script>'
 
+EMERGENCY_AVAILABILITY_REPLACEMENTS = (
+    (
+        "Angel Tree Services does not claim 24/7 availability. Calling is the fastest way to confirm whether and when the team can help.",
+        "Angel Tree Services offers 24/7 emergency storm response for serious tree damage and urgent hazards. Call anytime; response timing depends on current conditions, crew safety, location, and the severity of the situation.",
+    ),
+    (
+        "Do you offer guaranteed 24/7 response?",
+        "Do you offer 24/7 emergency storm response?",
+    ),
+    (
+        "No 24/7 guarantee is stated. Call to explain the situation and confirm current availability.",
+        "Yes. For serious storm damage and urgent tree hazards, Angel Tree Services can respond 24/7. Call anytime so we can assess the situation and current response timing.",
+    ),
+    (
+        "Availability is confirmed by phone; the company does not claim guaranteed around-the-clock response or energized-line work.",
+        "24/7 emergency response is available for serious storm damage and urgent tree hazards; response timing depends on conditions and crew safety. The company does not perform energized-line work.",
+    ),
+)
+
 
 def require_source(path: Path) -> None:
     if not path.exists():
@@ -137,11 +156,38 @@ def generate_pages() -> None:
     )
 
 
+def apply_emergency_availability_copy() -> None:
+    targets = (
+        OUTPUT / "services" / "emergency-tree-service" / "index.html",
+        OUTPUT / "llms.txt",
+    )
+    replacements_applied = 0
+
+    for target in targets:
+        require_source(target)
+        content = target.read_text(encoding="utf-8")
+        updated = content
+
+        for old_copy, new_copy in EMERGENCY_AVAILABILITY_REPLACEMENTS:
+            if old_copy in updated:
+                updated = updated.replace(old_copy, new_copy)
+                replacements_applied += 1
+
+        target.write_text(updated, encoding="utf-8")
+
+    if replacements_applied != len(EMERGENCY_AVAILABILITY_REPLACEMENTS):
+        raise RuntimeError(
+            "Emergency availability copy changed unexpectedly; "
+            f"applied {replacements_applied} of {len(EMERGENCY_AVAILABILITY_REPLACEMENTS)} expected replacements."
+        )
+
+
 def build() -> None:
     prepare_output()
     copy_static_sources()
     apply_homepage_footer_alignment()
     generate_pages()
+    apply_emergency_availability_copy()
     # Configure the final homepage artifact so future page-generation changes
     # cannot overwrite the injected progressive-enhancement script.
     configure_public_address_autocomplete()

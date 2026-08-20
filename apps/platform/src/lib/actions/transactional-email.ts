@@ -53,6 +53,9 @@ export async function sendMultiQuoteEmail(
   const validation = validateMultiQuoteSelection(quotes);
   if (!validation.ok) return { status: "error", message: validation.message };
 
+  const cc = readCcRecipients(formData, validation.recipient);
+  if (cc.error) return { status: "error", message: cc.error };
+
   const submittedDraft = readMultiQuoteEmailEdits(formData);
   if (submittedDraft.error) return { status: "error", message: submittedDraft.error };
 
@@ -76,6 +79,7 @@ export async function sendMultiQuoteEmail(
   const template = buildMultiQuoteEmailDraft(linkedQuotes, submittedDraft.edits);
   const result = await sendTransactionalEmail({
     to: validation.recipient,
+    cc: cc.recipients,
     subject: template.subject,
     text: template.body,
     html: renderMultiQuoteEmailHtml(template, buildCanonicalAppUrl("/angel-tree-services-logo.jpg")),
@@ -118,6 +122,7 @@ export async function sendMultiQuoteEmail(
         template_type: "branded_multi_quote",
         quote_count: quotes.length,
         primary_quote_id: quoteIds[0],
+        cc_count: cc.recipients.length,
       },
       subjectId: quote.id,
       subjectType: "quote",
@@ -177,6 +182,11 @@ export async function sendQuoteEmail(
     return { status: "error", message: "The selected quote recipient does not have an email address." };
   }
 
+  const cc = readCcRecipients(formData, recipient);
+  if (cc.error) {
+    return { status: "error", message: cc.error };
+  }
+
   if (detail.data.recurring_occurrence_id && !detail.data.pricing_reviewed_at) {
     return { status: "error", message: "Review and save renewal pricing before sending this quote. Prior-year pricing is never sent automatically." };
   }
@@ -202,6 +212,7 @@ export async function sendQuoteEmail(
   });
   const result = await sendTransactionalEmail({
     to: recipient,
+    cc: cc.recipients,
     subject: template.subject,
     text: template.text,
     html: template.html,
@@ -237,6 +248,7 @@ export async function sendQuoteEmail(
         provider_message_id: result.providerMessageId,
         subject: template.subject,
         template_type: "branded_quote",
+        cc_count: cc.recipients.length,
       },
       subjectId: detail.data.id,
       subjectType: "quote",
@@ -300,6 +312,11 @@ export async function sendInvoiceEmail(
     return { status: "error", message: "The contracting party does not have a billing email address." };
   }
 
+  const cc = readCcRecipients(formData, recipient);
+  if (cc.error) {
+    return { status: "error", message: cc.error };
+  }
+
   if (detail.data.status === "void") {
     return { status: "error", message: "Void invoices cannot be sent." };
   }
@@ -321,6 +338,7 @@ export async function sendInvoiceEmail(
   });
   const result = await sendTransactionalEmail({
     to: recipient,
+    cc: cc.recipients,
     subject: template.subject,
     text: template.text,
     html: template.html,
@@ -359,6 +377,7 @@ export async function sendInvoiceEmail(
         provider_message_id: result.providerMessageId,
         subject: template.subject,
         template_type: "branded_invoice",
+        cc_count: cc.recipients.length,
       },
       subjectId: detail.data.id,
       subjectType: "invoice",
@@ -594,6 +613,33 @@ function readMultiQuoteEmailEdits(
   }
   if (/[\r\n]/.test(edits.subject)) return { error: "Email subject must stay on one line." };
   return { edits };
+}
+
+function readCcRecipients(formData: FormData, primaryRecipient: string): { recipients: string[]; error?: string } {
+  const raw = String(formData.get("email_cc") ?? "").trim();
+  if (!raw) return { recipients: [] };
+  if (raw.length > 2_000 || /[\r\n]/.test(raw)) {
+    return { recipients: [], error: "CC must contain plain email addresses on one line." };
+  }
+
+  const candidates = raw.split(/[;,]/).map((value) => value.trim()).filter(Boolean);
+  if (candidates.length > 10) {
+    return { recipients: [], error: "Add no more than 10 CC recipients." };
+  }
+
+  const primary = primaryRecipient.trim().toLowerCase();
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  for (const candidate of candidates) {
+    const normalized = candidate.toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      return { recipients: [], error: `CC address “${candidate}” is invalid.` };
+    }
+    if (normalized === primary || seen.has(normalized)) continue;
+    seen.add(normalized);
+    recipients.push(normalized);
+  }
+  return { recipients };
 }
 
 function multiQuoteDraftFieldLabel(field: keyof MultiQuoteEmailEdits) {

@@ -126,6 +126,7 @@ export function MultiQuoteEmailComposer({
         {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</div> : null}
 
         <div className="email-composer-fields">
+          <CcField />
           <ComposerField label="Subject" maxLength={180} name="email_subject" onChange={(value) => update("subject", value)} value={edits.subject} />
           <ComposerField label="Greeting" maxLength={160} name="email_greeting" onChange={(value) => update("greeting", value)} value={edits.greeting} />
           <ComposerField label="Introduction" maxLength={1_200} multiline name="email_intro" onChange={(value) => update("intro", value)} value={edits.intro} />
@@ -164,6 +165,14 @@ export function MultiQuoteEmailComposer({
       </form>
     </section>
   );
+}
+
+function CcField() {
+  return <label className="email-composer-field">
+    <span className="email-composer-field-heading"><strong>CC</strong><span>Optional</span></span>
+    <input autoComplete="off" maxLength={2_000} multiple name="email_cc" placeholder="office@example.com, manager@example.com" type="email" />
+    <small className="form-helper">CC recipients receive the same customer email and secure proposal links. Separate multiple addresses with commas.</small>
+  </label>;
 }
 
 function ComposerField({ label, maxLength, multiline = false, name, onChange, value }: {

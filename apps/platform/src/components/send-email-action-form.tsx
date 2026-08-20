@@ -258,6 +258,7 @@ function CustomerDocumentEmailComposer({
         </div>
         <FormMessage state={state} />
         <div className="email-composer-fields">
+          <CcRecipientField />
           <ComposerTextField label="Subject" maxLength={180} name="email_subject" onChange={(event) => update("subject", event.target.value)} onReset={() => resetField("subject")} required value={edits.subject} />
           <ComposerTextField label="Greeting" maxLength={160} name="email_greeting" onChange={(event) => update("greeting", event.target.value)} onReset={() => resetField("greeting")} required value={edits.greeting} />
           <ComposerTextarea label="Introduction" maxLength={1_200} name="email_intro" onChange={(event) => update("intro", event.target.value)} onReset={() => resetField("intro")} required rows={3} value={edits.intro} />
@@ -366,6 +367,28 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
       </div>
       <footer>(540) 388-8715<br />info@angeltreeservice.org<br />angeltreeservices.org</footer>
     </article>
+  );
+}
+
+function CcRecipientField() {
+  const id = useId();
+  return (
+    <div className="email-composer-field">
+      <div className="email-composer-field-heading">
+        <label htmlFor={id}>CC</label>
+        <span>Optional</span>
+      </div>
+      <input
+        autoComplete="off"
+        id={id}
+        maxLength={2_000}
+        multiple
+        name="email_cc"
+        placeholder="office@example.com, manager@example.com"
+        type="email"
+      />
+      <p className="form-helper">Optional. CC recipients receive the same customer email and secure link. Separate multiple addresses with commas.</p>
+    </div>
   );
 }
 

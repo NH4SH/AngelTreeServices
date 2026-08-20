@@ -7,6 +7,7 @@ import type { EmailEvent, EmailEventType } from "@/lib/types/database";
 
 export type SendEmailInput = {
   to: string;
+  cc?: string[];
   subject: string;
   text: string;
   html?: string;
@@ -65,6 +66,14 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
+  const ccRecipients = normalizeCcRecipients(input.cc ?? [], recipient);
+  const invalidCc = ccRecipients.find((email) => !isValidEmail(email));
+  if (invalidCc) {
+    const message = "One or more CC email addresses are invalid.";
+    const historyRecorded = await logEmailEvent(input, "failed", null, message, recipient);
+    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
+  }
+
   const config = getEmailProviderConfig();
 
   if (!config) {
@@ -84,6 +93,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
       body: JSON.stringify({
         from: config.from,
         to: [recipient],
+        ...(ccRecipients.length ? { cc: ccRecipients } : {}),
         reply_to: config.replyTo,
         subject: input.subject,
         text: input.text,
@@ -187,6 +197,15 @@ async function logEmailEvent(
     sent_at: status === "sent" ? new Date().toISOString() : null,
   });
   return !error;
+}
+
+function normalizeCcRecipients(values: string[], primaryRecipient: string) {
+  const seen = new Set<string>();
+  return values.flatMap((value) => value.split(/[;,]/)).map((value) => value.trim().toLowerCase()).filter((value) => {
+    if (!value || value === primaryRecipient || seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  });
 }
 
 function isConcurrentIdempotencyError(payload: unknown) {

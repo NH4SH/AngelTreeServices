@@ -3,6 +3,13 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getSupabasePublicConfig } from "./config";
 
 const protectedRoutePrefixes = ["/admin", "/crew", "/portal"];
+const authValidationTimeoutMs = 5_000;
+
+const timedAuthFetch: typeof fetch = (input, init = {}) =>
+  fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(authValidationTimeoutMs),
+  });
 
 function isProtectedRoute(pathname: string) {
   if (pathname.startsWith("/portal/quote/") || pathname.startsWith("/portal/invoice/") || pathname.startsWith("/portal/change-order/")) {
@@ -26,6 +33,9 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(config.url, config.anonKey, {
+    global: {
+      fetch: timedAuthFetch,
+    },
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -40,9 +50,14 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch {
+    // Auth validation must fail closed without consuming the edge runtime timeout.
+  }
 
   if (!user && isProtectedRoute(request.nextUrl.pathname)) {
     const loginUrl = request.nextUrl.clone();

@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUserRolesFromClient } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getAuthenticatedPlatformContext(nextPath: string) {
+const loadPlatformContext = cache(async () => {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -18,11 +19,7 @@ export async function getAuthenticatedPlatformContext(nextPath: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect(`/login?next=${nextPath}`);
-  }
-
-  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  const roles = user ? await getCurrentUserRolesFromClient(supabase, user.id) : [];
 
   return {
     configured: true as const,
@@ -30,4 +27,20 @@ export async function getAuthenticatedPlatformContext(nextPath: string) {
     user,
     roles,
   };
+});
+
+export async function getAuthenticatedPlatformContext(nextPath: string) {
+  const context = await loadPlatformContext();
+
+  if (!context.configured) {
+    return context;
+  }
+
+  const user = context.user;
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  return { ...context, user };
 }

@@ -133,8 +133,8 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
             <kbd>⌘K</kbd>
           </button>
           <div className="workspace-shortcuts" aria-label="Workspace shortcuts">
-            {audience === "admin" ? <Link href="/crew"><HardHat aria-hidden="true" size={15} />Crew workspace</Link> : null}
-            <Link href="/employee"><UserCheck aria-hidden="true" size={15} />My profile</Link>
+            {audience === "admin" ? <Link href="/crew" prefetch={false}><HardHat aria-hidden="true" size={15} />Crew workspace</Link> : null}
+            <Link href="/employee" prefetch={false}><UserCheck aria-hidden="true" size={15} />My profile</Link>
           </div>
           <div className="app-user">
             <small>Signed in</small>
@@ -195,7 +195,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link className="app-brand" href="/admin">
+    <Link className="app-brand" href="/admin" prefetch={false}>
       <span className="app-brand-mark" aria-hidden="true"><Leaf size={17} /></span>
       <span><strong>Angel Tree</strong><small>{compact ? "Operations" : "Field service operations"}</small></span>
     </Link>
@@ -208,7 +208,7 @@ function NavigationLinks({ items, onNavigate, pathname }: { items: NavigationIte
       {items.map((item) => {
         const active = isNavigationItemActive(pathname, item);
         return (
-          <Link aria-current={active ? "page" : undefined} href={item.href} key={item.id} onClick={onNavigate}>
+          <Link aria-current={active ? "page" : undefined} href={item.href} key={item.id} onClick={onNavigate} prefetch={false}>
             <item.icon aria-hidden="true" size={17} />
             <span>{item.label}</span>
           </Link>
@@ -261,7 +261,7 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
         </div>
         <div className="command-palette-results" role="listbox">
           {filtered.length ? filtered.map((command, index) => (
-            <Link aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onMouseEnter={() => setActiveIndex(index)} role="option">
+            <Link aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onMouseEnter={() => setActiveIndex(index)} prefetch={false} role="option">
               <span><command.icon aria-hidden="true" size={18} /><strong>{command.label}</strong></span>
               <Command aria-hidden="true" size={14} />
             </Link>

@@ -62,10 +62,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
             <div className="action-row">
               {hasAllowedRole(roles, platformRoleGroups.internalStaff) ? (
-                <a className="primary-action" href="/admin">
+                <Link className="primary-action" href="/admin">
                   <ShieldCheck aria-hidden="true" size={18} />
                   Open admin
-                </a>
+                </Link>
               ) : hasAllowedRole(roles, platformRoleGroups.crewApp) ? (
                 <Link className="primary-action" href="/crew">
                   <ShieldCheck aria-hidden="true" size={18} />

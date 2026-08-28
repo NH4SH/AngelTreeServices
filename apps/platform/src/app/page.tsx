@@ -35,10 +35,10 @@ export default function PlatformHome() {
           Protected operations workspace for CRM, scheduling, crew work, quote review, and customer portal workflows.
         </p>
         <div className="action-row">
-          <a className="primary-action" href="/admin">
+          <Link className="primary-action" href="/admin">
             <Leaf aria-hidden="true" size={18} />
             Open admin
-          </a>
+          </Link>
           <Link className="secondary-action" href="/login">
             <LogIn aria-hidden="true" size={18} />
             Sign in

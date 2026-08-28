@@ -11,6 +11,29 @@ import {
   type NotificationPopoverLayout,
 } from "@/lib/notifications/popover-position";
 
+type NotificationCountPayload = {
+  error?: string;
+  unreadCount?: number;
+};
+
+let pendingNotificationCount: Promise<NotificationCountPayload> | null = null;
+
+async function fetchNotificationCount() {
+  if (!pendingNotificationCount) {
+    pendingNotificationCount = fetch("/api/admin/notifications?mode=count", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json() as NotificationCountPayload;
+        if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+        return payload;
+      })
+      .finally(() => {
+        pendingNotificationCount = null;
+      });
+  }
+
+  return pendingNotificationCount;
+}
+
 export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -68,6 +91,13 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
 
   async function fetchNotifications(mode: "count" | "recent") {
     try {
+      if (mode === "count") {
+        const payload = await fetchNotificationCount();
+        setUnreadCount(payload.unreadCount ?? 0);
+        setError("");
+        return;
+      }
+
       const response = await fetch(`/api/admin/notifications?mode=${mode}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");

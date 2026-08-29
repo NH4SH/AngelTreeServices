@@ -22,7 +22,7 @@ import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
-import { ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
+import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -263,6 +263,9 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                     <Link className="secondary-action" href={`/admin/jobs/${detail.data.jobs.id}`}>
                       Open work order
                     </Link>
+                  ) : null}
+                  {detail.data.status === "approved" && !detail.data.invoices?.length ? (
+                    <CreateInvoiceFromQuoteAction quoteId={detail.data.id} />
                   ) : null}
                 </section>
 

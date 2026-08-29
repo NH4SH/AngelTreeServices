@@ -3,6 +3,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { recordActivity } from "@/lib/activity-log";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
+import {
+  getLinkedJobApprovalPlan,
+  linkedJobPreApprovalStatuses,
+  type LinkedJobApprovalState,
+} from "@/lib/quotes/linked-job-approval";
 import type { JobStatus } from "@/lib/types/database";
 
 type QuoteWorkflowResult =
@@ -59,12 +64,16 @@ export async function approveQuoteAndEnsureWorkOrder(
   }
 
   if (typedQuote.job_id) {
+    const jobResult = await prepareLinkedJobForApproval(supabase, typedQuote, typedQuote.job_id);
+    if (!jobResult.ok) {
+      return jobResult;
+    }
+
     const updateResult = await markQuoteApproved(supabase, typedQuote.id, typedQuote.job_id, approvedAt);
     if (!updateResult.ok) {
       return updateResult;
     }
 
-    await moveLinkedJobToAccepted(supabase, typedQuote.job_id);
     await logQuoteApproval(supabase, typedQuote, actorUserId, false);
     return { ok: true, jobId: typedQuote.job_id, createdJob: false };
   }
@@ -80,6 +89,11 @@ export async function approveQuoteAndEnsureWorkOrder(
   }
 
   if (existingJob) {
+    const jobResult = await prepareLinkedJobForApproval(supabase, typedQuote, existingJob.id);
+    if (!jobResult.ok) {
+      return jobResult;
+    }
+
     const updateResult = await markQuoteApproved(supabase, typedQuote.id, existingJob.id, approvedAt);
     if (updateResult.ok) {
       await logQuoteApproval(supabase, typedQuote, actorUserId, false);
@@ -123,6 +137,11 @@ export async function approveQuoteAndEnsureWorkOrder(
 
       if (duplicateGuardError || !duplicateGuardJob) {
         return { ok: false, message: duplicateGuardError?.message ?? "Could not find the existing work order for this quote." };
+      }
+
+      const jobResult = await prepareLinkedJobForApproval(supabase, typedQuote, duplicateGuardJob.id);
+      if (!jobResult.ok) {
+        return jobResult;
       }
 
       const updateResult = await markQuoteApproved(supabase, typedQuote.id, duplicateGuardJob.id, approvedAt);
@@ -265,14 +284,59 @@ async function logQuoteApproval(
   });
 }
 
-async function moveLinkedJobToAccepted(supabase: SupabaseClient<any, "public", any>, jobId: string) {
-  const statusesToAccept: JobStatus[] = ["new_lead", "estimate_scheduled", "quoted"];
-
-  await supabase
+async function prepareLinkedJobForApproval(
+  supabase: SupabaseClient<any, "public", any>,
+  quote: QuoteForApproval,
+  jobId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .update({ status: "accepted" })
+    .select("id, customer_id, organization_id, status, archived_at, lead_disposition, website_submission_id, source_quote_id")
     .eq("id", jobId)
-    .in("status", statusesToAccept);
+    .single();
+  if (jobError || !job) {
+    return { ok: false, message: jobError?.message ?? "Could not find the linked work order." };
+  }
+
+  if (job.customer_id !== quote.customer_id || job.organization_id !== quote.organization_id) {
+    return { ok: false, message: "The linked work order no longer belongs to this quote's contracting party." };
+  }
+
+  const plan = getLinkedJobApprovalPlan(job as LinkedJobApprovalState, quote.id);
+  if (!plan.ok) return plan;
+
+  if (plan.restoreArchivedLead) {
+    const { data: restored, error: restoreError } = await supabase
+      .from("jobs")
+      .update({ archived_at: null, archived_by_user_id: null, lead_disposition: "active" })
+      .eq("id", jobId)
+      .not("website_submission_id", "is", null)
+      .eq("lead_disposition", "archived")
+      .in("status", linkedJobPreApprovalStatuses)
+      .select("id")
+      .maybeSingle();
+    if (restoreError || !restored) {
+      return { ok: false, message: restoreError?.message ?? "The originating lead could not be restored for approval." };
+    }
+  }
+
+  if (plan.moveToAccepted || plan.linkSourceQuote) {
+    const payload: { source_quote_id?: string; status?: JobStatus } = {};
+    if (plan.linkSourceQuote) payload.source_quote_id = quote.id;
+    if (plan.moveToAccepted) payload.status = "accepted";
+    const { data: updated, error: updateError } = await supabase
+      .from("jobs")
+      .update(payload)
+      .eq("id", jobId)
+      .eq("status", job.status)
+      .select("id")
+      .maybeSingle();
+    if (updateError || !updated) {
+      return { ok: false, message: updateError?.message ?? "The linked work order changed before approval finished. Refresh and try again." };
+    }
+  }
+
+  return { ok: true };
 }
 
 function getWorkOrderScope(quote: QuoteForApproval) {

@@ -56,7 +56,9 @@ export async function updateSession(request: NextRequest) {
     const result = await supabase.auth.getUser();
     user = result.data.user;
   } catch {
-    // Auth validation must fail closed without consuming the edge runtime timeout.
+    // Protected layouts validate the user again. On a transient edge timeout,
+    // let that server-side check decide instead of falsely routing to sign-in.
+    return response;
   }
 
   if (!user && isProtectedRoute(request.nextUrl.pathname)) {

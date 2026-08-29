@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Leaf, LogOut, ShieldCheck } from "lucide-react";
+import { Leaf } from "lucide-react";
+import { redirect } from "next/navigation";
 import { AccessStatusShell } from "@/components/access-status-shell";
 import {
   getCurrentUserRolesFromClient,
@@ -8,7 +8,6 @@ import {
 } from "@/lib/auth/roles";
 import { getCurrentEmployeeAccessRequestFromClient } from "@/lib/data/access-requests";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "./actions";
 import { LoginForm } from "./LoginForm";
 import { safeLocalRedirect } from "@/lib/security/local-redirect";
 
@@ -44,6 +43,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     );
   }
 
+  if (user) {
+    if (hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+      redirect(nextPath.startsWith("/login") ? "/admin" : nextPath);
+    }
+
+    if (hasAllowedRole(roles, platformRoleGroups.crewApp)) {
+      redirect(nextPath.startsWith("/crew") || nextPath.startsWith("/employee") ? nextPath : "/crew");
+    }
+
+    if (
+      hasAllowedRole(roles, platformRoleGroups.customerPortal)
+      || hasAllowedRole(roles, platformRoleGroups.organizationPortal)
+    ) {
+      redirect(nextPath.startsWith("/portal") ? nextPath : "/portal");
+    }
+  }
+
   return (
     <main className="shell narrow-shell">
       <section className="login-panel">
@@ -54,44 +70,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <h1>Sign in</h1>
         <p>Use your Angel Tree operations account to open the protected workspace.</p>
 
-        {user ? (
-          <div className="signed-in-panel">
-            <div>
-              <strong>Signed in as {user.email}</strong>
-              <p>You can open the workspace this account is approved for or sign out.</p>
-            </div>
-            <div className="action-row">
-              {hasAllowedRole(roles, platformRoleGroups.internalStaff) ? (
-                <Link className="primary-action" href="/admin">
-                  <ShieldCheck aria-hidden="true" size={18} />
-                  Open admin
-                </Link>
-              ) : hasAllowedRole(roles, platformRoleGroups.crewApp) ? (
-                <Link className="primary-action" href="/crew">
-                  <ShieldCheck aria-hidden="true" size={18} />
-                  Open crew
-                </Link>
-              ) : (
-                <Link className="primary-action" href={nextPath}>
-                  <ShieldCheck aria-hidden="true" size={18} />
-                  Continue
-                </Link>
-              )}
-              <form action={signOut}>
-                <button className="secondary-action button-reset" type="submit">
-                  <LogOut aria-hidden="true" size={18} />
-                  Sign out
-                </button>
-              </form>
-            </div>
-          </div>
-        ) : (
+        {!user ? (
           <LoginForm
             configured={configured}
             nextPath={nextPath}
             signedOut={params.signedOut === "true"}
           />
-        )}
+        ) : null}
         <p className="login-privacy-links">
           <a href="https://angeltreeservices.org/privacy/">Privacy policy</a>
           <span aria-hidden="true"> · </span>

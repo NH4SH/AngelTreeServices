@@ -94,7 +94,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
     <>
       <aside className="app-sidebar">
         <div className="app-sidebar-header">
-          <Brand />
+          <Brand href={audience === "crew" ? "/crew" : "/admin"} />
           {canSeeNotifications ? <NotificationBell /> : null}
         </div>
 
@@ -151,7 +151,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
       </aside>
 
       <header className="app-mobilebar">
-        <Brand compact />
+        <Brand compact href={audience === "crew" ? "/crew" : "/admin"} />
         <div className="mobilebar-actions">
           {canSeeNotifications ? <NotificationBell mobile /> : null}
           <button aria-label="Open command palette" className="mobile-icon-button" onClick={() => setPaletteOpen(true)} type="button">
@@ -169,7 +169,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
           <button aria-label="Close navigation" className="mobile-navigation-backdrop" onClick={() => setMobileOpen(false)} type="button" />
           <aside aria-label="Mobile platform navigation" className="mobile-navigation-drawer">
             <div className="mobile-navigation-header">
-              <Brand />
+              <Brand href={audience === "crew" ? "/crew" : "/admin"} />
               <button aria-label="Close navigation" className="mobile-icon-button" onClick={() => setMobileOpen(false)} type="button"><X size={20} /></button>
             </div>
             <nav>
@@ -193,9 +193,9 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
   );
 }
 
-function Brand({ compact = false }: { compact?: boolean }) {
+function Brand({ compact = false, href }: { compact?: boolean; href: "/admin" | "/crew" }) {
   return (
-    <Link className="app-brand" href="/admin" prefetch={false}>
+    <Link className="app-brand" href={href} prefetch={false}>
       <span className="app-brand-mark" aria-hidden="true"><Leaf size={17} /></span>
       <span><strong>Angel Tree</strong><small>{compact ? "Operations" : "Field service operations"}</small></span>
     </Link>

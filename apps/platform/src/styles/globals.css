@@ -2474,6 +2474,31 @@
   .reporting-input-form > button { width: 100%; }
 }
 
+/* Keyboard users can bypass the persistent operations navigation. */
+.skip-to-content {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 2000;
+  border: 2px solid var(--color-forest);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  color: var(--color-forest);
+  font-weight: 750;
+  box-shadow: var(--shadow-small);
+  transform: translateY(calc(-100% - 16px));
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.skip-to-content:focus {
+  transform: translateY(0);
+}
+
+#platform-main-content:focus {
+  outline: none;
+}
+
 /* Admin list search and record lifecycle controls */
 .list-toolbar {
   align-items: center;

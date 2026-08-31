@@ -54,12 +54,15 @@ export function PlatformFrame({ active, children, roles = [], userEmail }: Platf
   const audience = crewNavigationIds.has(active) ? "crew" : "admin";
 
   return (
-    <main className="app-shell">
+    <div className="app-shell">
+      <a className="skip-to-content" href="#platform-main-content">
+        Skip to main content
+      </a>
       <PlatformNavigation audience={audience} roles={roles} userEmail={userEmail} />
-      <section className="app-main">
+      <main className="app-main" id="platform-main-content" tabIndex={-1}>
         {roles.length === 0 ? <p className="role-strip">This session has no assigned platform role.</p> : null}
         {children}
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }

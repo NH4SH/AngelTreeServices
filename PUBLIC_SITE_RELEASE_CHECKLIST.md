@@ -199,6 +199,41 @@ Do not deploy with `netlify deploy --prod` from an unreviewed working directory.
 - [ ] **Explicit real-lead approval required:** verify exactly one CRM record, correct source page, selected service, request type, referrer, UTM values, and submission ID.
 - [ ] **Explicit real-lead approval required:** verify customer success independently from internal email/SMS notification status.
 
+## Public Interaction Regression Checks (August 31, 2026)
+
+Run `npm run test:public` for the dependency-free interaction tests, public build,
+and artifact validation. The interaction tests cover response parsing, optional
+analytics failures, and mobile menu dismissal without contacting the CRM.
+
+For browser verification, intercept `/api/leads` locally and set
+`window.ATS_LEAD_INTAKE_URL = "/api/leads"` before submitting test data. Never use
+real customer details or allow these test submissions to reach production.
+
+- Simulate JSON success, empty `204`, JSON `null`, and non-JSON `202` responses.
+  Each should show the thank-you message and focus the status message.
+- Make `window.gtag` throw, then simulate a successful lead response. The form
+  must still show success, not a notification or analytics error.
+- Simulate HTTP `500`, explicit `{"ok":false}`, and a network failure. Keep
+  entered values, show an error, and re-enable submission for a deliberate retry.
+- Trigger submission twice while the response is delayed. Only one request
+  should be sent; retain the existing submission ID on a failed-request retry.
+- On the homepage and a generated page, open the mobile menu and press Escape.
+  It should close and return focus to Menu. Outside clicks, navigation, and
+  moving keyboard focus outside the menu should also dismiss it.
+- Scroll to the contact form on mobile. Hidden quick-action links must not be
+  keyboard-focusable. Scroll back to the hero and confirm the actions return.
+
+These checks do not verify database persistence, notification delivery, or
+production CORS. Real-lead testing still requires explicit approval.
+
+Local results on August 31, 2026: 19 Node interaction tests and validation of all
+13 generated public routes passed. Chromium and Firefox on macOS showed no
+horizontal overflow on the homepage and About page at 1440, 1280, 1024, 768,
+430, 390, 375, and 320px. Menu Escape behavior and hidden-action focus prevention
+passed in both browsers. Chromium response simulations verified success,
+failure, analytics isolation, field retention, and repeated-submit protection.
+No production lead was sent and nothing was deployed.
+
 ## Rollback Triggers
 
 Republish the retained baseline deploy immediately if any of these occur:

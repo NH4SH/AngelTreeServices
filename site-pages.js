@@ -6,7 +6,11 @@
       return;
     }
 
-    window.gtag("event", name, parameters || {});
+    try {
+      window.gtag("event", name, parameters || {});
+    } catch (error) {
+      // Optional analytics must not interrupt navigation.
+    }
   }
 
   function trackPrimaryNavigation() {
@@ -52,10 +56,23 @@
       return;
     }
 
-    menu.querySelectorAll("a").forEach(function (link) {
-      link.addEventListener("click", function () {
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && menu.open) {
         menu.open = false;
-      });
+        menu.querySelector("summary").focus();
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (menu.open && (!menu.contains(event.target) || event.target.closest("nav a"))) {
+        menu.open = false;
+      }
+    });
+
+    document.addEventListener("focusin", function (event) {
+      if (menu.open && !menu.contains(event.target)) {
+        menu.open = false;
+      }
     });
   }
 

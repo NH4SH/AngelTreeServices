@@ -6,7 +6,37 @@
       return;
     }
 
-    window.gtag("event", name, parameters || {});
+    try {
+      window.gtag("event", name, parameters || {});
+    } catch (error) {
+      // Optional analytics must never interrupt a customer's request.
+    }
+  }
+
+  function initMobileMenu() {
+    var menu = document.querySelector(".ats-home-mobile-menu");
+    if (!menu) {
+      return;
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && menu.open) {
+        menu.open = false;
+        menu.querySelector("summary").focus();
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (menu.open && (!menu.contains(event.target) || event.target.closest("nav a"))) {
+        menu.open = false;
+      }
+    });
+
+    document.addEventListener("focusin", function (event) {
+      if (menu.open && !menu.contains(event.target)) {
+        menu.open = false;
+      }
+    });
   }
 
   function initPublicSiteAnalytics() {
@@ -403,20 +433,24 @@
 
           if (text) {
             try {
-              body = JSON.parse(text);
+              var parsed = JSON.parse(text);
+              if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                body = parsed;
+              }
             } catch (error) {
               body = {};
             }
           }
 
+          var message = typeof body.message === "string" ? body.message.trim() : "";
+
           if (!response.ok || body.ok === false) {
-            throw new Error(body.message || "We could not send your request right now. Please call our office.");
+            throw new Error(message || "We could not send your request right now. Please call our office.");
           }
 
           return {
             ok: true,
-            message:
-              body.message || successMessage,
+            message: message || successMessage,
           };
         });
     });
@@ -618,6 +652,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     initPublicSiteAnalytics();
+    initMobileMenu();
     initMobileActions();
     initFaqAccordions();
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), initForm);

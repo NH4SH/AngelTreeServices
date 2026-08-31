@@ -2136,6 +2136,7 @@ body.ats-form-submitted .ats-form-success {
   }
 
   .ats-mobile-actions.is-hidden {
+    visibility: hidden;
     opacity: 0;
     transform: translateY(calc(100% + 24px));
     pointer-events: none;

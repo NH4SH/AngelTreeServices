@@ -17,9 +17,29 @@ export function ListSearch({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(initialValue);
+  const valueRef = useRef(initialValue);
+  const pendingNavigationRef = useRef<string | null>(null);
   const firstRender = useRef(true);
 
-  useEffect(() => setValue(initialValue), [initialValue]);
+  useEffect(() => {
+    const normalizedInitial = initialValue.trim();
+    const normalizedCurrent = valueRef.current.trim();
+
+    if (pendingNavigationRef.current !== null) {
+      if (normalizedInitial === pendingNavigationRef.current) {
+        pendingNavigationRef.current = null;
+      }
+
+      // A server render for an older search must never overwrite newer typing.
+      if (normalizedInitial !== normalizedCurrent) return;
+    }
+
+    if (initialValue !== valueRef.current) {
+      valueRef.current = initialValue;
+      setValue(initialValue);
+    }
+  }, [initialValue]);
+
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -32,11 +52,17 @@ export function ListSearch({
   function navigate(nextValue: string) {
     const params = new URLSearchParams(searchParams.toString());
     const normalized = nextValue.trim();
+    pendingNavigationRef.current = normalized;
     if (normalized) params.set("q", normalized);
     else params.delete("q");
     params.delete("page");
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  function updateValue(nextValue: string) {
+    valueRef.current = nextValue;
+    setValue(nextValue);
   }
 
   return (
@@ -53,14 +79,14 @@ export function ListSearch({
         <Search aria-hidden="true" size={19} />
         <input
           autoComplete="off"
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => updateValue(event.target.value)}
           placeholder={placeholder}
           type="search"
           value={value}
         />
       </label>
       {value ? (
-        <button aria-label={`Clear ${label.toLowerCase()}`} onClick={() => setValue("")} type="button">
+        <button aria-label={`Clear ${label.toLowerCase()}`} onClick={() => updateValue("")} type="button">
           <X aria-hidden="true" size={18} />
         </button>
       ) : null}

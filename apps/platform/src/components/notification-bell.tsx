@@ -17,13 +17,20 @@ type NotificationCountPayload = {
 };
 
 let pendingNotificationCount: Promise<NotificationCountPayload> | null = null;
+let cachedNotificationCount: { expiresAt: number; payload: NotificationCountPayload } | null = null;
+const notificationCountCacheMs = 30_000;
 
 async function fetchNotificationCount() {
+  if (cachedNotificationCount && cachedNotificationCount.expiresAt > Date.now()) {
+    return cachedNotificationCount.payload;
+  }
+
   if (!pendingNotificationCount) {
     pendingNotificationCount = fetch("/api/admin/notifications?mode=count", { cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json() as NotificationCountPayload;
         if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+        cachedNotificationCount = { expiresAt: Date.now() + notificationCountCacheMs, payload };
         return payload;
       })
       .finally(() => {
@@ -102,6 +109,10 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
       setUnreadCount(payload.unreadCount ?? 0);
+      cachedNotificationCount = {
+        expiresAt: Date.now() + notificationCountCacheMs,
+        payload: { unreadCount: payload.unreadCount ?? 0 },
+      };
       if (mode === "recent") setNotifications(payload.notifications ?? []);
       setError("");
     } catch (fetchError) {
@@ -122,6 +133,15 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   async function markRead(notification: AdminNotification) {
     if (!notification.read_at) {
       setUnreadCount((count) => Math.max(0, count - 1));
+      if (cachedNotificationCount) {
+        cachedNotificationCount = {
+          expiresAt: cachedNotificationCount.expiresAt,
+          payload: {
+            ...cachedNotificationCount.payload,
+            unreadCount: Math.max(0, (cachedNotificationCount.payload.unreadCount ?? 0) - 1),
+          },
+        };
+      }
       setNotifications((rows) => rows?.map((row) => row.id === notification.id
         ? { ...row, read_at: new Date().toISOString() }
         : row) ?? null);

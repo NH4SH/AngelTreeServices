@@ -39,6 +39,7 @@ type PlatformNavigationProps = {
 
 export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavigationProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const items = useMemo(() => getVisibleNavigationItems(roles, audience), [audience, roles]);
   const activeItem = items.find((item) => isNavigationItemActive(pathname, item));
   const activeSection = activeItem?.section;
@@ -94,7 +95,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
     <>
       <aside className="app-sidebar">
         <div className="app-sidebar-header">
-          <Brand href={audience === "crew" ? "/crew" : "/admin"} />
+          <Brand href={audience === "crew" ? "/crew" : "/admin"} onIntent={(href) => router.prefetch(href)} />
           {canSeeNotifications ? <NotificationBell /> : null}
         </div>
 
@@ -120,7 +121,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
                     <ChevronDown aria-hidden="true" className={isOpen ? "is-open" : ""} size={15} />
                   </button>
                 )}
-                {isOpen ? <NavigationLinks items={sectionItems} pathname={pathname} /> : null}
+                {isOpen ? <NavigationLinks items={sectionItems} onIntent={(href) => router.prefetch(href)} pathname={pathname} /> : null}
               </section>
             );
           })}
@@ -133,8 +134,8 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
             <kbd>⌘K</kbd>
           </button>
           <div className="workspace-shortcuts" aria-label="Workspace shortcuts">
-            {audience === "admin" ? <Link href="/crew" prefetch={false}><HardHat aria-hidden="true" size={15} />Crew workspace</Link> : null}
-            <Link href="/employee" prefetch={false}><UserCheck aria-hidden="true" size={15} />My profile</Link>
+            {audience === "admin" ? <Link href="/crew" onFocus={() => router.prefetch("/crew")} onMouseEnter={() => router.prefetch("/crew")} onTouchStart={() => router.prefetch("/crew")} prefetch={false}><HardHat aria-hidden="true" size={15} />Crew workspace</Link> : null}
+            <Link href="/employee" onFocus={() => router.prefetch("/employee")} onMouseEnter={() => router.prefetch("/employee")} onTouchStart={() => router.prefetch("/employee")} prefetch={false}><UserCheck aria-hidden="true" size={15} />My profile</Link>
           </div>
           <div className="app-user">
             <small>Signed in</small>
@@ -151,7 +152,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
       </aside>
 
       <header className="app-mobilebar">
-        <Brand compact href={audience === "crew" ? "/crew" : "/admin"} />
+        <Brand compact href={audience === "crew" ? "/crew" : "/admin"} onIntent={(href) => router.prefetch(href)} />
         <div className="mobilebar-actions">
           {canSeeNotifications ? <NotificationBell mobile /> : null}
           <button aria-label="Open command palette" className="mobile-icon-button" onClick={() => setPaletteOpen(true)} type="button">
@@ -169,7 +170,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
           <button aria-label="Close navigation" className="mobile-navigation-backdrop" onClick={() => setMobileOpen(false)} type="button" />
           <aside aria-label="Mobile platform navigation" className="mobile-navigation-drawer">
             <div className="mobile-navigation-header">
-              <Brand href={audience === "crew" ? "/crew" : "/admin"} />
+              <Brand href={audience === "crew" ? "/crew" : "/admin"} onIntent={(href) => router.prefetch(href)} />
               <button aria-label="Close navigation" className="mobile-icon-button" onClick={() => setMobileOpen(false)} type="button"><X size={20} /></button>
             </div>
             <nav>
@@ -178,7 +179,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
                 return sectionItems.length ? (
                   <section className="mobile-navigation-section" key={section}>
                     <p>{navigationSectionLabels[section]}</p>
-                    <NavigationLinks items={sectionItems} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+                    <NavigationLinks items={sectionItems} onIntent={(href) => router.prefetch(href)} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
                   </section>
                 ) : null;
               })}
@@ -193,22 +194,22 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
   );
 }
 
-function Brand({ compact = false, href }: { compact?: boolean; href: "/admin" | "/crew" }) {
+function Brand({ compact = false, href, onIntent }: { compact?: boolean; href: "/admin" | "/crew"; onIntent: (href: string) => void }) {
   return (
-    <Link className="app-brand" href={href} prefetch={false}>
+    <Link className="app-brand" href={href} onFocus={() => onIntent(href)} onMouseEnter={() => onIntent(href)} onTouchStart={() => onIntent(href)} prefetch={false}>
       <span className="app-brand-mark" aria-hidden="true"><Leaf size={17} /></span>
       <span><strong>Angel Tree</strong><small>{compact ? "Operations" : "Field service operations"}</small></span>
     </Link>
   );
 }
 
-function NavigationLinks({ items, onNavigate, pathname }: { items: NavigationItem[]; onNavigate?: () => void; pathname: string }) {
+function NavigationLinks({ items, onIntent, onNavigate, pathname }: { items: NavigationItem[]; onIntent: (href: string) => void; onNavigate?: () => void; pathname: string }) {
   return (
     <div className="navigation-links">
       {items.map((item) => {
         const active = isNavigationItemActive(pathname, item);
         return (
-          <Link aria-current={active ? "page" : undefined} href={item.href} key={item.id} onClick={onNavigate} prefetch={false}>
+          <Link aria-current={active ? "page" : undefined} href={item.href} key={item.id} onClick={onNavigate} onFocus={() => onIntent(item.href)} onMouseEnter={() => onIntent(item.href)} onTouchStart={() => onIntent(item.href)} prefetch={false}>
             <item.icon aria-hidden="true" size={17} />
             <span>{item.label}</span>
           </Link>
@@ -261,7 +262,7 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
         </div>
         <div className="command-palette-results" role="listbox">
           {filtered.length ? filtered.map((command, index) => (
-            <Link aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onMouseEnter={() => setActiveIndex(index)} prefetch={false} role="option">
+            <Link aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onFocus={() => router.prefetch(command.href)} onMouseEnter={() => { setActiveIndex(index); router.prefetch(command.href); }} onTouchStart={() => router.prefetch(command.href)} prefetch={false} role="option">
               <span><command.icon aria-hidden="true" size={18} /><strong>{command.label}</strong></span>
               <Command aria-hidden="true" size={14} />
             </Link>

@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { cache } from "react";
 import { getSupabasePublicConfig } from "./config";
 
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   const config = getSupabasePublicConfig();
 
   if (!config) {
@@ -27,4 +28,4 @@ export async function createClient() {
       },
     },
   });
-}
+});

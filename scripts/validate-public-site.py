@@ -1198,6 +1198,45 @@ class Validator:
             self.error("/about/: former-employer wording implies a current affiliation or endorsement")
 
     def validate_artifact_contents(self) -> None:
+        for route, page in self.pages.items():
+            for link in page.links:
+                if link.get("target", "").lower() != "_blank":
+                    continue
+                relationships = set(link.get("rel", "").lower().split())
+                if not {"noopener", "noreferrer"}.issubset(relationships):
+                    self.error(f"{route}: new-tab link must use rel=\"noopener noreferrer\"")
+
+        responsive_image_expectations = {
+            "/projects/": ("service-tree-320", "service-lawn-320", "service-landscaping-320"),
+            "/about/": ("service-tree-320",),
+            "/services/tree-removal/": ("service-tree-320",),
+            "/services/commercial-hoa-tree-care/": ("service-landscaping-320",),
+        }
+        for route, expected_assets in responsive_image_expectations.items():
+            source = self.page_sources.get(route, "")
+            for expected_asset in expected_assets:
+                if expected_asset not in source:
+                    self.error(f"{route}: responsive image candidate is missing: {expected_asset}")
+
+        shared_styles = (self.site_dir / "site-pages.css").read_text(encoding="utf-8")
+        if re.search(r"transition\s*:[^;]*(?:padding|margin|width|height|top|left)", shared_styles):
+            self.error("Generated-page interaction styles must not animate layout properties")
+
+        expected_legacy_assets = {
+            "200x200-hortz-logo.jpg",
+            "LightroomGrassPictureSquooshed_013.jpg",
+            "google-analytics_analytics.js",
+            "isamember1_004.jpg",
+        }
+        legacy_directory = self.site_dir / "angeltreeservices_backup_files"
+        delivered_legacy_assets = (
+            {path.name for path in legacy_directory.iterdir() if path.is_file()}
+            if legacy_directory.is_dir()
+            else set()
+        )
+        if delivered_legacy_assets != expected_legacy_assets:
+            self.error("Public artifact must include only the four homepage legacy assets still in use")
+
         for path in self.site_dir.rglob("*"):
             if not path.is_file():
                 continue
@@ -1400,6 +1439,18 @@ class Validator:
             if rule.startswith(("http://angeltreeservices.org/", "https://angeltreeservices.org/")):
                 self.error("_redirects must not redirect the canonical plural domain")
 
+    def validate_netlify_security_headers(self) -> None:
+        source = (ROOT / "netlify.toml").read_text(encoding="utf-8")
+        expected_headers = (
+            'Permissions-Policy = "camera=(), microphone=(), geolocation=()"',
+            'Referrer-Policy = "strict-origin-when-cross-origin"',
+            'X-Content-Type-Options = "nosniff"',
+            'X-Frame-Options = "SAMEORIGIN"',
+        )
+        for header in expected_headers:
+            if header not in source:
+                self.error(f"netlify.toml is missing the public security header: {header}")
+
     def run(self) -> None:
         if not self.site_dir.is_dir():
             self.error(f"Public artifact does not exist: {self.site_dir}")
@@ -1425,6 +1476,7 @@ class Validator:
             self.validate_sitemap_and_robots()
             self.validate_llms_document()
             self.validate_domain_redirects()
+            self.validate_netlify_security_headers()
 
         if self.errors:
             print(f"Public-site validation failed with {len(self.errors)} error(s):", file=sys.stderr)

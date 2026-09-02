@@ -22,11 +22,14 @@ STATIC_FILES = (
     "ats-address-autocomplete.js",
     "site-pages.css",
     "site-pages.js",
+    "angeltreeservices_backup_files/200x200-hortz-logo.jpg",
+    "angeltreeservices_backup_files/LightroomGrassPictureSquooshed_013.jpg",
+    "angeltreeservices_backup_files/google-analytics_analytics.js",
+    "angeltreeservices_backup_files/isamember1_004.jpg",
 )
 
 STATIC_DIRECTORIES = (
     "assets",
-    "angeltreeservices_backup_files",
 )
 
 HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
@@ -94,7 +97,9 @@ def copy_static_sources() -> None:
     for relative_path in STATIC_FILES:
         source = ROOT / relative_path
         require_source(source)
-        shutil.copy2(source, OUTPUT / relative_path)
+        destination = OUTPUT / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
 
     for relative_path in STATIC_DIRECTORIES:
         source = ROOT / relative_path

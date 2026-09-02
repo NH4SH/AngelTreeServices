@@ -1,6 +1,7 @@
 /* Shared static-page system for Angel Tree Services. */
 :root {
   --ats-green: #2f8e2f;
+  --ats-green-aa: #287228;
   --ats-green-dark: #1f5a22;
   --ats-green-deep: #163f19;
   --ats-cream: #f6fbf2;
@@ -412,8 +413,8 @@ img {
 }
 
 .ats-button--green {
-  border-color: var(--ats-green);
-  background: var(--ats-green);
+  border-color: var(--ats-green-aa);
+  background: var(--ats-green-aa);
   color: var(--ats-white);
 }
 
@@ -586,7 +587,7 @@ img {
 .ats-card__number {
   display: block;
   margin-bottom: 14px;
-  color: var(--ats-green);
+  color: var(--ats-green-aa);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -731,6 +732,7 @@ img {
 
 .ats-project-card img {
   width: 100%;
+  height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
 }
@@ -1396,12 +1398,12 @@ img {
   color: var(--ats-white);
   font-weight: 700;
   text-decoration: none;
-  transition: color 180ms ease, padding-left 180ms ease;
+  transition: color 180ms ease, transform 180ms ease;
 }
 
 .ats-about-links a:hover,
 .ats-about-links a:focus-visible {
-  padding-left: 8px;
+  transform: translateX(8px);
   color: #ffe95c;
 }
 
@@ -1713,6 +1715,7 @@ img {
   }
 
   .ats-mobile-menu summary {
+    min-height: 46px;
     padding: 8px 13px;
     font-size: 0.86rem;
   }

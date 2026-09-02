@@ -249,6 +249,32 @@ def breadcrumbs(page: dict) -> str:
     return f'<nav class="ats-breadcrumbs" aria-label="Breadcrumb"><ol>{"".join(items)}</ol></nav>'
 
 
+RESPONSIVE_PUBLIC_IMAGES = {
+    "/assets/AngelChainsawSquooshed_008.jpg": (
+        "/assets/versioned/service-tree-320.20be49f1f8.webp 320w",
+        "/assets/versioned/service-tree-512.705dacd21f.webp 512w",
+        "/assets/versioned/service-tree-840.58f189d9e9.webp 840w",
+    ),
+    "/assets/LightroomGrassPictureSquooshed_014.jpg": (
+        "/assets/versioned/service-lawn-320.3f543d77c6.webp 320w",
+        "/assets/versioned/service-lawn-512.9ff7f9f9f8.webp 512w",
+        "/assets/versioned/service-lawn-840.457847928f.webp 840w",
+    ),
+    "/assets/GardenLandscaping+(2)_008.jpg": (
+        "/assets/versioned/service-landscaping-320.3e41165331.webp 320w",
+        "/assets/versioned/service-landscaping-512.5bf56f3b1f.webp 512w",
+        "/assets/versioned/service-landscaping-840.b61575a985.webp 840w",
+    ),
+}
+
+
+def responsive_image_attributes(src: str, sizes: str) -> str:
+    candidates = RESPONSIVE_PUBLIC_IMAGES.get(src)
+    if not candidates:
+        return ""
+    return f' srcset="{html_attr(", ".join(candidates))}" sizes="{html_attr(sizes)}"'
+
+
 def page_document(page: dict) -> str:
     canonical = f"{SITE}{page['path']}"
     image = page.get("social_image", SOCIAL_IMAGE)
@@ -257,7 +283,7 @@ def page_document(page: dict) -> str:
     if page.get("hero_image"):
         hero_media = f"""
         <figure class="ats-page-hero__media">
-          <img src="{html_attr(page['hero_image'])}" width="{int(page['image_width'])}" height="{int(page['image_height'])}" alt="{html_attr(page['hero_alt'])}" decoding="async" fetchpriority="high">
+          <img src="{html_attr(page['hero_image'])}"{responsive_image_attributes(page['hero_image'], '(max-width: 760px) calc(100vw - 40px), 42vw')} width="{int(page['image_width'])}" height="{int(page['image_height'])}" alt="{html_attr(page['hero_alt'])}" decoding="async" fetchpriority="high">
         </figure>"""
     else:
         hero_class = " ats-page-hero__inner--single"
@@ -737,7 +763,7 @@ def projects_body() -> str:
         ("/assets/GardenLandscaping+(2)_008.jpg", 2500, 1407, "Landscaped garden and lawn", "Landscaping", "Landscaping work", "Real Angel Tree Services landscaping imagery. A fuller case study will be published only after project details are verified."),
     ]
     cards_html = "".join(
-        f'<article class="ats-project-card"><img src="{src}" width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
+        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 33vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
         for src, w, h, alt, kind, title, copy in projects
     )
     return f"""

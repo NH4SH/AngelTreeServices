@@ -6,6 +6,7 @@ import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/rol
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { hasMeaningfulCloseoutChild, hasMeaningfulCloseoutRecord } from "@/lib/records/closeout-history";
 
 export type LifecycleRecordType = "customer" | "invoice" | "job" | "organization" | "quote" | "service_location";
 
@@ -162,7 +163,7 @@ async function inspectRecordLifecycle(
       supabase.from("quotes").select("id, status").eq("job_id", recordId),
       countRows(supabase, "appointments", "job_id", recordId),
       countRows(supabase, "schedule_events", "job_id", recordId),
-      countRows(supabase, "job_closeouts", "job_id", recordId),
+      countProtectedCloseoutHistory(supabase, [recordId]),
       countRows(supabase, "time_entries", "job_id", recordId),
       countRows(supabase, "job_cost_entries", "job_id", recordId),
       countRows(supabase, "inventory_transactions", "job_id", recordId),
@@ -170,10 +171,12 @@ async function inspectRecordLifecycle(
       countRows(supabase, "documents", "job_id", recordId),
       countRows(supabase, "change_orders", "job_id", recordId),
       countRows(supabase, "customer_communications", "job_id", recordId),
-      countRows(supabase, "email_events", "related_job_id", recordId),
+      supabase.from("email_events").select("id, email_type").eq("related_job_id", recordId),
     ]);
     if (!record.data) return empty;
+    if (emailEvents.error) throw emailEvents.error;
     const unsafeQuotes = (quotes.data ?? []).filter((quote) => quote.status !== "draft");
+    const protectedEmailEvents = (emailEvents.data ?? []).filter((event) => event.email_type !== "lead_internal_notice").length;
     const disposableStatuses = ["new_lead", "estimate_scheduled", "quoted", "accepted", "lost", "cancelled"];
     const blockers = [
       !disposableStatuses.includes(record.data.status) ? "Completed, active, or billed work orders must be retained." : null,
@@ -185,9 +188,9 @@ async function inspectRecordLifecycle(
       costs || transactions || disposal ? "Material, disposal, or cost history must be retained." : null,
       documents ? "Attached documents must be retained." : null,
       changeOrders ? "Change-order history must be retained." : null,
-      communications || emailEvents ? "Customer communication or delivery history must be retained." : null,
+      communications || protectedEmailEvents ? "Customer communication or delivery history must be retained." : null,
     ].filter(Boolean) as string[];
-    return preview(recordType, recordId, record.data.service_type?.replaceAll("_", " ") || "Work order", record.data.archived_at, { job: 1, draftQuotes: quotes.data?.length ?? 0, invoices, appointments, scheduleEvents: events, closeouts, timeEntries, costRecords: costs + transactions + disposal, documents, changeOrders, communications: communications + emailEvents }, blockers, true);
+    return preview(recordType, recordId, record.data.service_type?.replaceAll("_", " ") || "Work order", record.data.archived_at, { job: 1, draftQuotes: quotes.data?.length ?? 0, invoices, appointments, scheduleEvents: events, closeouts, timeEntries, costRecords: costs + transactions + disposal, documents, changeOrders, communications: communications + protectedEmailEvents }, blockers, true);
   }
 
   if (recordType === "customer") {
@@ -212,7 +215,7 @@ async function inspectRecordLifecycle(
     const [appointments, events, closeouts, timeEntries, costs, inventory, disposal, childChangeOrders, childDocuments] = await Promise.all([
       countIn(supabase, "appointments", "job_id", jobIds),
       countIn(supabase, "schedule_events", "job_id", jobIds),
-      countIn(supabase, "job_closeouts", "job_id", jobIds),
+      countProtectedCloseoutHistory(supabase, jobIds),
       countIn(supabase, "time_entries", "job_id", jobIds),
       countIn(supabase, "job_cost_entries", "job_id", jobIds),
       countIn(supabase, "inventory_transactions", "job_id", jobIds),
@@ -285,6 +288,53 @@ async function countIn(supabase: any, table: string, column: string, values: str
   const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true }).in(column, values);
   if (error) throw error;
   return count ?? 0;
+}
+
+async function countProtectedCloseoutHistory(supabase: any, jobIds: string[]) {
+  if (!jobIds.length) return 0;
+
+  const [closeouts, checklistItems, scopeItems] = await Promise.all([
+    supabase
+      .from("job_closeouts")
+      .select("id, job_id, status, crew_internal_notes, customer_summary, incident_occurred, additional_work_requested, acknowledgment_status, submitted_at, reviewed_at, review_notes, reopened_at, reopen_reason, created_at, updated_at")
+      .in("job_id", jobIds),
+    supabase
+      .from("job_closeout_checklist_items")
+      .select("job_id, updated_by_user_id, created_at, updated_at")
+      .in("job_id", jobIds),
+    supabase
+      .from("job_closeout_scope_items")
+      .select("job_id, updated_by_user_id, created_at, updated_at")
+      .in("job_id", jobIds),
+  ]);
+  if (closeouts.error) throw closeouts.error;
+  if (checklistItems.error) throw checklistItems.error;
+  if (scopeItems.error) throw scopeItems.error;
+
+  const protectedJobIds = new Set<string>();
+  const jobIdByCloseoutId = new Map<string, string>();
+  for (const closeout of closeouts.data ?? []) {
+    jobIdByCloseoutId.set(closeout.id, closeout.job_id);
+    if (hasMeaningfulCloseoutRecord(closeout)) protectedJobIds.add(closeout.job_id);
+  }
+  for (const item of [...(checklistItems.data ?? []), ...(scopeItems.data ?? [])]) {
+    if (hasMeaningfulCloseoutChild(item)) protectedJobIds.add(item.job_id);
+  }
+
+  const closeoutIds = [...jobIdByCloseoutId.keys()];
+  if (closeoutIds.length) {
+    const { data: submissions, error } = await supabase
+      .from("job_closeout_submissions")
+      .select("closeout_id")
+      .in("closeout_id", closeoutIds);
+    if (error) throw error;
+    for (const submission of submissions ?? []) {
+      const jobId = jobIdByCloseoutId.get(submission.closeout_id);
+      if (jobId) protectedJobIds.add(jobId);
+    }
+  }
+
+  return protectedJobIds.size;
 }
 
 async function idsFor(supabase: any, table: string, column: string, value: string) {

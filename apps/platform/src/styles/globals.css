@@ -2647,6 +2647,23 @@
 .record-lifecycle-panel.compact .record-lifecycle-actions { width: 100%; }
 .record-lifecycle-panel.compact .record-lifecycle-actions > button { width: 100%; }
 
+.page-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.page-heading-actions .record-lifecycle-panel.compact {
+  margin: 0;
+}
+
+.page-heading-actions .record-lifecycle-panel.compact .record-lifecycle-actions,
+.page-heading-actions .record-lifecycle-panel.compact .record-lifecycle-actions > button {
+  width: auto;
+}
+
 .record-lifecycle-actions {
   display: flex;
   flex: 0 0 auto;

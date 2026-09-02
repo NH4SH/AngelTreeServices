@@ -74,10 +74,13 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                   jobs, quotes, invoices, and notes.
                 </p>
               </div>
-              <Link className="primary-action" href={`/admin/customers/${detail.data.customer.id}/edit`}>
-                <Pencil aria-hidden="true" size={17} />
-                Edit
-              </Link>
+              <div className="page-heading-actions">
+                <Link className="primary-action" href={`/admin/customers/${detail.data.customer.id}/edit`}>
+                  <Pencil aria-hidden="true" size={17} />
+                  Edit
+                </Link>
+                {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={context.roles.includes("owner")} compact listHref="/admin/customers" preview={lifecyclePreview} /> : null}
+              </div>
             </section>
             {detail.data.customer.archived_at ? <section className="data-warning" role="status"><strong>Archived customer</strong><p>This record is retained for history and is unavailable for new work until restored.</p></section> : null}
 
@@ -242,7 +245,6 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
                 </section>
               </aside>
             </section> : null}
-            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/customers" preview={lifecyclePreview} /> : null}
           </>
         )}
       </div>

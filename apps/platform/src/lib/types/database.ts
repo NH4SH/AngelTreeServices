@@ -1386,6 +1386,7 @@ export type CrewDaySchedule = {
 };
 
 export type ScheduleDashboardSummary = {
+  nextTwoDays?: CalendarEntry[];
   conflicts: ScheduleConflict[];
   todaysCrewSchedules: CrewDaySchedule[];
   unassignedEntries: CalendarEntry[];

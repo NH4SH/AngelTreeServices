@@ -1,5 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
@@ -148,6 +150,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             <a className="secondary-action" href="#job-more"><MoreHorizontal aria-hidden="true" size={17} />More</a>
           </div>
         </header>
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="job_id" id={jobId} /></Suspense>
 
         <section className="job-billing-summary" aria-labelledby="job-billing-title">
           <div className="job-section-heading">

@@ -1,5 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
@@ -146,6 +148,8 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 />
               </div>
             </section>
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="quote_id" id={quoteId} /></Suspense>
 
             <section className="commerce-side-panel quote-email-workspace">
               <PanelTitle icon={<Send size={18} />} title="Proposal email" />

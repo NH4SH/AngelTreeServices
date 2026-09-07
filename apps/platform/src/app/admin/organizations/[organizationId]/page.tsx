@@ -1,5 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
 import type { ReactNode } from "react";
 import { Activity, Building2, CalendarClock, CircleDollarSign, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
 import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
@@ -82,6 +84,8 @@ export default async function OrganizationDetailPage({ params, searchParams }: O
               </div>
             </section>
             {org.organization.archived_at ? <section className="data-warning" role="status"><strong>Archived organization</strong><p>This account is retained for history and is unavailable for new work until restored.</p></section> : null}
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="organization_id" id={organizationId} /></Suspense>
 
             <section className="detail-grid">
               <Panel icon={<Building2 size={18} />} title="Billing">

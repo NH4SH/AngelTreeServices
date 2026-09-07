@@ -413,6 +413,7 @@ export async function getDashboardJobSummaries() {
   const { start, endExclusive: end } = getBusinessDayRange()!;
   const commonSelect =
     "*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)";
+  const unscheduledSelect = `${commonSelect}, booked:schedule_events!schedule_events_job_id_fkey(), legacy:appointments!appointments_job_id_fkey()`;
 
   const [newLeads, estimatesToSchedule, approvedWorkToSchedule, completedWorkToInvoice, todaysJobs] = await Promise.all([
     supabase
@@ -425,24 +426,38 @@ export async function getDashboardJobSummaries() {
       .limit(12),
     supabase
       .from("jobs")
-      .select(commonSelect)
+      .select(unscheduledSelect)
       .is("archived_at", null)
       .eq("lead_disposition", "active")
-      .eq("status", "estimate_scheduled")
+      .eq("status", "new_lead")
+      .eq("booked.event_type", "estimate")
+      .neq("booked.status", "cancelled")
+      .is("booked", null)
+      .eq("legacy.appointment_type", "estimate")
+      .neq("legacy.status", "cancelled")
+      .is("legacy", null)
       .order("created_at", { ascending: false })
       .limit(12),
     supabase
       .from("jobs")
-      .select(commonSelect)
+      .select(unscheduledSelect)
       .is("archived_at", null)
       .eq("status", "accepted")
+      .eq("booked.event_type", "job")
+      .in("booked.status", ["scheduled", "confirmed", "in_progress", "completed"])
+      .is("booked", null)
+      .eq("legacy.appointment_type", "job")
+      .in("legacy.status", ["scheduled", "confirmed", "in_progress", "completed"])
+      .is("legacy", null)
       .order("updated_at", { ascending: false })
       .limit(12),
     supabase
       .from("jobs")
-      .select(commonSelect)
+      .select(`${commonSelect}, billed:invoices!invoices_job_id_fkey()`)
       .is("archived_at", null)
       .in("status", ["completed", "ready_to_invoice"])
+      .neq("billed.status", "void")
+      .is("billed", null)
       .order("completed_at", { ascending: false, nullsFirst: false })
       .limit(12),
     supabase

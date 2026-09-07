@@ -1,5 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
 import type { ReactNode } from "react";
 import { CircleDollarSign, ClipboardCheck, FileText, MapPin, Pencil, ReceiptText, Send, StickyNote, UsersRound } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
@@ -131,6 +133,8 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 />
               </div>
             </section>
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="invoice_id" id={invoiceId} /></Suspense>
 
             {canManageDelivery ? (
               <section className="invoice-delivery-grid" aria-label="Customer invoice delivery">

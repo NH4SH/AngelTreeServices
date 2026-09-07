@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getNextActions } from "@/lib/data/next-actions";
+import { FollowUpActions } from "@/components/recurring-forms";
 import {
   AlertTriangle,
   CalendarClock,
@@ -19,25 +21,27 @@ import { getQuotesAwaitingResponse } from "@/lib/data/quotes";
 import { getRecurringOperationsDashboard } from "@/lib/data/recurring";
 import type { CustomerCommunication, FollowUpTaskWithRelations } from "@/lib/types/database";
 
-export default async function FollowUpsPage() {
+export default async function FollowUpsPage({ searchParams }: { searchParams: Promise<{ assigned?: string }> }) {
   const context = await getAuthenticatedPlatformContext("/admin/follow-ups");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening follow-ups" />;
 
   const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
-  const [recurring, communications, quotes, invoices] = await Promise.all([
+  const mine = (await searchParams).assigned === "me";
+  const [recurring, communications, quotes, invoices, handoffs] = await Promise.all([
     loadRecurring(canViewFinancials),
     getCommunicationDashboardSummary(),
     getQuotesAwaitingResponse(),
     getUnpaidInvoices(),
+    getNextActions(undefined, undefined, mine ? context.user.id : undefined),
   ]);
   const now = Date.now();
-  const openTasks = recurring.tasks
+  const openTasks = handoffs.data
     .filter((task) => !["completed", "cancelled"].includes(task.status))
     .sort((left, right) => taskTime(left) - taskTime(right));
   const dueTasks = openTasks.filter((task) => taskTime(task) <= now);
   const pendingRecommendations = recurring.recommendations.filter((item) => ["recommended", "pending_office_review", "deferred"].includes(item.status));
   const renewalOpportunities = recurring.occurrences.filter((item) => ["upcoming", "review_needed", "quote_draft", "quote_sent", "approved"].includes(item.status));
-  const errors = [recurring.error, communications.error, quotes.error, invoices.error].filter((message): message is string => Boolean(message));
+  const errors = [handoffs.error, recurring.error, communications.error, quotes.error, invoices.error].filter((message): message is string => Boolean(message));
 
   return (
     <PlatformFrame active="follow-ups" roles={context.roles} userEmail={context.user.email}>
@@ -52,6 +56,7 @@ export default async function FollowUpsPage() {
         </section>
 
         {Array.from(new Set(errors)).map((message) => <Warning key={message} message={message} />)}
+        <nav className="page-heading-actions" aria-label="Handoff assignment"><Link className="secondary-action" aria-current={!mine ? "page" : undefined} href="/admin/follow-ups">All office handoffs</Link><Link className="secondary-action" aria-current={mine ? "page" : undefined} href="/admin/follow-ups?assigned=me">Assigned to me</Link></nav>
 
         <section className="follow-up-summary" aria-label="Follow-up workload">
           <Summary label="Due now" value={dueTasks.length} attention={dueTasks.length > 0} />
@@ -93,6 +98,12 @@ export default async function FollowUpsPage() {
           </section>
 
           <section className="follow-up-lane follow-up-lane-wide">
+            <LaneHeader icon={<ClipboardCheck size={18} />} title="Upcoming handoffs" count={openTasks.length - dueTasks.length} />
+            <div className="follow-up-rows">{openTasks.filter(task => taskTime(task) > now).map(task => <TaskRow key={task.id} task={task} />)}</div>
+            <p className="subtle-empty">Showing up to 100 open handoffs. Assignment filters apply to handoffs, not the shared customer queues below.</p>
+          </section>
+
+          <section className="follow-up-lane follow-up-lane-wide">
             <LaneHeader icon={<Sprout size={18} />} title="Future and recurring work" count={pendingRecommendations.length + renewalOpportunities.length} />
             <div className="follow-up-rows follow-up-rows-grid">
               {pendingRecommendations.slice(0, 12).map((item) => (
@@ -130,11 +141,16 @@ async function loadRecurring(canViewFinancials: boolean) {
 
 function TaskRow({ task }: { task: FollowUpTaskWithRelations }) {
   return (
+    <article className="next-action-item">
     <Link className="follow-up-row" href={taskHref(task)}>
       <span className="follow-up-row-icon task"><Clock3 size={17} /></span>
       <span><strong>{task.title}</strong><small>{task.organizations?.name ?? task.customers?.display_name ?? task.service_locations?.label ?? task.task_type.replaceAll("_", " ")}</small></span>
       <b className={taskTime(task) < Date.now() ? "is-overdue" : ""}>{relativeDue(task.snoozed_until ?? task.due_at)}</b>
     </Link>
+    <p>{task.description}</p>
+    <small>{task.assigned_profile?.full_name || task.assigned_profile?.email || "Shared office queue"} · {task.status.replaceAll("_", " ")}</small>
+    <FollowUpActions taskId={task.id} status={task.status} />
+    </article>
   );
 }
 
@@ -142,7 +158,7 @@ function CommunicationRow({ item }: { item: CustomerCommunication }) {
   return (
     <Link className="follow-up-row" href={communicationHref(item)}>
       <span className="follow-up-row-icon failed"><AlertTriangle size={17} /></span>
-      <span><strong>{item.communication_type.replaceAll("_", " ")}</strong><small>{item.last_error || `Delivery failed for ${item.recipient_email}`}</small></span>
+      <span><strong>{item.communication_type.replaceAll("_", " ")}</strong><small>Delivery failed. Review the recipient and delivery history before retrying.</small></span>
       <b className="is-overdue">Fix</b>
     </Link>
   );
@@ -175,12 +191,7 @@ function communicationHref(item: CustomerCommunication) {
   return "/admin/communications";
 }
 function relativeDue(value: string) {
-  const days = Math.ceil((new Date(value).getTime() - Date.now()) / 86400000);
-  if (days < -1) return `${Math.abs(days)} days overdue`;
-  if (days === -1) return "Yesterday";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return shortDate(value);
+  return `${new Date(value).getTime() < Date.now() ? "Overdue: " : "Due: "}${formatBusinessDateTime(value)}`;
 }
 function shortDate(value: string) { return formatBusinessDateTime(value, { month: "short", day: "numeric" }); }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100); }

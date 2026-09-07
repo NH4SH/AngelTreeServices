@@ -473,7 +473,8 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
   const start = parseScheduleDateTime(`${todayKey}T00:00`);
   const end = parseScheduleDateTime(`${shiftScheduleDateKey(todayKey, 1)}T00:00`);
   const upcomingEnd = parseScheduleDateTime(`${shiftScheduleDateKey(todayKey, 7)}T00:00`);
-  if (!start || !end || !upcomingEnd) {
+  const tomorrowEnd = parseScheduleDateTime(`${shiftScheduleDateKey(todayKey, 2)}T00:00`);
+  if (!start || !end || !upcomingEnd || !tomorrowEnd) {
     return {
       data: { conflicts: [], todaysCrewSchedules: [], unassignedEntries: [], upcomingEstimates: [] },
       error: "The Eastern schedule window could not be calculated.",
@@ -492,16 +493,16 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
         "*, jobs(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), profiles(id, full_name, email)",
       )
       .gte("starts_at", start.toISOString())
-      .lt("starts_at", end.toISOString())
-      .order("starts_at", { ascending: true }),
+      .lt("starts_at", tomorrowEnd.toISOString())
+      .order("starts_at", { ascending: true }).limit(500),
     supabase
       .from("schedule_events")
       .select(
         "*, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, status, service_type, requested_scope, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_phone, billing_email)), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes), schedule_event_assignments(id, event_id, employee_id, user_id, assignment_role, profiles(id, full_name, email), employee_records(id, auth_user_id, legal_name, preferred_name, contact_email)), equipment_assignments(*, equipment_assets(id, asset_number, name, status, category))",
       )
       .gte("starts_at", start.toISOString())
-      .lt("starts_at", end.toISOString())
-      .order("starts_at", { ascending: true }),
+      .lt("starts_at", tomorrowEnd.toISOString())
+      .order("starts_at", { ascending: true }).limit(500),
     supabase
       .from("appointments")
       .select(
@@ -534,13 +535,10 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
   const todaysEntries = [
     ...todayScheduleEvents.map(toScheduleEventEntry),
     ...((todayAppointments.data ?? []) as AppointmentWithRelations[])
-      .filter((appointment) => !(
-        appointment.appointment_type === "job"
-        && migratedTodayAppointmentIds.has(appointment.id)
-      ))
+      .filter((appointment) => !migratedTodayAppointmentIds.has(appointment.id))
       .map(toAppointmentEntry),
   ];
-  const sequencedTodayEntries = addWorkdaySequence(todaysEntries
+  const sequencedTodayEntries = addWorkdaySequence(todaysEntries.filter(entry => getScheduleDateKey(entry.starts_at) === todayKey)
     .sort((left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()));
   const upcomingEstimates = [
     ...((upcomingEstimateEvents.data ?? []) as ScheduleEventWithRelations[]).map(toScheduleEventEntry),
@@ -567,6 +565,7 @@ export async function getScheduleDashboardSummary(): Promise<DataResult<Schedule
       todaysCrewSchedules,
       unassignedEntries,
       upcomingEstimates,
+      nextTwoDays: todaysEntries.filter(entry => !["cancelled", "no_show"].includes(entry.status)).sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
     },
     error,
   };

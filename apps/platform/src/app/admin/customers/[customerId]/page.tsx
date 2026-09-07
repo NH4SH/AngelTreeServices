@@ -1,5 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
 import type { ReactNode } from "react";
 import { BriefcaseBusiness, CalendarClock, ClipboardList, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, StickyNote, UsersRound } from "lucide-react";
 import { AddJobForm } from "../../jobs/JobForm";
@@ -85,6 +87,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
               </div>
             </section>
             {detail.data.customer.archived_at ? <section className="data-warning" role="status"><strong>Archived customer</strong><p>This record is retained for history and is unavailable for new work until restored.</p></section> : null}
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="customer_id" id={customerId} /></Suspense>
 
             <section className="detail-grid">
               <article className="detail-panel">

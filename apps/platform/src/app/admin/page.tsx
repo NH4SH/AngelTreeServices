@@ -2,6 +2,7 @@ import { formatBusinessDateTime, getBusinessDateKey } from "@/lib/business-time"
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronDown,
   CircleDollarSign,
   ClipboardCheck,
   Building2,
@@ -16,6 +17,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
+import { CompletedEstimatesPanel } from "@/components/CompletedEstimatesPanel";
+import { shiftScheduleDateKey } from "@/lib/schedule/event-form";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -110,7 +115,7 @@ export default async function AdminPage() {
       Icon: PhoneCall,
       href: "/admin/communications#website-leads",
       items: jobSummaries.lanes.newLeads.map((job) => ({
-        href: "/admin/communications#website-leads",
+        href: `/admin/schedule?new=1&lead=${job.id}`,
         title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.requested_scope ?? "No scope entered yet",
       })),
@@ -119,9 +124,9 @@ export default async function AdminPage() {
       title: "Estimates to schedule",
       description: "Qualified work that needs an on-site estimate window.",
       Icon: CalendarDays,
-      href: "/admin/jobs",
+      href: "/admin/communications#website-leads",
       items: jobSummaries.lanes.estimatesToSchedule.map((job) => ({
-        href: `/admin/jobs/${job.id}`,
+        href: `/admin/schedule?new=1&lead=${job.id}`,
         title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
         meta: job.service_locations
           ? `${job.service_locations.street}, ${job.service_locations.city}`
@@ -143,7 +148,7 @@ export default async function AdminPage() {
       title: "Approved work to schedule",
       description: "Accepted work orders that need a crew date or schedule event.",
       Icon: CalendarDays,
-      href: "/admin/jobs",
+      href: "/admin/jobs?view=to_be_scheduled",
       items: jobSummaries.lanes.approvedWorkToSchedule.map((job) => ({
         href: `/admin/jobs/${job.id}`,
         title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
@@ -195,7 +200,9 @@ export default async function AdminPage() {
       })),
     },
   ];
-  const attentionLanes = [lanes[0], lanes[1], lanes[2], lanes[3], lanes[4], lanes[5], lanes[8]];
+  const attentionLanes = [lanes[2], lanes[3], lanes[1], lanes[4], lanes[5], lanes[6], lanes[9], lanes[8], lanes[0]];
+  const today = getBusinessDateKey(new Date());
+  const tomorrow = shiftScheduleDateKey(today, 1);
 
   return (
     <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email}>
@@ -217,6 +224,22 @@ export default async function AdminPage() {
           .map((message) => (
           <DataWarning key={message} message={message} />
         ))}
+
+        <section className="dashboard-grid" aria-label="Morning operations">
+          <section className="panel dashboard-panel">
+            <PanelHeader title="Needs attention" detail="Open a record to take its next step. Queues are bounded previews, not full totals." />
+            <div className="workflow-list">{attentionLanes.map(lane => <WorkflowLane lane={lane} key={lane.title} />)}</div>
+          </section>
+          <Suspense fallback={<p role="status">Loading due handoffs...</p>}><NextActionsPanel dueOnly /></Suspense>
+          <Suspense fallback={<p role="status">Loading estimate follow-through...</p>}><CompletedEstimatesPanel /></Suspense>
+          {[today, tomorrow].map(day => <section className="panel dashboard-panel" key={day}>
+            <PanelHeader title={day === today ? "Today" : "Tomorrow"} detail="Estimates and field work" />
+            <div className="workflow-list">{(scheduleSummary.data.nextTwoDays ?? []).filter(entry => getBusinessDateKey(entry.starts_at) === day && ["estimate", "job", "emergency", "maintenance"].includes(entry.event_type)).map(entry => <Link className="workflow-row" href={`/admin/schedule?date=${day}&${entry.source === "appointment" ? "appointment" : "event"}=${entry.id}`} key={`${entry.source}-${entry.id}`}>
+              <span><strong>{entry.title}</strong><small>{entry.customer_label || entry.subtitle} · {formatBusinessDateTime(entry.starts_at)} · {entry.event_type.replaceAll("_", " ")}</small><small>{entry.location_label || "Location needs review"}{entry.assignees.length ? "" : " · Assignment needs review"} · {entry.status.replaceAll("_", " ")}</small></span>
+            </Link>)}</div>
+            <Link href={`/admin/schedule?date=${day}`}>Open full day</Link>
+          </section>)}
+        </section>
 
         <section className="dashboard-workflow-pipeline" aria-labelledby="workflow-pipeline-title">
           <header>
@@ -272,13 +295,6 @@ export default async function AdminPage() {
               ) : (
                 <p className="subtle-empty">No crew schedule assigned for today yet.</p>
               )}
-            </div>
-          </section>
-
-          <section className="panel dashboard-panel">
-            <PanelHeader title="Needs attention" detail="Items most likely to stall" />
-            <div className="workflow-list">
-              {attentionLanes.map((lane) => <WorkflowLane lane={lane} key={lane.title} />)}
             </div>
           </section>
 
@@ -412,12 +428,13 @@ export default async function AdminPage() {
         <section className="notice-panel">
           <strong>
             <Zap aria-hidden="true" size={18} />
-            Protected but still early
+            Storm or urgent call
           </strong>
           <p>
-            These pages use Supabase Auth and RLS-aware queries. Before real operation, assign staff
-            roles in Supabase and keep customer portal policies separate from internal CRM access.
+            Confirm the callback number and service address, record the hazard and access details,
+            then arrange a response with the crew. Do not promise an arrival time before confirming availability.
           </p>
+          <div className="record-actions"><Link href="/admin/customers">Find or add customer</Link><Link href="/admin/schedule?new=1&event_type=emergency">Schedule response</Link>{hasAllowedRole(context.roles, platformRoleGroups.accessApproval) ? <Link href="/admin/settings/system-health">System health</Link> : null}</div>
         </section>
 
         <section className="workflow-strip" aria-label="First workflow">
@@ -453,16 +470,20 @@ function WorkflowLane({
   const preview = lane.items[0];
 
   return (
-    <a className="workflow-row" href={preview?.href ?? lane.href}>
+    <details className="attention-queue">
+    <summary className="workflow-row">
       <span className="workflow-row-icon" aria-hidden="true">
         <lane.Icon size={15} />
       </span>
       <span>
         <strong>{lane.title}</strong>
-        {preview ? <small>{preview.title}: {preview.meta}</small> : <small>Clear for now</small>}
+        {preview ? <small>{preview.title}: {preview.meta}</small> : <small>No items in this preview</small>}
       </span>
-      <b>{lane.items.length}</b>
-    </a>
+      <b>{lane.items.length} <ChevronDown aria-hidden="true" size={15} /></b>
+    </summary>
+    <div className="workflow-list">{lane.items.map(item => <Link className="workflow-row" key={item.href} href={item.href}><span><strong>{item.title}</strong><small>{item.meta}</small></span></Link>)}</div>
+    <Link className="secondary-action" href={lane.href}>View all {lane.title.toLowerCase()}</Link>
+    </details>
   );
 }
 

@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { RecurringActionState } from "@/lib/action-states/recurring";
+import { followUpRequestKey } from "@/lib/next-actions";
 
 export async function createFollowUpTask(
   _state: RecurringActionState,
@@ -24,6 +25,15 @@ export async function createFollowUpTask(
   const subject = await resolveSubject(auth.supabase, formData);
   if (!title || !dueAt || subject.error)
     return failure(subject.error ?? "Title and due date are required.");
+  const assignee = optional(formData, "assigned_to_user_id", 80);
+  if (assignee) {
+    const { data: profile } = await auth.supabase.from("profiles").select("id").eq("id", assignee).eq("status", "active").maybeSingle();
+    if (!profile || !hasAllowedRole(await getUserRoles(auth.supabase, assignee), platformRoleGroups.internalStaff))
+      return failure("Choose an active office account, or leave this in the shared office queue.");
+  }
+  const requestId = text(formData, "request_id", 80);
+  const dedupeKey = followUpRequestKey(auth.userId, requestId);
+  if (requestId && !dedupeKey) return failure("Refresh the form before saving this next action.");
   const { data, error } = await auth.supabase
     .from("follow_up_tasks")
     .insert({
@@ -33,12 +43,21 @@ export async function createFollowUpTask(
       task_type: allowed(text(formData, "task_type", 40), taskTypes, "other"),
       due_at: dueAt,
       priority: allowed(text(formData, "priority", 20), priorities, "normal"),
-      assigned_to_user_id: optional(formData, "assigned_to_user_id", 80),
+      assigned_to_user_id: assignee,
+      dedupe_key: dedupeKey,
       notes: optionalMultiline(formData, "notes", 2000),
       created_by_user_id: auth.userId,
     })
     .select("id")
     .single();
+  if (error?.code === "23505" && dedupeKey) {
+    const { data: existing } = await auth.supabase.from("follow_up_tasks").select("id").eq("dedupe_key", dedupeKey).eq("created_by_user_id", auth.userId).maybeSingle();
+    if (existing) {
+      revalidateRecurring(subject.values.customer_id, subject.values.organization_id);
+      revalidateTaskRecords(subject.values);
+      return success("This next action was already saved. Open Follow-ups to review it.");
+    }
+  }
   if (error || !data)
     return failure(error?.message ?? "Could not create the follow-up.");
   await recordActivity(auth.supabase, {
@@ -51,6 +70,7 @@ export async function createFollowUpTask(
     subject.values.customer_id,
     subject.values.organization_id,
   );
+  revalidateTaskRecords(subject.values);
   return success("Follow-up added to the staff queue.");
 }
 
@@ -78,11 +98,12 @@ export async function updateFollowUpTask(
       status: "open",
       completed_at: null,
       completed_by_user_id: null,
+      snoozed_until: null,
     });
     eventType = "follow_up_reopened";
     message = "Follow-up reopened.";
   } else if (intent === "start") {
-    Object.assign(values, { status: "in_progress" });
+    Object.assign(values, { status: "in_progress", snoozed_until: null });
     message = "Follow-up marked in progress.";
   } else if (intent === "snooze") {
     const snoozedUntil = dateTime(formData.get("snoozed_until"));
@@ -96,7 +117,7 @@ export async function updateFollowUpTask(
     .from("follow_up_tasks")
     .update(values)
     .eq("id", taskId)
-    .select("id, customer_id, organization_id")
+    .select("id, customer_id, organization_id, quote_id, job_id, invoice_id")
     .maybeSingle();
   if (error || !data)
     return failure(error?.message ?? "Follow-up not found or no access.");
@@ -107,6 +128,7 @@ export async function updateFollowUpTask(
     subjectType: "follow_up_task",
   });
   revalidateRecurring(data.customer_id, data.organization_id);
+  revalidateTaskRecords(data);
   return success(message);
 }
 
@@ -998,6 +1020,16 @@ async function resolveSubject(supabase: any, formData: FormData) {
       values,
       error: "Link the follow-up to an account, property, or CRM record.",
     };
+  // Derive the contracting party from the linked record, never from browser claims.
+  for (const [key, table] of [["quote_id", "quotes"], ["job_id", "jobs"], ["invoice_id", "invoices"]] as const) {
+    if (!values[key]) continue;
+    const { data, error } = await supabase.from(table).select("customer_id, organization_id").eq("id", values[key]).single();
+    if (error || !data) return { values, error: "Linked record not found or no access." };
+    if ((values.customer_id && values.customer_id !== data.customer_id) || (values.organization_id && values.organization_id !== data.organization_id))
+      return { values, error: "The linked record belongs to a different contracting party." };
+    values.customer_id = data.customer_id;
+    values.organization_id = data.organization_id;
+  }
   if (locationId) {
     const { data, error } = await supabase
       .from("service_locations")
@@ -1008,6 +1040,11 @@ async function resolveSubject(supabase: any, formData: FormData) {
       return { values, error: error?.message ?? "Property not found." };
     values.customer_id ||= data.customer_id;
     values.organization_id ||= data.organization_id;
+  }
+  for (const [key, table] of [["customer_id", "customers"], ["organization_id", "organizations"]] as const) {
+    if (!values[key]) continue;
+    const { data, error } = await supabase.from(table).select("id").eq("id", values[key]).single();
+    if (error || !data) return { values, error: "Customer or organization not found or no access." };
   }
   return { values, error: null };
 }
@@ -1041,10 +1078,17 @@ function revalidateRecurring(
   organizationId?: string | null,
   planId?: string,
 ) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/follow-ups");
   revalidatePath("/admin/recurring");
   if (planId) revalidatePath(`/admin/recurring/${planId}`);
   if (customerId) revalidatePath(`/admin/customers/${customerId}`);
   if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`);
+}
+function revalidateTaskRecords(values: { quote_id?: string | null; job_id?: string | null; invoice_id?: string | null }) {
+  if (values.quote_id) revalidatePath(`/admin/quotes/${values.quote_id}`);
+  if (values.job_id) revalidatePath(`/admin/jobs/${values.job_id}`);
+  if (values.invoice_id) revalidatePath(`/admin/invoices/${values.invoice_id}`);
 }
 function success(message: string): RecurringActionState {
   return { status: "success", message };

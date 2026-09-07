@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import type { AdminNotification } from "@/lib/data/notifications";
+import { persistNotificationRead } from "@/lib/notifications/mark-read";
 import {
   getNotificationPopoverLayout,
   type NotificationPopoverLayout,
@@ -46,6 +47,8 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<AdminNotification[] | null>(null);
   const [error, setError] = useState("");
+  const [failedRead, setFailedRead] = useState<AdminNotification | null>(null);
+  const pendingReads = useRef(new Set<string>());
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const [popoverLayout, setPopoverLayout] = useState<NotificationPopoverLayout | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -130,8 +133,11 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     }
   }
 
-  async function markRead(notification: AdminNotification) {
-    if (!notification.read_at) {
+  async function markRead(notification: AdminNotification, close = true) {
+    if (close) setOpen(false);
+    if (!notification.read_at && !pendingReads.current.has(notification.id)) {
+      pendingReads.current.add(notification.id);
+      setFailedRead(null);
       setUnreadCount((count) => Math.max(0, count - 1));
       if (cachedNotificationCount) {
         cachedNotificationCount = {
@@ -145,13 +151,18 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
       setNotifications((rows) => rows?.map((row) => row.id === notification.id
         ? { ...row, read_at: new Date().toISOString() }
         : row) ?? null);
-      void fetch("/api/admin/notifications", {
-        body: JSON.stringify({ id: notification.id, read: true }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
+      try {
+        await persistNotificationRead(notification.id);
+      } catch {
+        cachedNotificationCount = null;
+        setNotifications((rows) => rows?.map((row) => row.id === notification.id ? notification : row) ?? null);
+        setFailedRead(notification);
+        setUnreadCount((count) => count + 1);
+        await fetchNotifications("count");
+      } finally {
+        pendingReads.current.delete(notification.id);
+      }
     }
-    setOpen(false);
   }
 
   return (
@@ -187,6 +198,10 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
             <Link href="/admin/notifications" onClick={() => setOpen(false)}>View all</Link>
           </header>
           <div aria-busy={!error && notifications === null} aria-live="polite" className="notification-popover-list">
+            {failedRead ? <div className="notification-popover-state" role="status">
+              <p>That notification could not be marked as read. Your destination link is unchanged.</p>
+              <button onClick={() => { void markRead(failedRead, false); }} type="button">Retry marking as read</button>
+            </div> : null}
             {error ? (
               <div className="notification-popover-state notification-popover-error" role="alert">
                 <p>{error}</p>

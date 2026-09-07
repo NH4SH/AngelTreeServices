@@ -2,7 +2,7 @@
 
 import { Archive, RotateCcw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { updateRecordLifecycle, type LifecycleActionState } from "@/lib/actions/record-lifecycle";
 
@@ -19,6 +19,7 @@ type JobListLifecycleActionsProps = {
 type LifecycleIntent = "archive" | "restore" | "permanent_delete";
 
 export function JobListLifecycleActions({ archived, canArchive, canPermanentlyDelete, jobId, label }: JobListLifecycleActionsProps) {
+  const headingId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const handledSuccessRef = useRef("");
   const router = useRouter();
@@ -60,7 +61,7 @@ export function JobListLifecycleActions({ archived, canArchive, canPermanentlyDe
         </button>
       ) : null}
 
-      <dialog className="record-lifecycle-dialog" ref={dialogRef} onCancel={() => setConfirmation("")}>
+      <dialog aria-labelledby={headingId} className="record-lifecycle-dialog" ref={dialogRef} onCancel={() => setConfirmation("")}>
         <form action={action} className="record-lifecycle-form">
           <input name="record_id" type="hidden" value={jobId} />
           <input name="record_type" type="hidden" value="job" />
@@ -68,7 +69,7 @@ export function JobListLifecycleActions({ archived, canArchive, canPermanentlyDe
           <header>
             <div>
               <p className="surface-label">{isPermanent ? "Permanent deletion" : intent === "restore" ? "Restore job" : "Archive job"}</p>
-              <h2>{label}</h2>
+              <h2 id={headingId}>{label}</h2>
             </div>
             <button aria-label="Close confirmation" className="icon-button" onClick={() => dialogRef.current?.close()} type="button"><X size={20} /></button>
           </header>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Camera, CheckCircle2, Megaphone, MessageSquareText, ShieldCheck } from "lucide-react";
+import { Camera, CheckCircle2, Megaphone, ShieldCheck } from "lucide-react";
 import { CopyDraftCard } from "@/components/copy-draft-card";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import {
@@ -20,7 +20,6 @@ export function CompletedJobMarketingWorkspace({
   photos: SignedJobPhoto[];
 }) {
   const [completionNotes, setCompletionNotes] = useState("");
-  const [followUpNote, setFollowUpNote] = useState("");
   const [permissionConfirmed, setPermissionConfirmed] = useState(false);
   const [galleryEligible, setGalleryEligible] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
@@ -120,22 +119,10 @@ export function CompletedJobMarketingWorkspace({
         </section>
 
         <section className="marketing-control-panel">
-          <h3><MessageSquareText aria-hidden="true" size={18} /> Customer follow-up note</h3>
-          <p>Local note scaffold only. Save this to the CRM after note-purpose tracking is designed.</p>
-          <textarea
-            maxLength={600}
-            onChange={(event) => setFollowUpNote(event.target.value)}
-            placeholder="Customer feedback, permission conversation, or follow-up needed..."
-            rows={5}
-            value={followUpNote}
-          />
-          <small>{followUpNote.length}/600 characters. Not saved.</small>
-        </section>
-
-        <section className="marketing-control-panel">
           <h3><Megaphone aria-hidden="true" size={18} /> Public completion notes</h3>
           <p>Add only details that are appropriate for a public draft. This remains local and unsaved.</p>
           <textarea
+            aria-label="Public completion notes"
             maxLength={600}
             onChange={(event) => setCompletionNotes(event.target.value)}
             placeholder="Example: Removed storm-damaged limbs and completed a full cleanup."

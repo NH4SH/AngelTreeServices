@@ -55,17 +55,15 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
 
   const detail = await getInvoiceDetail(invoiceId);
   const canManageDelivery = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const portalTokens = detail.data && canManageDelivery
-    ? await getInvoicePortalTokens(invoiceId)
-    : { data: [], error: null };
-  const emailEvents = detail.data ? await getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null };
-  const communications = detail.data ? await getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null };
-  const recipientOptions = detail.data
-    ? await getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id })
-    : { data: [], error: null };
+  const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview] = await Promise.all([
+    detail.data && canManageDelivery ? getInvoicePortalTokens(invoiceId) : { data: [], error: null },
+    detail.data ? getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null },
+    detail.data ? getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null },
+    detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
+    detail.data && canManageDelivery ? getRecordLifecyclePreview("invoice", invoiceId) : null,
+  ]);
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
-  const lifecyclePreview = detail.data && canManageDelivery ? await getRecordLifecyclePreview("invoice", invoiceId) : null;
   const recipient = detail.data
     ? detail.data.accounts_payable_contact?.email
       ?? detail.data.billing_contact?.email

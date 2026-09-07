@@ -2,7 +2,7 @@
 
 import { Archive, RotateCcw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   updateRecordLifecycle,
   type LifecycleActionState,
@@ -21,6 +21,7 @@ type RecordLifecyclePanelProps = {
 };
 
 export function RecordLifecyclePanel({ canArchive, canPermanentlyDelete, compact = false, listHref, preview }: RecordLifecyclePanelProps) {
+  const headingId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const handledSuccessRef = useRef("");
   const router = useRouter();
@@ -71,7 +72,7 @@ export function RecordLifecyclePanel({ canArchive, canPermanentlyDelete, compact
         ) : null}
       </div>
 
-      <dialog className="record-lifecycle-dialog" ref={dialogRef} onCancel={() => setConfirmation("")}>
+      <dialog aria-labelledby={headingId} className="record-lifecycle-dialog" ref={dialogRef} onCancel={() => setConfirmation("")}>
         <form action={action} className="record-lifecycle-form">
           <input name="record_id" type="hidden" value={preview.recordId} />
           <input name="record_type" type="hidden" value={preview.recordType} />
@@ -79,7 +80,7 @@ export function RecordLifecyclePanel({ canArchive, canPermanentlyDelete, compact
           <header>
             <div>
               <p className="surface-label">{isPermanent ? "Permanent deletion" : intent === "restore" ? "Restore record" : "Archive record"}</p>
-              <h2>{preview.label}</h2>
+              <h2 id={headingId}>{preview.label}</h2>
             </div>
             <button aria-label="Close confirmation" className="icon-button" onClick={() => dialogRef.current?.close()} type="button"><X size={20} /></button>
           </header>

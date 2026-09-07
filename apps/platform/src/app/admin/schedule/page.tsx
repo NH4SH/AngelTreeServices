@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlatformModal } from "@/components/platform-modal";
 import {
   AlertTriangle,
   CalendarDays,
@@ -697,8 +698,8 @@ function ScheduleEventFormDrawer({
   const closeHref = buildScheduleHref(current, { new: undefined, job: undefined, lead: undefined, customer: undefined, organization: undefined });
 
   return (
-    <div className="appointment-overlay" role="dialog" aria-labelledby="add-schedule-event-title" aria-modal="true">
-      <div className="appointment-backdrop" />
+    <PlatformModal className="appointment-overlay" labelledBy="add-schedule-event-title" closeHref={closeHref}>
+      <Link aria-hidden="true" tabIndex={-1} className="appointment-backdrop" href={closeHref} scroll={false} />
       <aside className="appointment-drawer schedule-event-drawer">
         <ScheduleEventDrawerContent
           closeHref={closeHref}
@@ -712,7 +713,7 @@ function ScheduleEventFormDrawer({
           users={users}
         />
       </aside>
-    </div>
+    </PlatformModal>
   );
 }
 
@@ -767,8 +768,8 @@ function ScheduleEventDetailPanel({
     || "No linked contracting party";
 
   return (
-    <div className="appointment-overlay" role="dialog" aria-labelledby="schedule-event-detail-title" aria-modal="true">
-      <div className="appointment-backdrop" />
+    <PlatformModal className="appointment-overlay" labelledBy="schedule-event-detail-title" closeHref={buildScheduleHref(current, { event: undefined })}>
+      <Link aria-hidden="true" tabIndex={-1} className="appointment-backdrop" href={buildScheduleHref(current, { event: undefined })} scroll={false} />
       <aside className="appointment-popover">
         <div className="appointment-drawer-header">
           <div>
@@ -909,7 +910,7 @@ function ScheduleEventDetailPanel({
           <ScheduleEventEditForm event={event} jobs={jobs} key={event.id} users={users} />
         </details> : null}
       </aside>
-    </div>
+    </PlatformModal>
   );
 }
 
@@ -938,8 +939,8 @@ function AppointmentDetailPanel({
     || "No linked contracting party";
 
   return (
-    <div className="appointment-overlay" role="dialog" aria-labelledby="appointment-detail-title" aria-modal="true">
-      <div className="appointment-backdrop" />
+    <PlatformModal className="appointment-overlay" labelledBy="appointment-detail-title" closeHref={buildScheduleHref(current, { appointment: undefined })}>
+      <Link aria-hidden="true" tabIndex={-1} className="appointment-backdrop" href={buildScheduleHref(current, { appointment: undefined })} scroll={false} />
       <aside className="appointment-popover">
         <div className="appointment-drawer-header">
           <div>
@@ -1018,7 +1019,7 @@ function AppointmentDetailPanel({
           <AppointmentEditForm appointment={appointment} assignedUsers={users} key={appointment.id} />
         </details>
       </aside>
-    </div>
+    </PlatformModal>
   );
 }
 

@@ -14,7 +14,40 @@
   --color-border-strong: oklch(0.62 0.03 155 / 0.5);
   --shadow-soft: 0 18px 46px oklch(0.22 0.012 145 / 0.07);
   --shadow-small: 0 8px 20px oklch(0.22 0.012 145 / 0.05);
+  --color-navigation-text: oklch(0.35 0.012 154);
+  --color-navigation-icon: oklch(0.5 0.018 154);
+  --color-navigation-active-border: oklch(0.79 0.032 154);
+  --color-navigation-active-surface: oklch(0.925 0.025 154);
+  --color-focus-ring: oklch(0.7 0.11 145 / 0.42);
+  --control-touch-size: 44px;
 }
+
+.platform-modal {
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+}
+
+.platform-modal:not([open]) { display: none; }
+.platform-modal::backdrop { background: transparent; }
+
+.review-field {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: var(--color-charcoal);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.review-field :is(input, select) { width: 100%; min-width: 0; }
 
 /* Customer activity notifications and administrative history */
 .app-sidebar-header {
@@ -34,8 +67,8 @@
 .notification-bell-trigger {
   position: relative;
   display: inline-flex;
-  width: 42px;
-  height: 42px;
+  width: var(--control-touch-size);
+  height: var(--control-touch-size);
   align-items: center;
   justify-content: center;
   border: 1px solid var(--color-border);
@@ -3729,9 +3762,6 @@
 }
 
 /* Workflow-first application shell */
-.app-shell {
-  grid-template-columns: 236px minmax(0, 1fr);
-}
 
 .app-sidebar {
   overflow: hidden;
@@ -3816,7 +3846,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 0 9px;
-  color: oklch(0.35 0.012 154);
+  color: var(--color-navigation-text);
   font-size: 0.86rem;
   font-weight: 620;
   line-height: 1.2;
@@ -3830,7 +3860,7 @@
 .navigation-links a svg,
 .workspace-shortcuts a svg {
   flex: 0 0 auto;
-  color: oklch(0.5 0.018 154);
+  color: var(--color-navigation-icon);
 }
 
 .navigation-links a:hover,
@@ -3842,8 +3872,8 @@
 }
 
 .navigation-links a[aria-current="page"] {
-  border-color: oklch(0.79 0.032 154);
-  background: oklch(0.925 0.025 154);
+  border-color: var(--color-navigation-active-border);
+  background: var(--color-navigation-active-surface);
   color: var(--color-forest);
   font-weight: 740;
 }
@@ -3859,7 +3889,7 @@
 .mobile-menu-button:focus-visible,
 .command-palette a:focus-visible,
 .local-workflow-tabs a:focus-visible {
-  outline: 3px solid oklch(0.7 0.11 145 / 0.42);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 
@@ -3888,7 +3918,7 @@
   border-radius: 8px;
   padding: 0 9px;
   background: var(--color-surface);
-  color: oklch(0.4 0.012 154);
+  color: var(--color-navigation-text);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -3932,8 +3962,8 @@
 .mobile-icon-button,
 .mobile-menu-button {
   display: inline-flex;
-  min-width: 42px;
-  min-height: 42px;
+  min-width: var(--control-touch-size);
+  min-height: var(--control-touch-size);
   align-items: center;
   justify-content: center;
   gap: 7px;
@@ -4013,6 +4043,16 @@
   font: inherit;
 }
 
+.mobile-navigation-drawer :is(.navigation-links a, .mobile-signout) {
+  min-height: var(--control-touch-size);
+}
+
+@media (pointer: coarse) {
+  .app-sidebar :is(.navigation-links a, .workspace-shortcuts a, .command-palette-trigger, .app-signout, .navigation-section-toggle) {
+    min-height: var(--control-touch-size);
+  }
+}
+
 .command-palette-layer {
   display: grid;
   place-items: start center;
@@ -4056,8 +4096,8 @@
 
 .command-palette-search button {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: var(--control-touch-size);
+  height: var(--control-touch-size);
   place-items: center;
   border: 0;
   border-radius: 7px;
@@ -6423,12 +6463,6 @@ code {
 
 .narrow-shell {
   width: min(780px, calc(100% - 32px));
-}
-
-.app-shell {
-  width: min(1180px, calc(100% - 28px));
-  margin: 0 auto;
-  padding: 18px 0 56px;
 }
 
 .app-topbar {
@@ -11940,7 +11974,8 @@ body {
   grid-template-columns: 244px minmax(0, 1fr);
   align-items: start;
   gap: 0;
-  width: 100%;
+  width: min(1440px, 100%);
+  background: var(--color-page);
   min-height: 100dvh;
   margin: 0;
   padding: 0;
@@ -13321,8 +13356,9 @@ h1,
 
 .appointment-drawer-header a {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: var(--control-touch-size);
+  height: var(--control-touch-size);
+  flex-shrink: 0;
   place-items: center;
   border: 1px solid var(--color-border);
   border-radius: 9px;
@@ -15398,11 +15434,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   letter-spacing: 0;
-}
-
-.app-shell {
-  width: min(1440px, 100%);
-  background: var(--color-page);
 }
 
 .app-sidebar {

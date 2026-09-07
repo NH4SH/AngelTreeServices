@@ -42,10 +42,12 @@ export default async function CustomerDetailPage({ params, searchParams }: Custo
   }
 
   const [detail, leadSources, recurring] = await Promise.all([getCustomerDetail(customerId), getLeadSources(), getRecurringSummaryForCustomer(customerId)]);
-  const emailEvents = detail.data ? await getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null };
-  const communications = detail.data ? await getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null };
   const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const lifecyclePreview = detail.data && canArchive ? await getRecordLifecyclePreview("customer", customerId) : null;
+  const [emailEvents, communications, lifecyclePreview] = await Promise.all([
+    detail.data ? getEmailEvents({ customerId, limit: 10 }) : { data: [], error: null },
+    detail.data ? getCustomerCommunications({ customerId, limit: 20 }) : { data: [], error: null },
+    detail.data && canArchive ? getRecordLifecyclePreview("customer", customerId) : null,
+  ]);
 
   return (
     <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>

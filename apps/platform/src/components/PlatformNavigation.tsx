@@ -13,7 +13,8 @@ import {
   UserCheck,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { PlatformModal } from "@/components/platform-modal";
 import { signOut } from "@/app/login/actions";
 import { NotificationBell } from "@/components/notification-bell";
 import type { PlatformRoleName } from "@/lib/auth/roles";
@@ -166,12 +167,12 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
       </header>
 
       {mobileOpen ? (
-        <div className="mobile-navigation-layer">
-          <button aria-label="Close navigation" className="mobile-navigation-backdrop" onClick={() => setMobileOpen(false)} type="button" />
+        <PlatformModal className="mobile-navigation-layer" label="Platform navigation" onDismiss={() => setMobileOpen(false)}>
+          <button aria-hidden="true" tabIndex={-1} className="mobile-navigation-backdrop" onClick={() => setMobileOpen(false)} type="button" />
           <aside aria-label="Mobile platform navigation" className="mobile-navigation-drawer">
             <div className="mobile-navigation-header">
               <Brand href={audience === "crew" ? "/crew" : "/admin"} onIntent={(href) => router.prefetch(href)} />
-              <button aria-label="Close navigation" className="mobile-icon-button" onClick={() => setMobileOpen(false)} type="button"><X size={20} /></button>
+              <button data-modal-initial-focus aria-label="Close navigation" className="mobile-icon-button" onClick={() => setMobileOpen(false)} type="button"><X size={20} /></button>
             </div>
             <nav>
               {sections.map((section) => {
@@ -186,7 +187,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
             </nav>
             <form action={signOut}><button className="mobile-signout" type="submit"><LogOut size={17} />Sign out</button></form>
           </aside>
-        </div>
+        </PlatformModal>
       ) : null}
 
       {paletteOpen ? <CommandPalette audience={audience} items={items} onClose={() => setPaletteOpen(false)} roles={roles} /> : null}
@@ -222,6 +223,7 @@ function NavigationLinks({ items, onIntent, onNavigate, pathname }: { items: Nav
 function CommandPalette({ audience, items, onClose, roles }: { audience: NavigationAudience; items: NavigationItem[]; onClose: () => void; roles: PlatformRoleName[] }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const commands = useMemo(() => {
@@ -230,14 +232,15 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
   }, [audience, items, roles]);
   const filtered = commands.filter((command) => `${command.label} ${command.keywords.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
 
-  useEffect(() => inputRef.current?.focus(), []);
   useEffect(() => setActiveIndex(0), [query]);
+  useEffect(() => {
+    document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, listId]);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Escape") onClose();
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActiveIndex((index) => Math.min(index + 1, filtered.length - 1));
+      setActiveIndex((index) => Math.max(0, Math.min(index + 1, filtered.length - 1)));
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -252,17 +255,17 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
   }
 
   return (
-    <div className="command-palette-layer" role="presentation">
-      <button aria-label="Close command palette" className="command-palette-backdrop" onClick={onClose} type="button" />
-      <section aria-label="Command palette" aria-modal="true" className="command-palette" role="dialog">
+    <PlatformModal className="command-palette-layer" label="Command palette" onDismiss={onClose}>
+      <button aria-hidden="true" tabIndex={-1} className="command-palette-backdrop" onClick={onClose} type="button" />
+      <section className="command-palette">
         <div className="command-palette-search">
           <Search aria-hidden="true" size={19} />
-          <input aria-label="Find a page or action" onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKeyDown} placeholder="Find a page or action…" ref={inputRef} value={query} />
+          <input data-modal-initial-focus role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls={listId} aria-activedescendant={filtered[activeIndex] ? `${listId}-${activeIndex}` : undefined} aria-label="Find a page or action" onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKeyDown} placeholder="Find a page or action…" ref={inputRef} value={query} />
           <button aria-label="Close command palette" onClick={onClose} type="button"><X size={18} /></button>
         </div>
-        <div className="command-palette-results" role="listbox">
+        <div aria-label="Pages and actions" className="command-palette-results" id={listId} role="listbox">
           {filtered.length ? filtered.map((command, index) => (
-            <Link aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onFocus={() => router.prefetch(command.href)} onMouseEnter={() => { setActiveIndex(index); router.prefetch(command.href); }} onTouchStart={() => router.prefetch(command.href)} prefetch={false} role="option">
+            <Link id={`${listId}-${index}`} tabIndex={-1} aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onFocus={() => router.prefetch(command.href)} onMouseEnter={() => { setActiveIndex(index); router.prefetch(command.href); }} onTouchStart={() => router.prefetch(command.href)} prefetch={false} role="option">
               <span><command.icon aria-hidden="true" size={18} /><strong>{command.label}</strong></span>
               <Command aria-hidden="true" size={14} />
             </Link>
@@ -270,6 +273,6 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
         </div>
         <footer><span>↑↓ Navigate</span><span>Enter Open</span><span>Esc Close</span></footer>
       </section>
-    </div>
+    </PlatformModal>
   );
 }

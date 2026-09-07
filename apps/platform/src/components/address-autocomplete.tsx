@@ -248,6 +248,10 @@ function AddressAutocompleteInput({
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
+      if (open) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       setFocused(false);
       setSuggestions([]);
       setActiveIndex(-1);
@@ -307,7 +311,7 @@ function AddressAutocompleteInput({
         </div>
       ) : null}
     </div>,
-    document.body,
+    inputRef.current?.closest("dialog") ?? document.body,
   ) : null;
 
   return (

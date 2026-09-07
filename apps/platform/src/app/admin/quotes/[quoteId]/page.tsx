@@ -59,19 +59,17 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
   }
 
   const detail = await getQuoteDetail(quoteId);
-  const approvalSource = detail.data?.status === "approved"
-    ? await getQuoteApprovalSource(quoteId)
-    : { data: null, error: null };
-  const portalTokens = detail.data ? await getQuotePortalTokens(quoteId) : { data: [], error: null };
-  const emailEvents = detail.data ? await getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null };
-  const communications = detail.data ? await getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null };
-  const recipientOptions = detail.data
-    ? await getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id })
-    : { data: [], error: null };
-  const assignedUsers = await getAssignableUsers();
-  const emailSetup = getEmailSetupState();
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const lifecyclePreview = detail.data && canManuallyMarkSent ? await getRecordLifecyclePreview("quote", quoteId) : null;
+  const [approvalSource, portalTokens, emailEvents, communications, recipientOptions, assignedUsers, lifecyclePreview] = await Promise.all([
+    detail.data?.status === "approved" ? getQuoteApprovalSource(quoteId) : { data: null, error: null },
+    detail.data ? getQuotePortalTokens(quoteId) : { data: [], error: null },
+    detail.data ? getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null },
+    detail.data ? getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null },
+    detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
+    getAssignableUsers(),
+    detail.data && canManuallyMarkSent ? getRecordLifecyclePreview("quote", quoteId) : null,
+  ]);
+  const emailSetup = getEmailSetupState();
   const recipient = detail.data
     ? detail.data.approval_contact?.email
       ?? detail.data.recipient_contact?.email

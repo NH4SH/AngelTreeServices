@@ -64,6 +64,9 @@ export async function getNotificationInbox(input: {
 export async function getNotificationPreferences(userId: string) {
   const supabase = await createClient();
   const defaults = {
+    daily_summary_email_enabled: false,
+    handoff_email_enabled: false,
+    daily_summary_hour: 7,
     change_order_email_enabled: true,
     customer_update_email_enabled: true,
     file_email_enabled: true,
@@ -75,10 +78,17 @@ export async function getNotificationPreferences(userId: string) {
   if (!supabase) return { data: defaults, error: "Supabase is not configured." };
   const { data, error } = await supabase
     .from("admin_notification_preferences")
-    .select("*")
+    .select("*, daily_summary_email_enabled, handoff_email_enabled, daily_summary_hour")
     .eq("user_id", userId)
     .maybeSingle();
-  return { data: data ?? defaults, error: error?.message ?? null };
+  return { data: { ...defaults, ...data }, error: error ? "Notification settings could not load. The manager-email migration must be applied before these settings can be saved." : null };
+}
+
+export async function getManagerEmailHistory(userId: string) {
+  const db = await createClient();
+  if (!db) return { data: [], error: "Email history is unavailable." };
+  const { data, error } = await db.from("admin_notifications").select("id, title, email_status, email_attempted_at, created_at, manager_email_problem").eq("recipient_user_id", userId).not("manager_email_kind", "is", null).order("created_at", { ascending: false }).limit(15);
+  return { data: data ?? [], error: error ? "Manager email history could not load." : null };
 }
 
 export async function getActivityLogPage(input: {

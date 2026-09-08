@@ -1,0 +1,63 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { PGlite } = require(process.env.PGLITE_MODULE || "@electric-sql/pglite");
+const oldMigration = await readFile(new URL("../../../supabase/migrations/20260727030032_customer_activity_notifications_and_admin_log.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../../supabase/migrations/20260908131758_manager_notification_emails.sql", import.meta.url), "utf8");
+const a = "00000000-0000-0000-0000-000000000001", b = "00000000-0000-0000-0000-000000000002", crew = "00000000-0000-0000-0000-000000000003";
+
+test("manager email migration: PostgreSQL trigger, opt-in, duplicate prevention and client privileges", async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(`
+      create role anon; create role authenticated; create role service_role bypassrls;
+      create schema auth; create schema app_private;
+      create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+      create table profiles(id uuid primary key, status text);
+      create table roles(id uuid primary key default gen_random_uuid(), name text);
+      create table user_roles(user_id uuid references profiles(id), role_id uuid references roles(id));
+      create table organizations(id uuid primary key);
+      create table activity_log(id uuid primary key default gen_random_uuid(), subject_type text, subject_id uuid, event_type text, actor_type text, action_category text, summary text, destination_path text);
+      create table follow_up_tasks(id uuid primary key default gen_random_uuid(), assigned_to_user_id uuid references profiles(id), status text default 'open', title text, due_at timestamptz, quote_id uuid, invoice_id uuid, job_id uuid, organization_id uuid, customer_id uuid);
+      create table email_events(id uuid primary key default gen_random_uuid(), email_type text constraint email_events_email_type_check check(email_type in ('quote')));
+      create function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at := now(); return new; end $$;
+      create function app_private.has_platform_admin_role() returns boolean language sql security definer set search_path='' as $$ select exists(select 1 from public.user_roles ur join public.roles r on r.id=ur.role_id where ur.user_id=auth.uid() and r.name in ('owner','admin')) $$;
+      grant usage on schema public,auth,app_private to authenticated,anon;
+    `);
+    await db.exec(oldMigration.slice(oldMigration.indexOf("create table public.admin_notification_preferences"), oldMigration.indexOf("-- Event creation")));
+    await db.exec(migration);
+    await db.exec(`insert into roles(name) values('admin'),('crew'); insert into profiles values('${a}','active'),('${b}','active'),('${crew}','active');
+      insert into user_roles select p.id,r.id from profiles p join roles r on r.name=case when p.id='${crew}' then 'crew' else 'admin' end;
+      insert into admin_notification_preferences(user_id) values('${a}'),('${b}'),('${crew}');
+      insert into follow_up_tasks(title,due_at,assigned_to_user_id) values('Callback',now(),'${a}');`);
+    const count = async () => Number((await db.query("select count(*) from admin_notifications")).rows[0].count);
+    assert.equal(await count(), 0, "new preference defaults must not email existing managers");
+    await db.exec(`update admin_notification_preferences set handoff_email_enabled=true where user_id='${a}';
+      insert into follow_up_tasks(title,due_at,assigned_to_user_id) values('New handoff',now(),'${a}');`);
+    assert.equal(await count(), 1);
+    await db.exec(`update follow_up_tasks set assigned_to_user_id='${a}' where title='New handoff';`);
+    assert.equal(await count(), 1, "same assignment does not queue again");
+    await db.exec(`update follow_up_tasks set assigned_to_user_id='${b}' where title='New handoff';`);
+    assert.equal((await db.query("select email_status from admin_notifications")).rows[0].email_status, "skipped");
+    await db.exec(`update admin_notification_preferences set handoff_email_enabled=true where user_id='${crew}';
+      insert into follow_up_tasks(title,due_at,assigned_to_user_id) values('Crew-only handoff',now(),'${crew}');`);
+    assert.equal(await count(), 1, "crew is not eligible even with a preference row");
+    await db.exec(`update profiles set status='inactive' where id='${a}'; insert into follow_up_tasks(title,due_at,assigned_to_user_id) values('Inactive manager',now(),'${a}');`);
+    assert.equal(await count(), 1);
+    await db.exec(`update profiles set status='active' where id='${a}';
+      select set_config('request.jwt.claim.sub','${a}',false); set role authenticated;`);
+    assert.equal((await db.query("select count(*) from admin_notification_preferences")).rows[0].count, 1);
+    await db.exec("update admin_notifications set read_at=now();");
+    await assert.rejects(db.exec("update admin_notifications set manager_email_payload='{}';"), /permission denied/i);
+    await assert.rejects(db.exec("update admin_notifications set email_status='pending';"), /permission denied/i);
+    assert.equal((await db.query(`update admin_notification_preferences set handoff_email_enabled=true where user_id='${b}' returning user_id`)).rows.length, 0);
+    await assert.rejects(db.exec("select app_private.queue_manager_handoff_email();"), /permission denied/i);
+    await db.exec(`reset role; select set_config('request.jwt.claim.sub','${crew}',false); set role authenticated;`);
+    assert.equal((await db.query("select count(*) from admin_notification_preferences")).rows[0].count, 0);
+    assert.equal((await db.query("select count(*) from admin_notifications")).rows[0].count, 0);
+    await db.exec("reset role; set role anon;");
+    await assert.rejects(db.exec("select * from admin_notifications;"), /permission denied/i);
+  } finally { await db.close(); }
+});

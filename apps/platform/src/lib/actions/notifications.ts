@@ -55,7 +55,12 @@ export async function updateNotificationPreferences(
   const context = await getAuthenticatedPlatformContext("/admin/settings/notifications");
   if (!context.configured || !context.supabase || !context.user) return { message: "Supabase is not configured.", status: "error" };
   if (!hasAllowedRole(context.roles, platformRoleGroups.accessApproval)) return denied;
+  const hour = Number(formData.get("daily_summary_hour"));
+  if (!Number.isInteger(hour) || hour < 7 || hour > 11) return { message: "Choose a morning summary time between 7 AM and 11 AM Eastern.", status: "error" };
   const { error } = await context.supabase.from("admin_notification_preferences").upsert({
+    daily_summary_email_enabled: checked(formData, "daily_summary_email_enabled"),
+    handoff_email_enabled: checked(formData, "handoff_email_enabled"),
+    daily_summary_hour: hour,
     change_order_email_enabled: checked(formData, "change_order_email_enabled"),
     customer_update_email_enabled: checked(formData, "customer_update_email_enabled"),
     file_email_enabled: checked(formData, "file_email_enabled"),
@@ -64,7 +69,7 @@ export async function updateNotificationPreferences(
     quote_email_enabled: checked(formData, "quote_email_enabled"),
     user_id: context.user.id,
   }, { onConflict: "user_id" });
-  if (error) return { message: error.message, status: "error" };
+  if (error) return { message: "Preferences could not be saved. Your selections are still here; check that the manager-email migration is installed and retry.", status: "error" };
   revalidatePath("/admin/settings/notifications");
   return { message: "Notification preferences saved.", status: "success" };
 }

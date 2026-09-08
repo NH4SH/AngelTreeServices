@@ -6,6 +6,7 @@ import { getServiceRoleClient } from "@/lib/supabase/admin";
 import type { EmailEvent, EmailEventType } from "@/lib/types/database";
 
 export type SendEmailInput = {
+  signal?: AbortSignal;
   to: string;
   cc?: string[];
   subject: string;
@@ -85,6 +86,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
+      signal: input.signal,
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",

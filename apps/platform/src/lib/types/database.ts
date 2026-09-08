@@ -100,7 +100,9 @@ export type EmailEventType =
   | "payment_confirmation"
   | "payment_preference_notice"
   | "admin_customer_activity"
-  | "system_health_alert";
+  | "system_health_alert"
+  | "manager_handoff"
+  | "manager_daily_summary";
 export type EmailEventStatus = "sent" | "failed";
 export type CommunicationType = Extract<
   EmailEventType,

@@ -66,7 +66,7 @@ Today, Schedule, Customers, job details, call/directions and photos already supp
 
 ## Daily digest decision
 
-Deferred automatic digest: existing transactional messages do not provide a manager digest's recipient preferences, opt-in schedule and per-day deduplication. The live morning dashboard is the V1 summary. A later implementation can use the existing email/activity infrastructure with explicit manager recipients, business-date dedupe keys, no customer recipients, and retry-safe delivery. Do not repurpose customer reminder settings.
+Opt-in morning summaries and assigned-handoff emails now use the existing email/activity infrastructure with per-manager preferences, Eastern business-date deduplication, and bounded retries. Both default off. See [manager email setup](MANAGER_EMAIL_NOTIFICATIONS.md) for the required migration, manual deployment, and account-specific activation. Customer reminder settings are unchanged.
 
 ## Pre-trip rehearsal (use approved test records)
 

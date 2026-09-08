@@ -58,13 +58,22 @@ jobs:
             local failure_category="$3"
             local failure_title="$4"
             local failure_summary="$5"
-            if ! curl --fail --silent --show-error --location \
-              --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 10 \
-              "$url" >/dev/null; then
-              observations="${observations}${label}: failed; "
-              record_failure "${failure_category}" "none" "${failure_summary}" "${failure_title}"
+            local status exit_code detail
+            status="$(curl --fail --silent --show-error --location \
+              --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 10 --retry-all-errors \
+              --output /dev/null --write-out '%{http_code}' "$url")"
+            exit_code=$?
+            if [ "${exit_code}" -ne 0 ]; then
+              if [[ "${status}" =~ ^[1-5][0-9][0-9]$ ]]; then
+                detail="HTTP ${status}, curl ${exit_code}"
+              else
+                status="none"
+                detail="connection failed before HTTP response, curl ${exit_code}"
+              fi
+              observations="${observations}${label}: failed (${detail}); "
+              record_failure "${failure_category}" "${status}" "${failure_summary} (${detail})" "${failure_title}"
             else
-              observations="${observations}${label}: passed; "
+              observations="${observations}${label}: passed (HTTP ${status}); "
             fi
           }
 

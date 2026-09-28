@@ -7,6 +7,7 @@ import {
   setNotificationReadState,
   type NotificationActionState,
 } from "@/lib/actions/notifications";
+import type { NotificationInboxTab } from "@/lib/notifications/scope";
 
 const initialState: NotificationActionState = { message: "", status: "idle" };
 
@@ -24,10 +25,11 @@ export function NotificationReadAction({ id, read }: { id: string; read: boolean
   );
 }
 
-export function MarkAllNotificationsRead() {
+export function MarkAllNotificationsRead({ scope }: { scope: NotificationInboxTab }) {
   const [state, action, pending] = useReliableActionState(markAllNotificationsRead, initialState);
   return (
     <form action={action} className="notification-mark-all">
+      <input name="scope" type="hidden" value={scope} />
       <button className="secondary-action" disabled={pending} type="submit">
         <CheckCheck size={17} />{pending ? "Updating…" : "Mark all read"}
       </button>

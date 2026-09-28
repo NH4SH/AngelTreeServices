@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import {
+  normalizeNotificationInboxTab,
+  systemHealthNotificationDestination,
+} from "@/lib/notifications/scope";
 
 export type NotificationActionState = {
   message: string;
@@ -33,19 +37,30 @@ export async function setNotificationReadState(
 
 export async function markAllNotificationsRead(
   _state: NotificationActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<NotificationActionState> {
   const context = await getAuthenticatedPlatformContext("/admin/notifications");
   if (!context.configured || !context.supabase || !context.user) return { message: "Supabase is not configured.", status: "error" };
   if (!hasAllowedRole(context.roles, platformRoleGroups.accessApproval)) return denied;
-  const { error } = await context.supabase
+
+  const scope = normalizeNotificationInboxTab(String(formData.get("scope") ?? ""));
+  let query = context.supabase
     .from("admin_notifications")
     .update({ read_at: new Date().toISOString() })
     .eq("recipient_user_id", context.user.id)
     .is("read_at", null);
+
+  query = scope === "system"
+    ? query.eq("destination_path", systemHealthNotificationDestination)
+    : query.or(`destination_path.is.null,destination_path.neq.${systemHealthNotificationDestination}`);
+
+  const { error } = await query;
   if (error) return { message: error.message, status: "error" };
   revalidatePath("/admin/notifications");
-  return { message: "All notifications marked read.", status: "success" };
+  return {
+    message: scope === "system" ? "System status alerts marked read." : "Activity notifications marked read.",
+    status: "success",
+  };
 }
 
 export async function updateNotificationPreferences(

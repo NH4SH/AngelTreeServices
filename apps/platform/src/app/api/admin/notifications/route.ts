@@ -1,29 +1,60 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import {
+  normalizeNotificationInboxTab,
+  systemHealthNotificationDestination,
+} from "@/lib/notifications/scope";
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
   if (auth.response) return auth.response;
   const { supabase, user } = auth;
 
-  const mode = new URL(request.url).searchParams.get("mode");
-  const countResult = await supabase
-    .from("admin_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("recipient_user_id", user.id)
-    .is("read_at", null);
-  if (countResult.error) return NextResponse.json({ error: "Notifications are unavailable." }, { status: 500 });
-  if (mode === "count") return NextResponse.json({ unreadCount: countResult.count ?? 0 });
+  const url = new URL(request.url);
+  const mode = url.searchParams.get("mode");
+  const tab = normalizeNotificationInboxTab(url.searchParams.get("tab"));
 
-  const recent = await supabase
+  const [activityCountResult, systemCountResult] = await Promise.all([
+    supabase
+      .from("admin_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_user_id", user.id)
+      .is("read_at", null)
+      .or(`destination_path.is.null,destination_path.neq.${systemHealthNotificationDestination}`),
+    supabase
+      .from("admin_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_user_id", user.id)
+      .is("read_at", null)
+      .eq("destination_path", systemHealthNotificationDestination),
+  ]);
+
+  if (activityCountResult.error || systemCountResult.error) {
+    return NextResponse.json({ error: "Notifications are unavailable." }, { status: 500 });
+  }
+
+  const counts = {
+    unreadCount: activityCountResult.count ?? 0,
+    systemUnreadCount: systemCountResult.count ?? 0,
+  };
+
+  if (mode === "count") return NextResponse.json(counts);
+
+  let recent = supabase
     .from("admin_notifications")
     .select("id, category, title, body, destination_path, read_at, created_at")
     .eq("recipient_user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(8);
-  if (recent.error) return NextResponse.json({ error: "Notifications are unavailable." }, { status: 500 });
-  return NextResponse.json({ notifications: recent.data ?? [], unreadCount: countResult.count ?? 0 });
+    .order("created_at", { ascending: false });
+
+  recent = tab === "system"
+    ? recent.eq("destination_path", systemHealthNotificationDestination)
+    : recent.or(`destination_path.is.null,destination_path.neq.${systemHealthNotificationDestination}`);
+
+  const result = await recent.limit(8);
+  if (result.error) return NextResponse.json({ error: "Notifications are unavailable." }, { status: 500 });
+
+  return NextResponse.json({ notifications: result.data ?? [], ...counts });
 }
 
 export async function PATCH(request: Request) {

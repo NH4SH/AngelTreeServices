@@ -5,6 +5,10 @@ import {
   notificationCategories,
   type NotificationCategory,
 } from "@/lib/notifications/definitions";
+import {
+  systemHealthNotificationDestination,
+  type NotificationInboxTab,
+} from "@/lib/notifications/scope";
 
 export type AdminNotification = {
   body: string | null;
@@ -37,6 +41,7 @@ export async function getNotificationInbox(input: {
   category?: string;
   page: number;
   pageSize: number;
+  scope?: NotificationInboxTab;
   status?: string;
   userId: string;
 }) {
@@ -48,9 +53,14 @@ export async function getNotificationInbox(input: {
     .select("id, category, title, body, destination_path, read_at, created_at", { count: "exact" })
     .eq("recipient_user_id", input.userId)
     .order("created_at", { ascending: false });
+
+  query = input.scope === "system"
+    ? query.eq("destination_path", systemHealthNotificationDestination)
+    : query.or(`destination_path.is.null,destination_path.neq.${systemHealthNotificationDestination}`);
+
   if (input.status === "unread") query = query.is("read_at", null);
   if (input.status === "read") query = query.not("read_at", "is", null);
-  if (notificationCategories.includes(input.category as NotificationCategory)) {
+  if (input.scope !== "system" && notificationCategories.includes(input.category as NotificationCategory)) {
     query = query.eq("category", input.category);
   }
   const { data, count, error } = await query.range(from, from + input.pageSize - 1);

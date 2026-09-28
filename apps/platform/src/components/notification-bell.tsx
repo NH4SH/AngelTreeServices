@@ -8,12 +8,17 @@ import { formatBusinessDateTime } from "@/lib/business-time";
 import type { AdminNotification } from "@/lib/data/notifications";
 import { persistNotificationRead } from "@/lib/notifications/mark-read";
 import {
+  isSystemHealthNotification,
+  type NotificationInboxTab,
+} from "@/lib/notifications/scope";
+import {
   getNotificationPopoverLayout,
   type NotificationPopoverLayout,
 } from "@/lib/notifications/popover-position";
 
 type NotificationCountPayload = {
   error?: string;
+  systemUnreadCount?: number;
   unreadCount?: number;
 };
 
@@ -44,7 +49,9 @@ async function fetchNotificationCount() {
 
 export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<NotificationInboxTab>("activity");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [systemUnreadCount, setSystemUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<AdminNotification[] | null>(null);
   const [error, setError] = useState("");
   const [failedRead, setFailedRead] = useState<AdminNotification | null>(null);
@@ -99,24 +106,29 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     };
   }, [open, updatePopoverLayout]);
 
-  async function fetchNotifications(mode: "count" | "recent") {
+  async function fetchNotifications(mode: "count" | "recent", tab: NotificationInboxTab = activeTab) {
     try {
       if (mode === "count") {
         const payload = await fetchNotificationCount();
         setUnreadCount(payload.unreadCount ?? 0);
+        setSystemUnreadCount(payload.systemUnreadCount ?? 0);
         setError("");
         return;
       }
 
-      const response = await fetch(`/api/admin/notifications?mode=${mode}`, { cache: "no-store" });
+      const response = await fetch(`/api/admin/notifications?mode=recent&tab=${tab}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
       setUnreadCount(payload.unreadCount ?? 0);
+      setSystemUnreadCount(payload.systemUnreadCount ?? 0);
       cachedNotificationCount = {
         expiresAt: Date.now() + notificationCountCacheMs,
-        payload: { unreadCount: payload.unreadCount ?? 0 },
+        payload: {
+          systemUnreadCount: payload.systemUnreadCount ?? 0,
+          unreadCount: payload.unreadCount ?? 0,
+        },
       };
-      if (mode === "recent") setNotifications(payload.notifications ?? []);
+      setNotifications(payload.notifications ?? []);
       setError("");
     } catch (fetchError) {
       if (mode === "recent") setError(fetchError instanceof Error ? fetchError.message : "Notifications are unavailable.");
@@ -129,22 +141,37 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     setOpen(next);
     if (next) {
       setNotifications(null);
-      await fetchNotifications("recent");
+      await fetchNotifications("recent", activeTab);
     }
+  }
+
+  async function selectTab(tab: NotificationInboxTab) {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setNotifications(null);
+    setError("");
+    await fetchNotifications("recent", tab);
   }
 
   async function markRead(notification: AdminNotification, close = true) {
     if (close) setOpen(false);
     if (!notification.read_at && !pendingReads.current.has(notification.id)) {
+      const systemNotification = isSystemHealthNotification(notification);
       pendingReads.current.add(notification.id);
       setFailedRead(null);
-      setUnreadCount((count) => Math.max(0, count - 1));
+      if (systemNotification) setSystemUnreadCount((count) => Math.max(0, count - 1));
+      else setUnreadCount((count) => Math.max(0, count - 1));
       if (cachedNotificationCount) {
         cachedNotificationCount = {
           expiresAt: cachedNotificationCount.expiresAt,
           payload: {
             ...cachedNotificationCount.payload,
-            unreadCount: Math.max(0, (cachedNotificationCount.payload.unreadCount ?? 0) - 1),
+            systemUnreadCount: systemNotification
+              ? Math.max(0, (cachedNotificationCount.payload.systemUnreadCount ?? 0) - 1)
+              : cachedNotificationCount.payload.systemUnreadCount ?? 0,
+            unreadCount: systemNotification
+              ? cachedNotificationCount.payload.unreadCount ?? 0
+              : Math.max(0, (cachedNotificationCount.payload.unreadCount ?? 0) - 1),
           },
         };
       }
@@ -157,7 +184,8 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
         cachedNotificationCount = null;
         setNotifications((rows) => rows?.map((row) => row.id === notification.id ? notification : row) ?? null);
         setFailedRead(notification);
-        setUnreadCount((count) => count + 1);
+        if (systemNotification) setSystemUnreadCount((count) => count + 1);
+        else setUnreadCount((count) => count + 1);
         await fetchNotifications("count");
       } finally {
         pendingReads.current.delete(notification.id);
@@ -165,12 +193,14 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
     }
   }
 
+  const activeUnreadCount = activeTab === "system" ? systemUnreadCount : unreadCount;
+
   return (
     <div className={`notification-bell ${mobile ? "is-mobile" : ""}`} ref={rootRef}>
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        aria-label={unreadCount ? `Notifications, ${unreadCount} unread activity notifications` : "Notifications"}
         className="notification-bell-trigger"
         onClick={toggle}
         ref={triggerRef}
@@ -194,9 +224,29 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
           tabIndex={-1}
         >
           <header>
-            <div><strong>Notifications</strong><span>{unreadCount} unread</span></div>
-            <Link href="/admin/notifications" onClick={() => setOpen(false)}>View all</Link>
+            <div><strong>Notifications</strong><span>{activeUnreadCount} unread in this tab</span></div>
+            <Link href={`/admin/notifications?tab=${activeTab}`} onClick={() => setOpen(false)}>View all</Link>
           </header>
+          <nav aria-label="Notification type" className="notification-tabs notification-popover-tabs">
+            <button
+              aria-selected={activeTab === "activity"}
+              className={activeTab === "activity" ? "is-active" : ""}
+              onClick={() => { void selectTab("activity"); }}
+              role="tab"
+              type="button"
+            >
+              Activity{unreadCount ? <span>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+            </button>
+            <button
+              aria-selected={activeTab === "system"}
+              className={activeTab === "system" ? "is-active" : ""}
+              onClick={() => { void selectTab("system"); }}
+              role="tab"
+              type="button"
+            >
+              System status{systemUnreadCount ? <span>{systemUnreadCount > 99 ? "99+" : systemUnreadCount}</span> : null}
+            </button>
+          </nav>
           <div aria-busy={!error && notifications === null} aria-live="polite" className="notification-popover-list">
             {failedRead ? <div className="notification-popover-state" role="status">
               <p>That notification could not be marked as read. Your destination link is unchanged.</p>
@@ -205,11 +255,13 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
             {error ? (
               <div className="notification-popover-state notification-popover-error" role="alert">
                 <p>{error}</p>
-                <button onClick={() => { setNotifications(null); void fetchNotifications("recent"); }} type="button">Try again</button>
+                <button onClick={() => { setNotifications(null); void fetchNotifications("recent", activeTab); }} type="button">Try again</button>
               </div>
             ) : null}
             {!error && notifications === null ? <p className="notification-popover-state"><LoaderCircle aria-hidden="true" className="spin" size={18} />Loading notifications</p> : null}
-            {!error && notifications?.length === 0 ? <p className="notification-popover-state"><Check aria-hidden="true" size={18} />No customer activity yet.</p> : null}
+            {!error && notifications?.length === 0 ? (
+              <p className="notification-popover-state"><Check aria-hidden="true" size={18} />{activeTab === "system" ? "No system status alerts." : "No customer activity yet."}</p>
+            ) : null}
             {notifications?.map((notification) => (
               <Link
                 className={notification.read_at ? "" : "is-unread"}
@@ -217,7 +269,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
                 key={notification.id}
                 onClick={() => markRead(notification)}
               >
-                <span aria-hidden="true" className={`notification-category-dot ${notification.category}`} />
+                <span aria-hidden="true" className={`notification-category-dot ${isSystemHealthNotification(notification) ? "system_health" : notification.category}`} />
                 <span><strong>{notification.title}</strong><small>{notification.body}</small><time>{relativeTime(notification.created_at)}</time></span>
               </Link>
             ))}

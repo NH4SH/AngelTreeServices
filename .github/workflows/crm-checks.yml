@@ -1,0 +1,70 @@
+name: CRM regression checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crm-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Cover the observed production major and the documented developer runtime.
+        include:
+          - node: '22.23.3'
+            npm: '10.9.9'
+          - node: '24.4.0'
+            npm: '11.10.0'
+    defaults:
+      run:
+        working-directory: apps/platform
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: apps/platform/package-lock.json
+      - name: Match the verified package-manager version
+        run: npm install --global npm@${{ matrix.npm }} --no-fund --no-audit
+      - run: npm ci --no-fund --no-audit
+      - name: Unit and isolated PostgreSQL regression tests
+        run: npm run test:unit
+      - run: npm run typecheck
+      - name: Build without production credentials
+        run: npm run build
+      - name: Check patch whitespace
+        run: git diff --check
+
+  public-and-monitor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - run: npm ci --no-fund --no-audit
+      - run: npm run test:public
+      - name: Monitor classifier tests (does not run the production monitor)
+        run: node --test .github/scripts/*.test.mjs

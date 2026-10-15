@@ -1,4 +1,6 @@
 import "server-only";
+import { employeeClockState, type EmployeeClockState } from "@/lib/employee-presentation";
+import { platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { getBusinessDateKey, shiftBusinessDateKey } from "@/lib/business-time";
@@ -13,7 +15,7 @@ import type {
 
 const detailSelect = `
   *,
-  profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email),
+  profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email, status),
   employee_emergency_contacts(*),
   employee_onboarding_items(*),
   employee_credentials(*, credential_types(*)),
@@ -29,6 +31,7 @@ export type EmployeeListRow = EmployeeRecord & {
   credentialState: "current" | "expiring" | "expired" | "pending" | "none";
   trainingState: "recorded" | "none";
   roleNames: string[];
+  timeClockState: EmployeeClockState;
   platformAccessState: "active" | "disabled" | "pending" | "no_account";
 };
 
@@ -36,6 +39,7 @@ export type EmployeeDetailData = {
   employee: EmployeeDetail;
   roles: string[];
   timeClockEnabled: boolean;
+  timeClockState: EmployeeClockState;
   equipmentAssignments: Record<string, unknown>[];
   activity: Record<string, unknown>[];
   privateNotes: string | null;
@@ -48,18 +52,20 @@ export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
   if (error) return { data: [], error: safeStaffMessage(error.message) };
   const rows = ((data as { employees?: unknown[] } | null)?.employees ?? []) as (EmployeeRecord & { employee_onboarding_items?: { completion_status: string }[]; employee_credentials?: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]; training_attendees?: { id: string }[] })[];
   const authIds = rows.map((row) => row.auth_user_id).filter((id): id is string => Boolean(id));
-  const [rolesResult, profilesResult, pendingResult] = await Promise.all([
+  const [rolesResult, profilesResult, pendingResult, timerResult] = await Promise.all([
     authIds.length ? supabase.from("user_roles").select("user_id, roles(name)").in("user_id", authIds) : Promise.resolve({ data: [], error: null }),
     authIds.length ? supabase.from("profiles").select("id, status").in("id", authIds) : Promise.resolve({ data: [], error: null }),
     supabase.from("employee_access_requests").select("id, email, status").eq("status", "pending"),
+    authIds.length ? supabase.from("time_clock_permissions").select("user_id, is_enabled").in("user_id", authIds) : Promise.resolve({ data: [], error: null }),
   ]);
   const rolesByUser = new Map<string, string[]>();
   for (const row of rolesResult.data ?? []) {
     const relation = row.roles as { name?: string } | { name?: string }[] | null;
     const names = (Array.isArray(relation) ? relation : relation ? [relation] : []).map((role) => role.name).filter((name): name is string => Boolean(name));
-    rolesByUser.set(row.user_id, names);
+    rolesByUser.set(row.user_id, [...(rolesByUser.get(row.user_id) ?? []), ...names]);
   }
   const profileStatus = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile.status]));
+  const timerPermissions = new Map((timerResult.data ?? []).map((row) => [row.user_id, row.is_enabled]));
   const pendingEmails = new Set((pendingResult.data ?? []).map((request) => request.email.toLowerCase()));
   return {
     data: rows.map((employee) => {
@@ -71,12 +77,17 @@ export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
         credentialState: credentialState(employee.employee_credentials ?? []),
         trainingState: employee.training_attendees?.length ? "recorded" : "none",
         roleNames: employee.auth_user_id ? rolesByUser.get(employee.auth_user_id) ?? [] : [],
+        timeClockState: employeeClockState({ authId: employee.auth_user_id, active: employee.is_active, archived: Boolean(employee.archived_at), employmentStatus: employee.employment_status,
+          profileStatus: profilesResult.error ? undefined : profileStatus.get(employee.auth_user_id ?? ""),
+          permission: timerResult.error ? undefined : timerPermissions.get(employee.auth_user_id ?? ""),
+          eligibleRole: rolesResult.error || !rolesByUser.has(employee.auth_user_id ?? "") ? undefined : rolesByUser.get(employee.auth_user_id ?? "")!.some((name) => (platformRoleGroups.timeClockEligible as readonly string[]).includes(name)),
+        }),
         platformAccessState: employee.auth_user_id
-          ? profileStatus.get(employee.auth_user_id) === "active" ? "active" : "disabled"
+          ? profileStatus.get(employee.auth_user_id) === "active" && employee.is_active && !employee.archived_at && !["inactive", "separated"].includes(employee.employment_status) ? "active" : "disabled"
           : employee.contact_email && pendingEmails.has(employee.contact_email.toLowerCase()) ? "pending" : "no_account",
       };
     }),
-    error: rolesResult.error ? safeStaffMessage(rolesResult.error.message) : profilesResult.error ? safeStaffMessage(profilesResult.error.message) : pendingResult.error ? safeStaffMessage(pendingResult.error.message) : null,
+    error: rolesResult.error ? safeStaffMessage(rolesResult.error.message) : profilesResult.error ? safeStaffMessage(profilesResult.error.message) : pendingResult.error ? safeStaffMessage(pendingResult.error.message) : timerResult.error ? safeStaffMessage(timerResult.error.message) : null,
   };
 }
 
@@ -94,10 +105,14 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
     authId ? supabase.from("user_roles").select("roles(name)").eq("user_id", authId) : Promise.resolve({ data: [], error: null }),
     authId ? supabase.from("time_clock_permissions").select("is_enabled").eq("user_id", authId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     authId ? supabase.from("equipment_assignments").select("*, equipment_assets(id, asset_number, name, category, status)").eq("assigned_user_id", authId).order("starts_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
-    supabase.from("activity_log").select("id, event_type, actor_user_id, metadata_json, created_at").eq("subject_type", "employee").eq("subject_id", employeeId).order("created_at", { ascending: false }).limit(50),
+    supabase.from("activity_log").select("id, event_type, actor_user_id, actor_label, metadata_json, created_at").eq("subject_type", "employee").eq("subject_id", employeeId).order("created_at", { ascending: false }).limit(50),
     includePrivateNotes ? supabase.from("employee_private_records").select("private_hr_notes").eq("employee_id", employeeId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   employee.supervisor = supervisor.data;
+  const actorIds = [...new Set((activity.data ?? []).map((event) => event.actor_user_id).filter((id): id is string => Boolean(id)))];
+  // Authenticated client keeps the existing profile visibility rules in force.
+  const actors = actorIds.length ? await supabase.from("profiles").select("id, full_name").in("id", actorIds) : { data: [], error: null };
+  const actorNames = new Map((actors.data ?? []).map((profile) => [profile.id, profile.full_name]));
 
   const documents = employee.employee_documents ?? [];
   if (documents.length) {
@@ -110,7 +125,10 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
     return (Array.isArray(relation) ? relation : relation ? [relation] : []).map((role) => role.name).filter((name): name is string => Boolean(name));
   });
   return {
-    data: { employee, roles: roleNames, timeClockEnabled: Boolean(timer.data?.is_enabled), equipmentAssignments: equipment.data ?? [], activity: activity.data ?? [], privateNotes: privateRecord.data?.private_hr_notes ?? null },
+    data: { employee, roles: roleNames, timeClockEnabled: Boolean(timer.data?.is_enabled), timeClockState: employeeClockState({ authId, active: employee.is_active, archived: Boolean(employee.archived_at), employmentStatus: employee.employment_status,
+      profileStatus: employee.profiles?.status, permission: timer.error ? undefined : timer.data?.is_enabled,
+      eligibleRole: roles.error || !roleNames.length ? undefined : roleNames.some((name) => (platformRoleGroups.timeClockEligible as readonly string[]).includes(name)),
+    }), equipmentAssignments: equipment.data ?? [], activity: (activity.data ?? []).map((event) => ({ ...event, actorName: actorNames.get(event.actor_user_id ?? "") ?? null })), privateNotes: privateRecord.data?.private_hr_notes ?? null },
     error: supervisor.error ? safeStaffMessage(supervisor.error.message) : roles.error ? safeStaffMessage(roles.error.message) : timer.error ? safeStaffMessage(timer.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : activity.error ? safeStaffMessage(activity.error.message) : privateRecord.error ? safeStaffMessage(privateRecord.error.message) : null,
   };
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
-import { getBusinessDateKey, parseBusinessDateTime } from "@/lib/business-time";
+import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { createClient } from "@/lib/supabase/server";
@@ -42,8 +42,14 @@ export async function updateEmployee(_state: EmployeeActionState, formData: Form
   const context = await getStaffContext(true); if (!context) return fail("Only owner/admin can edit employee identity and employment fields.");
   const employeeId = text(formData, "employee_id", 80); const input = employeeInput(formData);
   if (!employeeId || "message" in input) return fail(!employeeId ? "Employee record is missing." : String(input.message));
-  const { data: current } = await context.supabase.from("employee_records").select("auth_user_id, contact_email, profiles:profiles!employee_records_auth_user_id_fkey(email)").eq("id", employeeId).single();
-  const { error } = await context.supabase.from("employee_records").update(input).eq("id", employeeId);
+  const { data: current } = await context.supabase.from("employee_records").select("auth_user_id, employment_status, is_active, contact_email, profiles:profiles!employee_records_auth_user_id_fkey(email)").eq("id", employeeId).single();
+  if (!current) return fail("Employee record not found.");
+  if (input.employment_status !== current.employment_status &&
+      (!current.is_active || ["inactive", "separated"].includes(input.employment_status))) {
+    return fail("Use the employee access controls to offboard or reactivate.");
+  }
+  const { is_active: _active, separation_date: _date, separation_reason: _reason, ...identityInput } = input;
+  const { error } = await context.supabase.from("employee_records").update(identityInput).eq("id", employeeId);
   if (error) return fail(error.message);
   await saveEmergencyContact(context.supabase, employeeId, formData);
   await savePrivateNotes(context.supabase, employeeId, formData, context.user.id);
@@ -73,12 +79,37 @@ export async function updateOnboardingItem(_state: EmployeeActionState, formData
 }
 
 export async function startEmployeeOnboarding(formData: FormData) {
-  const context = await getStaffContext(); if (!context) return;
-  const employeeId = text(formData, "employee_id", 80); if (!employeeId) return;
-  const { error } = await context.supabase.from("employee_records").update({ employment_status: "onboarding", is_active: true }).eq("id", employeeId);
-  if (error) return;
-  await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_onboarding_started", subjectId: employeeId, subjectType: "employee" });
-  revalidateEmployee(employeeId);
+  await changeEmployeeAccess(formData, "onboarding", "Employee onboarding/reactivation requested by administrator.");
+}
+
+export async function reactivateEmployee(formData: FormData) {
+  await changeEmployeeAccess(formData, "active");
+}
+
+async function changeEmployeeAccess(formData: FormData, status: string, defaultReason?: string) {
+  const employeeId = text(formData, "employee_id", 80);
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId)) redirect("/admin/employees");
+  const context = await getStaffContext(true);
+  const reason = text(formData, "reason", 1000) || defaultReason;
+  let message: string;
+  let outcome = "error";
+  if (!context || !reason) {
+    message = "An active owner/admin and a reason are required. No access state was changed.";
+  } else {
+    const { data, error } = await context.supabase.rpc("set_employee_access_status", {
+      p_employee_id: employeeId, p_status: status, p_reason: reason,
+    });
+    if (error || !data) {
+      message = safeStaffMessage(error?.message ?? "Access change could not be confirmed. Refresh the employee record before retrying.");
+    } else {
+      outcome = "warning";
+      message = ["inactive", "separated", "archived"].includes(status)
+        ? "CRM access disabled. Time clock disabled. Historical records retained. Auth sessions were not revoked; database authorization rejects them."
+        : "CRM access restored with retained roles and assignments. Time clock remains disabled pending review. Existing unexpired sessions may regain access.";
+      revalidateEmployee(employeeId);
+    }
+  }
+  redirect(`/admin/employees/${employeeId}?access_result=${outcome}&access_message=${encodeURIComponent(message)}`);
 }
 
 export async function addEmployeeCredential(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
@@ -209,21 +240,19 @@ export async function linkEmployeePlatformAccount(_state: EmployeeActionState, f
 }
 
 export async function markEmployeeInactive(formData: FormData) {
-  const context = await getStaffContext(true); if (!context) return;
-  const employeeId = text(formData, "employee_id", 80); const reason = text(formData, "reason", 1000); if (!employeeId || !reason) return;
-  const { data: employee } = await context.supabase.from("employee_records").select("auth_user_id").eq("id", employeeId).single(); if (!employee) return;
-  await context.supabase.from("employee_records").update({ employment_status: "inactive", is_active: false, separation_date: getBusinessDateKey(new Date()), separation_reason: reason }).eq("id", employeeId);
-  if (employee.auth_user_id) { await context.supabase.from("profiles").update({ status: "disabled" }).eq("id", employee.auth_user_id); await context.supabase.from("time_clock_permissions").update({ is_enabled: false, notes: "Disabled when employee was marked inactive." }).eq("user_id", employee.auth_user_id); }
-  await seedSeparationItems(context.supabase, employeeId); await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_marked_inactive", subjectId: employeeId, subjectType: "employee" }); revalidateEmployee(employeeId);
+  await changeEmployeeAccess(formData, "inactive");
 }
 
-export async function updateSeparationItem(formData: FormData) {
-  const context = await getStaffContext(true); if (!context) return;
+export async function updateSeparationItem(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  const context = await getStaffContext(true); if (!context) return fail("Only an owner or administrator can update offboarding tasks.");
   const employeeId = text(formData, "employee_id", 80); const itemId = text(formData, "item_id", 80); const status = text(formData, "completion_status", 30);
-  if (!employeeId || !itemId || !["incomplete", "complete", "not_applicable"].includes(status)) return;
-  await context.supabase.from("employee_separation_items").update({ completion_status: status, notes: optional(formData, "notes", 800), completed_at: status === "incomplete" ? null : new Date().toISOString(), completed_by_user_id: status === "incomplete" ? null : context.user.id }).eq("id", itemId).eq("employee_id", employeeId);
+  if (!employeeId || !itemId || !["incomplete", "complete", "not_applicable"].includes(status)) return fail("Choose a valid task and status, then try again.");
+  const { data, error } = await context.supabase.from("employee_separation_items").update({ completion_status: status, notes: optional(formData, "notes", 800), completed_at: status === "incomplete" ? null : new Date().toISOString(), completed_by_user_id: status === "incomplete" ? null : context.user.id }).eq("id", itemId).eq("employee_id", employeeId).select("id").maybeSingle();
+  if (error) return fail("Task could not be saved. Your note is still here. Try again.");
+  if (!data) return fail("Task was not saved. It may no longer be available to you. Refresh the page after copying your note.");
   await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_separation_checklist_updated", subjectId: employeeId, subjectType: "employee", metadata: { item_id: itemId, status } });
   revalidateEmployee(employeeId);
+  return ok("Task saved.");
 }
 
 export async function saveQualificationRequirement(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
@@ -243,17 +272,14 @@ export async function deactivateQualificationRequirement(formData: FormData) {
 }
 
 export async function archiveEmployee(formData: FormData) {
-  const context = await getStaffContext(true); if (!context) return;
-  const employeeId = text(formData, "employee_id", 80); if (!employeeId) return;
-  await context.supabase.from("employee_records").update({ archived_at: new Date().toISOString(), archived_by_user_id: context.user.id, is_active: false }).eq("id", employeeId);
-  await recordActivity(context.supabase, { actorUserId: context.user.id, eventType: "employee_archived", subjectId: employeeId, subjectType: "employee" }); revalidateEmployee(employeeId); redirect("/admin/employees?archived=1");
+  await changeEmployeeAccess(formData, "archived", "Employee archived by administrator.");
 }
 
 function employeeInput(formData: FormData) { const legalName = text(formData, "legal_name", 180); const preferredName = optional(formData, "preferred_name", 180); const status = text(formData, "employment_status", 30); if (!legalName || !employmentStatuses.includes(status)) return { message: "Legal name and employment status are required." }; return { legal_name: legalName, preferred_name: preferredName, employee_number: optional(formData, "employee_number", 80), contact_email: optional(formData, "contact_email", 180)?.toLowerCase() ?? null, contact_phone: optional(formData, "contact_phone", 50), home_address: optional(formData, "home_address", 500), hire_date: date(formData, "hire_date"), employment_status: status, employment_type: optional(formData, "employment_type", 30), job_title: optional(formData, "job_title", 160), department: optional(formData, "department", 120), crew_name: optional(formData, "crew_name", 120), supervisor_employee_id: optional(formData, "supervisor_employee_id", 80), preferred_language: optional(formData, "preferred_language", 80), operational_notes: optional(formData, "operational_notes", 3000), is_supervisor: formData.get("is_supervisor") === "on", is_active: !["inactive", "separated"].includes(status), separation_date: date(formData, "separation_date"), separation_reason: optional(formData, "separation_reason", 1000), manual_review_required: false }; }
 async function saveEmergencyContact(supabase: any, employeeId: string, formData: FormData) { const name = text(formData, "emergency_name", 180); const phone = text(formData, "emergency_phone", 50); if (!name && !phone) return; if (!name || !phone) return; const { data: current } = await supabase.from("employee_emergency_contacts").select("id").eq("employee_id", employeeId).eq("is_primary", true).maybeSingle(); const values = { employee_id: employeeId, full_name: name, relationship: optional(formData, "emergency_relationship", 100), phone, alternate_phone: optional(formData, "emergency_alternate_phone", 50), is_primary: true }; if (current) await supabase.from("employee_emergency_contacts").update(values).eq("id", current.id); else await supabase.from("employee_emergency_contacts").insert(values); }
 async function savePrivateNotes(supabase: any, employeeId: string, formData: FormData, userId: string) { if (!formData.has("private_hr_notes")) return; await supabase.from("employee_private_records").upsert({ employee_id: employeeId, private_hr_notes: optional(formData, "private_hr_notes", 5000), updated_by_user_id: userId }); }
 async function saveProfilePhoto(supabase: any, employeeId: string, file: File) { if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 6 * 1024 * 1024) return; const prepared = await prepareSafeUpload(file, { maxBytes: 6 * 1024 * 1024 }); if (!prepared.data) return; const path = `${employeeId}/profile/${Date.now()}-${safeFileName(file.name)}`; const { error } = await supabase.storage.from("employee-files").upload(path, prepared.data.bytes, { contentType: prepared.data.contentType }); if (!error) await supabase.from("employee_records").update({ profile_photo_storage_path: path }).eq("id", employeeId); }
-async function seedSeparationItems(supabase: any, employeeId: string) { await supabase.from("employee_separation_items").upsert([['platform_access','Platform access disabled'],['equipment_returned','Equipment and PPE returned'],['keys_cards','Keys and cards returned'],['future_schedule','Future schedule reviewed'],['final_time','Final time entries reviewed'],['documents_archived','Documents archived']].map(([item_key,label]) => ({ employee_id: employeeId, item_key, label })), { onConflict: "employee_id,item_key" }); }
+
 async function uploadProgramFiles(supabase: any, userId: string, context: { trainingSessionId?: string; safetyMeetingId?: string }, fields: { field: string; kind: "attachment" | "photo" }[], formData: FormData) { const warnings: string[] = []; for (const input of fields) { for (const value of formData.getAll(input.field)) { if (!(value instanceof File) || value.size === 0) continue; if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(value.type) || value.size > 15 * 1024 * 1024) { warnings.push(`${value.name || "One file"} was not a supported PDF or image up to 15 MB.`); continue; } const prepared = await prepareSafeUpload(value, { maxBytes: 15 * 1024 * 1024, allowDocuments: true }); if (!prepared.data) { warnings.push(`${value.name || "One file"} could not be validated.`); continue; } const ownerType = context.trainingSessionId ? "training" : "safety"; const ownerId = context.trainingSessionId ?? context.safetyMeetingId ?? "unknown"; const path = `${ownerType}/${ownerId}/${Date.now()}-${safeFileName(value.name)}`; const { error: uploadError } = await supabase.storage.from("employee-program-files").upload(path, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false }); if (uploadError) { warnings.push(`${value.name} could not upload.`); continue; } const { error: metadataError } = await supabase.from("employee_program_files").insert({ training_session_id: context.trainingSessionId ?? null, safety_meeting_id: context.safetyMeetingId ?? null, file_kind: input.kind, title: value.name.slice(0, 180), storage_path: path, mime_type: prepared.data.contentType, file_size_bytes: prepared.data.size, uploaded_by_user_id: userId }); if (metadataError) warnings.push(`${value.name} uploaded, but its record could not be linked.`); } } return warnings; }
 function revalidateEmployee(id: string) { revalidateEmployeePages(); revalidatePath(`/admin/employees/${id}`); revalidatePath(`/admin/employees/${id}/edit`); }
 function revalidateEmployeePages() { revalidatePath("/admin"); revalidatePath("/admin/employees"); revalidatePath("/admin/training"); revalidatePath("/admin/safety"); revalidatePath("/admin/schedule"); revalidatePath("/employee"); }

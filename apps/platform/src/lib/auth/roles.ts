@@ -33,6 +33,10 @@ export async function getUserRoles(
   supabase: SupabaseClient<any, "public", any>,
   userId: string,
 ): Promise<PlatformRoleName[]> {
+  // Live database state is authoritative even for an otherwise valid old JWT.
+  const access = await supabase.rpc("has_effective_platform_access");
+  if (access.error || access.data !== true) return [];
+
   const { data, error } = await supabase
     .from("user_roles")
     .select("roles(name)")

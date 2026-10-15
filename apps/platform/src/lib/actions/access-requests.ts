@@ -218,14 +218,14 @@ export async function approveEmployeeAccessRequest(
     };
   }
 
-  const { error: profileError } = await supabase.from("profiles").upsert({
+  const { error: profileError } = await supabase.from("profiles").update({
     id: targetProfile.id,
     email: request.email,
     full_name: request.full_name,
     phone: request.phone,
     user_type: mapApprovalRoleToUserType(approvedRole as AccessApprovalRole),
     status: "active",
-  });
+  }).eq("id", targetProfile.id);
 
   if (profileError) {
     return { status: "error", message: safeStaffMessage(profileError.message) };

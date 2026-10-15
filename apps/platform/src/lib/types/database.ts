@@ -1698,7 +1698,7 @@ export type EmployeeRecord = {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
-  profiles?: AssignableUser | null;
+  profiles?: (AssignableUser & { status?: "active" | "invited" | "disabled" }) | null;
   supervisor?: Pick<EmployeeRecord, "id" | "preferred_name" | "legal_name"> | null;
 };
 export type ServiceCategory = {

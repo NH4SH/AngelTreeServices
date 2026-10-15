@@ -17,5 +17,5 @@ export function canAccessAssignedCrewJob({
   roles: PlatformRoleName[];
   userId: string;
 }) {
-  return canViewAllCrewJobs(roles) || assignedCrewUserId === userId;
+  return canViewAllCrewJobs(roles) || (hasAllowedRole(roles, platformRoleGroups.crewApp) && assignedCrewUserId === userId);
 }

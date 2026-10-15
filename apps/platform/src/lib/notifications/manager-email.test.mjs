@@ -152,6 +152,7 @@ test('summary uses bounded counts, explicit relationships and current date; quer
 test('saving preferences is owner/admin-only, self-scoped, validated and does not send email', async () => {
   let role='crew', saved=null;
   const actions = load('../actions/notifications.ts', {
+    '@/lib/notifications/scope': load('./scope.ts'),
     'next/cache': {revalidatePath(){}},
     '@/lib/auth/pageContext': {getAuthenticatedPlatformContext:async()=>({configured:true,user:{id:'self'},roles:[role],supabase:{from:()=>({upsert:async value=>{saved=value;return {error:null};}})}})},
     '@/lib/auth/roles': {hasAllowedRole:(roles,allowed)=>roles.some(r=>allowed.includes(r)),platformRoleGroups:{accessApproval:['owner','admin']}},

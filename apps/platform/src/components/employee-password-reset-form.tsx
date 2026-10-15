@@ -17,14 +17,25 @@ const initialState: AccessRequestActionState = {
 const confirmationCopy =
   "Send this employee a password reset email? They will receive a secure link to choose a new password.";
 
-export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) {
-  const [state, formAction, isPending] = useReliableActionState(sendEmployeePasswordReset, initialState);
+export function EmployeePasswordResetForm({
+  users,
+  disabledReason,
+}: {
+  users: ScheduleUser[];
+  disabledReason?: string;
+}) {
+  const [state, formAction, isPending] = useReliableActionState(
+    sendEmployeePasswordReset,
+    initialState,
+  );
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const usersWithEmail = useMemo(
     () => users.filter((user) => Boolean(user.email)),
     [users],
   );
-  const [selectedUserId, setSelectedUserId] = useState(usersWithEmail[0]?.id ?? "");
+  const [selectedUserId, setSelectedUserId] = useState(
+    usersWithEmail[0]?.id ?? "",
+  );
   const isCoolingDown = cooldownSeconds > 0;
 
   useEffect(() => {
@@ -38,7 +49,10 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
       return;
     }
 
-    const timer = window.setTimeout(() => setCooldownSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    const timer = window.setTimeout(
+      () => setCooldownSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
     return () => window.clearTimeout(timer);
   }, [cooldownSeconds]);
 
@@ -47,7 +61,7 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
       action={formAction}
       className="employee-password-reset-form"
       onSubmit={(event) => {
-        if (!window.confirm(confirmationCopy)) {
+        if (disabledReason || !window.confirm(confirmationCopy)) {
           event.preventDefault();
         }
       }}
@@ -55,15 +69,15 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
       <div className="employee-password-reset-copy">
         <strong>Send password reset</strong>
         <p>
-          Sends the employee a Supabase password reset email. Admins never see or handle the
-          employee's password.
+          Sends a secure link so the employee can choose a new password. You
+          won’t see their password.
         </p>
       </div>
 
       <label>
         <span>Employee</span>
         <select
-          disabled={usersWithEmail.length === 0 || isPending}
+          disabled={Boolean(disabledReason) || usersWithEmail.length === 0 || isPending}
           name="user_id"
           onChange={(event) => setSelectedUserId(event.target.value)}
           value={selectedUserId}
@@ -72,7 +86,9 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
             usersWithEmail.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.full_name || user.email || "Unnamed employee"}
-                {user.role_names.length ? `, ${user.role_names.join(", ")}` : ""}
+                {user.role_names.length
+                  ? `, ${user.role_names.join(", ")}`
+                  : ""}
               </option>
             ))
           ) : (
@@ -81,17 +97,37 @@ export function EmployeePasswordResetForm({ users }: { users: ScheduleUser[] }) 
         </select>
       </label>
 
-      <button disabled={!selectedUserId || isPending || isCoolingDown} type="submit">
+      <button
+        disabled={Boolean(disabledReason) || !selectedUserId || isPending || isCoolingDown}
+        aria-describedby={disabledReason ? "employee-reset-unavailable" : undefined}
+        type="submit"
+      >
         <KeyRound aria-hidden="true" size={17} />
-        {isPending ? "Sending..." : isCoolingDown ? `Wait ${cooldownSeconds}s` : "Send reset email"}
+        {isPending
+          ? "Sending..."
+          : isCoolingDown
+            ? `Wait ${cooldownSeconds}s`
+            : "Send reset email"}
       </button>
 
+      {disabledReason ? <p id="employee-reset-unavailable" className="field-note">{disabledReason}</p> : null}
+
       {isCoolingDown ? (
-        <p className="field-note">A reset email was just sent. Wait {cooldownSeconds} seconds before sending another.</p>
+        <p className="field-note">
+          A reset email was just sent. Wait {cooldownSeconds} seconds before
+          sending another.
+        </p>
       ) : null}
 
       {state.message ? (
-        <p className={state.status === "error" ? "form-status error" : "form-status success"} role="status">
+        <p
+          className={
+            state.status === "error"
+              ? "form-status error"
+              : "form-status success"
+          }
+          role="status"
+        >
           {state.message}
         </p>
       ) : null}

@@ -8,6 +8,7 @@ import { getSystemHealthDashboard, type SystemHealthComponentState } from "@/lib
 import { safeStaffMessage } from "@/lib/security/errors";
 import { healthCategoryLabels, healthComponents, type HealthCategory, type HealthStatus } from "@/lib/system-health/registry";
 import { ManualHealthCheck } from "./ManualHealthCheck";
+import { PaymentRecovery } from "./PaymentRecovery";
 
 const staleAfterMs = 15 * 60_000;
 
@@ -16,6 +17,7 @@ export default async function SystemHealthPage() {
   if (!context.configured || !context.user) return <SetupRequired title="Configure Supabase before opening system health" />;
   const allowed = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const dashboard = allowed ? await getSystemHealthDashboard(context.supabase) : null;
+  const recovery = allowed ? await context.supabase.rpc("get_stripe_webhook_recovery") : null;
   const components = dashboard?.components ?? [];
   const overall = overallStatus(components);
 
@@ -55,6 +57,7 @@ export default async function SystemHealthPage() {
                 </section>
               );
             })}
+            <PaymentRecovery receipts={recovery?.data ?? []} error={recovery?.error?.message ?? null} />
             <section className="system-health-section">
               <div className="system-health-section-heading"><h2>Recent incidents and recoveries</h2><span>Last 50</span></div>
               {dashboard?.incidents.length ? (

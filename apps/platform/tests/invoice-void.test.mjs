@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { processStripeWebhook } from "../src/lib/payments/webhook-recovery.ts";
 import { voidInvoiceSafely, reviewInvoiceCheckout } from "../src/lib/payments/invoice-void.ts";
 const require = createRequire(import.meta.url), ts = require("typescript");
 function load(file, deps) {
@@ -103,31 +104,31 @@ test("invalid invoice/status never reaches financial commands", async () => {
 
 for (const type of ["checkout.session.async_payment_failed", "payment_intent.processing", "payment_intent.payment_failed"]) {
   test(`a contested webhook write returns retryable failure rather than ACK: ${type}`, async () => {
-    let completed = 0, released = 0, notified = 0;
-    const service = { from(table) {
-      let operation;
-      const q = {
-        select() { operation = "select"; return q; }, insert() { operation = "insert"; return q; },
-        update() { operation = "update"; return q; }, delete() { operation = "delete"; return q; },
-        eq() { return q; }, in() { return q; }, is() { return q; }, maybeSingle() { return q; },
-        then(resolve, reject) {
-          if (table === "stripe_webhook_events" && operation === "update") completed++;
-          if (table === "stripe_webhook_events" && operation === "delete") released++;
-          const error = table !== "stripe_webhook_events" && operation === "update" ? { code: "55P03", message: "Lock unavailable" } : null;
-          return Promise.resolve({ data: null, error }).then(resolve, reject);
-        },
-      }; return q;
-    } };
-    const event = { id: "evt_fixture", type, data: { object: { id: "provider_fixture", metadata: { payment_channel: "ach" } } } };
-    const route = load("../src/app/api/stripe/webhook/route.ts", {
-      "@/lib/activity-log": { recordActivity: async () => {} },
-      "@/lib/payments/card-surcharge": {}, "@/lib/payments/reconciliation": {},
-      "@/lib/payments/webhook-logging": { safeWebhookLog: () => ({}), WebhookProcessingError: Error },
-      "@/lib/stripe/server": { getStripeWebhookSecret: () => "fixture", getStripeServerConfig: () => ({ configured: true, stripe: { webhooks: { constructEvent: () => event } } }) },
-      "@/lib/supabase/admin": { getServiceRoleClient: () => service },
-      "@/lib/notifications/customer-activity": { emitCustomerActivity: async () => { notified++; } },
+    let completed = 0, failed = 0, notified = 0;
+    const checkout = { id, invoice_id:id, payment_channel:type.startsWith("checkout") ? "ach" : "card", currency:"usd", total_charge_cents:1000,
+      stripe_confirmation_token_id:"ct_fixture", stripe_payment_intent_id:"pi_fixture", stripe_checkout_session_id:type.startsWith("checkout") ? "cs_fixture" : null };
+    const intent = { id:"pi_fixture", livemode:false, status:type.includes("processing") ? "processing" : "requires_payment_method", amount:1000, amount_received:0, currency:"usd",
+      metadata:{payment_channel:checkout.payment_channel,invoice_id:id,checkout_reservation_id:id} };
+    function response(data,error=null){const q={abortSignal(){return q;},then(resolve,reject){return Promise.resolve({data,error}).then(resolve,reject);}};return q;}
+    const service = {
+      rpc(name){if(name === "claim_stripe_webhook") return response({status:"claimed",token:id,phase:"pending"});
+        if(name === "apply_stripe_webhook")return response(null,{code:"55P03",message:"Lock unavailable"});
+        if(name === "fail_stripe_webhook")failed++;if(name === "complete_stripe_webhook")completed++;
+        return response(true);
+      },
+      from(table){if(table === "admin_notifications")notified++;assert.equal(table,"invoice_checkout_sessions");
+        const q={select(){return q;},eq(){return q;},abortSignal(){return q;},maybeSingle(){return response(checkout);}};return q;
+      },
+    };
+    const event={id:"evt_fixture",type,created:1792100000,livemode:false,data:{object:{id:type.startsWith("checkout") ? "cs_fixture" : "pi_fixture"}}};
+    const stripe={webhooks:{constructEvent:()=>event},paymentIntents:{retrieve:async()=>intent},checkout:{sessions:{retrieve:async()=>({id:"cs_fixture",livemode:false,status:"complete",payment_status:"unpaid",amount_total:1000,currency:"usd",client_reference_id:id,metadata:{invoice_id:id},payment_intent:intent})}}};
+    const route=load("../src/app/api/stripe/webhook/route.ts",{
+      "@/lib/payments/webhook-recovery":{processStripeWebhook},"@/lib/payments/webhook-email":{},
+      "@/lib/communications/queue":{},"@/lib/payments/webhook-logging":{safeWebhookLog:()=>({})},
+      "@/lib/stripe/server":{getStripeWebhookSecret:()=>"fixture",getStripeServerConfig:()=>({configured:true,livemode:false,stripe})},
+      "@/lib/supabase/admin":{getServiceRoleClient:()=>service},
     });
-    const response = await route.POST(new Request("http://127.0.0.1/api/stripe/webhook", { method: "POST", body: "fixture", headers: { "stripe-signature": "fixture" } }));
-    assert.equal(response.status, 500); assert.equal(completed, 0); assert.equal(released, 1); assert.equal(notified, 0);
+    const result=await route.POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:"fixture",headers:{"stripe-signature":"fixture"}}));
+    assert.equal(result.status,500);assert.equal(completed,0);assert.equal(failed,1);assert.equal(notified,0);
   });
 }

@@ -1,3 +1,4 @@
+import { websiteLeadNoticeLabel } from "@/lib/leads/notice-status";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -169,7 +170,7 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
             <Detail label="Assigned" value={lead.assignedStaff ?? "Unassigned"} />
             <Detail label="Last communication" value={lead.lastCommunication ?? "No staff communication yet"} />
             <Detail emphasis label="Next action" value={lead.nextAction ?? "Review lead"} />
-            <Detail label="Office notification" value={lead.notificationStatus} />
+            <Detail label="Office notification" value={websiteLeadNoticeLabel(lead.notificationOutcome, lead.notificationStatus)} />
             <div className="website-lead-project-details">
               <dt>Project details</dt>
               <dd>{lead.projectDetails ?? "No project details provided."}</dd>

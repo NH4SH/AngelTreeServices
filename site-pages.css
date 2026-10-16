@@ -762,6 +762,103 @@ img {
   color: var(--ats-muted);
 }
 
+/* Documentary project photos retain their complete framing. */
+.ats-project-page .ats-page-hero__media {
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+
+.ats-project-page .ats-page-hero__media img {
+  height: auto;
+  object-fit: contain;
+}
+
+.ats-project-page .ats-page-hero__media figcaption {
+  margin-top: 12px;
+  color: var(--ats-white);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.ats-case-copy {
+  max-width: 70ch;
+  margin: 0 auto 32px;
+}
+
+.ats-case-copy h2:not(:first-child) {
+  margin-top: 44px;
+}
+
+.ats-case-copy p,
+.ats-case-copy li {
+  color: var(--ats-ink);
+}
+
+.ats-case-sources {
+  font-size: 0.88rem;
+}
+
+.ats-case-section {
+  margin-top: 64px;
+}
+
+.ats-case-photo {
+  margin: 0;
+}
+
+.ats-case-photo img {
+  width: 100%;
+  height: auto;
+}
+
+.ats-case-photo figcaption {
+  margin-top: 12px;
+  color: var(--ats-ink);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.ats-case-pair,
+.ats-project-feature {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  align-items: start;
+}
+
+.ats-project-feature {
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
+}
+
+.ats-case-pair,
+.ats-case-finish {
+  margin-top: 36px;
+}
+
+.ats-case-progress {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+@media (max-width: 760px) {
+  .ats-case-pair,
+  .ats-project-feature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ats-case-section {
+    margin-top: 44px;
+  }
+}
+
+#saul-sierra-hernandez {
+  scroll-margin-top: 120px;
+}
+
 .ats-credential-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

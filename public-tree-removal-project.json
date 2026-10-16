@@ -1,0 +1,231 @@
+{
+  "title": "Tree removal after an ivy removal call",
+  "intro": "A request for ivy removal brought us to this home in Fredericksburg. The visit led to an arborist assessment and tree removal beside the house.",
+  "identification": {
+    "heading": "How the concern was identified",
+    "body": "During the ivy-removal visit, our arborist noticed visible holes and rot in the tree. Those signs raised concerns about internal decay. The cut sections photographed during removal later showed large hollow cavities."
+  },
+  "tree_risk": {
+    "heading": "Why hollowing near a home matters",
+    "body": "A hollow can indicate internal decay, which can reduce the strength of a trunk or major branch. When a tree is beside a house or porch, a failure could damage the building or injure someone nearby. The level of risk depends on the decay’s extent and location, the remaining sound wood, and the tree’s structure and surroundings. An on-site arborist assessment is needed to judge those factors.",
+    "signs_heading": "Signs that warrant an inspection",
+    "signs": [
+      "Open holes or cavities in the trunk or major branches.",
+      "Exposed wood that is visibly rotten or crumbling.",
+      "Fungal growth on the trunk or near the base.",
+      "Cracks, seams or unusual swelling around damaged wood."
+    ],
+    "sources": [
+      {
+        "title": "ISA Recognizing Tree Risk",
+        "url": "https://www.treesaregood.org/Portals/0/TreesAreGood_Recognizing%20Tree%20Risk_0721.pdf"
+      },
+      {
+        "title": "USDA Forest Service guidance on tree decay",
+        "url": "https://research.fs.usda.gov/treesearch/download/48688.pdf#page=83"
+      }
+    ]
+  },
+  "sections": [
+    {
+      "heading": "Taking the tree down in sections",
+      "body": "Working beside the house and front porch, our crew used a bucket truck to reach the upper portions of the tree and remove it in sections. Ground crew members chipped branches, while a compact loader moved larger wood across laid boards and into a dump bed."
+    },
+    {
+      "heading": "Cleanup after removal",
+      "body": "Once the larger material had been handled, our crew raked and collected smaller debris from the yard and sidewalk. The customer was happy with the finished work."
+    }
+  ],
+  "call_to_action": "Request a tree removal estimate from Angel Tree Services.",
+  "path": "/projects/hollow-tree-removal/",
+  "estimate_href": "/?service=Tree%20Care&estimate_context=tree-removal#contact",
+  "photos": [
+    {
+      "caption": "Large hollow cavities visible in wood removed during the job.",
+      "alt": "Cut wood sections beside a dump bed, including a large section with a hollow center.",
+      "key": "hollow-wood",
+      "source_sha256": "2c637f27768075825e488dcb2b1c066138517b748b3b4dc817d573906f1ed338",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-hollow-wood-480.f03e6be0d6.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-hollow-wood-840.89704ce21d.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-hollow-wood-1280.b91262556e.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-hollow-wood-1600.8b8e99f12b.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-hollow-wood-1280.b91262556e.webp",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "caption": "Bucket access during removal, with visible holes on the standing trunk.",
+      "alt": "A worker in a bucket beside a partly dismantled tree near a house, with overhead lines visible.",
+      "key": "bucket-access",
+      "source_sha256": "4e05056d306fa68c630763b87fff3206a297adc59ffaebf1aed14656950533c7",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-bucket-access-480.9b4b24ac46.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-bucket-access-840.aa86f67e80.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-bucket-access-1280.abe084e062.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-bucket-access-1600.1bff50f619.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-bucket-access-1280.abe084e062.webp",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "caption": "First-person view of wood being fed onto the chipper tray during the removal.",
+      "alt": "First-person view of gloved hands guiding a wood section onto a chipper tray, with the side edge and adjacent grass visible.",
+      "key": "chipping-pov",
+      "source_sha256": "55ed99fec31bbb09c9df9cbe09b002eb5d607092639f51686a6bdf16c49015e9",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-chipping-pov-480.9cbc760fc7.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-chipping-pov-840.b434182c40.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-chipping-pov-1280.b7cda2c997.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-chipping-pov-1600.35666d9685.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-chipping-pov-1280.b7cda2c997.webp",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "caption": "A compact loader moves cut wood across boards laid along its path.",
+      "alt": "A compact loader handles a large hollow wood section over boards laid beside a house.",
+      "key": "wood-loader",
+      "source_sha256": "7be2988b5bb2f8af582de5a4a564ba85538f4f30ca53ff329deefeb2a930130f",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-wood-loader-480.acf8f05943.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-wood-loader-840.083d4ccb13.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-wood-loader-1280.c7151b4385.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-wood-loader-1600.e6ffbc11ba.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-wood-loader-1280.c7151b4385.webp",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "caption": "A crew member rakes smaller debris from the yard and sidewalk.",
+      "alt": "A crew member with a rake collects smaller debris beside the yard and sidewalk.",
+      "key": "raking-cleanup",
+      "source_sha256": "8083cdd3b279dd683a57585bde074160e8ceab822bd69c6b425c50fbf884876f",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-raking-cleanup-480.4c4a696f14.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-raking-cleanup-840.5c042feff9.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-raking-cleanup-1280.17c0541245.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-raking-cleanup-1600.836dcb0d3c.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-raking-cleanup-1280.17c0541245.webp",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "caption": "The work area after wood removal and cleanup, with the cut stump remaining.",
+      "alt": "A later wide view of the cleared front yard beside the porch and walkway, with the cut stump and sawdust still visible.",
+      "key": "cleared-yard",
+      "source_sha256": "8a533aaab315df423a56c38b97806ed5368bd3b1f528cdef3c99ad1dd826a6d8",
+      "variants": [
+        {
+          "src": "/assets/versioned/project-cleared-yard-480.8c793e7d90.webp",
+          "width": 480,
+          "height": 270
+        },
+        {
+          "src": "/assets/versioned/project-cleared-yard-840.55aa718582.webp",
+          "width": 840,
+          "height": 472
+        },
+        {
+          "src": "/assets/versioned/project-cleared-yard-1280.d81ec2dafe.webp",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "src": "/assets/versioned/project-cleared-yard-1600.3f6905421f.webp",
+          "width": 1600,
+          "height": 899
+        }
+      ],
+      "src": "/assets/versioned/project-cleared-yard-1280.d81ec2dafe.webp",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "public_location": "Fredericksburg, Virginia"
+}

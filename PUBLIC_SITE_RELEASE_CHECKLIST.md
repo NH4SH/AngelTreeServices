@@ -1,6 +1,108 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Current approved batch — remove lawn care and correct Landscaping
+## Current approved batch — Fredericksburg tree-removal case study
+
+The owner approved the six-photo case study and local website implementation.
+The project is confirmed to be in Fredericksburg; public copy uses the city only.
+Customer identity, street and house number are omitted. On October16 the owner
+approved commit/push, then explicitly confirmed "Push and publish the website".
+Both automatic Netlify builds will be skipped; only the public project will be
+triggered separately. Analytics stays disabled and CRM code/settings are unchanged.
+
+- Source content: `public-tree-removal-project.json`. Page generation and related
+  links: `scripts/build-public-pages.py`. New route: `/projects/hollow-tree-removal/`.
+- Preserve the six selected frames, including the approved first-person chipper
+  view and later cleared yard. Keep the stump visible and accurately captioned;
+  do not imply grinding, a damage-free guarantee or a verified before photograph.
+- Describe the owner-confirmed visible holes and rot during the ivy-removal visit.
+  General risk/signs copy cites ISA and USDA guidance. Do not invent inspection
+  tools, a formal risk rating, disease, decay percentage or a prediction of failure.
+- Confirm discoverability from Projects and Tree Removal, unique metadata,
+  canonical/breadcrumbs, a sitemap entry and matching CreativeWork image data.
+  Keep unknown dates and customer-review markup out of the case-study schema.
+- Check all six uncropped responsive WebP images, captions, alternative text,
+  dimensions, lead-image priority and lazy loading of the five later images.
+  Regeneration uses `scripts/generate-project-images.py --source-dir <exports>`
+  with Pillow and six `<photo-key>.jpg` exports. Deploy builds use committed
+  derivatives and their source-provenance sidecars; original frames and private
+  intake files are outside build inputs.
+- Every case-study estimate action must retain existing `service=Tree Care` and
+  `estimate_context=tree-removal`. Check the local form entry without submitting.
+- Run `npm run test:public` and desktop/mobile visual and keyboard checks for
+  the case study, Projects and Tree Removal. Confirm no new overflow, broken links,
+  image failures, analytics collection, private notes or CRM changes.
+
+Local verification completed October 16, 2026: all 93 behavior/analytics tests
+passed; the build and validation of all 14 pages passed. The three affected pages
+passed 72 Chromium checks, including keyboard skip/menu navigation, image loading,
+accessible link names, overflow checks down to 320px and at layout boundaries,
+and non-submitting entry into the existing Tree Care/tree-removal form context.
+Customer-entered name/details survived changing the optional specific service.
+No outside requests, analytics collection or submissions occurred in those checks.
+Desktop/mobile visual review and an independent finish review found no material
+issues within the approved local-review scope. Source hashes and provenance
+sidecars match all 24 image variants. The analytics initializer, form behavior,
+CRM files and hosting configuration have no patch changes. The concurrent named
+credential addition below changes the homepage attribution only.
+
+For this approved release, refresh shared-repository/deployment state, review the
+exact public-only patch and deploy only the public Netlify project. The verified
+pre-release website baseline is commit `be33fa7`, public deploy
+`6ad23cb8acde7b9cc99cd1ea` building main `49a0b82`.
+Run non-submitting production smoke checks after release. If a published release
+needs correction, prepare an approved public-only revert/fix and deploy it forward.
+A failed unpublished build leaves the previous site live; do not deploy CRM.
+Search ranking/indexing impact and physical-device/spoken screen-reader behavior
+remain separate verification, not claims established by local tests.
+
+## Concurrent approved batch — named arborist credential
+
+The owner handed the completed local credential review to this Website workstream.
+Its four-file patch is now reconciled with the case study. The owner subsequently
+approved commit, push and public-only publication of the combined patch.
+
+- Credentials & Safety names Saul Sierra Hernandez, ISA Certified Arborist®
+  MA-381822A, the International Society of Arboriculture, and the certificate's
+  April 27, 2026 issue and June 30, 2029 expiration dates. The official issuer
+  record and certificate were freshly inspected during this integration.
+- Preserve the direct issuer link, individual-versus-company distinction,
+  existing membership/certification artwork and insurance wording. Do not infer
+  an employment relationship, authorship, TRAQ or company-held certification.
+- The homepage's existing credential link names Saul and targets
+  `/credentials-safety/#saul-sierra-hernandez`. Tree Pruning gains one contextual
+  related link. The anchor has a sticky-header offset. Existing page URLs, H1s,
+  titles, descriptions, navigation and contact behavior remain intact.
+- The credentials page's Person.hasCredential graph mirrors the visible name,
+  certification category/identifier and official URL. No credential rich-result
+  eligibility or search ranking improvement is promised.
+- Combined verification passed: all 93 behavior/analytics tests and all 14 page
+  builds/validation. Focused comparison confirms the credential block and homepage
+  source match the independently prepared patch, and the prior case-study assets
+  and content are unchanged. Fresh in-app desktop/mobile checks found no overflow;
+  keyboard activation of both credential entry links reached the named section.
+  Existing Safari section screenshots were also visually reviewed. These checks
+  do not certify physical-device or spoken-screen-reader behavior.
+
+For the approved combined release, review the exact combined patch, refresh
+shared repository and both Netlify projects, and deploy only the public
+website. After release, check the named links, six-photo case and credential
+facts without submitting leads. Recheck issuer status when maintaining this copy
+and update/remove stale claims by expiration. Preserve disabled analytics and
+unchanged CRM. Correct a published regression through an approved public-only
+revert/fix deployed forward; a failed unpublished build leaves production intact.
+
+### Release preparation — October 16, 2026
+
+The shared remote history changed during CRM development. The reviewed public
+baseline still matches it byte-for-byte. Release preparation uses a separate
+checkout from remote `d069ac9` with the exact 55-file reviewed patch applied,
+preserving the original working checkout and all upstream CRM work. Fresh tests
+passed 93/93 and all 14 pages validated. The push uses `[skip netlify]`; existing
+GitHub workflows run only on pull requests/manual dispatch or schedule, so this
+push does not invoke them. Deployment IDs, final source hashes and GET-only live
+smoke results are maintained in WEBSITE-HANDOFF.txt outside the public artifact.
+
+## Earlier lawn-care/Landscaping batch — historical pre-release record
 
 The owner approved removing lawn care from the public offering and correcting the
 homepage Landscaping estimate action. This batch is local implementation and

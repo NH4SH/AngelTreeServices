@@ -3,8 +3,10 @@
 PR18 extends the existing document-library pilot to every remaining CRM upload
 area. The scanner is run within infrastructure we control; no managed scanning
 service receives document copies. This implementation is verified locally.
-Production activation, hosting, credentials, retention and legacy-file handling
-still require an intentional release review. Nothing here authorizes deployment.
+The hosting/retention/legacy review is recorded in
+[SCANNER_ACTIVATION_REVIEW.md](SCANNER_ACTIVATION_REVIEW.md), with its
+[staged runbook](SCANNER_ACTIVATION_RUNBOOK.md). Production activation remains
+on hold pending the documented readiness gates and explicit release approval. Nothing here authorizes deployment.
 
 ## Coverage
 
@@ -59,7 +61,9 @@ The `/files` review list uses bounded pages and source filters. Opening a file
 rechecks current authorization, signs using that authenticated client for 60 seconds,
 and returns a private, uncached redirect. Existing views retain their original
 signed-link lifetimes. Previously issued signed URLs remain bearer capabilities
-until they expire; scans and deactivation do not revoke those URLs retroactively.
+until expiry at the origin, while hosted CDN/browser caching may extend access.
+Scans and deactivation do not revoke issued URLs or downloaded copies retroactively.
+The uncached redirect does not control the object cache; see the activation review.
 
 ## Scanner operation
 

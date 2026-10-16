@@ -116,6 +116,75 @@ test("landscaping action leaves an in-flight request unchanged", () => {
   assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-pruning"); assert.equal(h.details.value, draft);
 });
 
+test("homepage tree-removal action preserves customer draft and request identity on repeated payloads", async () => {
+  const h = contextHarness("?service=Landscaping"), draft = h.details.value;
+  h.form.dataset.submissionId = "same-local-request";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.equal(h.helpers.applyEstimateService(h.form, "Tree Care", "tree-removal"), true);
+    assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-removal");
+    assert.equal(h.panel.hidden, false); assert.equal(h.picker.disabled, false);
+    assert.equal(h.details.value, draft); assert.equal(h.form.dataset.submissionId, "same-local-request");
+    await h.helpers.submitLead(h.form);
+    assert.equal(h.requests[attempt].get("message"), "Service requested: Tree removal\n\n" + draft);
+    assert.equal(h.requests[attempt].get("service"), "Tree Care");
+    assert.equal(h.requests[attempt].has("estimate_context"), false, "no new intake field");
+  }
+});
+
+test("homepage context action rejects mismatched or unknown intent without changing the draft", () => {
+  const h = contextHarness("?service=Tree%20Care&estimate_context=tree-pruning"), draft = h.details.value;
+  for (const [service, intent] of [["Landscaping", "tree-removal"], ["Tree Care", "__proto__"], ["Tree Care", "unknown"], ["Lawn Care", "tree-removal"]]) {
+    assert.equal(h.helpers.applyEstimateService(h.form, service, intent), false);
+  }
+  h.form.dataset.submitting = "true";
+  assert.equal(h.helpers.applyEstimateService(h.form, "Tree Care", "tree-removal"), false);
+  assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-pruning"); assert.equal(h.details.value, draft);
+});
+
+function homepageEstimateLinkHarness() {
+  const h = contextHarness("?service=Landscaping"), handlers = {};
+  const link = { dataset: { estimateService: "Tree Care", estimateContext: "tree-removal" }, addEventListener(type, fn) { handlers[type] = fn; } };
+  let nextUrl = "", focuses = 0;
+  h.service.closest = () => null; h.service.focus = () => focuses++;
+  const helpers = loadScript("ats-form-enhancements.js", ["initEstimateServiceLinks"], {
+    URL,
+    document: { addEventListener() {}, querySelectorAll: () => [link], body: { classList: { remove() {} } } },
+    window: { addEventListener() {}, location: { href: "https://local.test/?utm_source=local-review&contact=success" },
+      history: { state: { retained: true }, replaceState(state, title, href) { assert.equal(state.retained, true); nextUrl = href; } } },
+  });
+  helpers.initEstimateServiceLinks(h.form);
+  return { ...h, click: handlers.click, nextUrl: () => nextUrl, focuses: () => focuses };
+}
+
+test("homepage estimate link changes context in place, retains attribution and focuses the form", () => {
+  const h = homepageEstimateLinkHarness(), draft = h.details.value;
+  let prevented = false;
+  h.click({ button: 0, preventDefault() { prevented = true; } });
+  assert.equal(prevented, true); assert.equal(h.focuses(), 1);
+  assert.equal(h.details.value, draft); assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-removal");
+  const destination = new URL(h.nextUrl(), "https://local.test");
+  assert.equal(destination.searchParams.get("utm_source"), "local-review");
+  assert.equal(destination.searchParams.get("service"), "Tree Care");
+  assert.equal(destination.searchParams.get("estimate_context"), "tree-removal");
+  assert.equal(destination.searchParams.has("contact"), false); assert.equal(destination.hash, "#contact");
+});
+
+for (const modifiers of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { button: 1 }]) {
+  test(`modified homepage estimate activation keeps the normal URL fallback (${JSON.stringify(modifiers)})`, () => {
+    const h = homepageEstimateLinkHarness();
+    h.click({ button: 0, ...modifiers, preventDefault() { assert.fail("modified activation must keep browser navigation"); } });
+    assert.equal(h.service.value, "Landscaping"); assert.equal(h.nextUrl(), ""); assert.equal(h.focuses(), 0);
+  });
+}
+
+test("homepage estimate link blocks navigation during a pending request", () => {
+  const h = homepageEstimateLinkHarness(), draft = h.details.value;
+  h.form.dataset.submitting = "true"; let prevented = false;
+  h.click({ button: 0, preventDefault() { prevented = true; } });
+  assert.equal(prevented, true); assert.equal(h.service.value, "Landscaping"); assert.equal(h.details.value, draft);
+  assert.equal(h.nextUrl(), ""); assert.equal(h.focuses(), 0);
+});
+
 test("unavailable or unsupported landscaping actions leave existing selections intact", () => {
   const h = contextHarness("?service=Tree%20Care&estimate_context=tree-removal");
   for (const value of ["unknown", "__proto__", "Tree Care", ""]) assert.equal(h.helpers.applyEstimateService(h.form, value), false);

@@ -55,14 +55,25 @@
     syncEstimateContext(form);
   }
 
-  function applyEstimateService(form, requestedService) {
-    if (form.dataset.submitting === "true" || requestedService !== "Landscaping") return false;
+  function applyEstimateService(form, requestedService, requestedContext) {
+    if (form.dataset.submitting === "true") return false;
+    if (requestedContext) {
+      if (requestedService !== "Tree Care" || requestedContext !== "tree-removal") return false;
+    } else if (requestedService !== "Landscaping") return false;
+    var picker = requestedContext ? form.querySelector("[data-estimate-intent]") : null;
+    if (requestedContext && !picker) return false;
     var service = form.querySelector('select[name="service"]');
     if (!service || service.disabled || !Array.prototype.some.call(service.options, function (option) {
       return option.value === requestedService && !option.disabled;
     })) return false;
     service.value = requestedService;
-    clearEstimateContext(form);
+    if (requestedContext) {
+      form.dataset.estimateContextAvailable = "true";
+      picker.value = requestedContext;
+      syncEstimateContext(form);
+    } else {
+      clearEstimateContext(form);
+    }
     return true;
   }
 
@@ -76,7 +87,7 @@
     Array.prototype.forEach.call(document.querySelectorAll("a[data-estimate-service]"), function (link) {
       link.addEventListener("click", function (event) {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        if (!applyEstimateService(form, link.dataset.estimateService)) {
+        if (!applyEstimateService(form, link.dataset.estimateService, link.dataset.estimateContext)) {
           if (form.dataset.submitting === "true") event.preventDefault();
           return;
         }
@@ -88,7 +99,8 @@
         try {
           var destination = new URL(window.location.href);
           destination.searchParams.set("service", service.value);
-          destination.searchParams.delete("estimate_context");
+          if (link.dataset.estimateContext) destination.searchParams.set("estimate_context", link.dataset.estimateContext);
+          else destination.searchParams.delete("estimate_context");
           if (destination.searchParams.get("contact") === "success") destination.searchParams.delete("contact");
           destination.hash = "contact";
           window.history.replaceState(window.history.state, "", destination.pathname + destination.search + destination.hash);

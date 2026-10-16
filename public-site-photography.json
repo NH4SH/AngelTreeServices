@@ -1,0 +1,174 @@
+{
+  "landscaping-service": {
+    "alt": "Curved hedges, planting beds and a bench in a residential garden.",
+    "source_filename": "DSC00690.JPG",
+    "source_sha256": "1c9ea04b87b104541f07beb82c78a1579b8cbcd2b5478ca15f8acde041c28e0f",
+    "crop": [
+      1312,
+      0,
+      4688,
+      3376
+    ],
+    "src": "/assets/versioned/photo-landscaping-service-512.16653c31d4.webp",
+    "width": 512,
+    "height": 512,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-landscaping-service-320.fc3de59994.webp",
+        "width": 320,
+        "height": 320
+      },
+      {
+        "src": "/assets/versioned/photo-landscaping-service-512.16653c31d4.webp",
+        "width": 512,
+        "height": 512
+      },
+      {
+        "src": "/assets/versioned/photo-landscaping-service-840.69397f19e9.webp",
+        "width": 840,
+        "height": 840
+      }
+    ]
+  },
+  "garden-path": {
+    "alt": "A gravel garden path beside curved hedges, planting beds and a bench.",
+    "source_filename": "DSC00693.JPG",
+    "source_sha256": "d33e9f44ba4603330a6071928b0feb94068ebf267e789cc9a636773602ae048d",
+    "crop": null,
+    "src": "/assets/versioned/photo-garden-path-1280.167793b1a0.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-garden-path-480.dde7d6161b.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-garden-path-840.1c24506a98.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-garden-path-1280.167793b1a0.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-garden-path-1600.d6c54a4112.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "flowering-tree": {
+    "alt": "A pink-flowering ornamental tree beside a curved driveway and mature trees.",
+    "source_filename": "DSC00717.JPG",
+    "source_sha256": "868673ce34b06b45c07b9d7073d6ef9fb742f933623c3382f4cb7baf6ba706bd",
+    "crop": null,
+    "src": "/assets/versioned/photo-flowering-tree-1280.681c04f822.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-flowering-tree-480.a7a0a525c1.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-flowering-tree-840.4f34fe5d97.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-flowering-tree-900.fcef3e54ef.webp",
+        "width": 900,
+        "height": 506
+      },
+      {
+        "src": "/assets/versioned/photo-flowering-tree-1280.681c04f822.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-flowering-tree-1600.59405093d2.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ],
+    "avif_variants": [
+      {
+        "src": "/assets/versioned/photo-flowering-tree-900.e02d755556.avif",
+        "width": 900,
+        "height": 506
+      },
+      {
+        "src": "/assets/versioned/photo-flowering-tree-1600.d1c22c4f11.avif",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "commercial-overview": {
+    "alt": "Shrubs and dark mulched beds around a brick commercial building.",
+    "source_filename": "DSC00763.JPG",
+    "source_sha256": "39c2caebaec9ef34124b3ee3409f32447437518c7a2af92779ff9257023ca543",
+    "crop": null,
+    "src": "/assets/versioned/photo-commercial-overview-1280.e2c91d42a6.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-commercial-overview-480.b2ddebe15b.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-overview-840.9902f8d36d.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-overview-1280.e2c91d42a6.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-overview-1600.c0529cced8.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "commercial-detail": {
+    "alt": "A hedge row and dark mulch beside a clear walkway and brick building.",
+    "source_filename": "DSC00753.JPG",
+    "source_sha256": "887d9683b48fcb7dc76c469571191fce1403f3cb1e1188a5f8d123ca6cc36fa0",
+    "crop": null,
+    "src": "/assets/versioned/photo-commercial-detail-1280.758e6dbc33.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-commercial-detail-480.187858cc1d.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-detail-840.12f8c75ede.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-detail-1280.758e6dbc33.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-commercial-detail-1600.5ba2db1e6d.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  }
+}

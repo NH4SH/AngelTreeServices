@@ -1,6 +1,166 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Approved release batch — 5% discount for veterans
+## Approved production release — October 16, 2026
+
+The owner approved commit, push and publication of the reviewed photography and
+homepage spotlight patch. This supersedes the local-only hold below for this
+batch. Keep analytics disabled and CRM code/settings unchanged; no production
+lead submission. Preserve newer CRM-only commits on the shared branch.
+
+- Verified the exact reviewed patch and all 55 source/asset/documentation hashes
+  before applying it to a fresh detached release checkout at current main
+  `022039a8798091b3bbc0e2770ee6f3bcf50b8689`. The earlier review checkout remains
+  untouched. Only this approval note differs from the reviewed files.
+- Commit with `[skip netlify]` to suppress both shared-repository automatic
+  builds, push normally, then trigger a Git build for the public project only.
+  Do not trigger a CRM build, change settings or enable analytics.
+- Public production autocomplete input is present in its existing production
+  environment; preserve it and verify the deployed code/configuration.
+- Run non-submitting production smoke checks for the homepage spotlight,
+  service-context/draft preservation, refreshed photos/captions, responsive
+  layouts, metadata/routes/assets and disabled analytics. Confirm the CRM's
+  published deployment remains unchanged.
+
+## Final photography and homepage spotlight review — October 16, 2026
+
+- Corrected the commercial gallery wording following the owner's clarification:
+  Angel trimmed the existing bushes, weeded the beds and edged them. Removed
+  “Planting around a commercial property” and the former commercial captions;
+  neither card now implies that Angel installed the bushes.
+- Fixed a loading regression in the new gallery image modifier. A bare
+  `aspect-ratio: auto` suppressed the HTML image's initial ratio, allowing lazy
+  images to have zero height before decoding. `aspect-ratio: auto 16 / 9` reserves
+  the landscape frame, then retains the natural ratio. Confirmed positive image
+  height while images were still incomplete at 320px, 390px and 615px.
+- Fresh `npm run test:public`: all 101 tests and all 14 approved pages pass.
+  Home, Projects and Commercial fit 320, 390, 615, 800, 801 and 1440px without
+  horizontal overflow. Corrected commercial cards are readable in fresh desktop,
+  mobile and current-window screenshots. Both spotlight actions remain at least
+  48px high. Enter on the estimate action preserves typed contact/address/details
+  and contact choice, selects Tree Care/tree-removal, retains attribution and
+  focuses the service field. No website form was submitted.
+- Existing SEO heads/H1s, homepage form/scripts, documented case HTML and all
+  22 new photo bytes remain unchanged from their respective reviewed baselines.
+  Since the initial photo review, only Projects HTML and `site-pages.css` change
+  in the built artifact. Analytics stays disabled; CRM source/settings untouched.
+- Refreshed `origin/main`: `022039a8798091b3bbc0e2770ee6f3bcf50b8689` contains two
+  CRM-only commits beyond this checkout. The complete public-only patch passes
+  a clean apply check against that revision using a temporary index; the real
+  index and checkout are unchanged. Carry the public patch onto current main
+  during approved release preparation, preserving that newer CRM work.
+- Read-only Netlify checks confirm published deploys remain public website
+  `6ad28d05f686e6b16c049ddd` and CRM `6ad23c757dfc53f702ae00b9`, both ready.
+  No project setting or environment variable was changed or credential exposed.
+- Current evidence is in the October 16 chat's `work/photography-release-review/`
+  and `.impeccable/review/photography-release-review/`. Earlier photo-review
+  captures of the commercial captions are historical; use the new captures.
+- Fresh full finish review: `ship` at the local public-patch scope, no remaining
+  material fixes. Documentation comparison rechecked the corrected maintenance
+  facts and reserved image frame; incumbent identity is preserved. The final
+  source inventory and patch are `outputs/website-photography-final-review.json`
+  and `.patch` in the October 16 chat; earlier review bundles are historical.
+- Release hold remains: no commit, push or deploy. Before publication, refresh
+  the shared branch/project state again, verify the production autocomplete
+  environment, and publish only the public artifact after approval. Follow with
+  non-submitting production smoke checks. Isolated end-to-end CRM submission,
+  physical-device and spoken-screen-reader checks remain unverified; this
+  public patch does not authorize production leads or CRM changes.
+
+## Approved local refinement — selected SD-card photography
+
+After reviewing the complete SD image inventory, the owner requested using the
+stronger photos to improve the website. This extends the local homepage spotlight
+batch below. Do not commit, push or deploy. Keep analytics disabled and CRM code,
+settings and lead records unchanged. The owner authorized these photos for website
+use and confirmed bush trimming, tree trimming and mulch for the garden group.
+The owner then clarified that Angel did not plant the commercial bushes: Angel
+trimmed them, weeded the beds and edged them. The final commercial captions use
+that maintenance scope and remove the misleading “Planting” heading, without
+a new case study, location, date, installation claim or before/after pairing.
+
+- Homepage: replace the grass-only hero background with the selected flowering
+  tree/driveway photograph; align its two AVIF preloads and WebP fallbacks.
+  Replace the Landscaping circle with the stronger garden photograph.
+- Projects: use four complete landscape frames for the field gallery: garden
+  path, flowering tree, commercial overview and hedge/mulch detail. Keep the
+  documented six-photo Fredericksburg case and homepage spotlight intact.
+- Commercial page: replace the unrelated residential garden hero with the
+  commercial-property photograph, shown in full in the established hero columns.
+- Preserve existing SEO text, schema, canonicals, routes, hero wording, trust
+  claims, estimate links, draft-preservation behavior and veterans terms.
+  Homepage head changes only to the two hero image preloads. Image alternatives
+  describe the visible scene without unsupported service/location claims.
+- `public-site-photography.json` records selected sources and responsive variants.
+  `scripts/generate-site-photography.py --source-dir <originals>` reproducibly
+  creates derivatives with Pillow, original hashes and provenance sidecars.
+  Original images stay private; derivatives omit EXIF/location metadata.
+  Deploy builds use committed derivatives and do not access the SD card.
+- Local verification complete: `npm run test:public` passed all 101 tests and
+  the 14-page build validation. Homepage head (except the two preloads), all
+  generated SEO heads/H1s/scripts, homepage form markup and exact documented
+  case HTML match the pre-photo baseline. All 22 new derivatives pass filename
+  hash, dimensions, EXIF-removal and source-provenance checks.
+- Inspected desktop 1440 × 1000, mobile 390 × 844 and the current 615 × 724
+  window across Home, Projects and Commercial: readable text, complete photo
+  frames and no horizontal overflow. WebKit full-page snapshots omitted some
+  offscreen image paint; actual viewport supplements verify the desktop
+  spotlight and all four gallery images at 615px. Viewport overrides reset.
+- Independent finish review: `ship` for this local photography scope; no
+  material fixes. One detector run returned 42 inherited findings (the extra
+  versus the earlier 41 is unchanged wave CSS in a newly scanned stylesheet).
+  New image provenance is complete. The scan also identifies 15 pre-existing
+  logo/service/testimonial WebPs without sidecars; their bytes are unchanged.
+- Evidence: October 16 chat `work/photography-refresh/` contains validation,
+  invariants, source/artifact hashes, derivative audit, detector comparison,
+  browser checks and finish review; screenshots are under that chat's
+  `.impeccable/review/photography-refresh/`.
+- Before release: obtain publication approval, verify the final exact
+  public-only diff/assets, and refresh shared Git/both Netlify project state.
+  After an approved public-only release, run non-submitting production smoke
+  checks. Do not submit production leads or trigger a CRM deploy.
+
+## Approved local batch — homepage Fredericksburg project spotlight
+
+The owner approved implementation and local testing on October 16, 2026. Do not
+commit, push or deploy this batch. The live baseline remains `921875f`, public
+deploy `6ad28d05f686e6b16c049ddd` (veterans discount). Separate release approval
+is required before publication.
+
+- One compact spotlight after Services links to the existing Fredericksburg case.
+  Reuse its cleared hollow-wood photo, responsive WebP variants, literal caption
+  and confirmed facts. Keep public location city-only. No new project, photo,
+  customer/street disclosure, disease diagnosis, risk rating or guarantee.
+- Preserve the existing complete homepage head, metadata/schema, H1 and earlier
+  headings, hero, form markup, script elements, URLs, sitemap and routing. Keep
+  the veterans terms, named credential and six-photo case unchanged. Add only
+  the spotlight's H2, factual copy, project link and contextual estimate action.
+- The new estimate action must select Tree Care / Tree removal in place, retain
+  entered details, customer/contact choices and request identity, and focus the
+  existing form. The necessary bounded enhancement preserves Landscaping,
+  attribution, pending-request protection and the existing message-prefix intake
+  contract. Keep its real query/hash link for modified or JavaScript-free use.
+- Verification: 101/101 local tests pass, including eight added regressions;
+  the public build and all 14-page validation pass. Desktop 1440x1000 and mobile
+  390x844 captures show loaded, uncropped imagery and complete actions. Click
+  and mobile Enter retain synthetic draft fields/choices and request identity;
+  service/context and focus are correct, with no horizontal overflow. No lead
+  was submitted. Modified-activation and pending-request branches pass in tests;
+  JavaScript-disabled browsing, physical devices and spoken screen readers were
+  not exercised. The local build omits Google address autocomplete credentials.
+- Independent finish review retained the bounded visual review and scored its
+  sole form-continuity fix resolved, disposition `ship` at that fix's scope.
+  Documentation comparison preserves the incumbent system. No broad site audit,
+  production behavior, search ranking or indexing outcome is certified.
+- Keep analytics disabled and CRM source/settings unchanged. No hosting or
+  environment setting changes. Reuse the below-fold lazy image with dimensions;
+  no new shipped image bytes/assets are generated. Private SD-card previews,
+  candidate facts and permissions stay outside the website build.
+- Before any later approved release, refresh repository and both projects'
+  release state, confirm the exact public-only diff, skip both automatic builds
+  and publish only the public project. Run non-submitting production smoke
+  checks afterward. No production leads or CRM contract writes for this batch.
+
+## Released batch — 5% discount for veterans
 
 On October 16, 2026, the owner confirmed the business can honor these terms and
 approved commit, push and publication of this reviewed patch. Skip automatic

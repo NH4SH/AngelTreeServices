@@ -441,6 +441,20 @@ img {
   object-fit: cover;
 }
 
+/* Wider property photographs need their complete setting. */
+.ats-page-hero__media.ats-page-hero__media--landscape {
+  width: 100%;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ats-page-hero__media--landscape img {
+  height: auto;
+  object-fit: contain;
+}
+
 .ats-wave {
   position: absolute;
   right: 0;
@@ -736,6 +750,12 @@ img {
   height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+}
+
+.ats-project-card--photograph img {
+  /* Reserve the landscape frame before a lazy image has decoded. */
+  aspect-ratio: auto 16 / 9;
+  object-fit: contain;
 }
 
 .ats-project-card__body {

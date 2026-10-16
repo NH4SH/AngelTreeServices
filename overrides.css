@@ -161,16 +161,16 @@
   }
 }
 
-/* Hero background: use static image to avoid resize flicker */
+/* Hero background: selected flowering-tree photograph, with static responsive sources. */
 #top .section-background {
-  background-image: url("assets/hero-grass-1600.webp");
+  background-image: url("assets/versioned/photo-flowering-tree-1600.59405093d2.webp");
   background-image: -webkit-image-set(
-    url("assets/versioned/hero-grass-1600.8c26d68532.avif") 1x,
-    url("assets/hero-grass-1600.webp") 1x
+    url("assets/versioned/photo-flowering-tree-1600.d1c22c4f11.avif") 1x,
+    url("assets/versioned/photo-flowering-tree-1600.59405093d2.webp") 1x
   );
   background-image: image-set(
-    url("assets/versioned/hero-grass-1600.8c26d68532.avif") type("image/avif"),
-    url("assets/hero-grass-1600.webp") type("image/webp")
+    url("assets/versioned/photo-flowering-tree-1600.d1c22c4f11.avif") type("image/avif"),
+    url("assets/versioned/photo-flowering-tree-1600.59405093d2.webp") type("image/webp")
   );
   background-size: cover;
   background-position: center;
@@ -1284,6 +1284,98 @@ body.ats-form-submitted .ats-form-success {
   pointer-events: none;
 }
 
+.ats-home-project {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 56px);
+}
+
+.ats-home-project__photo {
+  min-width: 0;
+  margin: 0;
+}
+
+.ats-home-project__photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.ats-home-project__photo figcaption {
+  margin-top: 10px;
+  color: #3f6542;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.ats-home-project__copy h2 {
+  margin: 0;
+  color: var(--ats-green-deep);
+  font-size: clamp(1.9rem, 2.8vw, 2.6rem);
+  letter-spacing: -0.025em;
+  line-height: 1.13;
+}
+
+.ats-home-project__copy > p {
+  margin: 16px 0 0;
+  color: #3f6542;
+  font-size: 1.04rem;
+  line-height: 1.65;
+}
+
+.ats-home-project__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  margin-top: 22px;
+}
+
+.ats-home-project__actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.ats-home-project__view {
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--ats-green-dark);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ats-home-project__view:hover {
+  background: var(--ats-green-deep);
+  color: #fff;
+}
+
+.ats-home-project__estimate {
+  color: var(--ats-green-dark);
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 5px;
+}
+
+.ats-home-project__actions a:focus-visible {
+  outline: 3px solid var(--ats-green-dark);
+  outline-offset: 4px;
+}
+
+@media (max-width: 800px) {
+  .ats-home-project {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
 .ats-home-guidance__wave--top {
   top: -90px;
 }
@@ -1964,14 +2056,14 @@ body.ats-form-submitted .ats-form-success {
   }
 
   #top .section-background {
-    background-image: url("assets/hero-grass-900.webp");
+    background-image: url("assets/versioned/photo-flowering-tree-900.fcef3e54ef.webp");
     background-image: -webkit-image-set(
-      url("assets/versioned/hero-grass-900.ba17092048.avif") 1x,
-      url("assets/hero-grass-900.webp") 1x
+      url("assets/versioned/photo-flowering-tree-900.e02d755556.avif") 1x,
+      url("assets/versioned/photo-flowering-tree-900.fcef3e54ef.webp") 1x
     );
     background-image: image-set(
-      url("assets/versioned/hero-grass-900.ba17092048.avif") type("image/avif"),
-      url("assets/hero-grass-900.webp") type("image/webp")
+      url("assets/versioned/photo-flowering-tree-900.e02d755556.avif") type("image/avif"),
+      url("assets/versioned/photo-flowering-tree-900.fcef3e54ef.webp") type("image/webp")
     );
   }
 

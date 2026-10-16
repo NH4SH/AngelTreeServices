@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type MouseEvent,
@@ -40,7 +41,14 @@ export function AddInvoiceForm({
   serviceCategories: ServiceCategory[];
   serviceLocations: ServiceLocation[];
 }) {
-  const [state, formAction, pending] = useReliableActionState(createInvoice, initialState);
+  const requestId = useRef<string | null>(null);
+  const [state, formAction, pending] = useReliableActionState(async (previous: InvoiceActionState, form: FormData) => {
+    // The job lock also protects a reload/new form. Preserve this request identity
+    // for an uncertain response without resetting the entered invoice details.
+    requestId.current ??= crypto.randomUUID();
+    form.set("request_id", requestId.current);
+    return createInvoice(previous, form);
+  }, initialState);
   const [dirty, setDirty] = useState(false);
   const [selectedPartyValue, setSelectedPartyValue] = useState(initialCustomerId ? `customer:${initialCustomerId}` : "");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -73,6 +81,8 @@ export function AddInvoiceForm({
           {state.message}
         </p>
       ) : null}
+
+      {state.invoiceId ? <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>Open existing invoice</Link> : null}
 
       <section className="quote-editor-section">
         <div>

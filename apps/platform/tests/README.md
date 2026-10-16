@@ -361,3 +361,32 @@ The current guarded-void integration suite's ordinary-draft edit case now uses
 `save_invoice_details`, because direct line editing has intentionally been
 withdrawn. All void/restore/recovery checks remain. Do not remove the enforcement
 migration or restore broad grants to make an older test caller pass.
+
+## PR04 atomic job/quote invoice generation
+
+The unit gate includes `invoice-generation.test.mjs` for durable browser request
+identity, fail-closed storage/result handling and existing/void result messages.
+Install all 74 repository migrations in the disposable stack, then run:
+
+```sh
+PR04_DISPOSABLE_STACK=1 \
+PR04_LOCAL_STATUS_FILE="$PR04_STATUS_FILE" \
+PR04_DOCKER_BIN="$PR04_DOCKER_BIN" \
+PR04_RESULTS_FILE="$PR04_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/invoice-generation.integration.test.mjs
+```
+
+`DOCKER_HOST` must point to the dedicated local Unix socket; the suite refuses
+non-loopback APIs and uses `supabase_db_ats_pr02_disposable`. It exercises actual
+issued JWTs/live roles, same/different request contention, source parent locks,
+line/addition/note/audit/final-result rollback, void/deleted-result replay,
+organization contacts, recurring/material copy and change-order approval. No
+provider key, sender, automation worker or production service is used. Its own
+synthetic accounts are disabled after the suite; historical fixture rows remain.
+
+The payment suites share the global office notification population. Retire only
+owned synthetic accounts between repeated disposable runs, and run those suites
+sequentially when accumulating accounts could exceed their one-invocation email
+batch (100). Do not alter financial/notification assertions or broad production
+privileges to accommodate a crowded test environment. See
+`src/lib/invoices/ATOMIC_GENERATION.md` for compatibility and rollout limits.

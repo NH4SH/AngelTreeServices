@@ -11,10 +11,9 @@ import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
+import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
-import { getInvoiceDueAt } from "@/lib/invoices/due-date";
-import type { InvoiceStatus, JobStatus, QuoteLineItem, QuoteStatus } from "@/lib/types/database";
+import type { InvoiceStatus, JobStatus, QuoteStatus } from "@/lib/types/database";
 
 type WorkflowActionState = {
   invoiceId?: string;
@@ -438,51 +437,7 @@ export async function createInvoiceFromQuote(_previousState: WorkflowActionState
     return { status: "error", message: "Only authorized office staff can create invoices." };
   }
 
-  const quoteId = getString(formData, "quote_id");
-  const { data: quote, error: quoteError } = await supabase
-    .from("quotes")
-    .select("id, status")
-    .eq("id", quoteId)
-    .single();
-
-  if (quoteError || !quote) {
-    return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
-  }
-
-  if (quote.status !== "approved") {
-    return { status: "error", message: "Approve the quote before creating an invoice." };
-  }
-
-  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
-
-  if (!approvalResult.ok) {
-    return { status: "error", message: safeStaffMessage(approvalResult.message) };
-  }
-
-  const result = await createInvoiceForJob({
-    actorUserId: user.id,
-    jobId: approvalResult.jobId,
-    sourceQuoteId: quote.id,
-    supabase,
-  });
-
-  if (!result.ok) {
-    return { status: "error", message: safeStaffMessage(result.message) };
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/jobs");
-  revalidatePath(`/admin/jobs/${approvalResult.jobId}`);
-  revalidatePath("/admin/quotes");
-  revalidatePath(`/admin/quotes/${quoteId}`);
-  revalidatePath("/admin/invoices");
-  revalidatePath(`/admin/invoices/${result.invoiceId}`);
-  revalidatePath("/admin/schedule");
-  revalidatePath("/crew/jobs");
-  revalidatePath(`/crew/jobs/${approvalResult.jobId}`);
-  redirect(result.existing
-    ? `/admin/invoices/${result.invoiceId}`
-    : `/admin/invoices/${result.invoiceId}?created=1${result.jobCompletionWarning ? "&job_completion_warning=1" : "&job_completed=1"}`);
+  return generateInvoice(supabase, formData, "quote");
 }
 
 export async function createInvoiceFromJob(_previousState: WorkflowActionState, formData: FormData) {
@@ -505,214 +460,31 @@ export async function createInvoiceFromJob(_previousState: WorkflowActionState, 
     return { status: "error", message: "Only authorized office staff can create invoices." };
   }
 
-  const jobId = getString(formData, "job_id");
-  if (!jobId) {
-    return { status: "error", message: "Choose a work order before creating an invoice." };
-  }
-
-  const result = await createInvoiceForJob({ actorUserId: user.id, jobId, supabase });
-  if (!result.ok) {
-    return { status: "error", message: safeStaffMessage(result.message) };
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/jobs");
-  revalidatePath(`/admin/jobs/${jobId}`);
-  revalidatePath("/admin/invoices");
-  revalidatePath(`/admin/invoices/${result.invoiceId}`);
-  revalidatePath("/admin/schedule");
-  revalidatePath("/crew/jobs");
-  revalidatePath(`/crew/jobs/${jobId}`);
-
-  if (result.existing) {
-    return {
-      invoiceId: result.invoiceId,
-      status: "success",
-      message: "An invoice already exists for this work order.",
-    };
-  }
-
-  redirect(`/admin/invoices/${result.invoiceId}?created=1${result.jobCompletionWarning ? "&job_completion_warning=1" : "&job_completed=1"}`);
+  return generateInvoice(supabase, formData, "job");
 }
 
-type InvoiceGenerationResult =
-  | { ok: true; invoiceId: string; existing: boolean; jobCompletionWarning: boolean }
-  | { ok: false; message: string };
-
-async function createInvoiceForJob({
-  actorUserId,
-  jobId,
-  sourceQuoteId,
-  supabase,
-}: {
-  actorUserId: string;
-  jobId: string;
-  sourceQuoteId?: string;
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>;
-}): Promise<InvoiceGenerationResult> {
-  const existingInvoice = await findInvoiceForJob(supabase, jobId);
-  if (existingInvoice.error) {
-    return { ok: false, message: existingInvoice.error };
-  }
-
-  if (existingInvoice.invoiceId) {
-    return { ok: true, invoiceId: existingInvoice.invoiceId, existing: true, jobCompletionWarning: false };
-  }
-
-  const { data: invoiceableJob, error: invoiceableJobError } = await supabase
-    .from("jobs")
-    .select("id, status, customer_id, organization_id, service_location_id, property_manager_contact_id, source_quote_id, service_type, requested_scope, completed_at, completed_by_user_id, recurring_service_plan_id, recurring_occurrence_id")
-    .eq("id", jobId)
-    .single();
-
-  if (invoiceableJobError || !invoiceableJob) {
-    return { ok: false, message: invoiceableJobError?.message ?? "Could not find this work order." };
-  }
-
-  const invoiceableStatuses: JobStatus[] = [
-    "accepted",
-    "scheduled",
-    "in_progress",
-    "completed",
-    "completed_pending_review",
-    "ready_to_invoice",
-  ];
-  if (!invoiceableStatuses.includes(invoiceableJob.status as JobStatus)) {
-    return { ok: false, message: "This work order is not available for draft invoicing." };
-  }
-
-  const linkedQuoteId = sourceQuoteId ?? invoiceableJob.source_quote_id ?? null;
-  const quoteResult = await getInvoiceSourceQuote(supabase, linkedQuoteId, jobId);
-  if (!quoteResult.ok) {
-    return quoteResult;
-  }
-
-  const lines = quoteResult.lineItems.length > 0
-    ? quoteResult.lineItems
-    : [{
-        description: invoiceableJob.requested_scope,
-        name: formatServiceType(invoiceableJob.service_type),
-        service_category_id: null,
-        material_id: null,
-        quantity: 1,
-        sort_order: 0,
-        total_cents: 0,
-        unit_price_cents: 0,
-      }];
-  const taxCents = quoteResult.taxCents;
-
-  const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
-    p_header: {
-      customer_id: invoiceableJob.customer_id, organization_id: invoiceableJob.organization_id,
-      billing_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
-      accounts_payable_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
-      service_location_id: invoiceableJob.service_location_id,
-      job_id: invoiceableJob.id, quote_id: quoteResult.quoteId,
-      recurring_service_plan_id: invoiceableJob.recurring_service_plan_id,
-      recurring_occurrence_id: invoiceableJob.recurring_occurrence_id,
-      due_at: getInvoiceDueAt(), tax_cents: taxCents,
-    },
-    p_lines: lines,
-  });
-  if (invoiceError || !invoice) {
-    return { ok: false, message: safeStaffMessage(invoiceError?.message ?? "Could not create invoice.") };
-  }
-
-  const { error: changeOrderError } = await supabase
-    .rpc("attach_approved_change_orders_to_invoice", { p_invoice_id: invoice.id });
-  if (changeOrderError) {
-    console.error("Draft invoice created, but approved additions could not be attached", {
-      invoiceId: invoice.id,
-      jobId,
-      error: changeOrderError,
-    });
-  }
-
-  const jobCompletion = await completeJobAfterInvoice({
-    actorUserId,
-    invoiceId: invoice.id,
-    job: invoiceableJob,
-    supabase,
-  });
-
-  await recordActivity(supabase, {
-    actorUserId,
-    eventType: "invoice_draft_created",
-    metadata: { source_quote_id: quoteResult.quoteId },
-    subjectId: invoice.id,
-    subjectType: "invoice",
-  });
-  await recordActivity(supabase, {
-    actorUserId,
-    eventType: "invoice_draft_created_from_job",
-    metadata: {
-      invoice_id: invoice.id,
-      job_status_after: jobCompletion.completed ? "completed" : invoiceableJob.status,
-      job_status_before: invoiceableJob.status,
-    },
-    subjectId: jobId,
-    subjectType: "job",
-  });
-
-  return {
-    ok: true,
-    invoiceId: invoice.id,
-    existing: false,
-    jobCompletionWarning: Boolean(jobCompletion.warning),
-  };
-}
-
-async function findInvoiceForJob(
+async function generateInvoice(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  jobId: string,
-) {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("id")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  return { error: error?.message ?? null, invoiceId: data?.id ?? null };
-}
-
-async function getInvoiceSourceQuote(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  quoteId: string | null,
-  jobId: string,
-): Promise<
-  | { ok: true; quoteId: string | null; billingContactId: string | null; taxCents: number; lineItems: Pick<QuoteLineItem, "name" | "description" | "service_category_id" | "material_id" | "quantity" | "unit_price_cents" | "total_cents" | "sort_order">[] }
-  | { ok: false; message: string }
-> {
-  if (!quoteId) {
-    return { ok: true, quoteId: null, billingContactId: null, taxCents: 0, lineItems: [] };
+  formData: FormData,
+  source: "job" | "quote",
+): Promise<WorkflowActionState> {
+  const requestId = getString(formData, "request_id");
+  const sourceId = getString(formData, `${source}_id`);
+  if (!isGenerationRequestId(requestId) || !isGenerationRequestId(sourceId)) {
+    return { status: "error", message: "Refresh this page to prepare the saved invoice request." };
   }
-
-  const { data: quote, error } = await supabase
-    .from("quotes")
-    .select("id, job_id, status, tax_cents, billing_contact_id, approval_contact_id, recipient_contact_id, quote_line_items(name, description, service_category_id, material_id, quantity, unit_price_cents, total_cents, sort_order)")
-    .eq("id", quoteId)
-    .maybeSingle();
-
-  if (error || !quote) {
-    return { ok: false, message: error?.message ?? "Could not find the source quote for this work order." };
-  }
-
-  if (quote.job_id && quote.job_id !== jobId) {
-    return { ok: false, message: "The source quote is linked to a different work order." };
-  }
-
-  return {
-    ok: true,
-    quoteId: quote.id,
-    billingContactId: quote.billing_contact_id ?? quote.approval_contact_id ?? quote.recipient_contact_id,
-    taxCents: quote.tax_cents ?? 0,
-    lineItems: ((quote.quote_line_items ?? []) as QuoteLineItem[])
-      .sort((left, right) => left.sort_order - right.sort_order),
+  const response = await supabase.rpc("generate_job_invoice", {
+    p_request_id: requestId, p_job_id: source === "job" ? sourceId : null,
+    p_quote_id: source === "quote" ? sourceId : null,
+  });
+  if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
+  const result = parseGeneratedInvoice(response.data);
+  if (!result) return { status: "error", message: "The invoice result could not be confirmed. Retry this saved request to check it safely." };
+  for (const path of ["/admin", "/admin/jobs", `/admin/jobs/${result.job_id}`, "/admin/quotes", "/admin/invoices",
+    `/admin/invoices/${result.invoice_id}`, "/admin/schedule", "/crew/jobs", `/crew/jobs/${result.job_id}`]) revalidatePath(path);
+  if (source === "quote") revalidatePath(`/admin/quotes/${sourceId}`);
+  if (result.existing || result.replayed) return {
+    invoiceId: result.invoice_id, status: "success", message: existingInvoiceMessage(result.invoice_status),
   };
-}
-
-function formatServiceType(serviceType: string | null) {
-  return serviceType?.replaceAll("_", " ") || "Completed service";
+  redirect(`/admin/invoices/${result.invoice_id}?created=1&job_completed=1`);
 }

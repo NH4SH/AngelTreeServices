@@ -7,12 +7,13 @@ import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/rol
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
-import { completeJobAfterInvoice } from "@/lib/jobs/complete-after-invoice";
+import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
 import { safeStaffMessage } from "@/lib/security/errors";
 
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  invoiceId?: string;
   savedUpdatedAt?: string;
   savedLineIds?: Record<string, string>;
 };
@@ -148,21 +149,6 @@ export async function createInvoice(
       return { status: "error", message: "This work order is not available for draft invoicing." };
     }
 
-    const { data: existingInvoice, error: existingInvoiceError } = await supabase
-      .from("invoices")
-      .select("id")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingInvoiceError) {
-      return { status: "error", message: safeStaffMessage(existingInvoiceError.message) };
-    }
-
-    if (existingInvoice) {
-      redirect(`/admin/invoices/${existingInvoice.id}`);
-    }
     serviceLocationId = job.service_location_id;
   } else if (serviceLocationId) {
     const { data: location, error: locationError } = await supabase
@@ -178,15 +164,36 @@ export async function createInvoice(
 
   const dueAt = getInvoiceDueAt(dueDate);
 
+  if (job) {
+    const requestId = String(formData.get("request_id") ?? "");
+    if (!isGenerationRequestId(requestId)) return { status: "error", message: "Refresh the page to prepare the invoice request." };
+    const response = await supabase.rpc("generate_job_invoice", {
+      p_request_id: requestId, p_job_id: job.id,
+      p_manual: { customer_id: party.customerId, organization_id: party.organizationId, due_at: dueAt,
+        lines: lineItems.map(invoiceLineCommand), notes },
+    });
+    if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
+    const result = parseGeneratedInvoice(response.data);
+    if (!result) return { status: "error", message: "The invoice result could not be confirmed. Retry the saved details to check it safely." };
+    for (const path of ["/admin", "/admin/jobs", `/admin/jobs/${job.id}`, "/admin/schedule", "/crew/jobs",
+      `/crew/jobs/${job.id}`, "/admin/invoices", `/admin/invoices/${result.invoice_id}`]) revalidatePath(path);
+    if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
+    if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
+    if (result.existing || result.replayed) return {
+      invoiceId: result.invoice_id, status: "success", message: existingInvoiceMessage(result.invoice_status),
+    };
+    redirect(`/admin/invoices/${result.invoice_id}?created=1&job_completed=1`);
+  }
+
   const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
     p_header: {
-      job_id: job?.id ?? null, quote_id: null,
+      job_id: null, quote_id: null,
       customer_id: party.customerId, organization_id: party.organizationId,
-      billing_contact_id: job?.property_manager_contact_id ?? null,
-      accounts_payable_contact_id: job?.property_manager_contact_id ?? null,
+      billing_contact_id: null,
+      accounts_payable_contact_id: null,
       service_location_id: serviceLocationId,
-      recurring_service_plan_id: job?.recurring_service_plan_id ?? null,
-      recurring_occurrence_id: job?.recurring_occurrence_id ?? null,
+      recurring_service_plan_id: null,
+      recurring_occurrence_id: null,
       tax_cents: 0, due_at: dueAt,
     },
     p_lines: lineItems.map(invoiceLineCommand),
@@ -211,7 +218,7 @@ export async function createInvoice(
     if (party.customerId || job || serviceLocationId) {
       const { error: noteError } = await supabase.from("notes").insert({
         customer_id: party.customerId,
-        job_id: job?.id ?? null,
+        job_id: null,
         service_location_id: serviceLocationId,
         author_user_id: user.id,
         visibility: "internal",
@@ -227,14 +234,6 @@ export async function createInvoice(
     }
   }
 
-  const jobCompletion = job
-    ? await completeJobAfterInvoice({
-        actorUserId: user.id,
-        invoiceId: invoice.id,
-        job,
-        supabase,
-      })
-    : { completed: true as const, warning: null };
 
   await recordActivity(supabase, {
     actionCategory: "invoices",
@@ -248,28 +247,14 @@ export async function createInvoice(
     subjectId: invoice.id,
     subjectType: "invoice",
   });
-  if (job) await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "invoice_draft_created_from_job",
-    metadata: {
-      invoice_id: invoice.id,
-      job_status_after: jobCompletion.completed ? "completed" : job.status,
-      job_status_before: job.status,
-    },
-    subjectId: job.id,
-    subjectType: "job",
-  });
-
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
-  if (job) revalidatePath(`/admin/jobs/${job.id}`);
   revalidatePath("/admin/schedule");
   revalidatePath("/crew/jobs");
-  if (job) revalidatePath(`/crew/jobs/${job.id}`);
   revalidatePath("/admin/invoices");
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  redirect(`/admin/invoices/${invoice.id}?created=1${job && jobCompletion.completed ? "&job_completed=1" : ""}${noteWarning ? "&note_warning=1" : ""}${jobCompletion.warning ? "&job_completion_warning=1" : ""}`);
+  redirect(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`);
 }
 
 type InvoiceLineItemInput = {

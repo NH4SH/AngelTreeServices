@@ -140,7 +140,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             {operationalState === "to_be_scheduled" ? <a className="primary-action" href="#job-schedule">Schedule job</a> : null}
             {operationalState === "scheduled" ? <Link className="primary-action" href={`/admin/schedule?job_id=${job.id}`}>View or change schedule</Link> : null}
             {invoice ? <Link className="primary-action" href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : null}
-            {canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={operationalState === "work_complete" ? undefined : operationalLabel} /> : null}
+            {canCreateInvoice ? <CreateInvoiceFromJobAction actorId={context.user.id} approvedAdditionCount={unbilledChanges.length} jobId={job.id} operationalStatus={operationalState === "work_complete" ? undefined : operationalLabel} /> : null}
             <Link className="secondary-action" href={`/crew/jobs/${job.id}`}>Crew view</Link>
             {approvedQuote ? <Link className="secondary-action" href={`/admin/quotes/${approvedQuote.id}`}>Open quote</Link> : null}
             {operationalState === "in_progress" ? <Link className="secondary-action" href={`/admin/schedule?job_id=${job.id}`}>Change schedule</Link> : null}
@@ -165,7 +165,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               value={approvedQuote ? `${title(approvedQuote.status)} · ${formatCurrency(approvedQuote.total_cents)}` : "Create or approve a quote when pricing is needed."}
             />
             <BillingRecord
-              action={invoice ? <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={operationalLabel} /> : null}
+              action={invoice ? <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : canCreateInvoice ? <CreateInvoiceFromJobAction actorId={context.user.id} approvedAdditionCount={unbilledChanges.length} jobId={job.id} operationalStatus={operationalLabel} /> : null}
               label="Invoice"
               title={invoice ? invoice.invoice_number ?? "Invoice draft" : "Not created"}
               value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Creating the invoice also marks this work order complete."}

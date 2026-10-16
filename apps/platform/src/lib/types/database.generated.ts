@@ -14208,6 +14208,34 @@ export type Database = {
                     }
                 ];
             };
+            "attachment_file_checks": {
+                Row: {
+                    "bucket_id": string | null;
+                    "can_open": boolean | null;
+                    "can_retry": boolean | null;
+                    "enabled": boolean | null;
+                    "label": string | null;
+                    "source_id": string | null;
+                    "source_type": string | null;
+                    "status": string | null;
+                    "storage_path": string | null;
+                };
+                ComputedFields: never;
+                Relationships: [
+                ];
+            };
+            "attachment_file_sources": {
+                Row: {
+                    "bucket_id": string | null;
+                    "label": string | null;
+                    "source_id": string | null;
+                    "source_type": string | null;
+                    "storage_path": string | null;
+                };
+                ComputedFields: never;
+                Relationships: [
+                ];
+            };
             "job_operations_index": {
                 Row: {
                     "action_rank": number | null;
@@ -14957,6 +14985,12 @@ export type Database = {
                     "added_line_count": number;
                 }[];
             };
+            "attachment_scan_enabled": {
+                Args: {
+                    "p_bucket": string;
+                };
+                Returns: boolean;
+            };
             "begin_invoice_checkout_review": {
                 Args: {
                     "p_invoice_id": string;
@@ -15008,6 +15042,15 @@ export type Database = {
                     "p_token": string;
                 };
                 Returns: boolean;
+            };
+            "claim_attachment_scan": {
+                Args: {
+                    "p_actor": string;
+                    "p_bucket": string;
+                    "p_expected_sha256"?: string;
+                    "p_path": string;
+                };
+                Returns: Json;
             };
             "claim_document_scan": {
                 Args: {
@@ -15245,6 +15288,17 @@ export type Database = {
                 };
                 Returns: string;
             };
+            "finish_attachment_scan": {
+                Args: {
+                    "p_actor": string;
+                    "p_bucket": string;
+                    "p_path": string;
+                    "p_sha256": string;
+                    "p_token": string;
+                    "p_verdict": string;
+                };
+                Returns: boolean;
+            };
             "finish_document_scan": {
                 Args: {
                     "p_actor": string;
@@ -15305,6 +15359,13 @@ export type Database = {
                     "p_manual"?: Json;
                     "p_quote_id"?: string;
                     "p_request_id": string;
+                };
+                Returns: Json;
+            };
+            "get_attachment_scan_states": {
+                Args: {
+                    "p_bucket": string;
+                    "p_paths": (string)[];
                 };
                 Returns: Json;
             };

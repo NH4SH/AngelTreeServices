@@ -1,3 +1,4 @@
+import {isolatedUploadOnly} from "./attachment-test-helpers.mjs";
 import assert from "node:assert/strict";
 import { File } from "node:buffer";
 import { readFileSync } from "node:fs";
@@ -221,6 +222,7 @@ test("photo parity: real PostgreSQL policies and production upload path in isola
       "server-only": {}, "next/cache": { revalidatePath() {} },
       "@/lib/activity-log": { async recordActivity() {} },
       "@/lib/storage/job-photo-paths": { buildJobPhotoPath, JOB_PHOTO_BUCKET: "job-photos" },
+      "@/lib/security/attachment-scan-service": isolatedUploadOnly,
       "@/lib/security/upload-validation": { prepareSafeUpload },
     });
     const { getJobPhotos } = loadModule("../src/lib/data/job-photos.ts", {

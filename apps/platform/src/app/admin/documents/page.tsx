@@ -64,6 +64,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
         <section className="page-heading">
           <p className="surface-label"><Files aria-hidden="true" size={18} />Documents</p>
           <h1>Documents</h1>
+          <Link className="secondary-action" href="/files">Review attachment checks</Link>
           <p>Store operational files privately and link them to the record where staff will need them.</p>
         </section>
 

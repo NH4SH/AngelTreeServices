@@ -830,3 +830,43 @@ history, unblocks its own test identities, and retires only its own test actors.
 It leaves a labeled synthetic spam lead for local UI review. A local PostgreSQL
 session injects and removes a narrowly scoped audit-failure constraint; no hosted
 migration or existing review-owner cleanup is performed.
+
+
+## Remaining attachment scanning — disposable integration
+
+`tests/remaining-attachment-scanning.integration.test.mjs` requires the full local
+migration chain and the authenticated private scanner bridge/ClamAV daemon from
+[ATTACHMENT_SCANNING.md](../ATTACHMENT_SCANNING.md). The default unit runner does
+not enable this suite. Supply existing local credentials privately; do not print,
+paste or commit the local status file, scanner token or credential-bearing logs.
+
+```bash
+ATTACHMENT_DISPOSABLE_STACK=1 \
+ATTACHMENT_LOCAL_STATUS_FILE=/absolute/path/to/local-status.private.json \
+ATTACHMENT_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///absolute/path/to/disposable/docker.sock \
+DOCUMENT_SCANNER_URL=http://127.0.0.1:3311/scan \
+ATTACHMENT_APP_URL=http://127.0.0.1:3102 \
+node --test --experimental-strip-types tests/remaining-attachment-scanning.integration.test.mjs
+```
+
+`DOCUMENT_SCANNER_TOKEN` must already be loaded into the private process environment.
+The status file must contain local `API_URL`, `ANON_KEY` and `SERVICE_ROLE_KEY`;
+the suite refuses an API other than `http://127.0.0.1:54321`. It creates only marked
+synthetic actors/records and temporarily enables six local scan switches. Cleanup
+restores their prior values, archives its own employee documents and disables
+only its created accounts. It retains test audit/business history. An optional
+`ATTACHMENT_RESULTS_FILE` writes a credential-free summary. The optional app URL
+runs actual authorized/denied Next route downloads, rather than a mocked handler.
+
+Tests use real clean images and the harmless EICAR antivirus test string. Coverage
+includes direct forged-MIME uploads, stored digest checks, ownership and employee
+classification, unrelated crew denial, service-only scan claims/results, concurrent
+claims, expired/replayed tokens, object replacement and delete/reinsert, scanner
+outages preserving receipt amounts/review state, disposal receipt bucket routing,
+all six shared web/mobile photo categories and mandatory audit history. Disablement
+during scanning must prevent finalization with an already issued access token.
+
+Also run the original `document-scanning.integration.test.mjs` library suite,
+`npm run test:unit`, `npm run typecheck`, `npm run build`, and the existing fresh
+schema contract check. These commands authorize no hosted migration or deployment.

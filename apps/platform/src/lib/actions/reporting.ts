@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getBusinessDateKey } from "@/lib/business-time";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { uploadCheckedAttachment } from "@/lib/security/attachment-scan-service";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -61,7 +62,7 @@ export async function addJobCost(_state: ReportingActionState, formData: FormDat
     const prepared = await prepareSafeUpload(receipt, { maxBytes: 10 * 1024 * 1024, allowDocuments: true });
     if (!prepared.data) return fail(prepared.error ?? "The receipt could not be validated.");
     receiptStoragePath = `${jobId}/${auth.userId}/${crypto.randomUUID()}-${safeFileName(receipt.name)}`;
-    const upload = await auth.supabase.storage.from("job-cost-receipts").upload(receiptStoragePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
+    const upload = await uploadCheckedAttachment(auth.supabase, "job-cost-receipts", receiptStoragePath, prepared.data, auth.userId);
     if (upload.error) return fail(`Receipt could not be uploaded: ${upload.error.message}`);
   }
   const reviewStatus = canApprove && formData.get("approve_now") === "on" ? "approved" : "pending";

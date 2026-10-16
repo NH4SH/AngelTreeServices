@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildJobPhotoPath, JOB_PHOTO_BUCKET } from "@/lib/storage/job-photo-paths";
 import type { JobPhotoType, JobPhotoUploadCategory } from "@/lib/types/database";
+import { uploadCheckedAttachment } from "@/lib/security/attachment-scan-service";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
 
 export type JobPhotoUploadState = {
@@ -71,13 +72,7 @@ export async function uploadJobPhotoForUser({
     fileName: file.name,
   });
 
-  const { error: uploadError } = await supabase.storage
-    .from(JOB_PHOTO_BUCKET)
-    .upload(storagePath, prepared.data.bytes, {
-      cacheControl: "3600",
-      contentType: prepared.data.contentType,
-      upsert: false,
-    });
+  const { error: uploadError } = await uploadCheckedAttachment(supabase, JOB_PHOTO_BUCKET, storagePath, prepared.data, userId, { cacheControl: "3600" });
 
   if (uploadError) {
     return {

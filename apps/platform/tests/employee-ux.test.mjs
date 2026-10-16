@@ -60,7 +60,7 @@ function actionFixture({ allowed = true, result = { data: { id: "task" }, error:
     "@/lib/activity-log": { recordActivity: async (_client, event) => audit.push(event) }, "@/lib/business-time": {},
     "@/lib/auth/roles": { getCurrentUserRolesFromClient: async () => allowed ? ["admin"] : ["crew"], hasAllowedRole: (roles, group) => roles.some((role) => group.includes(role)), platformRoleGroups: { accessApproval: ["owner", "admin"] } },
     "@/lib/data/employees": {}, "@/lib/supabase/server": { createClient: async () => ({ auth: { getUser: async () => ({ data: { user: { id: "admin" } } }) }, from: (table) => { assert.equal(table, "employee_separation_items"); return query; } }) },
-    "@/lib/security/upload-validation": {}, "@/lib/security/errors": { safeStaffMessage: (message) => message },
+    "@/lib/security/attachment-scan-service": {}, "@/lib/security/upload-validation": {}, "@/lib/security/errors": { safeStaffMessage: (message) => message },
   });
   const form = new FormData();
   for (const [key, value] of Object.entries({ employee_id: "employee", item_id: "task", completion_status: "complete", notes: "Returned PPE" })) form.set(key, value);

@@ -920,7 +920,7 @@ test("PR02: actual server actions surface transactional failure and retained-ses
       "@/lib/auth/roles": roles,
       "@/lib/data/employees": {},
       "@/lib/supabase/server": { createClient: async () => client() },
-      "@/lib/security/upload-validation": {},
+      "@/lib/security/attachment-scan-service": {}, "@/lib/security/upload-validation": {},
       "@/lib/security/errors": { safeStaffMessage: (message) => message },
     });
     const form = new FormData();

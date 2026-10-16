@@ -1,3 +1,4 @@
+import { AttachmentCheckLink } from "@/components/AttachmentCheckLink";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { Camera, ImageOff } from "lucide-react";
 import type { JobPhotoType, SignedJobPhoto } from "@/lib/types/database";
@@ -59,6 +60,7 @@ function PhotoGroup({ photos, title }: { photos: SignedJobPhoto[]; title: string
                 <span className="photo-thumbnail-unavailable" role="note">
                   <ImageOff aria-hidden="true" size={20} />
                   Preview unavailable
+                  <AttachmentCheckLink bucket="job-photos" sourceType="job_photo" sourceId={photo.id}/>
                 </span>
               )}
               <span className="photo-thumbnail-caption">

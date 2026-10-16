@@ -7,6 +7,7 @@ import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
 import { createClient } from "@/lib/supabase/server";
+import { uploadCheckedAttachment } from "@/lib/security/attachment-scan-service";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { EquipmentCategory, EquipmentStatus } from "@/lib/types/database";
@@ -338,7 +339,7 @@ export async function uploadEquipmentDocument(_state: EquipmentActionState, form
   const prepared = await prepareSafeUpload(file, { maxBytes: 15 * 1024 * 1024, allowDocuments: true });
   if (!prepared.data) return error(prepared.error ?? "The file could not be validated.");
   const storagePath = `${assetId}/documents/${Date.now()}-${safeFileName(file.name)}`;
-  const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
+  const { error: uploadError } = await uploadCheckedAttachment(context.supabase, "equipment-files", storagePath, prepared.data, context.user.id);
   if (uploadError) return error(`Private file upload failed: ${uploadError.message}`);
   const { error: metadataError } = await context.supabase.from("equipment_documents").insert({ asset_id: assetId, title, document_type: documentType, storage_path: storagePath, expires_at: dateTime(formData, "expires_at"), uploaded_by_user_id: context.user.id });
   if (metadataError) {

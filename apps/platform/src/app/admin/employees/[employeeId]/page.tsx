@@ -1,3 +1,4 @@
+import { AttachmentCheckLink } from "@/components/AttachmentCheckLink";
 import { employeeActivityPresentation, employeeClockLabels } from "@/lib/employee-presentation";
 import {
   formatBusinessDate,
@@ -644,7 +645,7 @@ export default async function EmployeeDetailPage({
                             >
                               Open private file
                             </a>
-                          ) : null}
+                          ) : <AttachmentCheckLink bucket="employee-files" sourceType="employee_document" sourceId={document.id}/>}
                           {document.review_status === "pending" ? (
                             <form
                               action={reviewEmployeeDocument}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getInspectionTemplate } from "@/lib/equipment/inspection-templates";
 import { createClient } from "@/lib/supabase/server";
+import { uploadCheckedAttachment } from "@/lib/security/attachment-scan-service";
 import { prepareSafeUpload } from "@/lib/security/upload-validation";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -65,7 +66,7 @@ export async function reportEquipmentProblem(_state: CrewEquipmentActionState, f
     const prepared = await prepareSafeUpload(photo, { maxBytes: 6 * 1024 * 1024 });
     if (!prepared.data) return fail(prepared.error ?? "The photo could not be validated.");
     storagePath = `${assetId}/problems/${Date.now()}-${safeFileName(photo.name)}`;
-    const { error: uploadError } = await context.supabase.storage.from("equipment-files").upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
+    const { error: uploadError } = await uploadCheckedAttachment(context.supabase, "equipment-files", storagePath, prepared.data, context.userId);
     if (uploadError) return fail(`Problem photo could not upload: ${uploadError.message}`);
   }
 

@@ -1,0 +1,14 @@
+.file-checks .attachment-check-list { border-block: 1px solid var(--color-border); }
+.file-checks .attachment-check-row { display: flex; justify-content: space-between; gap: 1.5rem; padding-block: 1.25rem; border-bottom: 1px solid var(--color-border); }
+.file-checks .attachment-check-row:last-child { border-bottom: 0; }
+.file-checks .attachment-check-row > div { min-width: 0; }
+.file-checks .attachment-check-row h2 { font-size: 1rem; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.file-checks .attachment-check-row p { max-width: 65ch; margin-block: .5rem; }
+.file-checks .attachment-check-actions { flex: 0 0 min(40%,24rem); }
+.file-checks .secondary-action { min-height: var(--control-touch-size); }
+.file-checks :is(input,select):focus-visible { outline: 2px solid var(--color-forest); outline-offset: 3px; }
+.file-checks nav { margin-block: 1.25rem; align-items: center; }
+@media (max-width: 720px) {
+  .file-checks .attachment-check-row { flex-direction: column; gap: .5rem; }
+  .file-checks :is(input,select) { font-size: 1rem; }
+}

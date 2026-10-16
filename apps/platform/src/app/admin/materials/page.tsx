@@ -1,3 +1,4 @@
+import { AttachmentCheckLink } from "@/components/AttachmentCheckLink";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { AlertTriangle, Boxes, Factory, MapPinned, PackageCheck, Plus, ReceiptText, Scale, Truck } from "lucide-react";
@@ -34,7 +35,7 @@ export default async function MaterialsPage({ searchParams }: MaterialsPageProps
 
   return <PlatformFrame active="materials" roles={context.roles} userEmail={context.user.email}>
     <div className="shell app-content materials-page">
-      <section className="page-heading commerce-heading"><div><p className="surface-label"><Boxes size={18} />Materials and inventory</p><h1>Materials</h1><p>Plan, reserve, receive, move, use, deliver, produce, and dispose of materials with an auditable stock history.</p></div><Link className="primary-action" href="/admin/materials?view=catalog#add-material"><Plus size={18} />Add material</Link></section>
+      <section className="page-heading commerce-heading"><div><p className="surface-label"><Boxes size={18} />Materials and inventory</p><h1>Materials</h1><AttachmentCheckLink bucket="material-files"/><p>Plan, reserve, receive, move, use, deliver, produce, and dispose of materials with an auditable stock history.</p></div><Link className="primary-action" href="/admin/materials?view=catalog#add-material"><Plus size={18} />Add material</Link></section>
       {data.error ? <section className="data-warning"><strong>Materials database notice</strong><p>{data.error}</p></section> : null}
       <nav className="materials-tabs" aria-label="Materials views">{views.map((item) => <Link aria-current={view === item ? "page" : undefined} href={`/admin/materials?view=${item}`} key={item}>{tabIcon(item)}{materialLabel(item)}</Link>)}</nav>
       {view === "overview" ? <Overview data={data} /> : null}

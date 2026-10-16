@@ -91,7 +91,10 @@ test("PR10 provider outcomes and mandatory photo audit with real local Auth, RLS
   const requests=async j=>JSON.parse(await sql(`select coalesce(json_agg(r),'[]') from app_private.invoice_generation_requests r where job_id='${j.id}'`));
   const crew=await account('crew'),other=await account('customer');
   const bytes=await sharp({create:{width:4,height:4,channels:3,background:'#285a42'}}).png().toBuffer();
-  const uploadModule=load('../src/lib/storage/job-photo-upload.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'next/cache':{revalidatePath(){}},'@/lib/storage/job-photo-paths':{buildJobPhotoPath,JOB_PHOTO_BUCKET:'job-photos'},'@/lib/security/upload-validation':{prepareSafeUpload}});
+  const cryptoModule=await import('node:crypto');
+  const scannerModule=await import('../src/lib/security/document-scanner.ts');
+  const attachmentModule=load('../src/lib/security/attachment-scan-service.ts',{'server-only':{},'node:crypto':cryptoModule,'./document-scan-service':{getDocumentScanClient:()=>service},'./document-scanner':scannerModule});
+  const uploadModule=load('../src/lib/storage/job-photo-upload.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'next/cache':{revalidatePath(){}},'@/lib/storage/job-photo-paths':{buildJobPhotoPath,JOB_PHOTO_BUCKET:'job-photos'},'@/lib/security/upload-validation':{prepareSafeUpload},'@/lib/security/attachment-scan-service':attachmentModule});
   const upload=(j,actor=owner,category='completion')=>uploadModule.uploadJobPhotoForUser({caption:'PR10 disposable photo',category,file:new File([bytes],'local.png',{type:'image/png'}),jobId:j.id,supabase:actor.client,userId:actor.id});
   const photos=async j=>check(await service.from('job_photos').select('*').eq('job_id',j.id));
   const photoAudits=async j=>check(await service.from('activity_log').select('*').eq('subject_id',j.id).eq('event_type','job_photo_uploaded'));

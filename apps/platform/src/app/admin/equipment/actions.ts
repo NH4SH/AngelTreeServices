@@ -242,16 +242,19 @@ export async function addMaintenanceSchedule(_state: EquipmentActionState, formD
   if (nextDueAt) {
     const { data: asset } = await context.supabase.from("equipment_assets").select("name, asset_number, location_label").eq("id", assetId).single();
     const end = new Date(new Date(nextDueAt).getTime() + 60 * 60 * 1000).toISOString();
-    const { data: calendarEvent, error: calendarError } = await context.supabase.from("schedule_events").insert({
-      title: `${asset?.asset_number ?? "Equipment"} - ${title}`,
+    const { data: calendarEvent, error: calendarError } = await context.supabase.rpc("save_schedule_event", {
+      p_event_id: null, p_expected_revision: null,
+      p_event: { request_id: maintenanceSchedule.id,
+      title: `${asset?.asset_number ?? "Equipment"} - ${title}`.slice(0, 140),
       description: `Scheduled maintenance for ${asset?.name ?? "equipment"}.`,
       event_type: "maintenance",
       status: "scheduled",
       starts_at: nextDueAt,
       ends_at: end,
       location_label: asset?.location_label,
-      created_by_user_id: context.user.id,
-    }).select("id").single();
+      },
+      p_employee_ids: [],
+    });
     if (calendarError) console.error("Equipment maintenance calendar event failed", calendarError);
     const { error: recordError } = await context.supabase.from("equipment_maintenance_records").insert({
       asset_id: assetId, schedule_id: maintenanceSchedule.id, schedule_event_id: calendarEvent?.id ?? null,

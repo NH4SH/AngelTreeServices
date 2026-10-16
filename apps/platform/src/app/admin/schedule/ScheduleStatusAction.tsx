@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import type { AppointmentStatus, ScheduleEventStatus } from "@/lib/types/database";
 import {
@@ -13,19 +15,25 @@ const initialState: AppointmentActionState = { status: "idle", message: "" };
 export function ScheduleEventStatusAction({
   currentStatus,
   eventId,
+  revision: initialRevision,
   label,
   nextStatus,
 }: {
   currentStatus: ScheduleEventStatus;
   eventId: string;
+  revision: number;
   label: string;
   nextStatus: ScheduleEventStatus;
 }) {
   const [state, action, pending] = useReliableActionState(updateScheduleEventStatus, initialState);
+  const [revision, setRevision] = useState(initialRevision);
+  const router = useRouter();
+  useEffect(() => { if (state.status === "success" && state.revision) { setRevision(state.revision); router.refresh(); } }, [state, router]);
 
   return (
     <form action={action} className="schedule-quick-status-form">
       <input name="event_id" type="hidden" value={eventId} />
+      <input name="expected_revision" type="hidden" value={revision} />
       <input name="next_status" type="hidden" value={nextStatus} />
       <button disabled={pending || currentStatus === nextStatus} type="submit">
         {pending ? "Updating..." : label}

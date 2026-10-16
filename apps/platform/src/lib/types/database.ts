@@ -766,6 +766,7 @@ export type ScheduleUser = AssignableUser & {
 
 export type ScheduleEvent = {
   id: string;
+  edit_revision: number;
   job_id: string | null;
   lead_intake_job_id: string | null;
   source_customer_id: string | null;

@@ -8,6 +8,7 @@ export type LeadEstimatePrefill = {
   contactName: string;
   email: string;
   eventId: string | null;
+  expectedRevision: number | null;
   eventTitle: string;
   existingStartsAt: string;
   internalNotes: string;
@@ -69,6 +70,7 @@ export type LeadEstimateSourceRecord = {
   lead_sources?: { name: string } | null;
   lead_estimate?: {
     id: string;
+    edit_revision?: number;
     title: string;
     starts_at: string;
     calendar_notes: string | null;
@@ -107,6 +109,7 @@ export function buildLeadEstimatePrefill(record: LeadEstimateSourceRecord): Lead
     contactName,
     email,
     eventId: event?.id ?? null,
+    expectedRevision: event?.edit_revision ?? null,
     eventTitle: event?.title ?? `Estimate - ${organization?.name || contactName}`,
     existingStartsAt: event?.starts_at ?? "",
     internalNotes: record.internal_notes ?? "",

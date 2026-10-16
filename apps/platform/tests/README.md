@@ -503,3 +503,29 @@ pending versus processing/sent reminders. The Calendar test claims real outbox
 work and verifies the existing old-revision acknowledgement/failure fence.
 No provider worker, email delivery, Stripe or production service runs. See
 `src/lib/schedule/ATOMIC_SCHEDULING.md` for the exact contract and scope limits.
+
+## PR09 explicit job completion
+
+After all 79 migrations are installed in the disposable stack:
+
+```sh
+PR09_DISPOSABLE_STACK=1 \
+PR09_LOCAL_STATUS_FILE="$PR09_STATUS_FILE" \
+PR09_DOCKER_BIN="$PR09_DOCKER_BIN" \
+node --conditions=react-server --experimental-strip-types --test tests/explicit-job-completion.integration.test.mjs
+```
+
+DOCKER_HOST must be the dedicated local Unix socket. The suite refuses a
+non-loopback API and uses supabase_db_ats_pr02_disposable only. It creates and
+retires only owned synthetic actors, retaining fixture history. Never print the
+private status file. No hosted project, provider worker or sender runs.
+
+The existing PR04 tests now intentionally assert draft-only field behavior;
+financial/copy/rollback/replay coverage is preserved. The PR08 compatibility case
+now uses explicit completion and verifies the unchecked entry point is revoked.
+Dedicated PR09 coverage includes both office modes, financial/audit/receipt/Calendar
+rollback, exact replay, races, stale job/visit/closeout/child context, future dates,
+issued-JWT revocation during independent lock waits, crew all-or-nothing submission,
+required evidence, immutable revisions, corrections and retained time/actor, timer
+independence, operations visibility and remaining reminder scope. Browser review
+uses 3102 with unchanged flags and an isolated 3103 local flags-on preview.

@@ -1,5 +1,7 @@
 "use client";
 
+import { reviewLatestCompletion } from "@/lib/actions/job-completion";
+import { completionFingerprint, getCompletionRequest, parseCompletionContext, type JobCompletionContext } from "@/lib/jobs/completion-request";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
@@ -57,47 +59,69 @@ type CloseoutDraft = {
 };
 
 export function CrewJobCloseoutForm({
+  actorId,
+  initialContext,
   bundle,
   hasActiveJobTimer,
   jobId,
   jobStatus,
 }: {
+  actorId: string;
+  initialContext: JobCompletionContext;
   bundle: JobCloseoutBundle;
   hasActiveJobTimer: boolean;
   jobId: string;
   jobStatus: JobStatus;
 }) {
   const router = useRouter();
+  const [reviewed, setReviewed] = useState(initialContext);
+  const [futureConfirmed, setFutureConfirmed] = useState(false);
+  const [lastIntent, setLastIntent] = useState("save");
+  const [storageError, setStorageError] = useState("");
+  const [confirmationError, setConfirmationError] = useState("");
   const [startState, startAction, startPending] = useReliableActionState(startCrewJob, initialActionState);
   const [saveState, saveAction, savePending] = useReliableActionState(saveCrewCloseout, initialActionState);
-  const [submitState, submitAction, submitPending] = useReliableActionState(submitCrewCloseout, initialActionState);
+  const [submitState, submitAction, submitPending] = useReliableActionState(async (previous: CrewCloseoutActionState, form: FormData) => {
+    try {
+      const fingerprint = await completionFingerprint(JSON.stringify(Array.from(form.entries()).filter(([key]) => key !== "request_id").sort(([a], [b]) => a.localeCompare(b))));
+      form.set("request_id", getCompletionRequest(localStorage, actorId, jobId, "crew_closeout", fingerprint, () => crypto.randomUUID()));
+    } catch { return { status: "error" as const, message: "Browser storage is unavailable. Enable it and retry so your submission request can be saved safely." }; }
+    return submitCrewCloseout(previous, form);
+  }, initialActionState);
   const [draft, setDraft] = useState<CloseoutDraft>(() => makeInitialDraft(bundle));
   const [dirty, setDirty] = useState(false);
   const storageKey = `crew-closeout:${jobId}`;
   const editable = ["draft", "returned"].includes(bundle.closeout.status)
     && ["in_progress", "returned_for_correction"].includes(jobStatus);
-  const busy = savePending || submitPending;
+  const [reviewState, reviewAction, reviewing] = useReliableActionState(async (previous: CrewCloseoutActionState, form: FormData) => {
+    const result = await reviewLatestCompletion(previous, form);
+    if (result.context) { setReviewed(result.context); setFutureConfirmed(false); }
+    return result as CrewCloseoutActionState;
+  }, initialActionState);
+  const busy = savePending || submitPending || reviewing;
 
   useEffect(() => {
     if (!editable) return;
-    const saved = window.sessionStorage.getItem(storageKey);
-    if (!saved) return;
-
     try {
-      const parsed = JSON.parse(saved) as { updatedAt?: string; draft?: CloseoutDraft };
+      const saved = window.sessionStorage.getItem(storageKey);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as { updatedAt?: string; draft?: CloseoutDraft; context?: JobCompletionContext };
       if (parsed.draft && parsed.updatedAt && parsed.updatedAt > bundle.closeout.updated_at) {
         setDraft(parsed.draft);
+        const cachedContext = parseCompletionContext(parsed.context);
+        if (cachedContext?.job_id === jobId) setReviewed(cachedContext);
         setDirty(true);
       }
     } catch {
-      window.sessionStorage.removeItem(storageKey);
+      setStorageError("Your local draft could not be restored. Keep this page open until progress is saved.");
     }
-  }, [bundle.closeout.updated_at, editable, storageKey]);
+  }, [bundle.closeout.updated_at, editable, storageKey, jobId]);
 
   useEffect(() => {
     if (!editable || !dirty) return;
-    window.sessionStorage.setItem(storageKey, JSON.stringify({ draft, updatedAt: new Date().toISOString() }));
-  }, [draft, dirty, editable, storageKey]);
+    try { window.sessionStorage.setItem(storageKey, JSON.stringify({ draft, context: reviewed, updatedAt: new Date().toISOString() })); }
+    catch { setStorageError("Browser draft storage is unavailable. Keep this page open until progress is saved."); }
+  }, [draft, reviewed, dirty, editable, storageKey]);
 
   useEffect(() => {
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
@@ -109,20 +133,22 @@ export function CrewJobCloseoutForm({
   }, [dirty]);
 
   useEffect(() => {
-    if (saveState.status === "success") {
+    if (saveState.status === "success" && saveState.context) {
+      setReviewed(saveState.context);
+      setFutureConfirmed(false);
       setDirty(false);
-      window.sessionStorage.removeItem(storageKey);
+      try { window.sessionStorage.removeItem(storageKey); } catch { /* Server acknowledgment already confirmed the save. */ }
       router.refresh();
     }
-  }, [router, saveState.status, storageKey]);
+  }, [router, saveState, storageKey]);
 
   useEffect(() => {
     if (submitState.submitted) {
       setDirty(false);
-      window.sessionStorage.removeItem(storageKey);
+      try { window.sessionStorage.removeItem(storageKey); } catch { /* Server acknowledgment already confirmed the save. */ }
       router.refresh();
     }
-  }, [router, storageKey, submitState.submitted]);
+  }, [router, storageKey, submitState]);
 
   const progress = useMemo(() => getProgress(draft, bundle), [bundle, draft]);
 
@@ -160,13 +186,21 @@ export function CrewJobCloseoutForm({
       className="crew-closeout-form"
       onChange={() => setDirty(true)}
       onSubmit={(event) => {
+        event.preventDefault();
         const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-        if (submitter?.value === "submit" && !window.confirm("Submit this job closeout for office review? You will need the office to reopen it before making more changes.")) {
-          event.preventDefault();
-        }
+        const intent = submitter?.value === "submit" ? "submit" : "save";
+        if (intent === "submit" && reviewed.future_count > 0 && !futureConfirmed) { setConfirmationError("Confirm that all remaining visits, including future dates, are finished before submitting."); return; }
+        setConfirmationError("");
+        if (intent === "submit" && !window.confirm("Finish all remaining work visits and submit this closeout for office review? Running timers stay open. The office must reopen it before further changes.")) return;
+        setLastIntent(intent);
+        const form = new FormData(event.currentTarget);
+        void (intent === "submit" ? submitAction(form) : saveAction(form));
       }}
     >
+      <fieldset className="closeout-fields" disabled={busy} aria-label="Job closeout details">
       <input name="job_id" type="hidden" value={jobId} />
+      <input name="expected_revision" type="hidden" value={reviewed.revision} />
+      <input name="expected_snapshot" type="hidden" value={JSON.stringify(reviewed.snapshot)} />
       <input name="checklist_json" type="hidden" value={JSON.stringify(draft.checklist)} />
       <input name="scope_items_json" type="hidden" value={JSON.stringify(draft.scopeItems)} />
 
@@ -349,18 +383,28 @@ export function CrewJobCloseoutForm({
           <strong>{dirty ? "Unsaved closeout changes" : "Closeout progress is current"}</strong>
           <p>Save anytime. Submit only after photos, scope, checklist, notes, and required answers are complete.</p>
         </div>
+        <div>
+          <p>Submitting also completes these remaining work visits:</p>
+          {reviewed.visits.length ? <ul className="completion-visits">{reviewed.visits.map(v => <li key={`${v.kind}-${v.id}`}>{formatBusinessDateTime(new Date(v.starts_at))}</li>)}</ul> : <p>No open work visits.</p>}
+          {reviewed.future_count > 0 ? <label className="completion-confirm"><input type="checkbox" name="confirm_future" checked={futureConfirmed} onChange={e => setFutureConfirmed(e.target.checked)} />All remaining visits, including future dates, are finished.</label> : null}
+        </div>
+        {storageError ? <p className="form-message error" role="status">{storageError}</p> : null}
         <div className="closeout-submit-actions">
-          <button disabled={busy} formAction={saveAction} type="submit" value="save">
+          <button disabled={busy} formNoValidate type="submit" value="save">
             <Save aria-hidden="true" size={20} />
             {savePending ? "Saving..." : "Save progress"}
           </button>
-          <button className="primary-closeout-submit" disabled={busy} formAction={submitAction} name="intent" type="submit" value="submit">
+          <button className="primary-closeout-submit" disabled={busy} name="intent" type="submit" value="submit">
             <Send aria-hidden="true" size={20} />
             {submitPending ? "Submitting..." : "Submit job closeout"}
           </button>
         </div>
-        <ActionMessage state={saveState.status !== "idle" ? saveState : submitState} />
+        {confirmationError ? <p className="form-message error" role="alert">{confirmationError}</p> : null}
+        {lastIntent !== "review" ? <ActionMessage state={lastIntent === "submit" ? submitState : saveState} /> : null}
+        {lastIntent !== "review" && (lastIntent === "submit" ? submitState : saveState).status === "error" ? <button className="secondary-action" disabled={busy} type="button" onClick={() => { setLastIntent("review"); const form = new FormData(); form.set("job_id", jobId); void reviewAction(form); }}>Review latest visits</button> : null}
+        {lastIntent === "review" ? <ActionMessage state={reviewState} /> : null}
       </section>
+      </fieldset>
     </form>
   );
 

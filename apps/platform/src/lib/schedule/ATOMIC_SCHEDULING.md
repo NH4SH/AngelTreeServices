@@ -101,3 +101,12 @@ and migration must ship together. Existing legacy appointment edit handlers and
 the equipment-maintenance record transaction are retained; this change does not
 rewrite either surrounding workflow. No environment or provider configuration
 changes are required.
+
+## PR09 completion boundary
+
+PR09 retires direct client execution of complete_completed_job_schedule. Office
+completion now uses the versioned complete_job_work command; crew submission uses
+submit_job_closeout_atomic. Both retain PR08 event assignments, audit/outbox rules
+and parent ordering. New active work visits on a completed job are rejected until
+work is reviewed/reopened. See ../jobs/EXPLICIT_COMPLETION.md. The 78 pre-PR09
+migration files are unchanged; the new boundary is an additive migration.

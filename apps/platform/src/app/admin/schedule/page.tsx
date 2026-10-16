@@ -17,7 +17,6 @@ import {
 import { AppointmentEditForm } from "@/components/appointment-edit-form";
 import { CommunicationControls } from "@/components/communication-controls";
 import { PlatformFrame } from "@/components/PlatformFrame";
-import { MarkJobCompleteAction } from "@/components/workflow-actions";
 import { SetupRequired } from "@/components/SetupRequired";
 import { DailyCrewScheduleActions } from "./DailyCrewScheduleActions";
 import { ScheduleDaySheet } from "./ScheduleDaySheet";
@@ -872,7 +871,7 @@ function ScheduleEventDetailPanel({
 
         <div className="appointment-detail-actions">
           {event.event_type === "job" && event.job_id && event.jobs ? (
-            <MarkJobCompleteAction jobId={event.job_id} status={event.jobs.status} />
+            <Link className="secondary-action" href={`/admin/jobs/${event.job_id}#job-completion`}>Complete work</Link>
           ) : null}
           {event.event_type === "job" && event.job_id ? (
             <Link className="primary-action" href={buildScheduleHref(current, { event: undefined, job: event.job_id, new: "1" })}>Edit job schedule</Link>

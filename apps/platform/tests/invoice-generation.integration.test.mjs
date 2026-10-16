@@ -82,7 +82,7 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
   const invoices=async j=>check(await service.from('invoices').select('id').eq('job_id',j.id));
   const requests=async j=>JSON.parse(await sql(`select coalesce(json_agg(r),'[]') from app_private.invoice_generation_requests r where job_id='${j.id}'`));
   await run('each existing office role retains invoice generation authority',async()=>{
-    for(const actor of [owner,admin,estimator,payroll]) {const j=await job();const r=check(await gen(j,randomUUID(),actor));assert.equal((await read(r.invoice_id)).status,'draft');assert.equal((await jobRead(j)).status,'completed');}
+    for(const actor of [owner,admin,estimator,payroll]) {const j=await job();const r=check(await gen(j,randomUUID(),actor));assert.equal((await read(r.invoice_id)).status,'draft');assert.equal((await jobRead(j)).status,'scheduled');}
   });
   await run('anonymous, customer, crew, property manager and service-only sessions cannot generate',async()=>{
     const j=await job();for(const actor of [{client:anon},{client:service},await account('customer'),await account('crew'),await account('property_manager')]) denied(await gen(j,randomUUID(),actor),'42501');
@@ -93,15 +93,15 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
     check(await service.from('employee_records').update({employment_status:'separated',is_active:false}).eq('id',actor.employeeId));
     denied(await gen(j,id,actor),'42501');denied(await gen(await job(),randomUUID(),actor),'42501');
   });
-  await run('source prices plus approved additions, tax and fees are copied exactly and completed atomically',async()=>{
+  await run('source prices plus approved additions, tax and fees are copied atomically without completing work',async()=>{
     const j=await job();const q=await quote(j);const linked=await jobRead(j),co=await addition(linked),s=await session(j),id=randomUUID();
     const r=check(await gen(j,id)),inv=await read(r.invoice_id);assert.equal(inv.quote_id,q.id);assert.equal(inv.subtotal_cents,1525);assert.equal(inv.tax_cents,150);assert.equal(inv.total_cents,1675);assert.equal(inv.balance_due_cents,1675);
     assert.equal(inv.invoice_line_items.length,3);assert.equal(inv.invoice_line_items.filter(l=>l.source_change_order_line_item_id).length,1);
     assert.equal(check(await service.from('change_orders').select('invoice_id').eq('id',co.id).single()).invoice_id,inv.id);
-    assert.equal(check(await service.from('schedule_events').select('status').eq('id',s.id).single()).status,'completed');
-    assert.equal((await jobRead(j)).completed_by_user_id,owner.id);assert.equal((await requests(j)).length,1);assert.equal(r.added_change_order_count,1);
+    assert.equal(check(await service.from('schedule_events').select('status').eq('id',s.id).single()).status,'scheduled');
+    assert.equal((await jobRead(j)).completed_by_user_id,null);assert.equal((await requests(j)).length,1);assert.equal(r.added_change_order_count,1);
     const counts=check(await service.from('activity_log').select('event_type').in('subject_id',[j.id,inv.id]));
-    for(const event of ['invoice_created','invoice_draft_created','invoice_draft_created_from_job','job_completed_from_invoice','approved_change_orders_added']) assert.equal(counts.filter(x=>x.event_type===event).length,1);
+    for(const event of ['invoice_created','invoice_draft_created','invoice_draft_created_from_job','approved_change_orders_added']) assert.equal(counts.filter(x=>x.event_type===event).length,1);
   });
   await run('concurrent distinct clicks from multiple office users and both source paths produce one base invoice',async()=>{
     const j=await job(),q=await quote(j);const responses=await Promise.all(Array.from({length:8},(_,i)=>i%2?gen(j,randomUUID(),i%3?owner:admin):gen(null,randomUUID(),owner,{p_quote_id:q.id})));
@@ -164,7 +164,7 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
     finally{await sql(`alter table public.notes drop constraint ${constraint}`);}
   });
   await run('approved quote without work order creates and links it in the same transaction',async()=>{
-    const q=await quote(null),id=randomUUID(),r=check(await gen(null,id,owner,{p_quote_id:q.id})),j=await jobRead({id:r.job_id});assert.equal(j.source_quote_id,q.id);assert.equal(j.status,'completed');
+    const q=await quote(null),id=randomUUID(),r=check(await gen(null,id,owner,{p_quote_id:q.id})),j=await jobRead({id:r.job_id});assert.equal(j.source_quote_id,q.id);assert.equal(j.status,'accepted');assert.equal(j.completed_at,null);
     assert.equal(check(await service.from('quotes').select('job_id').eq('id',q.id).single()).job_id,j.id);assert.equal(check(await gen(null,id,owner,{p_quote_id:q.id})).invoice_id,r.invoice_id);
   });
   await run('explicit duplicate/supplemental drafts remain possible and historical multiple invoices remain untouched',async()=>{
@@ -175,8 +175,8 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
   await run('deleting a never-sent draft does not silently regenerate a previously committed request',async()=>{
     const j=await job(),id=randomUUID(),r=check(await gen(j,id));check(await owner.client.from('invoices').delete().eq('id',r.invoice_id));denied(await gen(j,id),'23514');assert.equal((await invoices(j)).length,0);assert.equal((await requests(j)).length,1);
   });
-  await run('existing completion provenance is retained while remaining schedule sessions complete',async()=>{
-    const when='2026-09-01T12:34:56+00:00',j=await job({status:'completed',completed_at:when,completed_by_user_id:admin.id});await session(j);check(await gen(j));const after=await jobRead(j);assert.equal(new Date(after.completed_at).toISOString(),new Date(when).toISOString());assert.equal(after.completed_by_user_id,admin.id);
+  await run('existing completion provenance is retained and draft preparation leaves remaining visits open',async()=>{
+    const when='2026-09-01T12:34:56+00:00',j=await job();const visit=await session(j);check(await service.from('jobs').update({status:'completed',completed_at:when,completed_by_user_id:admin.id}).eq('id',j.id));check(await gen(j));const after=await jobRead(j);assert.equal(new Date(after.completed_at).toISOString(),new Date(when).toISOString());assert.equal(after.completed_by_user_id,admin.id);assert.equal(check(await service.from('schedule_events').select('status').eq('id',visit.id).single()).status,'scheduled');
   });
   await run('private request records are unavailable to authenticated and service API callers',async()=>{
     const r=await owner.client.schema('app_private').from('invoice_generation_requests').select('*');assert.ok(r.error);

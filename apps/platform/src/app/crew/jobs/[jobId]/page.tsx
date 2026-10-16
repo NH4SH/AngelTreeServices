@@ -1,3 +1,5 @@
+import { getJobCompletionContext } from "@/lib/data/job-completion";
+import type { JobCompletionContext } from "@/lib/jobs/completion-request";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -51,6 +53,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
     roles: context.roles,
     userId: context.user.id,
   });
+  const completion = closeoutEnabled && job.data ? await getJobCompletionContext(jobId) : { data: null, error: null };
   const [photos, closeout, activeTimer, materials, approvedAdditions] = job.data
     ? await Promise.all([
         getJobPhotos(jobId),
@@ -76,6 +79,7 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
 
         {job.error ? <DataWarning message={job.error} /> : null}
         {photos.error ? <DataWarning message={`Photos: ${photos.error}`} /> : null}
+        {completion.error ? <DataWarning message={completion.error} /> : null}
         {closeout.error ? <DataWarning message={`Closeout: ${closeout.error}`} /> : null}
         {activeTimer.error ? <DataWarning message={`Time clock: ${activeTimer.error}`} /> : null}
         {materials.error ? <DataWarning message={`Materials: ${materials.error}`} /> : null}
@@ -88,6 +92,8 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
           </section>
         ) : (
           <CrewJobDetail
+            actorId={context.user.id}
+            completionContext={completion.data}
             activeTimerJobId={activeTimer.data?.job_id ?? null}
             assignedCrewLabel={context.user.email ?? "Assigned crew member"}
             closeout={closeout.data}
@@ -104,6 +110,8 @@ export default async function CrewJobDetailPage({ params }: CrewJobDetailPagePro
 }
 
 function CrewJobDetail({
+  actorId,
+  completionContext,
   activeTimerJobId,
   assignedCrewLabel,
   closeout,
@@ -113,6 +121,8 @@ function CrewJobDetail({
   approvedAdditions,
   photos,
 }: {
+  actorId: string;
+  completionContext: JobCompletionContext | null;
   activeTimerJobId: string | null;
   assignedCrewLabel: string;
   closeout: Awaited<ReturnType<typeof getJobCloseout>>["data"];
@@ -364,8 +374,11 @@ function CrewJobDetail({
       </section>
 
       {closeoutEnabled ? <section id="complete">
-        {closeout ? (
+        {closeout && completionContext ? (
           <CrewJobCloseoutForm
+            key={`${job.id}:${job.status}`}
+            actorId={actorId}
+            initialContext={completionContext}
             bundle={closeout}
             hasActiveJobTimer={activeTimerJobId === job.id}
             jobId={job.id}
@@ -373,7 +386,7 @@ function CrewJobDetail({
           />
         ) : (
           <section className="crew-panel">
-            <PanelHeading icon={<CheckCircle2 size={19} />} title="Job closeout unavailable" subtitle="The closeout migration must be applied before this workflow can be used." />
+            <PanelHeading icon={<CheckCircle2 size={19} />} title="Job closeout unavailable" subtitle="Reload this page to review the latest work order and closeout." />
           </section>
         )}
       </section> : null}

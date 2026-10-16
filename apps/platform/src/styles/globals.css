@@ -22789,3 +22789,19 @@ body:has(.appointment-overlay) {
 .quote-editor-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .quote-edit-conflict { display: grid; gap: var(--space-3, 0.75rem); }
 .quote-editor-fields :is(input, select, textarea) { font-size: max(1rem, 16px); }
+
+/* The existing work-order surface, with one focused completion review. */
+.job-completion-review { max-width: 100%; position: relative; }
+.job-completion-review > summary { cursor: pointer; display: flex; align-items: center; gap: .5rem; padding: .7rem 1rem; border: 1px solid var(--line, #d5ded8); border-radius: .65rem; color: var(--forest, #234d3b); font-weight: 650; }
+.job-completion-review > form { max-width: 36rem; min-width: min(28rem, 100%); margin-top: .75rem; padding: 1rem; background: var(--surface, #fff); border: 1px solid var(--line, #d5ded8); border-radius: .75rem; display: grid; gap: 1rem; }
+.job-completion-review h3, .job-completion-review p { margin: 0; }
+.completion-visits { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; }
+.completion-visits li { display: grid; gap: .2rem; }
+.completion-visits span { color: #526259; font-size: .9rem; }
+.completion-confirm { display: flex; align-items: flex-start; gap: .65rem; line-height: 1.5; }
+.completion-confirm input { width: 1.15rem; height: 1.15rem; margin-top: .15rem; flex-shrink: 0; accent-color: #285a42; }
+.completion-note { display: grid; gap: .4rem; }
+.job-completion-review textarea { width: 100%; resize: vertical; border: 1px solid #aebdb3; border-radius: .5rem; padding: .65rem; font: inherit; color: inherit; background: #fff; }
+.closeout-fields { display: contents; }
+.job-completion-review :focus-visible { outline: 2px solid #286345; outline-offset: 3px; }
+@media (max-width: 640px) { .job-completion-review { width: 100%; } .job-completion-review .workflow-button-row { display: grid; } }

@@ -182,7 +182,7 @@ export async function createInvoice(
     if (result.existing || result.replayed) return {
       invoiceId: result.invoice_id, status: "success", message: existingInvoiceMessage(result.invoice_status),
     };
-    redirect(`/admin/invoices/${result.invoice_id}?created=1&job_completed=1`);
+    redirect(`/admin/invoices/${result.invoice_id}?created=1`);
   }
 
   const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {

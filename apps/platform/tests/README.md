@@ -644,3 +644,21 @@ Recovered new-record attempts require checking existing records; standalone quot
 and invoice creation do not gain new database idempotency in this UI change.
 Personal wording survives logout under its own user key and contains no prices or
 record/material identifiers. New walk-in contact/address entries must be re-entered.
+
+### PR13 — transactional website requests
+
+`tests/website-lead.test.mjs` runs in the regular unit suite. It exercises the actual parser, transaction acknowledgement, notice aggregation, claim/finish adapters, public-route gates, replay behavior and safe public responses, with provider calls stubbed.
+
+`tests/website-lead.integration.test.mjs` is opt-in. Use **only** the existing disposable local stack (`http://127.0.0.1:54321`) after applying repository migrations locally:
+
+```sh
+PR13_DISPOSABLE_STACK=1 \
+PR13_LOCAL_STATUS_FILE=/absolute/path/to/local-status.private.json \
+PR13_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///absolute/path/to/disposable/docker.sock \
+node --test tests/website-lead.integration.test.mjs
+```
+
+The private status file must come from the disposable stack and contain `API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY` and `JWT_SECRET`. Never commit it. Optional `PR13_RESULTS_FILE` writes a credential-free result summary. The suite refuses a non-local API URL. It tests real Auth/RLS grants, concurrent submissions and claims, process death, late failures at every creation boundary, protected state and fenced notice completion. It also runs the actual route/intake/notice adapters with the local database and an explicitly stubbed email sender. No provider requests are made. It retains marked test business history and retires only its own Auth profile IDs. Scoped failure triggers are removed in `finally`.
+
+A pending or interrupted office notice is **not automatically retried**. PR14 owns provider reconciliation, frozen per-recipient deliveries and safe operator repair. Replaying a public request cannot resend an office notice or reset an archived/converted lead.

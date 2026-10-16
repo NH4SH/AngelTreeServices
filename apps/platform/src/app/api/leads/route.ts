@@ -3,9 +3,8 @@ import { PUBLIC_LEAD_SUCCESS_MESSAGE, getAllowedLeadIntakeOrigins } from "@/lib/
 import {
   createWebsiteLead,
   parsePublicLeadSubmission,
-  recordWebsiteLeadNotificationStatus,
 } from "@/lib/leads/intake";
-import { notifyOfficeOfWebsiteLead } from "@/lib/leads/notifications";
+import { attemptWebsiteLeadNotification } from "@/lib/leads/notifications";
 import { bearerToken, isAuthenticatedMonitoringCanary } from "@/lib/security/monitoring-secret";
 import { enforceSharedRateLimit, hashRateLimitKey, trustedClientIp } from "@/lib/security/rate-limit";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
@@ -111,14 +110,7 @@ export async function POST(request: Request) {
     }
 
     if (result.created) {
-      try {
-        await notifyOfficeOfWebsiteLead(result.jobId, parsed.data);
-        await recordWebsiteLeadNotificationStatus(result.jobId, "sent", null);
-      } catch (notificationError) {
-        const notificationMessage = notificationError instanceof Error ? notificationError.message : "Unknown notification failure";
-        await recordWebsiteLeadNotificationStatus(result.jobId, "failed", notificationMessage);
-        console.error("Website lead notification failed after CRM save.", { ...logContext, error: notificationMessage });
-      }
+      await attemptWebsiteLeadNotification(result.jobId, parsed.data);
     }
 
     console.info("Website lead intake saved successfully.", logContext);

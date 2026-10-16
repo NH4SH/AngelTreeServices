@@ -237,6 +237,7 @@ export type Job = {
   lead_source_id: string | null;
   lead_campaign: string | null;
   website_submission_id: string | null;
+  website_submission_payload_hash: string | null;
   website_request_fingerprint: string | null;
   duplicate_of_job_id: string | null;
   source_detail: string | null;
@@ -252,6 +253,9 @@ export type Job = {
   submitted_at: string;
   notification_status: "pending" | "sent" | "failed" | "skipped";
   notification_error: string | null;
+  notification_attempt_id: string | null;
+  notification_started_at: string | null;
+  notification_outcome: "pending" | "sending" | "accepted" | "rejected" | "unknown" | "not_attempted" | null;
   lead_disposition: "active" | "spam" | "archived";
   assigned_crew_user_id: string | null;
   assigned_crew_employee_id: string | null;

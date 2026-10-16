@@ -20,8 +20,10 @@ import {
 import { getEmailEvents } from "@/lib/data/email-events";
 import type { CustomerCommunication } from "@/lib/types/database";
 import { LeadLifecycleActions } from "./LeadLifecycleActions";
+import { SenderBlockControls } from "./SenderBlockControls";
+import { getSenderBlockData, type SenderBlockData, type SenderControls } from "@/lib/leads/sender-blocks";
 
-export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ lead_view?: string; page?: string; q?: string }> }) {
+export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ lead_view?: string; page?: string; q?: string; block_page?: string; block_history?: string }> }) {
   const params = await searchParams;
   const page = positivePage(params.page);
   const leadView = params.lead_view === "spam" || params.lead_view === "archived" ? params.lead_view : "active";
@@ -38,6 +40,9 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   ]);
   const canManageSettings = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const canDeleteLeads = context.roles.includes("owner");
+  const blockPage = Math.min(10000, positivePage(params.block_page));
+  const blockHistory = params.block_history === "1";
+  const senderBlocks = canManageSettings && leadView === "spam" ? await getSenderBlockData(websiteLeads.data.map(lead => lead.jobId), blockPage, blockHistory) : null;
   const pending = pendingCommunications.data.sort(byScheduledDate);
   const failed = failedCommunications.data;
   const recent = recentCommunications.data;
@@ -92,8 +97,11 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
             <LeadViewLink current={leadView === "spam"} href={leadViewHref("spam", params.q)} label="Spam" />
             <LeadViewLink current={leadView === "archived"} href={leadViewHref("archived", params.q)} label="Archived" />
           </nav>
-          <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} />
+          {leadView === "spam" ? <p className="muted">Marking a lead as spam hides this request. Use Block sender to stop future matching requests. Restoring a lead does not remove sender blocks.</p> : null}
+          {senderBlocks?.error ? <Warning message={senderBlocks.error} /> : null}
+          <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} senderControls={senderBlocks?.controls ?? []} />
           <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ lead_view: leadView === "active" ? undefined : leadView, q: params.q }} />
+          {senderBlocks && !senderBlocks.error ? <SenderBlockRegister data={senderBlocks} page={blockPage} leadPage={page} query={params.q} history={blockHistory} expanded={Boolean(params.block_page)} /> : null}
         </section>
 
         <section className="detail-grid communication-page-grid" id="inbox">
@@ -145,7 +153,7 @@ function leadViewHref(view: "active" | "spam" | "archived", query?: string) {
   return `/admin/communications${search ? `?${search}` : ""}#website-leads`;
 }
 
-function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; canManage: boolean; rows: WebsiteLeadInboxItem[] }) {
+function WebsiteLeadRows({ canDelete, canManage, rows, senderControls }: { canDelete: boolean; canManage: boolean; rows: WebsiteLeadInboxItem[]; senderControls: SenderControls[] }) {
   if (!rows.length) return <p className="inline-empty">No leads in this view.</p>;
 
   return (
@@ -170,8 +178,8 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
             <Detail label="Address" value={lead.address || "Needs confirmation"} />
             <Detail label="Assigned" value={lead.assignedStaff ?? "Unassigned"} />
             <Detail label="Last communication" value={lead.lastCommunication ?? "No staff communication yet"} />
-            <Detail emphasis label="Next action" value={lead.nextAction ?? "Review lead"} />
-            <Detail label="Office notification" value={websiteLeadNoticeLabel(lead.notificationOutcome, lead.notificationStatus)} />
+            <Detail emphasis label="Next action" value={lead.leadDisposition === "spam" ? "Review sender block or restore lead" : lead.nextAction ?? "Review lead"} />
+            <Detail label="Office notification" value={lead.leadDisposition === "spam" && lead.notificationStatus === "pending" ? "Paused while marked as spam" : websiteLeadNoticeLabel(lead.notificationOutcome, lead.notificationStatus)} />
             <div className="website-lead-project-details">
               <dt>Project details</dt>
               <dd>{lead.projectDetails ?? "No project details provided."}</dd>
@@ -189,10 +197,41 @@ function WebsiteLeadRows({ canDelete, canManage, rows }: { canDelete: boolean; c
             {lead.leadDisposition === "active" ? <Link href={`/admin/quotes?new=1&job_id=${lead.jobId}`}>Create quote</Link> : null}
           </div>
           {canManage ? <LeadLifecycleActions canDelete={canDelete} disposition={lead.leadDisposition} jobId={lead.jobId} label={lead.customerName} /> : null}
+          {canManage && lead.leadDisposition === "spam" ? <div className="sender-block-action">{senderControls.find(s => s.jobId === lead.jobId)
+            ? <SenderBlockControls sender={senderControls.find(s => s.jobId === lead.jobId)!} />
+            : <p className="muted">Refresh to load sender blocking controls.</p>}</div> : null}
         </article>
       ))}
     </div>
   );
+}
+
+function SenderBlockRegister({ data, page, leadPage, query, history, expanded }: { data: SenderBlockData; page: number; leadPage: number; query?: string; history: boolean; expanded: boolean }) {
+  return <details className="sender-block-register" id="sender-blocks" open={expanded || history || page > 1 || undefined}>
+    <summary>Blocked senders <span>{data.activeCount} active</span></summary>
+    <p>Exact email or phone matches only. Removing one block leaves other matches active. Existing customer accounts, quotes and invoices stay unchanged.</p>
+    <nav className="filter-pills lead-view-filters" aria-label="Sender block view"><LeadViewLink current={!history} href={blockPageHref(1, leadPage, query, false)} label="Active blocks" /><LeadViewLink current={history} href={blockPageHref(1, leadPage, query, true)} label="All blocks and history" /></nav>
+    {!data.rows.length ? <p className="inline-empty">{history ? "No sender block history yet." : "No active sender blocks. Mark a lead as spam, then choose Block sender."}</p> : <ul className="sender-block-list">
+      {data.rows.map(block => <li key={block.id}>
+        <div className="sender-block-row"><div><strong className="sender-block-identity">{block.value}</strong><p>{block.kind === "email" ? "Email" : "Phone"} · {block.unblocked_at ? "Unblocked" : "Blocked"} · {block.blocked_requests} blocked requests</p></div>
+          {!block.unblocked_at ? <SenderBlockControls block={block} /> : null}</div>
+        <p>{block.reason}</p><p className="muted">Blocked {formatDateTime(block.created_at)} · <Link href={`/admin/jobs/${block.source_job_id}`}>Original lead</Link></p>
+        {block.unblocked_at ? <p className="muted">Unblocked {formatDateTime(block.unblocked_at)} · {block.unblock_reason}</p> : null}
+      </li>)}
+    </ul>}
+    {data.count > 25 ? <nav aria-label="Sender block pages" className="record-actions">
+      {page > 1 ? <Link href={blockPageHref(page - 1, leadPage, query, history)}>Previous blocks</Link> : null}
+      <span>Page {page} of {Math.ceil(data.count / 25)}</span>
+      {page * 25 < data.count ? <Link href={blockPageHref(page + 1, leadPage, query, history)}>Next blocks</Link> : null}
+    </nav> : null}
+  </details>;
+}
+
+function blockPageHref(page: number, leadPage: number, query: string | undefined, history: boolean) {
+  const params = new URLSearchParams({ lead_view: "spam", block_page: String(page), page: String(leadPage) });
+  if (query) params.set("q", query);
+  if (history) params.set("block_history", "1");
+  return `/admin/communications?${params}#sender-blocks`;
 }
 
 function Detail({ emphasis = false, label, value }: { emphasis?: boolean; label: string; value: string }) {

@@ -92,6 +92,9 @@ export async function POST(request: Request) {
     }
 
     const result = await createWebsiteLead(parsed.data);
+    // Same public acknowledgement as a new request; never disclose membership,
+    // identifiers, reasons or matching contacts, and never attempt a notice.
+    if (result.blocked) return json({ ok: true, message: PUBLIC_LEAD_SUCCESS_MESSAGE }, 201, origin);
     const logContext = {
       duplicateMode: result.duplicateMode,
       jobId: result.jobId,

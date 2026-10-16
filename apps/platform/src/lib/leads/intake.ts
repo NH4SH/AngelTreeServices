@@ -75,6 +75,7 @@ export type LeadValidationResult =
   | { data: null; error: null; spam: true };
 
 export type CreateWebsiteLeadResult = {
+  blocked?: true;
   created: boolean;
   duplicateMode: "replayed" | "likely_duplicate" | null;
   error: string | null;
@@ -199,6 +200,13 @@ export async function createWebsiteLead(submission: PublicLeadSubmission): Promi
   try {
     const { data, error } = await supabase.rpc("submit_website_lead", { p_submission: submission });
     if (error) return failure("The website request could not be saved.");
+    // A blocked receipt is durable, but never authorizes a notice or work row.
+    if (data?.blocked === true) {
+      if (data.created === false && data.job_id === null && data.duplicate_mode === null && data.submission_id === submission.submissionId) {
+        return { blocked: true, created: false, duplicateMode: null, error: null, jobId: null, submissionId: data.submission_id };
+      }
+      return failure("The website request save could not be confirmed.");
+    }
     // A missing/partial acknowledgement must never authorize an email attempt.
     if (!data || !isUuid(data.job_id) || typeof data.created !== "boolean"
       || data.submission_id !== submission.submissionId

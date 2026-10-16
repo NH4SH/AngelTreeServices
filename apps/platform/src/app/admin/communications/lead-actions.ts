@@ -94,9 +94,51 @@ export async function updateWebsiteLeadLifecycle(
   return {
     status: "success",
     message: intent === "spam"
-      ? "Lead marked as spam. Pending follow-ups were cancelled."
-      : "Lead restored to the active inbox.",
+      ? "Lead marked as spam. Open the Spam view to block future requests from this sender."
+      : "Lead restored to the active inbox. Any sender blocks remain in place until you unblock them.",
   };
+}
+
+export async function changeWebsiteSenderBlock(
+  _state: LeadLifecycleState,
+  formData: FormData,
+): Promise<LeadLifecycleState> {
+  const supabase = await createClient();
+  if (!supabase) return failure("Supabase is not configured.");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return failure("Sign in before managing sender blocks.");
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) return failure("Only owners and administrators can manage sender blocks.");
+  const reason = String(formData.get("reason") ?? "").trim();
+  const request = String(formData.get("request_id") ?? "");
+  if (reason.length < 5 || reason.length > 500 || !isUuid(request)) return failure("Provide a reason of 5 to 500 characters and try again.");
+  const unblock = formData.get("intent") === "unblock";
+  let result;
+  if (unblock) {
+    const id = String(formData.get("block_id") ?? "");
+    if (!isUuid(id)) return failure("Choose a valid sender block.");
+    result = await supabase.rpc("unblock_website_sender", { p_block: id, p_reason: reason, p_request: request });
+  } else {
+    if (formData.get("intent") !== "block") return failure("Choose block or unblock.");
+    const id = String(formData.get("job_id") ?? "");
+    if (!isUuid(id)) return failure("Choose a valid website lead.");
+    result = await supabase.rpc("block_website_sender", {
+      p_job: id, p_contacts: { email: String(formData.get("email") ?? "") || null, phone: String(formData.get("phone") ?? "") || null },
+      p_email: formData.get("block_email") === "on", p_phone: formData.get("block_phone") === "on", p_reason: reason, p_request: request,
+    });
+  }
+  if (result.error) {
+    if (result.error.code === "40001") return failure("Contact details changed. Close this dialog, refresh, and review the sender again.");
+    return failure("The sender change could not be confirmed. Try again; your earlier click may already be saved.");
+  }
+  if (!result.data || result.data.unblocked !== unblock || !Array.isArray(result.data.blockIds) || !result.data.blockIds.length) {
+    return failure("The sender change could not be confirmed. Refresh before trying again.");
+  }
+  // This page reads uncached data. Let the client refresh on Done so removing
+  // the final active block does not unmount its confirmation before it is read.
+  return { status: "success", message: unblock
+    ? "Block removed. New requests can be received unless another block matches. Old spam leads and blocked requests stay in history."
+    : "Sender blocked for the contacts selected. Future matching website requests will be kept out of active leads. History is retained." };
 }
 
 function revalidateLeadViews() {

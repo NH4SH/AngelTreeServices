@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, RotateCcw, ShieldAlert, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
@@ -85,7 +86,7 @@ export function LeadLifecycleActions({
           {state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null}
           <footer>
             {state.status === "success" ? (
-              <button className="primary-action" onClick={close} ref={cancelRef} type="button">Done</button>
+              <>{intent === "spam" ? <Link className="secondary-action" href="/admin/communications?lead_view=spam#website-leads">Open Spam to block sender</Link> : null}<button className="primary-action" onClick={close} ref={cancelRef} type="button">Done</button></>
             ) : (
               <>
                 <button className="secondary-action" onClick={close} ref={cancelRef} type="button">Cancel</button>
@@ -109,8 +110,8 @@ function actionTitle(intent: Intent) {
 }
 
 function confirmationCopy(intent: Intent) {
-  if (intent === "spam") return "Remove this lead from active work and cancel pending follow-ups? It can be restored from the Spam view.";
+  if (intent === "spam") return "Remove this lead from active work and cancel pending follow-ups? It can be restored from Spam. To stop future requests, choose Block sender in the Spam view.";
   if (intent === "archive") return "Archive this lead without classifying it as spam? Its history will remain available.";
-  if (intent === "restore") return "Return this lead to the active inbox so staff can schedule or convert it?";
+  if (intent === "restore") return "Return this lead to the active inbox so staff can schedule or convert it? Any sender blocks stay active until you unblock them separately.";
   return "This is permanent and owner-only. Deletion will be blocked if the lead has schedule, quote, communication, document, or other protected history.";
 }

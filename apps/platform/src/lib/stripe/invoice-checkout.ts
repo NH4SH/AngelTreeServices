@@ -2,9 +2,10 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import { closeCheckoutReservation, classifyCheckoutForClosure, closableReservationColumns, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { achCheckoutPaymentMethodTypes } from "@/lib/payments/ach-checkout";
 
-type CheckoutReservation = {
+type CheckoutReservation = ClosableReservation & {
   amount_cents: number;
   invoice_principal_cents: number;
   checkout_url: string | null;
@@ -12,7 +13,7 @@ type CheckoutReservation = {
   currency: string;
   expires_at: string | null;
   id: string;
-  payment_channel: "ach";
+  payment_channel: "ach" | "card";
   status: "creating" | "open" | "processing" | "completed" | "expired" | "failed" | "cancelled";
   stripe_checkout_session_id: string | null;
 };
@@ -28,6 +29,7 @@ type CheckoutInput = {
   portalUrl: string;
   serviceLocationId?: string | null;
   stripe: Stripe;
+  livemode: boolean;
   supabase: SupabaseClient<any, "public", any>;
 };
 
@@ -35,13 +37,8 @@ type CheckoutResult =
   | { ok: true; url: string; reused: boolean }
   | { ok: false; message: string };
 
-type CheckoutCancellationResult =
-  | { ok: true }
-  | { ok: false; message: string };
-
-const reservationTimeoutMs = 5 * 60 * 1000;
-
-export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt = 0): Promise<CheckoutResult> {
+  if (attempt >= 3) return { ok: false, message: "Payment state is changing. Please wait and try again." };
   const currency = (input.currency ?? "usd").toLowerCase();
   const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency);
 
@@ -57,23 +54,22 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
     return { ok: false, message: "A payment is already being submitted for this invoice." };
   }
   if (reservation.invoice_principal_cents !== input.amountCents || reservation.payment_channel !== "ach") {
-    await expireReservation(input.supabase, input.stripe, reservation);
-    return createOrReuseInvoiceCheckout(input);
+    const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
+    if (!closed.ok) return { ok: false, message: "An earlier payment needs review before another checkout can open." };
+    return createOrReuseInvoiceCheckout(input, attempt + 1);
   }
 
   if (reservation.status === "open" && reservation.stripe_checkout_session_id) {
     try {
-      const remoteSession = await input.stripe.checkout.sessions.retrieve(reservation.stripe_checkout_session_id);
-      if (remoteSession.status === "open" && remoteSession.url && isFuture(reservation.expires_at)) {
+      const remoteSession = await input.stripe.checkout.sessions.retrieve(reservation.stripe_checkout_session_id, { expand: ["payment_intent"] });
+      const state = classifyCheckoutForClosure(remoteSession, reservation, input.livemode);
+      if (state === "open" && remoteSession.url) {
         return { ok: true, reused: true, url: remoteSession.url };
       }
-
-      await input.supabase
-        .from("invoice_checkout_sessions")
-        .update({ status: remoteSession.status === "expired" ? "expired" : "completed" })
-        .eq("id", reservation.id)
-        .eq("status", "open");
-      return createOrReuseInvoiceCheckout(input);
+      if (state !== "expired") return { ok: false, message: "Payment is processing or needs review. Please wait for its status to update." };
+      const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
+      if (!closed.ok) return { ok: false, message: "Payment status could not be verified. Please try again." };
+      return createOrReuseInvoiceCheckout(input, attempt + 1);
     } catch {
       logAchCheckoutError("checkout_session_retrieval_failed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
@@ -86,6 +82,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
 
   try {
     const metadata = compactMetadata({
+      checkout_reservation_id: reservation.id,
       customer_id: input.customerId ?? "",
       invoice_id: input.invoiceId,
       invoice_number: input.invoiceNumber ?? "",
@@ -118,11 +115,15 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
     );
 
     if (!session.url) {
-      await input.supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id);
+      // Keep both the guard and any known provider reference for staff review.
+      await input.supabase.from("invoice_checkout_sessions").update({
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: getStripeId(session.payment_intent),
+      }).eq("id", reservation.id).eq("status", "creating");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
 
-    const { error } = await input.supabase
+    const { data: saved, error } = await input.supabase
       .from("invoice_checkout_sessions")
       .update({
         checkout_url: session.url,
@@ -132,9 +133,9 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
         stripe_payment_intent_id: getStripeId(session.payment_intent),
       })
       .eq("id", reservation.id)
-      .eq("status", "creating");
+      .eq("status", "creating").select("id").maybeSingle();
 
-    if (error) {
+    if (error || !saved) {
       logAchCheckoutError("checkout_reservation_update_failed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
@@ -142,7 +143,8 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput): Promis
     return { ok: true, reused: false, url: session.url };
   } catch {
     logAchCheckoutError("checkout_session_creation_failed");
-    await input.supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id);
+    // Network/provider/local-write uncertainty must retain the creating guard.
+    // A retry cannot safely infer that Stripe never created a session.
     return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
   }
 }
@@ -154,10 +156,11 @@ async function reserveCheckout(
   organizationId: string | null,
   amountCents: number,
   currency: string,
+  retry = false,
 ): Promise<{ ok: true; reservation: CheckoutReservation } | { ok: false; message: string }> {
   const { data: active, error: activeError } = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, amount_cents, invoice_principal_cents, payment_channel, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .select(`${closableReservationColumns}, amount_cents, invoice_principal_cents, checkout_url, created_at, expires_at`)
     .eq("invoice_id", invoiceId)
     .in("status", ["creating", "open", "processing"])
     .order("created_at", { ascending: false })
@@ -174,9 +177,8 @@ async function reserveCheckout(
     if (reservation.status === "processing") {
       return { ok: false, message: "A payment is already processing for this invoice." };
     }
-    if (reservation.status === "creating" && Date.now() - new Date(reservation.created_at).getTime() > reservationTimeoutMs) {
-      await supabase.from("invoice_checkout_sessions").update({ status: "failed" }).eq("id", reservation.id).eq("status", "creating");
-      return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+    if (reservation.status === "creating") {
+      return { ok: false, message: "A payment checkout is being prepared or needs review. Please wait for its status to update." };
     }
 
     return { ok: true, reservation };
@@ -196,86 +198,19 @@ async function reserveCheckout(
       surcharge_cents: 0,
       total_charge_cents: amountCents,
     })
-    .select("id, amount_cents, invoice_principal_cents, payment_channel, checkout_url, created_at, currency, expires_at, status, stripe_checkout_session_id")
+    .select(`${closableReservationColumns}, amount_cents, invoice_principal_cents, checkout_url, created_at, expires_at`)
     .single();
 
   if (!error && data) {
     return { ok: true, reservation: data as CheckoutReservation };
   }
 
-  if (error?.code === "23505") {
-    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency);
+  if (error?.code === "23505" && !retry) {
+    return reserveCheckout(supabase, invoiceId, customerId, organizationId, amountCents, currency, true);
   }
 
   logAchCheckoutError("checkout_reservation_insert_failed");
   return { ok: false, message: "A secure payment checkout could not be prepared. Please try again." };
-}
-
-async function expireReservation(
-  supabase: SupabaseClient<any, "public", any>,
-  stripe: Stripe,
-  reservation: CheckoutReservation,
-) {
-  if (reservation.stripe_checkout_session_id) {
-    try {
-      await stripe.checkout.sessions.expire(reservation.stripe_checkout_session_id);
-    } catch {
-      logAchCheckoutError("checkout_session_expiry_failed");
-    }
-  }
-
-  await supabase
-    .from("invoice_checkout_sessions")
-    .update({ status: "cancelled" })
-    .eq("id", reservation.id)
-    .in("status", ["creating", "open"]);
-}
-
-export async function cancelOutstandingInvoiceCheckouts({
-  invoiceId,
-  stripe,
-  supabase,
-}: {
-  invoiceId: string;
-  stripe: Stripe | null;
-  supabase: SupabaseClient<any, "public", any>;
-}): Promise<CheckoutCancellationResult> {
-  const { data: sessions, error } = await supabase
-    .from("invoice_checkout_sessions")
-    .select("id, stripe_checkout_session_id")
-    .eq("invoice_id", invoiceId)
-    .in("status", ["creating", "open"]);
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  if (!sessions?.length) {
-    return { ok: true };
-  }
-
-  if (!stripe) {
-    return { ok: false, message: "Stripe must be configured before voiding an invoice with an active customer checkout." };
-  }
-
-  for (const session of sessions) {
-    if (session.stripe_checkout_session_id) {
-      try {
-        await stripe.checkout.sessions.expire(session.stripe_checkout_session_id);
-      } catch {
-        logAchCheckoutError("checkout_void_expiry_failed");
-        return { ok: false, message: "Could not close the active customer checkout before voiding this invoice." };
-      }
-    }
-  }
-
-  const { error: updateError } = await supabase
-    .from("invoice_checkout_sessions")
-    .update({ status: "cancelled" })
-    .eq("invoice_id", invoiceId)
-    .in("status", ["creating", "open"]);
-
-  return updateError ? { ok: false, message: updateError.message } : { ok: true };
 }
 
 function compactMetadata(values: Record<string, string>) {
@@ -284,10 +219,6 @@ function compactMetadata(values: Record<string, string>) {
 
 function getStripeId(value: string | { id: string } | null) {
   return typeof value === "string" ? value : value?.id ?? null;
-}
-
-function isFuture(expiresAt: string | null) {
-  return !expiresAt || new Date(expiresAt).getTime() > Date.now();
 }
 
 function logAchCheckoutError(applicationErrorCode: string) {

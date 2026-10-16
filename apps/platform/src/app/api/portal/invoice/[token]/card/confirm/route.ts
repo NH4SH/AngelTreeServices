@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return paymentError("This payment review is not valid. Please review your card again.", 400);
   }
 
-  const context = await getPortalCardPaymentContext(token, stripeConfig.stripe);
+  const context = await getPortalCardPaymentContext(token, stripeConfig.stripe, stripeConfig.livemode);
   if (!context.ok) return paymentError(context.message, context.status);
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const result = await confirmCardReview({

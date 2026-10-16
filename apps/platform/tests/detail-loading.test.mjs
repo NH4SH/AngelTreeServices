@@ -19,7 +19,9 @@ for (const kind of ["quotes", "invoices", "customers"]) {
     const calls = [];
     const pending = [];
     const values = {
-      [`${singular}Id`]: "fixture", context: { roles: owner ? ["owner"] : ["crew"] },
+      [`${singular}Id`]: "fixture", context: { roles: owner ? ["owner"] : ["crew"], supabase: {
+        rpc(name) { calls.push(name); return new Promise(resolve => pending.push(() => resolve({ data: [], error: null }))); },
+      } },
       platformRoleGroups: { accessApproval: ["owner", "admin"] },
       hasAllowedRole: (roles, allowed) => roles.some(role => allowed.includes(role)),
     };
@@ -47,7 +49,10 @@ for (const kind of ["quotes", "invoices", "customers"]) {
   test(`${kind}: lifecycle access remains role-gated`, async () => {
     const calls = await run({ owner: false });
     assert.equal(calls.includes("getRecordLifecyclePreview"), false);
-    if (kind === "invoices") assert.equal(calls.includes("getInvoicePortalTokens"), false);
+    if (kind === "invoices") {
+      assert.equal(calls.includes("getInvoicePortalTokens"), false);
+      assert.equal(calls.includes("get_invoice_checkout_review"), false);
+    }
   });
   test(`${kind}: missing record skips dependent histories`, async () => {
     const calls = await run({ found: false });

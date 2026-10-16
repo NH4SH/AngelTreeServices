@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import { cardIntentMatches, closeCheckoutReservation, closableReservationColumns, type ClosableReservation } from "@/lib/payments/checkout-closure";
+import { createCheckoutBudget } from "@/lib/payments/checkout-budget";
 import {
   cardAuthenticationLifetimeMs,
   cardIntentCanExpire,
@@ -24,6 +26,7 @@ export async function createCardReview({
   invoicePrincipalCents,
   organizationId,
   stripe,
+  livemode,
   supabase,
   surchargeBps,
   surchargeEnabled,
@@ -34,11 +37,12 @@ export async function createCardReview({
   invoicePrincipalCents: number;
   organizationId: string | null;
   stripe: Stripe;
+  livemode: boolean;
   supabase: SupabaseClient<any, "public", any>;
   surchargeBps: number;
   surchargeEnabled: boolean;
 }): Promise<{ ok: true; review: CardReview } | { ok: false; message: string }> {
-  const cleanup = await releaseStaleCardReservations({ invoiceId, stripe, supabase });
+  const cleanup = await releaseStaleCardReservations({ invoiceId, stripe, supabase, livemode });
   if (!cleanup.ok) return { ok: false, message: "Your payment review could not be prepared. Please try again." };
 
   let confirmationToken: Stripe.ConfirmationToken;
@@ -98,7 +102,7 @@ export async function createCardReview({
 
   const active = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, status, stripe_checkout_session_id")
+    .select(closableReservationColumns)
     .eq("invoice_id", invoiceId)
     .in("status", ["creating", "open", "processing"]);
   if (active.error) {
@@ -107,22 +111,9 @@ export async function createCardReview({
   if (active.data?.some((session) => session.status === "creating" || session.status === "processing")) {
     return { ok: false, message: "A payment is already being submitted. Please wait for its status to update." };
   }
-  for (const session of active.data ?? []) {
-    if (session.stripe_checkout_session_id) {
-      try {
-        await stripe.checkout.sessions.expire(session.stripe_checkout_session_id);
-      } catch (error) {
-        console.error("Stale Stripe Checkout expiry failed", safeStripeError(error));
-        return { ok: false, message: "An earlier payment session is still open. Please wait a moment and try again." };
-      }
-    }
-  }
-  if (active.data?.length) {
-    const { error } = await supabase
-      .from("invoice_checkout_sessions")
-      .update({ status: "cancelled" })
-      .in("id", active.data.map((session) => session.id));
-    if (error) return { ok: false, message: "Your payment review could not be prepared. Please try again." };
+  for (const reservation of (active.data ?? []) as ClosableReservation[]) {
+    const closed = await closeCheckoutReservation({ reservation, stripe, supabase, livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
+    if (!closed.ok) return { ok: false, message: "An earlier payment needs review before another payment can start." };
   }
 
   const reviewedAt = new Date().toISOString();
@@ -273,26 +264,25 @@ export async function confirmCardReview({
     const processingExpiresAt = cardIntentCanExpire(paymentIntent.status)
       ? new Date(Date.now() + cardAuthenticationLifetimeMs).toISOString()
       : null;
-    const { error } = await supabase.from("invoice_checkout_sessions").update({
+    const { data: saved, error } = await supabase.from("invoice_checkout_sessions").update({
       authorized_at: authorizedAt,
       processing_expires_at: processingExpiresAt,
       // Even an immediately succeeded intent remains reserved until its webhook
       // writes the payment and reconciles the invoice balance.
       status: "processing",
       stripe_payment_intent_id: paymentIntent.id,
-    }).eq("id", reviewId);
-    if (error) throw new Error(error.message);
+    }).eq("id", reviewId).eq("status", "creating").select("id").maybeSingle();
+    if (error || !saved) throw new Error(error?.message ?? "Payment state changed. Review its status.");
 
     return { ok: true, clientSecret: paymentIntent.client_secret, status: paymentIntent.status };
   } catch (error) {
     const paymentIntentId = getPaymentIntentIdFromError(error);
-    await supabase.from("invoice_checkout_sessions").update({
-      failed_at: new Date().toISOString(),
-      status: "failed",
-      stripe_payment_intent_id: paymentIntentId,
-    }).eq("id", reviewId);
+    // A timeout or failed local write can follow a successful remote charge.
+    // Keep the collection guard until webhook/authoritative reconciliation.
+    if (paymentIntentId) await supabase.from("invoice_checkout_sessions")
+      .update({ stripe_payment_intent_id: paymentIntentId }).eq("id", reviewId).eq("status", "creating");
     console.error("Stripe card confirmation failed", safeStripeError(error));
-    return { ok: false, message: "Your card payment could not be completed. Please check your card and try again." };
+    return { ok: false, message: "Your payment confirmation is not yet verified. Please wait for its status to update before trying again." };
   }
 }
 
@@ -300,15 +290,18 @@ export async function releaseStaleCardReservations({
   invoiceId,
   stripe,
   supabase,
+  livemode,
 }: {
   invoiceId: string;
   stripe: Stripe;
+  livemode: boolean;
   supabase: SupabaseClient<any, "public", any>;
 }): Promise<{ ok: true } | { ok: false }> {
+  const budget = createCheckoutBudget();
   const nowIso = new Date().toISOString();
   const stale = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, status, stripe_payment_intent_id, processing_expires_at")
+    .select(`${closableReservationColumns}, processing_expires_at`)
     .eq("invoice_id", invoiceId)
     .eq("payment_channel", "card")
     .in("status", ["creating", "open", "processing"])
@@ -319,30 +312,34 @@ export async function releaseStaleCardReservations({
     if (!reservationIsStale(reservation.processing_expires_at)) continue;
     const paymentIntentId = reservation.stripe_payment_intent_id as string | null;
     if (!paymentIntentId) {
-      const expired = await expireCardReservation(supabase, reservation.id, null, nowIso);
+      // Only an unsubmitted open card review is proven to have no remote intent.
+      // A stale creating/processing row may still have an in-flight request.
+      if (reservation.status !== "open" || reservation.submitted_at) return { ok: false };
+      const expired = await expireCardReservation(supabase, reservation.id, null, nowIso, "open");
       if (!expired) return { ok: false };
       continue;
     }
 
     let paymentIntent: Stripe.PaymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      paymentIntent = await budget.run(() => stripe.paymentIntents.retrieve(paymentIntentId, {}, budget.requestOptions()));
     } catch (error) {
       console.error("Stripe card reservation status lookup failed", safeStripeError(error));
       return { ok: false };
     }
 
+    if (!cardIntentMatches(paymentIntent, reservation as ClosableReservation, livemode)) return { ok: false };
     if (cardIntentMustRemainReserved(paymentIntent.status)) continue;
     if (!cardIntentCanExpire(paymentIntent.status)) continue;
 
     if (paymentIntent.status !== "canceled") {
       try {
-        paymentIntent = await stripe.paymentIntents.cancel(paymentIntent.id);
+        paymentIntent = await budget.run(() => stripe.paymentIntents.cancel(paymentIntent.id, {}, budget.requestOptions()));
       } catch (error) {
         // A success webhook may race cleanup. Re-read before deciding whether
         // the local reservation can be released.
         try {
-          paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
+          paymentIntent = await budget.run(() => stripe.paymentIntents.retrieve(paymentIntent.id, {}, budget.requestOptions()));
         } catch (lookupError) {
           console.error("Stripe card reservation cancellation check failed", safeStripeError(lookupError));
           return { ok: false };
@@ -350,8 +347,9 @@ export async function releaseStaleCardReservations({
       }
     }
 
+    if (!cardIntentMatches(paymentIntent, reservation as ClosableReservation, livemode) || paymentIntent.amount_received > 0) return { ok: false };
     if (paymentIntent.status !== "canceled") continue;
-    const expired = await expireCardReservation(supabase, reservation.id, paymentIntent.id, nowIso);
+    const expired = await expireCardReservation(supabase, reservation.id, paymentIntent.id, nowIso, reservation.status);
     if (!expired) return { ok: false };
   }
 
@@ -363,19 +361,20 @@ async function expireCardReservation(
   reservationId: string,
   paymentIntentId: string | null,
   nowIso: string,
+  expectedStatus: string,
 ) {
   let query = supabase
     .from("invoice_checkout_sessions")
     .update({ status: "expired" })
     .eq("id", reservationId)
     .eq("payment_channel", "card")
-    .in("status", ["creating", "open", "processing"])
+    .eq("status", expectedStatus)
     .lte("processing_expires_at", nowIso);
   query = paymentIntentId
     ? query.eq("stripe_payment_intent_id", paymentIntentId)
     : query.is("stripe_payment_intent_id", null);
   const result = await query.select("id").maybeSingle();
-  return !result.error;
+  return !result.error && Boolean(result.data);
 }
 
 function compactMetadata(values: Record<string, string>) {

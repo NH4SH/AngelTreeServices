@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     return paymentError("Choose bank account payment to continue.", 400);
   }
 
-  const context = await getPortalPaymentContext(token, stripeConfig.stripe);
+  const context = await getPortalPaymentContext(token, stripeConfig.stripe, stripeConfig.livemode);
   if (!context.ok) return paymentError(context.message, context.status);
   const { invoice, invoicePrincipalCents: amountCents, supabase } = context;
 
@@ -61,6 +61,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
     portalUrl,
     serviceLocationId: job?.service_location_id ?? null,
     stripe: stripeConfig.stripe,
+    livemode: stripeConfig.livemode,
     supabase,
   });
 

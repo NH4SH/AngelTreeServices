@@ -103,3 +103,11 @@ part of this implementation.
 
 Provider reference: [Stripe Checkout expiration](https://docs.stripe.com/api/checkout/sessions/expire).
 Database privilege reference: [Supabase database functions](https://supabase.com/docs/guides/database/functions).
+
+## Local continuation
+
+The subsequent invoice command/enforcement migrations close the remaining staff
+header/status/balance/line write paths described above. See
+`INVOICE_FINANCIAL_WRITES.md` for authority, migrated callers, staged rollout,
+verification and the remaining quote/webhook/refund/communications work. The
+first-slice description above records its original scope.

@@ -13,6 +13,8 @@ import { safeStaffMessage } from "@/lib/security/errors";
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  savedUpdatedAt?: string;
+  savedLineIds?: Record<string, string>;
 };
 
 function toCents(value: FormDataEntryValue | null) {
@@ -176,53 +178,22 @@ export async function createInvoice(
 
   const dueAt = getInvoiceDueAt(dueDate);
 
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .insert({
-      job_id: job?.id ?? null,
-      quote_id: null,
-      customer_id: party.customerId,
-      organization_id: party.organizationId,
+  const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
+    p_header: {
+      job_id: job?.id ?? null, quote_id: null,
+      customer_id: party.customerId, organization_id: party.organizationId,
       billing_contact_id: job?.property_manager_contact_id ?? null,
       accounts_payable_contact_id: job?.property_manager_contact_id ?? null,
       service_location_id: serviceLocationId,
       recurring_service_plan_id: job?.recurring_service_plan_id ?? null,
       recurring_occurrence_id: job?.recurring_occurrence_id ?? null,
-      status: "draft",
-      subtotal_cents: totalCents,
-      tax_cents: 0,
-      total_cents: totalCents,
-      balance_due_cents: totalCents,
-      due_at: dueAt,
-    })
-    .select("id")
-    .single();
-
+      tax_cents: 0, due_at: dueAt,
+    },
+    p_lines: lineItems.map(invoiceLineCommand),
+  });
   if (invoiceError || !invoice) {
     if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
-    return { status: "error", message: invoiceError?.message ?? "Could not create invoice." };
-  }
-
-  const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
-    lineItems.map((item) => ({
-      invoice_id: invoice.id,
-      name: item.name,
-      description: item.description,
-      service_category_id: item.serviceCategoryId,
-      quantity: item.quantity,
-      unit_price_cents: item.unitPriceCents,
-      total_cents: item.totalCents,
-      sort_order: item.sortOrder,
-    })),
-  );
-
-  if (lineItemError) {
-    await supabase.from("invoices").delete().eq("id", invoice.id);
-    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
-    return {
-      status: "error",
-      message: `Invoice was not created because line items failed: ${lineItemError.message}`,
-    };
+    return { status: "error", message: safeStaffMessage(invoiceError?.message ?? "Could not create invoice.") };
   }
 
   const { error: changeOrderError } = await supabase
@@ -302,6 +273,7 @@ export async function createInvoice(
 }
 
 type InvoiceLineItemInput = {
+  clientId: string;
   id: string | null;
   name: string;
   description: string | null;
@@ -330,11 +302,15 @@ export async function updateInvoice(
     return { status: "error", message: "Sign in before editing invoice records." };
   }
 
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only active staff may edit invoices." };
+  }
+
   const invoiceId = String(formData.get("invoice_id") ?? "");
   const dueDate = String(formData.get("due_date") ?? "");
   const submitIntent = String(formData.get("submit_intent") ?? "save");
   const lineItems = getInvoiceLineItems(formData);
-  const totalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
 
   if (!invoiceId) {
     return { status: "error", message: "Invoice is required." };
@@ -354,54 +330,15 @@ export async function updateInvoice(
     return { status: "error", message: lookupError?.message ?? "Invoice not found or no access." };
   }
 
-  if (["paid", "void"].includes(invoice.status)) {
-    return { status: "error", message: "Paid and void invoices are locked from regular editing." };
-  }
-
-  const recordedPaymentsCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
-  if (totalCents < recordedPaymentsCents) {
-    return {
-      status: "error",
-      message: `Invoice total cannot be less than ${formatCurrency(recordedPaymentsCents)} in recorded payments.`,
-    };
-  }
-
-  const { error: invoiceError } = await supabase
-    .from("invoices")
-    .update({
-      subtotal_cents: totalCents,
-      tax_cents: 0,
-      total_cents: totalCents,
-      balance_due_cents: totalCents - recordedPaymentsCents,
-      due_at: getInvoiceDueAt(dueDate),
-    })
-    .eq("id", invoiceId);
-
-  if (invoiceError) {
-    return { status: "error", message: safeStaffMessage(invoiceError.message) };
-  }
-
-  const lineItemError = await syncInvoiceLineItems(supabase, invoiceId, lineItems);
-  if (lineItemError) {
-    return { status: "error", message: `Invoice details saved, but line items could not be fully updated: ${lineItemError}` };
-  }
-
-  const dueAt = getInvoiceDueAt(dueDate);
-  await recordActivity(supabase, {
-    actionCategory: "invoices",
-    actorUserId: user.id,
-    changes: {
-      due_at: { before: invoice.due_at, after: dueAt },
-      total_cents: { before: invoice.total_cents, after: totalCents },
-    },
-    destinationPath: `/admin/invoices/${invoiceId}`,
-    eventType: "invoice_updated",
-    organizationId: invoice.organization_id,
-    recordLabel: invoice.invoice_number || "Invoice",
-    summary: "Invoice details and line items were updated.",
-    subjectId: invoiceId,
-    subjectType: "invoice",
+  const { data: saved, error: saveError } = await supabase.rpc("save_invoice_details", {
+    p_invoice_id: invoiceId,
+    p_expected_updated_at: String(formData.get("expected_updated_at") ?? "") || null,
+    p_due_at: getInvoiceDueAt(dueDate),
+    p_lines: lineItems.map((item) => ({ id: item.id, ...invoiceLineCommand(item) })),
   });
+  if (saveError || !saved) {
+    return { status: "error", message: safeStaffMessage(saveError?.message ?? "Invoice changes could not be saved.") };
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -414,11 +351,16 @@ export async function updateInvoice(
     redirect(`/admin/invoices/${invoiceId}`);
   }
 
-  return { status: "success", message: "Invoice changes saved. Existing customer link remains active." };
+  return {
+    status: "success", message: "Invoice changes saved. Existing customer link remains active.",
+    savedUpdatedAt: saved.updated_at,
+    savedLineIds: Object.fromEntries(lineItems.map((item, index) => [item.clientId, saved.line_ids[index]])),
+  };
 }
 
 function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {
   const ids = formData.getAll("invoice_line_item_id");
+  const clientIds = formData.getAll("invoice_line_item_client_id");
   const names = formData.getAll("invoice_line_item_name");
   const descriptions = formData.getAll("invoice_line_item_description");
   const serviceCategoryIds = formData.getAll("invoice_line_item_service_category_id");
@@ -441,6 +383,7 @@ function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {
 
     items.push({
       id: String(ids[index] ?? "").trim() || null,
+      clientId: String(clientIds[index] ?? index),
       name: (name || description?.split("\n").find((line) => line.trim()) || `Line item ${index + 1}`).slice(0, 120),
       description,
       serviceCategoryId: String(serviceCategoryIds[index] ?? "").trim() || null,
@@ -454,81 +397,11 @@ function getInvoiceLineItems(formData: FormData): InvoiceLineItemInput[] {
   return items;
 }
 
-async function syncInvoiceLineItems(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  invoiceId: string,
-  lineItems: InvoiceLineItemInput[],
-) {
-  const { data: existingItems, error: existingItemsError } = await supabase
-    .from("invoice_line_items")
-    .select("id")
-    .eq("invoice_id", invoiceId);
-
-  if (existingItemsError) {
-    return existingItemsError.message;
-  }
-
-  const existingIds = new Set((existingItems ?? []).map((item) => item.id));
-  const retainedIds = new Set<string>();
-  const newItems: Array<{
-    invoice_id: string;
-    name: string;
-    description: string | null;
-    service_category_id: string | null;
-    quantity: number;
-    unit_price_cents: number;
-    total_cents: number;
-    sort_order: number;
-  }> = [];
-
-  for (const item of lineItems) {
-    const values = {
-      name: item.name,
-      description: item.description,
-      service_category_id: item.serviceCategoryId,
-      quantity: item.quantity,
-      unit_price_cents: item.unitPriceCents,
-      total_cents: item.totalCents,
-      sort_order: item.sortOrder,
-    };
-
-    if (item.id && existingIds.has(item.id)) {
-      const { error } = await supabase
-        .from("invoice_line_items")
-        .update(values)
-        .eq("id", item.id)
-        .eq("invoice_id", invoiceId);
-      if (error) {
-        return error.message;
-      }
-      retainedIds.add(item.id);
-    } else {
-      newItems.push({ invoice_id: invoiceId, ...values });
-    }
-  }
-
-  if (newItems.length > 0) {
-    const { error } = await supabase.from("invoice_line_items").insert(newItems);
-    if (error) {
-      return error.message;
-    }
-  }
-
-  const removedIds = [...existingIds].filter((id) => !retainedIds.has(id));
-  if (removedIds.length > 0) {
-    const { error } = await supabase
-      .from("invoice_line_items")
-      .delete()
-      .eq("invoice_id", invoiceId)
-      .in("id", removedIds);
-    if (error) {
-      return error.message;
-    }
-  }
-
-  return null;
-}
-
-function formatCurrency(cents: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+function invoiceLineCommand(item: InvoiceLineItemInput) {
+  return {
+    name: item.name, description: item.description,
+    service_category_id: item.serviceCategoryId,
+    quantity: item.quantity, unit_price_cents: item.unitPriceCents,
+    total_cents: item.totalCents,
+  };
 }

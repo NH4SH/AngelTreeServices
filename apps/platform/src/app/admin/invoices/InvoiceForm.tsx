@@ -214,6 +214,7 @@ type InvoiceLineDraft = {
 export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
   const [state, formAction, pending] = useReliableActionState(updateInvoice, initialState);
   const [dirty, setDirty] = useState(false);
+  const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(invoice.updated_at);
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>(
     invoice.invoice_line_items?.length
       ? [...invoice.invoice_line_items]
@@ -234,6 +235,10 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
   useEffect(() => {
     if (state.status === "success") {
       setDirty(false);
+      if (state.savedUpdatedAt) setExpectedUpdatedAt(state.savedUpdatedAt);
+      if (state.savedLineIds) setLineItems(items => items.map(item => ({
+        ...item, persistedId: state.savedLineIds?.[item.clientId] ?? item.persistedId,
+      })));
     }
   }, [state]);
 
@@ -248,8 +253,9 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
   }, [dirty]);
 
   return (
-    <form action={formAction} className="crm-form quote-editor-form" onChange={() => setDirty(true)}>
+    <form action={formAction} aria-busy={pending} className="crm-form quote-editor-form" onChange={() => setDirty(true)}>
       <input name="invoice_id" type="hidden" value={invoice.id} />
+      <input name="expected_updated_at" type="hidden" value={expectedUpdatedAt} />
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}
@@ -262,6 +268,7 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
         </p>
       ) : null}
 
+      <fieldset disabled={pending} style={{ display: "contents" }}>
       <section className="quote-editor-section">
         <div>
           <p className="surface-label">Invoice details</p>
@@ -319,6 +326,7 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
         </dl>
       </section>
 
+      </fieldset>
       <div className="quote-editor-action-bar">
         <div>
           <button disabled={pending} name="submit_intent" type="submit" value="save">
@@ -404,6 +412,7 @@ function InvoiceLineEditors({
             </div>
           </div>
           <input name="invoice_line_item_id" type="hidden" value={item.persistedId ?? ""} />
+          <input name="invoice_line_item_client_id" type="hidden" value={item.clientId} />
           <label>
             Title
             <input

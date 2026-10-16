@@ -4,7 +4,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
 import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
-import { resolveInvoicePaymentStatus } from "@/lib/payments/invoice-payment-state";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
@@ -38,39 +37,13 @@ export async function reconcileInvoiceBalance(
   supabase: SupabaseClient<any, "public", any>,
   invoiceId: string,
 ): Promise<ReconcileResult> {
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .select("id, status, total_cents, paid_at, due_at, sent_at")
-    .eq("id", invoiceId)
-    .single();
-
-  if (invoiceError || !invoice) {
-    return { ok: false, message: invoiceError?.message ?? "Invoice not found." };
+  const { data, error } = await supabase.rpc("reconcile_invoice_balance", { p_invoice_id: invoiceId });
+  if (error || !data) {
+    return { ok: false, message: error?.message ?? "Invoice could not be reconciled." };
   }
-
-  const payments = await getSuccessfulPaymentTotal(supabase, invoiceId);
-  if (payments.error) {
-    return { ok: false, message: payments.error };
-  }
-
-  const balanceDueCents = Math.max(0, Number(invoice.total_cents) - payments.totalCents);
-  const status = resolveInvoicePaymentStatus({
-    balanceDueCents,
-    currentStatus: invoice.status as InvoiceStatus,
-    dueAt: invoice.due_at,
-    paidCents: payments.totalCents,
-    sentAt: invoice.sent_at,
-  });
-  const paidAt = balanceDueCents === 0 ? invoice.paid_at ?? new Date().toISOString() : null;
-
-  const { error: updateError } = await supabase
-    .from("invoices")
-    .update({ balance_due_cents: balanceDueCents, paid_at: paidAt, status })
-    .eq("id", invoiceId);
-
-  if (updateError) {
-    return { ok: false, message: updateError.message };
-  }
+  const balanceDueCents = Number(data.balance_due_cents);
+  const paidCents = Number(data.paid_cents);
+  const status = data.status as InvoiceStatus;
 
   const communicationSupabase = getServiceRoleClient();
   if (communicationSupabase) {
@@ -85,5 +58,5 @@ export async function reconcileInvoiceBalance(
     }
   }
 
-  return { ok: true, balanceDueCents, paidCents: payments.totalCents, status };
+  return { ok: true, balanceDueCents, paidCents, status };
 }

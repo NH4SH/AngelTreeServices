@@ -1,0 +1,358 @@
+{
+  "cliVersion": "2.121.0",
+  "typesSha256": "189dbdb38e633043893bd0e13b53c81ce671f8e20ab9c538743574a0a0ed95ea",
+  "migrations": [
+    {
+      "name": "0001_initial_platform_schema.sql",
+      "sha256": "2bf4dd229cbe823078bd28b26b00ada14a0bf170c418fea455112e29e13e0390"
+    },
+    {
+      "name": "0002_add_job_priority.sql",
+      "sha256": "b67ab86c761629b6ffb3b4c56424fc19f89a28b1048e9af3ec9172ce0c9b2d92"
+    },
+    {
+      "name": "0003_quote_portal_tokens.sql",
+      "sha256": "8794596e87e856241d493c6355b5f97d1a529aaf85881b3d33071a4951f34f27"
+    },
+    {
+      "name": "0004_job_photo_storage.sql",
+      "sha256": "793f458a037c6e82dafc177f6efb9f598f426ba7f0fa4623197467bba0278392"
+    },
+    {
+      "name": "0005_service_role_and_staff_grants.sql",
+      "sha256": "31311dba0e79d8816f9c488807104b7369ad9b912b32f69fc8b8439b23e7c519"
+    },
+    {
+      "name": "0006_schedule_events_foundation.sql",
+      "sha256": "ab9f3c0c466cff2b1f108cd9ea50ed6512a3f9f51eeb81fddc76c59adc366b9f"
+    },
+    {
+      "name": "0007_role_controlled_time_clock.sql",
+      "sha256": "3aa937e45b899c48ee5d409ae85a3d9ee3341c7385c5bee49ca7fb38c60518ab"
+    },
+    {
+      "name": "0008_payroll_review_foundation.sql",
+      "sha256": "9cd6a6361b115b5c1807d9e55f8592085e5962feedf86da93b21a7f3efec2aaf"
+    },
+    {
+      "name": "0009_align_internal_staff_role_helpers.sql",
+      "sha256": "ca4f777dbbf8dc5828387d7d1ad60672248a9090c5281ab617894071f18027f2"
+    },
+    {
+      "name": "0010_time_clock_clock_out_policy_fix.sql",
+      "sha256": "25a08a5815e771d28eb6af624b0d96a3f502aebe257be1a9e17d5aae9eb3015f"
+    },
+    {
+      "name": "0011_employee_access_requests.sql",
+      "sha256": "83ecf3cfdce6d4090237f8e60e42f5cc67de8417df51f256f84f409f0cf6e843"
+    },
+    {
+      "name": "20260707000822_email_events_log.sql",
+      "sha256": "49acbea9bf9ea5c179040535a4feb64ab43eee8b090019e5615882c3020f6f46"
+    },
+    {
+      "name": "20260708004341_quote_first_workflow.sql",
+      "sha256": "411323a6f6c4df780f72ee708a881a268682deacda8d06673991f973a255cec8"
+    },
+    {
+      "name": "20260709122947_quote_sent_delivery_metadata.sql",
+      "sha256": "f598eb46c8c178102c54dcdf751271b2854a10b4d67f3d26c515444fefa067fd"
+    },
+    {
+      "name": "20260709132222_invoice_portal_tokens.sql",
+      "sha256": "729ab76ab4588ffaec1f3a6996b8d795bddf7a5e257503099937438c47398b93"
+    },
+    {
+      "name": "20260710150434_ensure_invoice_portal_tokens.sql",
+      "sha256": "f543e33990ff2d7c2b63084e61f2a010711dcee5a0a4f834ae4f0219296eb04c"
+    },
+    {
+      "name": "20260716165828_add_recoverable_portal_links.sql",
+      "sha256": "7a3ab1e5f466db6eb212ecc350db66edf42aec10658f88d53ec3417b61dd98c8"
+    },
+    {
+      "name": "20260716210754_stripe_invoice_payments.sql",
+      "sha256": "741792bc7586203329a3886ed8d96ddae3381b32eb5933a8fb6b4a968817cd45"
+    },
+    {
+      "name": "20260716212545_harden_security_definer_functions.sql",
+      "sha256": "c463bb9970f80f42b314a9b1257a7c74555a8999c50587a16b17f1f5a1d8d437"
+    },
+    {
+      "name": "20260716215149_automated_customer_communications.sql",
+      "sha256": "d39d95982bfd2651a637ca6badf14b2eda521a51b3be3d6793837b2019c46583"
+    },
+    {
+      "name": "20260716222258_crew_job_closeout_workflow.sql",
+      "sha256": "9943681f34b6b9be018634986469e32b98666a7f60ba0bf768f376bc7ff1a4a1"
+    },
+    {
+      "name": "20260716232544_equipment_fleet_management.sql",
+      "sha256": "ff86dab0f2b97b95a8b33d3b3a6f92be18143324d00e78b2eee7ad292e0d9157"
+    },
+    {
+      "name": "20260716235514_employee_onboarding_training_compliance.sql",
+      "sha256": "06fb93ae4e64cbf90c4ded97756206097a7cebb0c2b399bb8e44aaa7398bcb55"
+    },
+    {
+      "name": "20260717005036_business_reporting_profitability.sql",
+      "sha256": "f5f42faf187933cfa84defa606cdcbdd331c66f69ae5945eee78850f141537f4"
+    },
+    {
+      "name": "20260717012234_materials_inventory_operations.sql",
+      "sha256": "8270bc68c5ed5f57c0ba03ce1696a53af0f901655080e35597aca7002b805640"
+    },
+    {
+      "name": "20260717015652_change_orders_and_organization_parity.sql",
+      "sha256": "ec2265d736cae2b3c6b2ccd5e349fe67cf25527ecfdee3069b48266ef2009d72"
+    },
+    {
+      "name": "20260717022829_recurring_services_followups_and_renewals.sql",
+      "sha256": "7c7b7ffda33a6982282805ff14eb76ad53e08ec2b373da0ebca7f2b66fa098b4"
+    },
+    {
+      "name": "20260717032430_organization_contracting_parties.sql",
+      "sha256": "543965b82156755787599c935460ff19b1c25f4e6fa23425d6a4a5c291ec5a7f"
+    },
+    {
+      "name": "20260717040930_contracting_party_integrity_and_review.sql",
+      "sha256": "85d156483725bcc04926f35d877f2a7ff70a60ed86d26af771e06b7a524936d8"
+    },
+    {
+      "name": "20260717141937_document_library_stabilization.sql",
+      "sha256": "523dca9ad722342ffdd26f52c9d1d24ce1792ecc82e1a58a1da291036e07655d"
+    },
+    {
+      "name": "20260717160000_public_website_lead_intake_metadata.sql",
+      "sha256": "284b2241a35e4bdbf5acc9b88069227b96c7ecc0b4754d7d28d2b388d0928b19"
+    },
+    {
+      "name": "20260718171008_portal_view_tracking.sql",
+      "sha256": "47e2d81258f0bad4ead0bc155e92ed22499f4ee8ab221300bb42c73a52e6d76b"
+    },
+    {
+      "name": "20260718200940_invoice_payment_options.sql",
+      "sha256": "76350c10fec9cdc8f82e8a900de76adc2a88f263ce27f457aaf6ac598c6e89fe"
+    },
+    {
+      "name": "20260718210235_simplify_job_workflow.sql",
+      "sha256": "dd627fc74aa760297b7a0be51e49a71fc508ad53c0924a687e78770fb641e40c"
+    },
+    {
+      "name": "20260718214709_jobs_operations_index.sql",
+      "sha256": "4644eb6cb9e2da47ef3497d8bfcfc754608c365bc84d939df67e9f7195488c6b"
+    },
+    {
+      "name": "20260720001347_repair_production_function_sql_expressions.sql",
+      "sha256": "fafeb4e4038af10ae82febf89d266093fa9c9f8f2e4749d25da659c5b27ea372"
+    },
+    {
+      "name": "20260720005626_multi_day_job_work_sessions.sql",
+      "sha256": "80da0c7715fa01a203f9c8ec47b4ed2e70487f89cf3afaa7ba71bdf18039ab22"
+    },
+    {
+      "name": "20260720074140_stripe_card_confirmation_flow.sql",
+      "sha256": "7b331ed56e6990734dd2da1f1ed22fd5c69db7549215546b511478c740067b93"
+    },
+    {
+      "name": "20260720130614_payment_activation_blockers.sql",
+      "sha256": "5acec8a350bd28417d1114ccae79d9e7213aa8fe50e43b6e3bfb0f3a1679c442"
+    },
+    {
+      "name": "20260720130615_validate_contracting_party_constraints.sql",
+      "sha256": "3501d9dc71a86a2bc0928862c552c3539d2f3637d07a93fe5b4463a79fcd042a"
+    },
+    {
+      "name": "20260721002500_allow_standalone_invoices.sql",
+      "sha256": "549e6da7ff7927a8ae24e1128b841861df0ad2b878efa539cc667773e276e7c5"
+    },
+    {
+      "name": "20260721022350_crm_search_and_safe_delete.sql",
+      "sha256": "5bac7eda70f15febb48ac9225bfb6e08eeeace19ef00e0b72d4db8c3014a14f1"
+    },
+    {
+      "name": "20260723012429_security_authorization_boundaries.sql",
+      "sha256": "8c0273e53180ed60b65121683bff3e726ca1b74bc55536ee376307d984da0a22"
+    },
+    {
+      "name": "20260723013121_manage_private_job_photo_bucket.sql",
+      "sha256": "0a41904df8ad4510c14a986c2dc2ec60afa903d62ab88982cf8d9c8c91d3adb8"
+    },
+    {
+      "name": "20260723013504_durable_security_rate_limits.sql",
+      "sha256": "1bd5d4b8c9dbdab956d79592cc344ee3ed2d0dab81aa0ba015ae59d7e83d8773"
+    },
+    {
+      "name": "20260723013922_employee_pii_least_privilege.sql",
+      "sha256": "52e247e04b04a6a506908711ef1c4d22cc737c678eaf97aa29c09a545f982cc1"
+    },
+    {
+      "name": "20260723014156_least_privilege_public_grants.sql",
+      "sha256": "28668f3adac3fbfcd876ce51425389f53536998efb668635bc6d98f8d8d8db3c"
+    },
+    {
+      "name": "20260724010741_restore_cancelled_manual_payment.sql",
+      "sha256": "5b6abc240c092d4974a786708f390de200f55c9b7ba49719061f043c2ca77fe3"
+    },
+    {
+      "name": "20260724012434_restore_voided_invoice.sql",
+      "sha256": "8763a23f389d7470983658cbe6953bac8f1cfb8456f3d3cc73e090314fb0526a"
+    },
+    {
+      "name": "20260727030032_customer_activity_notifications_and_admin_log.sql",
+      "sha256": "b3ba3e637243c7057222586566b8576339a1a968032a15073ff1723423bb3aaa"
+    },
+    {
+      "name": "20260728012739_system_health_monitoring.sql",
+      "sha256": "48f61ae41c2373f79e41311e9e26e7ad4cf64a88107804c4ef3d2f3f640a498a"
+    },
+    {
+      "name": "20260728215005_lead_estimate_schedule_workflow.sql",
+      "sha256": "2f9b34de61bb3273f224ba4a0c12637bb33120af9f87302cb4cb791536808c38"
+    },
+    {
+      "name": "20260729165208_schedule_sources_and_lead_lifecycle.sql",
+      "sha256": "dbcc577d6eaca17ed9127f97cc56a1b28be4de222c068534b82fb76a5f572fc2"
+    },
+    {
+      "name": "20260805024208_employee_assignment_identity.sql",
+      "sha256": "ac823aa8abba6789409236481ca6f7cc1934f53fb10dff64f7d0e2867aae43bc"
+    },
+    {
+      "name": "20260810225226_align_employee_work_session_identifiers.sql",
+      "sha256": "8af3734237914a2a289b218cbadf24092185ec8ba1fe28a81495347e0a1252b6"
+    },
+    {
+      "name": "20260811185455_preserve_prepaid_invoice_delivery_state.sql",
+      "sha256": "39a6f55c5ebab6c28d196a958ce73d243b86a265daf420f82c060be2139c6d4c"
+    },
+    {
+      "name": "20260813000701_assign_quote_numbers_safely.sql",
+      "sha256": "32fed1830f3eaf4d49485e887f16b5a5849f12ba486e2f7af00783a67339429c"
+    },
+    {
+      "name": "20260813020719_google_calendar_one_way_sync.sql",
+      "sha256": "4496a5dd90e846e7e620c70aca9ef3c5e7f260aa5bd34a286fa9c8b27bfd676b"
+    },
+    {
+      "name": "20260813055901_capture_self_role_read_policies.sql",
+      "sha256": "c00c6d8c14fa34e2421af5bb9822b3c74b5a2fd21b2ba5cce0c6ba33e51a43b2"
+    },
+    {
+      "name": "20260831124158_align_assigned_employee_rls.sql",
+      "sha256": "f7a55c46c87c7909a0728ba449ae95883a352475aa49cb77f69ad6180556f55f"
+    },
+    {
+      "name": "20260831124222_repair_approved_quote_archived_lead_jobs.sql",
+      "sha256": "efedba02e51e5ef25f5fd681b9bd3f12f3df8f3e4a8717f9eb25e7719e5923af"
+    },
+    {
+      "name": "20260831124242_optimize_self_access_rls.sql",
+      "sha256": "5c39522ce2fdba30a8e76067ff5a719ad04c11404d1f55f811bb1ef152851ac8"
+    },
+    {
+      "name": "20260901175949_remove_unused_schedule_party_variable.sql",
+      "sha256": "729cca5446d349d683f7dff622aa3a72e6d69e378e204b006874cc1d41da87ea"
+    },
+    {
+      "name": "20260901175956_remove_redundant_role_read_policies.sql",
+      "sha256": "30425f1b1b09b86e4ce73b9b1dedf6bdc3682f142a1fadc97cfb8d215ae4276b"
+    },
+    {
+      "name": "20260908131758_manager_notification_emails.sql",
+      "sha256": "4a77266f272c2bc529f3312389f54b88ebbcbfcc856d9d1be250d2702fdb3c7f"
+    },
+    {
+      "name": "20261015040735_job_photo_category_parity.sql",
+      "sha256": "64c1329657ff51ddb7f96003b68a49e5e9ae079c8208d2b7c957442da6535e01"
+    },
+    {
+      "name": "20261015042649_reliable_employee_offboarding.sql",
+      "sha256": "b89ad9af0c1e5d6fb6b334413f44df545335cb778c5655583ff9b9bcfcbd09f0"
+    },
+    {
+      "name": "20261015050427_guard_service_recommendation_assignment.sql",
+      "sha256": "fc60c7fa6d1fb38fa3c474cedc0428013a0e8f3bcc221e2852019162d9b3bbf8"
+    },
+    {
+      "name": "20261016002812_guarded_invoice_void.sql",
+      "sha256": "41a3685d31aa2944601eb096e5b3b2056c47d19f4d3e5e7a225268fe639bb51a"
+    },
+    {
+      "name": "20261016010829_invoice_financial_write_boundary.sql",
+      "sha256": "c46f8a3c2c1fbcf3fd9d7d9408b389d98d79e394011457b9b2f41833e52389dc"
+    },
+    {
+      "name": "20261016012251_enforce_invoice_financial_write_boundary.sql",
+      "sha256": "40af7cf494dee26483979f8bb6b6a6eddc1335258e9afa6d98d49fa1450293b9"
+    },
+    {
+      "name": "20261016020444_recoverable_stripe_webhook_receipts.sql",
+      "sha256": "4755d337c605f99b5e33a4d84582cd758e979237779d16e288d6fe07ff59937a"
+    },
+    {
+      "name": "20261016032012_ordered_payment_reconciliation.sql",
+      "sha256": "b957c1a2e280bba74cf6b8ba6d288164ae063602ed774ddffa96623b7b075c29"
+    },
+    {
+      "name": "20261016040341_atomic_invoice_generation.sql",
+      "sha256": "ef4db63609d39a96aad6acfe93a3e2bee2bed4e07ec303e8969a31257ad521df"
+    },
+    {
+      "name": "20261016060143_atomic_quote_editing.sql",
+      "sha256": "aa4952b267a25631100c0423f97c4d1c8bdcff9635fe2a771664b978c0a08789"
+    },
+    {
+      "name": "20261016060503_enforce_quote_edit_boundary.sql",
+      "sha256": "5dfd4699900abfd5e377e655914ef62f1ba85960c010cda4caeb53f158c96ddc"
+    },
+    {
+      "name": "20261016064442_atomic_quote_approval.sql",
+      "sha256": "ceeb1c0c70191a48c9d74cf4dd84211c1f516bd2d839a71d223dec878143e671"
+    },
+    {
+      "name": "20261016080420_atomic_scheduling.sql",
+      "sha256": "a4df2ea4464073ce8295f3b7b3766b957dcf1863445460889f769ef704c4a9c5"
+    },
+    {
+      "name": "20261016130010_explicit_job_completion.sql",
+      "sha256": "4fa2f5d602982c5c40390fc842064a605b925d5a079583b2496068c3009baf48"
+    },
+    {
+      "name": "20261016134622_checked_photo_upload_and_communication_outcomes.sql",
+      "sha256": "9d1c9a426d4051d6a85fca8079a0b9f5d81e9f031aec15082508e25270a18feb"
+    },
+    {
+      "name": "20261016144647_crew_field_job_pages.sql",
+      "sha256": "df3ca8c1fe8339dca7be8fcd1ebc0bb85e4882af8baa9f71d3dd8e242060c0ae"
+    },
+    {
+      "name": "20261016162316_transactional_website_lead_intake.sql",
+      "sha256": "9ab65988ab4919b5db246e7cbba20e309cdbb2c734c371bd30bf733471fb9b8b"
+    },
+    {
+      "name": "20261016165057_durable_outbound_delivery.sql",
+      "sha256": "a07319a8f377ce375e68d17ee32b6b324d850a511020164d473b28a8fd87b7d0"
+    },
+    {
+      "name": "20261016182241_owned_scheduling_handoffs.sql",
+      "sha256": "cc4b66a4766e22744a7969f911a93274b67bf5db2dc5c8ff4d8164275505b293"
+    },
+    {
+      "name": "20261016192144_supervised_operations.sql",
+      "sha256": "d6af0834873738919c23abde68d8efffcbbbff12371d43c46d6feb599860cdf2"
+    },
+    {
+      "name": "20261016200200_trustworthy_report_reads.sql",
+      "sha256": "a425a88640374510ecda13b60359304b1407d6670cb7eaf08445d1a793d2ed22"
+    },
+    {
+      "name": "20261016210536_reversible_website_sender_blocks.sql",
+      "sha256": "552437cc25f52b4b44d6c8ed2ca4b90c02a96ceaef58abbbe27f790d0aadb80a"
+    },
+    {
+      "name": "20261016223056_measured_organization_location_lookup.sql",
+      "sha256": "65a25258f75489527887ef772b699b32cde7f60ee642d66fcdf5ba49595d1606"
+    }
+  ]
+}

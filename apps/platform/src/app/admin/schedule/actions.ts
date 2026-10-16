@@ -1,4 +1,5 @@
 "use server";
+import type { ScheduleCommandArgs } from "@/lib/types/rpc-contracts";
 import {checkLegacySchedulingHandoff} from "@/lib/schedule/legacy-handoff";
 
 import { revalidatePath } from "next/cache";
@@ -704,7 +705,7 @@ export async function createScheduleEvent(
     p_employee_ids: assignedUserIds,
     p_override_reason: eligibilityOverrideReason,
     p_allow_conflicts: formData.get("allow_conflicts") === "1",
-  });
+  } satisfies ScheduleCommandArgs);
   if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
   if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
   await syncScheduleCommunications();
@@ -742,7 +743,7 @@ export async function updateScheduleEventStatus(
     p_event: { status: nextStatus }, p_mode: "status",
     p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
     p_allow_conflicts: formData.get("allow_conflicts") === "1",
-  });
+  } satisfies ScheduleCommandArgs);
 
   if (error) {
     return { status: "error", message: safeStaffMessage(error.message) };
@@ -792,7 +793,7 @@ export async function updateScheduleEventTime(
     p_event: { starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, p_mode: "time",
     p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
     p_allow_conflicts: formData.get("allow_conflicts") === "1",
-  });
+  } satisfies ScheduleCommandArgs);
 
   if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
   if (!data) return { status: "error", message: "The event is no longer active or cannot be rescheduled here." };
@@ -890,7 +891,7 @@ export async function updateScheduleEventDetails(
     p_employee_ids: assignedUserIds,
     p_override_reason: eligibilityOverrideReason,
     p_allow_conflicts: formData.get("allow_conflicts") === "1",
-  });
+  } satisfies ScheduleCommandArgs);
   if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
   if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
   await syncScheduleCommunications();

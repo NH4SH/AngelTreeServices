@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { RpcArgs } from "@/lib/types/rpc-contracts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -21,7 +22,7 @@ export async function approveQuoteWithPortalToken(
   return approve(supabase, "approve_quote_by_portal", { p_token_hash: tokenHash, p_expected_revision: expectedRevision });
 }
 
-async function approve(supabase: SupabaseClient<any, "public", any>, command: string, input: Record<string, unknown>): Promise<QuoteWorkflowResult> {
+async function approve<Name extends "approve_quote" | "approve_quote_by_portal">(supabase: SupabaseClient<any, "public", any>, command: Name, input: RpcArgs<NoInfer<Name>>): Promise<QuoteWorkflowResult> {
   const revision = input.p_expected_revision;
   if (!Number.isSafeInteger(revision) || Number(revision) < 1) return { ok: false, message: "Refresh and review the saved proposal before approving." };
   const { data, error } = await supabase.rpc(command, input);

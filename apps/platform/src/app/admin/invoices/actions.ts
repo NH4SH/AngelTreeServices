@@ -1,4 +1,5 @@
 "use server";
+import type { RpcArgs } from "@/lib/types/rpc-contracts";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -174,7 +175,7 @@ export async function createInvoice(
       p_request_id: requestId, p_job_id: job.id,
       p_manual: { customer_id: party.customerId, organization_id: party.organizationId, due_at: dueAt,
         lines: lineItems.map(invoiceLineCommand), notes },
-    });
+    } satisfies RpcArgs<"generate_job_invoice">);
     if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
     const result = parseGeneratedInvoice(response.data);
     if (!result) return { status: "error", message: "The invoice result could not be confirmed. Retry the saved details to check it safely." };

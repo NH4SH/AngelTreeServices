@@ -1,3 +1,4 @@
+import type { RpcArgs } from "@/lib/types/rpc-contracts";
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -50,7 +51,7 @@ export async function reconcileInvoiceBalance(
   supabase: SupabaseClient<any, "public", any>,
   invoiceId: string,
 ): Promise<ReconcileResult> {
-  const { data, error } = await supabase.rpc("reconcile_invoice_balance", { p_invoice_id: invoiceId });
+  const { data, error } = await supabase.rpc("reconcile_invoice_balance", { p_invoice_id: invoiceId } satisfies RpcArgs<"reconcile_invoice_balance">);
   if (error || !data) {
     return { ok: false, message: error?.message ?? "Invoice could not be reconciled." };
   }

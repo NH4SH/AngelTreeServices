@@ -1,5 +1,69 @@
 (function () {
   var successMessage = "Thank you — your request was received. We’ll contact you shortly.";
+  var messageLimit = 3000;
+  var estimateContexts = {
+    "tree-removal": { label: "Tree removal", service: "Tree Care" },
+    "tree-pruning": { label: "Tree pruning", service: "Tree Care" },
+    "stump-grinding": { label: "Stump grinding", service: "Tree Care" },
+    "emergency-tree-service": { label: "Storm / emergency tree service", service: "Storm Cleanup" },
+    "commercial-hoa-tree-care": { label: "Commercial / HOA tree care", service: "Multiple Services / Not Sure Yet", customerType: "Commercial / Property Management" },
+  };
+
+  function contextMatchesForm(form, context) {
+    if (!context) return false;
+    var service = form.querySelector('select[name="service"]');
+    var customer = form.querySelector('input[name="customer_type"]:checked');
+    return !!service && service.value === context.service &&
+      (!context.customerType || (!!customer && customer.value === context.customerType));
+  }
+
+  function getEstimateContext(form) {
+    if (!form || typeof form.querySelector !== "function" || form.dataset.estimateContextAvailable !== "true") return null;
+    var picker = form.querySelector("[data-estimate-intent]");
+    if (!picker || picker.disabled || !Object.prototype.hasOwnProperty.call(estimateContexts, picker.value)) return null;
+    var context = estimateContexts[picker.value];
+    return contextMatchesForm(form, context) ? context : null;
+  }
+
+  function syncEstimateContext(form) {
+    var picker = form.querySelector("[data-estimate-intent]");
+    var panel = form.querySelector("[data-estimate-context]");
+    if (!picker || !panel) return;
+    var compatible = false;
+    Array.prototype.forEach.call(picker.options, function (option) {
+      var enabled = !option.value || (Object.prototype.hasOwnProperty.call(estimateContexts, option.value) &&
+        contextMatchesForm(form, estimateContexts[option.value]));
+      option.disabled = !enabled;
+      option.hidden = !enabled;
+      if (option.value && enabled) compatible = true;
+    });
+    if (!Object.prototype.hasOwnProperty.call(estimateContexts, picker.value) ||
+        !contextMatchesForm(form, estimateContexts[picker.value])) picker.value = "";
+    panel.hidden = form.dataset.estimateContextAvailable !== "true" || !compatible;
+    picker.disabled = panel.hidden;
+    var details = form.querySelector('textarea[name="message"]');
+    if (details && details.getAttribute("aria-invalid") === "true") {
+      validateField(details);
+      setSummaryState(form, !!form.querySelector('[aria-invalid="true"]'));
+    }
+  }
+
+  function clearEstimateContext(form) {
+    form.dataset.estimateContextAvailable = "";
+    var picker = form.querySelector("[data-estimate-intent]");
+    if (picker) picker.value = "";
+    syncEstimateContext(form);
+  }
+
+  function getMessagePrefix(form) {
+    var context = getEstimateContext(form);
+    return context ? "Service requested: " + context.label + "\n\n" : "";
+  }
+
+  function multipartMessageLength(value) {
+    // FormData serializes every line ending as CRLF before the CRM reads it.
+    return value.replace(/\r\n|\r|\n/g, "\r\n").length;
+  }
 
   function trackEvent(name, parameters) {
     if (!window.ATSWebsite || typeof window.ATSWebsite.track !== "function") {
@@ -197,6 +261,9 @@
           ? "Please enter a valid email address."
           : "Please enter a valid email address or leave this field blank.";
       }
+    } else if (field.name === "message" && multipartMessageLength(getMessagePrefix(field.form) + field.value) > messageLimit) {
+      message = "Please shorten project details to fit the 3,000-character limit" +
+        (getMessagePrefix(field.form) ? ", or clear the specific service selection" : "") + ". Your details have not been changed.";
     }
 
     if (message) {
@@ -429,9 +496,17 @@
   }
 
   function submitLead(form) {
+    var payload = new FormData(form);
+    var prefix = getMessagePrefix(form);
+    var details = typeof form.querySelector === "function" ? form.querySelector('textarea[name="message"]') : null;
+    if (details && multipartMessageLength(prefix + details.value) > messageLimit) {
+      return Promise.reject(new Error("Please shorten project details before sending. Your details have not been changed."));
+    }
+    // Enrich the existing message only in the outgoing copy, never in the draft.
+    if (prefix && details) payload.set("message", prefix + details.value);
     return fetch(getLeadIntakeEndpoint(form), {
       method: "POST",
-      body: new FormData(form),
+      body: payload,
       credentials: "omit",
       headers: {
         Accept: "application/json",
@@ -472,6 +547,7 @@
   function validateForm(form) {
     syncCommercialFields(form);
     syncEmailRequirement(form);
+    syncEstimateContext(form);
 
     var fields = Array.prototype.filter.call(
       form.querySelectorAll("input, select, textarea"),
@@ -532,6 +608,15 @@
         customerTypeField.checked = true;
       }
     }
+
+    var intent = parameters.get("estimate_context");
+    var picker = form.querySelector("[data-estimate-intent]");
+    if (picker && Object.prototype.hasOwnProperty.call(estimateContexts, intent) &&
+        contextMatchesForm(form, estimateContexts[intent])) {
+      picker.value = intent;
+      form.dataset.estimateContextAvailable = "true";
+    }
+    syncEstimateContext(form);
   }
 
   function initForm(form) {
@@ -562,9 +647,16 @@
       function (radio) {
         radio.addEventListener("change", function () {
           syncCommercialFields(form);
+          syncEstimateContext(form);
         });
       }
     );
+
+    var serviceField = form.querySelector('select[name="service"]');
+    if (serviceField) serviceField.addEventListener("change", function () { syncEstimateContext(form); });
+    var intentPicker = form.querySelector("[data-estimate-intent]");
+    if (intentPicker) intentPicker.addEventListener("change", function () { syncEstimateContext(form); });
+    form.addEventListener("reset", function () { clearEstimateContext(form); });
 
     Array.prototype.forEach.call(
       form.querySelectorAll('input[name="preferred_contact_method"]'),
@@ -633,6 +725,7 @@
           setSubmissionMetadata(form, true);
           syncCommercialFields(form);
           syncEmailRequirement(form);
+          clearEstimateContext(form);
           document.body.classList.add("ats-form-submitted");
           setSummaryState(form, false);
           setServerStatus(form, response.message || successMessage, "success");
@@ -689,6 +782,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), function (form) {
       setSubmitting(form, false);
       syncEmailRequirement(form);
+      syncEstimateContext(form);
     });
   });
 })();

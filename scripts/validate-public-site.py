@@ -36,13 +36,14 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
-    "/services/tree-removal/": {"service": "Tree Care"},
-    "/services/tree-pruning/": {"service": "Tree Care"},
-    "/services/stump-grinding/": {"service": "Tree Care"},
-    "/services/emergency-tree-service/": {"service": "Storm Cleanup"},
+    "/services/tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
+    "/services/tree-pruning/": {"service": "Tree Care", "estimate_context": "tree-pruning"},
+    "/services/stump-grinding/": {"service": "Tree Care", "estimate_context": "stump-grinding"},
+    "/services/emergency-tree-service/": {"service": "Storm Cleanup", "estimate_context": "emergency-tree-service"},
     "/services/commercial-hoa-tree-care/": {
         "service": "Multiple Services / Not Sure Yet",
         "customer_type": "Commercial / Property Management",
+        "estimate_context": "commercial-hoa-tree-care",
     },
 }
 

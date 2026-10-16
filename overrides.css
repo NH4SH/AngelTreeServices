@@ -815,6 +815,31 @@ body.ats-form-submitted .ats-form-success {
   align-self: center;
 }
 
+#contact .ats-estimate-context {
+  margin-top: 14px;
+}
+
+#contact .ats-estimate-context[hidden] {
+  display: none;
+}
+
+/* Both actions share the existing primary-button type and full row width. */
+#contact .ats-contact-form .form-submit-button,
+#contact .ats-form-secondary-action {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--primary-button-font-font-family, "Poppins", sans-serif);
+  font-style: var(--primary-button-font-font-style, normal);
+  font-weight: var(--primary-button-font-font-weight, 500);
+  font-size: calc((var(--primary-button-font-font-size-value, 1.5) - 1) * 1.2vw + 1rem);
+  line-height: var(--primary-button-font-line-height, 1.2em);
+  letter-spacing: var(--primary-button-font-letter-spacing, 0.02em);
+  padding: var(--primary-button-padding-y, 0.8em) var(--primary-button-padding-x, 0.5em) !important;
+  border-width: 2px;
+  white-space: normal;
+}
+
 #contact .ats-form-secondary-action:hover,
 #contact .ats-form-secondary-action:focus-visible {
   background: rgba(255, 255, 255, 0.96);
@@ -1008,17 +1033,17 @@ body.ats-form-submitted .ats-form-success {
   }
 
   #contact .ats-contact-form .form-button-wrapper--align-center {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   #contact .ats-form-secondary-action {
-    white-space: nowrap;
+    white-space: normal;
   }
 
   #contact .ats-form-footer-note {
-    width: min(100%, calc(100% - 360px));
+    width: 100%;
     margin-right: auto;
-    margin-left: 0;
+    margin-left: auto;
     text-align: center;
   }
 

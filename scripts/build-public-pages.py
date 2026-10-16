@@ -462,7 +462,7 @@ SERVICE_PAGES = [
         "h1": "Tree removal planned around your property.",
         "lead": "When removal may be the right next step, we begin with the tree, its surroundings, access, and your goals—not a one-size-fits-all assumption.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Tree Removal", "/services/tree-removal/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=tree-removal#contact",
         "estimate_label": "Request a tree-removal estimate",
         "hero_image": "/assets/AngelChainsawSquooshed_008.jpg",
         "image_width": 1080,
@@ -505,7 +505,7 @@ SERVICE_PAGES = [
         "h1": "Tree pruning with a clear purpose.",
         "lead": "Pruning decisions should begin with the outcome you need—clearance, deadwood, structure, young-tree training, or appropriate storm-damage cleanup.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Tree Pruning", "/services/tree-pruning/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=tree-pruning#contact",
         "estimate_label": "Request a pruning estimate",
         "hero_image": "/assets/VerySquooshedSideGreenwall.jpg",
         "image_width": 1000,
@@ -548,7 +548,7 @@ SERVICE_PAGES = [
         "h1": "A clearer plan for the stump that remains.",
         "lead": "Stump grinding is different from removing an entire root system. Access, underground utilities, expected depth, chips, and the future use of the area all matter.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Stump Grinding", "/services/stump-grinding/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=stump-grinding#contact",
         "estimate_label": "Request a stump estimate",
         "fit_heading": "Define what you want to do with the space next.",
         "fit_intro": "A stump left after removal and an older existing stump can both be considered, but the practical scope depends on the site and your next use for the area.",
@@ -587,7 +587,7 @@ SERVICE_PAGES = [
         "h1": "Call first when safety cannot wait.",
         "lead": "For a fallen tree, blocked access, storm damage, or another immediate tree concern, keep people clear and tell us what happened. Availability is confirmed when you call.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Storm and Emergency Guidance", "/services/emergency-tree-service/")],
-        "estimate_href": "/?service=Storm%20Cleanup#contact",
+        "estimate_href": "/?service=Storm%20Cleanup&estimate_context=emergency-tree-service#contact",
         "estimate_label": "Send storm-damage details",
         "fit_heading": "Separate immediate danger from an urgent estimate.",
         "fit_intro": "The safest first action depends on whether people, roads, structures, vehicles, or electrical lines are involved.",
@@ -697,7 +697,7 @@ def commercial_body() -> str:
         ('Can you coordinate certificates of insurance?', 'Describe the documentation your organization requires. The office will confirm what current documentation can be provided rather than making a blanket public claim.'),
         ('Do you offer recurring maintenance?', 'Share the property and desired frequency. Angel Tree Services can confirm whether a recurring or phased approach fits the current services and property.'),
     ])}
-    {final_cta('Start a property-management request.', 'Choose commercial / property management in the form and include the organization, property, and approval context.', '/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management#contact', 'Request a property estimate')}"""
+    {final_cta('Start a property-management request.', 'Choose commercial / property management in the form and include the organization, property, and approval context.', '/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact', 'Request a property estimate')}"""
 
 
 def credentials_body() -> str:
@@ -1152,7 +1152,7 @@ PAGES = [
         "h1": "Clear tree-service coordination for managed properties.",
         "lead": "For HOAs, property managers, apartment communities, churches, nonprofits, commercial sites, and multi-property organizations, a useful proposal starts with the property and approval path.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Commercial and HOA", "/services/commercial-hoa-tree-care/")],
-        "estimate_href": "/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management#contact",
+        "estimate_href": "/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact",
         "estimate_label": "Request a property estimate",
         "hero_image": "/assets/GardenLandscaping+(2)_008.jpg",
         "image_width": 2500,

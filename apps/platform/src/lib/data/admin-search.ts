@@ -40,7 +40,9 @@ export async function getAdminSearchPage(filters: AdminSearchFilters): Promise<A
   let request = supabase
     .from("admin_record_search")
     .select("record_id, record_type", { count: "exact" })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("record_type")
+    .order("record_id");
 
   request = Array.isArray(filters.recordType)
     ? request.in("record_type", filters.recordType)

@@ -4,8 +4,7 @@ import { CalendarDays, Camera, CheckCircle2, Clock3, Forklift, MapPin, TimerRese
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCrewDashboardSummaries } from "@/lib/data/crew-jobs";
-import type { CrewJob } from "@/lib/types/database";
+import { getCrewJobPage, type FieldJob } from "@/lib/data/crew-field-jobs";
 
 export default async function CrewPage() {
   const context = await getAuthenticatedPlatformContext("/crew");
@@ -14,32 +13,26 @@ export default async function CrewPage() {
     return <SetupRequired title="Configure Supabase before opening the crew app" />;
   }
 
-  const summaries = await getCrewDashboardSummaries({
-    roles: context.roles,
-    userId: context.user.id,
-  });
+  const summaries = await getCrewJobPage(context.supabase, { scope: "dashboard" });
   const summariesList = [
     {
-      title: "Today's jobs",
-      count: summaries.lanes.todaysJobs.length,
-      description: "On the board for today.",
-      Icon: Truck,
-    },
-    {
       title: "Upcoming jobs",
-      count: summaries.lanes.upcomingJobs.length,
+      href: "/crew/jobs?view=upcoming",
+      count: summaries.counts?.upcoming ?? 0,
       description: "Next on deck.",
       Icon: CalendarDays,
     },
     {
       title: "Needs photos",
-      count: summaries.lanes.needsPhotos.length,
+      href: "/crew/jobs?view=needs_photos",
+      count: summaries.counts?.needs_photos ?? 0,
       description: "Before or after still missing.",
       Icon: Camera,
     },
     {
       title: "Ready to complete",
-      count: summaries.lanes.readyToComplete.length,
+      href: "/crew/jobs?view=ready_to_complete",
+      count: summaries.counts?.ready_to_complete ?? 0,
       description: "Wrap-up steps still pending.",
       Icon: CheckCircle2,
     },
@@ -56,7 +49,7 @@ export default async function CrewPage() {
           <h1>Today</h1>
           <p>Open the next job, get directions, call the customer, add photos, and wrap up the checklist.</p>
           <div className="crew-hero-actions">
-            <Link className="primary-action" href="/crew/jobs">
+            <Link className="primary-action" href="/crew/jobs?view=active">
               <Truck aria-hidden="true" size={18} />
               Open all jobs
             </Link>
@@ -83,9 +76,9 @@ export default async function CrewPage() {
               <p>Start here. Open the next stop and work straight down the list.</p>
             </div>
           </div>
-          {summaries.lanes.todaysJobs.length > 0 ? (
+          {summaries.error ? <div className="crew-empty-inline"><strong>Today’s work is unavailable.</strong><p>Refresh to try again.</p></div> : summaries.data.length > 0 ? (
             <div className="crew-today-list">
-              {summaries.lanes.todaysJobs.map((job) => (
+              {summaries.data.map((job) => (
                 <CrewTodayJobRow job={job} key={job.id} />
               ))}
             </div>
@@ -95,26 +88,27 @@ export default async function CrewPage() {
               <p>Upcoming assigned work will appear here when the schedule is ready.</p>
             </div>
           )}
+          {summaries.nextCursor ? <Link className="secondary-action" href="/crew/jobs?view=today">View all today’s jobs</Link> : null}
         </section>
 
-        <section className="crew-quick-stats" aria-label="Crew job summary">
-          {summariesList.slice(1).map((lane) => (
+        {!summaries.error ? <section className="crew-quick-stats" aria-label="Crew job summary">
+          {summariesList.map((lane) => (
             <article className="crew-quick-stat" key={lane.title}>
               <lane.Icon aria-hidden="true" size={20} />
               <div>
                 <strong>{lane.count}</strong>
-                <span>{lane.title}</span>
+                <Link href={lane.href}>{lane.title}</Link>
                 <p>{lane.description}</p>
               </div>
             </article>
           ))}
-        </section>
+        </section> : null}
       </div>
     </PlatformFrame>
   );
 }
 
-function CrewTodayJobRow({ job }: { job: CrewJob }) {
+function CrewTodayJobRow({ job }: { job: FieldJob }) {
   return (
     <article className="crew-today-row">
       <div className="crew-today-row-copy">
@@ -143,7 +137,7 @@ function formatDateTime(value: string | null) {
   });
 }
 
-function formatLocation(job: CrewJob) {
+function formatLocation(job: FieldJob) {
   const location = job.service_locations;
 
   if (!location) {

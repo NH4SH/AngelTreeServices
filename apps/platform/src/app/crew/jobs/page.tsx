@@ -1,23 +1,25 @@
-import { formatBusinessDateTime } from "@/lib/business-time";
+import { formatBusinessDateTime, formatBusinessDate, getBusinessDateKey } from "@/lib/business-time";
 import Link from "next/link";
 import { Camera, CheckCircle2, MapPin, MessageCircle, Phone, Truck } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCrewJobs } from "@/lib/data/crew-jobs";
-import type { CrewJob } from "@/lib/types/database";
+import { fieldJobScopes, getCrewJobPage, isFieldDate, type FieldJobScope, type FieldJob } from "@/lib/data/crew-field-jobs";
 
-export default async function CrewJobsPage() {
+export default async function CrewJobsPage({ searchParams }: { searchParams: Promise<{ view?: string; date?: string; cursor?: string }> }) {
   const context = await getAuthenticatedPlatformContext("/crew/jobs");
 
   if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening crew jobs" />;
   }
 
-  const jobs = await getCrewJobs({
-    roles: context.roles,
-    userId: context.user.id,
-  });
+  const params = await searchParams;
+  const scope: FieldJobScope = fieldJobScopes.includes(params.view as FieldJobScope) ? params.view as FieldJobScope : "today";
+  const date = params.date ?? getBusinessDateKey(new Date());
+  const displayDate = isFieldDate(date) ? date : getBusinessDateKey(new Date());
+  const jobs = await getCrewJobPage(context.supabase, { scope, date, cursor: params.cursor });
+  const titles: Record<FieldJobScope, string> = { today: "Today", upcoming: "Upcoming", active: "All active", unscheduled: "Unscheduled", history: "History", needs_photos: "Needs photos", ready_to_complete: "Ready to complete" };
+  const pageHref = (view: FieldJobScope, cursor?: string | null) => `/crew/jobs?${new URLSearchParams({ view, date: displayDate, ...(cursor ? { cursor } : {}) })}`;
 
   return (
     <PlatformFrame active="crew" roles={context.roles} userEmail={context.user.email}>
@@ -28,15 +30,21 @@ export default async function CrewJobsPage() {
             Crew
           </p>
           <h1>Jobs</h1>
-          <p>Open the next job, use the big action buttons, then move to the next stop.</p>
+          <p>{scope === "history" ? "Completed work, with photos and records kept together." : "Find your next stop and open the work order."}</p>
+          <nav className="crew-hero-actions" aria-label="Job views">
+            {(["today", "upcoming", "active", "unscheduled", "history"] as FieldJobScope[]).map(view => (
+              <Link className={view === scope ? "primary-action" : "secondary-action"} aria-current={view === scope ? "page" : undefined} href={pageHref(view)} key={view}>{titles[view]}</Link>
+            ))}
+          </nav>
         </section>
 
-        {jobs.error ? <DataWarning message={jobs.error} /> : null}
+        <div className="crew-panel-heading"><h2>{titles[scope]}</h2><p>{scope === "today" ? `${formatBusinessDate(displayDate)} · ` : scope === "upcoming" ? `After ${formatBusinessDate(displayDate)} · ` : ""}{jobs.total} {jobs.total === 1 ? "job" : "jobs"}</p></div>
+        {jobs.error ? <><DataWarning message={jobs.error} /><Link className="secondary-action" href={pageHref(scope)}>Open first page</Link></> : null}
 
-        {jobs.data.length === 0 ? (
+        {jobs.error ? null : jobs.data.length === 0 ? (
           <section className="empty-state">
-            <h2>No crew jobs yet</h2>
-            <p>Scheduled and in-progress jobs will appear here when RLS and assignments allow access.</p>
+            <h2>No jobs in this view</h2>
+            <p>{scope === "history" ? "Completed jobs will appear here. Open All active for ongoing work." : "Check Upcoming or All active for your other assigned work."}</p>
           </section>
         ) : (
           <section className="crew-job-list" aria-label="Crew jobs">
@@ -45,15 +53,19 @@ export default async function CrewJobsPage() {
             ))}
           </section>
         )}
+        <nav className="crew-hero-actions" aria-label="Job pages">
+          {params.cursor ? <Link className="secondary-action" href={pageHref(scope)}>First page</Link> : null}
+          {jobs.nextCursor ? <Link className="secondary-action" href={pageHref(scope, jobs.nextCursor)}>{scope === "history" ? "Older jobs" : "Next jobs"}</Link> : null}
+        </nav>
       </div>
     </PlatformFrame>
   );
 }
 
-function CrewJobCard({ job }: { job: CrewJob }) {
-  const phone = job.customers?.phone;
+function CrewJobCard({ job }: { job: FieldJob }) {
+  const phone = job.organizations?.billing_phone ?? job.customers?.phone;
   const directionsUrl = getDirectionsUrl(job);
-  const photoTypes = new Set((job.job_photos ?? []).map((photo) => photo.photo_type));
+  const photoTypes = new Set(Object.entries(job.photo_counts).filter(([, count]) => count && count > 0).map(([category]) => category));
   const missingPhotos = [!photoTypes.has("before") ? "Before" : null, !photoTypes.has("after") ? "After" : null]
     .filter(Boolean)
     .join(" and ");
@@ -67,8 +79,9 @@ function CrewJobCard({ job }: { job: CrewJob }) {
           <p>{job.organizations?.name ?? job.customers?.display_name ?? "Contracting party not available"}</p>
           <p>{formatLocation(job)}</p>
         </div>
-        <span className="status-pill">{job.status.replace("_", " ")}</span>
+        <span className="status-pill">{job.status.replaceAll("_", " ")}</span>
       </div>
+      {job.completed_at ? <p>Work completed {formatDateTime(job.completed_at)}</p> : null}
       <p>{job.requested_scope || "No scope entered yet."}</p>
       <div className="crew-job-status-strip">
         <div className="crew-photo-flags" aria-label="Photo needs">
@@ -151,7 +164,7 @@ function formatDateTime(value: string | null) {
   });
 }
 
-function formatLocation(job: CrewJob) {
+function formatLocation(job: FieldJob) {
   const location = job.service_locations;
   if (!location) {
     return "No service location";
@@ -160,7 +173,7 @@ function formatLocation(job: CrewJob) {
   return `${location.street}, ${location.city}`;
 }
 
-function getDirectionsUrl(job: CrewJob) {
+function getDirectionsUrl(job: FieldJob) {
   const location = job.service_locations;
   if (!location) {
     return null;

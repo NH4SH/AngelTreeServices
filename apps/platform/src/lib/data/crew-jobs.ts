@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { getBusinessDateKey } from "@/lib/business-time";
 import type { CrewChangeOrderScopeItem, CrewJob, DataResult } from "@/lib/types/database";
 
 const crewJobSelect = `
@@ -33,29 +32,32 @@ type CrewAccessContext = {
   userId: string;
 };
 
-export async function getCrewJobs(access?: CrewAccessContext): Promise<DataResult<CrewJob[]>> {
+export type CrewClockJobOption = Pick<CrewJob, "id" | "service_type"> & {
+  customers?: { display_name: string } | null;
+  organizations?: { name: string } | null;
+};
+
+export async function getCrewClockJobOptions(access?: CrewAccessContext): Promise<DataResult<CrewClockJobOption[]>> {
   const supabase = access?.supabase ?? await createClient();
-
-  if (!supabase) {
-    return { data: [], error: "Supabase is not configured." };
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+  // Clock-in options retain every accessible job, fetched in small, deterministic
+  // pages. No history/details expansion on the field landing page or selector.
+  const jobs: CrewClockJobOption[] = [];
+  let after: string | null = null;
+  while (true) {
+    let query = supabase.from("jobs")
+      .select("id, service_type, customers:customers!jobs_customer_id_fkey(display_name), organizations(name)")
+      .is("archived_at", null)
+      .in("status", ["scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"])
+      .order("id").limit(100);
+    if (after) query = query.gt("id", after);
+    const result = await query;
+    if (result.error) return { data: [], error: safeStaffMessage(result.error.message) };
+    const rows = (result.data ?? []) as unknown as CrewClockJobOption[];
+    jobs.push(...rows);
+    if (rows.length < 100) return { data: jobs, error: null };
+    after = rows[rows.length - 1].id;
   }
-
-  let query = supabase
-    .from("jobs")
-    .select(crewJobSelect)
-    .is("archived_at", null)
-    .in("status", ["scheduled", "in_progress", "returned_for_correction", "completed_pending_review", "ready_to_invoice", "completed"])
-    .order("scheduled_start_at", { ascending: true, nullsFirst: false });
-
-  // Crew row visibility is enforced by jobs RLS, including normalized work-session assignments.
-
-  const { data, error } = await query;
-
-  if (error) {
-    return { data: [], error: safeStaffMessage(error.message) };
-  }
-
-  return { data: (data ?? []) as unknown as CrewJob[], error: null };
 }
 
 export async function getCrewApprovedChangeOrderScope(jobId: string, access?: CrewAccessContext): Promise<DataResult<CrewChangeOrderScopeItem[]>> {
@@ -90,37 +92,4 @@ export async function getCrewJobById(
   }
 
   return { data: data as unknown as CrewJob, error: null };
-}
-
-export async function getCrewDashboardSummaries(access?: CrewAccessContext) {
-  const jobs = await getCrewJobs(access);
-
-  if (jobs.error) {
-    return {
-      lanes: {
-        todaysJobs: [],
-        upcomingJobs: [],
-        needsPhotos: [],
-        readyToComplete: [],
-      },
-      error: jobs.error,
-    };
-  }
-
-  const today = getBusinessDateKey(new Date());
-
-  return {
-    lanes: {
-      todaysJobs: jobs.data.filter((job) => getBusinessDateKey(job.scheduled_start_at ?? "") === today),
-      upcomingJobs: jobs.data.filter(
-        (job) => job.scheduled_start_at && getBusinessDateKey(job.scheduled_start_at) > today,
-      ),
-      needsPhotos: jobs.data.filter((job) => {
-        const photoTypes = new Set((job.job_photos ?? []).map((photo) => photo.photo_type));
-        return !photoTypes.has("before") || !photoTypes.has("after");
-      }),
-      readyToComplete: jobs.data.filter((job) => ["in_progress", "returned_for_correction"].includes(job.status)),
-    },
-    error: null,
-  };
 }

@@ -145,7 +145,7 @@ function clientFor(db, userId) {
         ? db.query("select id, assigned_crew_user_id from public.jobs where id=$1", [filters.id])
         : db.query("select * from public.job_photos where job_id=$1 order by created_at desc", [filters.job_id]);
       return {
-        select() { return this; }, eq(key, value) { filters[key] = value; return this; }, order() { return this; },
+        select() { return this; }, eq(key, value) { filters[key] = value; return this; }, order() { return this; }, range() { return this; },
         async single() {
           const result = await rows();
           return { data: result.rows[0] ?? null, error: result.rows.length ? null : { message: "Job not available." } };
@@ -174,12 +174,14 @@ function clientFor(db, userId) {
           await db.query("delete from storage.objects where bucket_id=$1 and name=any($2::text[])", [bucket, names]);
           return { error: null };
         },
-        async createSignedUrl(name, lifetime) {
+        async createSignedUrls(names, lifetime) {
           assert.equal(lifetime, 900, "existing signed URL lifetime must remain 15 minutes");
-          const result = await db.query("select id from storage.objects where bucket_id=$1 and name=$2", [bucket, name]);
-          return result.rows.length
-            ? { data: { signedUrl: `https://storage.example.test/${result.rows[0].id}` }, error: null }
-            : { data: null, error: { message: "Object not available." } };
+          const data = [];
+          for (const name of names) {
+            const result = await db.query("select id from storage.objects where bucket_id=$1 and name=$2", [bucket, name]);
+            data.push({ path: name, signedUrl: result.rows.length ? `https://storage.example.test/${result.rows[0].id}` : null, error: result.rows.length ? null : "Object not available." });
+          }
+          return { data, error: null };
         },
       };
     } },

@@ -1,5 +1,7 @@
 "use client";
 
+import type { CrewClockJobOption } from "@/lib/data/crew-jobs";
+
 import { formatBusinessDateTime, toBusinessDateTimeLocal } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { useEffect, useMemo, useState } from "react";
@@ -22,7 +24,6 @@ import {
   type TimeClockActionState,
 } from "@/lib/actions/time-clock";
 import type {
-  CrewJob,
   ScheduleEventWithRelations,
   TimeClockPermission,
   TimeClockUserSummary,
@@ -48,7 +49,7 @@ export function CrewClockInForm({
   jobs,
   scheduleEvents,
 }: {
-  jobs: CrewJob[];
+  jobs: CrewClockJobOption[];
   scheduleEvents: ScheduleEventWithRelations[];
 }) {
   const [state, formAction, pending] = useReliableActionState(clockIn, initialState);

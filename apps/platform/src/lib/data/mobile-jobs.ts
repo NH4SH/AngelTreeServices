@@ -10,7 +10,10 @@ import {
 } from "@/lib/api/mobile-field-contract";
 
 type JobCursor = {
-  offset: number;
+  offset?: number;
+  at?: string;
+  id?: string;
+  v?: 2;
   query: string;
   scope: MobileJobDirectoryScope;
 };
@@ -47,7 +50,8 @@ export async function listMobileJobs(
   },
 ): Promise<MobileJobDirectoryPage> {
   const search = cleanMobileSearchTerm(input.query);
-  const offset = decodeCursor(input.cursor, input.scope, search);
+  const cursor = decodeCursor(input.cursor, input.scope, search);
+  const offset = cursor.offset ?? 0;
   const select = [
     "id", "customer_id", "organization_id", "service_location_id", "job_status",
     "operational_state", "priority", "service_type", "display_title",
@@ -73,7 +77,7 @@ export async function listMobileJobs(
       .order("appointment_starts_at", { ascending: true, nullsFirst: false })
       .order("updated_at", { ascending: false });
   } else if (input.scope === "completed") {
-    request = request.order("updated_at", { ascending: false });
+    request = request.order("updated_at", { ascending: false }).order("id", { ascending: false });
   } else if (input.scope === "active") {
     request = request
       .order("action_rank", { ascending: true })
@@ -83,6 +87,9 @@ export async function listMobileJobs(
     request = request.order("updated_at", { ascending: false });
   }
 
+  if (input.scope === "completed" && cursor.at && cursor.id) {
+    request = request.or(`updated_at.lt.${cursor.at},and(updated_at.eq.${cursor.at},id.lt.${cursor.id})`);
+  }
   const { data, error } = await request.range(offset, offset + input.limit);
   if (error) throw error;
 
@@ -122,7 +129,9 @@ export async function listMobileJobs(
   return {
     results,
     nextCursor: (data ?? []).length > input.limit
-      ? encodeCursor({ offset: offset + input.limit, query: search, scope: input.scope })
+      ? encodeCursor(input.scope === "completed"
+        ? { v: 2, at: pageRows[pageRows.length - 1].updated_at, id: pageRows[pageRows.length - 1].id, query: search, scope: input.scope }
+        : { offset: offset + input.limit, query: search, scope: input.scope })
       : null,
   };
 }
@@ -190,13 +199,18 @@ function encodeCursor(cursor: JobCursor) {
 }
 
 function decodeCursor(cursor: string | null, scope: MobileJobDirectoryScope, query: string) {
-  if (!cursor) return 0;
+  if (!cursor) return { offset: 0 };
   try {
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Partial<JobCursor>;
-    if (parsed.scope !== scope || parsed.query !== query || !Number.isSafeInteger(parsed.offset) || parsed.offset! < 0) {
+    if (cursor.length > 2000 || parsed.scope !== scope || parsed.query !== query) throw Error("invalid cursor");
+    if (parsed.v === 2) {
+      if (scope !== "completed" || typeof parsed.at !== "string" || !/^\d{4}-\d\d-\d\dT[0-9:.]+(?:Z|[+-]\d\d:\d\d)$/.test(parsed.at) || !Number.isFinite(Date.parse(parsed.at)) || !/^[0-9a-f-]{36}$/i.test(parsed.id ?? "")) throw Error("invalid cursor");
+      return parsed;
+    }
+    if (!Number.isSafeInteger(parsed.offset) || parsed.offset! < 0) {
       throw new Error("invalid cursor");
     }
-    return parsed.offset!;
+    return parsed;
   } catch {
     throw new Error("Invalid job directory cursor.");
   }

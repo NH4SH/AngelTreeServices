@@ -16,35 +16,38 @@ export async function getJobPhotos(
     return { data: [], error: "Supabase is not configured." };
   }
 
-  const { data, error } = await supabase
-    .from("job_photos")
-    .select("*")
-    .eq("job_id", jobId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return { data: [], error: safeStaffMessage(error.message) };
+  const photos: JobPhoto[] = [];
+  try {
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await supabase.from("job_photos")
+        .select("id,job_id,uploaded_by_user_id,photo_type,storage_path,caption,created_at")
+        .eq("job_id", jobId).order("created_at", { ascending: false }).order("id", { ascending: false })
+        .range(offset, offset + 499);
+      if (error) return { data: [], error: safeStaffMessage(error.message) };
+      photos.push(...(data ?? []) as JobPhoto[]);
+      if ((data ?? []).length < 500) break;
+    }
+  } catch { return { data: [], error: "Photo records could not be loaded. Refresh to try again." }; }
+  // Sign once per small batch, using the same caller that read the metadata.
+  // Map by path: Storage may return partial errors or a different result order.
+  const paths = [...new Set(photos.map(photo => photo.storage_path).filter(Boolean))];
+  const signedByPath = new Map<string, string>();
+  for (let offset = 0; offset < paths.length; offset += 100) {
+    const batch = paths.slice(offset, offset + 100);
+    try {
+      const signed = await supabase.storage.from(JOB_PHOTO_BUCKET).createSignedUrls(batch, signedUrlLifetimeSeconds);
+      if (!signed.error) for (const item of signed.data ?? []) {
+        if (item.path && batch.includes(item.path) && !item.error && item.signedUrl) signedByPath.set(item.path, item.signedUrl);
+      }
+    } catch { /* Preserve metadata and other batches when Storage is unavailable. */ }
   }
-
-  const photos = (data ?? []) as JobPhoto[];
-  const signedPhotos = await Promise.all(
-    photos.map(async (photo): Promise<SignedJobPhoto> => {
-      const { data: signedUrl, error: signedUrlError } = await supabase.storage
-        .from(JOB_PHOTO_BUCKET)
-        .createSignedUrl(photo.storage_path, signedUrlLifetimeSeconds);
-
-      return {
-        ...photo,
-        signed_url: signedUrlError ? null : signedUrl.signedUrl,
-      };
-    }),
-  );
+  const signedPhotos: SignedJobPhoto[] = photos.map(photo => ({ ...photo, signed_url: signedByPath.get(photo.storage_path) ?? null }));
   const unavailableCount = signedPhotos.filter((photo) => !photo.signed_url).length;
 
   return {
     data: signedPhotos,
     error: unavailableCount > 0
-      ? `${unavailableCount} private photo thumbnail${unavailableCount === 1 ? " is" : "s are"} unavailable. Confirm the job-photos bucket and storage SELECT policy.`
+      ? `${unavailableCount} private photo thumbnail${unavailableCount === 1 ? " is" : "s are"} unavailable. Refresh to try again; the photo records are still available.`
       : null,
   };
 }

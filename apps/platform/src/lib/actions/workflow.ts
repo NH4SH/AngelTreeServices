@@ -97,11 +97,7 @@ export async function updateJobStatus(_previousState: WorkflowActionState, formD
   }
 
   if (nextStatus === "completed") {
-    const { error: scheduleError } = await supabase
-      .from("schedule_events")
-      .update({ status: "completed" })
-      .eq("job_id", jobId)
-      .in("status", ["scheduled", "confirmed", "in_progress"]);
+    const { error: scheduleError } = await supabase.rpc("complete_completed_job_schedule", { p_job_id: jobId });
     if (scheduleError) {
       console.error("Job completed, but linked schedule sessions were not updated", { jobId, scheduleError });
     }

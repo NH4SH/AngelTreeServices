@@ -70,11 +70,7 @@ export async function completeJobAfterInvoice({
     }
   }
 
-  const { error: scheduleError } = await supabase
-    .from("schedule_events")
-    .update({ status: "completed" })
-    .eq("job_id", job.id)
-    .in("status", ["scheduled", "confirmed", "in_progress"]);
+  const { error: scheduleError } = await supabase.rpc("complete_completed_job_schedule", { p_job_id: job.id });
 
   if (scheduleError) {
     console.error("Job completed from invoice, but linked schedule sessions were not updated", {

@@ -3694,6 +3694,20 @@
   white-space: nowrap;
 }
 
+/* Overrides stay out of the routine date/time row. */
+.schedule-override-fields {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.schedule-override-fields summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+
 .schedule-quick-time-form .form-message,
 .schedule-quick-conflict-override {
   grid-column: 1 / -1;

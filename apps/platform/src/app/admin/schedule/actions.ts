@@ -22,6 +22,7 @@ export type AppointmentActionState = {
   message: string;
   eventId?: string;
   jobId?: string;
+  revision?: number;
 };
 
 const appointmentTypes: AppointmentType[] = ["estimate", "job", "follow_up", "maintenance"];
@@ -95,11 +96,13 @@ export async function scheduleLeadEstimate(
     eligibilityOverrideReason,
   );
   if (eligibility.blocked) return { status: "warning", message: eligibility.message };
-  const assignedAuthUserId = await getEmployeeAuthUserId(supabase, assignedUserId);
+
 
   const { data, error } = await supabase.rpc("schedule_lead_estimate", {
     p_access_notes: accessNotes || null,
-    p_assigned_user_id: assignedAuthUserId,
+    p_assigned_user_id: assignedUserId,
+    p_override_reason: eligibilityOverrideReason,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
     p_calendar_notes: calendarNotes || null,
     p_city: city,
     p_contact_name: contactName,
@@ -127,8 +130,7 @@ export async function scheduleLeadEstimate(
 
   const eventId = String((data as { event_id: string }).event_id);
   const created = Boolean((data as { event_created: boolean }).event_created);
-  const assignmentError = await replaceEventEmployeeAssignment(supabase, eventId, assignedUserId, "estimator");
-  if (assignmentError) return { status: "error", message: `The estimate was scheduled, but its estimator could not be saved: ${assignmentError}` };
+
   await recordActivity(supabase, {
     actorType: roles.includes("owner") ? "owner" : "admin",
     actorUserId: user.id,
@@ -225,11 +227,13 @@ export async function schedulePartyEstimate(
     eligibilityOverrideReason,
   );
   if (eligibility.blocked) return { status: "warning", message: eligibility.message };
-  const assignedAuthUserId = await getEmployeeAuthUserId(supabase, assignedUserId);
+
 
   const { data, error } = await supabase.rpc("schedule_party_estimate", {
     p_access_notes: accessNotes || null,
-    p_assigned_user_id: assignedAuthUserId,
+    p_assigned_user_id: assignedUserId,
+    p_override_reason: eligibilityOverrideReason,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
     p_calendar_notes: calendarNotes || null,
     p_city: city,
     p_contact_id: contactId,
@@ -257,8 +261,7 @@ export async function schedulePartyEstimate(
 
   const eventId = String((data as { event_id: string }).event_id);
   const created = Boolean((data as { event_created: boolean }).event_created);
-  const assignmentError = await replaceEventEmployeeAssignment(supabase, eventId, assignedUserId, "estimator");
-  if (assignmentError) return { status: "error", message: `The estimate was scheduled, but its estimator could not be saved: ${assignmentError}` };
+
   await recordActivity(supabase, {
     actorType: roles.includes("owner") ? "owner" : "admin",
     actorUserId: user.id,
@@ -680,68 +683,25 @@ export async function createScheduleEvent(
       jobContext?.service_location?.state,
     );
 
-  const { data: event, error } = await supabase
-    .from("schedule_events")
-    .insert({
-      title,
-      description,
-      event_type: eventType,
-      status,
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: null,
+    p_expected_revision: null,
+    p_event: {
+      request_id: getOptionalString(formData, "request_id"),
+      title, description, event_type: eventType, status,
       job_id: jobContext?.id ?? null,
-      service_location_id: jobContext?.service_location_id ?? null,
-      starts_at: normalizedStartsAt.toISOString(),
-      ends_at: normalizedEndsAt?.toISOString() ?? null,
-      all_day: allDay,
-      location_label: resolvedLocationLabel,
-      calendar_notes: calendarNotes,
-      created_by_user_id: user.id,
-    })
-    .select("id, job_id")
-    .single();
-
-  if (error || !event) {
-    return { status: "error", message: error?.message ?? "Could not create the schedule event." };
-  }
-  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserIds.join(","), reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: event.id, subjectType: "schedule_event" });
-
-  if (assignedUserIds.length > 0) {
-    const { error: assignmentError } = await supabase.from("schedule_event_assignments").insert(
-      assignedUserIds.map((assignedUserId) => ({
-        event_id: event.id,
-        employee_id: assignedUserId,
-      })),
-    );
-
-    if (assignmentError) {
-      await supabase.from("schedule_events").delete().eq("id", event.id);
-      return { status: "error", message: `Event could not be assigned: ${assignmentError.message}` };
-    }
-  }
-
-  const nextJobStatus = jobContext ? getScheduledJobStatus(jobContext.status as JobStatus, toAppointmentType(eventType)) : null;
-  if (jobContext && nextJobStatus) {
-    const { error: statusError } = await supabase.from("jobs").update({ status: nextJobStatus }).eq("id", jobContext.id);
-    if (statusError) {
-      return {
-        status: "error",
-        message: `Event saved, but the linked job status could not be updated: ${statusError.message}`,
-      };
-    }
-
-    await recordActivity(supabase, {
-      actorUserId: user.id,
-      eventType: nextJobStatus === "scheduled" ? "work_order_scheduled" : "estimate_scheduled",
-      metadata: { schedule_event_id: event.id },
-      subjectId: jobContext.id,
-      subjectType: "job",
-    });
-  }
-
+      starts_at: normalizedStartsAt.toISOString(), ends_at: normalizedEndsAt?.toISOString() ?? null,
+      all_day: allDay, location_label: resolvedLocationLabel, calendar_notes: calendarNotes,
+    },
+    p_employee_ids: assignedUserIds,
+    p_override_reason: eligibilityOverrideReason,
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  });
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
+  if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
   await syncScheduleCommunications();
-  revalidateSchedulePaths(event.job_id ?? undefined);
-  return eligibility.warningCount
-    ? { status: "warning", message: `Schedule event saved with a qualification warning. ${eligibility.message}` }
-    : { status: "success", message: "Schedule event saved." };
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: data.replayed ? "This visit was already saved. Review it on the calendar." : `Schedule event saved.${data.warning_count ? ` Crew review: ${eligibility.message || "A scheduling override was recorded."}` : ""}`, revision: data.edit_revision };
 }
 
 export async function updateScheduleEventStatus(
@@ -769,12 +729,12 @@ export async function updateScheduleEventStatus(
     return { status: "error", message: "Choose a valid schedule status." };
   }
 
-  const { data, error } = await supabase
-    .from("schedule_events")
-    .update({ status: nextStatus })
-    .eq("id", eventId)
-    .select("id, job_id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId, p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: { status: nextStatus }, p_mode: "status",
+    p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  });
 
   if (error) {
     return { status: "error", message: safeStaffMessage(error.message) };
@@ -790,7 +750,7 @@ export async function updateScheduleEventStatus(
   await syncScheduleCommunications();
 
   revalidateSchedulePaths(data.job_id ?? undefined);
-  return { status: "success", message: `Event marked ${nextStatus.replace("_", " ")}.` };
+  return { status: "success", message: `Event marked ${nextStatus.replace("_", " ")}.`, revision: data.edit_revision };
 }
 
 export async function updateScheduleEventStatusFromForm(formData: FormData) {
@@ -819,16 +779,14 @@ export async function updateScheduleEventTime(
   }
   if (endsAt <= startsAt) return { status: "error", message: "End time must be after the start time." };
 
-  const { data, error } = await supabase
-    .from("schedule_events")
-    .update({ starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString(), all_day: false })
-    .eq("id", eventId)
-    .in("event_type", ["estimate", "emergency"])
-    .in("status", ["scheduled", "confirmed", "in_progress"])
-    .select("id, job_id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId, p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: { starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, p_mode: "time",
+    p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  });
 
-  if (error) return { status: "error", message: safeStaffMessage(error.message) };
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
   if (!data) return { status: "error", message: "The event is no longer active or cannot be rescheduled here." };
 
   await recordActivity(supabase, {
@@ -840,7 +798,7 @@ export async function updateScheduleEventTime(
   });
   await syncScheduleCommunications();
   revalidateSchedulePaths(data.job_id ?? undefined);
-  return { status: "success", message: "Date and time updated." };
+  return { status: "success", message: "Date and time updated.", revision: data.edit_revision };
 }
 
 export async function updateScheduleEventDetails(
@@ -912,62 +870,24 @@ export async function updateScheduleEventDetails(
       jobContext?.service_location?.state,
     );
 
-  const { data, error } = await supabase
-    .from("schedule_events")
-    .update({
-      title,
-      description,
-      event_type: eventType,
-      status,
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: {
+      title, description, event_type: eventType, status,
       job_id: jobContext?.id ?? null,
-      service_location_id: jobContext?.service_location_id ?? null,
-      starts_at: normalizedStartsAt.toISOString(),
-      ends_at: normalizedEndsAt?.toISOString() ?? null,
-      all_day: allDay,
-      location_label: resolvedLocationLabel,
-      calendar_notes: calendarNotes,
-    })
-    .eq("id", eventId)
-    .select("id, job_id")
-    .maybeSingle();
-
-  if (error) {
-    return { status: "error", message: safeStaffMessage(error.message) };
-  }
-  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserIds.join(","), reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: eventId, subjectType: "schedule_event" });
-
-  if (!data) {
-    return { status: "error", message: "Schedule event not found or no access." };
-  }
-
-  const { error: deleteAssignmentsError } = await supabase
-    .from("schedule_event_assignments")
-    .delete()
-    .eq("event_id", eventId);
-
-  if (deleteAssignmentsError) {
-    return { status: "error", message: `Event updated, but assignments could not be refreshed: ${deleteAssignmentsError.message}` };
-  }
-
-  if (assignedUserIds.length > 0) {
-    const { error: assignmentError } = await supabase.from("schedule_event_assignments").insert(
-      assignedUserIds.map((assignedUserId) => ({
-        event_id: eventId,
-        employee_id: assignedUserId,
-      })),
-    );
-
-    if (assignmentError) {
-      return { status: "error", message: `Event updated, but assignments could not be saved: ${assignmentError.message}` };
-    }
-  }
-
+      starts_at: normalizedStartsAt.toISOString(), ends_at: normalizedEndsAt?.toISOString() ?? null,
+      all_day: allDay, location_label: resolvedLocationLabel, calendar_notes: calendarNotes,
+    },
+    p_employee_ids: assignedUserIds,
+    p_override_reason: eligibilityOverrideReason,
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  });
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
+  if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
   await syncScheduleCommunications();
-
   revalidateSchedulePaths(data.job_id ?? undefined);
-  return eligibility.warningCount
-    ? { status: "warning", message: `Schedule event updated with a qualification warning. ${eligibility.message}` }
-    : { status: "success", message: "Schedule event updated." };
+  return { status: "success", message: `Schedule event updated.${data.warning_count ? ` Crew review: ${eligibility.message || "A scheduling override was recorded."}` : ""}`, revision: data.edit_revision };
 }
 
 function getOptionalString(formData: FormData, key: string) {
@@ -994,32 +914,6 @@ async function checkAssignmentEligibility(
   const canOverride = hasAllowedRole(roles, platformRoleGroups.accessApproval);
   if (!overrideReason || !canOverride) return { blocked: true, message: `${summary} Owner/admin can proceed only after entering an override reason.`, warningCount: warnings.length };
   return { blocked: false, message: summary, warningCount: warnings.length };
-}
-
-async function getEmployeeAuthUserId(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  employeeId: string | null,
-) {
-  if (!employeeId) return null;
-  const { data } = await supabase.from("employee_records").select("auth_user_id").eq("id", employeeId).maybeSingle();
-  return data?.auth_user_id ?? null;
-}
-
-async function replaceEventEmployeeAssignment(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  eventId: string,
-  employeeId: string | null,
-  assignmentRole: string,
-) {
-  const removed = await supabase.from("schedule_event_assignments").delete().eq("event_id", eventId);
-  if (removed.error) return removed.error.message;
-  if (!employeeId) return null;
-  const inserted = await supabase.from("schedule_event_assignments").insert({
-    assignment_role: assignmentRole,
-    employee_id: employeeId,
-    event_id: eventId,
-  });
-  return inserted.error?.message ?? null;
 }
 
 async function syncScheduleCommunications() {

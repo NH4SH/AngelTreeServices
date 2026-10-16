@@ -8,7 +8,6 @@ const relationshipFiles = [
   "../data/crew-jobs.ts",
   "../data/schedule.ts",
   "../data/time-clock.ts",
-  "../../app/admin/jobs/actions.ts",
 ];
 
 test("schedule event queries name the operational job relationship explicitly", async () => {
@@ -20,4 +19,11 @@ test("schedule event queries name the operational job relationship explicitly", 
       `${relativePath} must identify schedule_events.job_id rather than the lead provenance relationship`,
     );
   }
+});
+
+test("workday timing uses the atomic command without rebuilding a freshly fetched schedule", async () => {
+  const source = await readFile(new URL("../../app/admin/jobs/actions.ts", import.meta.url), "utf8");
+  assert.match(source, /rpc\("save_schedule_event"/);
+  assert.match(source, /p_expected_revision: Number\(formData.get\("expected_revision"\)\)/);
+  assert.doesNotMatch(source, /from\("schedule_events"\)/);
 });

@@ -734,7 +734,7 @@ function ScheduleEventDetailPanel({
 }) {
   const directionsUrl = getDirectionsUrl(event.service_locations);
   const assignees = (event.schedule_event_assignments ?? [])
-    .map((assignment) => assignment.profiles?.full_name || assignment.profiles?.email || "Unnamed team member")
+    .map((assignment) => assignment.employee_records?.preferred_name || assignment.employee_records?.legal_name || assignment.profiles?.full_name || assignment.employee_records?.contact_email || assignment.profiles?.email || "Unnamed team member")
     .filter(Boolean);
   const detailWarnings = [
     !event.ends_at && !event.all_day ? "This event needs an end time to improve conflict checks." : null,
@@ -1064,7 +1064,7 @@ function QuickScheduleStatusButton({
   label: string;
   nextStatus: ScheduleEventStatus;
 }) {
-  return <ScheduleEventStatusAction currentStatus={event.status} eventId={event.id} label={label} nextStatus={nextStatus} />;
+  return <ScheduleEventStatusAction currentStatus={event.status} eventId={event.id} revision={event.edit_revision} label={label} nextStatus={nextStatus} />;
 }
 
 function QuickAppointmentStatusButton({

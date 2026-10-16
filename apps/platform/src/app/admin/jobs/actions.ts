@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { buildActiveJobWorkSessions, replaceJobWorkSessionTiming } from "@/lib/schedule/job-work-sessions";
+import { parseScheduleDateTime } from "@/lib/schedule/event-form";
 import type { JobPriority, JobStatus } from "@/lib/types/database";
 
 export type JobActionState = {
@@ -20,6 +20,9 @@ export type JobScheduleActionState = {
   message: string;
   conflicts?: string[];
   sessionCount?: number;
+  revision?: number;
+  snapshot?: { id: string; edit_revision: number }[];
+  sessions?: WorkSessionInput[];
 };
 
 type WorkSessionInput = {
@@ -130,8 +133,10 @@ export async function saveJobWorkSessions(
   const mode = formData.get("save_mode") === "add" ? "add" : "replace";
   const allowConflicts = formData.get("allow_conflicts") === "1";
   let sessions: WorkSessionInput[];
+  let expectedSnapshot: unknown;
 
   try {
+    expectedSnapshot = JSON.parse(String(formData.get("expected_snapshot") ?? "null"));
     sessions = JSON.parse(String(formData.get("sessions_json") ?? "[]")) as WorkSessionInput[];
   } catch {
     return { status: "error", message: "The schedule could not be read. Refresh and try again." };
@@ -146,34 +151,21 @@ export async function saveJobWorkSessions(
   const validationError = validateWorkSessions(sessions);
   if (validationError) return { status: "error", message: validationError };
 
-  if (sessions.length && !allowConflicts) {
-    const conflicts = await findWorkSessionConflicts(supabase, jobId, sessions);
-    if (conflicts.length) {
-      return {
-        status: "warning",
-        message: "Crew conflicts were found. Review them, then select the override option to save anyway.",
-        conflicts,
-      };
-    }
-  }
-
   const { data, error } = await supabase.rpc("save_job_employee_work_sessions", {
     p_job_id: jobId,
     p_sessions: sessions,
     p_mode: mode,
+    p_expected_snapshot: expectedSnapshot,
+    p_override_reason: String(formData.get("eligibility_override_reason") ?? "").trim() || null,
+    p_allow_conflicts: allowConflicts,
   });
 
-  if (error) return { status: "error", message: safeStaffMessage(error.message) };
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message), conflicts: error.code === "23P01" ? [safeStaffMessage(error.message)] : undefined };
 
-  const sessionCount = Number((data as { session_count?: number } | null)?.session_count ?? sessions.length);
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: sessionCount ? "work_schedule_updated" : "work_schedule_cleared",
-    metadata: { session_count: sessionCount },
-    subjectId: jobId,
-    subjectType: "job",
-  });
-
+  if (!data || data.job_id !== jobId || !Number.isInteger(data.session_count) || !Array.isArray(data.snapshot) || !Array.isArray(data.sessions)) {
+    return { status: "error", message: "The save could not be confirmed. Refresh and review the schedule before trying again." };
+  }
+  const sessionCount = data.session_count;
   const communicationSupabase = getServiceRoleClient();
   if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
 
@@ -188,6 +180,8 @@ export async function saveJobWorkSessions(
   return {
     status: "success",
     sessionCount,
+    snapshot: data.snapshot,
+    sessions: data.sessions,
     message: sessionCount
       ? `Schedule saved for ${sessionCount} ${sessionCount === 1 ? "workday" : "workdays"}.`
       : "The job schedule was cleared. No work records were deleted.",
@@ -214,48 +208,25 @@ export async function updateJobWorkSessionTime(
   }
   if (endTime <= startTime) return { status: "error", message: "End time must be after the start time." };
 
-  const { data: selectedEvent, error: selectedEventError } = await supabase
-    .from("schedule_events")
-    .select("id, job_id")
-    .eq("id", eventId)
-    .eq("event_type", "job")
-    .in("status", ["scheduled", "confirmed", "in_progress"])
-    .maybeSingle();
-
-  if (selectedEventError) return { status: "error", message: safeStaffMessage(selectedEventError.message) };
-  if (!selectedEvent?.job_id) return { status: "error", message: "The selected workday is no longer active or linked to a job." };
-
-  const { data: events, error: eventsError } = await supabase
-    .from("schedule_events")
-    .select("id, starts_at, ends_at, status, calendar_notes, schedule_event_assignments(employee_id)")
-    .eq("job_id", selectedEvent.job_id)
-    .eq("event_type", "job")
-    .in("status", ["scheduled", "confirmed", "in_progress"])
-    .order("starts_at", { ascending: true });
-
-  if (eventsError) return { status: "error", message: safeStaffMessage(eventsError.message) };
-
-  let sessions: WorkSessionInput[];
-  try {
-    sessions = replaceJobWorkSessionTiming(
-      buildActiveJobWorkSessions(events ?? []),
-      eventId,
-      { date, start_time: startTime, end_time: endTime },
-    );
-  } catch (error) {
-    return { status: "error", message: error instanceof Error ? error.message : "The selected workday could not be updated." };
-  }
-
-  const replacement = new FormData();
-  replacement.set("job_id", selectedEvent.job_id);
-  replacement.set("save_mode", "replace");
-  replacement.set("sessions_json", JSON.stringify(sessions));
-  if (formData.get("allow_conflicts") === "1") replacement.set("allow_conflicts", "1");
-
-  const result = await saveJobWorkSessions(_previousState, replacement);
-  return result.status === "success"
-    ? { ...result, message: "Workday schedule updated. Crew assignments and notes were preserved." }
-    : result;
+  const startsAt = parseScheduleDateTime(`${date}T${startTime}`);
+  const endsAt = parseScheduleDateTime(`${date}T${endTime}`);
+  if (!startsAt || !endsAt) return { status: "error", message: "Choose a valid date and time." };
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId, p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: { starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, p_mode: "time",
+    p_override_reason: String(formData.get("eligibility_override_reason") ?? "").trim() || null,
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  });
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message), conflicts: error.code === "23P01" ? [safeStaffMessage(error.message)] : undefined };
+  if (!data?.id) return { status: "error", message: "The save could not be confirmed. Refresh the calendar." };
+  revalidatePath("/admin/schedule");
+  revalidatePath(`/admin/jobs/${data.job_id}`);
+  revalidatePath("/crew");
+  revalidatePath("/crew/jobs");
+  revalidatePath(`/crew/jobs/${data.job_id}`);
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  return { status: "success", revision: data.edit_revision, message: "Workday schedule updated. Crew assignments and notes were preserved." };
 }
 
 function validateWorkSessions(sessions: WorkSessionInput[]) {
@@ -271,61 +242,4 @@ function validateWorkSessions(sessions: WorkSessionInput[]) {
     dates.add(session.date);
   }
   return null;
-}
-
-async function findWorkSessionConflicts(supabase: Awaited<ReturnType<typeof createClient>> & {}, jobId: string, sessions: WorkSessionInput[]) {
-  if (!sessions.length) return [];
-  const sortedDates = sessions.map((session) => session.date).sort();
-  const rangeStart = new Date(`${sortedDates[0]}T00:00:00Z`);
-  rangeStart.setUTCDate(rangeStart.getUTCDate() - 1);
-  const rangeEnd = new Date(`${sortedDates.at(-1)}T00:00:00Z`);
-  rangeEnd.setUTCDate(rangeEnd.getUTCDate() + 2);
-  const currentIds = sessions.map((session) => session.id).filter((id): id is string => Boolean(id));
-  let query = supabase
-    .from("schedule_events")
-    .select("id, title, starts_at, ends_at, jobs:jobs!schedule_events_job_id_fkey(id, service_type), schedule_event_assignments(employee_id, employee_records(preferred_name, legal_name, contact_email))")
-    .in("status", ["scheduled", "confirmed", "in_progress"])
-    .lt("starts_at", rangeEnd.toISOString())
-    .gt("ends_at", rangeStart.toISOString());
-  if (currentIds.length) query = query.not("id", "in", `(${currentIds.join(",")})`);
-  const { data } = await query;
-  const conflicts = new Set<string>();
-
-  for (const session of sessions) {
-    const sessionStart = minutes(session.start_time);
-    const sessionEnd = minutes(session.end_time);
-    for (const event of data ?? []) {
-      const linkedJob = Array.isArray((event as any).jobs) ? (event as any).jobs[0] : (event as any).jobs;
-      if (linkedJob?.id === jobId) continue;
-      const eventStart = zonedDateTime(event.starts_at);
-      const eventEnd = zonedDateTime(event.ends_at ?? event.starts_at);
-      if (eventStart.date !== session.date || eventStart.minutes >= sessionEnd || eventEnd.minutes <= sessionStart) continue;
-      for (const assignment of event.schedule_event_assignments ?? []) {
-        if (!assignment.employee_id || !session.assigned_user_ids.includes(assignment.employee_id)) continue;
-        const employee = Array.isArray(assignment.employee_records) ? assignment.employee_records[0] : assignment.employee_records;
-        const label = employee?.preferred_name || employee?.legal_name || employee?.contact_email || "Assigned employee";
-        conflicts.add(`${label}: ${session.date}, ${session.start_time}–${session.end_time}, conflicts with ${event.title}.`);
-      }
-    }
-  }
-  return [...conflicts];
-}
-
-function minutes(time: string) {
-  const [hours, value] = time.split(":").map(Number);
-  return hours * 60 + value;
-}
-
-function zonedDateTime(value: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-    minute: "2-digit",
-    month: "2-digit",
-    timeZone: "America/New_York",
-    year: "numeric",
-  }).formatToParts(new Date(value));
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return { date: `${get("year")}-${get("month")}-${get("day")}`, minutes: minutes(`${get("hour")}:${get("minute")}`) };
 }

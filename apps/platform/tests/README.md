@@ -474,3 +474,32 @@ sequentially when accumulating accounts could exceed their one-invocation email
 batch (100). Do not alter financial/notification assertions or broad production
 privileges to accommodate a crowded test environment. See
 `src/lib/invoices/ATOMIC_GENERATION.md` for compatibility and rollout limits.
+
+## PR08 scheduling atomicity
+
+After all 78 migrations are installed in the existing disposable local stack:
+
+```sh
+PR08_DISPOSABLE_STACK=1 \
+PR08_LOCAL_STATUS_FILE="$PR08_STATUS_FILE" \
+PR08_DOCKER_BIN="$PR08_DOCKER_BIN" \
+PR08_WEB_URL=http://127.0.0.1:3102 \
+PR08_RESULTS_FILE="$PR08_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/atomic-scheduling.integration.test.mjs
+```
+
+The private status file is the existing local CLI JSON containing local-only API
+credentials. Do not print, commit or transfer it into reports. `DOCKER_HOST` must
+point to the dedicated local Unix socket. The suite refuses non-loopback API/web
+URLs and uses only `supabase_db_ats_pr02_disposable`. It retains historical fixture
+rows and retires its own synthetic accounts/employee records after the run.
+
+Checks cover assignment/audit/Calendar failure rollback, two editors and two
+different jobs sharing crew, issued-JWT revocation during lock waits, direct/API
+bypasses, durable/no-login employees, qualification and overlap overrides,
+whole-schedule snapshots, cancelled history, daylight saving/all-day ranges,
+source estimates, create-response retries, office-completion compatibility, and
+pending versus processing/sent reminders. The Calendar test claims real outbox
+work and verifies the existing old-revision acknowledgement/failure fence.
+No provider worker, email delivery, Stripe or production service runs. See
+`src/lib/schedule/ATOMIC_SCHEDULING.md` for the exact contract and scope limits.

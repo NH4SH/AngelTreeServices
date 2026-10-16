@@ -41,7 +41,7 @@ export function JobScheduleManager({
   users: AssignableUser[];
 }) {
   const router = useRouter();
-  const activeEvents = events.filter((event) => ["scheduled", "confirmed", "in_progress"].includes(event.status));
+  const activeEvents = events.filter((event) => event.event_type === "job" && ["scheduled", "confirmed", "in_progress"].includes(event.status));
   const initialSessions = activeEvents.map(fromEvent).sort(byDate);
   const initialCrewIds = [...new Set(initialSessions.flatMap((session) => session.assigned_user_ids))];
   const fallbackDate = defaultDate ?? quickDate(1);
@@ -50,6 +50,7 @@ export function JobScheduleManager({
   const [mode, setMode] = useState<"single" | "multiple">(initialSessions.length > 1 ? "multiple" : "single");
   const [sessions, setSessions] = useState<SessionDraft[]>(initialSessions.length ? initialSessions : [newSession(fallbackDate)]);
   const [savedSessions, setSavedSessions] = useState<SessionDraft[]>(initialSessions);
+  const [snapshot, setSnapshot] = useState(activeEvents.map((event) => ({ id: event.id, edit_revision: event.edit_revision })));
   const [defaultStart, setDefaultStart] = useState(initialSessions[0]?.start_time ?? "08:00");
   const [defaultEnd, setDefaultEnd] = useState(initialSessions[0]?.end_time ?? "16:00");
   const [calendarMonth, setCalendarMonth] = useState(monthStart(initialSessions[0]?.date ?? quickDate(0)));
@@ -68,7 +69,8 @@ export function JobScheduleManager({
 
   useEffect(() => {
     if (state.status !== "success") return;
-    const nextSavedSessions = state.sessionCount === 0 ? [] : sessions;
+    const nextSavedSessions: SessionDraft[] = (state.sessions ?? []).map((session) => ({ ...session, clientId: session.id!, notes: session.notes ?? "", status: session.status ?? "scheduled" }));
+    if (state.snapshot) setSnapshot(state.snapshot);
     setSavedSessions(nextSavedSessions);
     setSessions(nextSavedSessions.length ? nextSavedSessions : [newSession(fallbackDate)]);
     setSelectedRows([]);
@@ -193,9 +195,11 @@ export function JobScheduleManager({
       ))}</div> : null}
 
       {open ? (
-        <form action={action} className="job-schedule-form">
+        <form onSubmit={(event) => { event.preventDefault(); void action(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter)); }} className="job-schedule-form">
           <input name="job_id" type="hidden" value={jobId} />
           <input name="save_mode" type="hidden" value="replace" />
+          <input name="expected_snapshot" type="hidden" value={JSON.stringify(snapshot)} />
+          <details className="schedule-override-fields"><summary>Scheduling override</summary><label>Owner/admin reason<textarea disabled={pending} maxLength={600} name="eligibility_override_reason" rows={2} /></label></details>
           <input name="sessions_json" type="hidden" value={JSON.stringify(sessions.map(toPayload))} />
 
           {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}><strong>{state.message}</strong>{state.conflicts?.map((conflict) => <span key={conflict}>{conflict}</span>)}</div> : null}

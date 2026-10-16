@@ -2,7 +2,7 @@
 
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { StructuredAddressFields } from "@/components/address-autocomplete";
@@ -78,12 +78,13 @@ function JobWorkSessionQuickTimeForm({ event }: { event: ScheduleEventWithRelati
 function StandardEventQuickTimeForm({ event }: { event: ScheduleEventWithRelations }) {
   const router = useRouter();
   const [state, action, pending] = useReliableActionState(updateScheduleEventTime, initialState);
+  const [allowConflicts, setAllowConflicts] = useState(false);
 
   useEffect(() => {
     if (state.status === "success") router.refresh();
   }, [router, state.status]);
 
-  return <QuickTimeFields action={action} event={event} pending={pending} state={state} />;
+  return <QuickTimeFields action={action} allowConflicts={allowConflicts} event={event} onAllowConflicts={setAllowConflicts} pending={pending} state={state} />;
 }
 
 function QuickTimeFields({
@@ -101,20 +102,24 @@ function QuickTimeFields({
   pending: boolean;
   state: AppointmentActionState & { conflicts?: string[] };
 }) {
+  const [revision, setRevision] = useState(event.edit_revision);
+  useEffect(() => { if (state.status === "success" && state.revision) setRevision(state.revision); }, [state]);
   const start = toScheduleDateTimeLocal(event.starts_at);
   const end = event.ends_at ? toScheduleDateTimeLocal(event.ends_at) : "";
 
-  return <form action={action} className="schedule-quick-time-form">
+  return <form onSubmit={(event) => { event.preventDefault(); void action(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter)); }} className="schedule-quick-time-form">
     <div className="schedule-quick-time-heading">
       <Clock3 aria-hidden="true" size={18} />
       <div><strong>Date &amp; time</strong><span>Edit this calendar item directly.</span></div>
     </div>
     <input name="event_id" type="hidden" value={event.id} />
+    <input name="expected_revision" type="hidden" value={revision} />
     <input name="allow_conflicts" type="hidden" value={allowConflicts ? "1" : "0"} />
     <label>Date<input defaultValue={start.slice(0, 10)} name="date" required type="date" /></label>
     <label>Start<input defaultValue={start.slice(11, 16)} name="start_time" required type="time" /></label>
     <label>End<input defaultValue={end.slice(11, 16)} name="end_time" required type="time" /></label>
-    <button disabled={pending} type="submit"><Save aria-hidden="true" size={17} />{pending ? "Saving..." : "Save"}</button>
+    <button className="primary-action" disabled={pending} type="submit"><Save aria-hidden="true" size={17} />{pending ? "Saving..." : "Save"}</button>
+    <ScheduleOverrideFields pending={pending} showConflictToggle={false} />
     {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
       <strong>{state.message}</strong>
       {state.conflicts?.map((conflict) => <span key={conflict}>{conflict}</span>)}
@@ -422,6 +427,7 @@ function LeadEstimateDrawer({
       }}
     >
       <input name="lead_job_id" type="hidden" value={lead.leadJobId} />
+      <input name="expected_revision" type="hidden" value={lead.expectedRevision ?? ""} />
       <FormMessage state={state} />
 
       <section className="lead-estimate-time-section">
@@ -525,7 +531,7 @@ function QuickScheduleJobForm({ customers }: { customers: ScheduleCustomerOption
   return (
     <details className="quick-schedule-job-creator">
       <summary>{newCustomer ? "New customer and job" : "Customer has no job yet?"}</summary>
-      <form action={action} className="crm-form">
+      <form onSubmit={(event) => { event.preventDefault(); void action(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter)); }} className="crm-form">
         {state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null}
         <label className="form-checkbox"><input checked={newCustomer} onChange={(event) => { setNewCustomer(event.target.checked); setCustomerId(""); }} type="checkbox" /><span>Create a new customer</span></label>
         {!newCustomer ? <>
@@ -568,10 +574,15 @@ export function AddScheduleEventForm({
   users: ScheduleUser[];
 }) {
   const [state, formAction, pending] = useReliableActionState(createScheduleEvent, initialState);
+  const createForm = useRef<HTMLFormElement>(null);
+  const [requestId, setRequestId] = useState("");
+  useEffect(() => { setRequestId(crypto.randomUUID()); }, []);
+  useEffect(() => { if (state.status === "success") { createForm.current?.reset(); setRequestId(crypto.randomUUID()); } }, [state]);
 
   return (
-    <form action={formAction} className="crm-form schedule-event-form">
+    <form onSubmit={(event) => { event.preventDefault(); void formAction(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter)); }} ref={createForm} className="crm-form schedule-event-form">
       <input name="event_type" type="hidden" value={eventType} />
+      <input name="request_id" type="hidden" value={requestId} />
       <FormMessage state={state} />
       <label>
         Title
@@ -637,11 +648,12 @@ export function AddScheduleEventForm({
         Owner/admin override reason
         <textarea
           name="eligibility_override_reason"
-          placeholder="Only needed if an assigned employee has a qualification warning"
+          placeholder="Only needed for a qualification or scheduling override"
           rows={2}
         />
       </label>
-      <button disabled={pending} type="submit">
+      <label className="form-checkbox"><input disabled={pending} name="allow_conflicts" type="checkbox" value="1" /><span>Confirm an overlapping crew visit (owner/admin reason required)</span></label>
+      <button disabled={pending || !requestId} type="submit">
         <CalendarPlus aria-hidden="true" size={18} />
         {pending ? "Saving..." : "Add event"}
       </button>
@@ -659,11 +671,14 @@ export function ScheduleEventEditForm({
   users: ScheduleUser[];
 }) {
   const [state, formAction, pending] = useReliableActionState(updateScheduleEventDetails, initialState);
+  const [revision, setRevision] = useState(event.edit_revision);
+  useEffect(() => { if (state.status === "success" && state.revision) setRevision(state.revision); }, [state]);
   const assignedUserIds = (event.schedule_event_assignments ?? []).map((assignment) => assignment.employee_id).filter((id): id is string => Boolean(id));
 
   return (
-    <form action={formAction} className="appointment-edit-form schedule-event-edit-form">
+    <form onSubmit={(event) => { event.preventDefault(); void formAction(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter)); }} className="appointment-edit-form schedule-event-edit-form">
       <input name="event_id" type="hidden" value={event.id} />
+      <input name="expected_revision" type="hidden" value={revision} />
       <label>
         <span>Title</span>
         <input defaultValue={event.title} name="title" required />
@@ -741,10 +756,11 @@ export function ScheduleEventEditForm({
         <textarea
           maxLength={600}
           name="eligibility_override_reason"
-          placeholder="Only needed if an assigned employee has a qualification warning"
+          placeholder="Only needed for a qualification or scheduling override"
           rows={2}
         />
       </label>
+      <label className="form-checkbox"><input disabled={pending} name="allow_conflicts" type="checkbox" value="1" /><span>Confirm an overlapping crew visit (owner/admin reason required)</span></label>
       <button disabled={pending} type="submit">
         <Save aria-hidden="true" size={17} />
         {pending ? "Saving..." : "Save event"}
@@ -831,4 +847,12 @@ function FormMessage({ state }: { state: AppointmentActionState }) {
       {state.message}
     </p>
   );
+}
+
+function ScheduleOverrideFields({ pending, showConflictToggle = true }: { pending: boolean; showConflictToggle?: boolean }) {
+  return <details className="schedule-override-fields">
+    <summary>Scheduling override</summary>
+    <label>Owner/admin reason<textarea disabled={pending} maxLength={600} name="eligibility_override_reason" rows={2} /></label>
+    {showConflictToggle ? <label className="form-checkbox"><input disabled={pending} name="allow_conflicts" type="checkbox" value="1" /><span>Confirm an overlapping crew visit</span></label> : null}
+  </details>;
 }

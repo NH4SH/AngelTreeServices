@@ -1,3 +1,4 @@
+import type { FieldJob } from "@/lib/data/crew-field-jobs";
 import { completionChecklistItems } from "@/lib/crew/completion-checklist";
 import { getDirectionsUrl } from "@/lib/maps";
 import type {
@@ -92,7 +93,7 @@ export type CrewApiJobPhoto = {
   signedUrl: string | null;
 };
 
-export function toCrewApiJobListItem(job: CrewJob): CrewApiJobListItem {
+export function toCrewApiJobListItem(job: CrewJob | FieldJob): CrewApiJobListItem {
   const phone = job.organizations?.billing_phone ?? job.customers?.phone ?? null;
   const location = job.service_locations;
 
@@ -266,7 +267,7 @@ export function getDefaultEasternDateKey() {
   return getEasternDateKey(new Date().toISOString())!;
 }
 
-function getPhotoSummary(job: CrewJob): CrewPhotoSummary {
+function getPhotoSummary(job: CrewJob | FieldJob): CrewPhotoSummary {
   const summary: CrewPhotoSummary = {
     after: 0,
     before: 0,
@@ -276,6 +277,10 @@ function getPhotoSummary(job: CrewJob): CrewPhotoSummary {
     issue: 0,
   };
 
+  if ("photo_counts" in job) {
+    for (const category of Object.keys(summary) as JobPhotoUploadCategory[]) summary[category] = job.photo_counts[category] ?? 0;
+    return summary;
+  }
   (job.job_photos ?? []).forEach((photo) => {
     if (photo.photo_type in summary) {
       summary[photo.photo_type as JobPhotoUploadCategory] += 1;

@@ -11,7 +11,7 @@ import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { canUseTimeClock, getTimeClockPermissionForUser } from "@/lib/auth/time-clock";
-import { getCrewJobs } from "@/lib/data/crew-jobs";
+import { getCrewClockJobOptions } from "@/lib/data/crew-jobs";
 import {
   getActiveTimeEntryForUser,
   getAssignedScheduleEventsForUser,
@@ -34,7 +34,7 @@ export default async function CrewTimePage() {
       userId: context.user.id,
       from: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
     }),
-    getCrewJobs({
+    getCrewClockJobOptions({
       roles: context.roles,
       supabase: context.supabase,
       userId: context.user.id,

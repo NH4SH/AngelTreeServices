@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { apiError, apiSuccess } from "@/lib/api/responses";
 import { toCrewApiJobPhoto } from "@/lib/api/crew-contract";
 import { getCrewApiContext } from "@/lib/auth/apiContext";
-import { getCrewJobById } from "@/lib/data/crew-jobs";
 import { getJobPhotos } from "@/lib/data/job-photos";
 import {
   maxJobPhotoUploadBytes,
@@ -32,11 +31,9 @@ export async function GET(request: NextRequest, { params }: CrewJobPhotosApiRout
     return apiError("invalid_job_id", "Use a valid job identifier.", 400);
   }
 
-  const job = await getCrewJobById(jobId, {
-    roles: auth.context.roles,
-    supabase: auth.context.supabase,
-    userId: auth.context.user.id,
-  });
+  // Preserve the same caller/archival boundary without expanding a job detail just to authorize its gallery.
+  const job = await auth.context.supabase.from("jobs").select("id")
+    .is("archived_at", null).eq("id", jobId).maybeSingle();
 
   if (!job.data) {
     return apiError("job_not_available", "Job not found or not assigned to this crew account.", 404);

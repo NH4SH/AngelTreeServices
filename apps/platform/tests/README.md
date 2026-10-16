@@ -1,5 +1,42 @@
 # CRM Usability Regression Checks
 
+## PR11 field loading and private photo signing
+
+The normal unit gate includes `field-loading.test.mjs`: bounded/deduplicated batch
+signing, exact path mapping, partial/missing/failed signatures, caller isolation,
+metadata paging, cursor precision and view/date validation. F08's existing real
+PostgreSQL-policy tests now adapt their Storage transport to the batch API; their
+permission/category assertions remain intact.
+
+Use the existing named loopback stack with **81 migrations**, through
+`20261016144647_crew_field_job_pages.sql`. Keep the private local CLI status JSON
+outside Git and mode 0600. From `apps/platform`, with the local app on port 3102:
+
+```sh
+PR11_DISPOSABLE_STACK=1 \
+PR11_LOCAL_STATUS_FILE="$PR11_STATUS_FILE" \
+PR11_WEB_URL=http://127.0.0.1:3102 \
+PR11_RESULTS_FILE="$PR11_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/field-loading.integration.test.mjs
+```
+
+The suite accepts only the loopback API and web app, uses real Auth/JWTs, RLS,
+PostgREST, private Storage and authenticated HTTP routes, and retires only its own
+synthetic users. It retains historical records. Cases include work-visit vs header
+dates, legacy/durable assignment, multi-day and overnight visits, cancelled/finished
+visits, unscheduled and overdue work, DST boundaries, 205 equal-time history rows,
+new inserts during paging, scope-bound cursors, owner/crew/disabled/anonymous
+visibility, no detail expansion, partial private signatures with 900-second expiry,
+all photo counts, native completed keysets and legacy cursor compatibility.
+
+The benchmark compares the previous committed full read and current dashboard RPC
+on the same caller/workload over three alternating samples. It records response
+byte counts and timings without bodies, JWTs or signed URLs. Timing samples are
+local evidence, not a production SLA. Run the existing PR03–10 and issued-JWT
+regressions too; shared office-notification suites remain sequential. Replay the
+complete migration chain in a separate empty database, never reset the review DB.
+See `src/lib/data/FIELD_READS.md` for pagination and signed-link boundaries.
+
 ## PR10 provider outcomes and required photo history
 
 The normal unit gate includes provider deadlines, checked reminder acknowledgments,

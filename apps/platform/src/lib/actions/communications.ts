@@ -14,7 +14,7 @@ import type {
 } from "@/lib/types/database";
 
 export type CommunicationActionState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "success" | "error" | "warning";
   message: string;
 };
 
@@ -50,7 +50,7 @@ export async function cancelScheduledCommunication(formData: FormData) {
   const communicationId = text(formData, "communication_id");
   if (!communicationId) return;
 
-  await auth.supabase
+  const result = await auth.supabase
     .from("customer_communications")
     .update({
       cancelled_at: new Date().toISOString(),
@@ -58,7 +58,8 @@ export async function cancelScheduledCommunication(formData: FormData) {
       status: "cancelled",
     })
     .eq("id", communicationId)
-    .eq("status", "pending");
+    .eq("status", "pending").select("id").maybeSingle();
+  if (result.error || !result.data) throw Error("Cancellation could not be confirmed. Refresh and review the reminder before retrying.");
 
   revalidateCommunicationPaths();
 }
@@ -93,7 +94,8 @@ export async function updateRecordAutomation(
       .eq("status", "pending")
       .eq("is_automatic", true);
     query = recordType === "quote" ? query.eq("quote_id", recordId) : query.eq("invoice_id", recordId);
-    await query;
+    const cancelled = await query;
+    if (cancelled.error) return { status: "warning", message: "Automation was disabled, but pending reminder cancellation needs review. Do not run the queue until it is checked." };
   }
 
   revalidateCommunicationPaths(recordType, recordId);
@@ -161,8 +163,8 @@ export async function runCommunicationWorkerNow(
   revalidateCommunicationPaths();
   if (result.error) return { status: "error", message: result.error };
   return {
-    status: "success",
-    message: `Queue checked: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed.`,
+    status: result.uncertain || result.acceptedUnrecorded ? "warning" : "success",
+    message: `Queue checked: ${result.sent} accepted, ${result.skipped} skipped, ${result.pending} waiting to retry, ${result.failed} failed, ${result.uncertain} need delivery review.`,
   };
 }
 
@@ -238,9 +240,7 @@ async function queueCommunication(formData: FormData, sendNow: boolean): Promise
 
   const processed = await processCommunicationById((communication as CustomerCommunication).id);
   revalidateCommunicationPaths(recordType, recordId);
-  return processed.status === "sent"
-    ? { status: "success", message: "Reminder sent." }
-    : { status: "error", message: processed.message };
+  return { status: processed.outcome === "accepted" ? (processed.recorded ? "success" : "warning") : processed.outcome === "unknown" ? "warning" : "error", message: processed.message };
 }
 
 async function resolveCommunicationContext(

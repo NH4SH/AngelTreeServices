@@ -3,10 +3,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getEmailProviderConfig } from "@/lib/email/config";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { withDeadline } from "@/lib/runtime/deadline";
 import type { EmailEvent, EmailEventType } from "@/lib/types/database";
 
 export type SendEmailInput = {
   signal?: AbortSignal;
+  timeoutMs?: number;
   to: string;
   cc?: string[];
   subject: string;
@@ -29,6 +31,7 @@ export type SendEmailInput = {
 };
 
 export type SendEmailResult = {
+  outcome: "accepted" | "rejected" | "unknown" | "not_attempted";
   ok: boolean;
   configured: boolean;
   historyRecorded: boolean;
@@ -64,15 +67,18 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   if (!isValidEmail(recipient)) {
     const message = "Recipient email address is missing or invalid.";
     const historyRecorded = await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
+    return { outcome: "not_attempted", ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
+  if (input.idempotencyKey && (input.idempotencyKey.length > 256 || !/^[\x21-\x7e]+$/.test(input.idempotencyKey))) {
+    return { outcome: "not_attempted", ok: false, configured: true, historyRecorded: false, providerMessageId: null, retryable: false, message: "The saved email request is invalid. Review this draft before sending." };
+  }
   const ccRecipients = normalizeCcRecipients(input.cc ?? [], recipient);
   const invalidCc = ccRecipients.find((email) => !isValidEmail(email));
   if (invalidCc) {
     const message = "One or more CC email addresses are invalid.";
     const historyRecorded = await logEmailEvent(input, "failed", null, message, recipient);
-    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
+    return { outcome: "not_attempted", ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
   const config = getEmailProviderConfig();
@@ -80,65 +86,53 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   if (!config) {
     const message = "Email sending is not configured. Drafts are still available.";
     const historyRecorded = await logEmailEvent(input, "failed", null, message);
-    return { ok: false, configured: false, historyRecorded, message, providerMessageId: null, retryable: false };
+    return { outcome: "not_attempted", ok: false, configured: false, historyRecorded, message, providerMessageId: null, retryable: false };
   }
 
+  let delivery: { status: number; ok: boolean; payload: Record<string, unknown> };
+  let attempted = false;
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      signal: input.signal,
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-        ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey.slice(0, 256) } : {}),
-      },
-      body: JSON.stringify({
-        from: config.from,
-        to: [recipient],
-        ...(ccRecipients.length ? { cc: ccRecipients } : {}),
-        reply_to: config.replyTo,
-        subject: input.subject,
-        text: input.text,
-        html: input.html,
-      }),
-    });
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const message = getProviderErrorMessage(response.status);
-      const historyRecorded = await logEmailEvent(input, "failed", null, getProviderDiagnostic(payload, response.status), recipient);
-      return {
-        ok: false,
-        configured: true,
-        historyRecorded,
-        message,
-        providerMessageId: null,
-        retryable: response.status === 429 || response.status >= 500 || isConcurrentIdempotencyError(payload),
-      };
-    }
-
-    const providerMessageId = typeof payload.id === "string" ? payload.id : null;
-    const historyRecorded = await logEmailEvent(input, "sent", providerMessageId, null, recipient);
-    return {
-      ok: true,
-      configured: true,
-      historyRecorded,
-      message: historyRecorded
-        ? "Email accepted by the email provider and recorded in delivery history."
-        : "Email accepted by the email provider, but its CRM delivery history could not be recorded.",
-      providerMessageId,
-      retryable: false,
-    };
-  } catch (error) {
-    const diagnostic = error instanceof Error ? error.message : "Email provider request failed.";
-    const message = "Email delivery could not reach the provider. Your draft is still here; please try again.";
-    const historyRecorded = await logEmailEvent(input, "failed", null, diagnostic, recipient);
-    return { ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: true };
+    delivery = await withDeadline(async signal => {
+      attempted = true;
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST", signal, redirect: "error",
+        headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json",
+          ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}) },
+        body: JSON.stringify({ from: config.from, to: [recipient], ...(ccRecipients.length ? { cc: ccRecipients } : {}),
+          reply_to: config.replyTo, subject: input.subject, text: input.text, html: input.html }),
+      });
+      const parsed: unknown = await response.json().catch(() => null);
+      return { status: response.status, ok: response.ok, payload: parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {} };
+    }, Math.min(10_000, Math.max(1, input.timeoutMs ?? 10_000)), input.signal);
+  } catch {
+    const message = attempted
+      ? "Delivery could not be confirmed. The email may have been accepted. Review provider history before sending again."
+      : "The send was cancelled before contacting the email provider.";
+    const historyRecorded = await logEmailEvent(input, "failed", null, attempted ? "provider_outcome_unknown" : "cancelled_before_send", recipient);
+    return { outcome: attempted ? "unknown" : "not_attempted", ok: false, configured: true, historyRecorded, message, providerMessageId: null, retryable: false };
   }
+  if (!delivery.ok) {
+    const historyRecorded = await logEmailEvent(input, "failed", null, `provider_http_${delivery.status}`, recipient);
+    return { outcome: "rejected", ok: false, configured: true, historyRecorded,
+      message: getProviderErrorMessage(delivery.status), providerMessageId: null,
+      retryable: delivery.status === 429 || delivery.status >= 500 || isConcurrentIdempotencyError(delivery.payload) };
+  }
+  const providerMessageId = typeof delivery.payload.id === "string" && /^[A-Za-z0-9_-]{1,200}$/.test(delivery.payload.id) ? delivery.payload.id : null;
+  if (!providerMessageId) {
+    const historyRecorded = await logEmailEvent(input, "failed", null, "provider_outcome_unknown", recipient);
+    return { outcome: "unknown", ok: false, configured: true, historyRecorded, providerMessageId: null, retryable: false,
+      message: "The provider response could not confirm delivery. Review provider history before sending again." };
+  }
+  // Recording history is separate from transport: its failure never turns an accepted email into a retryable send.
+  const historyRecorded = await logEmailEvent(input, "sent", providerMessageId, null, recipient);
+  return { outcome: "accepted", ok: true, configured: true, historyRecorded, providerMessageId, retryable: false,
+    message: historyRecorded ? "Email accepted by the provider and recorded in delivery history."
+      : "Email accepted by the provider, but CRM delivery history needs review. Do not send it again." };
+
 }
 
 export async function recordEmailEvent(input: RecordEmailEventInput) {
-  await logEmailEvent(
+  return logEmailEvent(
     {
       to: input.to,
       subject: input.subject,
@@ -170,6 +164,7 @@ async function logEmailEvent(
   errorMessage: string | null,
   recipientOverride?: string,
 ) {
+  try {
   const supabase = input.supabase ?? getServiceRoleClient();
 
   if (!supabase) {
@@ -178,7 +173,8 @@ async function logEmailEvent(
 
   const recipientEmail = (recipientOverride ?? input.to.trim().toLowerCase()) || "unknown";
 
-  const { error } = await supabase.from("email_events").insert({
+    const result = await withDeadline(async signal => {
+      let query = supabase.from("email_events").insert({
     related_customer_id: input.relatedCustomerId ?? null,
     related_job_id: input.relatedJobId ?? null,
     related_quote_id: input.relatedQuoteId ?? null,
@@ -197,8 +193,12 @@ async function logEmailEvent(
     error_message: errorMessage,
     sent_by_user_id: input.sentByUserId ?? null,
     sent_at: status === "sent" ? new Date().toISOString() : null,
-  });
-  return !error;
+      });
+      if (typeof query.abortSignal === "function") query = query.abortSignal(signal);
+      return await query;
+    }, 5_000);
+    return !result.error;
+  } catch { return false; }
 }
 
 function normalizeCcRecipients(values: string[], primaryRecipient: string) {
@@ -218,23 +218,6 @@ function isConcurrentIdempotencyError(payload: unknown) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function getProviderDiagnostic(payload: unknown, status: number) {
-  if (payload && typeof payload === "object") {
-    const maybeMessage = "message" in payload ? payload.message : null;
-    const maybeError = "error" in payload ? payload.error : null;
-
-    if (typeof maybeMessage === "string") {
-      return maybeMessage;
-    }
-
-    if (typeof maybeError === "string") {
-      return maybeError;
-    }
-  }
-
-  return `Email provider returned HTTP ${status}.`;
 }
 
 function getProviderErrorMessage(status: number) {

@@ -13,9 +13,9 @@ export async function POST(request: Request) {
   }
 
   const result = await processDueCommunications(20);
-  if (result.error) {
+  if (result.error || result.acceptedUnrecorded || result.uncertain) {
     console.error("Scheduled communication processing failed", result.error);
-    return Response.json({ ok: false, message: "Communication processing failed." }, { status: 500 });
+    return Response.json({ ok: false, ...result, message: "Communication processing needs review. Do not resend uncertain deliveries." }, { status: 500 });
   }
 
   return Response.json({ ok: true, ...result });

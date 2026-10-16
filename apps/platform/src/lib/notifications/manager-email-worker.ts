@@ -65,8 +65,8 @@ export async function processManagerEmails(input: {
     if (Date.now() - started > 12_000) break;
     try {
     const finish = async (status: "sent" | "failed" | "skipped", problem: string | null, retry = false) => {
-      const updated = await db.from("admin_notifications").update({ email_status: status, manager_email_problem: problem, manager_email_claimed_at: null, manager_email_next_attempt_at: retry ? new Date(now.getTime() + 15 * 60_000).toISOString() : null }).eq("id", row.id).eq("manager_email_attempts", row.manager_email_attempts).in("email_status", ["pending", "failed"]);
-      if (updated.error) throw new Error("Manager delivery state could not be recorded");
+      const updated = await db.from("admin_notifications").update({ email_status: status, manager_email_problem: problem, manager_email_claimed_at: null, manager_email_next_attempt_at: retry ? new Date(now.getTime() + 15 * 60_000).toISOString() : null }).eq("id", row.id).eq("manager_email_attempts", row.manager_email_attempts).in("email_status", ["pending", "failed"]).select("id").maybeSingle();
+      if (updated.error || !updated.data?.id) throw new Error("Manager delivery state could not be recorded");
       result[status]++;
     };
     if (!canRetryManagerEmail(row.manager_email_attempts, row.manager_email_first_attempt_at, now)) { await finish("failed", "retry_window_ended"); continue; }

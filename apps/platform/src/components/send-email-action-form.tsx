@@ -48,7 +48,15 @@ export function SendQuoteEmailForm({
   quoteId,
   recipient,
 }: ComposerProps & { portalLinkState?: QuoteEmailPortalLinkState; quoteId: string }) {
-  const [state, formAction, pending] = useReliableActionState(sendQuoteEmail, initialState);
+  const attemptRef = useRef("");
+  const attemptStartedRef = useRef(0);
+  const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
+    if (attemptStartedRef.current && Date.now() - attemptStartedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
+    attemptStartedRef.current ||= Date.now();
+    attemptRef.current ||= crypto.randomUUID();
+    form.set("email_attempt_id", attemptRef.current);
+    return sendQuoteEmail(previous, form);
+  }, initialState);
   const regeneration = usePortalLinkAction(regenerateQuotePortalLink, initialPortalLinkState);
   const resolvedPortalUrl = regeneration.state.portalUrl ?? portalUrl;
   const replacementRequired = portalLinkState === "legacy_unrecoverable" && !resolvedPortalUrl;
@@ -93,7 +101,15 @@ export function SendInvoiceEmailForm({
   portalUrl,
   recipient,
 }: ComposerProps & { invoiceId: string }) {
-  const [state, formAction, pending] = useReliableActionState(sendInvoiceEmail, initialState);
+  const attemptRef = useRef("");
+  const attemptStartedRef = useRef(0);
+  const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
+    if (attemptStartedRef.current && Date.now() - attemptStartedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
+    attemptStartedRef.current ||= Date.now();
+    attemptRef.current ||= crypto.randomUUID();
+    form.set("email_attempt_id", attemptRef.current);
+    return sendInvoiceEmail(previous, form);
+  }, initialState);
   return (
     <CustomerDocumentEmailComposer
       disabled={disabled}
@@ -145,7 +161,8 @@ function CustomerDocumentEmailComposer({
   const formId = useId();
   const previewDraft = { ...draft, ...edits, portalUrl: portalUrl ?? draft.portalUrl };
   const plainText = buildCustomerDocumentEmailText(previewDraft);
-  const sendBlocked = disabled || pending || Boolean(portalLinkRecovery?.required);
+  const needsReview = state.deliveryState === "accepted" || state.deliveryState === "unknown";
+  const sendBlocked = disabled || pending || needsReview || state.status === "success" || Boolean(portalLinkRecovery?.required);
 
   useEffect(() => {
     if (refreshing || !regenerationRequestedRef.current) return;
@@ -154,8 +171,8 @@ function CustomerDocumentEmailComposer({
   }, [initialEdits, refreshing]);
 
   useEffect(() => {
-    if (state.status === "success") router.refresh();
-  }, [router, state.status]);
+    if (state.status === "success" || state.deliveryState === "accepted") router.refresh();
+  }, [router, state.status, state.deliveryState]);
 
   function update<K extends keyof CustomerDocumentEmailEdits>(key: K, value: CustomerDocumentEmailEdits[K]) {
     setEdits((current) => ({ ...current, [key]: value }));
@@ -181,10 +198,11 @@ function CustomerDocumentEmailComposer({
   if (!open) {
     return (
       <div className="email-composer-launch">
-        <button disabled={disabled} onClick={() => setOpen(true)} type="button">
+        <button disabled={disabled || needsReview} onClick={() => setOpen(true)} type="button">
           <Mail aria-hidden="true" size={18} />
           Review and send email
         </button>
+        <FormMessage state={state} />
         {disabled ? <p>Email sending is unavailable until the recipient, record status, and email configuration are ready.</p> : null}
       </div>
     );
@@ -478,7 +496,7 @@ function draftEdits(draft: CustomerDocumentEmailDraft): CustomerDocumentEmailEdi
 function FormMessage({ state }: { state: TransactionalEmailActionState }) {
   if (!state.message) return null;
   return (
-    <p className={state.status === "error" ? "form-message error" : "form-message success"} role={state.status === "error" ? "alert" : "status"}>
+    <p className={`form-message ${state.status}`} role={state.status === "error" || state.status === "warning" ? "alert" : "status"}>
       {state.message}
     </p>
   );

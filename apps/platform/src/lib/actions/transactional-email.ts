@@ -31,7 +31,8 @@ import {
 } from "@/lib/quotes/multi-email";
 
 export type TransactionalEmailActionState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "success" | "error" | "warning";
+  deliveryState?: "accepted" | "unknown" | "not_sent";
   message: string;
 };
 
@@ -45,6 +46,8 @@ export async function sendMultiQuoteEmail(
   const auth = await requireInternalEmailSender();
   if (auth.error) return auth.error;
 
+  const requestKey = emailRequestKey(formData, auth.userId, `multi-quote/${quoteIds[0]}`);
+  if (!requestKey) return { status: "error", message: "Reload the email composer before sending." };
   const loaded = await Promise.all(quoteIds.map((quoteId) => getQuoteDetail(quoteId)));
   const failedLoad = loaded.find((detail) => detail.error || !detail.data);
   if (failedLoad) return { status: "error", message: failedLoad.error ?? "One or more selected quotes could not be loaded." };
@@ -89,14 +92,15 @@ export async function sendMultiQuoteEmail(
     relatedOrganizationId: validation.organizationId,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
-    idempotencyKey: normalizeDraftText(String(formData.get("email_attempt_id") ?? "")) || undefined,
+    idempotencyKey: requestKey,
   });
 
   if (!result.ok) {
-    await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
-    return { status: "error", message: result.message };
+    if (result.outcome !== "unknown" && !result.retryable) await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
+    return sendFailure(result);
   }
 
+  try {
   const sentAt = new Date().toISOString();
   const { data: updatedQuotes, error: statusError } = await auth.supabase
     .from("quotes")
@@ -106,8 +110,8 @@ export async function sendMultiQuoteEmail(
 
   if (statusError || (updatedQuotes?.length ?? 0) !== quoteIds.length) {
     return {
-      status: "error",
-      message: `Proposal email sent, but not every quote status could be updated. Contact an administrator before sending again${statusError ? `: ${safeStaffMessage(statusError.message)}` : "."}`,
+      status: "warning", deliveryState: "accepted",
+      message: `Proposal email accepted, but not every quote status could be updated. Contact an administrator before sending again${statusError ? `: ${safeStaffMessage(statusError.message)}` : "."}`,
     };
   }
 
@@ -128,7 +132,8 @@ export async function sendMultiQuoteEmail(
       subjectType: "quote",
     });
     if (quote.recurring_occurrence_id) {
-      await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", quote.recurring_occurrence_id);
+      const recurring = await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", quote.recurring_occurrence_id);
+      if (recurring.error) throw Error("Recurring follow-up unavailable");
       await recordActivity(auth.supabase, {
         actorUserId: auth.userId,
         eventType: "renewal_quote_sent",
@@ -140,18 +145,19 @@ export async function sendMultiQuoteEmail(
   }));
 
   const communicationSupabase = getServiceRoleClient();
-  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+  if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
   quoteIds.forEach((quoteId) => revalidatePath(`/admin/quotes/${quoteId}`));
   if (validation.customerId) revalidatePath(`/admin/customers/${validation.customerId}`);
   if (validation.organizationId) revalidatePath(`/admin/organizations/${validation.organizationId}`);
   revalidatePath("/admin/communications");
 
   return {
-    status: "success",
+    status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
     message: result.historyRecorded
       ? `${quotes.length} proposals were accepted by the email provider, recorded in delivery history, and marked sent.`
       : "The proposal email was accepted, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
   };
+  } catch { return acceptedNeedsReview("Some proposal follow-up could not be completed."); }
 }
 
 export async function sendQuoteEmail(
@@ -170,6 +176,8 @@ export async function sendQuoteEmail(
     return auth.error;
   }
 
+  const requestKey = emailRequestKey(formData, auth.userId, `quote/${quoteId}`);
+  if (!requestKey) return { status: "error", message: "Reload the email composer before sending." };
   const detail = await getQuoteDetail(quoteId);
 
   if (detail.error || !detail.data) {
@@ -223,11 +231,13 @@ export async function sendQuoteEmail(
     relatedOrganizationId: detail.data.organization_id,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
+    idempotencyKey: requestKey,
   });
 
   if (result.ok) {
+    try {
     const sentAt = new Date().toISOString();
-    const { error: statusError } = await auth.supabase
+    const { data: savedQuote, error: statusError } = await auth.supabase
       .from("quotes")
       .update({
         status: "sent",
@@ -235,10 +245,10 @@ export async function sendQuoteEmail(
         sent_method: "crm_email",
         sent_by_user_id: auth.userId,
       })
-      .eq("id", detail.data.id);
+      .eq("id", detail.data.id).select("id").maybeSingle();
 
-    if (statusError) {
-      return { status: "error", message: `Quote email sent, but status update failed: ${statusError.message}` };
+    if (statusError || !savedQuote) {
+      return acceptedNeedsReview("The quote status could not be saved.");
     }
     await recordActivity(auth.supabase, {
       actorUserId: auth.userId,
@@ -254,12 +264,14 @@ export async function sendQuoteEmail(
       subjectType: "quote",
     });
     if (detail.data.recurring_occurrence_id) {
-      await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", detail.data.recurring_occurrence_id);
+      const recurring = await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", detail.data.recurring_occurrence_id);
+      if (recurring.error) return acceptedNeedsReview("The renewal follow-up could not be saved.");
       await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "renewal_quote_sent", subjectId: detail.data.recurring_occurrence_id, subjectType: "recurring_occurrence", metadata: { quote_id: detail.data.id } });
     }
     const communicationSupabase = getServiceRoleClient();
-    if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
-  } else if (portalLink.created && portalLink.tokenId) {
+    if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
+    } catch { return acceptedNeedsReview("CRM follow-up could not be completed."); }
+  } else if (result.outcome !== "unknown" && !result.retryable && portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("quote_portal_tokens")
       .update({ revoked_at: new Date().toISOString() })
@@ -271,14 +283,14 @@ export async function sendQuoteEmail(
   if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
     ? {
-        status: "success",
+        status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
         message: result.historyRecorded
           ? portalLink.created
             ? "Quote email accepted by the provider, recorded in delivery history, and marked sent."
             : "Quote email accepted by the provider and recorded in delivery history using the existing customer link."
           : "Quote email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
       }
-    : { status: "error", message: result.message };
+    : sendFailure(result);
 }
 
 export async function sendInvoiceEmail(
@@ -297,6 +309,8 @@ export async function sendInvoiceEmail(
     return auth.error;
   }
 
+  const requestKey = emailRequestKey(formData, auth.userId, `invoice/${invoiceId}`);
+  if (!requestKey) return { status: "error", message: "Reload the email composer before sending." };
   const detail = await getInvoiceDetail(invoiceId);
 
   if (detail.error || !detail.data) {
@@ -350,18 +364,20 @@ export async function sendInvoiceEmail(
     relatedOrganizationId: detail.data.organization_id,
     sentByUserId: auth.userId,
     supabase: auth.supabase,
+    idempotencyKey: requestKey,
   });
 
   if (result.ok) {
+    try {
     const { error: statusError } = await auth.supabase.rpc("record_invoice_delivery", {
       p_invoice_id: detail.data.id, p_manual: false,
     });
     if (statusError) {
-      return { status: "error", message: `Invoice email sent, but delivery state could not be updated: ${statusError.message}` };
+      return acceptedNeedsReview("The invoice delivery state could not be saved.");
     }
     const reconciliation = await reconcileInvoiceBalance(auth.supabase, detail.data.id);
     if (!reconciliation.ok) {
-      return { status: "error", message: `Invoice email sent, but payment state could not be reconciled: ${reconciliation.message}` };
+      return acceptedNeedsReview("The invoice payment state could not be reconciled.");
     }
     await recordActivity(auth.supabase, {
       actorUserId: auth.userId,
@@ -377,8 +393,9 @@ export async function sendInvoiceEmail(
       subjectType: "invoice",
     });
     const communicationSupabase = getServiceRoleClient();
-    if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
-  } else if (portalLink.created && portalLink.tokenId) {
+    if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
+    } catch { return acceptedNeedsReview("CRM follow-up could not be completed."); }
+  } else if (result.outcome !== "unknown" && !result.retryable && portalLink.created && portalLink.tokenId) {
     await auth.supabase
       .from("invoice_portal_tokens")
       .update({ revoked_at: new Date().toISOString() })
@@ -390,14 +407,14 @@ export async function sendInvoiceEmail(
   if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
   return result.ok
     ? {
-        status: "success",
+        status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
         message: result.historyRecorded
           ? portalLink.created
             ? "Invoice email accepted by the provider, recorded in delivery history, and marked sent."
             : "Invoice email accepted by the provider and recorded in delivery history using the existing customer link."
           : "Invoice email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
       }
-    : { status: "error", message: result.message };
+    : sendFailure(result);
 }
 
 async function requireInternalEmailSender() {
@@ -665,4 +682,15 @@ function draftFieldLabel(field: keyof CustomerDocumentEmailEdits) {
     customerNotes: "Customer-facing notes",
     closing: "Closing",
   }[field];
+}
+
+function emailRequestKey(form: FormData, userId: string, source: string) {
+  const value = String(form.get("email_attempt_id") ?? "").trim();
+  return /^[A-Za-z0-9_-]{16,90}$/.test(value) ? `manual-email/${userId}/${source}/${value}` : null;
+}
+function acceptedNeedsReview(detail: string): TransactionalEmailActionState {
+  return { status: "warning", deliveryState: "accepted", message: `Email accepted by the provider. ${detail} Review CRM and provider history; do not send it again.` };
+}
+function sendFailure(result: { outcome: string; message: string }): TransactionalEmailActionState {
+  return { status: result.outcome === "unknown" ? "warning" : "error", deliveryState: result.outcome === "unknown" ? "unknown" : "not_sent", message: result.message };
 }

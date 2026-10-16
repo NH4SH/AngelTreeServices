@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Mail, Monitor, RefreshCw, RotateCcw, Send, Smartphone } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import {
   regenerateLegacyQuotePortalLinksForEmail,
@@ -38,7 +38,12 @@ export function MultiQuoteEmailComposer({
   quoteIds: string[];
   recipient: string;
 }) {
-  const [state, formAction, pending] = useReliableActionState(sendMultiQuoteEmail, initialState);
+  const startedRef = useRef(0);
+  const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
+    if (startedRef.current && Date.now() - startedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
+    startedRef.current ||= Date.now();
+    return sendMultiQuoteEmail(previous, form);
+  }, initialState);
   const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(
     regenerateLegacyQuotePortalLinksForEmail,
     initialRecoveryState,
@@ -50,10 +55,11 @@ export function MultiQuoteEmailComposer({
   const [viewportMode, setViewportMode] = useState<"desktop" | "mobile">("desktop");
   const previewDraft = applyMultiQuotePortalUrls(draft, replacementUrls);
   const preview = applyMultiQuoteEmailEdits(previewDraft, edits);
-  const sent = state.status === "success";
+  const sent = state.status === "success" || state.deliveryState === "accepted";
+  const needsReview = state.deliveryState === "unknown";
   const unresolvedLegacyQuoteIds = legacyQuoteIds.filter((quoteId) => !replacementUrls[quoteId]);
   const replacementRequired = unresolvedLegacyQuoteIds.length > 0;
-  const sendBlocked = pending || sent || recoveryPending || replacementRequired;
+  const sendBlocked = pending || sent || needsReview || recoveryPending || replacementRequired;
 
   useEffect(() => {
     if (Object.keys(recoveryState.portalUrls).length === 0) return;
@@ -131,7 +137,7 @@ export function MultiQuoteEmailComposer({
           <ComposerField label="Greeting" maxLength={160} name="email_greeting" onChange={(value) => update("greeting", value)} value={edits.greeting} />
           <ComposerField label="Introduction" maxLength={1_200} multiline name="email_intro" onChange={(value) => update("intro", value)} value={edits.intro} />
           <ComposerField label="Closing" maxLength={1_200} multiline name="email_closing" onChange={(value) => update("closing", value)} value={edits.closing} />
-          <button className="secondary-action" disabled={pending || sent || recoveryPending} onClick={() => setEdits(initialEdits)} type="button">
+          <button className="secondary-action" disabled={pending || sent || needsReview || recoveryPending} onClick={() => setEdits(initialEdits)} type="button">
             <RotateCcw aria-hidden="true" size={16} />Reset message
           </button>
           <p className="form-helper">Quote totals, recipient, customer, and secure destinations are always reloaded from the CRM when you send.</p>

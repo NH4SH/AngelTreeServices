@@ -1,16 +1,52 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Current decision — October 16, 2026
+## Current approved batch — October 16, 2026
 
-The owner approved finalizing the existing website patch, conditional email validation,
-this checklist update, and local testing. The subsequent safe-release request also
-authorized isolated CRM contract testing, completed locally as recorded below.
-**Pushes, pull requests that trigger previews,
-merges, deploys, analytics activation, and production submissions remain unauthorized.**
+The owner approved implementing service-specific estimate context, preserving
+customer-entered details, matching the Prefer to call action to Send My Request,
+and running local tests. **No push, preview, or deployment is authorized for this
+batch. Analytics collection stays disabled; CRM code and settings stay unchanged.**
 
-This batch changes contact reliability and prepares shared measurement with collection
-disabled. It does not change CRM code, service categories, page URLs, search metadata,
-important service content, the visual identity, or hosting configuration.
+Production currently serves commit `84f1641`, public Netlify deploy
+`6ad1da454203843b67b986c2`, released earlier on October 16. The CRM remains on
+`2938577` and deploy `6ab9b03884d68c00086ce380`. Historical checks below retain
+their original baseline; this section supersedes their old release-status claims.
+
+The new service context is an allowlisted `estimate_context` value on the five
+specific service-page estimate links. The form shows a changeable, optional
+specific-service selector only after a compatible link. Broad service/customer
+categories remain unchanged. Incompatible category/type changes clear stale
+context; reset clears it; returning to the old category does not restore it.
+
+Context is added to a copy of the existing `message` field when sending. The
+customer's textarea is never rewritten, prefixed, truncated, or replaced. Required
+project details must still be entered. The 3,000-character message limit includes
+the context prefix and multipart CRLF line endings; an over-budget request is blocked with a focused inline error
+and preserves the full draft. Clear the context or shorten details to recover.
+There is no new named form/API field, CRM migration, tracking event, or storage.
+
+Both contact actions share Poppins, the existing primary button's weight, size,
+line height and tracking, and use the full form-row width on desktop and mobile.
+The phone destination is unchanged.
+
+## Service-context regression review — October 16, 2026
+
+Review found and corrected a website-side message-length boundary issue. Multipart
+encoding turns every line ending into CRLF; the original raw-text count could pass
+3,000 characters while the CRM received more and retained only the first 3,000.
+Both inline validation and the final transport guard now count the encoded line
+endings without rewriting the draft. The regression cases use a native multipart
+encoder, and browser cases send synthetic payloads to a loopback-only multipart
+parser. Exact-boundary, one-character overflow, multiline, clearing-context and
+recovery behavior are checked. No CRM file or setting changed.
+
+The final review evidence and refreshed patch are in the maintained handoff and
+this chat's outputs/. Release is still withheld. Before a release, recheck main,
+project deploy/settings state, the reviewed patch and public artifact, and isolate
+the public deploy so the shared repository does not rebuild the CRM. After a
+separately approved release, perform non-submitting production smoke checks.
+Real production lead persistence and notification delivery remain unexercised;
+physical-device and spoken screen-reader checks remain documented limits.
 
 ## Source and artifact ownership
 

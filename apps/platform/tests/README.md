@@ -184,3 +184,46 @@ notification fixtures are marked `skipped`. Existing signed URLs retain their
 original expiry. This is representative HTTP integration, not an iOS-device or
 full interactive-browser suite. See the separately delivered
 `PR02_VERIFICATION_REPORT.md` for actual results and limitations.
+
+## PR03 guarded invoice void and checkout review
+
+The normal `npm run test:unit` gate discovers the new action/provider/embedded SQL
+regressions. Existing dependency pins and test runner are unchanged. No provider
+keys are needed. `checkout-void.sql-fixture.mjs` is a minimal PostgreSQL fixture;
+the real Auth/RLS/concurrency checks are deliberately separate.
+
+After adding `20261016002812_guarded_invoice_void.sql` to the disposable stack's
+68-migration PR02/F08 baseline, run from `apps/platform`:
+
+```sh
+PR03_DISPOSABLE_STACK=1 \
+PR03_LOCAL_STATUS_FILE="$PR03_STATUS_FILE" \
+PR03_DOCKER_BIN="$PR03_DOCKER_BIN" \
+PR03_RESULTS_FILE="$PR03_RESULTS_FILE" \
+node --experimental-strip-types --test tests/pr03-supabase.integration.test.mjs
+```
+
+Set `DOCKER_HOST` to the dedicated local Unix socket. This suite refuses any
+Supabase API origin other than `http://127.0.0.1:54321` and uses the explicitly
+named `supabase_db_ats_pr02_disposable` container. Status must be outside Git,
+mode 0600; never print or commit it. It contains only this local stack's keys.
+Do not use a hosted project or project `.env` file. No Stripe/Resend credentials
+are read; a controlled provider double is used for the full recovery command.
+
+The suite creates synthetic confirmed Auth accounts, roles, invoices, checkout
+attempts, payments and unsendable communication fixtures. It tests role denial,
+old-JWT offboarding, direct Data API bypass, all reservation attestations, audit
+rollback, pending-vs-processing communication cancellation, late money, stale
+leases, safe restore/manual corrections, paid/void line/header guards, verified
+recovery plus audit, and independent-session parent/child contention. It does
+not disable RLS or application triggers. A temporary audit constraint targets
+one synthetic invoice and is removed in `finally`. Fixture history remains
+local for inspection. Never run a customer-email/automation worker against these
+fixtures; pending communication fixtures are cancelled/skipped before completion.
+
+Preserve existing local review fixtures when iterating. Fresh migration replay
+can use a separate database with local Auth/Storage bootstrap definitions, then
+all original 68 migrations plus this additive migration. Do not reset the active
+local review database merely to rerun this suite. A later deployment must pair
+all new guards with the updated financial callers; see
+`src/lib/payments/INVOICE_VOID_SAFETY.md` for bounds and remaining roadmap work.

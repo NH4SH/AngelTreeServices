@@ -11,6 +11,7 @@ import {
   markInvoiceSentManually,
   markQuoteSentManually,
   restoreVoidedInvoice,
+  reviewInvoicePaymentCheckout,
   updateInvoiceStatus,
   updateJobStatus,
   updateQuoteStatus,
@@ -232,6 +233,43 @@ function VoidInvoiceAction({ invoiceId }: { invoiceId: string }) {
   );
 }
 
+export type InvoiceCheckoutReviewRow = {
+  id: string;
+  payment_channel: string;
+  status: string;
+  provider_reference: string | null;
+};
+
+export function InvoiceCheckoutReview({ invoiceId, attempts }: { invoiceId: string; attempts: InvoiceCheckoutReviewRow[] }) {
+  const [state, formAction, pending] = useReliableActionState(reviewInvoicePaymentCheckout, initialState);
+  if (!attempts.length) return null;
+  return (
+    <details className="workflow-override">
+      <summary>Payment checkout needs review?</summary>
+      <p>Verify and close an unpaid checkout before retrying an invoice action. Payments already submitted or recorded will stay protected.</p>
+      <WorkflowActionPanel message={state.message} status={state.status}>
+        <form action={formAction} className="invoice-checkout-review-form" onSubmit={(event) => {
+          if (!window.confirm("Verify this payment attempt and close it only if it is unpaid? The invoice and payment history will be retained. No email will be sent.")) event.preventDefault();
+        }}>
+          <input type="hidden" name="invoice_id" value={invoiceId} />
+          <label className="review-field">Payment attempt
+            <select name="reservation_id" required disabled={pending}>
+              {attempts.map((attempt) => <option key={attempt.id} value={attempt.id}>
+                {attempt.payment_channel.toUpperCase()} · {attempt.status.replaceAll("_", " ")} · {attempt.id.slice(0, 8)}
+              </option>)}
+            </select>
+          </label>
+          <label className="review-field">Missing Stripe reference (optional)
+            <input name="provider_reference" disabled={pending} autoComplete="off" maxLength={250} placeholder="cs_… or pi_…" aria-describedby="checkout-review-help" />
+          </label>
+          <p id="checkout-review-help">Leave this blank when the reference is already saved. For an interrupted payment, copy its reference from Stripe. It must match this exact payment attempt; older attempts without a matching reference need manual investigation.</p>
+          <button className="secondary-action" disabled={pending} type="submit">{pending ? "Verifying payment…" : "Verify unpaid checkout"}</button>
+        </form>
+      </WorkflowActionPanel>
+    </details>
+  );
+}
+
 function RestoreVoidedInvoiceAction({ invoiceId }: { invoiceId: string }) {
   const [state, formAction, pending] = useReliableActionState(restoreVoidedInvoice, initialState);
 
@@ -377,12 +415,14 @@ function InvoiceStatusButton({
 }) {
   const Icon = XCircle;
   return (
-    <form action={formAction} className="inline-action-form">
+    <form action={formAction} className="inline-action-form" onSubmit={(event) => {
+      if (!window.confirm("Void this invoice? Unpaid checkouts will be closed and pending reminders cancelled. History will be kept. Payments already submitted or recorded will block voiding.")) event.preventDefault();
+    }}>
       <input name="invoice_id" type="hidden" value={invoiceId} />
       <input name="next_status" type="hidden" value={status} />
       <button disabled={disabled} type="submit">
         <Icon aria-hidden="true" size={18} />
-        Mark {status}
+        {disabled ? "Checking payments…" : "Void invoice"}
       </button>
     </form>
   );

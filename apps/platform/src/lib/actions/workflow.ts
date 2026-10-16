@@ -6,7 +6,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
-import { cancelOutstandingInvoiceCheckouts } from "@/lib/stripe/invoice-checkout";
+import { reviewInvoiceCheckout, voidInvoiceSafely } from "@/lib/payments/invoice-void";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
@@ -274,40 +274,52 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
     return { status: "error", message: "That invoice status action is not allowed here." };
   }
 
-  const paymentSupabase = getServiceRoleClient();
-  if (!paymentSupabase) {
-    return { status: "error", message: "Could not confirm whether this invoice has an active customer checkout." };
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can void invoices." };
   }
-
-  const stripeConfig = getStripeServerConfig();
-  const cancellation = await cancelOutstandingInvoiceCheckouts({
-    invoiceId,
-    stripe: stripeConfig.configured ? stripeConfig.stripe : null,
-    supabase: paymentSupabase,
-  });
-  if (!cancellation.ok) {
-    return { status: "error", message: safeStaffMessage(cancellation.message) };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoiceId)) {
+    return { status: "error", message: "Invoice details are missing. Reload and try again." };
   }
+  const result = await voidInvoiceSafely({ invoiceId, staffSupabase: supabase,
+    getPaymentContext: invoicePaymentContext, correlationId: crypto.randomUUID() });
+  if (result.ok) refreshInvoice(invoiceId);
+  return { status: result.ok ? "success" : "error", message: result.message };
+}
 
-  const { error } = await supabase.from("invoices").update({ status: nextStatus }).eq("id", invoiceId);
-
-  if (error) {
-    return { status: "error", message: safeStaffMessage(error.message) };
+export async function reviewInvoicePaymentCheckout(_previousState: WorkflowActionState, formData: FormData) {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before reviewing payments." };
+  const roles = await getUserRoles(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can review payment checkouts." };
   }
+  const invoiceId = getString(formData, "invoice_id");
+  const reservationId = getString(formData, "reservation_id");
+  const providerReference = getString(formData, "provider_reference");
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(invoiceId) || !uuid.test(reservationId) || (providerReference && !/^(?:cs_(?:test_|live_)?|pi_)[A-Za-z0-9]{1,240}$/.test(providerReference))) {
+    return { status: "error", message: "Choose a payment attempt and, if needed, a valid Stripe reference." };
+  }
+  const result = await reviewInvoiceCheckout({ invoiceId, reservationId, providerReference,
+    staffSupabase: supabase, getPaymentContext: invoicePaymentContext, correlationId: crypto.randomUUID() });
+  refreshInvoice(invoiceId);
+  return { status: result.ok ? "success" : "error", message: result.message };
+}
 
-  await cancelPendingCommunications(supabase, { invoiceId }, "Invoice was voided.");
+function invoicePaymentContext() {
+  const supabase = getServiceRoleClient();
+  if (!supabase) return null;
+  const config = getStripeServerConfig();
+  return { supabase, stripe: config.configured ? config.stripe : null, livemode: config.configured ? config.livemode : false };
+}
 
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "invoice_voided",
-    subjectId: invoiceId,
-    subjectType: "invoice",
-  });
-
+function refreshInvoice(invoiceId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  return { status: "success", message: `Invoice marked ${nextStatus}.` };
 }
 
 export async function restoreVoidedInvoice(

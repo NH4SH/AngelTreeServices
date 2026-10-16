@@ -227,10 +227,10 @@ async function markCheckoutFailed(session: Stripe.Checkout.Session) {
   const supabase = requireServiceRoleClient();
   const checkout = await getCheckout(session.id);
   const failedAt = new Date().toISOString();
-  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
-    .eq("stripe_checkout_session_id", session.id).in("status", ["creating", "open", "processing"]);
-  await supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
-    .eq("provider_checkout_session_id", session.id).eq("status", "pending");
+  await requirePaymentWrite(supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
+    .eq("stripe_checkout_session_id", session.id).in("status", ["creating", "open", "processing"]));
+  await requirePaymentWrite(supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
+    .eq("provider_checkout_session_id", session.id).eq("status", "pending"));
   if (checkout) {
     await emitCustomerActivity({
       category: "payments",
@@ -253,16 +253,16 @@ async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   const supabase = requireServiceRoleClient();
   const failedAt = new Date().toISOString();
   if (paymentIntent.metadata.payment_channel !== "card") {
-    await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
-      .eq("stripe_payment_intent_id", paymentIntent.id).in("status", ["creating", "open", "processing"]);
-    await supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
-      .eq("provider_payment_id", paymentIntent.id).eq("status", "pending");
+    await requirePaymentWrite(supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
+      .eq("stripe_payment_intent_id", paymentIntent.id).in("status", ["creating", "open", "processing"]));
+    await requirePaymentWrite(supabase.from("payments").update({ failed_at: failedAt, status: "failed" })
+      .eq("provider_payment_id", paymentIntent.id).eq("status", "pending"));
     return;
   }
   const reservation = await getCardCheckoutForPaymentIntent(paymentIntent);
   if (!reservation) return;
-  await supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
-    .eq("id", reservation.id).in("status", ["creating", "open", "processing"]);
+  await requirePaymentWrite(supabase.from("invoice_checkout_sessions").update({ failed_at: failedAt, processing_expires_at: null, status: "failed" })
+    .eq("id", reservation.id).in("status", ["creating", "open", "processing"]));
   await upsertFailedPaymentIntentPayment(reservation, paymentIntent, failedAt);
   await emitCustomerActivity({
     category: "payments",
@@ -282,19 +282,19 @@ async function markPaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
 async function markPaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent) {
   if (paymentIntent.metadata.payment_channel !== "card") {
-    await requireServiceRoleClient().from("invoice_checkout_sessions").update({
+    await requirePaymentWrite(requireServiceRoleClient().from("invoice_checkout_sessions").update({
       authorized_at: new Date().toISOString(),
       status: "processing",
-    }).eq("stripe_payment_intent_id", paymentIntent.id).in("status", ["creating", "open"]);
+    }).eq("stripe_payment_intent_id", paymentIntent.id).in("status", ["creating", "open"]));
     return;
   }
   const reservation = await getCardCheckoutForPaymentIntent(paymentIntent);
   if (!reservation) return;
-  await requireServiceRoleClient().from("invoice_checkout_sessions").update({
+  await requirePaymentWrite(requireServiceRoleClient().from("invoice_checkout_sessions").update({
     authorized_at: new Date().toISOString(),
     status: "processing",
     stripe_payment_intent_id: paymentIntent.id,
-  }).eq("id", reservation.id).in("status", ["creating", "open"]);
+  }).eq("id", reservation.id).in("status", ["creating", "open"]));
 }
 
 async function reconcileSuccessfulPaymentIntent(stripe: Stripe, eventPaymentIntent: Stripe.PaymentIntent) {
@@ -576,4 +576,9 @@ function getStripeObject<T>(value: string | T | null) {
 
 function getStripeId(value: string | { id: string } | null | undefined) {
   return typeof value === "string" ? value : value?.id ?? null;
+}
+
+async function requirePaymentWrite(result: PromiseLike<{ error: { message: string } | null }>) {
+  const { error } = await result;
+  if (error) throw new Error(error.message);
 }

@@ -15,7 +15,7 @@ import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { ManualPaymentForm } from "@/components/manual-payment-form";
 import { ManualPaymentCorrectionForm, ManualPaymentRestoreForm } from "@/components/manual-payment-correction-form";
 import { SendInvoiceEmailForm } from "@/components/send-email-action-form";
-import { InvoiceStatusActions, ManualInvoiceSentAction } from "@/components/workflow-actions";
+import { InvoiceCheckoutReview, InvoiceStatusActions, ManualInvoiceSentAction, type InvoiceCheckoutReviewRow } from "@/components/workflow-actions";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { SetupRequired } from "@/components/SetupRequired";
@@ -57,12 +57,13 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
 
   const detail = await getInvoiceDetail(invoiceId);
   const canManageDelivery = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview] = await Promise.all([
+  const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview, checkoutReview] = await Promise.all([
     detail.data && canManageDelivery ? getInvoicePortalTokens(invoiceId) : { data: [], error: null },
     detail.data ? getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null },
     detail.data ? getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null },
     detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
     detail.data && canManageDelivery ? getRecordLifecyclePreview("invoice", invoiceId) : null,
+    detail.data && canManageDelivery ? context.supabase.rpc("get_invoice_checkout_review", { p_invoice_id: invoiceId }) : { data: [], error: null },
   ]);
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
@@ -244,7 +245,11 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   {canManageDelivery ? (
                     <ManualInvoiceSentAction invoiceId={detail.data.id} sentAt={detail.data.sent_at} status={detail.data.status} />
                   ) : null}
-                  <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />
+                  {canManageDelivery ? <>
+                    <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />
+                    {checkoutReview.error ? <p className="inline-empty">Payment checkout review is unavailable. Reload or ask an administrator to verify setup.</p>
+                      : <InvoiceCheckoutReview invoiceId={detail.data.id} attempts={(checkoutReview.data ?? []) as InvoiceCheckoutReviewRow[]} />}
+                  </> : null}
                 </section>
 
                 <section className="commerce-side-panel">

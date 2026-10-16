@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
 
 type StripeServerConfig =
-  | { configured: true; appBaseUrl: string; stripe: Stripe }
+  | { configured: true; appBaseUrl: string; stripe: Stripe; livemode: boolean }
   | { configured: false; appBaseUrl: null; stripe: null; error: string };
 
 let stripeClient: Stripe | null = null;
@@ -26,7 +26,7 @@ export function getStripeServerConfig(): StripeServerConfig {
     stripeClient = new Stripe(secretKey);
   }
 
-  return { configured: true, appBaseUrl, stripe: stripeClient };
+  return { configured: true, appBaseUrl, stripe: stripeClient, livemode: /^(sk|rk)_live_/.test(secretKey) };
 }
 
 export function getStripeWebhookSecret() {

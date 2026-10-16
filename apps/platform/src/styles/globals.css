@@ -18950,6 +18950,25 @@ body:has(.appointment-overlay) {
   border-bottom: 0;
 }
 
+.invoice-checkout-review-form {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.invoice-checkout-review-form :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  color: var(--color-charcoal);
+  font: inherit;
+}
+
 .manual-payment-correction-form .secondary-action {
   width: fit-content;
   min-height: 36px;

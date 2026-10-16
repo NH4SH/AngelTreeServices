@@ -8,7 +8,7 @@ import { hashPortalToken } from "@/lib/portal/tokens";
 import { releaseStaleCardReservations } from "@/lib/stripe/card-payment";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
-export async function getPortalPaymentContext(rawToken: string, stripe: Stripe) {
+export async function getPortalPaymentContext(rawToken: string, stripe: Stripe, livemode: boolean) {
   const lookup = await getInvoiceByPortalToken(rawToken);
   if (lookup.status !== "ready" || !lookup.invoice) {
     return failure("This invoice link is not available.", 404);
@@ -71,7 +71,7 @@ export async function getPortalPaymentContext(rawToken: string, stripe: Stripe) 
     return failure("This invoice amount cannot be paid online. Please contact Angel Tree Services.", 409);
   }
 
-  const cleanup = await releaseStaleCardReservations({ invoiceId: invoice.id, stripe, supabase });
+  const cleanup = await releaseStaleCardReservations({ invoiceId: invoice.id, stripe, supabase, livemode });
   if (!cleanup.ok) return failure("Online payment is not available right now. Please try again later.", 503);
 
   const { data: processingPayment, error: processingError } = await supabase

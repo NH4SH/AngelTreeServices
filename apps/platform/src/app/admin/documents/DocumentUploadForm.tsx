@@ -29,7 +29,7 @@ export function DocumentUploadForm({ canUploadSensitive, options }: {
   }, [state]);
 
   return (
-    <form action={action} className="stacked-form" ref={formRef}>
+    <form action={action} className="crm-form" ref={formRef}>
       <label>
         <span>Document title</span>
         <input maxLength={180} name="title" placeholder="Insurance certificate" required />
@@ -90,9 +90,9 @@ export function DocumentUploadForm({ canUploadSensitive, options }: {
       </label>
       <button disabled={pending} type="submit">
         <Upload aria-hidden="true" size={18} />
-        {pending ? "Uploading..." : "Upload document"}
+        {pending ? "Uploading and checking…" : "Upload document"}
       </button>
-      {state.message ? <p className={`form-message ${state.status}`}>{state.message}</p> : null}
+      {state.message ? <p aria-live="polite" className={`form-message ${state.status}`}>{state.message}</p> : null}
     </form>
   );
 }

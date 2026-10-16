@@ -1770,6 +1770,9 @@ export type CredentialType = { id: string; type_key: string; label: string; defa
 export type EmployeeCredential = { id: string; employee_id: string; credential_type_id: string; credential_number: string | null; issuing_organization: string | null; issue_date: string | null; expiration_date: string | null; status: "pending_verification" | "active" | "suspended" | "revoked" | "not_required"; verified_at: string | null; verified_by_user_id: string | null; document_id: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; credential_types?: CredentialType | null };
 export type EmployeeDocument = { id: string; employee_id: string; document_type: string; title: string; storage_path: string; mime_type: string | null; file_size_bytes: number | null; issue_date: string | null; expiration_date: string | null; access_classification: "employee_visible" | "supervisor_visible" | "admin_only" | "owner_only"; review_status: "pending" | "approved" | "rejected"; review_notes: string | null; notes: string | null; archived_at: string | null; created_at: string; updated_at: string; signed_url?: string | null };
 export type PlatformDocument = {
+  scan_status: "unscanned" | "checking" | "clean" | "quarantined" | "unavailable";
+  scan_checked_at: string | null;
+  scan_sha256: string | null;
   id: string;
   title: string;
   document_type: "contract" | "proposal" | "invoice" | "work_order" | "insurance" | "permit" | "safety" | "employee" | "equipment" | "photo" | "receipt" | "other";

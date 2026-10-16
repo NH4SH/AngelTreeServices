@@ -2239,6 +2239,9 @@ export type Database = {
                     "mime_type": string | null;
                     "organization_id": string | null;
                     "quote_id": string | null;
+                    "scan_checked_at": string | null;
+                    "scan_sha256": string | null;
+                    "scan_status": string;
                     "storage_path": string;
                     "title": string;
                     "updated_at": string;
@@ -2262,6 +2265,9 @@ export type Database = {
                     "mime_type"?: string | null;
                     "organization_id"?: string | null;
                     "quote_id"?: string | null;
+                    "scan_checked_at"?: string | null;
+                    "scan_sha256"?: string | null;
+                    "scan_status"?: string;
                     "storage_path": string;
                     "title": string;
                     "updated_at"?: string;
@@ -2284,6 +2290,9 @@ export type Database = {
                     "mime_type"?: string | null;
                     "organization_id"?: string | null;
                     "quote_id"?: string | null;
+                    "scan_checked_at"?: string | null;
+                    "scan_sha256"?: string | null;
+                    "scan_status"?: string;
                     "storage_path"?: string;
                     "title"?: string;
                     "updated_at"?: string;
@@ -15000,6 +15009,14 @@ export type Database = {
                 };
                 Returns: boolean;
             };
+            "claim_document_scan": {
+                Args: {
+                    "p_actor": string;
+                    "p_document": string;
+                    "p_expected_sha256"?: string;
+                };
+                Returns: Json;
+            };
             "claim_due_customer_communications": {
                 Args: {
                     "p_limit"?: number;
@@ -15197,6 +15214,10 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "document_scan_mode": {
+                Args: Record<PropertyKey, never>;
+                Returns: boolean;
+            };
             "ensure_scheduling_handoff": {
                 Args: {
                     "p_job_id": string;
@@ -15223,6 +15244,16 @@ export type Database = {
                     "p_request_key": string;
                 };
                 Returns: string;
+            };
+            "finish_document_scan": {
+                Args: {
+                    "p_actor": string;
+                    "p_document": string;
+                    "p_sha256": string;
+                    "p_token": string;
+                    "p_verdict": string;
+                };
+                Returns: boolean;
             };
             "finish_outbound_delivery": {
                 Args: {

@@ -1,3 +1,4 @@
+import "./documents.css";
 import Link from "next/link";
 import { Archive, Download, FileText, Files, Search } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -8,6 +9,7 @@ import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import type { PlatformDocument } from "@/lib/types/database";
 import { archivePlatformDocument } from "./actions";
+import { DocumentScanControl } from "./DocumentScanControl";
 import { DocumentUploadForm, type DocumentLinkOptions } from "./DocumentUploadForm";
 
 type DocumentsPageProps = {
@@ -46,29 +48,26 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   if (queryText) documentsQuery = documentsQuery.ilike("title", `%${queryText}%`);
   if (typeFilter) documentsQuery = documentsQuery.eq("document_type", typeFilter);
 
-  const [documentsResult, optionsResult] = await Promise.all([
+  const [documentsResult, optionsResult, scanMode] = await Promise.all([
     documentsQuery,
     getDocumentLinkOptions(context.supabase),
+    context.supabase.rpc("document_scan_mode"),
   ]);
   const documents = (documentsResult.data ?? []) as unknown as DocumentRow[];
-  const paths = documents.map((document) => document.storage_path);
-  const signedResult = paths.length
-    ? await context.supabase.storage.from("platform-documents").createSignedUrls(paths, 1800, { download: true })
-    : { data: [], error: null };
-  const signedByPath = new Map((signedResult.data ?? []).map((file) => [file.path, file.signedUrl]));
-  const error = documentsResult.error?.message ?? optionsResult.error ?? signedResult.error?.message ?? null;
+  const checksEnabled = scanMode.error !== null || scanMode.data === true;
+  const error = documentsResult.error?.message ?? optionsResult.error ?? scanMode.error?.message ?? null;
   if (error) console.error("Documents page data load failed", { error });
 
   return (
     <PlatformFrame active="documents" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content">
+      <div className="shell app-content documents-workspace">
         <section className="page-heading">
           <p className="surface-label"><Files aria-hidden="true" size={18} />Documents</p>
           <h1>Documents</h1>
           <p>Store operational files privately and link them to the record where staff will need them.</p>
         </section>
 
-        {error ? <section className="data-warning"><strong>Documents unavailable</strong><p>{error}</p></section> : null}
+        {error ? <section className="data-warning"><strong>Some document details could not be loaded</strong><p>Refresh to try again. Files without a download link remain private.</p></section> : null}
 
         <form className="schedule-filter-form" method="get">
           <label><span>Search</span><input defaultValue={queryText} name="q" placeholder="Document title" /></label>
@@ -82,7 +81,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
             {documents.length ? (
               <div className="record-list">
                 {documents.map((document) => {
-                  const signedUrl = signedByPath.get(document.storage_path);
+                  const downloadPath = !checksEnabled || document.scan_status === "clean" ? `/admin/documents/${document.id}/download` : null;
                   return (
                     <article className="record-card" key={document.id}>
                       <div className="record-card-header">
@@ -93,10 +92,12 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
                         <div><dt>Linked record</dt><dd>{linkedRecordLabel(document)}</dd></div>
                         <div><dt>Uploaded</dt><dd>{formatDate(document.created_at)}</dd></div>
                         <div><dt>Uploaded by</dt><dd>{one(document.uploaded_by)?.full_name || one(document.uploaded_by)?.email || "Staff"}</dd></div>
+                        <div><dt>File check</dt><dd>{scanLabel(document.scan_status)}</dd></div>
                         <div><dt>Expires</dt><dd>{document.expires_at ? formatDate(document.expires_at) : "No expiration"}</dd></div>
                       </dl>
                       <div className="action-row">
-                        {signedUrl ? <a className="secondary-action" href={signedUrl} rel="noreferrer" target="_blank"><Download aria-hidden="true" size={17} />Open / download</a> : <span className="field-note">Secure download unavailable.</span>}
+                        {downloadPath ? <a className="secondary-action" href={downloadPath} rel="noreferrer" target="_blank"><Download aria-hidden="true" size={17} />Open / download</a> : <span className="field-note">{document.scan_status === "quarantined" ? "Quarantined. Upload a safe replacement." : checksEnabled ? "Held until a file check passes." : "Secure download unavailable."}</span>}
+                        {checksEnabled && document.scan_status !== "clean" && document.scan_status !== "quarantined" ? <DocumentScanControl id={document.id} /> : null}
                         <form action={archivePlatformDocument}>
                           <input name="document_id" type="hidden" value={document.id} />
                           <button className="secondary-action" type="submit"><Archive aria-hidden="true" size={16} />Archive</button>
@@ -116,7 +117,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
           </section>
           <aside className="form-panel">
             <h2>Upload document</h2>
-            <p>Files are private and opened through short-lived secure links.</p>
+            <p>{checksEnabled ? "Files stay private and cannot be opened until a harmful-content check passes." : "Files stay private. Harmful-content checks are not enabled in this workspace."}</p>
             <DocumentUploadForm
               canUploadSensitive={hasAllowedRole(context.roles, platformRoleGroups.accessApproval)}
               options={optionsResult.options}
@@ -179,4 +180,8 @@ function title(value: string) {
 
 function formatDate(value: string) {
   return formatBusinessDateTime(value, { dateStyle: "medium" });
+}
+
+function scanLabel(status: string) {
+  return ({ clean: "Passed", checking: "Checking file", quarantined: "Quarantined", unavailable: "Check unavailable", unscanned: "Not checked yet" } as Record<string, string>)[status] ?? "Not checked yet";
 }

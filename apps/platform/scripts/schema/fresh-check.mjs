@@ -33,7 +33,7 @@ try {
   console.log('Replaying committed migrations in a separate temporary Supabase project.');
   cli(['start', '--exclude', 'realtime,imgproxy,studio,edge-runtime,logflare,vector,supavisor,mailpit']);
   const status = JSON.parse(cli(['status', '--output', 'json']));
-  const p = spawnSync(process.execPath, [fileURLToPath(new URL('./generate.mjs', import.meta.url)), '--check'], {
+  const p = spawnSync(process.execPath, [fileURLToPath(new URL('./generate.mjs', import.meta.url)), ...(process.argv.includes('--write') ? [] : ['--check'])], {
     cwd: join(root, 'apps/platform'), stdio: 'inherit', env: { ...process.env, SUPABASE_BIN: bin,
       SCHEMA_DIAGNOSTICS_FILE: join(dir, 'generation.private.log'), SCHEMA_DISPOSABLE: '1', SCHEMA_DATABASE_URL: status.DB_URL },
   });

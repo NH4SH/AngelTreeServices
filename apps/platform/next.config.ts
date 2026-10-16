@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     "localhost:3000",
   ],
   reactStrictMode: true,
+  // Preserve the document library's existing 25 MB file limit plus multipart overhead.
+  experimental: { serverActions: { bodySizeLimit: "26mb" } },
   async headers() {
     return [
       { source: "/(.*)", headers: platformSecurityHeaders },

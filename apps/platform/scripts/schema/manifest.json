@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "189dbdb38e633043893bd0e13b53c81ce671f8e20ab9c538743574a0a0ed95ea",
+  "typesSha256": "a98fb118c03bcd79236b17d8f156472ca6fab8464d16d3f8c61fb68f7da262e5",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -353,6 +353,10 @@
     {
       "name": "20261016223056_measured_organization_location_lookup.sql",
       "sha256": "65a25258f75489527887ef772b699b32cde7f60ee642d66fcdf5ba49595d1606"
+    },
+    {
+      "name": "20261016224352_private_document_scan_gate.sql",
+      "sha256": "01e811a46d1ed11cd3a0569c7bb5af3ebfd5f72a6154cac4ee8ac1e583a97d6f"
     }
   ]
 }

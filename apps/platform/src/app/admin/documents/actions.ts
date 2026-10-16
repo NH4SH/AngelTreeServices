@@ -1,5 +1,7 @@
 "use server";
 
+import { createHash } from "node:crypto";
+import { checkStoredDocument, getDocumentScanClient } from "@/lib/security/document-scan-service";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -62,17 +64,15 @@ export async function uploadPlatformDocument(
     return failure("Only owners and admins can upload employee-sensitive documents here.");
   }
 
+  const mode = await context.supabase.rpc("document_scan_mode");
+  if (mode.error) return failure("File checks could not be loaded. Refresh and try again.");
+  const scanner = mode.data === true ? getDocumentScanClient() : null;
+  if (mode.data === true && !scanner) return failure("File checks are unavailable. Try uploading again later.");
   const storagePath = `${context.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
-  const { error: uploadError } = await context.supabase.storage
-    .from("platform-documents")
-    .upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
-  if (uploadError) {
-    console.error("Platform document upload failed", uploadError);
-    return failure(`The file could not be uploaded: ${uploadError.message}`);
-  }
-
+  const documentId = crypto.randomUUID();
   const linkedRecord = linkType && linkId ? { [linkColumns[linkType]]: linkId } : {};
   const { error: metadataError } = await context.supabase.from("documents").insert({
+    id: documentId,
     title,
     document_type: documentType,
     storage_path: storagePath,
@@ -86,12 +86,39 @@ export async function uploadPlatformDocument(
 
   if (metadataError) {
     console.error("Platform document metadata save failed", metadataError);
-    await context.supabase.storage.from("platform-documents").remove([storagePath]);
     return failure(`The document record could not be saved: ${metadataError.message}`);
   }
 
+  const { error: uploadError } = await context.supabase.storage.from("platform-documents")
+    .upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
+  if (uploadError) {
+    // Metadata-first avoids the old inaccessible orphan-file cleanup path.
+    await context.supabase.from("documents").update({ archived_at: new Date().toISOString(), archived_by_user_id: context.user.id }).eq("id", documentId);
+    revalidatePath("/admin/documents");
+    return failure("The file could not be uploaded. Try again; no download was made available.");
+  }
+  const verdict = scanner ? await checkStoredDocument(scanner, documentId, context.user.id,
+    createHash("sha256").update(prepared.data.bytes).digest("hex")) : null;
   revalidatePath("/admin/documents");
-  return { status: "success", message: "Document uploaded securely." };
+  if (verdict === "quarantined") return { status: "success", message: "File quarantined: harmful or unreadable content was detected. It cannot be opened. Upload a safe replacement with a new title." };
+  if (verdict === "unavailable") return { status: "success", message: "File saved and held for checking. It cannot be opened yet. Use Check file to try again later." };
+  return { status: "success", message: verdict === "clean" ? "Document checked and ready to open." : "Document uploaded. Harmful-content checks are not enabled in this workspace." };
+
+}
+
+export async function retryPlatformDocumentScan(_state: DocumentActionState, formData: FormData): Promise<DocumentActionState> {
+  const context = await getStaffContext();
+  if (!context) return failure("Only authorized staff can check documents.");
+  const id = text(formData, "document_id", 80);
+  const visible = await context.supabase.from("documents").select("id").eq("id", id).is("archived_at", null).maybeSingle();
+  if (visible.error || !visible.data) return failure("Document unavailable. Refresh the list.");
+  const scanner = getDocumentScanClient();
+  if (!scanner) return failure("File checks are unavailable. Try again later.");
+  const verdict = await checkStoredDocument(scanner, id, context.user.id);
+  revalidatePath("/admin/documents");
+  if (verdict === "clean") return { status: "success", message: "File checked and ready to open." };
+  if (verdict === "quarantined") return { status: "error", message: "File quarantined. Upload a safe replacement; this file cannot be opened." };
+  return failure("The file check could not finish. The file remains held. Try again later.");
 }
 
 export async function archivePlatformDocument(formData: FormData) {

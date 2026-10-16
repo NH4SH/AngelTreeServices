@@ -150,7 +150,7 @@ export async function updateQuoteStatus(_previousState: WorkflowActionState, for
   let message = `Quote marked ${nextStatus.replace("_", " ")}.`;
 
   if (nextStatus === "approved") {
-    const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, new Date().toISOString(), user.id);
+    const result = await approveQuoteAndEnsureWorkOrder(supabase, quoteId, Number(formData.get("expected_revision")));
 
     if (!result.ok) {
       return { status: "error", message: safeStaffMessage(result.message) };

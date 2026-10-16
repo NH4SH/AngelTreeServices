@@ -257,7 +257,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                       {formatSentActivity(detail.data.sent_method, detail.data.sent_at)}
                     </p>
                   ) : null}
-                  <QuoteStatusActions quoteId={detail.data.id} status={detail.data.status} />
+                  <QuoteStatusActions expectedRevision={detail.data.edit_revision} quoteId={detail.data.id} status={detail.data.status} />
                   {canManuallyMarkSent ? (
                     <ManualQuoteSentAction quoteId={detail.data.id} status={detail.data.status} />
                   ) : null}

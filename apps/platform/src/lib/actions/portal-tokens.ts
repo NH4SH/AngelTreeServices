@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
-import { approveQuoteAndEnsureWorkOrder } from "@/lib/quotes/workflow";
+import { approveQuoteWithPortalToken } from "@/lib/quotes/workflow";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,7 @@ import {
   getActiveQuotePortalTokens,
   LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
 } from "@/lib/portal/quote-links";
+import { hashPortalToken } from "@/lib/portal/tokens";
 import { getPortalUrl } from "@/lib/portal/urls";
 import { normalizeMultiQuoteIds } from "@/lib/quotes/multi-email";
 import type { QuoteStatus } from "@/lib/types/database";
@@ -309,18 +310,18 @@ export async function approveQuoteByPortalToken(
     return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available.") };
   }
 
-  if (!canCustomerRespondToQuote(lookup.quote.status)) {
+  if (!canCustomerRespondToQuote(lookup.quote.status) && lookup.quote.status !== "approved") {
     return { ok: false, status: "error", message: "This quote is no longer open for approval." };
   }
 
-  const approvedAt = new Date().toISOString();
-  const approvalResult = await approveQuoteAndEnsureWorkOrder(supabase, lookup.quote.id, approvedAt);
+  const tokenHash = hashPortalToken(rawToken);
+  if (!tokenHash) return { ok: false, status: "error", message: "This quote link is unavailable." };
+  const approvalResult = await approveQuoteWithPortalToken(supabase, tokenHash, Number(formData.get("expected_revision")));
 
   if (!approvalResult.ok) {
     return { ok: false, status: "error", message: safeStaffMessage(approvalResult.message, "The quote could not be approved.") };
   }
 
-  await supabase.from("quote_portal_tokens").update({ used_at: approvedAt }).eq("id", lookup.tokenId);
   await emitCustomerActivity({
     category: "quotes",
     customerId: lookup.quote.customer_id,

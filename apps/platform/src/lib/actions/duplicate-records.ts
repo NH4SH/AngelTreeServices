@@ -151,46 +151,25 @@ export async function duplicateInvoice(
     typedInvoice.accounts_payable_contact_id,
   ]);
 
-  const { data: newInvoice, error: createError } = await auth.supabase
-    .from("invoices")
-    .insert({
-      job_id: typedInvoice.job_id,
-      quote_id: null,
-      customer_id: typedInvoice.customer_id,
-      organization_id: typedInvoice.organization_id,
+  const { data: newInvoice, error: createError } = await auth.supabase.rpc("create_invoice_draft", {
+    p_header: {
+      job_id: typedInvoice.job_id, quote_id: null,
+      customer_id: typedInvoice.customer_id, organization_id: typedInvoice.organization_id,
       service_location_id: typedInvoice.service_location_id,
       billing_contact_id: invoiceContacts.ids.has(typedInvoice.billing_contact_id) ? typedInvoice.billing_contact_id : null,
       accounts_payable_contact_id: invoiceContacts.ids.has(typedInvoice.accounts_payable_contact_id) ? typedInvoice.accounts_payable_contact_id : null,
       purchase_order_reference: typedInvoice.purchase_order_reference,
       payment_terms: typedInvoice.payment_terms,
-      status: "draft",
-      invoice_number: await getNextRecordNumber(
-        auth.supabase,
-        "invoices",
-        "invoice_number",
-        "INV",
-        typedInvoice.invoice_number,
-      ),
-      subtotal_cents: typedInvoice.subtotal_cents,
-      tax_cents: typedInvoice.tax_cents,
-      total_cents: typedInvoice.total_cents,
-      balance_due_cents: typedInvoice.total_cents,
-      due_at: getInvoiceDueAt(),
-      sent_at: null,
-      paid_at: null,
-    })
-    .select("id")
-    .single();
-
+      invoice_number: await getNextRecordNumber(auth.supabase, "invoices", "invoice_number", "INV", typedInvoice.invoice_number),
+      tax_cents: typedInvoice.tax_cents, due_at: getInvoiceDueAt(),
+    },
+    p_lines: [...(typedInvoice.invoice_line_items ?? [])].sort((a,b) => a.sort_order - b.sort_order).map(item => ({
+      name: item.name, description: item.description, service_category_id: item.service_category_id,
+      material_id: item.material_id, quantity: item.quantity, unit_price_cents: item.unit_price_cents, total_cents: item.total_cents,
+    })),
+  });
   if (createError || !newInvoice) {
     return { status: "error", message: createError?.message ?? "Could not duplicate invoice." };
-  }
-
-  const lineItemError = await copyInvoiceLineItems(auth.supabase, newInvoice.id, typedInvoice.invoice_line_items ?? []);
-
-  if (lineItemError) {
-    await auth.supabase.from("invoices").delete().eq("id", newInvoice.id);
-    return { status: "error", message: `Invoice copy was not saved because line items failed: ${lineItemError}` };
   }
 
   await recordActivity(auth.supabase, {
@@ -351,33 +330,6 @@ async function copyQuoteLineItems(
   }
 
   const { error } = await supabase.from("quote_line_items").insert(copiedItems);
-  return error?.message ?? null;
-}
-
-async function copyInvoiceLineItems(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  invoiceId: string,
-  items: InvoiceLineItem[],
-) {
-  const copiedItems = [...items]
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((item, index) => ({
-      invoice_id: invoiceId,
-      name: item.name,
-      description: item.description,
-      service_category_id: item.service_category_id,
-      material_id: item.material_id,
-      quantity: item.quantity,
-      unit_price_cents: item.unit_price_cents,
-      total_cents: item.total_cents,
-      sort_order: index,
-    }));
-
-  if (copiedItems.length === 0) {
-    return null;
-  }
-
-  const { error } = await supabase.from("invoice_line_items").insert(copiedItems);
   return error?.message ?? null;
 }
 

@@ -213,20 +213,23 @@ test("PR03 real local Auth, RLS, guarded void, recovery fences and PostgreSQL co
     const result = await voidInvoiceSafely(input);
     assert.equal(result.ok, true, result.message); assert.equal(await state(inv), "void"); assert.equal(cancelled, 1);
   });
-  await run("paid/void header and lines are protected; ordinary draft lines remain editable", async () => {
+  await run("paid/void header and lines are protected; ordinary draft editing uses the command", async () => {
     for (const paid of [false, true]) {
       const inv = await invoice();
       const line = check(await service.from("invoice_line_items").insert({ invoice_id: inv.id, name: "Fixture", quantity: 1, unit_price_cents: 1000, total_cents: 1000 }).select("id").single());
       if (paid) check(await owner.client.rpc("record_manual_invoice_payment", { p_invoice_id: inv.id, p_amount_cents: 1000, p_paid_at: new Date().toISOString(), p_method: "cash" }));
       else check(await finish(inv, (await begin(inv)).token));
-      denied(await owner.client.from("invoices").update({ total_cents: 2000 }).eq("id", inv.id), "23514");
-      denied(await owner.client.from("invoice_line_items").update({ total_cents: 2000 }).eq("id", line.id), "23514");
-      denied(await owner.client.from("invoice_line_items").delete().eq("id", line.id), "23514");
+      denied(await owner.client.from("invoices").update({ total_cents: 2000 }).eq("id", inv.id), "42501");
+      denied(await owner.client.from("invoice_line_items").update({ total_cents: 2000 }).eq("id", line.id), "42501");
+      denied(await owner.client.from("invoice_line_items").delete().eq("id", line.id), "42501");
     }
     const inv = await invoice({ status: "draft", sent_at: null });
-    const line = check(await owner.client.from("invoice_line_items").insert({ invoice_id: inv.id, name: "Draft", quantity: 1, unit_price_cents: 1000, total_cents: 1000 }).select("id").single());
-    check(await owner.client.from("invoice_line_items").update({ name: "Still editable" }).eq("id", line.id));
-    check(await owner.client.from("invoice_line_items").delete().eq("id", line.id));
+    const saved = check(await owner.client.rpc("save_invoice_details", {
+      p_invoice_id: inv.id, p_expected_updated_at: inv.updated_at, p_due_at: null,
+      p_lines: [{ name: "Still editable", quantity: 1, unit_price_cents: 1000, total_cents: 1000 }],
+    }));
+    assert.equal(saved.line_ids.length, 1);
+
   });
   await run("manual correction and restore still work with the new row locks", async () => {
     const inv = await invoice();

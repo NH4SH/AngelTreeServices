@@ -353,17 +353,11 @@ export async function sendInvoiceEmail(
   });
 
   if (result.ok) {
-    const sentAt = new Date().toISOString();
-    const { data: deliveredInvoice, error: statusError } = await auth.supabase
-      .from("invoices")
-      .update({ sent_at: sentAt })
-      .eq("id", detail.data.id)
-      .neq("status", "void")
-      .select("id")
-      .maybeSingle();
-
-    if (statusError || !deliveredInvoice) {
-      return { status: "error", message: `Invoice email sent, but delivery state could not be updated: ${statusError?.message ?? "Invoice is no longer eligible."}` };
+    const { error: statusError } = await auth.supabase.rpc("record_invoice_delivery", {
+      p_invoice_id: detail.data.id, p_manual: false,
+    });
+    if (statusError) {
+      return { status: "error", message: `Invoice email sent, but delivery state could not be updated: ${statusError.message}` };
     }
     const reconciliation = await reconcileInvoiceBalance(auth.supabase, detail.data.id);
     if (!reconciliation.ok) {

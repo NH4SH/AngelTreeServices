@@ -192,8 +192,9 @@ regressions. Existing dependency pins and test runner are unchanged. No provider
 keys are needed. `checkout-void.sql-fixture.mjs` is a minimal PostgreSQL fixture;
 the real Auth/RLS/concurrency checks are deliberately separate.
 
-After adding `20261016002812_guarded_invoice_void.sql` to the disposable stack's
-68-migration PR02/F08 baseline, run from `apps/platform`:
+For the current checkout, install the guarded-void, invoice-command and separate
+invoice-enforcement migrations after the original 68-migration PR02/F08 baseline
+(71 total). Run from `apps/platform`:
 
 ```sh
 PR03_DISPOSABLE_STACK=1 \
@@ -227,3 +228,39 @@ all original 68 migrations plus this additive migration. Do not reset the active
 local review database merely to rerun this suite. A later deployment must pair
 all new guards with the updated financial callers; see
 `src/lib/payments/INVOICE_VOID_SAFETY.md` for bounds and remaining roadmap work.
+
+## PR03 invoice financial commands
+
+The regular unit gate includes `invoice-boundary.test.mjs`: embedded PostgreSQL
+executes both actual command/enforcement migrations against a minimal fixture.
+It verifies staged privileges, denied direct financial writes, computed draft
+state, rollback after line/audit failure, line ownership, stale edits, principal
+accounting, checkout/void fences and arithmetic. Fixture identity predicates are
+test doubles; real authorization is covered below. No provider keys are needed.
+
+After installing all 71 migrations in the existing disposable stack, use the
+same local-only environment described above:
+
+```sh
+PR03_DISPOSABLE_STACK=1 \
+PR03_LOCAL_STATUS_FILE="$PR03_STATUS_FILE" \
+PR03_DOCKER_BIN="$PR03_DOCKER_BIN" \
+PR03_BOUNDARY_RESULTS_FILE="$PR03_BOUNDARY_RESULTS_FILE" \
+node --experimental-strip-types --test tests/invoice-boundary.integration.test.mjs
+```
+
+`DOCKER_HOST` must reference the dedicated local Unix socket. This suite refuses
+non-loopback Supabase and uses only `supabase_db_ats_pr02_disposable`. It creates
+synthetic Auth accounts and keeps their issued JWTs for deactivation tests; it
+checks direct PostgREST bypass attempts, all retained staff roles, command rollback,
+foreign/duplicate line IDs, repeated/concurrent saves, stale conflicts, prepayment
+correction/restore, refund/dispute/surcharge arithmetic, draft/paid/delivery state,
+active checkout/void fences, separate-session payment/collection contention,
+metadata/archive/delete behavior, organization billing, and approved additions
+with material/source references. Fixtures stay local for inspection. No Stripe,
+email, Calendar, reminder worker or production service is called.
+
+The current guarded-void integration suite's ordinary-draft edit case now uses
+`save_invoice_details`, because direct line editing has intentionally been
+withdrawn. All void/restore/recovery checks remain. Do not remove the enforcement
+migration or restore broad grants to make an older test caller pass.

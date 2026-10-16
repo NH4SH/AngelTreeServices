@@ -403,34 +403,14 @@ export async function markInvoiceSentManually(
   }
 
   const invoiceId = getString(formData, "invoice_id");
-  const { data: invoice, error } = await supabase
-    .from("invoices")
-    .update({ sent_at: new Date().toISOString() })
-    .eq("id", invoiceId)
-    .is("sent_at", null)
-    .neq("status", "void")
-    .select("id")
-    .maybeSingle();
-
+  const { error } = await supabase.rpc("record_invoice_delivery", { p_invoice_id: invoiceId, p_manual: true });
   if (error) {
     return { status: "error", message: safeStaffMessage(error.message) };
   }
-
-  if (!invoice) {
-    return { status: "error", message: "Only an unsent, non-void invoice can be manually marked sent." };
-  }
-
   const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
   if (!reconciliation.ok) {
     return { status: "error", message: `Delivery was recorded, but payment state could not be reconciled: ${reconciliation.message}` };
   }
-
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "invoice_marked_sent_manually",
-    subjectId: invoiceId,
-    subjectType: "invoice",
-  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -619,53 +599,23 @@ async function createInvoiceForJob({
         total_cents: 0,
         unit_price_cents: 0,
       }];
-  const subtotalCents = lines.reduce((sum, line) => sum + line.total_cents, 0);
   const taxCents = quoteResult.taxCents;
-  const totalCents = subtotalCents + taxCents;
 
-  const { data: invoice, error: invoiceError } = await supabase
-    .from("invoices")
-    .insert({
-      balance_due_cents: totalCents,
-      customer_id: invoiceableJob.customer_id,
-      organization_id: invoiceableJob.organization_id,
+  const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
+    p_header: {
+      customer_id: invoiceableJob.customer_id, organization_id: invoiceableJob.organization_id,
       billing_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
       accounts_payable_contact_id: quoteResult.billingContactId ?? invoiceableJob.property_manager_contact_id,
       service_location_id: invoiceableJob.service_location_id,
-      job_id: invoiceableJob.id,
-      quote_id: quoteResult.quoteId,
+      job_id: invoiceableJob.id, quote_id: quoteResult.quoteId,
       recurring_service_plan_id: invoiceableJob.recurring_service_plan_id,
       recurring_occurrence_id: invoiceableJob.recurring_occurrence_id,
-      due_at: getInvoiceDueAt(),
-      status: "draft",
-      subtotal_cents: subtotalCents,
-      tax_cents: taxCents,
-      total_cents: totalCents,
-    })
-    .select("id")
-    .single();
-
+      due_at: getInvoiceDueAt(), tax_cents: taxCents,
+    },
+    p_lines: lines,
+  });
   if (invoiceError || !invoice) {
-    return { ok: false, message: invoiceError?.message ?? "Could not create invoice." };
-  }
-
-  const { error: lineItemError } = await supabase.from("invoice_line_items").insert(
-    lines.map((line, index) => ({
-      description: line.description,
-      service_category_id: line.service_category_id,
-      material_id: line.material_id,
-      invoice_id: invoice.id,
-      name: line.name,
-      quantity: line.quantity,
-      sort_order: index,
-      total_cents: line.total_cents,
-      unit_price_cents: line.unit_price_cents,
-    })),
-  );
-
-  if (lineItemError) {
-    await supabase.from("invoices").delete().eq("id", invoice.id);
-    return { ok: false, message: `Invoice was not created because line items failed: ${lineItemError.message}` };
+    return { ok: false, message: safeStaffMessage(invoiceError?.message ?? "Could not create invoice.") };
   }
 
   const { error: changeOrderError } = await supabase

@@ -1,4 +1,5 @@
 "use server";
+import {checkLegacySchedulingHandoff} from "@/lib/schedule/legacy-handoff";
 
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
@@ -462,8 +463,11 @@ export async function createAppointment(
     });
   }
 
+  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
   await syncScheduleCommunications();
+
   revalidateSchedulePaths(jobId);
+  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
   return eligibility.warningCount
     ? { status: "warning", message: `Appointment saved with a qualification warning. ${eligibility.message}` }
     : { status: "success", message: "Appointment saved." };
@@ -515,9 +519,11 @@ export async function updateAppointmentStatus(
   if (["completed", "cancelled", "no_show"].includes(nextStatus)) {
     await cancelPendingCommunications(supabase, { appointmentId }, `Appointment marked ${nextStatus.replaceAll("_", " ")}.`);
   }
+  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
   await syncScheduleCommunications();
 
   revalidateSchedulePaths(jobId);
+  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
   return { status: "success", message: `Appointment marked ${nextStatus.replace("_", " ")}.` };
 }
 
@@ -603,9 +609,11 @@ export async function updateAppointmentDetails(
     });
   }
 
+  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
   await syncScheduleCommunications();
 
   revalidateSchedulePaths(jobId);
+  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
   return eligibility.warningCount
     ? { status: "warning", message: `Appointment updated with a qualification warning. ${eligibility.message}` }
     : { status: "success", message: "Appointment details updated." };

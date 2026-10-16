@@ -1,4 +1,6 @@
 import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
+import {isManagedSchedulingTask} from "@/lib/handoff-views";
+import {nextActionHref} from "@/lib/next-actions";
 import Link from "next/link";
 import {
   Building2,
@@ -233,7 +235,7 @@ export default async function RecurringPlanDetailPage({
                       <h3>{task.title}</h3>
                       <p>{task.description}</p>
                       <small>{dateTime(task.due_at)}</small>
-                      <FollowUpActions status={task.status} taskId={task.id} />
+                      <FollowUpActions status={task.status} taskId={task.id} managed={isManagedSchedulingTask(task)} schedulingHref={nextActionHref(task)} />
                     </article>
                   ))}
                 </div>

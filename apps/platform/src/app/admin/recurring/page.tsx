@@ -1,4 +1,6 @@
 import { formatBusinessDate, formatBusinessDateTime } from "@/lib/business-time";
+import {isManagedSchedulingTask} from "@/lib/handoff-views";
+import {nextActionHref} from "@/lib/next-actions";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -372,7 +374,7 @@ function TaskCard({ task }: { task: FollowUpTaskWithRelations }) {
           ? ` - ${task.service_locations.label || task.service_locations.street}`
           : ""}
       </small>
-      <FollowUpActions status={task.status} taskId={task.id} />
+      <FollowUpActions status={task.status} taskId={task.id} managed={isManagedSchedulingTask(task)} schedulingHref={nextActionHref(task)} />
     </article>
   );
 }

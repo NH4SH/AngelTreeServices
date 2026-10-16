@@ -230,7 +230,7 @@ export default async function AdminPage() {
             <PanelHeader title="Needs attention" detail="Open a record to take its next step. Queues are bounded previews, not full totals." />
             <div className="workflow-list">{attentionLanes.map(lane => <WorkflowLane lane={lane} key={lane.title} />)}</div>
           </section>
-          <Suspense fallback={<p role="status">Loading due handoffs...</p>}><NextActionsPanel dueOnly /></Suspense>
+          <Suspense fallback={<p role="status">Loading due handoffs...</p>}><NextActionsPanel dueOnly assignedTo={context.user.id} /></Suspense>
           <Suspense fallback={<p role="status">Loading estimate follow-through...</p>}><CompletedEstimatesPanel /></Suspense>
           {[today, tomorrow].map(day => <section className="panel dashboard-panel" key={day}>
             <PanelHeader title={day === today ? "Today" : "Tomorrow"} detail="Estimates and field work" />
@@ -261,6 +261,7 @@ export default async function AdminPage() {
           {workflowPipeline.errors.length ? <p className="pipeline-count-notice">Some optional workflow counts are temporarily unavailable. Other dashboard areas remain usable.</p> : null}
         </section>
 
+        <details className="dashboard-more-overview" open={hasAllowedRole(context.roles, platformRoleGroups.accessApproval)}><summary>Operations &amp; business overview</summary>
         <section className="dashboard-grid" aria-label="CRM operational overview">
           <section className="panel dashboard-panel dashboard-reporting-panel">
             <PanelHeader title="This month" detail="Sales, cash, and accounts receivable" />
@@ -305,7 +306,7 @@ export default async function AdminPage() {
               <Link className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></Link>
               <Link className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></Link>
               <Link className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/communications"><span>Failed communications</span><strong>{communicationSummary.data.failed.length}</strong></Link>
+              <Link className="pipeline-row" href="/admin/communications/delivery-review"><span>Failed communications — review delivery</span><strong>{communicationSummary.data.failed.length}</strong></Link>
               <Link className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></Link>
             </div>
           </section>
@@ -425,6 +426,7 @@ export default async function AdminPage() {
           </section>
         </section>
 
+        </details>
         <section className="notice-panel">
           <strong>
             <Zap aria-hidden="true" size={18} />

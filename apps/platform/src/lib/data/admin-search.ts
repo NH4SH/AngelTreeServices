@@ -1,4 +1,5 @@
 import "server-only";
+import { normalizeAdminSearchTerm as normalizeSearchTerm, escapeSearchLike as escapeLike } from "@/lib/record-search";
 
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
@@ -83,14 +84,4 @@ export async function countAdminSearchRecords(filters: Omit<AdminSearchFilters, 
 
   const { count, error } = await request;
   return { count: count ?? 0, error: error ? safeStaffMessage(error.message) : null };
-}
-
-function normalizeSearchTerm(value?: string) {
-  const query = value?.trim().toLowerCase().slice(0, 160) ?? "";
-  const digits = query.replaceAll(/[^0-9]/g, "");
-  return digits.length >= 4 ? digits : query;
-}
-
-function escapeLike(value: string) {
-  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }

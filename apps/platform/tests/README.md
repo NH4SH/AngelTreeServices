@@ -701,3 +701,45 @@ include a history-only repair with an unchanged dispatch count, mobile wrapping,
 keyboard focus and an empty review state. Do not click a sends-email action to
 verify a no-email repair. See
 `src/lib/email/DELIVERY_RECONCILIATION.md` for the contract and future provider setup.
+
+## PR15 — record lookup and owned office handoffs
+
+`npm run test:unit` includes the actual normalization/escaping, result and internal
+link validation, debounced cancellation/late-response fencing, allowlisted saved
+views, scheduling links, private HTTP gates and safe fail-closed data projections.
+
+After all **84 repository migrations** are installed in the existing disposable
+stack and the local development server is running:
+
+```sh
+PR15_DISPOSABLE_STACK=1 \
+PR15_LOCAL_STATUS_FILE=/absolute/path/to/local-status.private.json \
+PR15_DOCKER_BIN=/absolute/path/to/docker \
+PR15_WEB_URL=http://127.0.0.1:3102 \
+DOCKER_HOST=unix:///absolute/path/to/disposable/docker.sock \
+node --conditions=react-server --experimental-strip-types --test tests/record-search-handoffs.integration.test.mjs
+```
+
+The suite refuses other API/web targets and uses only
+`supabase_db_ats_pr02_disposable`. The private status JSON contains `API_URL`,
+`ANON_KEY`, `SERVICE_ROLE_KEY` and `JWT_SECRET`; never print or commit it.
+Optional `PR15_RESULTS_FILE` writes only a credential-free summary/timings.
+Marked business fixtures remain; only exact suite-owned synthetic Auth/employee
+IDs are retired. The separate local review account is preserved. Failure triggers
+and independent lock holders are scoped and released in cleanup.
+
+Checks use real sessions, RLS, HTTP cookies and the actual server preview action.
+They cover shared-phone households, mixed addresses and document numbers, all
+office roles and field/customer denial, no monetary search snippets, concurrent
+approval/repair, audit rollback, owner/version validation, snooze ordering,
+booking/partial/final cancellation, direct-write guards, archive/restore, explicit
+older-gap repair, legacy booking checks, removed employee access with an otherwise
+active profile, offboarding during a lock wait, manual tasks and queue pagination.
+No provider sender, hosted migration, email, payment or production service runs.
+
+Browser QA uses the disposable reviewer at 3102: open a result by keyboard and
+mouse, close with Escape and check focus, inspect mobile wrapping and empty
+results, save/open a filter, save one owner/return time, and preview selected rows
+without applying changes. Keep native navigation/before-unload draft protection.
+Search and saved filters must not persist record data. See
+`src/lib/RECORD_SEARCH_AND_HANDOFFS.md` for the contract and legacy-write limits.

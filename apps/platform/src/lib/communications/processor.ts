@@ -1,4 +1,5 @@
 import "server-only";
+import {callDeliveryCommand} from "@/lib/email/delivery-commands";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatProposalNumber } from "../quotes/proposal-number.ts";
@@ -12,6 +13,7 @@ import {
   quoteFollowUpTemplate,
 } from "@/lib/communications/templates";
 import { mapBounded, withDeadline } from "@/lib/runtime/deadline";
+import { emailDeliveryContext } from "@/lib/email/delivery-context";
 import { sendTransactionalEmail, type SendEmailInput, type SendEmailResult } from "@/lib/email/send";
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
@@ -56,7 +58,7 @@ export async function processDueCommunications(limit = 20, options: WorkerOption
     while (summary.claimed < maximum && Date.now() - started < budget - 1_000) {
       const remaining = budget - (Date.now() - started);
       if (summary.claimed > 0 && remaining < 15_000) break;
-      const { data, error } = await supabase.rpc("claim_due_customer_communications", { p_limit: Math.min(concurrency, maximum - summary.claimed) });
+      const { data, error } = await callDeliveryCommand(supabase,"claim_due_customer_communications", { p_limit: Math.min(concurrency, maximum - summary.claimed) });
       if (error) { summary.error = "The delivery queue could not be claimed safely."; break; }
       const rows = (data ?? []) as CustomerCommunication[];
       if (!rows.length) break;
@@ -116,6 +118,12 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
       const recorded = await returnToPending(supabase, communication, "Automated sending is disabled.");
       return { status: "pending", outcome: "not_sent", recorded, message: "Automated sending is disabled. This reminder was not sent." };
     }
+    const sourceInput: SendEmailInput = { to: communication.recipient_email, subject:"Pending reminder",text:"",emailType:communication.communication_type,
+      relatedAppointmentId:communication.appointment_id,relatedCommunicationId:communication.id,relatedCustomerId:communication.customer_id,
+      relatedInvoiceId:communication.invoice_id,relatedJobId:communication.job_id,relatedOrganizationId:communication.organization_id,
+      relatedPaymentId:communication.payment_id,relatedQuoteId:communication.quote_id,relatedScheduleEventId:communication.schedule_event_id };
+    const snapshot=await callDeliveryCommand(supabase,"get_outbound_source_snapshot",{p_context:emailDeliveryContext(sourceInput)});
+    if(snapshot.error||!snapshot.data)throw Error("Source snapshot unavailable");
     const prepared = await prepareCommunication(supabase, communication, settingsResult.data);
     if (prepared.action !== "send") {
       const status = prepared.action === "cancel" ? "cancelled" : "skipped";
@@ -135,10 +143,9 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
       const recorded = await updateClaim(supabase, communication, { last_error: null, processing_started_at: null, skip_reason: message, status: "skipped" });
       return { status: "skipped", outcome: "not_sent", recorded, message };
     }
-    // Legacy queue rows have no durable first-attempt/payload record. Never use an
-    // expired provider key or invent a new one to recover an unverified retry.
-    if (communication.attempt_count > 1 && Date.now() - Date.parse(communication.created_at) >= 23 * 60 * 60_000) {
-      return failCommunication(supabase, communication, "The saved delivery request needs review before another attempt. No email was sent.", false);
+    if (communication.attempt_count>1) {
+      const prior=await callDeliveryCommand(supabase,"find_outbound_delivery_request",{p_request_key:`customer-communication/${communication.id}`});
+      if(prior.error||!prior.data)return failCommunication(supabase,communication,"An older delivery has no frozen request. Review provider history before another attempt.",false);
     }
     if (prepared.data.recipientEmail !== communication.recipient_email && !await updateClaim(supabase, communication, { recipient_email: prepared.data.recipientEmail }))
       return { status: "processing", outcome: "not_sent", recorded: false, message: "The recipient could not be saved. No email was sent." };
@@ -148,12 +155,19 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
       .eq("attempt_count", communication.attempt_count).eq("processing_started_at", communication.processing_started_at).maybeSingle();
     if (current.error || !current.data) return { status: "processing", outcome: "not_sent", recorded: false, message: "The delivery claim changed. No email was sent." };
     providerStarted = true;
-    const result = await send({ to: prepared.data.recipientEmail, subject: prepared.data.template.subject, text: prepared.data.template.text,
+    const result = await send({ expectedSourceSnapshot:snapshot.data, to: prepared.data.recipientEmail, subject: prepared.data.template.subject, text: prepared.data.template.text,
       html: prepared.data.template.html, emailType: communication.communication_type, idempotencyKey: `customer-communication/${communication.id}`,
       relatedAppointmentId: communication.appointment_id, relatedCommunicationId: communication.id, relatedCustomerId: communication.customer_id,
       relatedInvoiceId: communication.invoice_id, relatedJobId: communication.job_id, relatedOrganizationId: communication.organization_id,
       relatedPaymentId: communication.payment_id, relatedQuoteId: communication.quote_id, relatedScheduleEventId: communication.schedule_event_id, supabase });
     accepted = result.ok;
+    if (accepted && result.deliveryId) {
+      if(result.sourceReconciled && result.sourceCommunicationId!==communication.id) {
+        const recorded=await updateClaim(supabase,communication,{status:"skipped",processing_started_at:null,skip_reason:"The matching saved delivery was already accepted. No additional email was sent."});
+        return{status:recorded?"skipped":"processing",outcome:"accepted",recorded,message:recorded?"Matching delivery recorded without another email.":reviewMessage};
+      }
+      return {status:result.sourceReconciled?"sent":"processing",outcome:"accepted",recorded:result.sourceReconciled===true,message:result.message};
+    }
     if (accepted) {
       const recorded = await updateClaim(supabase, communication, { last_error: result.historyRecorded ? null : "Provider accepted; delivery history needs review.",
         processing_started_at: null, provider_message_id: result.providerMessageId, sent_at: new Date().toISOString(), skip_reason: null, status: "sent" });

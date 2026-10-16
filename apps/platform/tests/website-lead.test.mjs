@@ -1,3 +1,4 @@
+import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as crypto from 'node:crypto';
@@ -5,10 +6,11 @@ import {load} from './pr10-test-helpers.mjs';
 
 const jobId=crypto.randomUUID(),attemptId=crypto.randomUUID();
 const body=(extra={})=>new URLSearchParams({name:'Local Request',phone:'5405550123',email:'test@example.invalid',address:'123 Local Street, Fredericksburg, VA 22401',message:'Please review this tree',service:'Tree Care',submission_id:'local-1',...extra});
-function intake(client){return load('../src/lib/leads/intake.ts',{'server-only':{},'node:crypto':crypto,'@/lib/supabase/admin':{getServiceRoleClient:()=>client}});}
+function intake(client){return load('../src/lib/leads/intake.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'node:crypto':crypto,'@/lib/supabase/admin':{getServiceRoleClient:()=>client}});}
 const request=extra=>new Request('http://localhost/api/leads',{method:'POST',body:body(extra)});
-function notice({recipients=['one@example.invalid','two@example.invalid'],send=async()=>({outcome:'accepted',historyRecorded:true}),rpc=async name=>({data:name==='claim_website_lead_notification'?attemptId:true,error:null})}={}) {
- const calls=[];const mod=load('../src/lib/leads/notifications.ts',{'server-only':{},'@/lib/email/config':{getInternalLeadNotificationEmails:()=>recipients},'@/lib/email/send':{sendTransactionalEmail:async args=>{calls.push(args);return send(args);}},'@/lib/email/templates':{leadInternalNoticeTemplate:()=>({subject:'Local notice',text:'Local',html:'Local'})},'@/lib/leads/intake':{isUuid:intake(null).isUuid},'@/lib/supabase/admin':{getServiceRoleClient:()=>({rpc})}});return{...mod,calls};
+function notice({configured=true,source={attempt_id:attemptId},claim=attemptId,batch=[jobId,attemptId],failBatch=false}={}) {
+ const calls=[];const db={rpc:async(name,args)=>{calls.push({name,args});if(name==='get_website_notice_repair')return{data:source,error:null};if(name==='claim_website_lead_notification')return{data:claim,error:null};if(name==='prepare_website_notice_batch')return{data:batch,error:failBatch?{message:'private'}:null};assert.fail(name);}};
+ const mod=load('../src/lib/leads/notifications.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'@/lib/email/config':{getInternalLeadNotificationEmails:()=>['one@example.invalid','two@example.invalid'],getEmailSetupState:()=>({configured,from:'office@example.invalid',replyTo:'office@example.invalid'})},'@/lib/email/send':{sendEmailTransport:()=>assert.fail('Stubbed dispatcher')},'@/lib/email/delivery':{dispatchSavedEmail:async id=>{calls.push({name:'dispatch',id});return{ok:true};}},'@/lib/email/templates':{leadInternalNoticeTemplate:()=>({subject:'Local notice',text:'Local',html:'Local'})},'@/lib/leads/intake':{isUuid:intake(null).isUuid},'@/lib/supabase/admin':{getServiceRoleClient:()=>db}});return{...mod,calls};
 }
 function route({result={created:true,duplicateMode:null,error:null,jobId,submissionId:'local-1'},limit={allowed:true,available:true},canary=false,parse,send=async()=>{},save}={}) {
  const calls={saved:0,notices:0,parsed:0};const parser=intake(null).parsePublicLeadSubmission;
@@ -31,24 +33,9 @@ test('parser preserves spam suppression, required input validation and service a
  for(const extra of [{name:''},{phone:'bad'},{email:'bad'},{address:''},{message:''},{service:'unsupported'},{customer_type:'wrong'},{property_scope:'wrong'}])assert.ok((await api.parsePublicLeadSubmission(request(extra))).error);
  assert.equal((await api.parsePublicLeadSubmission(request({service:'tree services'}))).data.serviceLabel,'Tree Care');
 });
-test('office notification waits for all recipients and preserves stable provider idempotency keys',async()=>{
- const n=notice();assert.equal(await n.notifyOfficeOfWebsiteLead(jobId,{}),'accepted');assert.deepEqual(n.calls.map(x=>x.idempotencyKey),[0,1].map(i=>`website-lead:${jobId}:recipient:${i}`));assert.ok(n.calls.every(x=>x.emailType==='lead_internal_notice'&&x.relatedJobId===jobId));
-});
-for(const [name,send,expected] of [
- ['provider timeout',async()=>({outcome:'unknown',historyRecorded:true}),'unknown'],
- ['accepted without local receipt',async()=>({outcome:'accepted',historyRecorded:false}),'unknown'],
- ['partly accepted recipients',async args=>({outcome:args.to.startsWith('one')?'accepted':'rejected',historyRecorded:true}),'unknown'],
- ['provider rejection',async()=>({outcome:'rejected',historyRecorded:true}),'rejected'],
- ['unconfigured provider',async()=>({outcome:'not_attempted',historyRecorded:true}),'not_attempted'],
- ['thrown provider call',async()=>{throw Error('private diagnostic');},'unknown'],
-])test(`office notice classifies ${name} without unsafe retry`,async()=>{assert.equal(await notice({send}).notifyOfficeOfWebsiteLead(jobId,{}),expected);});
-test('an empty recipient list never claims provider acceptance',async()=>assert.equal(await notice({recipients:[]}).notifyOfficeOfWebsiteLead(jobId,{}),'not_attempted'));
-test('claim errors, lost acknowledgement and already-claimed attempts cannot send',async()=>{
- for(const rpc of [async()=>({data:null,error:{message:'private'}}),async()=>({data:null,error:null}),async()=>({data:'partial-ack',error:null}),async()=>{throw Error('lost response');}]){const n=notice({rpc});await n.attemptWebsiteLeadNotification(jobId,{});assert.equal(n.calls.length,0);}
-});
-test('finish is fenced to the claimed attempt, and finish failures never resend accepted mail',async()=>{
- const commands=[];const n=notice({rpc:async(name,args)=>{commands.push({name,args});return name==='claim_website_lead_notification'?{data:attemptId,error:null}:{data:false,error:{message:'lost finish response'}};}});await n.attemptWebsiteLeadNotification(jobId,{});assert.equal(n.calls.length,2);assert.deepEqual(commands[1],{name:'finish_website_lead_notification',args:{p_job_id:jobId,p_attempt_id:attemptId,p_outcome:'accepted'}});
-});
+test('office notices persist the complete recipient batch before dispatching anyone',async()=>{const n=notice();await n.attemptWebsiteLeadNotification(jobId,{});assert.deepEqual(n.calls.map(c=>c.name),['get_website_notice_repair','prepare_website_notice_batch','dispatch','dispatch']);assert.equal(n.calls[1].args.p_messages.length,2);assert.deepEqual(n.calls[1].args.p_messages.map(m=>m.to[0]),['one@example.invalid','two@example.invalid']);});
+test('unconfigured office delivery freezes the batch but performs no dispatch',async()=>{const n=notice({configured:false});await n.attemptWebsiteLeadNotification(jobId,{});assert.equal(n.calls.filter(c=>c.name==='dispatch').length,0);assert.ok(n.calls.some(c=>c.name==='prepare_website_notice_batch'));});
+test('missing legacy context or unacknowledged claims cannot dispatch notices',async()=>{for(const options of [{source:null},{source:{attempt_id:null},claim:null},{failBatch:true}]){const n=notice(options);await n.attemptWebsiteLeadNotification(jobId,{});assert.equal(n.calls.filter(c=>c.name==='dispatch').length,0);}});
 test('public route preserves origin/content/rate gates before parser or transaction',async()=>{
  for(const [headers,limit,status] of [[{origin:'https://bad.example'},undefined,403],[{'content-type':'application/json'},undefined,415],[{'content-length':'32001'},undefined,413],[{}, {allowed:false,available:true,retryAfterSeconds:60},429],[{}, {allowed:false,available:false},503]]){const r=route({limit});const response=await r.POST(req({},headers));assert.equal(response.status,status);assert.equal(r.calls.saved,0);assert.equal(r.calls.parsed,0);assert.equal(r.calls.notices,0);}
 });

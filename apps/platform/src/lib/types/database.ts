@@ -832,6 +832,9 @@ export type EmployeeAccessRequest = {
 };
 
 export type EmailEvent = {
+  outbound_delivery_id?: string | null;
+  delivery_status?: string | null;
+  delivery_status_at?: string | null;
   id: string;
   related_customer_id: string | null;
   related_job_id: string | null;

@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { emailDeliveryLabel } from "@/lib/email/delivery-labels";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { MailCheck, MailWarning } from "lucide-react";
 import type { EmailEvent } from "@/lib/types/database";
@@ -32,8 +34,9 @@ export function EmailHistoryList({ events }: { events: EmailEvent[] }) {
               {formatEmailType(event.email_type)} to {event.recipient_email}
             </small>
             <small>
-              {event.status === "sent" ? "Accepted by email provider" : "Delivery attempt failed"} {formatDateTime(event.sent_at ?? event.created_at)}
+              {emailDeliveryLabel(event.delivery_status,event.status === "sent" ? "Accepted by email provider" : "Delivery attempt failed")} {formatDateTime(event.sent_at ?? event.created_at)}
             </small>
+            {event.outbound_delivery_id ? <small><Link href={`/admin/communications/delivery-review?id=${event.outbound_delivery_id}`}>Review delivery — no email sent by opening</Link></small> : null}
             {event.provider_message_id ? <small>Provider reference: {event.provider_message_id}</small> : null}
             {event.error_message ? <p>{event.error_message}</p> : null}
           </div>

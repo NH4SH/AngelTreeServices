@@ -662,3 +662,42 @@ node --test tests/website-lead.integration.test.mjs
 The private status file must come from the disposable stack and contain `API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY` and `JWT_SECRET`. Never commit it. Optional `PR13_RESULTS_FILE` writes a credential-free result summary. The suite refuses a non-local API URL. It tests real Auth/RLS grants, concurrent submissions and claims, process death, late failures at every creation boundary, protected state and fenced notice completion. It also runs the actual route/intake/notice adapters with the local database and an explicitly stubbed email sender. No provider requests are made. It retains marked test business history and retires only its own Auth profile IDs. Scoped failure triggers are removed in `finally`.
 
 A pending or interrupted office notice is **not automatically retried**. PR14 owns provider reconciliation, frozen per-recipient deliveries and safe operator repair. Replaying a public request cannot resend an office notice or reset an archived/converted lead.
+
+## PR14 — durable delivery and safe repair
+
+`npm run test:unit` includes frozen request/acknowledgement handling, actual Svix
+signature vectors, rotation/tamper/time-window checks, streamed-body limits,
+GET-only evidence validation, retryable webhook storage failures, legacy receipt
+verification and reminder-preparation failure handling.
+
+After all **83 repository migrations** have been applied to the existing disposable
+stack, run the opt-in real Auth/RLS/concurrency suite:
+
+```sh
+PR14_DISPOSABLE_STACK=1 \
+PR14_LOCAL_STATUS_FILE=/absolute/path/to/local-status.private.json \
+PR14_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///absolute/path/to/disposable/docker.sock \
+node --test tests/delivery-reconciliation.integration.test.mjs
+```
+
+The suite refuses APIs other than `http://127.0.0.1:54321`, uses only
+`supabase_db_ats_pr02_disposable`, and requires its local status JSON (`API_URL`,
+`ANON_KEY`, `SERVICE_ROLE_KEY`, `JWT_SECRET`). Never print/commit that file.
+`PR14_RESULTS_FILE` optionally writes a credential-free result summary. Tests
+exercise concurrent preparation/claim, stable keys across actors/reloads, source
+and invoice-void races, audit rollback/recovery, early/duplicate/out-of-order
+provider events, suppression/quarantine, retry limits, explicit copies, legacy
+holds, recipient-isolated office repair, queue claim fencing, live offboarding,
+private grants and disabled automation. The actual sender/processor adapters use
+stub transports only. No real provider request, email, payment or hosted migration
+runs. Failure triggers are scoped and removed; only the suite's own synthetic
+actors are retired. Historical fixture records remain for review.
+
+Run financial/notification integration suites sequentially and retire only their
+exact synthetic actor IDs; accumulated test recipients must not change assertions
+or permissions. Preserve the separate local review account. Browser QA should
+include a history-only repair with an unchanged dispatch count, mobile wrapping,
+keyboard focus and an empty review state. Do not click a sends-email action to
+verify a no-email repair. See
+`src/lib/email/DELIVERY_RECONCILIATION.md` for the contract and future provider setup.

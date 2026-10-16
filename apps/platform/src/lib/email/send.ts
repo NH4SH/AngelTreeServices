@@ -1,12 +1,23 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getEmailProviderConfig } from "@/lib/email/config";
+import { getEmailProviderConfig, getEmailSetupState } from "@/lib/email/config";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { withDeadline } from "@/lib/runtime/deadline";
+import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
+import { sendDurableEmail } from "@/lib/email/delivery";
 import type { EmailEvent, EmailEventType } from "@/lib/types/database";
 
 export type SendEmailInput = {
+  deliveryId?: string;
+  frozenEnvelope?: {from:string;replyTo:string};
+  skipLegacyHistory?: boolean;
+  deliveryQuoteIds?: string[];
+  expectedSourceVersions?: Record<string,string|number>;
+  expectedSourceSnapshot?: unknown;
+  deliveryPortalTokens?: {kind:string;id:string}[];
+  confirmedAdditionalCopy?: boolean;
+  additionalCopyRequestId?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
   to: string;
@@ -31,6 +42,10 @@ export type SendEmailInput = {
 };
 
 export type SendEmailResult = {
+  deliveryId?: string;
+  sourceCommunicationId?: string | null;
+  rejectionStatus?: number;
+  sourceReconciled?: boolean;
   outcome: "accepted" | "rejected" | "unknown" | "not_attempted";
   ok: boolean;
   configured: boolean;
@@ -62,6 +77,14 @@ export type RecordEmailEventInput = {
 };
 
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  const setup=getEmailSetupState();
+  const db=getServiceRoleClient();
+  const result=await sendDurableEmail(input,{db,envelope:{from:setup.from,replyTo:setup.replyTo},configured:setup.configured,transport:sendEmailTransport});
+  return result.ok&&result.deliveryId&&db?completeDeliveryFollowups(db,result.deliveryId,result):result;
+}
+
+// Transport alone is used by the durable dispatcher; callers use the outbox.
+export async function sendEmailTransport(input: SendEmailInput): Promise<SendEmailResult> {
   const recipient = input.to.trim().toLowerCase();
 
   if (!isValidEmail(recipient)) {
@@ -98,8 +121,8 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
         method: "POST", signal, redirect: "error",
         headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json",
           ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}) },
-        body: JSON.stringify({ from: config.from, to: [recipient], ...(ccRecipients.length ? { cc: ccRecipients } : {}),
-          reply_to: config.replyTo, subject: input.subject, text: input.text, html: input.html }),
+        body: JSON.stringify({ from: input.frozenEnvelope?.from ?? config.from, to: [recipient], ...(ccRecipients.length ? { cc: ccRecipients } : {}),
+          reply_to: input.frozenEnvelope?.replyTo ?? config.replyTo, ...(input.deliveryId ? {tags:[{name:"crm_delivery_id",value:input.deliveryId}]} : {}), subject: input.subject, text: input.text, html: input.html }),
       });
       const parsed: unknown = await response.json().catch(() => null);
       return { status: response.status, ok: response.ok, payload: parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {} };
@@ -113,7 +136,7 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
   }
   if (!delivery.ok) {
     const historyRecorded = await logEmailEvent(input, "failed", null, `provider_http_${delivery.status}`, recipient);
-    return { outcome: "rejected", ok: false, configured: true, historyRecorded,
+    return { outcome: "rejected", rejectionStatus:delivery.status, ok: false, configured: true, historyRecorded,
       message: getProviderErrorMessage(delivery.status), providerMessageId: null,
       retryable: delivery.status === 429 || delivery.status >= 500 || isConcurrentIdempotencyError(delivery.payload) };
   }
@@ -164,6 +187,7 @@ async function logEmailEvent(
   errorMessage: string | null,
   recipientOverride?: string,
 ) {
+  if (input.skipLegacyHistory) return false;
   try {
   const supabase = input.supabase ?? getServiceRoleClient();
 

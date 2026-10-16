@@ -5,7 +5,7 @@ production migrations, worker execution or changes to credentials/automation.
 
 ## Provider boundary
 
-`sendTransactionalEmail` bounds the complete request, including response-body
+The raw transport, now named `sendEmailTransport`, bounds the complete request, including response-body
 reading, to 10 seconds by default; caller cancellation is forwarded. History
 writes have a separate five-second deadline. The transport rejects redirects.
 Provider diagnostics are reduced to fixed codes; raw payloads, authorization
@@ -77,16 +77,22 @@ Storage and metadata cannot be one PostgreSQL transaction; orphan review remains
 necessary on transport/cleanup failures. Existing iOS callers also get the trigger
 without a DTO/API change, but a full iOS simulator build was not part of PR10.
 
-## PR14 boundaries
+## Historical PR10 boundaries, superseded by PR14
 
-This does **not** implement exactly-once email or a durable outbound-intent table.
+PR14 now implements durable requests, frozen payloads, first-dispatch retry clocks,
+provider evidence and operator repair. `sendTransactionalEmail` is the durable
+wrapper; the bounded provider transport remains independently tested. See
+[the PR14 contract](DELIVERY_RECONCILIATION.md) for current behavior. The paragraphs
+below describe the original PR10 limitations for historical context.
+
+PR10 did **not** implement exactly-once email or a durable outbound-intent table.
 Reloading a manual composer loses its in-memory nonce/review hold. Queue retry
 payloads are rebuilt from current sources; changed payloads with the same provider
 key must be reviewed, never worked around by rotating keys. The legacy queue has
 no durable first-attempt timestamp, so its conservative 23-hour retry cutoff uses
 row creation time and may hold a long-scheduled retry earlier than necessary.
 
-PR14 still owns immutable attempts/payloads, cross-reload/cross-worker business
+The planned PR14 work owned immutable attempts/payloads, cross-reload/cross-worker business
 deduplication, atomic source/version/recipient lease checks, cancellation/payment
 races during external I/O, deterministic appointment versions, business-day timing
 and operator reconciliation tools. A process crash can still occur between

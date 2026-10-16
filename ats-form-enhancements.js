@@ -2,12 +2,12 @@
   var successMessage = "Thank you — your request was received. We’ll contact you shortly.";
 
   function trackEvent(name, parameters) {
-    if (typeof window.gtag !== "function") {
+    if (!window.ATSWebsite || typeof window.ATSWebsite.track !== "function") {
       return;
     }
 
     try {
-      window.gtag("event", name, parameters || {});
+      window.ATSWebsite.track(name, parameters || {});
     } catch (error) {
       // Optional analytics must never interrupt a customer's request.
     }
@@ -35,48 +35,6 @@
     document.addEventListener("focusin", function (event) {
       if (menu.open && !menu.contains(event.target)) {
         menu.open = false;
-      }
-    });
-  }
-
-  function initPublicSiteAnalytics() {
-    document.addEventListener("click", function (event) {
-      var link = event.target.closest("a");
-      if (!link) {
-        return;
-      }
-
-      if (link.dataset.atsNav) {
-        trackEvent("navigation_link_click", {
-          destination: link.dataset.atsNav,
-          navigation: link.closest(".ats-home-mobile-menu") ? "mobile_menu" : "desktop_header",
-        });
-      }
-
-      if (link.classList.contains("ats-emergency-call")) {
-        trackEvent("emergency_cta_click", { location: "homepage_guidance" });
-        return;
-      }
-
-      if (link.matches('a[href^="tel:"]')) {
-        trackEvent("phone_link_click", {
-          location: link.closest("#contact") ? "contact" : link.closest("#top") ? "hero" : "site",
-        });
-        return;
-      }
-
-      if (link.matches('a[href="#contact"]')) {
-        trackEvent("estimate_cta_click", {
-          location: link.closest("#top") ? "hero" : link.closest(".ats-emergency") ? "emergency" : "site",
-        });
-      }
-
-      if (link.classList.contains("list-item-content__button")) {
-        var card = link.closest(".list-item");
-        var heading = card ? card.querySelector("h2, h3") : null;
-        trackEvent("service_link_click", {
-          service_name: heading ? heading.textContent.trim().slice(0, 80) : "service",
-        });
       }
     });
   }
@@ -151,7 +109,7 @@
       return;
     }
 
-    if (!field.dataset.originalDescribedby) {
+    if (field.dataset.originalDescribedby === undefined) {
       field.dataset.originalDescribedby = field.getAttribute("aria-describedby") || "";
     }
 
@@ -224,7 +182,9 @@
     var message = "";
 
     if (field.required && !value) {
-      message = getLabelText(field) + " is required.";
+      message = field.type === "email"
+        ? "Please enter an email address so we can contact you by email."
+        : getLabelText(field) + " is required.";
     } else if (field.name === "phone" && value) {
       var digits = value.replace(/\D/g, "");
       if (digits.length < 10) {
@@ -233,7 +193,9 @@
     } else if (field.type === "email" && value) {
       var validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       if (!validEmail) {
-        message = "Please enter a valid email address or leave this field blank.";
+        message = field.required
+          ? "Please enter a valid email address."
+          : "Please enter a valid email address or leave this field blank.";
       }
     }
 
@@ -244,6 +206,29 @@
 
     clearFieldError(field);
     return true;
+  }
+
+  function syncEmailRequirement(form) {
+    var email = form.querySelector('input[name="email"]');
+    if (!email) {
+      return;
+    }
+
+    var preference = form.querySelector('input[name="preferred_contact_method"]:checked');
+    var required = !!preference && preference.value === "email";
+    email.required = required;
+    email.setAttribute("aria-required", String(required));
+
+    var indicator = form.querySelector("[data-email-requirement]");
+    if (indicator) {
+      indicator.textContent = required ? "(required)" : "(optional)";
+    }
+
+    // Reconcile an existing error without showing one just for choosing Email.
+    if (email.getAttribute("aria-invalid") === "true") {
+      validateField(email);
+      setSummaryState(form, !!form.querySelector('[aria-invalid="true"]'));
+    }
   }
 
   function syncCommercialFields(form) {
@@ -391,6 +376,34 @@
     return field;
   }
 
+  function getFormAttribution() {
+    try {
+      if (window.ATSWebsite && typeof window.ATSWebsite.getAttribution === "function") {
+        var shared = window.ATSWebsite.getAttribution();
+        if (shared && typeof shared === "object" && !Array.isArray(shared)) {
+          return shared;
+        }
+      }
+    } catch (error) {
+      // An unavailable optional initializer must not erase operational metadata.
+    }
+
+    // Current URL only: this fallback creates no storage or analytics transport.
+    var campaign = {};
+    try {
+      var parameters = new URLSearchParams(window.location.search);
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(function (key) {
+        var value = parameters.get(key);
+        if (value && value.length <= 120 && /^[a-zA-Z0-9 _.-]+$/.test(value)) {
+          campaign[key] = value;
+        }
+      });
+    } catch (error) {
+      // Keep the request usable when URL parsing is unavailable.
+    }
+    return campaign;
+  }
+
   function setSubmissionMetadata(form, resetSubmissionId) {
     if (resetSubmissionId || !form.dataset.submissionId) {
       form.dataset.submissionId = generateSubmissionId();
@@ -402,12 +415,10 @@
     setHiddenFieldValue(form, "referrer", document.referrer || "");
 
     try {
-      var params = new URLSearchParams(window.location.search);
-      setHiddenFieldValue(form, "utm_source", params.get("utm_source") || "");
-      setHiddenFieldValue(form, "utm_medium", params.get("utm_medium") || "");
-      setHiddenFieldValue(form, "utm_campaign", params.get("utm_campaign") || "");
-      setHiddenFieldValue(form, "utm_term", params.get("utm_term") || "");
-      setHiddenFieldValue(form, "utm_content", params.get("utm_content") || "");
+      var campaign = getFormAttribution();
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(function (key) {
+        setHiddenFieldValue(form, key, campaign[key] || "");
+      });
     } catch (error) {
       setHiddenFieldValue(form, "utm_source", "");
       setHiddenFieldValue(form, "utm_medium", "");
@@ -444,12 +455,14 @@
 
           var message = typeof body.message === "string" ? body.message.trim() : "";
 
-          if (!response.ok || body.ok === false) {
+          if (!response.ok || [200, 201, 202].indexOf(response.status) === -1 || body.ok !== true ||
+              !/^application\/json(?:\s*;|$)/i.test(response.headers.get("content-type") || "")) {
             throw new Error(message || "We could not send your request right now. Please call our office.");
           }
 
           return {
             ok: true,
+            newlyRecorded: response.status === 201,
             message: message || successMessage,
           };
         });
@@ -458,6 +471,7 @@
 
   function validateForm(form) {
     syncCommercialFields(form);
+    syncEmailRequirement(form);
 
     var fields = Array.prototype.filter.call(
       form.querySelectorAll("input, select, textarea"),
@@ -525,6 +539,7 @@
     setSubmissionMetadata(form, true);
     applyEstimatePrefill(form);
     syncCommercialFields(form);
+    syncEmailRequirement(form);
     setSubmitting(form, false);
     setSummaryState(form, false);
     setServerStatus(form, "", "");
@@ -547,6 +562,15 @@
       function (radio) {
         radio.addEventListener("change", function () {
           syncCommercialFields(form);
+        });
+      }
+    );
+
+    Array.prototype.forEach.call(
+      form.querySelectorAll('input[name="preferred_contact_method"]'),
+      function (radio) {
+        radio.addEventListener("change", function () {
+          syncEmailRequirement(form);
         });
       }
     );
@@ -608,10 +632,14 @@
           form.dataset.formStartedAt = String(Date.now());
           setSubmissionMetadata(form, true);
           syncCommercialFields(form);
+          syncEmailRequirement(form);
           document.body.classList.add("ats-form-submitted");
           setSummaryState(form, false);
           setServerStatus(form, response.message || successMessage, "success");
-          trackEvent("estimate_form_submitted", { form_name: "contact" });
+          // A 201 can still be a likely duplicate. This is NOT a unique-lead conversion.
+          if (response.newlyRecorded) {
+            trackEvent("estimate_request_acknowledged", { form_name: "contact" });
+          }
         })
         .catch(function (error) {
           setServerStatus(
@@ -651,7 +679,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    initPublicSiteAnalytics();
     initMobileMenu();
     initMobileActions();
     initFaqAccordions();
@@ -661,6 +688,7 @@
   window.addEventListener("pageshow", function () {
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), function (form) {
       setSubmitting(form, false);
+      syncEmailRequirement(form);
     });
   });
 })();

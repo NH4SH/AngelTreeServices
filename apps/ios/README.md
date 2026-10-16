@@ -106,6 +106,16 @@ Choose an available simulator from `xcrun simctl list devices available` if that
 
 ## Security rules
 
+Proposal editing requires detail capability `quoteEditVersion: 1` plus its
+`editRevision`, and sends that loaded revision to the distinct
+`PATCH /api/mobile/quotes/:id/edit` endpoint. Old cached proposals remain readable
+but require refresh before editing. Old servers cannot silently ignore this
+contract; old installed clients receive a safe 409 from updated servers when
+editing without a revision. Conflicts retain editor input and require reviewing
+the saved proposal; do not automatically retry with a newer revision. See the
+platform's `src/lib/quotes/ATOMIC_EDITING.md` for the coordinated release order.
+Complete a full Xcode simulator build before distributing these native changes.
+
 Manual payment recording requires an active owner/admin and a server advertising
 `manualPaymentRequestVersion: 1`. The updated app uses the distinct
 `/manual-payment/attempt` path and persists the UUID plus original details before

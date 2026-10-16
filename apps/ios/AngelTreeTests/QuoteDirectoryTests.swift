@@ -39,6 +39,29 @@ final class QuoteDirectoryTests: XCTestCase {
         XCTAssertEqual(line.unitPriceCents, 160000)
     }
 
+    func testQuoteDetailDecodesEditCapabilityAndRevision() throws {
+        let detail = try JSONDecoder().decode(MobileQuoteDetail.self, from: Data(versionedQuoteJSON.utf8))
+        XCTAssertEqual(detail.editRevision, 7)
+        XCTAssertEqual(detail.quoteEditVersion, 1)
+    }
+
+    func testLegacyQuoteCacheDoesNotInventAnEditVersion() throws {
+        let legacy = versionedQuoteJSON.replacingOccurrences(of: ",\"editRevision\":7,\"quoteEditVersion\":1", with: "")
+        let detail = try JSONDecoder().decode(MobileQuoteDetail.self, from: Data(legacy.utf8))
+        XCTAssertNil(detail.editRevision)
+        XCTAssertNil(detail.quoteEditVersion)
+    }
+
+    func testQuoteWriteEncodesTheLoadedRevision() throws {
+        let request = MobileQuoteWriteRequest(customerId: "customer", organizationId: nil, serviceLocationId: "location", customerMessage: nil, expiresAt: nil, recipientContactId: nil, approvalContactId: nil, lines: [], expectedRevision: 7)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        XCTAssertEqual(body["expectedRevision"] as? Int, 7)
+    }
+
+    private var versionedQuoteJSON: String {
+        #"{"id":"local","status":"draft","title":"Local proposal","totalCents":1000,"createdAt":"2026-10-16","updatedAt":"2026-10-16","serviceLocation":{"id":"location","fullAddress":"Local property"},"lines":[],"portalStatus":"none","editRevision":7,"quoteEditVersion":1}"#
+    }
+
     private func quote(id: String, status: String) -> MobileQuoteDirectoryItem {
         .init(id: id, proposalNumber: "20260813-001", status: status, title: "Tree removal", totalCents: 160000, createdAt: "2026-08-13T12:00:00Z", sentAt: nil, approvedAt: nil, expiresAt: nil, updatedAt: "2026-08-13T12:00:00Z", party: .init(id: "customer-one", kind: .customer, name: "Donna"), serviceLocation: .init(id: "location-one", label: nil, fullAddress: "100 Main St"), linkedJobId: nil, linkedInvoiceId: nil)
     }

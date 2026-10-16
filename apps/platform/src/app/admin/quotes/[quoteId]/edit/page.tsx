@@ -91,6 +91,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               </p>
             ) : null}
             <AddQuoteForm
+              key={detail.data.id}
               customers={customers.data}
               estimateScheduleEvents={estimateScheduleEvents.data}
               jobs={jobs.data}

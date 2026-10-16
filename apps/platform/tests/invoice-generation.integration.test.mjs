@@ -124,9 +124,12 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
   });
   await run('invalid source arithmetic, unapproved source, source-job and contracting-party mismatches fail closed',async()=>{
     const j=await job(),q=await quote(j);check(await service.from('quote_line_items').update({total_cents:999}).eq('quote_id',q.id));denied(await gen(j));assert.equal((await invoices(j)).length,0);
-    check(await service.from('quote_line_items').update({total_cents:1000}).eq('quote_id',q.id));check(await service.from('quotes').update({status:'draft'}).eq('id',q.id));denied(await gen(j),'23514');
-    check(await service.from('quotes').update({status:'approved',job_id:(await job()).id}).eq('id',q.id));denied(await gen(j),'23514');
-    check(await service.from('quotes').update({job_id:j.id,customer_id:check(await service.from('customers').insert({display_name:'PR04 other party'}).select('id').single()).id}).eq('id',q.id));denied(await gen(j),'23514');
+    // Construct invalid imported sources before closure; the new PR05 guard
+    // correctly prevents reopening/rebinding an already closed quote.
+    const unapprovedJob=await job();await quote(unapprovedJob,1000,{status:'draft'});denied(await gen(unapprovedJob),'23514');
+    const mismatchedJob=await job(),otherJob=await job();await quote(mismatchedJob,1000,{job_id:otherJob.id});denied(await gen(mismatchedJob),'23514');
+    const foreignJob=await job(),otherParty=check(await service.from('customers').insert({display_name:'PR04 other party'}).select('id').single());
+    await quote(foreignJob,1000,{customer_id:otherParty.id});denied(await gen(foreignJob),'23514');
   });
   await run('late audit failure rolls back header, every line, addition links, completion, sessions and request; same UUID can retry',async()=>{
     const j=await job();await quote(j);const co=await addition(await jobRead(j)),s=await session(j),id=randomUUID(),constraint=`pr04_audit_${marker}`;

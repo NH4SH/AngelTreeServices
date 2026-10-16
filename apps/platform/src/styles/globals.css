@@ -22770,3 +22770,8 @@ body:has(.appointment-overlay) {
 /* Keep grouped payment fields consistent with the existing CRM form layout. */
 .manual-payment-form .manual-payment-fields { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 1rem; }
 .manual-payment-form :is(input, select, textarea) { font-size: 1rem; }
+
+/* PR05: retain the existing editor layout while disabling the whole save payload. */
+.quote-editor-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.quote-edit-conflict { display: grid; gap: var(--space-3, 0.75rem); }
+.quote-editor-fields :is(input, select, textarea) { font-size: max(1rem, 16px); }

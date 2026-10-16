@@ -95,6 +95,8 @@ struct MobileQuoteDetail: Codable, Equatable, Hashable, Identifiable, Sendable {
     let customerMessage: String?
     let lines: [MobileQuoteLine]
     let portalStatus: String
+    var editRevision: Int? = nil
+    var quoteEditVersion: Int? = nil
 }
 
 struct MobileQuoteWriteRequest: Codable, Equatable, Sendable {
@@ -106,6 +108,7 @@ struct MobileQuoteWriteRequest: Codable, Equatable, Sendable {
     let recipientContactId: String?
     let approvalContactId: String?
     let lines: [MobileQuoteLine]
+    var expectedRevision: Int? = nil
 }
 
 struct MobileQuoteDirectoryPayload: Codable, Sendable { let results: [MobileQuoteDirectoryItem]; let nextCursor: String? }

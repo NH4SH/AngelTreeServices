@@ -3,7 +3,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
 import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
@@ -71,13 +71,15 @@ export function AddQuoteForm({
   const action = isEditing ? updateQuote : createQuote;
   const [state, formAction, pending] = useReliableActionState(action, initialState);
   const [dirty, setDirty] = useState(false);
+  const confirmedReload = useRef(false);
+  const [expectedRevision, setExpectedRevision] = useState(quote?.edit_revision);
   const [selectedPartyValue, setSelectedPartyValue] = useState(
     quote
       ? contractingPartyValue(quote)
       : leadPrefill?.partyValue ?? (defaultCustomerId ? `customer:${defaultCustomerId}` : ""),
   );
   const selectedParty = parseContractingParty(selectedPartyValue);
-  const originalPartyValue = quote ? contractingPartyValue(quote) : "";
+  const [originalPartyValue, setOriginalPartyValue] = useState(quote ? contractingPartyValue(quote) : "");
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(
     quote?.quote_line_items?.length
       ? [...quote.quote_line_items]
@@ -114,12 +116,15 @@ export function AddQuoteForm({
   useEffect(() => {
     if (state.status === "success") {
       setDirty(false);
+      if (state.savedRevision) setExpectedRevision(state.savedRevision);
+      if (state.savedLineIds) setLineItems(current => current.map(line => ({ ...line, persistedId: state.savedLineIds?.[line.id] ?? line.persistedId })));
+      setOriginalPartyValue(selectedPartyValue);
     }
   }, [state]);
 
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirty) {
+      if (!dirty || confirmedReload.current) {
         return;
       }
       event.preventDefault();
@@ -133,9 +138,13 @@ export function AddQuoteForm({
     <form
       action={formAction}
       className="crm-form quote-editor-form"
+      aria-busy={pending}
       onChange={() => setDirty(true)}
+      // React resets uncontrolled fields when a form action resolves, including
+      // validation/conflict results. Keep the editor intact until explicit reload.
+      onReset={(event) => event.preventDefault()}
     >
-      {quote ? <input name="quote_id" type="hidden" value={quote.id} /> : null}
+      {quote ? <><input name="quote_id" type="hidden" value={quote.id} /><input name="expected_revision" type="hidden" value={expectedRevision ?? ""} /></> : null}
       {leadPrefill?.sourceJobId || sourceLeadJobId ? <input name="source_lead_job_id" type="hidden" value={leadPrefill?.sourceJobId ?? sourceLeadJobId} /> : null}
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
@@ -143,6 +152,22 @@ export function AddQuoteForm({
         </p>
       ) : null}
 
+      {state.conflict && quote ? (
+        <section className="quote-edit-conflict" aria-label="Saved quote changed">
+          <p><strong>{state.conflict.changedBy}</strong>{state.conflict.changedAt ? ` saved a change ${formatBusinessDateTime(new Date(state.conflict.changedAt))}` : " changed the saved quote"}. The saved total is {formatCurrency(state.conflict.currentTotalCents)} ({state.conflict.currentStatus.replaceAll("_", " ")}).</p>
+          <div className="workflow-button-row">
+            <Link className="secondary-action" href={`/admin/quotes/${quote.id}`} target="_blank" rel="noopener noreferrer">Compare saved quote in a new tab</Link>
+            <button className="secondary-action" type="button" onClick={() => {
+              if (window.confirm("Reload the saved quote? Your unsaved edits on this page will be discarded.")) {
+                confirmedReload.current = true;
+                window.location.reload();
+              }
+            }}>Reload saved quote</button>
+          </div>
+        </section>
+      ) : null}
+
+      <fieldset className="quote-editor-fields" disabled={pending}>
       {!quote && leadPrefill ? <LeadRequestContext prefill={leadPrefill} /> : null}
 
       <section className="quote-editor-section">
@@ -359,7 +384,8 @@ export function AddQuoteForm({
 
               <label>
                 Title
-                {item.persistedId ? <input name="line_item_id" type="hidden" value={item.persistedId} /> : <input name="line_item_id" type="hidden" value="" />}
+                <input name="line_item_id" type="hidden" value={item.persistedId ?? ""} />
+                <input name="line_item_client_id" type="hidden" value={item.id} />
                 <input
                   name="line_item_name"
                   onChange={(event) => updateLineItem(item.id, { name: event.target.value }, setLineItems)}
@@ -476,12 +502,13 @@ export function AddQuoteForm({
         <Link
           className="secondary-action"
           href={closeHref}
-          onClick={(event) => confirmClose(event, dirty)}
+          onClick={(event) => { if (pending) event.preventDefault(); else confirmClose(event, dirty); }}
         >
           <X aria-hidden="true" size={17} />
           Close
         </Link>
       </div>
+      </fieldset>
     </form>
   );
 }

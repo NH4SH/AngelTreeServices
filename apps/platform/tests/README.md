@@ -1,5 +1,52 @@
 # CRM Usability Regression Checks
 
+## PR05 atomic quote editing
+
+The regular unit gate includes `quote-editing.test.mjs`: both actual additive
+migrations in embedded PostgreSQL, rollback/concurrency-token/grant checks, and
+complete acknowledgment parsing. Its identity helpers are controlled fixtures;
+live authorization and real row locking are checked separately below.
+
+Use the existing loopback disposable stack with all **76 migrations**, through
+`20261016060503_enforce_quote_edit_boundary.sql`. Never reset the active review
+database just to run this suite. Keep the CLI status JSON outside Git, mode 0600.
+From `apps/platform`, with the disposable web app on port 3102:
+
+```sh
+PR05_DISPOSABLE_STACK=1 \
+PR05_LOCAL_STATUS_FILE="$PR05_STATUS_FILE" \
+PR05_DOCKER_BIN="$PR05_DOCKER_BIN" \
+PR05_WEB_URL=http://127.0.0.1:3102 \
+PR05_RESULTS_FILE="$PR05_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/quote-editing.integration.test.mjs
+```
+
+The suite requires API `http://127.0.0.1:54321`, the dedicated Docker Unix socket
+and container `supabase_db_ats_pr02_disposable`. It creates synthetic local Auth
+accounts and draft records, disables only its own fixture identities afterward,
+and retains their history. It temporarily adds narrowly targeted failure
+constraints and removes them in `finally`; it never disables RLS or triggers.
+No project `.env`, real provider keys, money or outgoing mail are used.
+
+Cases include late line/audit rollback, recurring review rollback, line ownership,
+stable IDs, meaningful revisions, real simultaneous saves and lock waits, live
+role/offboarding denial, direct-write withdrawal, closed/source scope protection,
+party/contact/property checks, material references, existing portal-token and
+delivery preservation, draft deletion, and actual mobile create/duplicate/edit
+HTTP compatibility. Also rerun PR03/04/06/07 and offboarding suites. Run shared
+office-notification integration suites sequentially: fixture recipients accumulate
+in the retained local DB, and receipt delivery intentionally processes 100 per
+invocation. Retire only accounts owned by the completed test run between suites.
+
+Browser verification must include uncontrolled notes/contacts as well as line
+inputs: React resets uncontrolled fields after a resolved action unless the
+editor prevents reset. Exercise conflict, explicit reload, keyboard save, a new
+line followed by a second save, and desktop/mobile overflow. Native Foundation
+DTO checks and syntax parsing do not replace a full Xcode simulator build.
+
+See `src/lib/quotes/ATOMIC_EDITING.md` for transaction, rollout and residual
+approval/communications boundaries.
+
 ## PR07 ordered payments and manual attempts
 
 The regular unit gate includes `ordered-payments.test.mjs` (actual new migration

@@ -17,6 +17,8 @@ struct ProposalEditorView: View {
     @State private var showPartyPicker = false
     @State private var saving = false
     @State private var errorMessage: String?
+    @State private var expectedRevision: Int?
+    @State private var hasEditCapability = false
 
     var body: some View {
         Form {
@@ -50,6 +52,7 @@ struct ProposalEditorView: View {
             Section("Validity") { DatePicker("Valid through", selection: $expiration, displayedComponents: .date) }
             if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
         }
+        .disabled(saving)
         .navigationTitle(quote == nil ? "New Proposal" : "Edit Proposal").navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }; ToolbarItem(placement: .confirmationAction) { Button(saving ? "Saving…" : "Save") { Task { await save() } }.disabled(saving) } }
         .sheet(isPresented: $showPartyPicker) { NavigationStack { ProposalPartyPicker(fieldService: fieldService) { selected in party = selected; showPartyPicker = false; Task { await loadParty(selected) } } } }
@@ -58,6 +61,10 @@ struct ProposalEditorView: View {
 
     private func configureExisting() {
         guard let quote, party == nil else { return }
+        // Capture the version alongside the fields. Parent refreshes must not
+        // give this unsaved editor a newer version than the content it opened.
+        expectedRevision = quote.editRevision
+        hasEditCapability = quote.quoteEditVersion == 1
         if let linked = quote.party { let selected = MobilePartySearchResult(id: linked.id, kind: linked.kind, name: linked.name, contactName: nil, email: nil, phone: nil, address: quote.serviceLocation.fullAddress); party = selected; Task { await loadParty(selected) } }
         customerMessage = quote.customerMessage ?? ""; serviceLocationID = quote.serviceLocation.id
         recipientID = quote.recipientContactId ?? ""; approvalID = quote.approvalContactId ?? ""
@@ -70,11 +77,16 @@ struct ProposalEditorView: View {
     }
 
     private func save() async {
+        guard !saving else { return }
+        if quote != nil && (!hasEditCapability || expectedRevision == nil) {
+            errorMessage = "Refresh this proposal and update the app before saving edits. Your current changes have been kept."
+            return
+        }
         guard let party, !serviceLocationID.isEmpty else { errorMessage = "Choose a customer and service location."; return }
         let validLines = lines.compactMap { $0.requestLine }
         guard validLines.count == lines.count, !validLines.isEmpty else { errorMessage = "Complete each line title, quantity, and price."; return }
         saving = true; defer { saving = false }
-        let request = MobileQuoteWriteRequest(customerId: party.kind == .customer ? party.id : nil, organizationId: party.kind == .organization ? party.id : nil, serviceLocationId: serviceLocationID, customerMessage: customerMessage.isEmpty ? nil : customerMessage, expiresAt: ISO8601DateFormatter().string(from: expiration), recipientContactId: recipientID.isEmpty ? nil : recipientID, approvalContactId: approvalID.isEmpty ? nil : approvalID, lines: validLines)
+        let request = MobileQuoteWriteRequest(customerId: party.kind == .customer ? party.id : nil, organizationId: party.kind == .organization ? party.id : nil, serviceLocationId: serviceLocationID, customerMessage: customerMessage.isEmpty ? nil : customerMessage, expiresAt: ISO8601DateFormatter().string(from: expiration), recipientContactId: recipientID.isEmpty ? nil : recipientID, approvalContactId: approvalID.isEmpty ? nil : approvalID, lines: validLines, expectedRevision: expectedRevision)
         do { onSaved(try await (quote == nil ? fieldService.createQuote(request) : fieldService.updateQuote(id: quote!.id, input: request))) }
         catch { errorMessage = (error as? LocalizedError)?.errorDescription ?? "Proposal could not be saved." }
     }

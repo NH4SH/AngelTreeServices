@@ -20,6 +20,7 @@ export type MobileQuoteWriteInput = {
   recipientContactId?: string | null;
   approvalContactId?: string | null;
   lines: MobileQuoteLineInput[];
+  expectedRevision?: number;
 };
 
 export function canManageMobileQuotes(roles: readonly PlatformRoleName[]) {
@@ -73,6 +74,7 @@ export function validateMobileQuoteWriteInput(value: unknown): { value: MobileQu
       recipientContactId: optionalString(input.recipientContactId),
       approvalContactId: optionalString(input.approvalContactId),
       lines,
+      expectedRevision: Number.isSafeInteger(input.expectedRevision) && Number(input.expectedRevision) > 0 ? Number(input.expectedRevision) : undefined,
     },
     error: "",
   };

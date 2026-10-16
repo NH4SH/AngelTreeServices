@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
+import { reconcileInvoiceBalance, syncReconciledPaymentCommunications } from "@/lib/payments/reconciliation";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 
 export type ManualPaymentActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  paymentId?: string;
+  released?: boolean;
 };
 
 const manualMethods = ["check", "cash", "ach", "other"] as const;
@@ -35,17 +37,19 @@ export async function recordManualPayment(
   }
 
   const invoiceId = String(formData.get("invoice_id") ?? "").trim();
+  const requestId = String(formData.get("request_id") ?? "").trim();
   const amountCents = toCents(formData.get("amount"));
   const paymentDate = parsePaymentDate(formData.get("payment_date"));
   const method = String(formData.get("payment_method") ?? "").trim();
   const reference = String(formData.get("reference") ?? "").trim().slice(0, 160) || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 1000) || null;
 
-  if (!invoiceId || amountCents <= 0 || !paymentDate || !manualMethods.includes(method as (typeof manualMethods)[number])) {
+  if (!uuid.test(invoiceId) || !uuid.test(requestId) || amountCents <= 0 || !paymentDate || !manualMethods.includes(method as (typeof manualMethods)[number])) {
     return { status: "error", message: "Enter a valid payment amount, date, and method." };
   }
 
-  const { error: paymentError } = await supabase.rpc("record_manual_invoice_payment", {
+  const { data: payment, error: paymentError } = await supabase.rpc("record_manual_invoice_payment_request", {
+    p_request_id: requestId,
     p_invoice_id: invoiceId,
     p_amount_cents: amountCents,
     p_paid_at: paymentDate,
@@ -54,19 +58,42 @@ export async function recordManualPayment(
     p_notes: notes,
   });
 
-  if (paymentError) {
-    return { status: "error", message: safeStaffMessage(paymentError.message, "The manual payment could not be recorded.") };
+  if (paymentError || !uuid.test(String(payment?.payment_id ?? ""))) {
+    return { status: "error", message: safeStaffMessage(paymentError?.message, "Payment could not be confirmed. Retry this saved attempt, or check it before changing details.") };
   }
 
-  const reconciliation = await reconcileInvoiceBalance(supabase, invoiceId);
-  if (!reconciliation.ok) {
-    return { status: "error", message: `Payment was recorded, but the invoice balance could not be updated: ${reconciliation.message}` };
-  }
+  // The RPC already committed payment, balance, request identity and audit
+  // atomically. Follow-up planning must never turn that fact into a failed save.
+  await syncReconciledPaymentCommunications(invoiceId);
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  return { status: "success", message: "Manual payment recorded and invoice balance updated." };
+  return { status: "success", paymentId: payment.payment_id, message: payment.payment_status === "cancelled"
+    ? "This attempt was already recorded and later corrected. No new payment was created."
+    : payment.replayed ? "The original payment is confirmed. No second payment was created."
+    : "Manual payment recorded and invoice balance updated." };
+}
+
+export async function resolveManualPaymentAttempt(_previous: ManualPaymentActionState, formData: FormData): Promise<ManualPaymentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Payment recovery is unavailable." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !hasAllowedRole(await getUserRoles(supabase, user.id), platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only active owners and admins can recover a payment attempt." };
+  }
+  const invoiceId = String(formData.get("invoice_id") ?? ""), requestId = String(formData.get("request_id") ?? "");
+  if (!uuid.test(invoiceId) || !uuid.test(requestId)) return { status: "error", message: "The saved payment attempt is invalid." };
+  const { data, error } = await supabase.rpc("resolve_manual_invoice_payment_request", { p_request_id: requestId, p_invoice_id: invoiceId });
+  if (error || !data || !["recorded", "abandoned"].includes(data.state)
+    || (data.state === "recorded" && !uuid.test(String(data.payment_id ?? "")))) {
+    return { status: "error", message: "The previous payment could not be checked. Keep this attempt and try again." };
+  }
+  revalidatePath(`/admin/invoices/${invoiceId}`);
+  return data.state === "recorded"
+    ? { status: "success", paymentId: data.payment_id, message: data.payment_status === "cancelled"
+      ? "This payment was recorded and later corrected. No new payment was created." : "The original payment is confirmed. No second payment was created." }
+    : { status: "idle", released: true, message: "Nothing was recorded. You can change the payment details." };
 }
 
 export async function cancelManualPayment(
@@ -257,9 +284,12 @@ function revalidatePaymentPaths({
 }
 
 function toCents(value: FormDataEntryValue | null) {
-  const parsed = Number.parseFloat(String(value ?? ""));
-  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+  const text = String(value ?? "").trim();
+  if (!/^\d+(?:\.\d{1,2})?$/.test(text)) return 0;
+  const cents = Math.round(Number(text) * 100);
+  return Number.isSafeInteger(cents) && cents <= 2147483647 ? cents : 0;
 }
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function parsePaymentDate(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();

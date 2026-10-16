@@ -106,11 +106,24 @@ Choose an available simulator from `xcrun simctl list devices available` if that
 
 ## Security rules
 
+Manual payment recording requires an active owner/admin and a server advertising
+`manualPaymentRequestVersion: 1`. The updated app uses the distinct
+`/manual-payment/attempt` path and persists the UUID plus original details before
+HTTP. An uncertain attempt survives relaunch and ordinary cache/logout clearing;
+retry uses the same identity. “Check before changing details” either confirms the
+original payment or closes the unused request on the server before edits are
+allowed. Do not erase a pending attempt to work around a network error. If local
+app storage was removed, review invoice payment history before starting another.
+Old clients without a UUID must be updated; the server does not synthesize one.
+See the platform's `ORDERED_PAYMENT_RECONCILIATION.md` for the coordinated future
+release contract. No production server/app rollout was performed for this change.
+
 - Supabase RLS and server authorization remain mandatory.
 - Client role strings only shape the interface; the API and database enforce access.
 - No service-role or private server credential belongs in the app.
 - Before distribution signing, enable the `group.org.angeltreeservices.field` App Group for both `org.angeltreeservices.field` and `org.angeltreeservices.field.widget` in the Apple Developer portal, then regenerate the provisioning profiles.
-- The initial app is read-only for financial and privileged CRM workflows.
+- Manual receipts are limited to the explicit owner/admin workflow above; other
+  financial and privileged CRM workflows retain their existing boundaries.
 - Internal/team notes are presented separately and are never relabeled as customer-facing scope.
 
 ## Deferred roadmap

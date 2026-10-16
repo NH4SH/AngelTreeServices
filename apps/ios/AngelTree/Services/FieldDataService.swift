@@ -27,6 +27,7 @@ protocol FieldDataService: Sendable {
     func invoiceDirectory(scope: MobileInvoiceScope, cursor: String?, query: String?, userID: String, allowCached: Bool) async throws -> (page: MobileInvoicePage, cached: Bool)
     func invoiceDetail(id: String, userID: String, allowCached: Bool) async throws -> (payload: MobileInvoicePayload, cached: Bool)
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest) async throws -> MobileInvoicePayload
+    func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload
 }
 
 actor LiveFieldDataService: FieldDataService {
@@ -159,5 +160,8 @@ actor LiveFieldDataService: FieldDataService {
     }
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest) async throws -> MobileInvoicePayload {
         let token = try await authentication.validAccessToken(); return try await api.recordManualPayment(invoiceID: invoiceID, input: input, accessToken: token)
+    }
+    func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload {
+        let token = try await authentication.validAccessToken(); return try await api.resolveManualPayment(invoiceID: invoiceID, requestID: requestID, accessToken: token)
     }
 }

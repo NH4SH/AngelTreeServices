@@ -2,13 +2,26 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
-import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { cancelPendingCommunications, syncAutomatedCommunications, syncInvoicePaymentCommunications } from "@/lib/communications/queue";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
   | { ok: true; balanceDueCents: number; paidCents: number; status: InvoiceStatus }
   | { ok: false; message: string };
+
+export async function syncReconciledPaymentCommunications(invoiceId: string) {
+  const supabase = getServiceRoleClient();
+  if (!supabase) return false;
+  try {
+    const result = await syncInvoicePaymentCommunications(supabase, invoiceId);
+    if (result.error) console.error("Payment saved; follow-up planning needs review.", { invoiceId });
+    return !result.error;
+  } catch {
+    console.error("Payment saved; follow-up planning needs review.", { invoiceId });
+    return false;
+  }
+}
 
 export async function getSuccessfulPaymentTotal(
   supabase: SupabaseClient<any, "public", any>,

@@ -69,11 +69,12 @@ test("PR06 webhook recovery: actual receipts, money, ownership and downstream ef
   }
   const run = async(name,fn)=>t.test(name,async()=>{await fn();results.push({name,pass:true});});
   let counter=0, sends=0, syncs=0;
-  const providerObjects=new Map(), network=[];
+  const providerObjects=new Map(), refundObjects=new Map(), network=[];
   const provider={
     checkout:{sessions:{retrieve:async(id,_args,opts)=>{network.push({id,opts});assert.equal(opts.maxNetworkRetries,0);return structuredClone(providerObjects.get(id));}}},
     paymentIntents:{retrieve:async(id,_args,opts)=>{network.push({id,opts});return structuredClone(providerObjects.get(id));}},
     charges:{retrieve:async(id,_args,opts)=>{network.push({id,opts});return structuredClone(providerObjects.get(id));}},
+    refunds:{retrieve:async(id)=>structuredClone([...refundObjects.values()].flat().find(r=>r.id===id)),list:async({charge,starting_after})=>{const all=refundObjects.get(charge)??[];const start=starting_after?all.findIndex(r=>r.id===starting_after)+1:0;return {data:structuredClone(all.slice(start,start+100)),has_more:start+100<all.length};}},
     disputes:{retrieve:async(id,_args,opts)=>{network.push({id,opts});return structuredClone(providerObjects.get(id));}},
   };
   const deps={supabase:service,stripe:provider,livemode:false,
@@ -107,6 +108,7 @@ test("PR06 webhook recovery: actual receipts, money, ownership and downstream ef
     const {normalizeStripeWebhook}=await import('../src/lib/payments/webhook-recovery.ts');
     const {createCheckoutBudget}=await import('../src/lib/payments/checkout-budget.ts');
     const evidence=await normalizeStripeWebhook(f.event,deps,createCheckoutBudget());
+    evidence.snapshot_token=check(await service.rpc('prepare_stripe_webhook_snapshot',{p_event_id:f.event.id,p_token:c.token,p_evidence:evidence}));
     check(await service.rpc('apply_stripe_webhook',{p_event_id:f.event.id,p_token:c.token,p_evidence:evidence}));
     return {token:c.token,evidence};
   }
@@ -207,20 +209,21 @@ test("PR06 webhook recovery: actual receipts, money, ownership and downstream ef
     f.session.payment_status='unpaid';f.intent.status='processing';f.intent.amount_received=0;
     await runEvent(event('checkout.session.completed',f.session.id));assert.equal((await rows(f.inv))[0].status,'succeeded');
   });
-  await run('decreased refund snapshots remain recoverable; success-after-refund stays refunded',async()=>{
-    const f=await fixture();await runEvent(f.event);f.charge.amount_refunded=800;
+  function refunds(f,amount,status='succeeded') {
+    const refund={id:`re_pr06_${marker}_${++counter}`,charge:f.charge.id,payment_intent:f.intent.id,amount,currency:'usd',status,created:Math.floor(Date.now()/1000)};
+    refundObjects.set(f.charge.id,[refund]);f.charge.amount_refunded=amount;return refund;
+  }
+  await run('current individual refund objects defeat stale charge totals; success-after-refund stays refunded',async()=>{
+    const f=await fixture();await runEvent(f.event);const refund=refunds(f,800);
     await runEvent(event('charge.refunded',f.charge.id));assert.equal((await rows(f.inv))[0].refunded_principal_cents,800);
-    const lower=event('charge.refunded',f.charge.id);f.charge.amount_refunded=300;
-    await assert.rejects(runEvent(lower),/refund_snapshot_conflict/);
-    const held=check(await service.from('stripe_webhook_events').select('state,phase,last_problem,processed_at').eq('event_id',lower.id).single());
-    assert.equal(held.state,'failed');assert.equal(held.phase,'pending');assert.equal(held.last_problem,'refund_snapshot_conflict');assert.equal(held.processed_at,null);
+    f.charge.amount_refunded=300;await runEvent(event('charge.refunded',f.charge.id));
     assert.equal((await rows(f.inv))[0].refunded_principal_cents,800);
-    f.charge.amount_refunded=800;await runEvent(lower);
-    f.charge.amount_refunded=1000;await runEvent(event('charge.refunded',f.charge.id));await runEvent(event('checkout.session.async_payment_succeeded',f.session.id));
+    refundObjects.get(f.charge.id).push({...refund,id:`re_pr06_${marker}_${++counter}`,amount:200});f.charge.amount_refunded=1000;
+    await runEvent(event('charge.refunded',f.charge.id));await runEvent(event('checkout.session.async_payment_succeeded',f.session.id));
     assert.equal((await rows(f.inv))[0].status,'refunded');assert.equal((await financial(f.inv)).balance_due_cents,1000);
   });
   await run('success first observed after a full provider refund never credits the invoice',async()=>{
-    const f=await fixture();f.charge.amount_refunded=1000;await runEvent(f.event);
+    const f=await fixture();refunds(f,1000);await runEvent(f.event);
     assert.equal((await rows(f.inv))[0].status,'refunded');assert.equal((await financial(f.inv)).balance_due_cents,1000);
   });
   await run('card confirmation flow and authoritative failed/processing states preserve all paths',async()=>{
@@ -243,6 +246,7 @@ test("PR06 webhook recovery: actual receipts, money, ownership and downstream ef
     const {normalizeStripeWebhook}=await import('../src/lib/payments/webhook-recovery.ts');
     const {createCheckoutBudget}=await import('../src/lib/payments/checkout-budget.ts');
     const evidence=await normalizeStripeWebhook(f.event,deps,createCheckoutBudget());
+    evidence.snapshot_token=check(await service.rpc('prepare_stripe_webhook_snapshot',{p_event_id:f.event.id,p_token:c.token,p_evidence:evidence}));
     const release=await hold(`select id from public.invoices where id='${f.inv.id}' for update`);
     await sql(`update public.stripe_webhook_events set lease_expires_at=clock_timestamp()+interval '300 milliseconds' where event_id='${f.event.id}'`);
     let done=false;const applying=service.rpc('apply_stripe_webhook',{p_event_id:f.event.id,p_token:c.token,p_evidence:evidence}).then(r=>{done=true;return r;});
@@ -281,7 +285,13 @@ test("PR06 webhook recovery: actual receipts, money, ownership and downstream ef
   });
   await run('different events for one invoice follow the shared invoice-first lock order',async()=>{
     const f=await fixture();const e=event('checkout.session.async_payment_succeeded',f.session.id);
-    const outcomes=await Promise.all([runEvent(f.event),runEvent(e)]);assert.ok(outcomes.every(r=>r.status==='completed'));
+    const events=[f.event,e],outcomes=await Promise.allSettled(events.map(current=>runEvent(current)));
+    assert.ok(outcomes.some(r=>r.status==='fulfilled'&&r.value.status==='completed'));
+    for(let i=0;i<outcomes.length;i++)if(outcomes[i].status==='rejected'){
+      assert.equal(outcomes[i].reason.applicationErrorCode,'provider_snapshot_superseded');
+      assert.equal((await receipt(events[i])).processed_at,null);await runEvent(events[i]);
+    }
+    assert.ok((await receipt(f.event)).processed_at);assert.ok((await receipt(e)).processed_at);
     assert.equal((await rows(f.inv)).length,1);assert.equal((await financial(f.inv)).balance_due_cents,0);
     const notices=check(await service.from('activity_log').select('id').eq('subject_id',f.inv.id).eq('event_type','customer_payment_succeeded'));assert.equal(notices.length,1);
   });

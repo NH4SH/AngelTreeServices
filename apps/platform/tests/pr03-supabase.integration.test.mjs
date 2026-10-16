@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
@@ -217,7 +217,7 @@ test("PR03 real local Auth, RLS, guarded void, recovery fences and PostgreSQL co
     for (const paid of [false, true]) {
       const inv = await invoice();
       const line = check(await service.from("invoice_line_items").insert({ invoice_id: inv.id, name: "Fixture", quantity: 1, unit_price_cents: 1000, total_cents: 1000 }).select("id").single());
-      if (paid) check(await owner.client.rpc("record_manual_invoice_payment", { p_invoice_id: inv.id, p_amount_cents: 1000, p_paid_at: new Date().toISOString(), p_method: "cash" }));
+      if (paid) check(await owner.client.rpc("record_manual_invoice_payment_request", { p_request_id:randomUUID(), p_invoice_id: inv.id, p_amount_cents: 1000, p_paid_at: new Date().toISOString(), p_method: "cash" }));
       else check(await finish(inv, (await begin(inv)).token));
       denied(await owner.client.from("invoices").update({ total_cents: 2000 }).eq("id", inv.id), "42501");
       denied(await owner.client.from("invoice_line_items").update({ total_cents: 2000 }).eq("id", line.id), "42501");
@@ -233,7 +233,7 @@ test("PR03 real local Auth, RLS, guarded void, recovery fences and PostgreSQL co
   });
   await run("manual correction and restore still work with the new row locks", async () => {
     const inv = await invoice();
-    const p = check(await owner.client.rpc("record_manual_invoice_payment", { p_invoice_id: inv.id, p_amount_cents: 1000, p_paid_at: new Date().toISOString(), p_method: "cash" }));
+    const p = check(await owner.client.rpc("record_manual_invoice_payment_request", { p_request_id:randomUUID(), p_invoice_id: inv.id, p_amount_cents: 1000, p_paid_at: new Date().toISOString(), p_method: "cash" })).payment_id;
     assert.equal(await state(inv), "paid");
     check(await owner.client.rpc("cancel_manual_invoice_payment", { p_invoice_id: inv.id, p_payment_id: p, p_reason: "PR03 fixture correction" }));
     assert.equal(await state(inv), "sent");

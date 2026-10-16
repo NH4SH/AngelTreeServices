@@ -14,4 +14,5 @@ extension FieldDataService {
     func invoiceDirectory(scope: MobileInvoiceScope, cursor: String?, query: String?, userID: String, allowCached: Bool) async throws -> (page: MobileInvoicePage, cached: Bool) { throw MobileAPIError.requestRejected("Invoice directory is not configured for this test.") }
     func invoiceDetail(id: String, userID: String, allowCached: Bool) async throws -> (payload: MobileInvoicePayload, cached: Bool) { throw MobileAPIError.requestRejected("Invoice detail is not configured for this test.") }
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest) async throws -> MobileInvoicePayload { throw MobileAPIError.requestRejected("Manual payment is not configured for this test.") }
+    func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload { throw MobileAPIError.requestRejected("Manual payment recovery is not configured for this test.") }
 }

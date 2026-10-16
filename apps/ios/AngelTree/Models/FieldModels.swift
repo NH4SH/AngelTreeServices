@@ -140,8 +140,15 @@ struct MobileInvoiceDetail: Codable, Equatable, Hashable, Identifiable, Sendable
 }
 struct MobileInvoiceDirectoryPayload: Codable, Sendable { let results: [MobileInvoiceDirectoryItem]; let nextCursor: String? }
 struct MobileInvoicePage: Equatable, Sendable { let results: [MobileInvoiceDirectoryItem]; let nextCursor: String? }
-struct MobileInvoicePayload: Codable, Sendable { let invoice: MobileInvoiceDetail; let canRecordPayments: Bool }
-struct MobileManualPaymentRequest: Codable, Equatable, Sendable { let amountCents: Int; let method: String; let receivedAt: String; let reference: String?; let notes: String? }
+struct MobileManualPaymentResult: Codable, Sendable { let requestId: String; let paymentId: String?; let state: String; let replayed: Bool? }
+struct MobileInvoicePayload: Codable, Sendable {
+    let invoice: MobileInvoiceDetail; let canRecordPayments: Bool
+    let manualPayment: MobileManualPaymentResult?; let manualPaymentRequestVersion: Int?
+    init(invoice: MobileInvoiceDetail, canRecordPayments: Bool, manualPayment: MobileManualPaymentResult? = nil, manualPaymentRequestVersion: Int? = nil) {
+        self.invoice = invoice; self.canRecordPayments = canRecordPayments; self.manualPayment = manualPayment; self.manualPaymentRequestVersion = manualPaymentRequestVersion
+    }
+}
+struct MobileManualPaymentRequest: Codable, Equatable, Sendable { let requestId: String; let amountCents: Int; let method: String; let receivedAt: String; let reference: String?; let notes: String? }
 
 struct MobileJobDirectoryItem: Codable, Equatable, Hashable, Identifiable, Sendable {
     struct Party: Codable, Equatable, Hashable, Sendable {

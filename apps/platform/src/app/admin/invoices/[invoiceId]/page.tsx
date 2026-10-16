@@ -362,8 +362,11 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                       ))}
                     </div>
                   ) : <EmptyInline>No payments recorded yet.</EmptyInline>}
-                  {canManageDelivery && canRecordManualInvoicePayment(detail.data.status, detail.data.balance_due_cents) ? (
+                  {canManageDelivery && context.user ? (
                     <ManualPaymentForm
+                      key={`${context.user.id}:${detail.data.id}`}
+                      actorId={context.user.id}
+                      canRecord={canRecordManualInvoicePayment(detail.data.status, detail.data.balance_due_cents)}
                       balanceDueCents={detail.data.balance_due_cents}
                       invoiceId={detail.data.id}
                       isUnsent={!detail.data.sent_at}

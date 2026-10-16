@@ -1,7 +1,7 @@
 /* Angel Tree Services overrides */
 
 :root {
-  --ats-green: #2f8e2f;
+  --ats-green: #287228;
   --ats-green-dark: #1f5a22;
   --ats-green-deep: #163f19;
   --ats-green-soft: #f6fbf2;
@@ -2160,4 +2160,57 @@ body.ats-form-submitted .ats-form-success {
     background: #fff;
     color: var(--ats-green-dark) !important;
   }
+}
+
+/* Keep text readable over photographs and the legacy green section palette. */
+#top .section-background-overlay {
+  background-color: rgba(8, 35, 12, 0.68) !important;
+  opacity: 1 !important;
+}
+
+#contact .section-background,
+#footer-sections .section-background {
+  background-color: var(--ats-green-dark) !important;
+}
+
+/* The exported divider stroke crossed the contact text at narrow widths. */
+#contact .section-divider-display {
+  display: none;
+}
+
+#contact .section-border {
+  clip-path: none !important;
+}
+
+.ats-mobile-cta,
+#contact .form-submit-button,
+#contact .ats-field-help,
+#contact .ats-form-footer-note {
+  color: var(--ats-green-dark) !important;
+}
+
+.ats-mobile-cta:hover,
+.ats-mobile-cta:focus-visible,
+#about .list-item-content__button,
+#about .list-section-button,
+#contact .ats-segmented-option input:checked + span,
+#contact .ats-contact-preference__options input:checked + span {
+  background: var(--ats-green-dark) !important;
+  border-color: var(--ats-green-dark) !important;
+  color: #fff !important;
+}
+
+#footer-sections a {
+  color: #fff !important;
+}
+
+#contact .form-submit-button:focus-visible,
+#contact .ats-contact-form input:focus-visible,
+#contact .ats-contact-form select:focus-visible,
+#contact .ats-contact-form textarea:focus-visible,
+#contact .ats-segmented-option input:focus-visible + span,
+#contact .ats-contact-preference__options input:focus-visible + span {
+  outline: 3px solid var(--ats-green-deep);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #fff;
 }

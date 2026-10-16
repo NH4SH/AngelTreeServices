@@ -338,7 +338,8 @@ def page_document(page: dict) -> str:
 {page['body']}
   </main>
 {footer()}
-  <script src="/site-pages.js?v=recognition1" defer></script>
+  <script src="/ats-website.js?v=analytics1" defer></script>
+  <script src="/site-pages.js?v=analytics1" defer></script>
 </body>
 </html>
 """
@@ -710,12 +711,12 @@ def credentials_body() -> str:
           <p>Angel Tree Services was founded in 2015 after its founder had already spent more than 20 years in the tree industry. Together with the company’s local service since 2015, that continuous history represents {COMPANY_EXPERIENCE_PROOF}. No additional qualification should be inferred from these badges.</p>
           <p><strong>Angel Tree Services is insured.</strong> Certificates of insurance are available upon request. Specific policy details remain available directly from the office rather than being published as a blanket guarantee.</p>
         </div>
-        <div class="ats-badges" aria-label="ISA credentials">
+        <div class="ats-badges" role="group" aria-label="ISA credentials">
           <img src="/assets/isamember1_004.jpg" width="190" height="299" alt="ISA Member">
           <img src="/assets/certified-arborist.png" width="646" height="1126" alt="ISA Certified Arborist">
         </div>
       </div>
-      <div class="ats-section-inner ats-affiliations" aria-labelledby="professional-affiliations-title">
+      <div class="ats-section-inner ats-affiliations" role="group" aria-labelledby="professional-affiliations-title">
         <div>
           <p class="ats-eyebrow">Professional affiliations</p>
           <h2 id="professional-affiliations-title">Connected to the Fredericksburg business community.</h2>
@@ -812,7 +813,7 @@ def about_body() -> str:
           <p>Since founding Angel Tree Services, he has brought that background into more than a decade of operating a local family business. Together, that continuous history represents {COMPANY_EXPERIENCE_PROOF}.</p>
           <p class="ats-about-history__disclaimer">These former roles are part of the founder’s work history. They do not imply endorsement of Angel Tree Services by either former employer or any current utility affiliation.</p>
         </div>
-        <div class="ats-about-territories" aria-label="Virginia service territories from the founder's prior leadership experience">
+        <div class="ats-about-territories" role="group" aria-label="Virginia service territories from the founder's prior leadership experience">
           <p>Leadership experience across Virginia</p>
           <ul>
             <li>Fredericksburg area</li>
@@ -910,7 +911,7 @@ def recognition_body() -> str:
           </div>
           <p>Google remains the primary review signal. Angi adds a longer project-history view, while BBB publishes a separate business rating. No scores or review counts are combined.</p>
         </div>
-        <div class="ats-review-metrics" aria-label="Current third-party review and rating information">
+        <div class="ats-review-metrics" role="group" aria-label="Current third-party review and rating information">
           <article>
             <p class="ats-review-metrics__platform">Google</p>
             <p class="ats-review-metrics__value">120+</p>
@@ -919,7 +920,7 @@ def recognition_body() -> str:
           </article>
           <article>
             <p class="ats-review-metrics__platform">Angi</p>
-            <p class="ats-review-metrics__value" aria-label="5.0 out of 5 stars">5.0 <span aria-hidden="true">★</span></p>
+            <p class="ats-review-metrics__value" role="img" aria-label="5.0 out of 5 stars">5.0 <span aria-hidden="true">★</span></p>
             <p><strong>44 customer reviews</strong></p>
             <a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a>
           </article>

@@ -1,281 +1,387 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Release Decision
+## Current decision — October 16, 2026
 
-**Status:** Conditionally ready for a controlled Netlify release. Do not publish until every item marked **Approval gate** is resolved.
+The owner approved finalizing the existing website patch, conditional email validation,
+this checklist update, and local testing. The subsequent safe-release request also
+authorized isolated CRM contract testing, completed locally as recorded below.
+**Pushes, pull requests that trigger previews,
+merges, deploys, analytics activation, and production submissions remain unauthorized.**
 
-The review did not deploy, change DNS, modify the admin Netlify site, submit a real lead, submit a sitemap, or request indexing.
+This batch changes contact reliability and prepares shared measurement with collection
+disabled. It does not change CRM code, service categories, page URLs, search metadata,
+important service content, the visual identity, or hosting configuration.
 
-## Approved Scope
+## Source and artifact ownership
 
-The release contains one hand-maintained homepage and nine build-generated routes:
+- Maintain the homepage in root `index.html` and its behavior in
+  `ats-form-enhancements.js`; `ats-website.js` is the shared initializer.
+- Maintain secondary pages, sitemap, robots, and llms content in
+  `scripts/build-public-pages.py`. Do not edit generated pages directly.
+- `scripts/build-public-site.py` assembles the allowlisted artifact in ignored
+  `dist-public/`, applies guarded emergency-copy replacements, and optionally
+  configures Google address autocomplete.
+- Tests and documentation stay outside the public artifact. The validator rejects
+  extra routes, application source, reports, environment files, and known secret patterns.
 
-| Page | Public URL | Build artifact |
-| --- | --- | --- |
-| Homepage | `https://angeltreeservices.org/` | `dist-public/index.html` |
-| Services | `https://angeltreeservices.org/services/` | `dist-public/services/index.html` |
-| Tree removal | `https://angeltreeservices.org/services/tree-removal/` | `dist-public/services/tree-removal/index.html` |
-| Tree pruning | `https://angeltreeservices.org/services/tree-pruning/` | `dist-public/services/tree-pruning/index.html` |
-| Stump grinding | `https://angeltreeservices.org/services/stump-grinding/` | `dist-public/services/stump-grinding/index.html` |
-| Emergency tree service | `https://angeltreeservices.org/services/emergency-tree-service/` | `dist-public/services/emergency-tree-service/index.html` |
-| Commercial/HOA tree care | `https://angeltreeservices.org/services/commercial-hoa-tree-care/` | `dist-public/services/commercial-hoa-tree-care/index.html` |
-| Credentials and safety | `https://angeltreeservices.org/credentials-safety/` | `dist-public/credentials-safety/index.html` |
-| Project library | `https://angeltreeservices.org/projects/` | `dist-public/projects/index.html` |
-| Reviews, recognition, and media | `https://angeltreeservices.org/recognition/` | `dist-public/recognition/index.html` |
+The release retains all 13 existing routes, one homepage and 12 generated pages:
 
-No individual case-study or location page is approved or emitted.
-
-## Build Contract
-
-| Setting | Required value |
+| Route | Artifact |
 | --- | --- |
-| Netlify site | `verdant-shortbread-99c404` (`86c48a95-ead4-4b15-8e57-fa827558b2f0`) |
-| Base directory | Repository root; no subdirectory |
+| `/` | `dist-public/index.html` |
+| `/services/` | `dist-public/services/index.html` |
+| `/services/tree-removal/` | `dist-public/services/tree-removal/index.html` |
+| `/services/tree-pruning/` | `dist-public/services/tree-pruning/index.html` |
+| `/services/stump-grinding/` | `dist-public/services/stump-grinding/index.html` |
+| `/services/emergency-tree-service/` | `dist-public/services/emergency-tree-service/index.html` |
+| `/services/commercial-hoa-tree-care/` | `dist-public/services/commercial-hoa-tree-care/index.html` |
+| `/credentials-safety/` | `dist-public/credentials-safety/index.html` |
+| `/projects/` | `dist-public/projects/index.html` |
+| `/about/` | `dist-public/about/index.html` |
+| `/recognition/` | `dist-public/recognition/index.html` |
+| `/privacy/` | `dist-public/privacy/index.html` |
+| `/privacy-request/` | `dist-public/privacy-request/index.html` |
+
+No new location or individual case-study page is part of this batch.
+
+## Build contract
+
+| Setting | Value |
+| --- | --- |
+| Public Netlify project | `verdant-shortbread-99c404` (`86c48a95-ead4-4b15-8e57-fa827558b2f0`) |
+| Base directory | Repository root |
 | Build command | `npm run test:public` |
 | Publish directory | `dist-public` |
-| Build runtime | Node.js/npm and Python 3 |
-| Static-build environment variables | None |
+| Runtime | Node.js/npm and Python 3 |
 | Canonical origin | `https://angeltreeservices.org` |
-| CRM origin | `https://admin.angeltreeservices.org` (separate application and deployment) |
+| Separate CRM origin | `https://admin.angeltreeservices.org` |
 
-`npm run test:public` performs both generation and validation. It must fail the Netlify build if either phase fails.
+No environment variable is required for the static build. The existing optional
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` controls address autocomplete. Test with it absent;
+verify production's existing autocomplete behavior separately before any release.
+No CRM secrets or configuration belong in the static artifact.
 
-```bash
-npm run build:public
-npm run validate:public
-```
-
-The combined release command is:
+Run from the isolated checkout:
 
 ```bash
 npm run test:public
-```
-
-The builder removes and recreates only `dist-public/`, copies the curated public source and assets, and invokes `scripts/build-public-pages.py` inside that directory. The generator is not allowed to target the repository root. Generated routes, `sitemap.xml`, and `robots.txt` are build artifacts and are not committed.
-
-## Release Source Files
-
-These files define or enforce the public release:
-
-- `.gitignore`
-- `index.html`
-- `overrides.css`
-- `ats-form-enhancements.js`
-- `site-pages.css`
-- `site-pages.js`
-- `package.json`
-- `netlify.toml`
-- `scripts/build-public-site.py`
-- `scripts/build-public-pages.py`
-- `scripts/validate-public-site.py`
-- `PUBLIC_RECOGNITION_SOURCES.md`
-- `RECOGNITION_IMPLEMENTATION_REPORT.md`
-- `assets/`
-- `angeltreeservices_backup_files/`
-
-These formerly committed outputs must remain deleted from source control because the build now owns them:
-
-- `credentials-safety/index.html`
-- `projects/index.html`
-- `services/index.html`
-- `services/tree-removal/index.html`
-- `services/tree-pruning/index.html`
-- `services/stump-grinding/index.html`
-- `services/emergency-tree-service/index.html`
-- `services/commercial-hoa-tree-care/index.html`
-- `sitemap.xml`
-- `robots.txt`
-- `scripts/__pycache__/build-public-pages.cpython-314.pyc`
-
-## Expected Publish Artifact
-
-`dist-public/` must contain exactly ten `index.html` files at the routes listed above, plus:
-
-- `dist-public/overrides.css`
-- `dist-public/ats-form-enhancements.js`
-- `dist-public/site-pages.css`
-- `dist-public/site-pages.js`
-- `dist-public/sitemap.xml`
-- `dist-public/robots.txt`
-- `dist-public/_redirects`
-- `dist-public/assets/`
-- `dist-public/angeltreeservices_backup_files/`
-
-The validator must reject extra indexable routes and public copies of non-release application source, reports, Markdown audits, screenshots outside the curated asset directories, environment files, site-authored local paths/localhost URLs, or secrets. Legacy Squarespace vendor bundles remain intentionally unmodified; their inert internal fallback/test strings are not site URLs or network targets.
-
-## Clean Build Verification
-
-The following process passed from a prospective clean checkout without `node_modules`:
-
-```bash
-npm run test:public
-find dist-public -name index.html -print | sort
-find dist-public -type f -print0 | sort -z | xargs -0 shasum -a 256
-npm run test:public
-find dist-public -type f -print0 | sort -z | xargs -0 shasum -a 256
-netlify build --offline
 git diff --check
 ```
 
-Expected result: eleven page files, two matching artifact hash manifests, no source mutation, a successful local Netlify build, and no whitespace errors.
+This runs both Node test files, rebuilds `dist-public/`, and validates all 13 routes.
+The builder replaces only that output directory. A repeat build with identical inputs
+must produce matching file hashes. No install, Netlify CLI command, or production
+request is needed for these checks.
 
-## Approval Gates
+Expected shared artifacts include `ats-website.js`, `ats-form-enhancements.js`,
+`ats-address-autocomplete.js`, `site-pages.js`, `overrides.css`, `site-pages.css`,
+`_redirects`, `sitemap.xml`, `robots.txt`, `llms.txt`, and curated assets. Every route
+must load one deferred shared initializer. Neither saved
+`google-analytics_analytics.js` replacement may ship.
 
-- [ ] **Business claim evidence:** confirm the public `ISA Certified Arborist` credential is active and verifiable.
-- [ ] **Business claim evidence:** confirm the verified public hierarchy: `30+ years of tree-industry experience`, `founded in 2015`, and `founder with more than 20 years in the industry before 2015`.
-- [ ] **Recognition source freshness:** reverify the live Google rating, review-count threshold, profile URL, exact Best of the Burg finalist listing, and NBC4 links immediately before publishing.
-- [ ] **Netlify dashboard:** verify there is no dashboard base-directory, build-command, or publish-directory override that conflicts with repository `netlify.toml`.
-- [ ] **Netlify redirects:** inspect dashboard-controlled redirects before adding or changing repository redirects. Do not run redirect changes blindly.
-- [x] **Domain decision:** redirect `angeltreeservice.org` and `www.angeltreeservice.org` to matching paths on `https://angeltreeservices.org/` with forced `301` rules. Approved July 19, 2026; production deployment remains a separate approval gate.
-- [ ] **CRM compatibility:** verify the separate admin application still allows the public origins and exposes `https://admin.angeltreeservices.org/api/leads`.
-- [ ] **Rate-limit decision:** replace the CRM's process-memory public-lead limiter with durable shared storage, or explicitly accept it as best-effort for this low-volume release. Replace it before intentional high-volume traffic.
-- [ ] **Real lead approval:** obtain explicit permission before submitting one controlled production lead.
-- [ ] **Release authorization:** obtain explicit approval for the exact Git commit and Netlify production publish.
+## Contact and measurement acceptance
 
-The static public build itself needs no environment variables. The separate CRM retains its existing runtime configuration; no CRM environment values belong in the public artifact.
+Use synthetic fixtures only. Serve the built artifact on loopback with a CSP that
+blocks external connections and form actions. Set `window.ATS_LEAD_INTAKE_URL` or
+the form's `data-lead-intake-url` to a local mock before testing. Never allow a
+fixture to reach `admin.angeltreeservices.org` or Netlify Forms.
 
-## Current Production Baseline and Backup
+- [ ] Selecting Email sets the email field's required and `aria-required` state,
+  and changes its label indicator to `(required)`, without immediately showing an error.
+- [ ] Email plus blank/invalid address sends no request. Submission focuses the
+  email field and links its inline error with `aria-describedby`.
+- [ ] Call, Text, and No preference allow a blank email. Switching preferences
+  preserves the draft, restores `(optional)`, and clears an obsolete required error.
+  Nonempty malformed email still fails validation. Repeated validation must not
+  leave `aria-describedby` pointing to a removed error; preserve any original hint.
+- [ ] On `pageshow`, including browser form-state restoration, the email
+  requirement and label match the restored preference without a change event.
+- [ ] Successful submission resets the preference and email requirement together.
+- [ ] Only JSON objects with `ok:true`, an `application/json` content type, and
+  HTTP 200/201/202 acknowledge receipt. Their status message receives focus.
+- [ ] Empty bodies, JSON null/primitives/arrays, malformed JSON, HTML, unexpected
+  statuses (including 204), and `ok:false` fail closed. Keep fields and submission ID.
+- [ ] Network errors and HTTP 400/403/413/415/429/500/503 show an error, retain the
+  draft/ID, and re-enable submission for retry.
+- [ ] Two submissions while a response is pending send one request. A failed
+  request retry retains the submission ID; a completed acknowledgment rotates it.
+- [ ] A throwing `ATSWebsite.track` never interrupts a customer's request.
+- [ ] `estimate_request_acknowledged` is diagnostic only. HTTP 200 replay and
+  HTTP 202 spam acknowledgments emit no such diagnostic. A 201 can still be a
+  likely duplicate: do not introduce `generate_lead`, a unique-inquiry conversion,
+  or mark this diagnostic as a key event.
+- [ ] `COLLECTION_ENABLED=false`, measurement ID empty, and no real Google tag
+  loader, gtag global, or collection is created by the shared module, even if
+  its consent integration point is called with `granted`.
+- [ ] Direct estimate links retain bounded current URL UTMs and valid service
+  prefill. Ordinary-navigation storage remains dormant without a future approved
+  consent-restoration integration; do not report it as active.
+- [ ] If the shared initializer is missing, incomplete, or throws, the form still
+  captures bounded current-URL campaign metadata. Its fallback creates no storage
+  or analytics transport.
 
-At review time, Netlify reported:
+Property verification, consent UI/privacy decisions, and a CRM-owned eligibility
+contract are future activation work. They are not permission to enable collection
+in this disabled batch. Phone clicks are intent, not completed calls; receipt
+acknowledgments are not verified new inquiries or won work.
+
+## Layout and navigation regression checks
+
+- [ ] All 13 pages render at desktop and mobile widths without horizontal overflow,
+  keep one H1 and correct canonical metadata, and retain approved content.
+- [ ] Homepage and secondary-page mobile menus support Escape/focus return,
+  navigation, outside click, and focus exit.
+- [ ] Mobile Call/Estimate actions disappear at the contact form and cannot be
+  focused while hidden. Phone links retain `(540) 388-8715`; do not place calls.
+- [ ] Contact labels, focus indication, live status, errors, and draft retention
+  remain usable at desktop/mobile widths. Review actual screenshots.
+- [ ] Removal/pruning/stump links retain the currently supported `Tree Care`
+  prefill; emergency and commercial prefills remain compatible. A narrower
+  service subtype is not part of this patch.
+- [ ] Keep the 24/7 emergency response context and its conditions: serious damage
+  or urgent hazards; response depends on conditions, crew safety, location,
+  and severity. Do not promise immediate arrival.
+- [ ] Recognition source distinctions, existing reviews, credentials, and
+  privacy content remain unchanged. No new factual claims are approved here.
+
+## Production baseline and future release authorization
+
+Last verified during the October 16 discovery (recheck before any future push):
 
 | Item | Baseline |
 | --- | --- |
-| Production commit | `73358a371d221d81770467bd49f2b9f3a3fc33ad` |
-| Production deploy | `6a5ab6d61cf11300081138b1` |
-| Deploy context | `production`, branch `main` |
-| Published | July 17, 2026 at `23:13:39 UTC` |
-| Netlify dashboard | `https://app.netlify.com/projects/verdant-shortbread-99c404` |
+| Published SHA | `2938577db20bb801ba797de0c4252d7e59b632d2` |
+| Published deploy | `6ab9b038d904e2000848f543` |
+| Context / branch | `production` / `main` |
+| Published | September 27, 2026, 8:09 p.m. Eastern |
+| Dashboard | `https://app.netlify.com/projects/verdant-shortbread-99c404` |
 
-Before release:
+Both projects' authenticated Netlify dashboard settings were inspected read-only
+on October 16, 2026, at approximately 06:19 UTC (02:19 Eastern):
 
-- [ ] Record the currently published deploy ID again in case production changes after this review.
-- [ ] Lock or retain that deploy in Netlify so it remains available for immediate republish.
-- [ ] Record the approved release commit and artifact hash manifest in the release notes.
-- [ ] Confirm the CRM/admin deployment remains separate and untouched.
+| Setting | Public website | CRM (`angel-tree-admin`) |
+| --- | --- | --- |
+| Repository | `NH4SH/AngelTreeServices` | Same repository |
+| Base directory | `/` | `apps/platform` |
+| Package directory | Not set | Not set |
+| Dashboard build command | Not set; root `netlify.toml` supplies `npm run test:public` | `npm run build` |
+| Dashboard publish directory | Not set; root `netlify.toml` supplies `dist-public` | `apps/platform/.next` (repository-relative display) |
+| Functions directory | `netlify/functions` | `apps/platform/netlify/functions` |
+| Runtime / Node | No framework set / 22.x | Next.js / 22.x |
+| Build status | Active | Active |
+| Production branch | `main` | `main` |
+| Branch deploys | Only production branch | Only production branch |
+| Deploy Previews | Any PR against production/branch-deploy branches | Same |
+| Auto publishing | On; successful `main` deploys publish automatically | Same |
+| Deployment method restrictions | All methods permitted | All methods permitted |
+| Published deploy | `6ab9b038d904e2000848f543` | `6ab9b03884d68c00086ce380` |
+| Published SHA | `2938577db20bb801ba797de0c4252d7e59b632d2` | Same |
 
-## Manual Netlify Release
+Dashboard build fields and repository configuration are distinguished above;
+an unset dashboard command is not a missing effective build command. Both deploys
+were ready in production context. No settings were saved or changed. Neither
+project listed injected snippets or build hooks in the inspected developer page.
+No shared team environment variables were returned. The public project has only
+its optional Maps variable; CRM secrets were not found in its variable list.
 
-1. Confirm the worktree contains only the approved release and documentation changes.
-2. Run `npm run test:public` and `git diff --check` from the repository root.
-3. Review `dist-public/` and confirm its ten-page inventory.
-4. Commit the exact approved release on a release branch.
-5. Push the release branch and let Netlify create a Deploy Preview using repository `netlify.toml`.
-6. Confirm the Deploy Preview log shows `npm run test:public` and publishes `dist-public`.
-7. Run the non-PII preview smoke checks below. Do not submit a real lead from the preview.
-8. Confirm dashboard base/build/publish settings and redirects do not override the repository contract.
-9. Obtain final production approval.
-10. Merge or publish through the site's established controlled production path. If main-branch auto-publishing would bypass the desired approval window, stop auto-publishing before merge and manually publish the approved deploy afterward.
-11. Run the production smoke checklist immediately.
-12. Submit one controlled production lead only after separate explicit approval.
+Existing PR evidence shows previews can build both projects, even for changes
+limited to one app. Neither inspected `netlify.toml` defines a custom ignore
+command. Do not assume that a push or PR is inert or that a preview is isolated.
+Recheck settings and intervening work immediately before any future approved push.
 
-Do not deploy with `netlify deploy --prod` from an unreviewed working directory.
+A future release requires the owner to approve its exact diff/commit and deployment
+path. Recheck overlapping work, preserve the current baseline SHA/hash manifest,
+run the local checks above, and verify allowed origins and acknowledgment behavior
+against a confirmed isolated staging intake. Do not change hosting settings to
+work around an approval boundary. No push, PR, merge, preview, or deployment is
+authorized by this checklist or by implementation approval.
 
-## Production Smoke Checklist
+Release verification status:
 
-- [ ] Homepage returns `200` and displays the hero in the first viewport.
-- [ ] All ten approved URLs return `200`.
-- [ ] Shared CSS and JavaScript return `200` with no MIME or mixed-content errors.
-- [ ] Desktop navigation works at 1440px and 1024px without wrapping.
-- [ ] Mobile navigation opens, closes, and is keyboard accessible at 768px, 390px, and 360px.
-- [ ] Wave transitions, cream/white surfaces, form spacing, and approved homepage appearance match the preview.
-- [ ] No page has horizontal overflow or a blank first viewport.
-- [ ] Sticky mobile Call/Estimate actions disappear near the contact form.
-- [ ] Every phone link opens `(540) 388-8715`.
-- [ ] Every estimate CTA reaches the homepage form.
-- [ ] Tree removal, tree pruning, stump grinding, emergency, and commercial CTA preselection is correct.
-- [ ] Canonical and Open Graph URLs use `https://angeltreeservices.org`.
-- [ ] `https://angeltreeservices.org/sitemap.xml` contains all and only the ten approved URLs.
-- [ ] `/recognition/` keeps Google (`120+`, `4.9`), Angi (`44`, `5.0`), and BBB (`A+`, not accredited) unmistakably separate; it also shows finalist status in `Best Tree Trim/Removal Services` and factual NBC4 coverage without endorsement language.
-- [ ] Homepage and recognition testimonials match the brief excerpts and displayed source labels in `PUBLIC_RECOGNITION_SOURCES.md`.
-- [ ] No `biz.yelp.com` URL, positive BBB Accreditation claim, combined review total, review widget, `AggregateRating`, or `Review` schema is present.
-- [ ] The recognition video loads an official `youtube-nocookie.com` iframe only after a keyboard- or pointer-initiated click and does not autoplay.
-- [ ] Official Google, Best of the Burg, NBC4 article, NBC4 video, and YouTube links reach the verified sources recorded in `PUBLIC_RECOGNITION_SOURCES.md`.
-- [ ] `https://angeltreeservices.org/robots.txt` references the production sitemap and does not block required assets.
-- [ ] Production HTML, metadata, JSON-LD, alt text, sitemap, and robots contain no TRAQ claim.
-- [ ] Browser consoles show no new release error; known homepage Squarespace legacy warnings are compared against the baseline.
-- [ ] No asset returns `404`.
-- [ ] No audit file, Markdown report, private screenshot, application source, or environment file is publicly accessible.
-- [ ] **Explicit real-lead approval required:** submit one uniquely labeled controlled website lead.
-- [ ] **Explicit real-lead approval required:** verify exactly one CRM record, correct source page, selected service, request type, referrer, UTM values, and submission ID.
-- [ ] **Explicit real-lead approval required:** verify customer success independently from internal email/SMS notification status.
+1. **Completed in isolated local staging:** real multipart POST/JSON, browser
+   response CORS, replay/duplicate/spam, shared rate limiting, persistence failure
+   and recovery, concurrent/lost-acknowledgment retry, and notification failure
+   after save. All 63 API/database assertions and 13 actual browser assertions
+   passed. Production received only the previously recorded read-only OPTIONS
+   requests; no production submission is authorized.
+2. Recheck the verified Netlify settings above and the exact reviewed commit/artifact
+   immediately before an approved release. Both projects still publish SHA
+   `2938577db20bb801ba797de0c4252d7e59b632d2`; settings inspection is complete for
+   this review, but push/preview/release permission remains withheld.
+3. **Completed the remaining computer mobile/accessibility checks:** narrow
+   reflow, 200% text, spacing, native keyboard/focus, accessible names/errors,
+   contrast and hidden actions, with scoped fixes documented below. Physical
+   devices and spoken VoiceOver/TalkBack output remain unverified; no conformance
+   certification is claimed.
+4. Obtain separate approval for the exact push/preview and production-release
+   path; then run non-submitting production smoke checks after the approved release.
 
-## Public Interaction Regression Checks (August 31, 2026)
+GA ownership/settings, consent UI, ordinary-navigation persistence activation,
+CRM server-side email enforcement, and a unique-inquiry eligibility contract remain
+separate follow-ups. They are not prerequisites to finishing this disabled website
+patch, and this checklist does not authorize implementing or activating them.
 
-Run `npm run test:public` for the dependency-free interaction tests, public build,
-and artifact validation. The interaction tests cover response parsing, optional
-analytics failures, and mobile menu dismissal without contacting the CRM.
+### Isolated local CRM contract tests — completed October 16, 06:38 UTC
 
-For browser verification, intercept `/api/leads` locally and set
-`window.ATS_LEAD_INTAKE_URL = "/api/leads"` before submitting test data. Never use
-real customer details or allow these test submissions to reach production.
+The initial discovery found no existing staging environment. That blocker was
+resolved by creating a disposable local stack on this computer. The downloaded
+official Supabase CLI v2.121.0 supports an experimental native runtime on Apple
+silicon, so Docker and a hosted deployment were unnecessary. The release archive's
+SHA256 was checked against the publisher's checksum. CLI/Next telemetry and local
+Supabase analytics were disabled. Tools, cache, database and credentials stay in
+this chat's `work/` directory; no global installation or project link was made.
 
-- Simulate JSON success, empty `204`, JSON `null`, and non-JSON `202` responses.
-  Each should show the thank-you message and focus the status message.
-- Make `window.gtag` throw, then simulate a successful lead response. The form
-  must still show success, not a notification or analytics error.
-- Simulate HTTP `500`, explicit `{"ok":false}`, and a network failure. Keep
-  entered values, show an error, and re-enable submission for a deliberate retry.
-- Trigger submission twice while the response is delayed. Only one request
-  should be sent; retain the existing submission ID on a failed-request retry.
-- On the homepage and a generated page, open the mobile menu and press Escape.
-  It should close and return focus to Menu. Outside clicks, navigation, and
-  moving keyboard focus outside the menu should also dismiss it.
-- Scroll to the contact form on mobile. Hidden quick-action links must not be
-  keyboard-focusable. Scroll back to the hero and confirm the actions return.
+Isolation was confirmed before any POST:
 
-These checks do not verify database persistence, notification delivery, or
-production CORS. Real-lead testing still requires explicit approval.
+- A clean archive of the currently published CRM SHA `2938577` contained no
+  production `.env` files or linked-project metadata. All 65 committed migrations
+  replayed into a fresh native PostgreSQL 17 database; initial job count was zero.
+- Database (`127.0.0.1:30414`), Supabase HTTP (`127.0.0.1:26402`), CRM
+  (`127.0.0.1:48010`) and website fixture (`127.0.0.1:48011`) were loopback-bound.
+  Fresh local-only keys matched the new database. Production credentials were
+  absent from the scrubbed app environment.
+- `RESEND_API_KEY` was empty; the notification recipient was a synthetic
+  `example.invalid` address. The app's fetch guard permitted only its local
+  Supabase/CRM origins, and the website CSP allowed only the local CRM. No
+  background integration route was invoked. Mailpit had zero messages.
+- The guard denied Next's npm version-check attempts before fetch. Every
+  permitted CRM fetch targeted local Supabase; no production database or mail
+  provider request was attempted. No canary, production lead or business write
+  was made.
 
-Local results on August 31, 2026: 19 Node interaction tests and validation of all
-13 generated public routes passed. Chromium and Firefox on macOS showed no
-horizontal overflow on the homepage and About page at 1440, 1280, 1024, 768,
-430, 390, 375, and 320px. Menu Escape behavior and hidden-action focus prevention
-passed in both browsers. Chromium response simulations verified success,
-failure, analytics isolation, field retention, and repeated-submit protection.
-No production lead was sent and nothing was deployed.
+| Actual contract case | Result |
+| --- | --- |
+| Allowed/disallowed origin | OPTIONS and actual POST CORS accepted the test origin; unrelated origin rejected |
+| Valid first multipart submission | HTTP 201 JSON `ok:true`; one synthetic inquiry persisted with campaign/preference metadata |
+| Same submission ID replay | HTTP 200; no additional inquiry or notification attempt |
+| Likely duplicate with new ID | HTTP 201 with a persisted duplicate relationship; confirms 201 is not a unique-inquiry signal |
+| Honeypot and too-fast spam | HTTP 202 `ok:true`; no inquiry or notification |
+| Invalid fields, MIME and size | HTTP 400/415/413 with JSON and appropriate CORS |
+| Shared database rate limit | First five spam attempts acknowledged; sixth HTTP 429 with Retry-After |
+| Local persistence fault and recovery | HTTP 503 without inquiry; same-ID retry after removing the local test constraint returned 201 once |
+| Concurrent same-ID retry | One 201 and one 200; one inquiry and one notification attempt |
+| Lost actual acknowledgment | Saved 201 deliberately discarded in the browser; draft/ID retained; retry received real 200 replay and reset correctly |
+| Notification unavailable after save | Failed notification status recorded locally; saved inquiry still received success acknowledgment |
+| Website integration | 13/13 Chromium browser assertions passed, including desktop/mobile geometry, conditional email, double submit, receipt focus/reset and 503/retry |
 
-## Rollback Triggers
+The API/database suite passed 63/63 assertions against actual Next.js HTTP and
+Supabase/PostgREST, rather than mocked persistence. Browser response statuses were
+201, 201, 200, 503, 201 across five attempts and exactly three saved inquiries.
+The website's runtime patch/artifact remained unchanged; only the fixture's
+in-memory endpoint pointed to loopback. All local servers/services were stopped
+after testing and the temporary browser tab was closed. The stopped synthetic
+database and test scripts remain available for reproduction.
 
-Republish the retained baseline deploy immediately if any of these occur:
+These checks establish the reviewed local contract and notification-failure
+independence. Real Resend delivery, production POST/persistence and production
+schema drift were not tested. No production credentials, customer data, or
+CRM source/configuration changes were used. A future push still needs a fresh
+overlap/settings/artifact check and separate release approval.
 
-- One or more approved routes, shared assets, sitemap, or robots returns `404` or `5xx`.
-- Homepage or form layout materially differs from the approved preview.
-- Mobile horizontal overflow, blank first viewport, inaccessible navigation, or blocked form controls reappear.
-- Canonical URLs point to a preview/local origin or an unapproved hostname.
-- A TRAQ claim, private file, non-public application source, secret, or audit artifact is publicly exposed.
-- Valid lead submissions fail to reach the CRM, create duplicates, lose attribution, or falsely report success after a database failure.
-- An unexpected dashboard redirect creates a loop or sends traffic away from approved routes.
+After separate release authorization, use the established controlled deployment
+path. Non-submitting production smoke checks should confirm all 13 routes and
+assets return 200, metadata/robots/sitemap/legacy redirects remain correct,
+analytics stays disabled, no source/private files are exposed, and the form/menu
+presentation matches the tested artifact. Do not add a live submission to smoke
+checks without explicit approval for that submission. Production persistence,
+notifications, real CORS, GA delivery, indexing, and rankings are not established
+by local mocks.
 
-Rollback procedure:
+## Computer mobile and accessibility release checks — October 16, 07:05 UTC
 
-1. In Netlify, republish the retained prior production deploy, using baseline deploy `6a5ab6d61cf11300081138b1` if it is still the confirmed prior production version.
-2. Verify the homepage, form, canonical domain, robots, sitemap, and highest-priority service routes.
-3. Revert the release commit as a new commit; do not rewrite shared branch history.
-4. Correct and validate the issue in a Deploy Preview before another production attempt.
-5. If only internal notifications fail while the lead is saved, keep customer-facing success and repair notifications separately; do not roll back solely for that secondary failure.
+**Verdict: ready for a separately approved release of this reviewed patch.** No
+known code blocker remains in the approved website scope. The patch is local and
+uncommitted; pushes, previews and deployments remain withheld.
 
-## Search and Indexing Follow-Up
+This continuation corrected verified issues while preserving the green/white
+identity, imagery, wording, metadata, routes, forms contract and disabled analytics:
 
-Perform only after production smoke testing succeeds:
+- Secondary header branding can wrap at larger text sizes; long words can wrap
+  instead of pushing the Menu control or page content outside the viewport.
+- Labeled review/credential groups and star-rating graphics now have appropriate
+  semantic roles, preserving their existing accessible names and visible wording.
+- Existing darker greens provide sufficient text contrast for hero/header areas,
+  contact/footer content, buttons, selected choices, help text and hover states.
+  Keyboard focus uses a clear dark outline; secondary-page focus also has a white
+  surround. This deliberately changes two CSS sources and the mobile header tint.
+- The exported decorative contact divider crossed contact text on narrow screens.
+  That divider and its clipping mask are disabled in the contact section.
 
-- Verify or submit `https://angeltreeservices.org/sitemap.xml` in Google Search Console.
-- Request a homepage recrawl after confirming TRAQ removal remains live.
-- Request recrawls for the services hub and priority service pages.
-- Monitor old or incorrect snippets without promising immediate replacement or ranking changes.
-- Check Google's selected canonical and indexed-page coverage.
-- Do not request indexing for withheld case studies, previews, reports, or placeholders.
+| Check | Evidence/result |
+| --- | --- |
+| Normal mobile/tablet/desktop reflow | All 13 routes at 320, 360, 768 and 1440 CSS pixels; no page overflow or clipped controls/text in the rendered matrix |
+| Increased text spacing | All 13 routes at 320px with 1.5 line-height, 0.12em letter spacing, 0.16em word spacing and 2em paragraph spacing passed |
+| 200% text scaling | Final targeted checks passed 26/26 in Chromium 155 and 26/26 in Safari 27.0.1: every route at 320px and 390px |
+| Automated accessibility | Axe-core 4.14.0, package integrity verified; 29 rendered scans (13 routes at 320/1440 plus menu/error/receipt states), zero confirmed WCAG A/AA or best-practice violations; prohibited-ARIA manual flags resolved |
+| Manual contrast | Photographic/pseudo-element backgrounds were marked incomplete by axe, so they were separately inspected with rendered background samples and computed colors. Corrected mobile hero samples exceed 8:1 at the reviewed positions; white/dark-green controls are 8.26:1; 82%-white secondary breadcrumb text over the lightest new hero endpoint is 4.59:1 |
+| Native keyboard and accessibility tree | Home/secondary Menu open, link Tab, Escape and focus return; secondary Skip to main focuses MAIN; radio arrow selection exposes Email (required); submit via keyboard focuses the linked invalid email error; switching back restores optional state and retains the draft; hidden mobile actions report visibility:hidden at the form |
+| Public tests/build | 63/63 Node tests; all 13 generated route validations; deterministic 120-file build |
+| Preserved release contract | Inquiry/analytics JS unchanged by this continuation; prior actual isolated CRM 63 API/database and 13 browser assertions remain applicable |
+| Review state | Remote main remains 2938577; both published Netlify deploy IDs remain ready and unchanged; no release/settings action performed |
 
-## Review Evidence
+The intermediate broader 200%-text scan exposed additional long-word overflow;
+the final shared wrap fix was verified by the targeted 26-case checks in both
+engines. Original intermediate failures remain in work/ as evidence, not as a
+passing final run. The design detector's exported-layout/style advisories and
+decorative false positives were reviewed; no redesign was undertaken.
 
-- Deterministic local build: passed twice with matching artifact hashes.
-- Clean prospective checkout: passed twice without `node_modules` or committed generated pages.
-- Repository Netlify build: `netlify build --offline` passed.
-- Browser route matrix: 40 generated-page width checks passed at 1440px, 1024px, 768px, 390px, and 360px.
-- Homepage width matrix: passed with no horizontal overflow; the 768px exported-header gap was corrected.
-- New-page console review: zero errors or warnings.
-- Form response simulations: JSON success, empty `2xx`, explicit `ok:false`, server failure, data retention, and repeated-click protection passed.
-- Production availability: all nine approved URLs returned `200` during the review.
-- Production TRAQ scan: zero matches across all nine pages, sitemap, and robots on July 17, 2026.
-- Admin application checks: `npm run typecheck` and `npm run build` passed; no CRM code was changed by this release review.
-- Real production lead submission: not performed.
-- Deployment: not performed.
+These are computer checks, including macOS accessibility-tree inspection. They
+are not physical iPhone/Android testing, an audible VoiceOver/TalkBack session,
+or a WCAG conformance certification. OS reduced-motion rules were reviewed in
+source; no OS preference was changed. Real production POST/email delivery remains
+outside the authorized tests. Those limits do not constitute a newly found code
+blocker for this patch; retain them in the release decision.
+
+Final screenshots include mobile-release-preview.png, mobile-keyboard-email-error.png,
+mobile-contact-accessibility.png, mobile-text-200.png and desktop-services-accessibility.png.
+All test tabs/services are closed and the viewport override was cleared. Local
+fixtures and axe assets stay outside dist-public. Analytics remains disabled.
+
+The remaining action is owner approval for the exact reviewed patch/commit and
+release path. Immediately before an approved push, recheck intervening changes
+and both projects' automation; after an approved release, run the documented
+non-submitting smoke checks. Do not send a production test lead.
+
+## Reversal and remaining ownership
+
+If an approved release introduces broken routes, inaccessible navigation, false
+receipt confirmations, failed inquiries, exposed source, or unexpected analytics,
+prepare a new revert commit against that release, validate it, and obtain the
+appropriate release approval for the correction. Do not reset shared history or
+republish an old deploy as an agent action. An unsuccessful unpublished build
+leaves the prior production deploy live.
+
+Keep notification failures after a saved inquiry separate from customer receipt
+handling. CRM owns persistence, deduplication, server-side conditional-email
+validation, notifications, and a future measurement eligibility contract. This
+website batch changes none of those systems. GBP settings remain outside scope.
+
+Search Console sitemap submission, recrawl requests, and indexing verification
+are separate future actions; this contact-only patch does not authorize them.
+
+## Local verification record
+
+October 16 results for the uncommitted patch:
+
+| Check | Result |
+| --- | --- |
+| `npm run test:public` | 63 Node tests passed; build and validation of all 13 routes passed |
+| Repeat build | All 120 output-file hashes matched |
+| Local browser fixtures | 194 assertions passed in each of Chromium and Safari at 1440px and 390px; production blocked |
+| Restoration / accessibility regression | Actual Chromium back navigation retained the draft and correct Email requirement; repeated error correction left no removed error reference |
+| Actual error-state previews | New mobile keyboard-error/contact/large-text and desktop service screenshots captured during the accessibility continuation |
+| Optional Maps configuration | Isolated build with ordinary non-secret placeholder and all 13 route validations passed; injection occurred once; provider not contacted |
+| Content regression | All 13 routes retain titles, metadata, JSON-LD, links and image references; this accessibility continuation deliberately adjusts overrides.css/site-pages.css and semantic roles |
+| Production preflight only | Public origin allowed (204); unrelated origin rejected (403); no form payload sent |
+| Both Netlify projects | Authenticated dashboard build/base/branch/preview/auto-publish settings verified read-only; no settings changed |
+| Isolated local CRM | Fresh native Supabase; 65 migrations; 63/63 actual HTTP/database and 13/13 browser assertions passed; no external email |
+| Whitespace / complete patch application | `git diff --check` and clean-baseline `git apply --check` passed |
+| Analytics | Collection disabled, ID blank, no unique-inquiry conversion |
+
+The maintained `WEBSITE-HANDOFF.txt`, local validation transcript, browser results,
+and screenshots retain the evidence. The unchecked acceptance items above are
+the reusable review steps for a future release; they do not negate these completed
+local checks or authorize external actions. The local actual POST/CORS contract
+now passes; production POST, real email delivery, real analytics, and physical-device
+testing remain unverified. Historical
+July/August scores and empty-2xx success expectations are superseded.

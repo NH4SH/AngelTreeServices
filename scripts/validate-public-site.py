@@ -565,6 +565,11 @@ class Validator:
 
     def validate_references(self) -> None:
         for route, page in self.pages.items():
+            measurement_scripts = [item for item in page.scripts if item.get("src", "").split("?", 1)[0] == "/ats-website.js"]
+            if len(measurement_scripts) != 1 or "defer" not in measurement_scripts[0]:
+                self.error(f"{route}: expected one deferred shared website initializer")
+            if "google-analytics_analytics.js" in self.page_sources[route] or "gtag(" in self.page_sources[route]:
+                self.error(f"{route}: legacy or duplicate analytics initialization")
             for attribute, reference in page.references:
                 target = self.resolve_local_reference(route, reference)
                 if target is not None and not target.is_file():
@@ -794,11 +799,11 @@ class Validator:
             "utm_source",
             "utm_medium",
             "utm_campaign",
-            "body.ok === false",
+            "body.ok !== true",
             "form.dataset.submitting",
             "form.reset()",
         )
-        combined = source + "\n" + script
+        combined = source + "\n" + script + "\n" + (self.site_dir / "ats-website.js").read_text(encoding="utf-8")
         for term in required_runtime_terms:
             if term not in combined:
                 self.error(f"/: lead-form release invariant is missing: {term}")
@@ -1225,9 +1230,13 @@ class Validator:
         expected_legacy_assets = {
             "200x200-hortz-logo.jpg",
             "LightroomGrassPictureSquooshed_013.jpg",
-            "google-analytics_analytics.js",
             "isamember1_004.jpg",
         }
+        if list(self.site_dir.rglob("google-analytics_analytics.js")):
+            self.error("Public artifact must not ship the legacy analytics no-op")
+        analytics = (self.site_dir / "ats-website.js").read_text(encoding="utf-8")
+        if "var COLLECTION_ENABLED = false;" not in analytics or 'var MEASUREMENT_ID = "";' not in analytics:
+            self.error("Analytics activation requires a separate approved release")
         legacy_directory = self.site_dir / "angeltreeservices_backup_files"
         delivered_legacy_assets = (
             {path.name for path in legacy_directory.iterdir() if path.is_file()}
@@ -1235,7 +1244,7 @@ class Validator:
             else set()
         )
         if delivered_legacy_assets != expected_legacy_assets:
-            self.error("Public artifact must include only the four homepage legacy assets still in use")
+            self.error("Public artifact must include only the three homepage legacy assets still in use")
 
         for path in self.site_dir.rglob("*"):
             if not path.is_file():
@@ -1255,6 +1264,7 @@ class Validator:
             self.site_dir / "ats-form-enhancements.js",
             self.site_dir / "site-pages.css",
             self.site_dir / "site-pages.js",
+            self.site_dir / "ats-website.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",
             self.site_dir / "llms.txt",

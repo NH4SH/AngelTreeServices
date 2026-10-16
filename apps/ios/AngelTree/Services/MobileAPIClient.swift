@@ -169,7 +169,7 @@ actor MobileAPIClient: MobileAPIClientProtocol {
     }
 
     func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
-        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes/\(id)", method: "PATCH", body: input, accessToken: accessToken)
+        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes/\(id)/edit", method: "PATCH", body: input, accessToken: accessToken)
         return payload.quote
     }
 

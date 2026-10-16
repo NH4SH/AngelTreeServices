@@ -280,9 +280,8 @@ export async function createQuoteFromRecommendation(
   if ((recommendation.customer_id === null) === (recommendation.organization_id === null))
     return failure("The recommendation must identify exactly one contracting party.");
 
-  const { data: quote, error: quoteError } = await auth.supabase
-    .from("quotes")
-    .insert({
+  const { data: quote, error: quoteError } = await auth.supabase.rpc("create_quote_draft", {
+    p_header: {
       customer_id: recommendation.customer_id,
       organization_id: recommendation.organization_id,
       recipient_contact_id: recommendation.organization_contact_id,
@@ -294,9 +293,10 @@ export async function createQuoteFromRecommendation(
       subtotal_cents: 0,
       tax_cents: 0,
       total_cents: 0,
-    })
-    .select("id")
-    .single();
+    },
+    p_lines: [{ name: recommendation.title, description: recommendation.customer_recommendation,
+      service_category_id: recommendation.service_category_id, material_id: null, quantity: 1, unit_price_cents: 0, total_cents: 0 }],
+  });
   if (quoteError?.code === "23505") {
     const { data: existing } = await auth.supabase
       .from("quotes")
@@ -308,24 +308,6 @@ export async function createQuoteFromRecommendation(
   }
   if (quoteError || !quote)
     return failure(quoteError?.message ?? "Could not prepare the draft quote.");
-
-  const { error: lineError } = await auth.supabase
-    .from("quote_line_items")
-    .insert({
-      quote_id: quote.id,
-      name: recommendation.title,
-      description: recommendation.customer_recommendation,
-      service_category_id: recommendation.service_category_id,
-      material_id: null,
-      quantity: 1,
-      unit_price_cents: 0,
-      total_cents: 0,
-      sort_order: 0,
-    });
-  if (lineError) {
-    await auth.supabase.from("quotes").delete().eq("id", quote.id);
-    return failure(lineError.message);
-  }
 
   await auth.supabase
     .from("service_recommendations")
@@ -790,9 +772,30 @@ export async function createRenewalQuote(
   const subtotal = sourceLines.length
     ? sourceLines.reduce((sum, line) => sum + line.total_cents, 0)
     : fallbackPrice;
-  const { data: quote, error: quoteError } = await auth.supabase
-    .from("quotes")
-    .insert({
+  const lines = sourceLines.length
+    ? sourceLines.map((line, index) => ({
+        name: line.name,
+        description: line.description,
+        service_category_id: line.service_category_id,
+        material_id: line.material_id,
+        quantity: line.quantity,
+        unit_price_cents: line.unit_price_cents,
+        total_cents: line.total_cents,
+        sort_order: index,
+      }))
+    : [
+        {
+          name: plan.plan_name,
+          description: plan.service_description,
+          service_category_id: plan.service_category_id,
+          material_id: null,
+          quantity: 1,
+          unit_price_cents: fallbackPrice,
+          total_cents: fallbackPrice,
+          sort_order: 0,
+        },
+      ];
+  const { data: quote, error: quoteError } = await auth.supabase.rpc("create_quote_draft", { p_header: {
       job_id: null,
       customer_id: customerId,
       organization_id: plan.organization_id,
@@ -813,47 +816,8 @@ export async function createRenewalQuote(
       renewal_source_quote_id: sourceQuoteId,
       pricing_reviewed_at: null,
       pricing_reviewed_by_user_id: null,
-    })
-    .select("id")
-    .single();
-  if (quoteError || !quote)
-    return failure(
-      quoteError?.code === "23505"
-        ? "A renewal quote already exists for this occurrence."
-        : (quoteError?.message ?? "Could not create the renewal quote."),
-    );
-  const lines = sourceLines.length
-    ? sourceLines.map((line, index) => ({
-        quote_id: quote.id,
-        name: line.name,
-        description: line.description,
-        service_category_id: line.service_category_id,
-        material_id: line.material_id,
-        quantity: line.quantity,
-        unit_price_cents: line.unit_price_cents,
-        total_cents: line.total_cents,
-        sort_order: index,
-      }))
-    : [
-        {
-          quote_id: quote.id,
-          name: plan.plan_name,
-          description: plan.service_description,
-          service_category_id: plan.service_category_id,
-          material_id: null,
-          quantity: 1,
-          unit_price_cents: fallbackPrice,
-          total_cents: fallbackPrice,
-          sort_order: 0,
-        },
-      ];
-  const { error: lineError } = await auth.supabase
-    .from("quote_line_items")
-    .insert(lines);
-  if (lineError) {
-    await auth.supabase.from("quotes").delete().eq("id", quote.id);
-    return failure(lineError.message);
-  }
+    }, p_lines: lines });
+  if (quoteError || !quote?.id) return failure(quoteError?.code === "23505" ? "A renewal quote already exists for this occurrence." : quoteError?.message ?? "Could not create the renewal quote.");
   await auth.supabase
     .from("recurring_service_occurrences")
     .update({

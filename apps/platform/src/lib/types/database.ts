@@ -280,6 +280,7 @@ export type Job = {
 };
 
 export type Quote = {
+  edit_revision: number;
   id: string;
   job_id: string | null;
   customer_id: string | null;

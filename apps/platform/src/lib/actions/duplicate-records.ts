@@ -59,9 +59,8 @@ export async function duplicateQuote(
     };
   }
 
-  const { data: newQuote, error: createError } = await auth.supabase
-    .from("quotes")
-    .insert({
+  const { data: newQuote, error: createError } = await auth.supabase.rpc("create_quote_draft", {
+    p_header: {
       job_id: null,
       customer_id: typedQuote.customer_id,
       organization_id: typedQuote.organization_id,
@@ -86,20 +85,13 @@ export async function duplicateQuote(
       sent_by_user_id: null,
       approved_at: null,
       expires_at: getFreshFutureDate(typedQuote.expires_at),
-    })
-    .select("id")
-    .single();
-
-  if (createError || !newQuote) {
-    return { status: "error", message: createError?.message ?? "Could not duplicate quote." };
-  }
-
-  const lineItemError = await copyQuoteLineItems(auth.supabase, newQuote.id, typedQuote.quote_line_items ?? []);
-
-  if (lineItemError) {
-    await auth.supabase.from("quotes").delete().eq("id", newQuote.id);
-    return { status: "error", message: `Quote copy was not saved because line items failed: ${lineItemError}` };
-  }
+    },
+    p_lines: [...(typedQuote.quote_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order).map(item => ({
+      name: item.name, description: item.description, service_category_id: item.service_category_id, material_id: item.material_id,
+      quantity: item.quantity, unit_price_cents: item.unit_price_cents, total_cents: item.total_cents,
+    })),
+  });
+  if (createError || !newQuote?.id) return { status: "error", message: createError?.message ?? "Could not duplicate quote." };
 
   await recordActivity(auth.supabase, {
     actorUserId: auth.userId,
@@ -304,33 +296,6 @@ async function requireInternalStaff() {
   }
 
   return { error: null, supabase, userId: user.id };
-}
-
-async function copyQuoteLineItems(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  quoteId: string,
-  items: QuoteLineItem[],
-) {
-  const copiedItems = [...items]
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((item, index) => ({
-      quote_id: quoteId,
-      name: item.name,
-      description: item.description,
-      service_category_id: item.service_category_id,
-      material_id: item.material_id,
-      quantity: item.quantity,
-      unit_price_cents: item.unit_price_cents,
-      total_cents: item.total_cents,
-      sort_order: index,
-    }));
-
-  if (copiedItems.length === 0) {
-    return null;
-  }
-
-  const { error } = await supabase.from("quote_line_items").insert(copiedItems);
-  return error?.message ?? null;
 }
 
 function getFreshFutureDate(value: string | null) {

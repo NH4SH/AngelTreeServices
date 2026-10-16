@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { recordActivity } from "@/lib/activity-log";
 import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -10,20 +9,26 @@ import { belongsToContractingParty, parseContractingParty } from "@/lib/contract
 import { archiveWebsiteLead } from "@/lib/leads/archive";
 import { isMatchingQuoteLeadSource } from "@/lib/quotes/lead-prefill";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { quoteEditConflict, quoteSaveResult, type QuoteEditConflict } from "@/lib/quotes/edit-result";
 import type { QuoteStatus } from "@/lib/types/database";
 
 export type QuoteActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  savedRevision?: number;
+  savedLineIds?: Record<string, string>;
+  conflict?: QuoteEditConflict;
 };
 
 function toCents(value: FormDataEntryValue | null) {
-  const parsed = Number.parseFloat(String(value ?? "0"));
-  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+  const text = String(value ?? "").trim();
+  if (!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})?$/.test(text)) throw new Error("Invalid money");
+  return text ? Math.round(Number(text) * 100) : 0;
 }
 
 type QuoteLineItemInput = {
   id: string | null;
+  clientId: string;
   name: string;
   description: string | null;
   serviceCategoryId: string | null;
@@ -68,8 +73,8 @@ export async function createQuote(
   const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
   const submitIntent = String(formData.get("submit_intent") ?? "save");
-  const lineItems = getQuoteLineItems(formData);
-  const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
+  let lineItems: QuoteLineItemInput[];
+  try { lineItems = getQuoteLineItems(formData); } catch { return { status: "error", message: "Check each line quantity and price. Use positive quantities with up to two decimal places and prices in dollars and cents." }; }
 
   let sourceActorType: "owner" | "admin" | "staff" = "staff";
   if (sourceLeadJobId) {
@@ -175,65 +180,14 @@ export async function createQuote(
     return { status: "error", message: "Keep the originating website lead linked before creating this quote." };
   }
 
-  const { data: quote, error: quoteError } = await supabase
-    .from("quotes")
-    .insert({
-      job_id: jobId,
-      customer_id: party.customerId,
-      organization_id: party.organizationId,
-      service_location_id: serviceLocationId,
-      estimate_schedule_event_id: estimateScheduleEventId,
-      estimator_user_id: user.id,
-      recipient_contact_id: recipientContactId,
-      approval_contact_id: approvalContactId,
-      onsite_contact_id: onsiteContactId,
-      billing_contact_id: billingContactId,
-      purchase_order_reference: purchaseOrderReference,
-      payment_terms: paymentTerms,
-      status: "draft",
-      subtotal_cents: subtotalCents,
-      tax_cents: 0,
-      total_cents: subtotalCents,
-      customer_message: customerMessage,
-      debris_handling: debrisHandling,
-      debris_handling_notes: debrisHandlingNotes,
-      expires_at: expiresAt,
-    })
-    .select("id")
-    .single();
-
-  if (quoteError || !quote) {
-    return { status: "error", message: quoteError?.message ?? "Could not create quote." };
-  }
-
-  if (lineItems.length > 0) {
-    const { error: lineItemError } = await supabase.from("quote_line_items").insert(
-      lineItems.map((item) => ({
-        quote_id: quote.id,
-        name: item.name,
-        description: item.description,
-        service_category_id: item.serviceCategoryId,
-        material_id: item.materialId,
-        quantity: item.quantity,
-        unit_price_cents: item.unitPriceCents,
-        total_cents: item.totalCents,
-        sort_order: item.sortOrder,
-      })),
-    );
-
-    if (lineItemError) {
-      revalidatePath("/admin/quotes");
-      redirect(`/admin/quotes/${quote.id}/edit?line_error=1${sourceLeadJobId ? `&source_lead_job_id=${sourceLeadJobId}` : ""}`);
-    }
-  }
-
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "quote_created",
-    metadata: { service_location_id: serviceLocationId, source_lead_job_id: sourceLeadJobId },
-    subjectId: quote.id,
-    subjectType: "quote",
+  const { data: quote, error: quoteError } = await supabase.rpc("create_quote_draft", {
+    p_header: { job_id: jobId, customer_id: party.customerId, organization_id: party.organizationId, service_location_id: serviceLocationId,
+      estimate_schedule_event_id: estimateScheduleEventId, source_lead_job_id: sourceLeadJobId, recipient_contact_id: recipientContactId, approval_contact_id: approvalContactId,
+      onsite_contact_id: onsiteContactId, billing_contact_id: billingContactId, purchase_order_reference: purchaseOrderReference,
+      payment_terms: paymentTerms, customer_message: customerMessage, debris_handling: debrisHandling, debris_handling_notes: debrisHandlingNotes, expires_at: expiresAt },
+    p_lines: lineItems.map(quoteLineCommand),
   });
+  if (quoteError || !quoteSaveResult(quote, lineItems.length)) return { status: "error", message: safeStaffMessage(quoteError?.message ?? "The saved quote could not be confirmed. Review the quote directory before starting another draft.") };
 
   const leadArchiveResult = sourceLeadJobId
     ? await archiveWebsiteLead(supabase, {
@@ -302,8 +256,8 @@ export async function updateQuote(
   const debrisHandlingNotes = String(formData.get("debris_handling_notes") ?? "").trim().slice(0, 1200) || null;
   const expiresAt = getEndOfDayIso(formData.get("expires_at"));
   const submitIntent = String(formData.get("submit_intent") ?? "save");
-  const lineItems = getQuoteLineItems(formData);
-  const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0);
+  let lineItems: QuoteLineItemInput[];
+  try { lineItems = getQuoteLineItems(formData); } catch { return { status: "error", message: "Check each line quantity and price. Use positive quantities with up to two decimal places and prices in dollars and cents." }; }
 
   let sourceActorType: "owner" | "admin" | "staff" = "staff";
   if (sourceLeadJobId) {
@@ -429,77 +383,21 @@ export async function updateQuote(
     return { status: "error", message: "Keep the originating website lead linked before saving this quote." };
   }
 
-  const { error: quoteError } = await supabase
-    .from("quotes")
-    .update({
-      job_id: jobId,
-      customer_id: party.customerId,
-      organization_id: party.organizationId,
-      recipient_contact_id: recipientContactId,
-      approval_contact_id: approvalContactId,
-      onsite_contact_id: onsiteContactId,
-      billing_contact_id: billingContactId,
-      purchase_order_reference: purchaseOrderReference,
-      payment_terms: paymentTerms,
-      service_location_id: serviceLocationId,
-      estimate_schedule_event_id: estimateScheduleEventId,
-      status: existingQuote.status,
-      subtotal_cents: subtotalCents,
-      tax_cents: 0,
-      total_cents: subtotalCents,
-      customer_message: customerMessage,
-      debris_handling: debrisHandling,
-      debris_handling_notes: debrisHandlingNotes,
-      expires_at: expiresAt,
-      pricing_reviewed_at: existingQuote.recurring_occurrence_id ? new Date().toISOString() : undefined,
-      pricing_reviewed_by_user_id: existingQuote.recurring_occurrence_id ? user.id : undefined,
-    })
-    .eq("id", quoteId);
-
-  if (quoteError) {
-    return { status: "error", message: safeStaffMessage(quoteError.message) };
-  }
-
-  const lineItemError = await syncQuoteLineItems(supabase, quoteId, lineItems);
-  if (lineItemError) {
-    return { status: "error", message: `Quote details saved, but line items could not be fully updated: ${lineItemError}` };
-  }
-
-  if (existingQuote.recurring_occurrence_id) {
-    await supabase.from("recurring_service_occurrences").update({ pricing_review_status: "reviewed" }).eq("id", existingQuote.recurring_occurrence_id);
-  }
-
-  if (ownerChanged) {
-    await recordActivity(supabase, {
-      actorUserId: user.id,
-      eventType: "quote_contracting_party_changed",
-      metadata: {
-        previous_customer_id: existingQuote.customer_id,
-        previous_organization_id: existingQuote.organization_id,
-        customer_id: party.customerId,
-        organization_id: party.organizationId,
-      },
-      subjectId: quoteId,
-      subjectType: "quote",
-    });
-  }
-
-  await recordActivity(supabase, {
-    actionCategory: "quotes",
-    actorUserId: user.id,
-    changes: {
-      customer_message: { before: existingQuote.customer_message, after: customerMessage },
-      expires_at: { before: existingQuote.expires_at, after: expiresAt },
-      service_location_id: { before: existingQuote.service_location_id, after: serviceLocationId },
-      total_cents: { before: existingQuote.total_cents, after: subtotalCents },
-    },
-    destinationPath: `/admin/quotes/${quoteId}`,
-    eventType: "quote_updated",
-    organizationId: party.organizationId,
-    summary: "Quote details and line items were updated.",
-    subjectId: quoteId,
-    subjectType: "quote",
+  const expectedRevision = Number(formData.get("expected_revision"));
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) return { status: "error", message: "Reload the saved quote before editing so its version can be checked." };
+  const response = await supabase.rpc("save_quote_details", {
+    p_quote_id: quoteId, p_expected_revision: expectedRevision, p_confirm_party_change: formData.get("confirm_contracting_party_change") === "on",
+    p_header: { job_id: jobId, customer_id: party.customerId, organization_id: party.organizationId, service_location_id: serviceLocationId,
+      estimate_schedule_event_id: estimateScheduleEventId, recipient_contact_id: recipientContactId, approval_contact_id: approvalContactId,
+      onsite_contact_id: onsiteContactId, billing_contact_id: billingContactId, purchase_order_reference: purchaseOrderReference,
+      payment_terms: paymentTerms, customer_message: customerMessage, debris_handling: debrisHandling, debris_handling_notes: debrisHandlingNotes, expires_at: expiresAt },
+    p_lines: lineItems.map(quoteLineCommand),
   });
+  if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
+  const conflict = quoteEditConflict(response.data);
+  if (conflict) return { status: "error", message: "This quote changed while you were editing. Your changes are still here and have not overwritten the saved quote.", conflict };
+  const saved = quoteSaveResult(response.data, lineItems.length);
+  if (!saved) return { status: "error", message: "The save result could not be confirmed. Keep your changes and compare the saved quote before retrying." };
 
   const leadArchiveResult = sourceLeadJobId
     ? await archiveWebsiteLead(supabase, {
@@ -536,6 +434,8 @@ export async function updateQuote(
 
   return {
     status: "success",
+    savedRevision: saved.edit_revision,
+    savedLineIds: Object.fromEntries(lineItems.map((line, index) => [line.clientId, saved.line_ids[index]])),
     message: leadArchiveWarning
       ? "Changes saved, but the website lead could not be archived automatically. Archive it manually from Leads and Communications."
       : "Changes saved. The current quote status and existing customer link remain active.",
@@ -544,6 +444,7 @@ export async function updateQuote(
 
 function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
   const ids = formData.getAll("line_item_id");
+  const clientIds = formData.getAll("line_item_client_id");
   const names = formData.getAll("line_item_name");
   const descriptions = formData.getAll("line_item_description");
   const serviceCategoryIds = formData.getAll("line_item_service_category_id");
@@ -557,7 +458,9 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
     const name = String(names[index] ?? "").trim();
     const description = normalizeMultilineText(descriptions[index]);
     const hasContent = Boolean(name || description?.trim());
-    const quantity = Math.max(0, Number.parseFloat(String(quantities[index] ?? "1")) || 1);
+    const quantityText = String(quantities[index] ?? "1").trim();
+    if (!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(quantityText) || Number(quantityText) <= 0) throw new Error("Invalid quantity");
+    const quantity = Number(quantityText);
     const unitPriceCents = toCents(unitPrices[index] ?? null);
     const totalCents = Math.max(0, Math.round(quantity * unitPriceCents));
 
@@ -567,6 +470,7 @@ function getQuoteLineItems(formData: FormData): QuoteLineItemInput[] {
 
     items.push({
       id: String(ids[index] ?? "").trim() || null,
+      clientId: String(clientIds[index] ?? index),
       name: getLineItemName(name, description, index),
       description,
       serviceCategoryId: String(serviceCategoryIds[index] ?? "").trim() || null,
@@ -605,85 +509,6 @@ async function validateOrganizationContacts(
   return null;
 }
 
-async function syncQuoteLineItems(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  quoteId: string,
-  lineItems: QuoteLineItemInput[],
-) {
-  const { data: existingItems, error: existingItemsError } = await supabase
-    .from("quote_line_items")
-    .select("id")
-    .eq("quote_id", quoteId);
-
-  if (existingItemsError) {
-    return existingItemsError.message;
-  }
-
-  const existingIds = new Set((existingItems ?? []).map((item) => item.id));
-  const retainedIds = new Set<string>();
-  const newItems: Array<{
-    quote_id: string;
-    name: string;
-    description: string | null;
-    service_category_id: string | null;
-    material_id: string | null;
-    quantity: number;
-    unit_price_cents: number;
-    total_cents: number;
-    sort_order: number;
-  }> = [];
-
-  for (const item of lineItems) {
-    const values = {
-      name: item.name,
-      description: item.description,
-      service_category_id: item.serviceCategoryId,
-      material_id: item.materialId,
-      quantity: item.quantity,
-      unit_price_cents: item.unitPriceCents,
-      total_cents: item.totalCents,
-      sort_order: item.sortOrder,
-    };
-
-    if (item.id && existingIds.has(item.id)) {
-      const { error } = await supabase
-        .from("quote_line_items")
-        .update(values)
-        .eq("id", item.id)
-        .eq("quote_id", quoteId);
-
-      if (error) {
-        return error.message;
-      }
-      retainedIds.add(item.id);
-    } else {
-      newItems.push({ quote_id: quoteId, ...values });
-    }
-  }
-
-  if (newItems.length > 0) {
-    const { error } = await supabase.from("quote_line_items").insert(newItems);
-    if (error) {
-      return error.message;
-    }
-  }
-
-  const removedIds = [...existingIds].filter((id) => !retainedIds.has(id));
-  if (removedIds.length > 0) {
-    const { error } = await supabase
-      .from("quote_line_items")
-      .delete()
-      .eq("quote_id", quoteId)
-      .in("id", removedIds);
-
-    if (error) {
-      return error.message;
-    }
-  }
-
-  return null;
-}
-
 function normalizeMultilineText(value: FormDataEntryValue | undefined) {
   const text = String(value ?? "").replaceAll("\r\n", "\n").trimEnd();
   return text.trim() ? text : null;
@@ -705,4 +530,9 @@ function getEndOfDayIso(value: FormDataEntryValue | null) {
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function quoteLineCommand(item: QuoteLineItemInput) {
+  return { id: item.id, name: item.name, description: item.description, service_category_id: item.serviceCategoryId,
+    material_id: item.materialId, quantity: item.quantity, unit_price_cents: item.unitPriceCents, total_cents: item.totalCents };
 }

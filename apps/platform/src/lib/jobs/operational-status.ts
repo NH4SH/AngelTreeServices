@@ -28,14 +28,17 @@ export function getJobOperationalState(input: {
   jobStatus: JobStatus;
   now?: Date;
 }): JobOperationalState {
-  const invoice = (input.invoices ?? []).find((item) => item.status !== "void");
-  if (invoice?.status === "paid" || input.jobStatus === "paid") return "paid";
-  if (invoice && ["sent", "partially_paid", "overdue"].includes(invoice.status)) return "invoiced";
-  if (input.jobStatus === "invoiced") return "invoiced";
   if (["cancelled", "lost"].includes(input.jobStatus)) return "cancelled";
-  if (["completed", "completed_pending_review", "ready_to_invoice"].includes(input.jobStatus)) return "work_complete";
   if (input.jobStatus === "returned_for_correction") return "needs_attention";
   if (input.jobStatus === "in_progress") return "in_progress";
+  // Billing can begin before field work ends. Keep unfinished work visible.
+  const activeWork = ["accepted", "scheduled"].includes(input.jobStatus);
+  const invoice = (input.invoices ?? []).find((item) => item.status !== "void");
+  if (!activeWork) {
+    if (invoice?.status === "paid" || input.jobStatus === "paid") return "paid";
+    if (invoice && ["sent", "partially_paid", "overdue"].includes(invoice.status) || input.jobStatus === "invoiced") return "invoiced";
+    if (["completed", "completed_pending_review", "ready_to_invoice"].includes(input.jobStatus)) return "work_complete";
+  }
 
   const workSession = getCurrentWorkSession(input.scheduleEvents, input.now);
   if (workSession) {

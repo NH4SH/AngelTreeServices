@@ -1,3 +1,4 @@
+import { JobCompletionControls } from "@/components/job-completion-controls";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -35,7 +36,7 @@ import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
 import { JobMaterialPlanForm } from "@/components/materials-forms";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
-import { CreateInvoiceFromJobAction, JobStatusActions, MarkJobCompleteAction } from "@/components/workflow-actions";
+import { CreateInvoiceFromJobAction, JobStatusActions } from "@/components/workflow-actions";
 import { duplicateJob } from "@/lib/actions/duplicate-records";
 import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
@@ -145,7 +146,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             {approvedQuote ? <Link className="secondary-action" href={`/admin/quotes/${approvedQuote.id}`}>Open quote</Link> : null}
             {operationalState === "in_progress" ? <Link className="secondary-action" href={`/admin/schedule?job_id=${job.id}`}>Change schedule</Link> : null}
             <a className="secondary-action" href="#job-photos"><Camera aria-hidden="true" size={17} />Photos</a>
-            <MarkJobCompleteAction completedAt={job.completed_at} jobId={job.id} status={job.status} />
+            <JobCompletionControls jobId={job.id} />
             {job.status === "scheduled" ? <JobStatusActions jobId={job.id} status={job.status} /> : null}
             <a className="secondary-action" href="#job-more"><MoreHorizontal aria-hidden="true" size={17} />More</a>
           </div>
@@ -168,7 +169,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
               action={invoice ? <Link href={`/admin/invoices/${invoice.id}`}>Open invoice</Link> : canCreateInvoice ? <CreateInvoiceFromJobAction actorId={context.user.id} approvedAdditionCount={unbilledChanges.length} jobId={job.id} operationalStatus={operationalLabel} /> : null}
               label="Invoice"
               title={invoice ? invoice.invoice_number ?? "Invoice draft" : "Not created"}
-              value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Creating the invoice also marks this work order complete."}
+              value={invoice ? `${formatInvoiceStatus(invoice.status)} · ${formatCurrency(invoice.balance_due_cents)} due` : "Preparing a draft leaves work and scheduled visits open."}
             />
           </div>
           {invoice && unbilledChanges.length ? <p className="job-attention-note">{unbilledChanges.length} approved {unbilledChanges.length === 1 ? "addition has" : "additions have"} not been added to this invoice.</p> : null}

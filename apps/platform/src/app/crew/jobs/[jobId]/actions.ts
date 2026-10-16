@@ -5,10 +5,14 @@ import { canAccessAssignedCrewJob } from "@/lib/auth/crewAccess";
 import { getUserRoles } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
+import { completionInputs, parseCompletionContext, type JobCompletionContext } from "@/lib/jobs/completion-request";
+import { isGenerationRequestId } from "@/lib/invoices/generation-request";
+
 export type CrewCloseoutActionState = {
   status: "idle" | "success" | "error";
   message: string;
   submitted?: boolean;
+  context?: JobCompletionContext;
   activeTimerExists?: boolean;
 };
 
@@ -63,7 +67,10 @@ export async function saveCrewCloseout(
   const payload = buildCloseoutPayload(formData);
   if (!payload.ok) return payload.state;
 
-  const { error } = await context.supabase.rpc("save_assigned_job_closeout", {
+  const inputs = completionInputs(formData);
+  if (!inputs) return { status: "error", message: "Reload and review this closeout before saving." };
+  const { data, error } = await context.supabase.rpc("save_job_closeout_draft", {
+    p_expected_revision: inputs.p_expected_revision, p_expected_snapshot: inputs.p_expected_snapshot,
     p_job_id: context.jobId,
     p_payload: payload.data,
   });
@@ -73,7 +80,9 @@ export async function saveCrewCloseout(
   }
 
   revalidateCloseoutPaths(context.jobId);
-  return { status: "success", message: "Closeout progress saved." };
+  const savedContext = parseCompletionContext(data?.context);
+  if (!savedContext) return { status: "error", message: "Saved progress could not be confirmed. Reload and review the closeout." };
+  return { status: "success", message: "Closeout progress saved.", context: savedContext };
 }
 
 export async function submitCrewCloseout(
@@ -86,28 +95,24 @@ export async function submitCrewCloseout(
   const payload = buildCloseoutPayload(formData);
   if (!payload.ok) return payload.state;
 
-  const saveResult = await context.supabase.rpc("save_assigned_job_closeout", {
-    p_job_id: context.jobId,
-    p_payload: payload.data,
-  });
-
-  if (saveResult.error) {
-    return { status: "error", message: cleanDatabaseMessage(saveResult.error.message) };
-  }
-
-  const { data, error } = await context.supabase.rpc("submit_assigned_job_closeout", {
-    p_job_id: context.jobId,
+  const inputs = completionInputs(formData), requestId = String(formData.get("request_id") ?? "");
+  if (!inputs || !isGenerationRequestId(requestId)) return { status: "error", message: "Reload and review the closeout before submitting." };
+  const { data, error } = await context.supabase.rpc("submit_job_closeout_atomic", {
+    p_job_id: context.jobId, p_request_id: requestId, p_payload: payload.data, ...inputs,
   });
 
   if (error) {
     return { status: "error", message: cleanDatabaseMessage(error.message) };
   }
 
+  const savedContext = parseCompletionContext(data?.context);
+  if (!savedContext) return { status: "error", message: "Submission could not be confirmed. Retry this saved request safely." };
   const result = (data ?? {}) as { active_timer_exists?: boolean };
   revalidateCloseoutPaths(context.jobId);
   return {
     status: "success",
     submitted: true,
+    context: savedContext,
     activeTimerExists: Boolean(result.active_timer_exists),
     message: result.active_timer_exists
       ? "Closeout submitted for office review. Your job timer is still running, so clock out when work time ends."
@@ -232,6 +237,7 @@ function revalidateCloseoutPaths(jobId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/jobs");
   revalidatePath("/admin/jobs/closeouts");
+  revalidatePath("/admin/schedule");
   revalidatePath(`/admin/jobs/${jobId}`);
   revalidatePath(`/admin/jobs/${jobId}/closeout`);
 }

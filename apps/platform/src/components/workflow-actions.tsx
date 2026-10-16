@@ -34,6 +34,7 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
   const [state, formAction, pending] = useReliableActionState(updateJobStatus, initialState);
   const next = getNextJobStatus(status);
 
+  if (next === "completed") return <Link className="secondary-action" href={`/admin/jobs/${jobId}#job-completion`}>Complete work</Link>;
   if (!next) {
     return null;
   }
@@ -45,53 +46,16 @@ export function JobStatusActions({ jobId, status }: { jobId: string; status: Job
         <input name="next_status" type="hidden" value={next ?? ""} />
         <button disabled={pending} type="submit">
           <CheckCircle2 aria-hidden="true" size={18} />
-          {next === "completed" ? "Mark work complete" : `Move to ${next.replace("_", " ")}`}
+          {`Move to ${next.replace("_", " ")}`}
         </button>
       </form>
     </WorkflowActionPanel>
   );
 }
 
-const completeJobConfirmation =
-  "Mark this job complete? This records the completion time and updates its active schedule sessions. It will not create or send an invoice.";
-
-export function MarkJobCompleteAction({
-  completedAt,
-  jobId,
-  status,
-}: {
-  completedAt?: string | null;
-  jobId: string;
-  status: JobStatus;
-}) {
-  const [state, formAction, pending] = useReliableActionState(updateJobStatus, initialState);
-
-  if (["completed", "completed_pending_review", "ready_to_invoice", "invoiced", "paid"].includes(status)) {
-    return <p className="job-completion-date"><CheckCircle2 aria-hidden="true" size={18} />Completed {completedAt ? formatBusinessDateTime(new Date(completedAt)) : "recently"}</p>;
-  }
-
-  if (!["scheduled", "in_progress"].includes(status)) {
-    return null;
-  }
-
-  return (
-    <WorkflowActionPanel message={state.message} status={state.status}>
-      <form
-        action={formAction}
-        className="inline-action-form"
-        onSubmit={(event) => {
-          if (!window.confirm(completeJobConfirmation)) event.preventDefault();
-        }}
-      >
-        <input name="job_id" type="hidden" value={jobId} />
-        <input name="next_status" type="hidden" value="completed" />
-        <button className="job-complete-action" disabled={pending} type="submit">
-          <CheckCircle2 aria-hidden="true" size={18} />
-          {pending ? "Completing..." : "Mark complete"}
-        </button>
-      </form>
-    </WorkflowActionPanel>
-  );
+/** Older views link to the full, versioned completion review. */
+export function MarkJobCompleteAction({ jobId }: { completedAt?: string | null; jobId: string; status: JobStatus }) {
+  return <Link className="secondary-action" href={`/admin/jobs/${jobId}#job-completion`}>Complete work</Link>;
 }
 
 export function QuoteStatusActions({ quoteId, status, expectedRevision }: { quoteId: string; status: QuoteStatus; expectedRevision: number }) {
@@ -180,7 +144,7 @@ function GenerateInvoiceAction({ actorId, source, sourceId, operationalStatus, a
     }
     return source === "job" ? createInvoiceFromJob(previous, form) : createInvoiceFromQuote(previous, form);
   }, initialState);
-  const preview = `Create a draft invoice${approvedAdditionCount ? ` including ${approvedAdditionCount} approved addition${approvedAdditionCount === 1 ? "" : "s"}` : " and any approved additions"} and mark the work order complete. It will not be sent automatically.`;
+  const preview = `Create a draft invoice${approvedAdditionCount ? ` including ${approvedAdditionCount} approved addition${approvedAdditionCount === 1 ? "" : "s"}` : " and any approved additions"}. Work and scheduled visits stay open. Nothing will be sent to the customer.`;
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <form action={dispatch} className="inline-action-form" aria-busy={pending} onSubmit={(event) => {
@@ -189,7 +153,7 @@ function GenerateInvoiceAction({ actorId, source, sourceId, operationalStatus, a
         <input name={`${source}_id`} type="hidden" value={sourceId} />
         <button disabled={pending} type="submit">
           <FilePlus2 aria-hidden="true" size={18} />
-          {pending ? "Creating invoice…" : source === "quote" ? "Create invoice from quote" : "Create invoice"}
+          {pending ? "Preparing draft…" : "Prepare invoice draft"}
         </button>
       </form>
       {state.invoiceId ? <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>Open existing invoice</Link> : null}

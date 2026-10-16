@@ -1,3 +1,8 @@
+> PR09 changes only the completion contract described below: invoice preparation
+> leaves field work/visits open. Explicit office completion can include this
+> same invoice command in its transaction. Historical PR04 receipts/provenance
+> are retained. See ../jobs/EXPLICIT_COMPLETION.md for the current workflow.
+
 # PR04 atomic work-order invoice generation
 
 `generate_job_invoice(request_id, job_id?, quote_id?, manual?)` replaces the

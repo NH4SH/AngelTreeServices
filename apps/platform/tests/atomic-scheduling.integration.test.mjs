@@ -253,13 +253,15 @@ test("Atomic scheduling with real local Auth, RLS and concurrent transactions", 
     const e=await read(h.request_id),a=await activities(e.id);check(await create(h,[crew.employeeId]));assert.deepEqual(await read(e.id),e);assert.deepEqual(await activities(e.id),a);assert.equal(e.schedule_event_assignments.length,1);
     denied(await create(h,[],admin),'42501');
   });
-  await run('existing office completion still finishes linked visits and cannot complete an unfinished work order',async()=>{
+  await run('explicit office completion preserves PR08 crew assignments and rejects the retired unchecked command',async()=>{
     const j=await job(),e=await event({job_id:j.id},[crew.employeeId]);
-    denied(await owner.client.rpc('complete_completed_job_schedule',{p_job_id:j.id}),'23514');
-    check(await service.from('jobs').update({status:'completed'}).eq('id',j.id));const before=check(await service.from('jobs').select('*').eq('id',j.id).single());
-    denied(await crew.client.rpc('complete_completed_job_schedule',{p_job_id:j.id}),'42501');
-    assert.equal(check(await owner.client.rpc('complete_completed_job_schedule',{p_job_id:j.id})),1);assert.equal((await read(e.id)).status,'completed');assert.deepEqual((await read(e.id)).schedule_event_assignments,e.schedule_event_assignments);assert.deepEqual(check(await service.from('jobs').select('*').eq('id',j.id).single()),before);
-    assert.equal(check(await owner.client.rpc('complete_completed_job_schedule',{p_job_id:j.id})),0);
+    denied(await owner.client.rpc('complete_completed_job_schedule',{p_job_id:j.id}),'42501');
+    const context=check(await owner.client.rpc('get_job_completion_context',{p_job_id:j.id}));
+    const args={p_request_id:randomUUID(),p_job_id:j.id,p_expected_revision:context.revision,p_expected_snapshot:context.snapshot,p_confirm_future:true};
+    denied(await crew.client.rpc('complete_job_work',args),'42501');
+    assert.equal(check(await owner.client.rpc('complete_job_work',args)).closed_visit_count,1);
+    assert.equal((await read(e.id)).status,'completed');assert.deepEqual((await read(e.id)).schedule_event_assignments,e.schedule_event_assignments);
+    assert.equal(check(await owner.client.rpc('complete_job_work',args)).replayed,true);
   });
   await run('completed history can be retained while newly forged inactive assignments are rejected',async()=>{
     const employee=check(await service.from('employee_records').insert({legal_name:`PR08 historic ${marker}`,employment_status:'active',is_active:true}).select('id').single()),e=await event({},[employee.id]);check(await status(e,'completed'));

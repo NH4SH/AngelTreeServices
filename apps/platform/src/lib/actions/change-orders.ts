@@ -204,7 +204,7 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
   if (error) return failure(`Email sent, but status update failed: ${error.message}`);
   await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_sent", subjectId: id, subjectType: "change_order", metadata: { delivery_method: "crm_email" } });
   revalidateChangeOrderPaths(id, order.job_id, order.organization_id);
-  return { status: "success", message: token.created ? "Change order sent with a secure approval link." : "Change order resent using the existing secure link.", portalUrl };
+  return { status: "success", message: result.historyRecorded ? (token.created ? "Change order accepted with a secure approval link." : "Change order accepted using the existing secure link.") : "Change order accepted, but delivery history needs review. Do not send it again.", portalUrl };
 }
 
 export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

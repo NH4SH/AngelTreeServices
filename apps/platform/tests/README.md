@@ -1,5 +1,41 @@
 # CRM Usability Regression Checks
 
+## PR10 provider outcomes and required photo history
+
+The normal unit gate includes provider deadlines, checked reminder acknowledgments,
+bounded notification pools, saved manual request identities, honest accepted/unknown
+feedback, photo transport ambiguity and all five scheduled-wrapper guards. Providers
+and request dependencies are controlled doubles; existing authorization regressions
+remain enabled.
+
+Use the existing named loopback disposable stack with all **80 migrations**, through
+`20261016134622_checked_photo_upload_and_communication_outcomes.sql`. Keep the CLI
+status JSON outside Git, mode 0600, and use the dedicated Docker Unix socket. From
+`apps/platform`:
+
+```sh
+PR10_DISPOSABLE_STACK=1 \
+PR10_LOCAL_STATUS_FILE="$PR10_STATUS_FILE" \
+PR10_DOCKER_BIN="$PR10_DOCKER_BIN" \
+PR10_RESULTS_FILE="$PR10_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/provider-outcomes.integration.test.mjs
+```
+
+The suite accepts only `http://127.0.0.1:54321` and the existing
+`supabase_db_ats_pr02_disposable` container. It creates synthetic local identities,
+retires only its own accounts, keeps RLS/triggers enabled and removes its targeted
+failure constraints. Claim/stale-row transactions roll back to preserve unrelated
+fixtures. Real Auth/JWTs, Storage, PostgREST and PostgreSQL verify all six categories,
+mandatory audit rollback, forged/disabled/unassigned denial, independent skip-locked
+claims, concurrent staff sends, accepted-but-unrecorded outcomes and unknown holds.
+Only the Resend boundary is mocked; all other external network destinations are
+blocked. No project `.env`, production worker, real email or payment is used.
+
+Run the existing financial/scheduling/completion/offboarding suites sequentially as
+documented below. A separate empty database replay must include all 80 migrations;
+do not reset the active review stack. See `src/lib/email/PROVIDER_OUTCOMES.md` for
+remaining PR14 delivery-race/durable-attempt boundaries.
+
 ## Atomic quote approval follow-up
 
 The normal unit gate includes `quote-approval.test.mjs` (actual new migration,

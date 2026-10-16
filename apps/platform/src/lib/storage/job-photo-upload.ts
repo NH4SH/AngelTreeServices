@@ -1,7 +1,6 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
-import { recordActivity } from "@/lib/activity-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildJobPhotoPath, JOB_PHOTO_BUCKET } from "@/lib/storage/job-photo-paths";
 import type { JobPhotoType, JobPhotoUploadCategory } from "@/lib/types/database";
@@ -87,15 +86,26 @@ export async function uploadJobPhotoForUser({
     };
   }
 
-  const { error: photoError } = await supabase.from("job_photos").insert({
-    job_id: jobId,
-    uploaded_by_user_id: userId,
-    photo_type: categoryToDbType[category],
-    storage_path: storagePath,
-    caption,
-  });
+  let photoError: { code?: string; message: string } | null;
+  try {
+    const saved = await supabase.from("job_photos").insert({
+      job_id: jobId,
+      uploaded_by_user_id: userId,
+      photo_type: categoryToDbType[category],
+      storage_path: storagePath,
+      caption,
+    });
+    photoError = saved.error;
+  } catch {
+    return { status: "error", message: "The photo uploaded, but its attachment could not be confirmed. Check the job photos before uploading again.", jobId };
+  }
 
   if (photoError) {
+    // A transport failure may have lost a committed metadata+audit response.
+    // Keep its private object available for review rather than deleting evidence.
+    if (!/^(22|23|42)[0-9A-Z]{3}$/.test(String(photoError.code ?? ""))) return {
+      status: "error", message: "The photo uploaded, but its attachment could not be confirmed. Check the job photos before uploading again.", jobId,
+    };
     const { error: cleanupError } = await supabase.storage.from(JOB_PHOTO_BUCKET).remove([storagePath]);
     const cleanupMessage = cleanupError ? ` Cleanup also failed: ${cleanupError.message}` : "";
 
@@ -109,14 +119,6 @@ export async function uploadJobPhotoForUser({
           message: `Photo metadata failed. The uploaded file was removed. ${photoError.message}`,
         };
   }
-
-  await recordActivity(supabase, {
-    actorUserId: userId,
-    eventType: "job_photo_uploaded",
-    metadata: { photo_type: category },
-    subjectId: jobId,
-    subjectType: "job",
-  });
 
   return { status: "success", message: "Photo uploaded and attached to the job.", jobId };
 }

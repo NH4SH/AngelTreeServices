@@ -11,7 +11,8 @@ import {
   paymentConfirmationTemplate,
   quoteFollowUpTemplate,
 } from "@/lib/communications/templates";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { mapBounded, withDeadline } from "@/lib/runtime/deadline";
+import { sendTransactionalEmail, type SendEmailInput, type SendEmailResult } from "@/lib/email/send";
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import type {
@@ -31,190 +32,147 @@ type PreparationResult =
   | { action: "cancel" | "skip"; reason: string }
   | { action: "send"; data: PreparedCommunication };
 
-export async function processDueCommunications(limit = 20) {
-  const supabase = getServiceRoleClient();
-  if (!supabase) {
-    return { claimed: 0, failed: 0, sent: 0, skipped: 0, error: "Server-side Supabase is not configured." };
-  }
+export type CommunicationAttemptResult = {
+  status: "sent" | "failed" | "pending" | "skipped" | "cancelled" | "processing";
+  outcome: "accepted" | "not_sent" | "unknown";
+  recorded: boolean;
+  message: string;
+};
+type WorkerOptions = { db?: SupabaseClient; send?: (input: SendEmailInput) => Promise<SendEmailResult>; concurrency?: number; budgetMs?: number };
+const reviewMessage = "Delivery may have been accepted, but its CRM status needs review. Check provider history before sending again.";
 
-  const sync = await syncAutomatedCommunications(supabase);
-  if (sync.error) {
-    console.error("Communication queue synchronization failed", sync.error);
-  }
-
-  const { data, error } = await supabase.rpc("claim_due_customer_communications", {
-    p_limit: Math.min(Math.max(limit, 1), 50),
-  });
-
-  if (error) {
-    return { claimed: 0, failed: 0, sent: 0, skipped: 0, error: error.message };
-  }
-
-  const rows = (data ?? []) as CustomerCommunication[];
-  const results = await Promise.all(rows.map((row) => processClaimedCommunication(supabase, row)));
-
-  return {
-    claimed: rows.length,
-    failed: results.filter((result) => result === "failed").length,
-    sent: results.filter((result) => result === "sent").length,
-    skipped: results.filter((result) => result === "skipped" || result === "cancelled").length,
-    error: sync.error,
-  };
+export async function processDueCommunications(limit = 20, options: WorkerOptions = {}) {
+  const supabase = options.db ?? getServiceRoleClient();
+  const summary = { claimed: 0, failed: 0, sent: 0, skipped: 0, pending: 0, uncertain: 0, acceptedUnrecorded: 0, error: null as string | null };
+  if (!supabase) return { ...summary, error: "Server-side delivery is unavailable." };
+  const concurrency = Math.min(5, Math.max(1, Math.floor(options.concurrency ?? 3) || 3));
+  const maximum = Math.min(50, Math.max(1, Math.floor(limit) || 1));
+  const budget = Math.min(20_000, Math.max(1, options.budgetMs ?? 20_000));
+  const started = Date.now();
+  try {
+    const sync = await syncAutomatedCommunications(supabase);
+    if (sync.error) return { ...summary, error: "Reminder synchronization could not be confirmed. No new delivery batch was started." };
+    // Claim only the next small wave that can actually start, leaving other rows pending.
+    while (summary.claimed < maximum && Date.now() - started < budget - 1_000) {
+      const remaining = budget - (Date.now() - started);
+      if (summary.claimed > 0 && remaining < 15_000) break;
+      const { data, error } = await supabase.rpc("claim_due_customer_communications", { p_limit: Math.min(concurrency, maximum - summary.claimed) });
+      if (error) { summary.error = "The delivery queue could not be claimed safely."; break; }
+      const rows = (data ?? []) as CustomerCommunication[];
+      if (!rows.length) break;
+      summary.claimed += rows.length;
+      const results = await mapBounded(rows, concurrency, row => processClaimedCommunication(supabase, row, options.send ?? sendTransactionalEmail));
+      for (const result of results) {
+        if (result.outcome === "accepted") { summary.sent++; if (!result.recorded) summary.acceptedUnrecorded++; }
+        else if (result.outcome === "unknown") summary.uncertain++;
+        else if (["cancelled", "skipped"].includes(result.status)) summary.skipped++;
+        else if (result.status === "pending") summary.pending++;
+        else summary.failed++;
+        if (!result.recorded && result.outcome !== "accepted") summary.error = "Some delivery outcomes could not be recorded. Review the queue before retrying.";
+      }
+    }
+  } catch { summary.error = "The delivery queue could not be checked safely. Review its status before retrying."; }
+  return summary;
 }
 
-export async function processCommunicationById(communicationId: string) {
-  const supabase = getServiceRoleClient();
-  if (!supabase) return { status: "failed" as const, message: "Server-side Supabase is not configured." };
-
-  const { data: pending } = await supabase
-    .from("customer_communications")
-    .select("*")
-    .eq("id", communicationId)
-    .eq("status", "pending")
-    .maybeSingle();
-
-  if (!pending) {
-    const { data: existing } = await supabase
-      .from("customer_communications")
-      .select("status, last_error, skip_reason")
-      .eq("id", communicationId)
-      .maybeSingle();
-    return {
-      status: (existing?.status ?? "failed") as CustomerCommunication["status"],
-      message: existing?.skip_reason || existing?.last_error || "This communication was already processed.",
-    };
-  }
-
-  const { data: claimed } = await supabase
-    .from("customer_communications")
-    .update({
-      attempt_count: Number(pending.attempt_count ?? 0) + 1,
-      last_error: null,
-      processing_started_at: new Date().toISOString(),
-      skip_reason: null,
-      status: "processing",
-    })
-    .eq("id", communicationId)
-    .eq("status", "pending")
-    .select("*")
-    .maybeSingle();
-
-  if (!claimed) {
-    return { status: "processing" as const, message: "This communication is already being processed." };
-  }
-
-  const status = await processClaimedCommunication(supabase, claimed as CustomerCommunication);
-  return {
-    status,
-    message: status === "sent" ? "Reminder sent." : "The reminder was not sent. Review its status for details.",
-  };
+export async function processCommunicationById(communicationId: string, options: WorkerOptions = {}): Promise<CommunicationAttemptResult> {
+  const supabase = options.db ?? getServiceRoleClient();
+  if (!supabase) return { status: "failed", outcome: "not_sent", recorded: false, message: "Server-side delivery is unavailable." };
+  try {
+    const pendingResult = await supabase.from("customer_communications").select("*").eq("id", communicationId).maybeSingle();
+    if (pendingResult.error || !pendingResult.data) return { status: "failed", outcome: "not_sent", recorded: false, message: "The reminder could not be checked. No email was sent." };
+    const pending = pendingResult.data as CustomerCommunication;
+    if (pending.status !== "pending") return { status: pending.status, outcome: pending.status === "sent" ? "accepted" : pending.status === "processing" ? "unknown" : "not_sent", recorded: true,
+      message: pending.status === "sent" ? "This reminder was already accepted. It was not sent again." : pending.skip_reason || pending.last_error || "This reminder is already being processed. Review its status before retrying." };
+    const claim = await supabase.from("customer_communications").update({ attempt_count: Number(pending.attempt_count) + 1, last_error: null,
+      processing_started_at: new Date().toISOString(), skip_reason: null, status: "processing" })
+      .eq("id", communicationId).eq("status", "pending").eq("attempt_count", pending.attempt_count).select("*").maybeSingle();
+    if (claim.error) return { status: "failed", outcome: "not_sent", recorded: false, message: "The reminder could not be claimed. No email was sent." };
+    if (!claim.data) return { status: "processing", outcome: "not_sent", recorded: true, message: "Another worker has this reminder. No additional email was sent." };
+    return processClaimedCommunication(supabase, claim.data as CustomerCommunication, options.send ?? sendTransactionalEmail);
+  } catch { return { status: "failed", outcome: "unknown", recorded: false, message: "The reminder status could not be confirmed. Review delivery history before retrying." }; }
 }
 
-async function processClaimedCommunication(supabase: SupabaseClient, communication: CustomerCommunication) {
-  const settingsResult = await getCommunicationSettingsFromClient(supabase);
-  if (!settingsResult.data) {
-    await failCommunication(supabase, communication, settingsResult.error ?? "Communication settings are unavailable.", false);
-    return "failed" as const;
-  }
+async function updateClaim(supabase: SupabaseClient, row: CustomerCommunication, values: Record<string, unknown>) {
+  try {
+    const result = await withDeadline(async signal => {
+      let query = supabase.from("customer_communications").update(values).eq("id", row.id).eq("status", "processing")
+        .eq("attempt_count", row.attempt_count).eq("processing_started_at", row.processing_started_at).select("id");
+      if (typeof query.abortSignal === "function") query = query.abortSignal(signal);
+      return await query.maybeSingle();
+    }, 5_000);
+    return !result.error && Boolean(result.data?.id);
+  } catch { return false; }
+}
 
-  if (communication.is_automatic && !settingsResult.data.automated_sending_enabled) {
-    await returnToPending(supabase, communication, "Automated sending is disabled.");
-    return "skipped" as const;
+async function processClaimedCommunication(supabase: SupabaseClient, communication: CustomerCommunication,
+  send: (input: SendEmailInput) => Promise<SendEmailResult>): Promise<CommunicationAttemptResult> {
+  let providerStarted = false;
+  let accepted = false;
+  try {
+    const settingsResult = await getCommunicationSettingsFromClient(supabase);
+    if (!settingsResult.data) throw Error("Settings unavailable");
+    if (communication.is_automatic && !settingsResult.data.automated_sending_enabled) {
+      const recorded = await returnToPending(supabase, communication, "Automated sending is disabled.");
+      return { status: "pending", outcome: "not_sent", recorded, message: "Automated sending is disabled. This reminder was not sent." };
+    }
+    const prepared = await prepareCommunication(supabase, communication, settingsResult.data);
+    if (prepared.action !== "send") {
+      const status = prepared.action === "cancel" ? "cancelled" : "skipped";
+      const recorded = await updateClaim(supabase, communication, { cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
+        last_error: null, processing_started_at: null, skip_reason: prepared.reason, status });
+      return { status, outcome: "not_sent", recorded, message: recorded ? prepared.reason : "No email was sent, but the queue update needs review." };
+    }
+    const recent = await getRecentMatchingDelivery(supabase, communication, settingsResult.data.minimum_send_interval_hours);
+    if (recent.kind === "current") {
+      const recorded = await updateClaim(supabase, communication, { last_error: null, processing_started_at: null,
+        provider_message_id: recent.providerMessageId, sent_at: recent.sentAt, skip_reason: null, status: "sent" });
+      return { status: recorded ? "sent" : "processing", outcome: "accepted", recorded, message: recorded ? "Previous provider acceptance was recorded. No email was sent again." : reviewMessage };
+    }
+    if (recent.kind === "error") throw Error("Delivery history unavailable");
+    if (recent.kind === "other") {
+      const message = "A matching reminder was already accepted recently. No additional email was sent.";
+      const recorded = await updateClaim(supabase, communication, { last_error: null, processing_started_at: null, skip_reason: message, status: "skipped" });
+      return { status: "skipped", outcome: "not_sent", recorded, message };
+    }
+    // Legacy queue rows have no durable first-attempt/payload record. Never use an
+    // expired provider key or invent a new one to recover an unverified retry.
+    if (communication.attempt_count > 1 && Date.now() - Date.parse(communication.created_at) >= 23 * 60 * 60_000) {
+      return failCommunication(supabase, communication, "The saved delivery request needs review before another attempt. No email was sent.", false);
+    }
+    if (prepared.data.recipientEmail !== communication.recipient_email && !await updateClaim(supabase, communication, { recipient_email: prepared.data.recipientEmail }))
+      return { status: "processing", outcome: "not_sent", recorded: false, message: "The recipient could not be saved. No email was sent." };
+    // Recheck ownership immediately before provider I/O. PR14 owns the full
+    // transactional send-time source/recipient lease and immutable payload design.
+    const current = await supabase.from("customer_communications").select("id").eq("id", communication.id).eq("status", "processing")
+      .eq("attempt_count", communication.attempt_count).eq("processing_started_at", communication.processing_started_at).maybeSingle();
+    if (current.error || !current.data) return { status: "processing", outcome: "not_sent", recorded: false, message: "The delivery claim changed. No email was sent." };
+    providerStarted = true;
+    const result = await send({ to: prepared.data.recipientEmail, subject: prepared.data.template.subject, text: prepared.data.template.text,
+      html: prepared.data.template.html, emailType: communication.communication_type, idempotencyKey: `customer-communication/${communication.id}`,
+      relatedAppointmentId: communication.appointment_id, relatedCommunicationId: communication.id, relatedCustomerId: communication.customer_id,
+      relatedInvoiceId: communication.invoice_id, relatedJobId: communication.job_id, relatedOrganizationId: communication.organization_id,
+      relatedPaymentId: communication.payment_id, relatedQuoteId: communication.quote_id, relatedScheduleEventId: communication.schedule_event_id, supabase });
+    accepted = result.ok;
+    if (accepted) {
+      const recorded = await updateClaim(supabase, communication, { last_error: result.historyRecorded ? null : "Provider accepted; delivery history needs review.",
+        processing_started_at: null, provider_message_id: result.providerMessageId, sent_at: new Date().toISOString(), skip_reason: null, status: "sent" });
+      return { status: recorded ? "sent" : "processing", outcome: "accepted", recorded: recorded && result.historyRecorded,
+        message: recorded && result.historyRecorded ? "Email accepted and recorded." : reviewMessage };
+    }
+    if (result.outcome === "unknown") {
+      const recorded = await updateClaim(supabase, communication, { status: "failed", processing_started_at: null, last_error: reviewMessage,
+        skip_reason: "Delivery outcome needs review; automatic retry was stopped." });
+      return { status: recorded ? "failed" : "processing", outcome: "unknown", recorded, message: reviewMessage };
+    }
+    return failCommunication(supabase, communication, result.message, result.retryable && result.historyRecorded);
+  } catch {
+    if (providerStarted) {
+      const recorded = await updateClaim(supabase, communication, { status: "failed", processing_started_at: null, last_error: reviewMessage });
+      return { status: recorded ? "failed" : "processing", outcome: accepted ? "accepted" : "unknown", recorded: false, message: reviewMessage };
+    }
+    return failCommunication(supabase, communication, "Delivery checks could not be completed safely. No email was sent.", false);
   }
-
-  const prepared = await prepareCommunication(supabase, communication, settingsResult.data);
-  if (prepared.action !== "send") {
-    await supabase
-      .from("customer_communications")
-      .update({
-        cancelled_at: prepared.action === "cancel" ? new Date().toISOString() : null,
-        last_error: null,
-        processing_started_at: null,
-        skip_reason: prepared.reason,
-        status: prepared.action === "cancel" ? "cancelled" : "skipped",
-      })
-      .eq("id", communication.id)
-      .eq("status", "processing");
-    return prepared.action === "cancel" ? "cancelled" as const : "skipped" as const;
-  }
-
-  if (prepared.data.recipientEmail !== communication.recipient_email) {
-    await supabase
-      .from("customer_communications")
-      .update({ recipient_email: prepared.data.recipientEmail })
-      .eq("id", communication.id)
-      .eq("status", "processing");
-  }
-
-  const recentDelivery = await getRecentMatchingDelivery(supabase, communication, settingsResult.data.minimum_send_interval_hours);
-  if (recentDelivery.kind === "current") {
-    await supabase
-      .from("customer_communications")
-      .update({
-        last_error: null,
-        processing_started_at: null,
-        provider_message_id: recentDelivery.providerMessageId,
-        sent_at: recentDelivery.sentAt,
-        skip_reason: null,
-        status: "sent",
-      })
-      .eq("id", communication.id)
-      .eq("status", "processing");
-    return "sent" as const;
-  }
-  if (recentDelivery.kind === "other" || recentDelivery.kind === "error") {
-    await supabase
-      .from("customer_communications")
-      .update({
-        last_error: null,
-        processing_started_at: null,
-        skip_reason: recentDelivery.kind === "error"
-          ? "The duplicate-delivery check could not be completed safely. No email was sent."
-          : `A matching reminder was already sent within ${settingsResult.data.minimum_send_interval_hours} hours.`,
-        status: "skipped",
-      })
-      .eq("id", communication.id)
-      .eq("status", "processing");
-    return "skipped" as const;
-  }
-
-  const result = await sendTransactionalEmail({
-    to: prepared.data.recipientEmail,
-    subject: prepared.data.template.subject,
-    text: prepared.data.template.text,
-    html: prepared.data.template.html,
-    emailType: communication.communication_type,
-    idempotencyKey: `customer-communication/${communication.id}`,
-    relatedAppointmentId: communication.appointment_id,
-    relatedCommunicationId: communication.id,
-    relatedCustomerId: communication.customer_id,
-    relatedInvoiceId: communication.invoice_id,
-    relatedJobId: communication.job_id,
-    relatedOrganizationId: communication.organization_id,
-    relatedPaymentId: communication.payment_id,
-    relatedQuoteId: communication.quote_id,
-    relatedScheduleEventId: communication.schedule_event_id,
-    supabase,
-  });
-
-  if (result.ok) {
-    await supabase
-      .from("customer_communications")
-      .update({
-        last_error: null,
-        processing_started_at: null,
-        provider_message_id: result.providerMessageId,
-        sent_at: new Date().toISOString(),
-        skip_reason: null,
-        status: "sent",
-      })
-      .eq("id", communication.id)
-      .eq("status", "processing");
-    return "sent" as const;
-  }
-
-  await failCommunication(supabase, communication, result.message, result.retryable);
-  return "failed" as const;
 }
 
 async function prepareCommunication(
@@ -288,25 +246,31 @@ async function getOrganizationWorkflowRecipient(
   let contactIds: Array<string | null> = [];
 
   if (communication.quote_id) {
-    const { data } = await supabase.from("quotes").select("organization_id, approval_contact_id, recipient_contact_id").eq("id", communication.quote_id).maybeSingle();
+    const { data, error } = await supabase.from("quotes").select("organization_id, approval_contact_id, recipient_contact_id").eq("id", communication.quote_id).maybeSingle();
+    if (error) throw Error("Workflow recipient unavailable");
     if (data?.organization_id === organizationId) contactIds = [data.approval_contact_id, data.recipient_contact_id];
   } else if (communication.invoice_id) {
-    const { data } = await supabase.from("invoices").select("organization_id, accounts_payable_contact_id, billing_contact_id").eq("id", communication.invoice_id).maybeSingle();
+    const { data, error } = await supabase.from("invoices").select("organization_id, accounts_payable_contact_id, billing_contact_id").eq("id", communication.invoice_id).maybeSingle();
+    if (error) throw Error("Workflow recipient unavailable");
     if (data?.organization_id === organizationId) contactIds = [data.accounts_payable_contact_id, data.billing_contact_id];
   } else if (communication.payment_id) {
-    const { data: payment } = await supabase.from("payments").select("invoice_id, organization_id").eq("id", communication.payment_id).maybeSingle();
+    const { data: payment, error: paymentError } = await supabase.from("payments").select("invoice_id, organization_id").eq("id", communication.payment_id).maybeSingle();
+    if (paymentError) throw Error("Payment recipient unavailable");
     if (payment?.organization_id === organizationId) {
-      const { data } = await supabase.from("invoices").select("accounts_payable_contact_id, billing_contact_id").eq("id", payment.invoice_id).maybeSingle();
+      const { data, error } = await supabase.from("invoices").select("accounts_payable_contact_id, billing_contact_id").eq("id", payment.invoice_id).maybeSingle();
+      if (error) throw Error("Invoice recipient unavailable");
       contactIds = [data?.accounts_payable_contact_id ?? null, data?.billing_contact_id ?? null];
     }
   } else if (communication.job_id) {
-    const { data } = await supabase.from("jobs").select("organization_id, onsite_contact_id, property_manager_contact_id").eq("id", communication.job_id).maybeSingle();
+    const { data, error } = await supabase.from("jobs").select("organization_id, onsite_contact_id, property_manager_contact_id").eq("id", communication.job_id).maybeSingle();
+    if (error) throw Error("Workflow recipient unavailable");
     if (data?.organization_id === organizationId) contactIds = [data.onsite_contact_id, data.property_manager_contact_id];
   }
 
   for (const contactId of contactIds) {
     if (!contactId) continue;
-    const { data } = await supabase.from("organization_contacts").select("email, is_active, organization_id").eq("id", contactId).maybeSingle();
+    const { data, error } = await supabase.from("organization_contacts").select("email, is_active, organization_id").eq("id", contactId).maybeSingle();
+    if (error) throw Error("Contact lookup unavailable");
     if (data?.organization_id === organizationId && data.is_active && isValidEmail(data.email?.trim().toLowerCase() ?? "")) return data.email;
   }
   return null;
@@ -365,7 +329,7 @@ async function prepareInvoiceReminder(
     .maybeSingle();
 
   if (error || !invoice) return { action: "cancel", reason: error?.message ?? "The invoice no longer exists." };
-  if (["paid", "void"].includes(invoice.status)) return { action: "cancel", reason: `The invoice is ${invoice.status}.` };
+  if (!["sent", "partially_paid", "overdue"].includes(invoice.status)) return { action: "cancel", reason: `The invoice is ${invoice.status}.` };
   if (communication.is_automatic && !invoice.automatic_reminders_enabled) {
     return { action: "cancel", reason: "Automatic reminders are disabled for this invoice." };
   }
@@ -416,25 +380,28 @@ async function prepareAppointmentMessage(
   } | null = null;
 
   if (communication.schedule_event_id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("schedule_events")
       .select("starts_at, ends_at, event_type, status, updated_at, job_id, service_locations(street, city, state, postal_code)")
       .eq("id", communication.schedule_event_id)
       .maybeSingle();
+    if (error) throw Error("Visit lookup unavailable");
     appointment = data ?? null;
   } else if (communication.appointment_id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("appointments")
       .select("starts_at, ends_at, appointment_type, status, updated_at, service_locations(street, city, state, postal_code)")
       .eq("id", communication.appointment_id)
       .maybeSingle();
+    if (error) throw Error("Appointment lookup unavailable");
     appointment = data ? { ...data, event_type: data.appointment_type } : null;
   } else if (communication.job_id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select("scheduled_start_at, scheduled_end_at, status, updated_at, service_locations(street, city, state, postal_code)")
       .eq("id", communication.job_id)
       .maybeSingle();
+    if (error) throw Error("Work order lookup unavailable");
     appointment = data?.scheduled_start_at ? {
       ends_at: data.scheduled_end_at,
       event_type: "job",
@@ -461,13 +428,14 @@ async function prepareAppointmentMessage(
 
   let workSessions: { startsAt: string; endsAt: string | null }[] | undefined;
   if (appointment.event_type === "job" && appointment.job_id) {
-    const { data: sessions } = await supabase
+    const { data: sessions, error: sessionsError } = await supabase
       .from("schedule_events")
       .select("starts_at, ends_at")
       .eq("job_id", appointment.job_id)
       .eq("event_type", "job")
       .in("status", ["scheduled", "confirmed", "in_progress"])
       .order("starts_at", { ascending: true });
+    if (sessionsError) throw Error("Work visits unavailable");
     workSessions = (sessions ?? []).map((session) => ({ startsAt: session.starts_at, endsAt: session.ends_at }));
   }
 
@@ -532,11 +500,12 @@ async function preparePaymentConfirmation(
 }
 
 async function getCurrentInvoiceBalance(supabase: SupabaseClient, invoiceId: string, totalCents: number) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("payments")
     .select("amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status")
     .eq("invoice_id", invoiceId)
     .eq("status", "succeeded");
+  if (error) throw Error("Payment lookup unavailable");
   const paidCents = (data ?? []).reduce(
     (sum, payment) => sum + netSuccessfulPaymentPrincipal(payment),
     0,
@@ -544,76 +513,34 @@ async function getCurrentInvoiceBalance(supabase: SupabaseClient, invoiceId: str
   return Math.max(0, totalCents - paidCents);
 }
 
-async function getRecentMatchingDelivery(
-  supabase: SupabaseClient,
-  communication: CustomerCommunication,
-  intervalHours: number,
-) {
-  const since = new Date(Date.now() - intervalHours * 60 * 60 * 1000).toISOString();
-  let query = supabase
-    .from("email_events")
-    .select("related_communication_id, provider_message_id, sent_at")
-    .eq("email_type", communication.communication_type)
-    .eq("status", "sent")
-    .gte("sent_at", since);
-
+async function getRecentMatchingDelivery(supabase: SupabaseClient, communication: CustomerCommunication, intervalHours: number) {
+  const own = await supabase.from("email_events").select("provider_message_id,sent_at").eq("related_communication_id", communication.id)
+    .eq("status", "sent").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (own.error) return { kind: "error" as const };
+  if (own.data) return { kind: "current" as const, providerMessageId: own.data.provider_message_id, sentAt: own.data.sent_at };
+  const since = new Date(Date.now() - intervalHours * 60 * 60_000).toISOString();
+  let query = supabase.from("email_events").select("id").eq("email_type", communication.communication_type).eq("status", "sent").gte("sent_at", since);
   if (communication.quote_id) query = query.eq("related_quote_id", communication.quote_id);
   else if (communication.invoice_id) query = query.eq("related_invoice_id", communication.invoice_id);
   else if (communication.schedule_event_id) query = query.eq("related_schedule_event_id", communication.schedule_event_id);
   else if (communication.appointment_id) query = query.eq("related_appointment_id", communication.appointment_id);
   else if (communication.payment_id) query = query.eq("related_payment_id", communication.payment_id);
   else if (communication.job_id) query = query.eq("related_job_id", communication.job_id);
-
-  const { data, error } = await query.limit(20);
-  if (error) {
-    console.error("Communication duplicate-delivery check failed", { communicationId: communication.id, error: error.message });
-    return { kind: "error" as const };
-  }
-  const current = (data ?? []).find((event) => event.related_communication_id === communication.id);
-  if (current) {
-    return {
-      kind: "current" as const,
-      providerMessageId: current.provider_message_id ?? null,
-      sentAt: current.sent_at ?? new Date().toISOString(),
-    };
-  }
-  return (data ?? []).length > 0 ? { kind: "other" as const } : { kind: "none" as const };
+  else return { kind: "error" as const };
+  const result = await query.limit(1);
+  return result.error ? { kind: "error" as const } : result.data?.length ? { kind: "other" as const } : { kind: "none" as const };
 }
-
-async function failCommunication(
-  supabase: SupabaseClient,
-  communication: CustomerCommunication,
-  message: string,
-  retryable: boolean,
-) {
-  const shouldRetry = retryable && communication.attempt_count < maxAttempts;
-  await supabase
-    .from("customer_communications")
-    .update({
-      last_error: message.slice(0, 2000),
-      processing_started_at: null,
-      scheduled_for: shouldRetry
-        ? new Date(Date.now() + Math.max(communication.attempt_count, 1) * 15 * 60 * 1000).toISOString()
-        : communication.scheduled_for,
-      status: shouldRetry ? "pending" : "failed",
-    })
-    .eq("id", communication.id)
-    .eq("status", "processing");
+async function failCommunication(supabase: SupabaseClient, communication: CustomerCommunication, message: string, retryable: boolean): Promise<CommunicationAttemptResult> {
+  const retry = retryable && communication.attempt_count < maxAttempts;
+  const recorded = await updateClaim(supabase, communication, { last_error: message.slice(0, 2000), processing_started_at: null,
+    scheduled_for: retry ? new Date(Date.now() + Math.max(communication.attempt_count, 1) * 15 * 60_000).toISOString() : communication.scheduled_for,
+    status: retry ? "pending" : "failed" });
+  return { status: retry ? "pending" : "failed", outcome: "not_sent", recorded,
+    message: recorded ? (retry ? "The provider did not accept this attempt. The saved reminder will retry later." : message) : "No acceptance was confirmed, and the queue update needs review. Check delivery history before retrying." };
 }
-
 async function returnToPending(supabase: SupabaseClient, communication: CustomerCommunication, reason: string) {
-  await supabase
-    .from("customer_communications")
-    .update({
-      attempt_count: Math.max(0, communication.attempt_count - 1),
-      last_error: null,
-      processing_started_at: null,
-      scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      skip_reason: reason,
-      status: "pending",
-    })
-    .eq("id", communication.id)
-    .eq("status", "processing");
+  return updateClaim(supabase, communication, { attempt_count: Math.max(0, communication.attempt_count - 1), last_error: null,
+    processing_started_at: null, scheduled_for: new Date(Date.now() + 60 * 60_000).toISOString(), skip_reason: reason, status: "pending" });
 }
 
 type LocationRow = {

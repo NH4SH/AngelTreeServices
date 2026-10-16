@@ -6,6 +6,7 @@ import {
   type ActivityChanges,
   type ActivityMetadata,
 } from "@/lib/activity-log";
+import { mapBounded } from "@/lib/runtime/deadline";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
@@ -91,7 +92,7 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
       console.error("Customer activity notification rows failed", {
         eventType: input.eventType,
         subjectId: input.subjectId,
-        error,
+        reason: "notification_rows_unconfirmed",
       });
       return;
     }
@@ -99,12 +100,13 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
     const preferences = await getEmailPreferences(supabase, recipients.map((recipient) => recipient.id));
     const recipientById = new Map(recipients.map((recipient) => [recipient.id, recipient]));
 
-    await Promise.all((created ?? []).map(async (notification) => {
+    const outcomes = await mapBounded(created ?? [], 3, async (notification) => {
+      try {
       const recipient = recipientById.get(notification.recipient_user_id);
       const enabled = isEmailEnabled(preferences.get(notification.recipient_user_id), input.category);
       if (!recipient?.email || !enabled) {
         await updateEmailStatus(supabase, notification.id, "skipped");
-        return;
+        return true;
       }
 
       const destination = buildCanonicalAppUrl(input.destinationPath);
@@ -124,13 +126,12 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
         to: recipient.email,
       });
       await updateEmailStatus(supabase, notification.id, email.ok ? "sent" : "failed");
-    }));
-  } catch (error) {
-    console.error("Customer activity notification pipeline failed", {
-      eventType: input.eventType,
-      subjectId: input.subjectId,
-      error,
+      return email.outcome !== "unknown" && email.historyRecorded;
+      } catch { return false; }
     });
+    if (outcomes.some(confirmed => !confirmed)) throw Error("Notification outcomes need review");
+  } catch {
+    console.error("Customer activity notification pipeline needs review.", { eventType: input.eventType, subjectId: input.subjectId });
   }
 }
 
@@ -154,6 +155,7 @@ async function getEmailPreferences(
   userIds: string[],
 ) {
   const result = await supabase.from("admin_notification_preferences").select("*").in("user_id", userIds);
+  if (result.error) throw Error("Notification preferences could not be checked.");
   return new Map((result.data ?? []).map((preference) => [preference.user_id as string, preference]));
 }
 
@@ -171,11 +173,12 @@ async function updateEmailStatus(
   notificationId: string,
   status: "sent" | "failed" | "skipped",
 ) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("admin_notifications")
     .update({ email_attempted_at: new Date().toISOString(), email_status: status })
-    .eq("id", notificationId);
-  if (error) console.error("Notification email status update failed", { notificationId, status, error });
+    .eq("id", notificationId)
+    .select("id").maybeSingle();
+  if (error || !data?.id) throw Error("Notification delivery status could not be recorded.");
 }
 
 function buildEmailText(

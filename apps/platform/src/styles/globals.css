@@ -22805,3 +22805,5 @@ body:has(.appointment-overlay) {
 .closeout-fields { display: contents; }
 .job-completion-review :focus-visible { outline: 2px solid #286345; outline-offset: 3px; }
 @media (max-width: 640px) { .job-completion-review { width: 100%; } .job-completion-review .workflow-button-row { display: grid; } }
+
+.form-message.warning { background: #fff5df; color: #664512; border: 1px solid #ddc99f; }

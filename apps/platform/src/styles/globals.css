@@ -22822,3 +22822,14 @@ body:has(.appointment-overlay) {
   .document-recovery .workflow-button-row, .saved-scope-wording .workflow-button-row { display: grid; grid-template-columns: minmax(0, 1fr); }
   .document-recovery :is(button, a), .saved-scope-wording button { min-height: 44px; white-space: normal; }
 }
+
+/* Delivery review uses the existing CRM rows and controls, with bounded forms. */
+.delivery-review-page > .record-list { margin-top: 1.25rem; }
+.delivery-review-options { margin-top: 1rem; max-width: 44rem; }
+.delivery-review-options summary, .additional-email-option summary { cursor: pointer; font-weight: 650; padding-block: .5rem; }
+.delivery-review-options .form-stack { display: grid; gap: .65rem; padding-block: 1rem; }
+.delivery-review-options textarea, .delivery-review-options select, .delivery-review-options input { width: 100%; min-width: 0; }
+.delivery-review-page .record-card-header p, .delivery-review-page .record-card p { overflow-wrap: anywhere; }
+.additional-email-option { margin-block: .5rem; }
+.additional-email-option label { display: flex; align-items: center; gap: .65rem; }
+.additional-email-option input[type="checkbox"] { width: auto; }

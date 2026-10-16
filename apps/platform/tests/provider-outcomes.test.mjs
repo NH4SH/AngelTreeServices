@@ -1,7 +1,8 @@
+import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';
 import assert from'node:assert/strict';import test from'node:test';
 import{load,memoryDB}from'./pr10-test-helpers.mjs';import{withDeadline,mapBounded}from'../src/lib/runtime/deadline.ts';
 const config={apiKey:'LOCAL-NONCREDENTIAL',from:'local@example.invalid',replyTo:'local@example.invalid'};
-function sender(options={}){const tables={email_events:[]};const db=memoryDB(tables,{fail:()=>options.historyError});const mod=load('../src/lib/email/send.ts',{'server-only':{},'@/lib/email/config':{getEmailProviderConfig:()=>options.unconfigured?null:config},'@/lib/supabase/admin':{getServiceRoleClient:()=>db},'@/lib/runtime/deadline':{withDeadline}});return{...mod,tables,db};}
+function sender(options={}){const tables={email_events:[]};const db=memoryDB(tables,{fail:()=>options.historyError});const mod=load('../src/lib/email/send.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'@/lib/email/config':{getEmailProviderConfig:()=>options.unconfigured?null:config},'@/lib/supabase/admin':{getServiceRoleClient:()=>db},'@/lib/runtime/deadline':{withDeadline},'@/lib/email/delivery-followups':{completeDeliveryFollowups:()=>assert.fail('Transport-only test')},'@/lib/email/delivery':{sendDurableEmail:()=>assert.fail('Transport-only test')}});return{...mod,sendTransactionalEmail:mod.sendEmailTransport,tables,db};}
 const input={to:'customer@example.invalid',subject:'Local test',text:'Local only',emailType:'quote',idempotencyKey:'stable/request-1'};
 const provider=fn=>{const old=globalThis.fetch;globalThis.fetch=fn;return()=>{globalThis.fetch=old;};};
 test('deadline bounds an uncooperative transport and cancels its signal',async()=>{let signal;const at=Date.now();await assert.rejects(withDeadline(s=>{signal=s;return new Promise(()=>{});},15));assert.ok(Date.now()-at<500);assert.equal(signal.aborted,true);});

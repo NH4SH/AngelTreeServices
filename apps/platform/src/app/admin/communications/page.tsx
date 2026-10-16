@@ -62,6 +62,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
           <a href="#inbox"><MessageSquareMore size={16} />Inbox</a>
           <a href="#website-leads"><Globe2 size={16} />Website leads</a>
           <Link href="/admin/schedule?event_type=estimate"><CalendarClock size={16} />Estimate appointments</Link>
+          <Link href="/admin/communications/delivery-review">Delivery review</Link>
           <a href="#history"><MailCheck size={16} />Communication history</a>
         </nav>
 

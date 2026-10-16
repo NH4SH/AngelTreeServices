@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { recordActivity } from "@/lib/activity-log";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
 import { getQuoteDetail } from "@/lib/data/quotes";
@@ -18,10 +17,7 @@ import {
 import { createOrGetQuotePortalTokenRecord } from "@/lib/portal/quote-links";
 import { getPortalUrl } from "@/lib/portal/urls";
 import { createClient } from "@/lib/supabase/server";
-import { getServiceRoleClient } from "@/lib/supabase/admin";
-import { syncAutomatedCommunications } from "@/lib/communications/queue";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
 import {
   buildMultiQuoteEmailDraft,
   normalizeMultiQuoteIds,
@@ -34,6 +30,7 @@ export type TransactionalEmailActionState = {
   status: "idle" | "success" | "error" | "warning";
   deliveryState?: "accepted" | "unknown" | "not_sent";
   message: string;
+  deliveryId?: string;
 };
 
 export async function sendMultiQuoteEmail(
@@ -63,6 +60,7 @@ export async function sendMultiQuoteEmail(
   if (submittedDraft.error) return { status: "error", message: submittedDraft.error };
 
   const createdTokenIds: string[] = [];
+  const deliveryTokens: {kind:string;id:string}[] = [];
   const linkedQuotes: { quote: (typeof quotes)[number]; portalUrl: string }[] = [];
   for (const quote of quotes) {
     const token = await createOrGetQuotePortalTokenRecord({ quoteId: quote.id, supabase: auth.supabase });
@@ -71,6 +69,7 @@ export async function sendMultiQuoteEmail(
       return { status: "error", message: token.error };
     }
     if (token.created) createdTokenIds.push(token.tokenId);
+    deliveryTokens.push({kind:"quote",id:token.tokenId});
     try {
       linkedQuotes.push({ quote, portalUrl: await getPortalUrl("quote", token.rawToken) });
     } catch {
@@ -81,6 +80,9 @@ export async function sendMultiQuoteEmail(
 
   const template = buildMultiQuoteEmailDraft(linkedQuotes, submittedDraft.edits);
   const result = await sendTransactionalEmail({
+    deliveryQuoteIds: quoteIds,
+    expectedSourceVersions: Object.fromEntries(quotes.map((quote) => [`quote:${quote.id}`,quote.edit_revision])),
+    deliveryPortalTokens: deliveryTokens,
     to: validation.recipient,
     cc: cc.recipients,
     subject: template.subject,
@@ -93,71 +95,13 @@ export async function sendMultiQuoteEmail(
     sentByUserId: auth.userId,
     supabase: auth.supabase,
     idempotencyKey: requestKey,
+    confirmedAdditionalCopy: formData.get("email_additional_copy") === "1",
+    additionalCopyRequestId: String(formData.get("email_copy_request_id") ?? ""),
   });
 
-  if (!result.ok) {
-    if (result.outcome !== "unknown" && !result.retryable) await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
-    return sendFailure(result);
-  }
-
-  try {
-  const sentAt = new Date().toISOString();
-  const { data: updatedQuotes, error: statusError } = await auth.supabase
-    .from("quotes")
-    .update({ status: "sent", sent_at: sentAt, sent_method: "crm_email", sent_by_user_id: auth.userId })
-    .in("id", quoteIds)
-    .select("id");
-
-  if (statusError || (updatedQuotes?.length ?? 0) !== quoteIds.length) {
-    return {
-      status: "warning", deliveryState: "accepted",
-      message: `Proposal email accepted, but not every quote status could be updated. Contact an administrator before sending again${statusError ? `: ${safeStaffMessage(statusError.message)}` : "."}`,
-    };
-  }
-
-  await Promise.all(quotes.map(async (quote) => {
-    await recordActivity(auth.supabase, {
-      actorUserId: auth.userId,
-      eventType: "quote_sent",
-      metadata: {
-        delivery_method: "crm_email",
-        provider_message_id: result.providerMessageId,
-        subject: template.subject,
-        template_type: "branded_multi_quote",
-        quote_count: quotes.length,
-        primary_quote_id: quoteIds[0],
-        cc_count: cc.recipients.length,
-      },
-      subjectId: quote.id,
-      subjectType: "quote",
-    });
-    if (quote.recurring_occurrence_id) {
-      const recurring = await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", quote.recurring_occurrence_id);
-      if (recurring.error) throw Error("Recurring follow-up unavailable");
-      await recordActivity(auth.supabase, {
-        actorUserId: auth.userId,
-        eventType: "renewal_quote_sent",
-        subjectId: quote.recurring_occurrence_id,
-        subjectType: "recurring_occurrence",
-        metadata: { quote_id: quote.id },
-      });
-    }
-  }));
-
-  const communicationSupabase = getServiceRoleClient();
-  if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
-  quoteIds.forEach((quoteId) => revalidatePath(`/admin/quotes/${quoteId}`));
-  if (validation.customerId) revalidatePath(`/admin/customers/${validation.customerId}`);
-  if (validation.organizationId) revalidatePath(`/admin/organizations/${validation.organizationId}`);
+  quoteIds.forEach((id) => revalidatePath(`/admin/quotes/${id}`));
   revalidatePath("/admin/communications");
-
-  return {
-    status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
-    message: result.historyRecorded
-      ? `${quotes.length} proposals were accepted by the email provider, recorded in delivery history, and marked sent.`
-      : "The proposal email was accepted, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
-  };
-  } catch { return acceptedNeedsReview("Some proposal follow-up could not be completed."); }
+  return deliveryActionResult(result);
 }
 
 export async function sendQuoteEmail(
@@ -219,6 +163,8 @@ export async function sendQuoteEmail(
     portalUrl: portalLink.url,
   });
   const result = await sendTransactionalEmail({
+    expectedSourceVersions: { [`quote:${detail.data.id}`]: detail.data.edit_revision },
+    deliveryPortalTokens: portalLink.tokenId ? [{kind:"quote",id:portalLink.tokenId}] : [],
     to: recipient,
     cc: cc.recipients,
     subject: template.subject,
@@ -232,65 +178,13 @@ export async function sendQuoteEmail(
     sentByUserId: auth.userId,
     supabase: auth.supabase,
     idempotencyKey: requestKey,
+    confirmedAdditionalCopy: formData.get("email_additional_copy") === "1",
+    additionalCopyRequestId: String(formData.get("email_copy_request_id") ?? ""),
   });
 
-  if (result.ok) {
-    try {
-    const sentAt = new Date().toISOString();
-    const { data: savedQuote, error: statusError } = await auth.supabase
-      .from("quotes")
-      .update({
-        status: "sent",
-        sent_at: sentAt,
-        sent_method: "crm_email",
-        sent_by_user_id: auth.userId,
-      })
-      .eq("id", detail.data.id).select("id").maybeSingle();
-
-    if (statusError || !savedQuote) {
-      return acceptedNeedsReview("The quote status could not be saved.");
-    }
-    await recordActivity(auth.supabase, {
-      actorUserId: auth.userId,
-      eventType: "quote_sent",
-      metadata: {
-        delivery_method: "crm_email",
-        provider_message_id: result.providerMessageId,
-        subject: template.subject,
-        template_type: "branded_quote",
-        cc_count: cc.recipients.length,
-      },
-      subjectId: detail.data.id,
-      subjectType: "quote",
-    });
-    if (detail.data.recurring_occurrence_id) {
-      const recurring = await auth.supabase.from("recurring_service_occurrences").update({ status: "quote_sent" }).eq("id", detail.data.recurring_occurrence_id);
-      if (recurring.error) return acceptedNeedsReview("The renewal follow-up could not be saved.");
-      await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "renewal_quote_sent", subjectId: detail.data.recurring_occurrence_id, subjectType: "recurring_occurrence", metadata: { quote_id: detail.data.id } });
-    }
-    const communicationSupabase = getServiceRoleClient();
-    if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
-    } catch { return acceptedNeedsReview("CRM follow-up could not be completed."); }
-  } else if (result.outcome !== "unknown" && !result.retryable && portalLink.created && portalLink.tokenId) {
-    await auth.supabase
-      .from("quote_portal_tokens")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("id", portalLink.tokenId);
-  }
-
   revalidatePath(`/admin/quotes/${quoteId}`);
-  if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
-  if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
-  return result.ok
-    ? {
-        status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
-        message: result.historyRecorded
-          ? portalLink.created
-            ? "Quote email accepted by the provider, recorded in delivery history, and marked sent."
-            : "Quote email accepted by the provider and recorded in delivery history using the existing customer link."
-          : "Quote email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
-      }
-    : sendFailure(result);
+  revalidatePath("/admin/communications");
+  return deliveryActionResult(result);
 }
 
 export async function sendInvoiceEmail(
@@ -351,6 +245,8 @@ export async function sendInvoiceEmail(
     portalUrl: portalLink.url,
   });
   const result = await sendTransactionalEmail({
+    expectedSourceVersions: { [`invoice:${detail.data.id}`]: detail.data.updated_at },
+    deliveryPortalTokens: portalLink.tokenId ? [{kind:"invoice",id:portalLink.tokenId}] : [],
     to: recipient,
     cc: cc.recipients,
     subject: template.subject,
@@ -365,56 +261,13 @@ export async function sendInvoiceEmail(
     sentByUserId: auth.userId,
     supabase: auth.supabase,
     idempotencyKey: requestKey,
+    confirmedAdditionalCopy: formData.get("email_additional_copy") === "1",
+    additionalCopyRequestId: String(formData.get("email_copy_request_id") ?? ""),
   });
 
-  if (result.ok) {
-    try {
-    const { error: statusError } = await auth.supabase.rpc("record_invoice_delivery", {
-      p_invoice_id: detail.data.id, p_manual: false,
-    });
-    if (statusError) {
-      return acceptedNeedsReview("The invoice delivery state could not be saved.");
-    }
-    const reconciliation = await reconcileInvoiceBalance(auth.supabase, detail.data.id);
-    if (!reconciliation.ok) {
-      return acceptedNeedsReview("The invoice payment state could not be reconciled.");
-    }
-    await recordActivity(auth.supabase, {
-      actorUserId: auth.userId,
-      eventType: "invoice_sent",
-      metadata: {
-        delivery_method: "crm_email",
-        provider_message_id: result.providerMessageId,
-        subject: template.subject,
-        template_type: "branded_invoice",
-        cc_count: cc.recipients.length,
-      },
-      subjectId: detail.data.id,
-      subjectType: "invoice",
-    });
-    const communicationSupabase = getServiceRoleClient();
-    if (communicationSupabase) { const sync = await syncAutomatedCommunications(communicationSupabase); if (sync.error) return acceptedNeedsReview("Reminder synchronization could not be confirmed."); }
-    } catch { return acceptedNeedsReview("CRM follow-up could not be completed."); }
-  } else if (result.outcome !== "unknown" && !result.retryable && portalLink.created && portalLink.tokenId) {
-    await auth.supabase
-      .from("invoice_portal_tokens")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("id", portalLink.tokenId);
-  }
-
   revalidatePath(`/admin/invoices/${invoiceId}`);
-  if (detail.data.customer_id) revalidatePath(`/admin/customers/${detail.data.customer_id}`);
-  if (detail.data.organization_id) revalidatePath(`/admin/organizations/${detail.data.organization_id}`);
-  return result.ok
-    ? {
-        status: result.historyRecorded ? "success" : "warning", deliveryState: "accepted",
-        message: result.historyRecorded
-          ? portalLink.created
-            ? "Invoice email accepted by the provider, recorded in delivery history, and marked sent."
-            : "Invoice email accepted by the provider and recorded in delivery history using the existing customer link."
-          : "Invoice email was accepted by the provider, but its CRM delivery history could not be recorded. Contact an administrator before sending again.",
-      }
-    : sendFailure(result);
+  revalidatePath("/admin/communications");
+  return deliveryActionResult(result);
 }
 
 async function requireInternalEmailSender() {
@@ -686,11 +539,14 @@ function draftFieldLabel(field: keyof CustomerDocumentEmailEdits) {
 
 function emailRequestKey(form: FormData, userId: string, source: string) {
   const value = String(form.get("email_attempt_id") ?? "").trim();
-  return /^[A-Za-z0-9_-]{16,90}$/.test(value) ? `manual-email/${userId}/${source}/${value}` : null;
+  if(!/^[A-Za-z0-9_-]{16,90}$/.test(value))return null;
+  const key=`manual-email/${userId}/${source}/${value}`;
+  if(form.get("email_additional_copy")!=="1")return key;
+  const copy=String(form.get("email_copy_request_id")??"");
+  return /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(copy)?`${key}/copy/${copy}`:null;
 }
-function acceptedNeedsReview(detail: string): TransactionalEmailActionState {
-  return { status: "warning", deliveryState: "accepted", message: `Email accepted by the provider. ${detail} Review CRM and provider history; do not send it again.` };
-}
-function sendFailure(result: { outcome: string; message: string }): TransactionalEmailActionState {
-  return { status: result.outcome === "unknown" ? "warning" : "error", deliveryState: result.outcome === "unknown" ? "unknown" : "not_sent", message: result.message };
+
+function deliveryActionResult(result: Awaited<ReturnType<typeof sendTransactionalEmail>>): TransactionalEmailActionState {
+  return {status:result.ok?(result.sourceReconciled?"success":"warning"):["unknown","accepted"].includes(result.outcome)?"warning":"error",
+    deliveryState:result.outcome==="accepted"?"accepted":result.outcome==="unknown"?"unknown":"not_sent",message:result.message,deliveryId:result.deliveryId};
 }

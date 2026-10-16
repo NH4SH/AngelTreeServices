@@ -20,7 +20,7 @@ export function memoryDB(tables,options={}){
    return{data:structuredClone(single?rows[0]??null:rows),error:null};
   }
   return q;
- },async rpc(name,args){assert.equal(name,'claim_due_customer_communications');claims++;if(options.claimError)return{data:null,error:{message:'Sensitive database diagnostic'}};
+ },async rpc(name,args){if(name==='get_outbound_source_snapshot')return{data:{localSnapshot:true},error:null};assert.equal(name,'claim_due_customer_communications');claims++;if(options.claimError)return{data:null,error:{message:'Sensitive database diagnostic'}};
    const rows=(tables.customer_communications??[]).filter(r=>r.status==='pending'&&Date.parse(r.scheduled_for)<=Date.now()).slice(0,args.p_limit);rows.forEach(r=>Object.assign(r,{status:'processing',processing_started_at:new Date().toISOString(),attempt_count:r.attempt_count+1}));return{data:structuredClone(rows),error:null};}};
  return db;
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { AlertTriangle, Expand, FileText, Mail, Maximize2, Monitor, RefreshCw, RotateCcw, Send, Smartphone, X } from "lucide-react";
+import Link from "next/link";
+import { AdditionalEmailOption } from "@/components/additional-email-option";
 import { useRouter } from "next/navigation";
 import type { ChangeEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -49,10 +51,7 @@ export function SendQuoteEmailForm({
   recipient,
 }: ComposerProps & { portalLinkState?: QuoteEmailPortalLinkState; quoteId: string }) {
   const attemptRef = useRef("");
-  const attemptStartedRef = useRef(0);
   const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
-    if (attemptStartedRef.current && Date.now() - attemptStartedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
-    attemptStartedRef.current ||= Date.now();
     attemptRef.current ||= crypto.randomUUID();
     form.set("email_attempt_id", attemptRef.current);
     return sendQuoteEmail(previous, form);
@@ -102,10 +101,7 @@ export function SendInvoiceEmailForm({
   recipient,
 }: ComposerProps & { invoiceId: string }) {
   const attemptRef = useRef("");
-  const attemptStartedRef = useRef(0);
   const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
-    if (attemptStartedRef.current && Date.now() - attemptStartedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
-    attemptStartedRef.current ||= Date.now();
     attemptRef.current ||= crypto.randomUUID();
     form.set("email_attempt_id", attemptRef.current);
     return sendInvoiceEmail(previous, form);
@@ -153,6 +149,7 @@ function CustomerDocumentEmailComposer({
   const initialEdits = useMemo(() => draftEdits(draft), [draft]);
   const [edits, setEdits] = useState<CustomerDocumentEmailEdits>(initialEdits);
   const [open, setOpen] = useState(false);
+  const [additionalCopy,setAdditionalCopy]=useState(false);
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
   const [viewportMode, setViewportMode] = useState<"desktop" | "mobile">("desktop");
   const [refreshing, startRefresh] = useTransition();
@@ -162,13 +159,15 @@ function CustomerDocumentEmailComposer({
   const previewDraft = { ...draft, ...edits, portalUrl: portalUrl ?? draft.portalUrl };
   const plainText = buildCustomerDocumentEmailText(previewDraft);
   const needsReview = state.deliveryState === "accepted" || state.deliveryState === "unknown";
-  const sendBlocked = disabled || pending || needsReview || state.status === "success" || Boolean(portalLinkRecovery?.required);
+  const sendBlocked = disabled || pending || (needsReview && !additionalCopy) || (state.status === "success" && !additionalCopy) || Boolean(portalLinkRecovery?.required);
 
   useEffect(() => {
     if (refreshing || !regenerationRequestedRef.current) return;
     setEdits(initialEdits);
     regenerationRequestedRef.current = false;
   }, [initialEdits, refreshing]);
+
+  useEffect(()=>{if(state.deliveryState==="accepted"||state.deliveryState==="unknown")setAdditionalCopy(false);},[state]);
 
   useEffect(() => {
     if (state.status === "success" || state.deliveryState === "accepted") router.refresh();
@@ -198,7 +197,7 @@ function CustomerDocumentEmailComposer({
   if (!open) {
     return (
       <div className="email-composer-launch">
-        <button disabled={disabled || needsReview} onClick={() => setOpen(true)} type="button">
+        <button disabled={disabled || pending} onClick={() => setOpen(true)} type="button">
           <Mail aria-hidden="true" size={18} />
           Review and send email
         </button>
@@ -262,6 +261,7 @@ function CustomerDocumentEmailComposer({
         onSubmit={(event) => {
           event.preventDefault();
           if (sendBlocked) return;
+          if(additionalCopy&&!window.confirm(`Send an additional email to ${recipient}? This can contact the recipient again.`))return;
           void formAction(new FormData(event.currentTarget));
         }}
       >
@@ -275,6 +275,7 @@ function CustomerDocumentEmailComposer({
           <div><span>Secure link</span><strong>{portalLinkRecovery?.required ? "Replacement required" : portalUrl ? "Active" : "Created securely when sent"}</strong></div>
         </div>
         <FormMessage state={state} />
+        <AdditionalEmailOption checked={additionalCopy} onChange={setAdditionalCopy} disabled={pending}/>
         <div className="email-composer-fields">
           <CcRecipientField />
           <ComposerTextField label="Subject" maxLength={180} name="email_subject" onChange={(event) => update("subject", event.target.value)} onReset={() => resetField("subject")} required value={edits.subject} />
@@ -498,6 +499,7 @@ function FormMessage({ state }: { state: TransactionalEmailActionState }) {
   return (
     <p className={`form-message ${state.status}`} role={state.status === "error" || state.status === "warning" ? "alert" : "status"}>
       {state.message}
+      {state.deliveryId ? <> <Link href={`/admin/communications/delivery-review?id=${state.deliveryId}`}>Review this delivery</Link></> : null}
     </p>
   );
 }

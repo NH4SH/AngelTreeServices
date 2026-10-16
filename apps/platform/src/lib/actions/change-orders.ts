@@ -188,6 +188,8 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
     subject: `${order.change_order_number}: ${order.title}`,
     text: changeOrderEmailText(order, portalUrl),
     emailType: "change_order",
+    expectedSourceVersions: {[`change_order:${id}`]: order.updated_at},
+    deliveryPortalTokens: [{kind:"change_order",id:token.tokenId}],
     relatedChangeOrderId: id,
     relatedCustomerId: order.customer_id,
     relatedJobId: order.job_id,
@@ -199,12 +201,8 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
   });
   if (!result.ok) return failure(result.message);
 
-  const sentAt = new Date().toISOString();
-  const { error } = await auth.supabase.from("change_orders").update({ status: "sent", sent_at: sentAt }).eq("id", id);
-  if (error) return failure(`Email sent, but status update failed: ${error.message}`);
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_sent", subjectId: id, subjectType: "change_order", metadata: { delivery_method: "crm_email" } });
   revalidateChangeOrderPaths(id, order.job_id, order.organization_id);
-  return { status: "success", message: result.historyRecorded ? (token.created ? "Change order accepted with a secure approval link." : "Change order accepted using the existing secure link.") : "Change order accepted, but delivery history needs review. Do not send it again.", portalUrl };
+  return { status: result.sourceReconciled ? "success" : "error", message: result.message, portalUrl };
 }
 
 export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

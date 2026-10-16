@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { AdditionalEmailOption } from "@/components/additional-email-option";
 import { AlertTriangle, Mail, Monitor, RefreshCw, RotateCcw, Send, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
@@ -38,12 +40,11 @@ export function MultiQuoteEmailComposer({
   quoteIds: string[];
   recipient: string;
 }) {
-  const startedRef = useRef(0);
+  const [additionalCopy,setAdditionalCopy]=useState(false);
   const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
-    if (startedRef.current && Date.now() - startedRef.current >= 23 * 60 * 60_000) return { status: "warning" as const, deliveryState: "unknown" as const, message: "This saved email request needs delivery-history review before another attempt." };
-    startedRef.current ||= Date.now();
     return sendMultiQuoteEmail(previous, form);
   }, initialState);
+  useEffect(()=>{if(state.deliveryState==="accepted"||state.deliveryState==="unknown")setAdditionalCopy(false);},[state]);
   const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(
     regenerateLegacyQuotePortalLinksForEmail,
     initialRecoveryState,
@@ -59,7 +60,7 @@ export function MultiQuoteEmailComposer({
   const needsReview = state.deliveryState === "unknown";
   const unresolvedLegacyQuoteIds = legacyQuoteIds.filter((quoteId) => !replacementUrls[quoteId]);
   const replacementRequired = unresolvedLegacyQuoteIds.length > 0;
-  const sendBlocked = pending || sent || needsReview || recoveryPending || replacementRequired;
+  const sendBlocked = pending || ((sent || needsReview) && !additionalCopy) || recoveryPending || replacementRequired;
 
   useEffect(() => {
     if (Object.keys(recoveryState.portalUrls).length === 0) return;
@@ -118,6 +119,7 @@ export function MultiQuoteEmailComposer({
         onSubmit={(event) => {
           event.preventDefault();
           if (sendBlocked) return;
+          if(additionalCopy&&!window.confirm(`Send an additional proposal email to ${recipient}? This can contact the recipient again.`))return;
           void formAction(new FormData(event.currentTarget));
         }}
       >
@@ -131,6 +133,8 @@ export function MultiQuoteEmailComposer({
         </div>
         {state.message ? <div className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</div> : null}
 
+        {state.deliveryId?<p><Link href={`/admin/communications/delivery-review?id=${state.deliveryId}`}>Review this delivery</Link></p>:null}
+        <AdditionalEmailOption checked={additionalCopy} onChange={setAdditionalCopy} disabled={pending}/>
         <div className="email-composer-fields">
           <CcField />
           <ComposerField label="Subject" maxLength={180} name="email_subject" onChange={(value) => update("subject", value)} value={edits.subject} />

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {withDeadline} from "../src/lib/runtime/deadline.ts";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -87,10 +88,10 @@ test("due calculations respect snoozes; links prefer the specific record and org
 function readerFixture(role = "admin", rows = []) {
   const calls = [];
   const query = { then(resolve) { return Promise.resolve({ data: rows, error: null }).then(resolve); } };
-  for (const name of ["select", "eq", "in", "or", "order", "limit"]) query[name] = (...args) => { calls.push([name, ...args]); return query; };
+  for (const name of ["select", "eq", "in", "or", "lte", "order", "limit"]) query[name] = (...args) => { calls.push([name, ...args]); return query; };
   const db = { auth: { getUser: async () => ({ data: { user: { id: "actor" } } }) }, from: table => { calls.push(["from", table]); return query; } };
   const readers = load("lib/data/next-actions.ts", {
-    "server-only": {}, "react": { cache: fn => fn }, "@/lib/supabase/server": { createClient: async () => db },
+    "server-only": {}, "@/lib/runtime/deadline": {withDeadline}, "react": { cache: fn => fn }, "@/lib/supabase/server": { createClient: async () => db },
     "@/lib/auth/roles": { getUserRoles: async () => [role], hasAllowedRole: (roles, allowed) => roles.some(role => allowed.includes(role)), platformRoleGroups: { internalStaff: ["admin", "owner", "payroll_admin", "estimator"] } },
   });
   return { readers, calls };
@@ -102,7 +103,7 @@ test("handoff reads are staff-gated and filtered before the bounded limit", asyn
   assert.ok(allowed.calls.some(call => call[0] === "eq" && call[1] === "assigned_to_user_id" && call[2] === "manager"));
   assert.ok(allowed.calls.some(call => call[0] === "eq" && call[1] === "customer_id" && call[2] === "customer"));
   assert.ok(allowed.calls.some(call => call[0] === "in" && call[1] === "status" && !call[2].includes("completed")));
-  assert.ok(allowed.calls.some(call => call[0] === "or" && call[1].includes("snoozed_until")));
+  assert.ok(allowed.calls.some(call => call[0] === "lte" && call[1] === "next_action_at"));
   assert.deepEqual(allowed.calls.at(-1), ["limit", 20]);
 });
 test("completed-estimate preview excludes existing drafts, job proposals, and archived jobs", async () => {

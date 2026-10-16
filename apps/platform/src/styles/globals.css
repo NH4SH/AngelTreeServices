@@ -22833,3 +22833,41 @@ body:has(.appointment-overlay) {
 .additional-email-option { margin-block: .5rem; }
 .additional-email-option label { display: flex; align-items: center; gap: .65rem; }
 .additional-email-option input[type="checkbox"] { width: auto; }
+
+/* PR15 extends the existing navigation and follow-up workspace. */
+.command-palette.has-record-search { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.command-search-status { margin: 0; padding: .65rem 1rem; font-size: .875rem; border-bottom: 1px solid var(--color-border); }
+.command-palette-results .command-result-label { display: grid; gap: .2rem; min-width: 0; }
+.command-result-label strong, .command-result-label small { overflow-wrap: anywhere; }
+.command-result-label small { font-size: .8rem; color: var(--color-muted); }
+.command-palette-results a > span { min-width: 0; }
+.handoff-filters { margin-block: 1.5rem; }
+.handoff-filter-form { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
+.handoff-filter-form label { display: grid; gap: .35rem; flex: 1 1 11rem; }
+.handoff-filter-form select, .handoff-edit :is(select,input), .handoff-preview :is(select,input) { width: 100%; min-height: 44px; }
+.handoff-filter-form button { min-height: 44px; }
+.handoff-saved-view { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin-top: .75rem; font-size: .875rem; }
+.handoff-list-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.office-handoff-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(15rem,23rem); gap: 1.5rem; padding-block: 1.5rem; border-bottom: 1px solid var(--color-border); }
+.office-handoff-row h3 { font-size: 1.1rem; margin: 0; }
+.handoff-row-main p { margin-block: .5rem; max-width: 70ch; overflow-wrap: anywhere; }
+.handoff-select { display: flex; align-items: center; gap: .5rem; min-height: 44px; font-size: .875rem; }
+.handoff-select input { width: 1.1rem; height: 1.1rem; }
+.handoff-edit summary, .handoff-preview summary, .handoff-gaps summary, .dashboard-more-overview > summary { cursor: pointer; padding-block: .75rem; font-weight: 650; }
+.handoff-edit .crm-form { margin-top: .75rem; }
+.handoff-preview { margin-block: 1.5rem; }
+.handoff-preview-list { padding-left: 1.2rem; }
+.handoff-preview-list li { margin-block: 1rem; }
+.handoff-preview-list p { margin-block: .35rem; }
+.handoff-gap-row { display: flex; justify-content: space-between; gap: 1rem; padding-block: 1rem; border-bottom: 1px solid var(--color-border); }
+.shared-follow-up-queues { margin-top: 2rem; }
+.shared-follow-up-queues > .detail-panel { margin-top: 1rem; }
+.dashboard-more-overview { margin-block: 1.5rem; }
+@media (max-width: 700px) {
+ .office-handoff-row { grid-template-columns: minmax(0,1fr); gap: .75rem; }
+ .handoff-list-heading, .handoff-gap-row { display: block; }
+ .handoff-filter-form { display: grid; grid-template-columns: minmax(0,1fr); }
+ .handoff-filter-form label { min-width: 0; }
+ .handoff-row-controls .task-action-row { flex-wrap: wrap; }
+ .command-palette footer { flex-wrap: wrap; }
+}

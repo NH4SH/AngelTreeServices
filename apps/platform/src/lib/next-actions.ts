@@ -1,6 +1,7 @@
 export type NextActionSubject = "customer_id" | "organization_id" | "quote_id" | "job_id" | "invoice_id";
 
-export function nextActionHref(task: Partial<Record<NextActionSubject, string | null>>) {
+export function nextActionHref(task: Partial<Record<NextActionSubject, string | null>> & {task_type?:string}) {
+  if(task.task_type === "schedule_approved_work" && task.job_id) return `/admin/jobs/${task.job_id}#job-schedule`;
   for (const [key, route] of [["quote_id", "quotes"], ["invoice_id", "invoices"], ["job_id", "jobs"], ["organization_id", "organizations"], ["customer_id", "customers"]] as const) {
     if (task[key]) return `/admin/${route}/${task[key]}`;
   }

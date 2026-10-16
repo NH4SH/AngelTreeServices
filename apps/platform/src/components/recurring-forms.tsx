@@ -623,15 +623,20 @@ export function GenerateRenewalsButton() {
 export function FollowUpActions({
   taskId,
   status,
+  managed = false,
+  schedulingHref,
 }: {
   taskId: string;
   status: string;
+  managed?: boolean;
+  schedulingHref?: string;
 }) {
   const [state, action, pending] = useReliableActionState(
     updateFollowUpTask,
     initialRecurringActionState,
   );
-  return (
+  if (managed && ["completed","cancelled"].includes(status)) return <p className="field-note">This scheduling handoff is closed. Its status follows the work order.</p>;
+  const progress = (
     <form action={action} className="task-action-row">
       <input name="task_id" type="hidden" value={taskId} />
       {status === "completed" ? (
@@ -651,16 +656,22 @@ export function FollowUpActions({
             name="task_intent"
             value="start"
           >
-            <Play size={16} /> Start
+            <Play size={16} /> {managed ? "Mark in progress" : "Start"}
           </button>
-          <button disabled={pending} name="task_intent" value="complete">
+          {!managed ? <button disabled={pending} name="task_intent" value="complete">
             <Check size={16} /> Complete
-          </button>
+          </button> : null}
         </>
       )}
       <ActionMessage state={state} />
     </form>
   );
+  if (!managed) return progress;
+  return <div>
+    {schedulingHref ? <Link className="secondary-action" href={schedulingHref}><CalendarPlus size={16} /> Open scheduling</Link> : null}
+    <p className="field-note">Closes when work is booked or cancelled.</p>
+    <details className="handoff-edit"><summary>Update progress</summary>{progress}</details>
+  </div>;
 }
 
 export function RecommendationActions({

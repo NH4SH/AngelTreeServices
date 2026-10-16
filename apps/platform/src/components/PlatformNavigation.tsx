@@ -4,6 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
+  FileText,
+  Users,
+  Building2,
+  BriefcaseBusiness,
+  ReceiptText,
   Command,
   HardHat,
   Leaf,
@@ -14,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useRecordSearch } from "@/hooks/use-record-search";
 import { PlatformModal } from "@/components/platform-modal";
 import { SignOutForm } from "@/components/sign-out-form";
 import { NotificationBell } from "@/components/notification-bell";
@@ -230,9 +236,15 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
     const openCommands = items.map((item) => ({ ...item, label: `Open ${item.label}` }));
     return [...openCommands, ...getVisibleNavigationCommands(roles, audience)];
   }, [audience, items, roles]);
-  const filtered = commands.filter((command) => `${command.label} ${command.keywords.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const records = useRecordSearch(query, audience === "admin" && roles.some(role => ["owner","admin","estimator","payroll_admin"].includes(role)));
+  const recordIcons = {customer:Users,organization:Building2,job:BriefcaseBusiness,quote:FileText,invoice:ReceiptText};
+  const recordLabels = {customer:"Customer",organization:"Organization",job:"Work order",quote:"Quote",invoice:"Invoice"};
+  const filtered = [
+    ...records.results.map(record => ({...record,id:`${record.recordType}:${record.id}`,label:record.title,description:`${recordLabels[record.recordType]} · ${record.detail}`,icon:recordIcons[record.recordType],isRecord:true})),
+    ...commands.filter((command) => `${command.label} ${command.keywords.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())).map(command => ({...command,description:"Page or action",isRecord:false})),
+  ];
 
-  useEffect(() => setActiveIndex(0), [query]);
+  useEffect(() => setActiveIndex(0), [query, records.results]);
   useEffect(() => {
     document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, listId]);
@@ -246,30 +258,32 @@ function CommandPalette({ audience, items, onClose, roles }: { audience: Navigat
       event.preventDefault();
       setActiveIndex((index) => Math.max(index - 1, 0));
     }
-    if (event.key === "Enter" && filtered[activeIndex]) {
+    if ((event.key === "Home" || event.key === "End") && event.altKey) { event.preventDefault(); setActiveIndex(event.key === "Home" ? 0 : Math.max(0, filtered.length - 1)); }
+    if (event.key === "Enter" && !event.nativeEvent.isComposing && filtered[activeIndex]) {
       event.preventDefault();
-      const href = filtered[activeIndex].href;
-      onClose();
-      router.push(href);
+      // Native navigation survives modal teardown and respects before-unload
+      // protection on an editor with unsaved work.
+      window.location.assign(filtered[activeIndex].href);
     }
   }
 
   return (
     <PlatformModal className="command-palette-layer" label="Command palette" onDismiss={onClose}>
       <button aria-hidden="true" tabIndex={-1} className="command-palette-backdrop" onClick={onClose} type="button" />
-      <section className="command-palette">
+      <section className={`command-palette${audience === "admin" ? " has-record-search" : ""}`}>
         <div className="command-palette-search">
           <Search aria-hidden="true" size={19} />
-          <input data-modal-initial-focus role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls={listId} aria-activedescendant={filtered[activeIndex] ? `${listId}-${activeIndex}` : undefined} aria-label="Find a page or action" onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKeyDown} placeholder="Find a page or action…" ref={inputRef} value={query} />
+          <input data-modal-initial-focus role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls={listId} aria-activedescendant={filtered[activeIndex] ? `${listId}-${activeIndex}` : undefined} aria-label={audience === "admin" ? "Find a record, page or action" : "Find a page or action"} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKeyDown} maxLength={80} placeholder={audience === "admin" ? "Name, phone, address, quote or invoice…" : "Find a page or action…"} ref={inputRef} value={query} />
           <button aria-label="Close command palette" onClick={onClose} type="button"><X size={18} /></button>
         </div>
-        <div aria-label="Pages and actions" className="command-palette-results" id={listId} role="listbox">
+        {audience === "admin" ? <p className="command-search-status" role="status">{records.status === "loading" ? "Searching records…" : records.status === "error" ? "Record search is unavailable. Try again; page shortcuts still work." : records.status === "ready" ? records.results.length ? `${records.results.length} record matches. Showing up to four per type.` : "No matching records. Try a name, phone or document number." : "Type at least two characters to search records."}</p> : null}
+        <div aria-label="Records, pages and actions" aria-busy={records.status === "loading"} className="command-palette-results" id={listId} role="listbox">
           {filtered.length ? filtered.map((command, index) => (
-            <Link id={`${listId}-${index}`} tabIndex={-1} aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={command.id} onClick={onClose} onFocus={() => router.prefetch(command.href)} onMouseEnter={() => { setActiveIndex(index); router.prefetch(command.href); }} onTouchStart={() => router.prefetch(command.href)} prefetch={false} role="option">
-              <span><command.icon aria-hidden="true" size={18} /><strong>{command.label}</strong></span>
+            <Link id={`${listId}-${index}`} tabIndex={-1} aria-selected={index === activeIndex} className={index === activeIndex ? "is-active" : ""} href={command.href} key={`${command.isRecord ? "record" : "command"}-${command.id}`} onClick={onClose} onFocus={() => router.prefetch(command.href)} onMouseEnter={() => { setActiveIndex(index); router.prefetch(command.href); }} onTouchStart={() => router.prefetch(command.href)} prefetch={false} role="option">
+              <span><command.icon aria-hidden="true" size={18} /><span className="command-result-label"><strong>{command.label}</strong>{command.isRecord ? <small>{command.description}</small> : null}</span></span>
               <Command aria-hidden="true" size={14} />
             </Link>
-          )) : <p className="command-palette-empty">No matching page or action.</p>}
+          )) : records.status === "loading" ? null : <p className="command-palette-empty">No matching shortcut.</p>}
         </div>
         <footer><span>↑↓ Navigate</span><span>Enter Open</span><span>Esc Close</span></footer>
       </section>

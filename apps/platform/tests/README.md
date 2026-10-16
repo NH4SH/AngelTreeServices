@@ -1,5 +1,48 @@
 # CRM Usability Regression Checks
 
+## PR16 supervised recurring and Calendar operations
+
+The normal unit gate includes `supervised-operations.test.mjs`: exact positive
+renewal acknowledgments and boolean-only, isolated worker readiness. Integration
+coverage uses real local Auth, RLS, PostgreSQL locks, PostgREST and server actions.
+Use the existing named disposable loopback stack with all **85 migrations**, through
+`20261016192144_supervised_operations.sql`, and the local app on port 3102. Keep
+the private CLI status JSON outside Git, mode 0600. From `apps/platform`:
+
+```sh
+PR16_DISPOSABLE_STACK=1 \
+PR16_LOCAL_STATUS_FILE="$PR16_STATUS_FILE" \
+PR16_DOCKER_BIN="$PR16_DOCKER_BIN" \
+PR16_WEB_URL=http://127.0.0.1:3102 \
+PR16_RESULTS_FILE="$PR16_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/supervised-operations.integration.test.mjs
+```
+
+Set `DOCKER_HOST` to the dedicated disposable Unix socket. The suite requires
+`http://127.0.0.1:54321` and `supabase_db_ats_pr02_disposable`; it rejects hosted
+API/web origins. It creates synthetic accounts/plans, retires only its own actors,
+pauses only its own non-review plans and disables only its own fake Calendar
+connections. Historical fixtures remain. One clearly labeled local review plan
+is retained for browser verification; its ID is in the local result file.
+
+Cases cover no-write preview/paging, every office role and denied audiences,
+concurrent approvals, same-request replay/content collision, stale scope/price/
+date/archive, audit rollback, null/duplicate/oversized inputs, real confirmation,
+end-of-month/leap/DST/manual-season cadence and a disabled automatic-generation
+flag. Calendar cases cover owner/admin-only projection, redaction, versioned
+reasoned retry, reconnect/processing/stale denial, audit rollback, offboarding
+during independent locks, stale reclaimed leases and deterministic event recovery.
+The real service and database mappings run against a controlled Google gateway:
+no real OAuth tokens, provider requests or customer messages are used. Required
+failure constraints are removed in `finally`; RLS and triggers remain enabled.
+
+Cycle-close tests keep the date helper private, check post-wait staff access and
+protect PR15 automatic scheduling history against forged recurring links. Run
+earlier integration suites sequentially to avoid shared fixture-recipient races;
+never disable accounts owned by another active suite. Replay the complete chain
+in a separate empty scratch database, not by resetting the live review stack.
+See `src/lib/SUPERVISED_OPERATIONS.md` for guarantees and rollout limits.
+
 ## PR11 field loading and private photo signing
 
 The normal unit gate includes `field-loading.test.mjs`: bounded/deduplicated batch

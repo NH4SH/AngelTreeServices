@@ -22871,3 +22871,19 @@ body:has(.appointment-overlay) {
  .handoff-row-controls .task-action-row { flex-wrap: wrap; }
  .command-palette footer { flex-wrap: wrap; }
 }
+
+/* Supervised operations inherit existing CRM controls, surfaces and focus. */
+.operations-review fieldset, .operations-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.operations-review legend { font-weight: 650; padding-block: .75rem; }
+.operations-preview-row { display: flex; gap: .75rem; align-items: start; padding-block: 1.25rem; border-bottom: 1px solid var(--color-border); }
+.operations-preview-row > span { display: grid; gap: .4rem; min-width: 0; }
+.operations-confirm { display: flex; gap: .75rem; align-items: start; padding-block: 1rem; }
+.operations-page input[type="checkbox"] { width: 1.15rem; height: 1.15rem; flex-shrink: 0; margin-top: .25rem; }
+.operations-page p, .operations-preview-row span { overflow-wrap: anywhere; max-width: 75ch; }
+.operations-calendar { margin-top: 2.5rem; }
+.operations-facts { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-block: 1.5rem; }
+.operations-facts dt { font-weight: 650; }
+.operations-facts dd { margin: .35rem 0 0; }
+.operations-fields { display: grid; gap: .75rem; }
+.operations-page button, .operations-page summary { min-height: 44px; }
+@media (max-width:700px) { .operations-review button { width: 100%; white-space: normal; } .operations-preview-row, .operations-confirm { min-width: 0; } }

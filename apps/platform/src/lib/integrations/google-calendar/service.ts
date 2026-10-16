@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {withDeadline} from '@/lib/runtime/deadline';
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { decryptGoogleRefreshToken, preserveOrEncryptRefreshToken } from "./credentials";
 import { reconcileGoogleCalendarEvent, mappingForScheduleEvent } from "./engine";
@@ -307,8 +308,8 @@ export async function processGoogleCalendarSyncQueue(limit = 20) {
   for (const task of tasks) {
     try {
       await processTask(task);
-      await completeGoogleCalendarSyncTask(supabase, task);
-      completed += 1;
+      if(await completeGoogleCalendarSyncTask(supabase, task))completed += 1;
+      else failed += 1;
     } catch (error) {
       const failure = normalizeIntegrationError(error);
       await failGoogleCalendarSyncTask(supabase, task, failure.code, failure.retryable);
@@ -336,6 +337,10 @@ async function createGoogleCalendarApi(
   options: { allowDisabled?: boolean } = {},
 ) {
   if (!options.allowDisabled && !connection.syncEnabled) throw new GoogleCalendarIntegrationError("connection_disabled");
+  if (!options.allowDisabled) {
+    const active = await withDeadline(signal=>requireServiceRoleClient().rpc('calendar_account_can_sync',{p_user:connection.authUserId}).abortSignal(signal),5000);
+    if(active.error||active.data!==true) throw new GoogleCalendarIntegrationError('account_not_active');
+  }
   const configuration = getGoogleCalendarConfiguration();
   if (!configuration.configured) throw new GoogleCalendarIntegrationError("integration_not_configured");
   const refreshToken = decryptGoogleRefreshToken(connection.refreshTokenEncrypted);

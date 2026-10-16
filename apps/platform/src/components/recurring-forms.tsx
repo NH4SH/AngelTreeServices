@@ -26,7 +26,6 @@ import {
   createRenewalQuote,
   createServiceRecommendation,
   createTaskFromRecommendation,
-  generateRecurringOpportunities,
   rescheduleRecurringLocation,
   updateFollowUpTask,
   updateRecurringLocationState,
@@ -605,19 +604,7 @@ export function AddRecommendationForm({
 }
 
 export function GenerateRenewalsButton() {
-  const [state, action, pending] = useReliableActionState(
-    generateRecurringOpportunities,
-    initialRecurringActionState,
-  );
-  return (
-    <form action={action}>
-      <button disabled={pending} type="submit">
-        <RotateCcw size={18} />
-        {pending ? "Checking plans..." : "Generate due renewals"}
-      </button>
-      <ActionMessage state={state} />
-    </form>
-  );
+  return <Link className="secondary-action" href="/admin/recurring/operations">Review due renewals &amp; Calendar sync</Link>;
 }
 
 export function FollowUpActions({

@@ -68,6 +68,7 @@ export type GoogleCalendarOutboxTask = {
   connection_id: string | null;
   dedupe_key: string;
   revision: number;
+  locked_at: string | null;
   schedule_event_id: string | null;
   task_type: "schedule_event" | "connection";
 };
@@ -257,12 +258,15 @@ export async function claimGoogleCalendarSyncTasks(supabase: SupabaseClient, lim
 }
 
 export async function completeGoogleCalendarSyncTask(supabase: SupabaseClient, task: GoogleCalendarOutboxTask) {
-  const { error } = await supabase
+  if(!task.locked_at)return false;
+  const { data,error } = await supabase
     .from("google_calendar_sync_outbox")
     .delete()
     .eq("dedupe_key", task.dedupe_key)
-    .eq("revision", task.revision);
+    .eq("revision", task.revision)
+    .eq('status','processing').eq('locked_at',task.locked_at).select('dedupe_key');
   if (error) throw databaseError("sync_complete_failed");
+  return Boolean(data?.some(row=>row.dedupe_key===task.dedupe_key));
 }
 
 export async function failGoogleCalendarSyncTask(
@@ -271,11 +275,12 @@ export async function failGoogleCalendarSyncTask(
   errorCode: string,
   retryable: boolean,
 ) {
+  if(!task.locked_at)return false;
   const attemptCount = task.attempt_count + 1;
   const shouldRetry = retryable && attemptCount < 6;
   const delayMinutes = Math.min(15 * (2 ** Math.max(0, attemptCount - 1)), 24 * 60);
   const availableAt = new Date(Date.now() + delayMinutes * 60_000).toISOString();
-  const { error } = await supabase
+  const { data,error } = await supabase
     .from("google_calendar_sync_outbox")
     .update({
       attempt_count: attemptCount,
@@ -285,8 +290,10 @@ export async function failGoogleCalendarSyncTask(
       status: shouldRetry ? "retry" : "exhausted",
     })
     .eq("dedupe_key", task.dedupe_key)
-    .eq("revision", task.revision);
+    .eq("revision", task.revision)
+    .eq('status','processing').eq('locked_at',task.locked_at).select('dedupe_key');
   if (error) throw databaseError("sync_failure_record_failed");
+  return Boolean(data?.some(row=>row.dedupe_key===task.dedupe_key));
 }
 
 export async function removeGoogleCalendarTaskForConnection(supabase: SupabaseClient, connectionId: string) {

@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { processGoogleCalendarSyncQueue } from "@/lib/integrations/google-calendar/service";
+import {calendarWorkerReadiness} from '@/lib/operations';
+import {getGoogleCalendarConfiguration} from '@/lib/integrations/google-calendar/config';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +12,9 @@ export async function POST(request: Request) {
   if (!expected || expected.length < 32 || !actual || !secretsMatch(expected, actual)) {
     return Response.json({ ok: false, message: "Unauthorized." }, { status: 401 });
   }
+
+  const config=getGoogleCalendarConfiguration();
+  if(!calendarWorkerReadiness(process.env,config.configured,Boolean(config.appBaseUrl)).ready)return Response.json({ok:false,message:'Calendar worker configuration needs review.'},{status:503});
 
   try {
     const result = await processGoogleCalendarSyncQueue(20);

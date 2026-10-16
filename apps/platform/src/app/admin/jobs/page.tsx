@@ -140,7 +140,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           {filters.search ? <p>Results for “{filters.search}”</p> : null}
         </div>
 
-        {jobs.data.length ? <div className="jobs-operations-list">{jobs.data.map((job) => <JobOperationsRow canArchive={canArchiveJobs} canManageJobs={canManageJobs} canPermanentlyDelete={canPermanentlyDeleteJobs} canViewFinancials={canViewFinancials} job={job} key={job.id} />)}</div> : <JobsEmptyState filters={filters} />}
+        {jobs.data.length ? <div className="jobs-operations-list">{jobs.data.map((job) => <JobOperationsRow actorId={context.user.id} canArchive={canArchiveJobs} canManageJobs={canManageJobs} canPermanentlyDelete={canPermanentlyDeleteJobs} canViewFinancials={canViewFinancials} job={job} key={job.id} />)}</div> : <JobsEmptyState filters={filters} />}
 
         {totalPages > 1 ? <nav aria-label="Jobs pagination" className="jobs-pagination">
           <Link aria-disabled={filters.page <= 1} href={filters.page <= 1 ? buildJobsHref(query, { page: 1 }) : buildJobsHref(query, { page: filters.page - 1 })}>Previous</Link>
@@ -152,7 +152,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   );
 }
 
-function JobOperationsRow({ canArchive, canManageJobs, canPermanentlyDelete, canViewFinancials, job }: { canArchive: boolean; canManageJobs: boolean; canPermanentlyDelete: boolean; canViewFinancials: boolean; job: JobOperationsIndexRow }) {
+function JobOperationsRow({ actorId, canArchive, canManageJobs, canPermanentlyDelete, canViewFinancials, job }: { actorId: string; canArchive: boolean; canManageJobs: boolean; canPermanentlyDelete: boolean; canViewFinancials: boolean; job: JobOperationsIndexRow }) {
   const canCreateInvoice = canManageJobs && !job.invoice_id && ["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.job_status);
   const warnings = jobWarnings(job);
   return <article className={`jobs-operation-row state-${job.operational_state}`}>
@@ -172,7 +172,7 @@ function JobOperationsRow({ canArchive, canManageJobs, canPermanentlyDelete, can
     <div className="jobs-index-row-actions">
       <Link className="primary-action" href={`/admin/jobs/${job.id}`}>Open job</Link>
       {job.invoice_id ? <Link className="secondary-action" href={`/admin/invoices/${job.invoice_id}`}>{job.invoice_status === "paid" ? "View payment" : "Open invoice"}</Link> : null}
-      {canCreateInvoice ? <CreateInvoiceFromJobAction jobId={job.id} operationalStatus={job.operational_state === "work_complete" ? undefined : operationalLabel(job.operational_state)} /> : null}
+      {canCreateInvoice ? <CreateInvoiceFromJobAction actorId={actorId} jobId={job.id} operationalStatus={job.operational_state === "work_complete" ? undefined : operationalLabel(job.operational_state)} /> : null}
       {!job.appointment_id && ["accepted", "scheduled"].includes(job.job_status) ? <Link className="secondary-action" href={`/admin/jobs/${job.id}#job-schedule`}>Schedule</Link> : null}
       <details className="jobs-row-more"><summary aria-label={`More actions for ${job.contracting_party_name}`}><MoreHorizontal size={18} />More</summary><div><Link href={`/crew/jobs/${job.id}`}>Crew view</Link>{canManageJobs ? <DuplicateRecordButton action={duplicateJob} buttonClassName="jobs-more-button" hiddenFieldName="job_id" hiddenFieldValue={job.id} label="Duplicate work order" pendingLabel="Copying..." /> : null}<JobListLifecycleActions archived={Boolean(job.archived_at)} canArchive={canArchive} canPermanentlyDelete={canPermanentlyDelete} jobId={job.id} label={`${job.contracting_party_name} · ${job.display_title}`} /></div></details>
     </div>

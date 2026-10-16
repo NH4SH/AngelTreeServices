@@ -177,7 +177,7 @@ export default async function CloseoutReviewPage({ params }: CloseoutReviewPageP
                 {job.invoices?.[0] ? (
                   <Link className="primary-action" href={`/admin/invoices/${job.invoices[0].id}`}>Open existing invoice</Link>
                 ) : (
-                  <CreateInvoiceFromJobAction jobId={job.id} />
+                  <CreateInvoiceFromJobAction actorId={context.user.id} jobId={job.id} />
                 )}
               </section>
             ) : null}

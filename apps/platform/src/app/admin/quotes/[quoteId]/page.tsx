@@ -267,7 +267,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                     </Link>
                   ) : null}
                   {detail.data.status === "approved" && !detail.data.invoices?.length ? (
-                    <CreateInvoiceFromQuoteAction quoteId={detail.data.id} />
+                    <CreateInvoiceFromQuoteAction actorId={context.user.id} quoteId={detail.data.id} />
                   ) : null}
                 </section>
 

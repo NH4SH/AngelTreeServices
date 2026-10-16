@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import * as generationRequest from "../src/lib/invoices/generation-request.ts";
 import { processStripeWebhook } from "../src/lib/payments/webhook-recovery.ts";
 import { voidInvoiceSafely, reviewInvoiceCheckout } from "../src/lib/payments/invoice-void.ts";
 const require = createRequire(import.meta.url), ts = require("typescript");
@@ -51,8 +52,8 @@ function fixture(options = {}) {
     "@/lib/stripe/server": { getStripeServerConfig() { events.push("stripe-client"); return { configured: false }; } },
     "@/lib/supabase/admin": { getServiceRoleClient() { events.push("service-client"); return service; } },
     "@/lib/communications/queue": noop, "@/lib/payments/reconciliation": noop,
-    "@/lib/security/errors": noop, "@/lib/jobs/complete-after-invoice": noop,
-    "@/lib/invoices/due-date": noop,
+    "@/lib/security/errors": noop,
+    "@/lib/invoices/generation-request": generationRequest,
   });
   const form = new FormData(); form.set("invoice_id", id); form.set("next_status", "void");
   form.set("reservation_id", id);

@@ -2,6 +2,7 @@
 
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { getInvoiceGenerationRequest } from "@/lib/invoices/generation-request";
 import type { ReactNode } from "react";
 import { CheckCircle2, FilePlus2, MessageSquareWarning, RotateCcw, Send, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -158,47 +159,40 @@ export function ManualQuoteSentAction({
   );
 }
 
-export function CreateInvoiceFromQuoteAction({ quoteId }: { quoteId: string }) {
-  const [state, formAction, pending] = useReliableActionState(createInvoiceFromQuote, initialState);
-
-  return (
-    <WorkflowActionPanel message={state.message} status={state.status}>
-      <form action={formAction} className="inline-action-form">
-        <input name="quote_id" type="hidden" value={quoteId} />
-        <button disabled={pending} type="submit">
-          <FilePlus2 aria-hidden="true" size={18} />
-          Create invoice from quote
-        </button>
-      </form>
-    </WorkflowActionPanel>
-  );
+export function CreateInvoiceFromQuoteAction({ quoteId, actorId }: { quoteId: string; actorId: string }) {
+  return <GenerateInvoiceAction actorId={actorId} source="quote" sourceId={quoteId} />;
 }
 
-export function CreateInvoiceFromJobAction({ jobId, operationalStatus }: { jobId: string; operationalStatus?: string }) {
-  const [state, formAction, pending] = useReliableActionState(createInvoiceFromJob, initialState);
+export function CreateInvoiceFromJobAction({ jobId, actorId, operationalStatus, approvedAdditionCount = 0 }: {
+  jobId: string; actorId: string; operationalStatus?: string; approvedAdditionCount?: number;
+}) {
+  return <GenerateInvoiceAction actorId={actorId} source="job" sourceId={jobId} operationalStatus={operationalStatus} approvedAdditionCount={approvedAdditionCount} />;
+}
 
+function GenerateInvoiceAction({ actorId, source, sourceId, operationalStatus, approvedAdditionCount = 0 }: {
+  actorId: string; source: "job" | "quote"; sourceId: string; operationalStatus?: string; approvedAdditionCount?: number;
+}) {
+  const [state, dispatch, pending] = useReliableActionState(async (previous: ActionState, form: FormData) => {
+    try {
+      form.set("request_id", getInvoiceGenerationRequest(localStorage, actorId, `${source}.${sourceId}`, () => crypto.randomUUID()));
+    } catch {
+      return { status: "error", message: "Browser storage is unavailable. Enable it and retry so this invoice request can be saved safely." };
+    }
+    return source === "job" ? createInvoiceFromJob(previous, form) : createInvoiceFromQuote(previous, form);
+  }, initialState);
+  const preview = `Create a draft invoice${approvedAdditionCount ? ` including ${approvedAdditionCount} approved addition${approvedAdditionCount === 1 ? "" : "s"}` : " and any approved additions"} and mark the work order complete. It will not be sent automatically.`;
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
-      <form
-        action={formAction}
-        className="inline-action-form"
-        onSubmit={(event) => {
-          if (operationalStatus && !window.confirm(`This job is currently ${operationalStatus.toLowerCase()}. Create a draft invoice and mark the job complete? The invoice will not be sent automatically.`)) {
-            event.preventDefault();
-          }
-        }}
-      >
-        <input name="job_id" type="hidden" value={jobId} />
+      <form action={dispatch} className="inline-action-form" aria-busy={pending} onSubmit={(event) => {
+        if (!window.confirm(`${operationalStatus ? `This job is currently ${operationalStatus.toLowerCase()}. ` : ""}${preview} Continue?`)) event.preventDefault();
+      }}>
+        <input name={`${source}_id`} type="hidden" value={sourceId} />
         <button disabled={pending} type="submit">
           <FilePlus2 aria-hidden="true" size={18} />
-          {pending ? "Creating invoice..." : "Create invoice"}
+          {pending ? "Creating invoice…" : source === "quote" ? "Create invoice from quote" : "Create invoice"}
         </button>
       </form>
-      {state.invoiceId ? (
-        <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>
-          Open existing invoice
-        </Link>
-      ) : null}
+      {state.invoiceId ? <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>Open existing invoice</Link> : null}
     </WorkflowActionPanel>
   );
 }

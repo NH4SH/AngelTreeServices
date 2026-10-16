@@ -3,6 +3,10 @@
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { StructuredAddressFields } from "@/components/address-autocomplete";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useDocumentRecovery } from "@/hooks/use-document-recovery";
+import { DocumentRecoveryPanel } from "@/components/document-recovery-panel";
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import {
   useEffect,
   useMemo,
@@ -25,6 +29,7 @@ const initialState: InvoiceActionState = {
 };
 
 export function AddInvoiceForm({
+  userId, returnTo,
   customers,
   initialCustomerId,
   initialJobId,
@@ -33,6 +38,7 @@ export function AddInvoiceForm({
   serviceCategories,
   serviceLocations,
 }: {
+  userId: string; returnTo?: string;
   customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
   initialCustomerId?: string;
   initialJobId?: string;
@@ -41,13 +47,23 @@ export function AddInvoiceForm({
   serviceCategories: ServiceCategory[];
   serviceLocations: ServiceLocation[];
 }) {
+  const router = useRouter();
+  const listHref = safeReturnTo(returnTo, "/admin/invoices");
   const requestId = useRef<string | null>(null);
   const [state, formAction, pending] = useReliableActionState(async (previous: InvoiceActionState, form: FormData) => {
     // The job lock also protects a reload/new form. Preserve this request identity
     // for an uncertain response without resetting the entered invoice details.
-    requestId.current ??= crypto.randomUUID();
+    if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    requestId.current ??= recovery.requestId.current || crypto.randomUUID();
     form.set("request_id", requestId.current);
-    return createInvoice(previous, form);
+    recovery.beforeSubmit(requestId.current, form);
+    form.set("client_navigation", "1");
+    const result = await createInvoice(previous, form);
+    if (result.status === "success" && !result.existingInvoice) {
+      recovery.acknowledge(); setDirty(false);
+      if (result.navigateTo) router.push(result.navigateTo);
+    }
+    return result;
   }, initialState);
   const [dirty, setDirty] = useState(false);
   const [selectedPartyValue, setSelectedPartyValue] = useState(initialCustomerId ? `customer:${initialCustomerId}` : "");
@@ -73,16 +89,33 @@ export function AddInvoiceForm({
     return customers.filter((customer) => [customer.display_name, customer.email, customer.phone, customer.billing_address].filter(Boolean).join(" ").toLowerCase().includes(query));
   }, [customerSearch, customers]);
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
+  const recovery = useDocumentRecovery({
+    userId, kind: "invoice", recordKey: `new:${initialCustomerId ?? ""}:${initialJobId ?? ""}`, revision: "new", persistedIds: [],
+    dirty, pending, changeToken: lineItems,
+    restore: copy => {
+      setCustomerSearch(""); setSelectedPartyValue(copy.fields.contracting_party ?? "");
+      setLineItems(copy.lines.map(line => ({ ...line, clientId: crypto.randomUUID(), persistedId: undefined })));
+      requestId.current = copy.requestId || null; markDirty();
+    },
+  });
+  function markDirty() { recovery.changed(); setDirty(true); }
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
+    window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   return (
-    <form action={formAction} className="crm-form quote-editor-form" onChange={() => setDirty(true)}>
+    <form ref={recovery.formRef} action={formAction} aria-busy={pending} className="crm-form quote-editor-form" onChange={() => markDirty()} onReset={event => event.preventDefault()}>
+      <input name="returnTo" type="hidden" value={listHref} />
+      <DocumentRecoveryPanel recovery={recovery} listHref={listHref} />
+      <fieldset disabled={pending} className="quote-editor-fields">
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}
         </p>
       ) : null}
 
-      {state.invoiceId ? <Link className="secondary-action" href={`/admin/invoices/${state.invoiceId}`}>Open existing invoice</Link> : null}
+      {state.invoiceId ? <Link className="secondary-action" href={withReturnTo(`/admin/invoices/${state.invoiceId}`, listHref, "/admin/invoices")}>Open existing invoice</Link> : null}
 
       <section className="quote-editor-section">
         <div>
@@ -128,6 +161,7 @@ export function AddInvoiceForm({
               />
             </div>
             <p>Enter either a phone number or email. The customer and property are created with this invoice.</p>
+            <p className="form-help">New customer contact details are not included in recovery. Enter them again if you restore this invoice.</p>
           </fieldset>
         ) : null}
         {!creatingCustomer ? <div className="form-grid-two">
@@ -171,7 +205,7 @@ export function AddInvoiceForm({
             className="secondary-action quote-line-helper-button"
             onClick={() => {
               setLineItems((items) => [...items, newInvoiceLine()]);
-              setDirty(true);
+              markDirty();
             }}
             type="button"
           >
@@ -182,7 +216,7 @@ export function AddInvoiceForm({
 
         <InvoiceLineEditors
           lineItems={lineItems}
-          onDirty={() => setDirty(true)}
+          onDirty={() => markDirty()}
           serviceCategories={serviceCategories}
           setLineItems={setLineItems}
         />
@@ -193,15 +227,16 @@ export function AddInvoiceForm({
         </dl>
       </section>
 
+      </fieldset>
       <div className="quote-editor-action-bar">
-        <button disabled={pending || (!selectedParty && !creatingCustomer)} type="submit">
+        <button disabled={pending || recovery.blocked || (!selectedParty && !creatingCustomer)} type="submit">
           <Save aria-hidden="true" size={17} />
           {pending ? "Saving..." : "Create invoice"}
         </button>
         <Link
           className="secondary-action"
-          href="/admin/invoices"
-          onClick={(event) => confirmInvoiceClose(event, dirty)}
+          href={listHref}
+          onClick={(event) => { if (pending) event.preventDefault(); else confirmInvoiceClose(event, dirty); }}
         >
           <X aria-hidden="true" size={17} />
           Close
@@ -221,8 +256,19 @@ type InvoiceLineDraft = {
   unitPrice: string;
 };
 
-export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
-  const [state, formAction, pending] = useReliableActionState(updateInvoice, initialState);
+export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }: { userId: string; returnTo?: string; invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
+  const router = useRouter();
+  const listHref = safeReturnTo(returnTo, "/admin/invoices");
+  const [state, formAction, pending] = useReliableActionState(async (previous: InvoiceActionState, form: FormData) => {
+    if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    recovery.beforeSubmit("", form); form.set("client_navigation", "1");
+    const result = await updateInvoice(previous, form);
+    if (result.status === "success") {
+      recovery.acknowledge(); setDirty(false);
+      if (result.navigateTo) router.push(result.navigateTo);
+    }
+    return result;
+  }, initialState);
   const [dirty, setDirty] = useState(false);
   const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(invoice.updated_at);
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>(
@@ -241,6 +287,13 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
       : [newInvoiceLine("new-invoice-line-1")],
   );
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
+  const recovery = useDocumentRecovery({
+    userId, kind: "invoice", recordKey: invoice.id, revision: expectedUpdatedAt,
+    persistedIds: lineItems.flatMap(line => line.persistedId ? [line.persistedId] : []), dirty, pending, changeToken: lineItems,
+    restore: copy => { setLineItems(copy.lines.map(line => ({ ...line, clientId: crypto.randomUUID(), persistedId: line.persistedId || undefined }))); markDirty(); },
+  });
+  function markDirty() { recovery.changed(); setDirty(true); }
+
 
   useEffect(() => {
     if (state.status === "success") {
@@ -263,7 +316,9 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
   }, [dirty]);
 
   return (
-    <form action={formAction} aria-busy={pending} className="crm-form quote-editor-form" onChange={() => setDirty(true)}>
+    <form ref={recovery.formRef} action={formAction} aria-busy={pending} className="crm-form quote-editor-form" onChange={() => markDirty()} onReset={event => event.preventDefault()}>
+      <input name="returnTo" type="hidden" value={listHref} />
+      <DocumentRecoveryPanel recovery={recovery} listHref={listHref} />
       <input name="invoice_id" type="hidden" value={invoice.id} />
       <input name="expected_updated_at" type="hidden" value={expectedUpdatedAt} />
       {state.message ? (
@@ -315,7 +370,7 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
             className="secondary-action quote-line-helper-button"
             onClick={() => {
               setLineItems((items) => [...items, newInvoiceLine()]);
-              setDirty(true);
+              markDirty();
             }}
             type="button"
           >
@@ -326,7 +381,7 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
 
         <InvoiceLineEditors
           lineItems={lineItems}
-          onDirty={() => setDirty(true)}
+          onDirty={() => markDirty()}
           serviceCategories={serviceCategories}
           setLineItems={setLineItems}
         />
@@ -339,18 +394,18 @@ export function EditInvoiceForm({ invoice, serviceCategories }: { invoice: Invoi
       </fieldset>
       <div className="quote-editor-action-bar">
         <div>
-          <button disabled={pending} name="submit_intent" type="submit" value="save">
+          <button disabled={pending || recovery.blocked} name="submit_intent" type="submit" value="save">
             <Save aria-hidden="true" size={17} />
             {pending ? "Saving..." : "Save changes"}
           </button>
-          <button className="secondary-action" disabled={pending} name="submit_intent" type="submit" value="save_close">
+          <button className="secondary-action" disabled={pending || recovery.blocked} name="submit_intent" type="submit" value="save_close">
             {pending ? "Saving..." : "Save and close"}
           </button>
         </div>
         <Link
           className="secondary-action"
-          href={`/admin/invoices/${invoice.id}`}
-          onClick={(event) => confirmInvoiceClose(event, dirty)}
+          href={withReturnTo(`/admin/invoices/${invoice.id}`, listHref, "/admin/invoices")}
+          onClick={(event) => { if (pending) event.preventDefault(); else confirmInvoiceClose(event, dirty); }}
         >
           <X aria-hidden="true" size={17} />
           Close

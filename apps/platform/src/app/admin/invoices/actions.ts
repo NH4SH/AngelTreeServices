@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { withReturnTo } from "@/lib/drafts/return-context";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +14,8 @@ import { safeStaffMessage } from "@/lib/security/errors";
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  navigateTo?: string;
+  existingInvoice?: boolean;
   invoiceId?: string;
   savedUpdatedAt?: string;
   savedLineIds?: Record<string, string>;
@@ -180,9 +183,11 @@ export async function createInvoice(
     if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
     if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
     if (result.existing || result.replayed) return {
-      invoiceId: result.invoice_id, status: "success", message: existingInvoiceMessage(result.invoice_status),
+      invoiceId: result.invoice_id, existingInvoice: true, status: "success", message: existingInvoiceMessage(result.invoice_status),
     };
-    redirect(`/admin/invoices/${result.invoice_id}?created=1`);
+    const destination = withReturnTo(`/admin/invoices/${result.invoice_id}?created=1`, formData.get("returnTo"), "/admin/invoices");
+    if (formData.get("client_navigation") === "1") return { status: "success", message: "Invoice created.", navigateTo: destination };
+    redirect(destination);
   }
 
   const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
@@ -254,7 +259,9 @@ export async function createInvoice(
   revalidatePath("/admin/invoices");
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  redirect(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`);
+  const destination = withReturnTo(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`, formData.get("returnTo"), "/admin/invoices");
+  if (formData.get("client_navigation") === "1") return { status: "success", message: "Invoice created.", navigateTo: destination };
+  redirect(destination);
 }
 
 type InvoiceLineItemInput = {
@@ -333,7 +340,9 @@ export async function updateInvoice(
   if (invoice.organization_id) revalidatePath(`/admin/organizations/${invoice.organization_id}`);
 
   if (submitIntent === "save_close") {
-    redirect(`/admin/invoices/${invoiceId}`);
+    const destination = withReturnTo(`/admin/invoices/${invoiceId}`, formData.get("returnTo"), "/admin/invoices");
+    if (formData.get("client_navigation") === "1") return { status: "success", message: "Invoice saved.", navigateTo: destination };
+    redirect(destination);
   }
 
   return {

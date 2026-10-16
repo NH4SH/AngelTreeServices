@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
@@ -27,6 +28,7 @@ type QuotesPageProps = {
     customer_id?: string;
     job_id?: string;
     new?: string;
+    returnTo?: string;
     archived?: string;
     page?: string;
     q?: string;
@@ -71,6 +73,8 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     getQuoteLeadSource(params.new === "1" ? params.job_id : undefined),
   ]);
   const summary = statusCounts.data;
+  const listContext = safeReturnTo(listHref("/admin/quotes", params, { new: undefined }), "/admin/quotes");
+  const returnTo = safeReturnTo(params.returnTo, listContext);
   const quoteLeadPrefill = quoteLeadSource.data ? buildQuoteLeadPrefill(quoteLeadSource.data) : null;
   const quoteLeadWarning = quoteLeadSource.error
     ?? (params.new === "1" && params.job_id && !quoteLeadPrefill
@@ -89,7 +93,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
             <h1>Quotes</h1>
             <p>Build, send, follow up, and convert estimates.</p>
           </div>
-          <Link className="primary-action" href="/admin/quotes?new=1">
+          <Link className="primary-action" href={withReturnTo("/admin/quotes?new=1", listContext, "/admin/quotes")}>
             <Plus aria-hidden="true" size={18} />
             New quote
           </Link>
@@ -145,7 +149,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                         value={quote.id}
                       />
                       <span>
-                        <Link href={`/admin/quotes/${quote.id}`}>{getQuoteDisplayLabel(quote)}</Link>
+                        <Link href={withReturnTo(`/admin/quotes/${quote.id}`, listContext, "/admin/quotes")}>{getQuoteDisplayLabel(quote)}</Link>
                         <small>{quote.quote_line_items?.length ?? 0} line items</small>
                       </span>
                     </div>
@@ -166,7 +170,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                     <PortalViewStatus engagement={quote} />
                   </div>
                   <div className="commerce-actions">
-                    <Link className="secondary-action" href={`/admin/quotes/${quote.id}`}>
+                    <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${quote.id}`, listContext, "/admin/quotes")}>
                       Open
                     </Link>
                     <DuplicateRecordButton
@@ -176,7 +180,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                       label="Duplicate"
                       pendingLabel="Copying..."
                     />
-                    <Link className="secondary-action" href={`/admin/quotes/${quote.id}#portal-link`}>
+                    <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${quote.id}#portal-link`, listContext)}>
                       <Link2 aria-hidden="true" size={16} />
                       Portal
                     </Link>
@@ -197,6 +201,8 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
 
         {params.new === "1" ? (
           <QuoteCreateDrawer
+            userId={context.user.id}
+            returnTo={returnTo}
             customers={customers.data}
             defaultCustomerId={params.customer_id}
             estimateScheduleEvents={estimateScheduleEvents.data}
@@ -216,6 +222,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
 }
 
 function QuoteCreateDrawer({
+  userId, returnTo,
   customers,
   defaultCustomerId,
   estimateScheduleEvents,
@@ -228,6 +235,7 @@ function QuoteCreateDrawer({
   serviceLocations,
   sourceWarning,
 }: {
+  userId: string; returnTo: string;
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
   estimateScheduleEvents: EstimateScheduleEventOption[];
@@ -240,7 +248,7 @@ function QuoteCreateDrawer({
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
   sourceWarning: string | null;
 }) {
-  const closeHref = prefill || sourceWarning ? "/admin/communications#website-leads" : "/admin/quotes";
+  const closeHref = prefill || sourceWarning ? "/admin/communications#website-leads" : returnTo;
 
   return (
     <div aria-labelledby="new-quote-title" className="commerce-drawer-overlay" role="dialog">
@@ -263,6 +271,9 @@ function QuoteCreateDrawer({
           <DataWarning message={sourceWarning} />
         ) : (
           <AddQuoteForm
+            key={`${userId}:${defaultCustomerId ?? ""}:${prefill?.sourceJobId ?? ""}`}
+            userId={userId}
+            returnTo={closeHref}
             createCloseHref={closeHref}
             customers={customers}
             defaultCustomerId={defaultCustomerId}

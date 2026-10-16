@@ -3,6 +3,12 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useDocumentRecovery } from "@/hooks/use-document-recovery";
+import { DocumentRecoveryPanel } from "@/components/document-recovery-panel";
+import { SavedScopeWording } from "@/components/saved-scope-wording";
+import { restoreDocumentFields } from "@/lib/drafts/document-drafts";
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
@@ -39,6 +45,7 @@ const initialLineItem = (id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()
 });
 
 export function AddQuoteForm({
+  userId, returnTo,
   createCloseHref,
   customers,
   defaultCustomerId = "",
@@ -53,6 +60,8 @@ export function AddQuoteForm({
   serviceLocations,
   sourceLeadJobId,
 }: {
+  userId: string;
+  returnTo?: string;
   createCloseHref?: string;
   customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
@@ -69,7 +78,20 @@ export function AddQuoteForm({
 }) {
   const isEditing = Boolean(quote);
   const action = isEditing ? updateQuote : createQuote;
-  const [state, formAction, pending] = useReliableActionState(action, initialState);
+  const router = useRouter();
+  const listHref = safeReturnTo(returnTo, "/admin/quotes");
+  const [state, formAction, pending] = useReliableActionState(async (previous: QuoteActionState, form: FormData) => {
+    if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    recovery.beforeSubmit("", form);
+    form.set("client_navigation", "1");
+    const result = await action(previous, form);
+    if (result.status === "success") {
+      recovery.acknowledge();
+      confirmedReload.current = true;
+      if (result.navigateTo) router.push(result.navigateTo);
+    }
+    return result;
+  }, initialState);
   const [dirty, setDirty] = useState(false);
   const confirmedReload = useRef(false);
   const [expectedRevision, setExpectedRevision] = useState(quote?.edit_revision);
@@ -111,7 +133,18 @@ export function AddQuoteForm({
     [organizationContacts, selectedParty],
   );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
-  const closeHref = quote ? `/admin/quotes/${quote.id}` : createCloseHref ?? "/admin/quotes";
+  const closeHref = quote ? withReturnTo(`/admin/quotes/${quote.id}`, listHref) : createCloseHref ?? listHref;
+  const recovery = useDocumentRecovery({
+    userId, kind: "quote", recordKey: quote?.id ?? `new:${defaultCustomerId}:${leadPrefill?.sourceJobId ?? sourceLeadJobId ?? ""}`,
+    revision: String(expectedRevision ?? "new"), persistedIds: lineItems.flatMap(line => line.persistedId ? [line.persistedId] : []),
+    dirty, pending, changeToken: lineItems,
+    restore: copy => {
+      setSelectedPartyValue(copy.fields.contracting_party ?? "");
+      setLineItems(copy.lines.map(line => ({ ...line, id: crypto.randomUUID(), persistedId: line.persistedId || undefined })));
+      markDirty();
+    },
+  });
+  function markDirty() { recovery.changed(); confirmedReload.current = false; setDirty(true); }
 
   useEffect(() => {
     if (state.status === "success") {
@@ -136,14 +169,17 @@ export function AddQuoteForm({
 
   return (
     <form
+      ref={recovery.formRef}
       action={formAction}
       className="crm-form quote-editor-form"
       aria-busy={pending}
-      onChange={() => setDirty(true)}
+      onChange={() => markDirty()}
       // React resets uncontrolled fields when a form action resolves, including
       // validation/conflict results. Keep the editor intact until explicit reload.
       onReset={(event) => event.preventDefault()}
     >
+      <input name="returnTo" type="hidden" value={listHref} />
+      <DocumentRecoveryPanel recovery={recovery} listHref={listHref} />
       {quote ? <><input name="quote_id" type="hidden" value={quote.id} /><input name="expected_revision" type="hidden" value={expectedRevision ?? ""} /></> : null}
       {leadPrefill?.sourceJobId || sourceLeadJobId ? <input name="source_lead_job_id" type="hidden" value={leadPrefill?.sourceJobId ?? sourceLeadJobId} /> : null}
       {state.message ? (
@@ -159,6 +195,7 @@ export function AddQuoteForm({
             <Link className="secondary-action" href={`/admin/quotes/${quote.id}`} target="_blank" rel="noopener noreferrer">Compare saved quote in a new tab</Link>
             <button className="secondary-action" type="button" onClick={() => {
               if (window.confirm("Reload the saved quote? Your unsaved edits on this page will be discarded.")) {
+                recovery.acknowledge();
                 confirmedReload.current = true;
                 window.location.reload();
               }
@@ -187,7 +224,7 @@ export function AddQuoteForm({
               name="contracting_party"
               onChange={(event) => {
                 setSelectedPartyValue(event.target.value);
-                setDirty(true);
+                markDirty();
               }}
               required
               value={selectedPartyValue}
@@ -328,7 +365,7 @@ export function AddQuoteForm({
             className="secondary-action quote-line-helper-button"
             onClick={() => {
               setLineItems((items) => [...items, initialLineItem()]);
-              setDirty(true);
+              markDirty();
             }}
             type="button"
           >
@@ -337,6 +374,19 @@ export function AddQuoteForm({
           </button>
         </div>
 
+        <SavedScopeWording userId={userId} lines={lineItems} getDebris={() => {
+          const form = recovery.formRef.current;
+          const data = form ? new FormData(form) : new FormData();
+          return { debrisHandling: String(data.get("debris_handling") ?? ""), description: String(data.get("debris_handling_notes") ?? "") };
+        }} insert={preset => {
+          if (preset.kind === "scope") setLineItems(items => [...items, { ...initialLineItem(), name: preset.name, description: preset.description }]);
+          else if (recovery.formRef.current) {
+            const data = new FormData(recovery.formRef.current);
+            if ((data.get("debris_handling") || data.get("debris_handling_notes")) && !window.confirm("Replace the current wood and chips plan with this wording?")) return;
+            restoreDocumentFields(recovery.formRef.current, { debris_handling: preset.debrisHandling, debris_handling_notes: preset.description });
+          }
+          markDirty();
+        }} />
         <div className="quote-line-editor-list">
           {lineItems.map((item, index) => (
             <article className="quote-line-editor" key={item.id}>
@@ -348,7 +398,7 @@ export function AddQuoteForm({
                     label="Move line item up"
                     onClick={() => {
                       moveLineItem(index, index - 1, setLineItems);
-                      setDirty(true);
+                      markDirty();
                     }}
                   >
                     <ArrowUp aria-hidden="true" size={15} />
@@ -358,14 +408,14 @@ export function AddQuoteForm({
                     label="Move line item down"
                     onClick={() => {
                       moveLineItem(index, index + 1, setLineItems);
-                      setDirty(true);
+                      markDirty();
                     }}
                   >
                     <ArrowDown aria-hidden="true" size={15} />
                   </IconButton>
                   <IconButton label="Duplicate line item" onClick={() => {
                     duplicateLineItem(index, setLineItems);
-                    setDirty(true);
+                    markDirty();
                   }}>
                     <Copy aria-hidden="true" size={15} />
                   </IconButton>
@@ -374,7 +424,7 @@ export function AddQuoteForm({
                     label="Remove line item"
                     onClick={() => {
                       setLineItems((items) => items.filter((candidate) => candidate.id !== item.id));
-                      setDirty(true);
+                      markDirty();
                     }}
                   >
                     <Trash2 aria-hidden="true" size={15} />
@@ -399,7 +449,7 @@ export function AddQuoteForm({
                   className="quote-indent-button"
                   onClick={() => {
                     indentLineItemDescription(item.id, setLineItems);
-                    setDirty(true);
+                    markDirty();
                   }}
                   type="button"
                 >
@@ -481,7 +531,7 @@ export function AddQuoteForm({
       <div className="quote-editor-action-bar">
         <div>
           <button
-            disabled={pending || customers.length === 0}
+            disabled={pending || recovery.blocked || customers.length === 0}
             name="submit_intent"
             type="submit"
             value="save"
@@ -491,7 +541,7 @@ export function AddQuoteForm({
           </button>
           <button
             className="secondary-action"
-            disabled={pending || customers.length === 0}
+            disabled={pending || recovery.blocked || customers.length === 0}
             name="submit_intent"
             type="submit"
             value="save_close"

@@ -1,3 +1,4 @@
+import { DraftPrivacyBoundary } from "@/components/draft-privacy-boundary";
 import type { Metadata } from "next";
 import "../styles/globals.css";
 
@@ -17,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-US">
-      <body>{children}</body>
+      <body><DraftPrivacyBoundary />{children}</body>
     </html>
   );
 }

@@ -22807,3 +22807,18 @@ body:has(.appointment-overlay) {
 @media (max-width: 640px) { .job-completion-review { width: 100%; } .job-completion-review .workflow-button-row { display: grid; } }
 
 .form-message.warning { background: #fff5df; color: #664512; border: 1px solid #ddc99f; }
+
+/* Quote and invoice helpers use the existing CRM surfaces and action styles. */
+.document-recovery { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--line, #d5ded8); border-radius: .75rem; background: var(--surface, #fff); }
+.document-recovery p { margin: .4rem 0 0; max-width: 72ch; }
+.document-recovery summary, .saved-scope-wording > summary { cursor: pointer; color: var(--forest, #234d3b); font-weight: 650; padding: .5rem 0; }
+.recovery-preview { max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: .5rem 0; }
+.saved-scope-wording { padding: .75rem 0 1rem; border-block: 1px solid var(--line, #d5ded8); }
+.saved-scope-wording[open] > :not(summary) { margin-top: .85rem; }
+.saved-scope-wording textarea { width: 100%; }
+.saved-scope-wording :is(input, select, textarea), .document-recovery { min-width: 0; max-width: 100%; }
+:is(.document-recovery, .saved-scope-wording) :focus-visible { outline: 2px solid #286345; outline-offset: 3px; }
+@media (max-width: 640px) {
+  .document-recovery .workflow-button-row, .saved-scope-wording .workflow-button-row { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .document-recovery :is(button, a), .saved-scope-wording button { min-height: 44px; white-space: normal; }
+}

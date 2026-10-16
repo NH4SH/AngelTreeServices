@@ -26,6 +26,9 @@ export type ReportFilters = {
   previousEndDate: string;
   timezone: string;
   customerId: string;
+  organizationId: string;
+  partyQuery: string;
+  employeeQuery: string;
   employeeId: string;
   leadSourceId: string;
   serviceCategoryId: string;
@@ -34,19 +37,19 @@ export type ReportFilters = {
 
 export const metricDefinitions = {
   lead: "A work order in new_lead or estimate_scheduled, counted by its creation date.",
-  sentQuote: "A quote with sent_at in the selected period or current sent workflow status.",
+  sentQuote: "A quote created in the selected period with a recorded sent_at; the report follows the creation cohort.",
   eligibleQuote: "A quote that left draft status. Draft and cancelled quotes are excluded from approval-rate denominators.",
   approvedQuote: "A quote with approved status or approved_at timestamp.",
   quoteApprovalRate: "Approved eligible quotes divided by eligible quotes; drafts are excluded.",
-  invoicedRevenue: "Non-void invoice totals by invoice creation date. This is not cash collected.",
-  collectedRevenue: "Successful payment amounts by paid_at date. Invoice totals are not used as cash revenue.",
-  outstandingBalance: "Remaining balance on non-paid, non-void invoices.",
-  overdueBalance: "Outstanding balance on invoices whose due date is before today.",
-  repeatCustomer: "A customer with more than one completed, invoiced, or paid job.",
-  completedJob: "A job with completed_at or a completed/ready_to_invoice/invoiced/paid status.",
-  estimatedGrossProfit: "Invoiced job revenue less approved direct costs, equipment usage cost, and labor cost when a valid rate exists.",
-  estimatedGrossMargin: "Estimated gross profit divided by invoiced job revenue. Unavailable when required cost inputs are missing.",
-  revenuePerLaborHour: "Invoiced job revenue divided by approved recorded job hours.",
+  invoicedRevenue: "Issued invoice totals by invoice creation date; drafts and voids are excluded. Archived issued invoices remain in financial history. This is not cash collected.",
+  collectedRevenue: "Net retained payment principal from successful/refunded payments received in the period. Later refunds and lost disputes restate this receipt cohort as of refresh; surcharges are excluded.",
+  outstandingBalance: "Current positive issued balances across all invoice dates; draft, paid and void invoices are excluded.",
+  overdueBalance: "Current open issued balances whose due business-calendar date is before today. Due today is current; a missing date has its own aging group.",
+  repeatCustomer: "A contracting account with more than one explicit job completion in the selected period; organizations and individual customers remain distinct.",
+  completedJob: "A job with an explicit completed_at in the selected period. Legacy closed statuses without a completion date remain data-quality issues.",
+  estimatedGrossProfit: "Whole-job issued invoice value, less known refunded/lost payment principal and recorded approved labor/direct/equipment costs, for jobs completed in the period. All dates and all linked issued invoices are included.",
+  estimatedGrossMargin: "Estimated profit divided by adjusted billed value, weighted over jobs with complete recorded inputs. Pending time/costs, missing or overlapping rates and missing invoices prevent a complete estimate. Unentered costs cannot be detected.",
+  revenuePerLaborHour: "Adjusted billed whole-job value divided by approved whole-job hours; not a productivity or capacity rating.",
   scheduleUtilization: "Scheduled event hours divided by recorded available capacity. Unavailable when capacity is not configured.",
   averageDaysToPayment: "Average elapsed days from invoice creation to paid_at for paid invoices.",
 } as const;
@@ -101,6 +104,9 @@ export function resolveReportFilters(
     previousEndDate,
     timezone,
     customerId: single(query.customer) ?? "",
+    organizationId: single(query.organization) ?? "",
+    partyQuery: (single(query.party) ?? "").trim().slice(0,200),
+    employeeQuery: (single(query.employee_name) ?? "").trim().slice(0,200),
     employeeId: single(query.employee) ?? "",
     leadSourceId: single(query.source) ?? "",
     serviceCategoryId: single(query.service) ?? "",
@@ -143,7 +149,7 @@ function single(value: string | string[] | undefined) {
 }
 
 function validDate(value: string | undefined) {
-  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value+"T12:00:00Z")) && new Date(value+"T12:00:00Z").toISOString().slice(0,10)===value ? value : null;
 }
 
 function getBusinessDate(timezone: string) {

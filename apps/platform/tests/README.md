@@ -1,5 +1,23 @@
 # CRM Usability Regression Checks
 
+## PR17 complete reports and consistent exports
+
+The normal unit runner includes reporting date, aggregate presentation, completeness, exact-filter and CSV tests. The integration suite is opt-in and refuses non-loopback Supabase / web targets. It creates uniquely marked synthetic records, retains their history, archives its own bulk quotes and retires only its own users. The existing review owner is preserved. No provider call or hosted migration is required.
+
+Set the following variables privately to the existing disposable stack; never paste the status JSON or its keys into a report:
+
+```bash
+PR17_DISPOSABLE_STACK=1 \
+PR17_LOCAL_STATUS_FILE="$PR17_STATUS_FILE" \
+PR17_DOCKER_BIN="$PR17_DOCKER_BIN" \
+PR17_WEB_URL=http://127.0.0.1:3102 \
+PR17_RESULTS_FILE="$PR17_RESULTS_FILE" \
+DOCKER_HOST=unix:///path/to/disposable/docker.sock \
+node --conditions=react-server --experimental-strip-types --test tests/reporting.integration.test.mjs
+```
+
+The named local database container must be `supabase_db_ats_pr02_disposable`. Apply the new unpublished PR17 definitions only to that stack for iterative verification; use a separate empty database for full migration replay. Do not reset the shared review stack, disable triggers/RLS, raise statement timeouts, apply hosted migrations or enable automations. The suite validates complete 5,006-row exports, explicit 10,000-row combined refusal, stable-snapshot concurrent updates and issued-token authorization.
+
 ## PR16 supervised recurring and Calendar operations
 
 The normal unit gate includes `supervised-operations.test.mjs`: exact positive

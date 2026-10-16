@@ -1,255 +1,591 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Boxes, CircleDollarSign, Clock3, Download, Filter, Leaf, Minus, ReceiptText, TrendingUp, UsersRound } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
-import { LaborCostRateForm, ReportingSettingsForm } from "@/components/reporting-input-forms";
 import { SetupRequired } from "@/components/SetupRequired";
+import {
+  LaborCostRateForm,
+  ReportingSettingsForm,
+} from "@/components/reporting-input-forms";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getReportData, getReportingSettings, relation, successfulPaymentTotal, type ReportData, type ReportInvoice, type ReportJob, type ReportQuote } from "@/lib/data/reports";
-import { formatRange, median, metricDefinitions, percentChange, reportViews, resolveReportFilters, safeRate, type ReportFilters, type ReportView } from "@/lib/reporting/definitions";
-import { formatMaterialQuantity, materialLabel } from "@/lib/materials/definitions";
-import { contractingPartyName as displayContractingPartyName } from "@/lib/contracting-parties";
-import { formatBusinessDateTime } from "@/lib/business-time";
+import { getReportData, getReportingSettings } from "@/lib/data/reports";
+import {
+  formatRange,
+  metricDefinitions,
+  percentChange,
+  reportViews,
+  resolveReportFilters,
+  type ReportFilters,
+} from "@/lib/reporting/definitions";
+import {
+  reportParams,
+  exactReportFilters,
+  reportTables,
+  viewTables,
+  type Column,
+  type ReportCell,
+  type ReportDataset,
+} from "@/lib/reporting/model";
+import {
+  reportPresentation,
+  type Metric,
+  type Breakdown,
+} from "@/lib/reporting/presentation";
+import type { ReportingSettings } from "@/lib/types/database";
 
-type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
-
-export default async function ReportsPage({ searchParams }: Props) {
-  const query = await searchParams;
-  const context = await getAuthenticatedPlatformContext("/admin/reports");
-  if (!context.configured) return <SetupRequired title="Configure Supabase before opening reports" />;
-
-  const settingsResult = await getReportingSettings();
-  const filters = resolveReportFilters(query, settingsResult.data.business_timezone);
-  let report: ReportData | null = null;
-  let loadError = settingsResult.error;
-  try {
-    report = await getReportData(filters, context.roles, context.user.id);
-  } catch (error) {
-    loadError = error instanceof Error ? error.message : "Reports could not be loaded.";
-  }
-
+type Query = Record<string, string | string[] | undefined>;
+type Loaded = Awaited<ReturnType<typeof getReportData>>;
+const single = (v: Query[string]) => (Array.isArray(v) ? v[0] : v);
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Query>;
+}) {
+  const query = await searchParams,
+    context = await getAuthenticatedPlatformContext("/admin/reports");
+  if (!context.configured)
+    return <SetupRequired title="Configure Supabase before opening reports" />;
+  const settings = await getReportingSettings(),
+    filters = resolveReportFilters(query, settings.data.business_timezone);
+  let data: Loaded | null = null,
+    error = settings.error;
+  if (!error)
+    try {
+      const pages: Record<string, number> = {},
+        versions: Record<string, string> = {};
+      for (const k of Object.keys(reportTables)) {
+        const page = Number(single(query["page_" + k]));
+        if (Number.isSafeInteger(page) && page >= 1 && page <= 10000000)
+          pages[k] = page;
+        const version = single(query["version_" + k]);
+        if (version && /^[a-f0-9]{32}$/.test(version)) versions[k] = version;
+      }
+      data = await getReportData(filters, context.roles, context.user.id, {
+        pages,
+        versions,
+      });
+    } catch (e) {
+      error =
+        e instanceof Error
+          ? e.message
+          : "Reports could not load. Refresh before using the totals.";
+    }
+  const presentation = data ? reportPresentation(data, filters.view) : null;
   return (
-    <PlatformFrame active="reports" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content reports-page">
+    <PlatformFrame
+      active="reports"
+      roles={context.roles}
+      userEmail={context.user.email}
+    >
+      <div className="shell app-content reports-page report-verified">
         <section className="page-heading reports-heading">
-          <div><p className="surface-label"><BarChart3 size={17} />Business reporting</p><h1>Reports</h1><p>Sales, operations, cash, and estimated job performance from CRM records.</p></div>
-          {report?.canViewFinancials ? <Link className="secondary-action" href={exportHref(filters)}><Download size={17} />Export current view</Link> : null}
+          <div>
+            <h1>
+              Reports: {reportViews.find(([key]) => key === filters.view)?.[1]}
+            </h1>
+            <p>
+              Business reporting with clear date bases and complete filtered
+              totals.
+            </p>
+          </div>
+          {data && !data.restricted ? (
+            <Link
+              className="secondary-action"
+              href={"/admin/reports/export?" + reportParams(filters)}
+            >
+              Export current view
+            </Link>
+          ) : null}
         </section>
-
-        <ReportFiltersForm filters={filters} report={report} />
+        <Filters filters={filters} data={data} />
         <nav className="report-tabs" aria-label="Report sections">
-          {reportViews.map(([key, label]) => <Link aria-current={filters.view === key ? "page" : undefined} href={viewHref(filters, key)} key={key}>{label}</Link>)}
+          {reportViews.map(([key, label]) => (
+            <Link
+              key={key}
+              aria-current={filters.view === key ? "page" : undefined}
+              href={"/admin/reports?" + reportParams(filters, key)}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
-        <p className="report-range"><Clock3 size={16} /><strong>Active range:</strong> {formatRange(filters)}</p>
-
-        {loadError ? <DataWarning message={loadError} /> : null}
-        {report?.warnings.map((warning) => <DataWarning key={warning} message={warning} />)}
-        {report ? <ReportContent data={report} filters={filters} /> : null}
-
+        <p className="report-range">
+          <strong>Selected period:</strong> {formatRange(filters)}
+        </p>
+        {error ? (
+          <section className="data-warning" role="alert">
+            <h2>Report unavailable</h2>
+            <p>{error}</p>
+            <Link href={"/admin/reports?" + reportParams(filters)}>
+              Refresh the report
+            </Link>
+          </section>
+        ) : null}
+        {data?.restricted ? (
+          <section className="empty-state">
+            <h2>Personal sales scope</h2>
+            <p>
+              Estimator reporting covers quotes assigned to your account.
+              Company operations, cash, labor costs and margin require financial
+              reporting access.
+            </p>
+            <Link href={"/admin/reports?" + reportParams(filters, "quotes")}>
+              Open my quote report
+            </Link>
+          </section>
+        ) : null}
+        {data && !data.restricted && presentation ? (
+          <>
+            <p className="report-read-status">
+              Totals cover all matching records. Details are paged. Refreshed{" "}
+              {date(data.generatedAt, data.timezone)}.
+              {data.scope === "own" ? " Your assigned quotes only." : ""}
+            </p>
+            <p className="report-basis">{basis(filters.view)}</p>
+            <dl className="report-facts">
+              {presentation.metrics.map((m) => (
+                <Fact key={m.label} metric={m} />
+              ))}
+            </dl>
+            {filters.view === "profitability" ? (
+              <p className="report-inline-note">
+                This is an operational estimate from recorded inputs. Unentered
+                costs cannot be detected. Jobs needing input review are excluded
+                from profit and weighted margin totals; no labor, overhead or
+                capacity is invented.
+              </p>
+            ) : null}
+            <section className="report-two-column">
+              {presentation.breakdowns.map((b) => (
+                <BreakdownPanel
+                  key={b.kind + b.group + b.title}
+                  breakdown={b}
+                  data={data!}
+                />
+              ))}
+            </section>
+            {viewTables[filters.view]
+              .filter((k) => data!.datasets[k])
+              .map((kind, index) => (
+                <Detail
+                  key={kind}
+                  dataset={data!.datasets[kind]}
+                  filters={filters}
+                  query={query}
+                  data={data!}
+                  open={index === 0 || Boolean(query["page_" + kind])}
+                />
+              ))}
+            {filters.view === "profitability" && data.canViewFinancials ? (
+              <details className="report-admin-details">
+                <summary>Add a historical labor cost rate</summary>
+                <LaborCostRateForm employees={data.employees} />
+              </details>
+            ) : null}
+            {filters.view === "pipeline" && data.canManageSettings ? (
+              <details className="report-admin-details">
+                <summary>Reporting settings</summary>
+                <ReportingSettingsForm
+                  settings={data.settings as ReportingSettings}
+                />
+              </details>
+            ) : null}
+            <p className="report-inline-note">
+              CSV exports include summaries and every detail row from one
+              database snapshot, up to 10,000 rows across the selected report.
+              Larger exports require narrower work filters or a focused tab.
+            </p>
+          </>
+        ) : null}
         <details className="report-definitions">
-          <summary>Metric definitions</summary>
-          <dl>{Object.entries(metricDefinitions).map(([key, definition]) => <div key={key}><dt>{title(key)}</dt><dd>{definition}</dd></div>)}</dl>
+          <summary>Metric definitions and date bases</summary>
+          <dl>
+            {Object.entries(metricDefinitions).map(([key, text]) => (
+              <div key={key}>
+                <dt>{title(key)}</dt>
+                <dd>{text}</dd>
+              </div>
+            ))}
+          </dl>
         </details>
       </div>
     </PlatformFrame>
   );
 }
-
-function ReportFiltersForm({ filters, report }: { filters: ReportFilters; report: ReportData | null }) {
+function Filters({
+  filters: f,
+  data,
+}: {
+  filters: ReportFilters;
+  data: Loaded | null;
+}) {
   return (
     <form className="report-filter-panel" method="get">
-      <input name="view" type="hidden" value={filters.view} />
-      <div className="report-filter-heading"><Filter size={18} /><div><strong>Report filters</strong><span>Filters stay in the URL for sharing and export.</span></div></div>
-      <label>Date range<select defaultValue={filters.preset} name="range"><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="quarter">This quarter</option><option value="year">This year</option><option value="last_7">Last 7 days</option><option value="last_30">Last 30 days</option><option value="last_90">Last 90 days</option><option value="previous">Previous month</option><option value="custom">Custom</option></select></label>
-      <label>Start<input defaultValue={filters.startDate} name="start" type="date" /></label>
-      <label>End<input defaultValue={filters.endDate} name="end" type="date" /></label>
-      <label>Lead source<select defaultValue={filters.leadSourceId} name="source"><option value="">All sources</option>{report?.leadSources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
-      <label>Service<select defaultValue={filters.serviceCategoryId} name="service"><option value="">All services</option>{report?.serviceCategories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select></label>
-      <label>Customer<select defaultValue={filters.customerId} name="customer"><option value="">All customers</option>{report?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.display_name}</option>)}</select></label>
-      <label>Employee<select defaultValue={filters.employeeId} name="employee"><option value="">All employees</option>{report?.employees.filter((employee) => employee.auth_user_id).map((employee) => <option key={employee.id} value={employee.auth_user_id!}>{employee.preferred_name || employee.legal_name || "Employee"}</option>)}</select></label>
-      <label>Status<input defaultValue={filters.status} name="status" placeholder="All statuses" /></label>
-      <div className="report-filter-actions"><button type="submit">Apply filters</button><Link className="secondary-action" href={`/admin/reports?view=${filters.view}`}>Clear</Link></div>
+      <input type="hidden" name="view" value={f.view} />
+      <div className="report-filter-heading">
+        <div>
+          <strong>Report filters</strong>
+          <span>
+            Choose Custom to set start and end dates. Filters stay in the URL.
+          </span>
+        </div>
+      </div>
+      <label>
+        Date range
+        <select name="range" defaultValue={f.preset}>
+          {[
+            ["today", "Today"],
+            ["week", "This week"],
+            ["month", "This month"],
+            ["quarter", "This quarter"],
+            ["year", "This year"],
+            ["last_7", "Last 7 days"],
+            ["last_30", "Last 30 days"],
+            ["last_90", "Last 90 days"],
+            ["previous", "Previous month"],
+            ["custom", "Custom"],
+          ].map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Start
+        <input name="start" type="date" defaultValue={f.startDate} />
+      </label>
+      <label>
+        End
+        <input name="end" type="date" defaultValue={f.endDate} />
+      </label>
+      <div className="report-filter-actions">
+        <button type="submit">Apply filters</button>
+        <Link
+          className="secondary-action"
+          href={"/admin/reports?view=" + f.view}
+        >
+          Clear
+        </Link>
+      </div>
+      {exactReportFilters(f, data?.options).length ? (
+        <div
+          className="report-exact-filters"
+          aria-label="Active record filters"
+        >
+          {exactReportFilters(f, data?.options).map((filter) => {
+            const p = reportParams(f);
+            p.delete(filter.key);
+            return (
+              <p key={filter.key}>
+                <strong>{filter.label}:</strong> {filter.value}
+                <Link
+                  href={"/admin/reports?" + p}
+                  aria-label={
+                    "Remove " + filter.label.toLowerCase() + " filter"
+                  }
+                >
+                  Remove
+                </Link>
+              </p>
+            );
+          })}
+        </div>
+      ) : null}
+      <details
+        className="report-work-filters"
+        open={Boolean(
+          f.partyQuery ||
+            f.employeeQuery ||
+            f.leadSourceId ||
+            f.serviceCategoryId ||
+            f.status,
+        )}
+      >
+        <summary>Filter by account, employee, service or status</summary>
+        <div className="report-work-filter-fields">
+          <label>
+            Customer or organization
+            <input
+              name="party"
+              defaultValue={f.partyQuery}
+              placeholder="Search account name"
+              maxLength={200}
+            />
+          </label>
+          {f.customerId ? (
+            <input type="hidden" name="customer" value={f.customerId} />
+          ) : null}
+          {f.organizationId ? (
+            <input type="hidden" name="organization" value={f.organizationId} />
+          ) : null}
+          <label>
+            Lead source
+            <select name="source" defaultValue={f.leadSourceId}>
+              <option value="">All sources</option>
+              {data?.options.sources?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Service
+            <select name="service" defaultValue={f.serviceCategoryId}>
+              <option value="">All services</option>
+              {data?.options.services?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Employee name
+            <input
+              name="employee_name"
+              defaultValue={f.employeeQuery}
+              placeholder="Search employee name"
+              maxLength={200}
+            />
+          </label>
+          {f.employeeId ? (
+            <input type="hidden" name="employee" value={f.employeeId} />
+          ) : null}
+          <label>
+            Record status
+            <input
+              name="status"
+              defaultValue={f.status}
+              placeholder="All statuses"
+              maxLength={80}
+            />
+          </label>
+        </div>
+      </details>
     </form>
   );
 }
-
-function ReportContent({ data, filters }: { data: ReportData; filters: ReportFilters }) {
-  if (data.salesScope === "own" && !["executive", "quotes", "sources", "services"].includes(filters.view)) {
-    return <section className="empty-state"><UsersRound size={30} /><h2>Personal sales scope</h2><p>Estimator reporting is limited to quotes assigned to your account. Company operations, labor, fleet, accounts receivable, and profitability remain restricted.</p></section>;
+function Fact({ metric: m }: { metric: Metric }) {
+  const change =
+    m.value !== null && m.previous != null
+      ? percentChange(m.value, m.previous)
+      : null;
+  return (
+    <div>
+      <dt>{m.label}</dt>
+      <dd>{format(m.value, m.format)}</dd>
+      {change != null ? (
+        <small>
+          {change > 0 ? "+" : ""}
+          {change.toFixed(1)}% vs equal prior period
+        </small>
+      ) : null}
+    </div>
+  );
+}
+function BreakdownPanel({
+  breakdown: b,
+  data,
+}: {
+  breakdown: Breakdown;
+  data: Loaded;
+}) {
+  const groups = data.datasets[b.kind]?.groups[b.group],
+    items = groups?.items ?? [];
+  return (
+    <section className="report-panel">
+      <header>
+        <div>
+          <h2>{b.title}</h2>
+          <p>
+            {groups && groups.totalGroups > 15
+              ? "Top 15 groups; all remaining groups are combined below."
+              : "Full filtered totals, independent of the detail page."}
+          </p>
+        </div>
+      </header>
+      {items.length ? (
+        <dl className="report-breakdown">
+          {items.map((g) => {
+            const value = b.rate
+              ? g.stats.eligible > 0
+                ? (g.stats.approved / g.stats.eligible) * 100
+                : null
+              : b.metric
+                ? (g.stats[b.metric] ?? 0)
+                : g.count;
+            return (
+              <div key={g.id}>
+                <dt>{title(g.label)}</dt>
+                <dd>
+                  {format(value, b.rate ? "percent" : b.format)}
+                  {b.rate ? <small>{g.count} quotes</small> : null}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : (
+        <p className="report-empty">No matching records.</p>
+      )}
+    </section>
+  );
+}
+function Detail({
+  dataset: d,
+  filters,
+  query,
+  data,
+  open,
+}: {
+  dataset: ReportDataset;
+  filters: ReportFilters;
+  query: Query;
+  data: Loaded;
+  open: boolean;
+}) {
+  const def = reportTables[d.key];
+  if (!def) return null;
+  function href(page: number) {
+    const p = reportParams(filters);
+    for (const kind of Object.keys(data.datasets)) {
+      const v = single(query["page_" + kind]);
+      if (v) p.set("page_" + kind, v);
+      p.set("version_" + kind, data.datasets[kind].version);
+    }
+    p.set("page_" + d.key, String(page));
+    return "/admin/reports?" + p + "#report-" + d.key;
   }
-  if (["revenue", "profitability"].includes(filters.view) && !data.canViewFinancials) {
-    return <RestrictedReport />;
-  }
-  switch (filters.view) {
-    case "pipeline": return <PipelineReport data={data} />;
-    case "quotes": return <QuoteReport data={data} />;
-    case "revenue": return <RevenueReport data={data} />;
-    case "profitability": return <ProfitabilityReport data={data} />;
-    case "labor": return <LaborReport data={data} />;
-    case "scheduling": return <SchedulingReport data={data} />;
-    case "customers": return <CustomerReport data={data} />;
-    case "sources": return <LeadSourceReport data={data} />;
-    case "services": return <ServiceReport data={data} />;
-    case "fleet": return <FleetReport data={data} />;
-    case "materials": return <MaterialsReport data={data} />;
-    case "quality": return <DataQualityReport data={data} />;
-    default: return <ExecutiveReport data={data} />;
-  }
+  return (
+    <details className="report-detail" id={"report-" + d.key} open={open}>
+      <summary>
+        {def.title}
+        <span>{d.total.toLocaleString()} records</span>
+      </summary>
+      <p className="report-inline-note">{def.basis}</p>
+      {d.total ? (
+        <>
+          <p className="report-page-count">
+            Showing {((d.page - 1) * d.pageSize + 1).toLocaleString()}–
+            {Math.min(d.total, d.page * d.pageSize).toLocaleString()} of{" "}
+            {d.total.toLocaleString()}. Scroll the table for all columns.
+          </p>
+          <div
+            className="report-table-scroll"
+            role="region"
+            aria-label={def.title}
+            tabIndex={0}
+          >
+            <table>
+              <caption className="sr-only">
+                {def.title}. {def.basis}
+              </caption>
+              <thead>
+                <tr>
+                  {def.columns.map((c) => (
+                    <th scope="col" key={c.key}>
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {d.rows.map((row) => (
+                  <tr key={row.id}>
+                    {def.columns.map((c) => (
+                      <td key={c.key}>
+                        {c.link &&
+                        typeof row.href === "string" &&
+                        row.href.startsWith("/admin/") ? (
+                          <Link href={row.href}>
+                            {cell(row[c.key], c, data.timezone)}
+                          </Link>
+                        ) : (
+                          cell(row[c.key], c, data.timezone)
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {d.pages > 1 ? (
+            <nav className="list-pagination" aria-label={def.title + " pages"}>
+              {d.page > 1 ? (
+                <Link className="secondary-action" href={href(d.page - 1)}>
+                  Previous
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span>
+                Page {d.page.toLocaleString()} of {d.pages.toLocaleString()}
+              </span>
+              {d.page < d.pages ? (
+                <Link className="secondary-action" href={href(d.page + 1)}>
+                  Next
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
+          ) : null}
+        </>
+      ) : (
+        <p className="report-empty">
+          No matching records. Try a different date range or clear the work
+          filters.
+        </p>
+      )}
+    </details>
+  );
 }
-
-function ExecutiveReport({ data }: { data: ReportData }) {
-  const eligible = eligibleQuotes(data.quotes);
-  const approved = data.quotes.filter(isApprovedQuote);
-  const invoices = data.invoices.filter((invoice) => invoice.status !== "void");
-  const collected = sum(data.payments, "amount_cents");
-  const completed = data.jobs.filter(isCompletedJob);
-  const cards = [
-    { label: "New leads", value: String(data.jobs.filter((job) => ["new_lead", "estimate_scheduled"].includes(job.status)).length), previous: data.comparisonAvailable ? data.previous.leads : null, current: data.jobs.filter((job) => ["new_lead", "estimate_scheduled"].includes(job.status)).length, href: "/admin/jobs" },
-    { label: "Quote approval rate", value: formatPercent(safeRate(approved.length, eligible.length)), previous: null, current: null, href: viewHrefSimple("quotes") },
-    { label: "Approved quote value", value: money(sum(approved, "total_cents")), previous: data.comparisonAvailable ? data.previous.approvedCents : null, current: sum(approved, "total_cents"), href: viewHrefSimple("quotes") },
-    { label: "Invoiced", value: data.canViewFinancials ? money(sum(invoices, "total_cents")) : "Restricted", previous: data.comparisonAvailable ? data.previous.invoicedCents : null, current: sum(invoices, "total_cents"), href: viewHrefSimple("revenue") },
-    { label: "Collected", value: data.canViewFinancials ? money(collected) : "Restricted", previous: data.comparisonAvailable ? data.previous.collectedCents : null, current: collected, href: viewHrefSimple("revenue") },
-    { label: "Outstanding", value: data.canViewFinancials ? money(sum(data.arInvoices, "balance_due_cents")) : "Restricted", previous: null, current: null, href: viewHrefSimple("revenue") },
-    { label: "Jobs completed", value: String(completed.length), previous: data.comparisonAvailable ? data.previous.completedJobs : null, current: completed.length, href: "/admin/jobs" },
-    { label: "Awaiting invoice", value: String(data.jobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)).length), previous: null, current: null, href: "/admin/jobs" },
-  ];
-  const monthly = monthlySeries(data.invoices.filter((invoice) => invoice.status !== "void"), "created_at", "total_cents");
-  return <><section className="report-metric-grid">{cards.map((card) => <MetricCard {...card} key={card.label} />)}</section><section className="report-two-column"><ReportPanel title="Invoiced trend" note="Invoice totals, not collected cash."><BarList rows={monthly.map((row) => ({ label: row.label, value: row.value, display: money(row.value) }))} /></ReportPanel><ReportPanel title="Current attention" note="Operational records requiring follow-through."><AttentionList rows={attentionRows(data)} /></ReportPanel></section><ReportTable title="Recent source records" columns={["Record", "Customer", "Status", "Value", "Created"]} rows={data.quotes.slice(0, 30).map(quoteRow)} /></>;
+function format(v: number | null | undefined, f?: Metric["format"]) {
+  if (v == null) return "Unavailable";
+  if (f === "money")
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(v / 100);
+  if (f === "percent") return v.toFixed(1) + "%";
+  if (f === "hours") return v.toFixed(2) + "h";
+  if (f === "days") return v.toFixed(1) + " days";
+  return v.toLocaleString("en-US");
 }
-
-function PipelineReport({ data }: { data: ReportData }) {
-  const stages = [
-    { label: "Lead", records: data.jobs.filter((job) => job.status === "new_lead"), value: 0 },
-    { label: "Estimate scheduled", records: data.jobs.filter((job) => job.status === "estimate_scheduled"), value: 0 },
-    { label: "Quote draft", records: data.quotes.filter((quote) => quote.status === "draft"), value: sum(data.quotes.filter((quote) => quote.status === "draft"), "total_cents") },
-    { label: "Quote sent", records: data.quotes.filter((quote) => ["sent", "change_requested"].includes(quote.status)), value: sum(data.quotes.filter((quote) => ["sent", "change_requested"].includes(quote.status)), "total_cents") },
-    { label: "Approved", records: data.quotes.filter(isApprovedQuote), value: sum(data.quotes.filter(isApprovedQuote), "total_cents") },
-    { label: "Scheduled", records: data.jobs.filter((job) => job.status === "scheduled"), value: 0 },
-    { label: "Completed", records: data.jobs.filter(isCompletedJob), value: 0 },
-    { label: "Invoiced", records: data.invoices.filter((invoice) => invoice.status !== "void"), value: sum(data.invoices.filter((invoice) => invoice.status !== "void"), "total_cents") },
-    { label: "Paid", records: data.invoices.filter((invoice) => invoice.status === "paid"), value: sum(data.invoices.filter((invoice) => invoice.status === "paid"), "total_cents") },
-  ];
-  return <><ReportPanel title="Pipeline funnel" note="Counts reflect records in the active date range; values appear where a priced record exists."><div className="pipeline-funnel">{stages.map((stage, index) => <article key={stage.label}><span>{index + 1}</span><div><strong>{stage.label}</strong><small>{stage.value ? money(stage.value) : "Operational stage"} · avg age {averageAge(stage.records)} · {index === 0 ? "entry" : `${formatPercent(safeRate(stage.records.length, stages[index - 1].records.length))} from prior`}</small></div><b>{stage.records.length}</b></article>)}</div></ReportPanel><ReportPanel title="Stalled work" note="Thresholds come from reporting settings."><AttentionList rows={stalledRows(data)} /></ReportPanel>{data.canManageSettings ? <ReportingSettingsForm settings={data.settings} /> : null}</>;
+function cell(v: ReportCell | undefined, c: Column, zone: string) {
+  if (v == null)
+    return c.format && ["money", "percent", "hours"].includes(c.format)
+      ? "Unavailable"
+      : "Not entered";
+  if (c.format === "date") return date(String(v), zone);
+  if (c.format === "title") return title(String(v));
+  if (c.format && typeof v === "number") return format(v, c.format);
+  return typeof v === "boolean" ? (v ? "Yes" : "No") : String(v);
 }
-
-function QuoteReport({ data }: { data: ReportData }) {
-  const eligible = eligibleQuotes(data.quotes); const approved = eligible.filter(isApprovedQuote); const declined = eligible.filter((quote) => quote.status === "declined");
-  const values = data.quotes.map((quote) => quote.total_cents);
-  const metrics = [{ label: "Quotes", value: String(data.quotes.length) }, { label: "Quoted value", value: money(sum(data.quotes, "total_cents")) }, { label: "Average", value: money(values.length ? sum(data.quotes, "total_cents") / values.length : 0) }, { label: "Median", value: median(values) == null ? "No data" : money(median(values) ?? 0) }, { label: "Approval rate", value: formatPercent(safeRate(approved.length, eligible.length)) }, { label: "Decline rate", value: formatPercent(safeRate(declined.length, eligible.length)) }, { label: "Average create to send", value: averageElapsed(data.quotes.filter((quote) => quote.sent_at), "created_at", "sent_at") }, { label: "Average send to approval", value: averageElapsed(approved.filter((quote) => quote.sent_at && quote.approved_at), "sent_at", "approved_at") }];
-  const estimatorValues = groupValue(approved, (quote) => relation(quote.profiles)?.full_name || relation(quote.profiles)?.email || "Not assigned", (quote) => quote.total_cents);
-  return <><section className="report-metric-grid compact">{metrics.map((metric) => <MetricCard key={metric.label} label={metric.label} value={metric.value} />)}</section><section className="report-two-column"><ReportPanel title="Quote status" note="Drafts are excluded from approval and decline rates."><BarList rows={groupCount(data.quotes, (quote) => title(quote.status)).map((row) => ({ ...row, display: String(row.value) }))} /></ReportPanel><ReportPanel title="Approved value by estimator" note="Quotes without an estimator remain explicit in Data Quality."><BarList rows={estimatorValues.map((row) => ({ ...row, display: money(row.value) }))} /></ReportPanel></section><ReportTable title="Quote drilldown" columns={["Quote", "Customer", "Estimator", "Status", "Total", "Sent / age"]} rows={data.quotes.map(quoteRow)} /></>;
+function date(v: string, zone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(v));
 }
-
-function RevenueReport({ data }: { data: ReportData }) {
-  const activeInvoices = data.invoices.filter((invoice) => invoice.status !== "void"); const collected = sum(data.payments, "amount_cents"); const open = data.arInvoices; const overdue = open.filter((invoice) => daysOverdue(invoice) > 0); const refunded = data.invoices.flatMap((invoice) => invoice.payments).filter((payment) => payment.status === "refunded").reduce((total, payment) => total + payment.amount_cents, 0);
-  const aging = arAging(open);
-  return <><section className="report-metric-grid"><MetricCard label="Invoiced" value={money(sum(activeInvoices, "total_cents"))} /><MetricCard label="Collected" value={money(collected)} /><MetricCard label="Outstanding" value={money(sum(open, "balance_due_cents"))} /><MetricCard label="Overdue" value={money(sum(overdue, "balance_due_cents"))} /><MetricCard label="Refunded records" value={money(refunded)} /><MetricCard label="Average invoice" value={money(activeInvoices.length ? sum(activeInvoices, "total_cents") / activeInvoices.length : 0)} /><MetricCard label="Average days to payment" value={averageDaysToPayment(activeInvoices)} /></section><section className="report-two-column"><ReportPanel title="Accounts receivable aging" note="This as-of queue includes older unpaid invoices. Paid, void, and zero-balance invoices are excluded."><BarList rows={aging.map((row) => ({ label: row.label, value: row.amount, display: `${money(row.amount)} · ${row.count}` }))} /></ReportPanel><ReportPanel title="Payment methods" note="Successful payment rows only."><BarList rows={groupValue(data.payments, (payment) => title(payment.payment_method || payment.provider || "Other"), (payment) => payment.amount_cents).map((row) => ({ ...row, display: money(row.value) }))} /></ReportPanel></section><ReportTable title="Accounts receivable" columns={["Invoice", "Customer", "Due", "Total", "Payments", "Balance"]} rows={open.sort((a, b) => daysOverdue(b) - daysOverdue(a)).map(invoiceRow)} /></>;
+function title(v: string) {
+  return v
+    .replaceAll("_", " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
-function ProfitabilityReport({ data }: { data: ReportData }) {
-  const complete = data.profitability.filter((row) => row.profitCents != null); const revenue = complete.reduce((sumValue, row) => sumValue + row.revenueCents, 0); const profit = complete.reduce((sumValue, row) => sumValue + (row.profitCents ?? 0), 0);
-  return <><section className="report-callout"><TrendingUp size={22} /><div><strong>Estimated profitability</strong><p>This is an operational estimate, not formal accounting. Jobs without approved time, effective labor cost, or invoice revenue remain incomplete.</p></div></section><section className="report-metric-grid compact"><MetricCard label="Complete estimates" value={`${complete.length} of ${data.profitability.length}`} /><MetricCard label="Estimated gross profit" value={complete.length ? money(profit) : "Unavailable"} /><MetricCard label="Estimated gross margin" value={complete.length ? formatPercent(safeRate(profit, revenue)) : "Unavailable"} /><MetricCard label="Missing cost inputs" value={String(data.profitability.length - complete.length)} /></section><ReportTable title="Job profitability" columns={["Job", "Customer", "Revenue", "Labor", "Direct / equipment", "Estimated margin"]} rows={data.profitability.map((row) => [<Link href={`/admin/jobs/${row.job.id}`} key="job">{row.job.service_type ? title(row.job.service_type) : "Work order"}</Link>, relation(row.job.customers)?.display_name ?? "Unknown", money(row.revenueCents), row.laborCostCents == null ? completenessLabel(row.completeness) : `${money(row.laborCostCents)} · ${row.laborHours.toFixed(1)}h`, `${money(row.directCostCents)} / ${money(row.equipmentCostCents)}`, row.marginPercent == null ? completenessLabel(row.completeness) : formatPercent(row.marginPercent)])} /><section className="report-two-column"><LaborCostRateForm employees={data.employees} /><ReportTable title="Historical labor rates" columns={["Employee", "Effective", "End", "Hourly cost", "Burden"]} rows={data.laborRates.map((rate) => { const employee = relation(rate.employee_records); return [employee?.preferred_name || employee?.legal_name || "Employee", rate.effective_from, rate.effective_to || "Current", money(rate.hourly_cost_cents), rate.burden_percent == null ? "Default" : `${rate.burden_percent}%`]; })} /></section></>;
+function basis(view: string) {
+  if (view === "profitability")
+    return "Completion cohort: whole-job history, across all dates. Recorded costs are estimates; billed value is adjusted for known refunds and lost payment principal.";
+  if (view === "quotes")
+    return "Quote cohort: quotes created in the period, with their current outcomes. Draft and cancelled quotes are excluded from approval-rate denominators.";
+  if (view === "revenue")
+    return "Activity and current state: invoice creation and payment receipt dates define the period. Receivables and later payment adjustments reflect the current state.";
+  if (view === "quality")
+    return "Current correction queue across all dates. No automatic changes.";
+  if (view === "scheduling")
+    return "Events starting in the period, with current unscheduled work shown separately. Capacity utilization is unavailable until availability is configured.";
+  return "Each section states its date basis. Current backlog, stock, assets and receivables are snapshots independent of the selected period. Record-status filters apply to each record’s own status; matching a service selects whole documents or jobs.";
 }
-
-function LaborReport({ data }: { data: ReportData }) {
-  const approved = data.timeEntries.filter((entry) => latestApproval(entry) === "approved"); const byEmployee = groupValue(approved, (entry) => relation(entry.profiles)?.full_name || relation(entry.profiles)?.email || "Unknown employee", durationHours);
-  const jobHours = approved.filter((entry) => entry.job_id); const nonJob = approved.filter((entry) => !entry.job_id);
-  return <><section className="report-metric-grid compact"><MetricCard label="Approved hours" value={`${approved.reduce((sumValue, entry) => sumValue + durationHours(entry), 0).toFixed(1)}h`} /><MetricCard label="Job hours" value={`${jobHours.reduce((sumValue, entry) => sumValue + durationHours(entry), 0).toFixed(1)}h`} /><MetricCard label="Non-job hours" value={`${nonJob.reduce((sumValue, entry) => sumValue + durationHours(entry), 0).toFixed(1)}h`} /><MetricCard label="Unapproved entries" value={String(data.timeEntries.length - approved.length)} /></section><ReportPanel title="Approved hours by employee" note="Corrected entry values are used. This report is not an automatic performance rating."><BarList rows={byEmployee.map((row) => ({ ...row, display: `${row.value.toFixed(1)}h` }))} /></ReportPanel><ReportTable title="Time drilldown" columns={["Employee", "Type", "Job", "Clock in", "Hours", "Review"]} rows={data.timeEntries.map((entry) => [relation(entry.profiles)?.full_name || relation(entry.profiles)?.email || "Unknown", title(entry.entry_type), entry.job_id ? <Link href={`/admin/jobs/${entry.job_id}`} key="job">Open job</Link> : "Not linked", formatDate(entry.clock_in_at), entry.clock_out_at ? `${durationHours(entry).toFixed(2)}h` : "Active", title(latestApproval(entry) || "unreviewed")])} /></>;
-}
-
-function SchedulingReport({ data }: { data: ReportData }) {
-  const scheduledHours = data.scheduleEvents.reduce((total, event) => total + eventHours(event), 0); const completed = data.scheduleEvents.filter((event) => event.status === "completed"); const cancelled = data.scheduleEvents.filter((event) => event.status === "cancelled");
-  return <><section className="report-metric-grid compact"><MetricCard label="Scheduled events" value={String(data.scheduleEvents.length)} /><MetricCard label="Scheduled hours" value={`${scheduledHours.toFixed(1)}h`} /><MetricCard label="Completed" value={String(completed.length)} /><MetricCard label="Cancelled" value={String(cancelled.length)} /><MetricCard label="Approved work unscheduled" value={String(data.jobs.filter((job) => job.status === "accepted" && !job.scheduled_start_at).length)} /><MetricCard label="Capacity utilization" value="Unavailable" /></section><p className="report-inline-note">Capacity remains unavailable until employee availability is explicitly configured. Scheduled hours and recorded time stay separate.</p><ReportPanel title="Events by type" note="Selected period."><BarList rows={groupCount(data.scheduleEvents, (event) => title(event.event_type)).map((row) => ({ ...row, display: String(row.value) }))} /></ReportPanel><ReportTable title="Schedule drilldown" columns={["Event", "Type", "Status", "Starts", "Hours", "Job"]} rows={data.scheduleEvents.map((event) => [event.title, title(event.event_type), title(event.status), formatDate(event.starts_at), `${eventHours(event).toFixed(1)}h`, event.job_id ? <Link href={`/admin/jobs/${event.job_id}`} key="job">Open job</Link> : "No job"])} /></>;
-}
-
-function CustomerReport({ data }: { data: ReportData }) {
-  const revenueByCustomer = new Map<string, number>(); data.invoices.filter((invoice) => invoice.status !== "void").forEach((invoice) => revenueByCustomer.set(contractingPartyKey(invoice), (revenueByCustomer.get(contractingPartyKey(invoice)) ?? 0) + invoice.total_cents));
-  const rows = [...revenueByCustomer.entries()].map(([partyKey, value]) => ({ partyKey, label: contractingPartyName(data.invoices.find((invoice) => contractingPartyKey(invoice) === partyKey)), value })).sort((a, b) => b.value - a.value);
-  const repeat = groupCount(data.jobs.filter(isCompletedJob), contractingPartyKey).filter((row) => row.value > 1).length;
-  const areas = groupCount(data.jobs, (job) => { const location = relation(job.service_locations); return location ? `${location.city}, ${location.state}${location.postal_code ? ` ${location.postal_code}` : ""}` : "Location not recorded"; });
-  return <><section className="report-metric-grid compact"><MetricCard label="New individual customers" value={String(data.customers.length)} /><MetricCard label="New organizations" value={String(data.organizations.length)} /><MetricCard label="Repeat accounts" value={String(repeat)} /><MetricCard label="Accounts invoiced" value={String(rows.length)} /><MetricCard label="Accounts with balances" value={String(new Set(data.arInvoices.map(contractingPartyKey)).size)} /></section><section className="report-two-column"><ReportPanel title="Top accounts by invoiced value" note="Individual customers and organizations are counted once by contracting ownership. Invoice value is not collected cash."><BarList rows={rows.slice(0, 15).map((row) => ({ label: row.label, value: row.value, display: money(row.value) }))} /></ReportPanel><ReportPanel title="Work by service area" note="Structured city, state, and ZIP only; no address inference or geocoding."><BarList rows={areas.map((row) => ({ ...row, display: `${row.value} jobs` }))} /></ReportPanel></section><ReportTable title="Individual customer drilldown" columns={["Customer", "Source", "Area", "Status", "Created"]} rows={data.customers.map((customer) => [<Link href={`/admin/customers/${customer.id}`} key="customer">{customer.display_name}</Link>, relation(customer.lead_sources)?.name ?? "Not recorded", relation(customer.service_locations)?.city ?? "Not recorded", title(customer.status), formatDate(customer.created_at)])} /><ReportTable title="Organization drilldown" columns={["Organization", "Status", "Created"]} rows={data.organizations.map((organization) => [<Link href={`/admin/organizations/${organization.id}`} key="organization">{organization.name}</Link>, title(organization.status), formatDate(organization.created_at)])} /></>;
-}
-
-function LeadSourceReport({ data }: { data: ReportData }) {
-  const rows = data.leadSources.map((source) => { const jobs = data.jobs.filter((job) => job.lead_source_id === source.id); const quotes = data.quotes.filter((quote) => relation(quote.customers)?.lead_source_id === source.id); const approved = quotes.filter(isApprovedQuote); const invoices = data.invoices.filter((invoice) => relation(invoice.customers)?.lead_source_id === source.id && invoice.status !== "void"); return { source, jobs: jobs.length, quotes: quotes.length, approved: sum(approved, "total_cents"), invoiced: sum(invoices, "total_cents"), rate: safeRate(approved.length, eligibleQuotes(quotes).length) }; });
-  return <><ReportPanel title="Leads by source" note="Unknown remains explicit; no source is inferred from notes."><BarList rows={[...rows.map((row) => ({ label: row.source.name, value: row.jobs, display: String(row.jobs) })), { label: "Not recorded", value: data.jobs.filter((job) => !job.lead_source_id).length, display: String(data.jobs.filter((job) => !job.lead_source_id).length) }]} /></ReportPanel><ReportTable title="Source performance" columns={["Source", "Leads", "Quotes", "Approval rate", "Approved value", "Invoiced"]} rows={rows.map((row) => [row.source.name, String(row.jobs), String(row.quotes), formatPercent(row.rate), money(row.approved), data.canViewFinancials ? money(row.invoiced) : "Restricted"])} /></>;
-}
-
-function ServiceReport({ data }: { data: ReportData }) {
-  const rows = data.serviceCategories.map((category) => { const quoteLines = data.quotes.flatMap((quote) => quote.quote_line_items).filter((line) => line.service_category_id === category.id); const invoiceLines = data.invoices.flatMap((invoice) => invoice.invoice_line_items).filter((line) => line.service_category_id === category.id); return { label: category.label, quoted: sum(quoteLines, "total_cents"), invoiced: sum(invoiceLines, "total_cents"), lines: quoteLines.length + invoiceLines.length }; });
-  const uncategorized = data.quotes.flatMap((quote) => quote.quote_line_items).filter((line) => !line.service_category_id).length + data.invoices.flatMap((invoice) => invoice.invoice_line_items).filter((line) => !line.service_category_id).length;
-  return <><section className="report-metric-grid compact"><MetricCard label="Service categories" value={String(data.serviceCategories.length)} /><MetricCard label="Uncategorized lines" value={String(uncategorized)} /><MetricCard label="Categorized quoted value" value={money(rows.reduce((total, row) => total + row.quoted, 0))} /><MetricCard label="Categorized invoiced value" value={data.canViewFinancials ? money(rows.reduce((total, row) => total + row.invoiced, 0)) : "Restricted"} /></section><ReportPanel title="Invoiced value by service" note="Only explicitly categorized line items are included."><BarList rows={rows.map((row) => ({ label: row.label, value: row.invoiced, display: data.canViewFinancials ? money(row.invoiced) : `${row.lines} lines` }))} /></ReportPanel><ReportTable title="Service performance" columns={["Service", "Lines", "Quoted", "Invoiced", "Labor / margin", "Data"]} rows={rows.map((row) => [row.label, String(row.lines), money(row.quoted), data.canViewFinancials ? money(row.invoiced) : "Restricted", "Requires categorized job costs", row.lines ? "Categorized" : "No records"])} /></>;
-}
-
-function FleetReport({ data }: { data: ReportData }) {
-  const costRows = groupValue(data.maintenance.filter((record) => record.status === "completed"), (record) => relation(record.equipment_assets)?.name || "Unknown asset", (record) => Number(record.cost_cents ?? 0));
-  return <><section className="report-metric-grid compact"><MetricCard label="Active assets" value={String(data.assets.filter((asset) => asset.is_active).length)} /><MetricCard label="Out of service" value={String(data.assets.filter((asset) => ["out_of_service", "awaiting_parts", "repair_scheduled"].includes(asset.status)).length)} /><MetricCard label="Problem reports" value={String(data.equipmentProblems.length)} /><MetricCard label="Failed inspections" value={String(data.inspections.filter((inspection) => inspection.overall_result === "failed").length)} /><MetricCard label="Maintenance cost" value={data.canViewFinancials ? money(costRows.reduce((total, row) => total + row.value, 0)) : "Restricted"} /></section><ReportPanel title="Maintenance cost by asset" note="Completed maintenance records only; purchase price is not allocated to jobs."><BarList rows={costRows.map((row) => ({ ...row, display: data.canViewFinancials ? money(row.value) : "Restricted" }))} /></ReportPanel><ReportTable title="Fleet attention" columns={["Asset", "Type", "Status / result", "Date", "Job", "Details"]} rows={[...data.equipmentProblems.map((record) => [assetLink(record), "Problem", title(record.status), formatDate(record.created_at), record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked", record.equipment_stopped ? "Equipment stopped" : title(record.severity)]), ...data.inspections.filter((record) => record.overall_result !== "passed").map((record) => [assetLink(record), "Inspection", title(record.overall_result), formatDate(record.inspected_at), record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked", "Review inspection"])]} /></>;
-}
-
-function MaterialsReport({ data }: { data: ReportData }) {
-  const name = (id: string) => data.materials.find((material) => material.id === id)?.name ?? "Unclassified material";
-  const received = data.inventoryTransactions.filter((transaction) => transaction.transaction_type === "receive");
-  const used = data.inventoryTransactions.filter((transaction) => transaction.transaction_type === "job_use");
-  const adjustments = data.inventoryTransactions.filter((transaction) => ["adjustment", "loss", "reversal"].includes(transaction.transaction_type));
-  const estimatedBalances = data.inventoryBalances.filter((balance) => Number(balance.on_hand_quantity) !== 0);
-  const materialCosts = data.jobCosts.filter((cost) => cost.category === "materials" && cost.review_status === "approved");
-  const disposalCosts = data.jobCosts.filter((cost) => cost.category === "disposal" && cost.review_status === "approved");
-  return <>
-    <section className="report-callout"><Boxes size={22} /><div><strong>Operational inventory</strong><p>Quantities remain in their entered units. Estimated bulk stock is not converted or described as exact, and internal costs appear only for authorized financial roles.</p></div></section>
-    <section className="report-metric-grid compact"><MetricCard label="Materials received" value={String(received.length)} /><MetricCard label="Job-use entries" value={String(used.length)} /><MetricCard label="Disposal loads" value={String(data.disposalRecords.length)} /><MetricCard label="Stock corrections" value={String(adjustments.length)} /><MetricCard label="Customer deliveries" value={String(data.materialDeliveries.length)} /><MetricCard label="Production batches" value={String(data.productionBatches.length)} /></section>
-    {data.canViewFinancials ? <section className="report-metric-grid compact"><MetricCard label="Approved material cost" value={money(sum(materialCosts, "amount_cents"))} /><MetricCard label="Approved disposal cost" value={money(sum(disposalCosts, "amount_cents"))} /></section> : null}
-    <ReportTable title="Material movement" columns={["Material", "Type", "Quantity", "Job", "Date"]} rows={data.inventoryTransactions.map((transaction) => [name(transaction.material_id), materialLabel(transaction.transaction_type), formatMaterialQuantity(transaction.quantity, transaction.unit, transaction.is_estimated), transaction.job_id ? <Link href={`/admin/jobs/${transaction.job_id}`} key="job">Open job</Link> : "Not linked", formatDate(transaction.occurred_at)])} />
-    <ReportTable title="Current stock by location" columns={["Material", "On hand", "Reserved", "Available", "Latest movement"]} rows={estimatedBalances.map((balance) => { const material = data.materials.find((item) => item.id === balance.material_id); const unit = material?.default_unit ?? "each"; return [material?.name ?? "Unknown", formatMaterialQuantity(balance.on_hand_quantity, unit), formatMaterialQuantity(balance.reserved_quantity, unit), formatMaterialQuantity(balance.available_quantity, unit), balance.latest_transaction_at ? formatDate(balance.latest_transaction_at) : "None"]; })} />
-    <ReportTable title="Disposal by destination" columns={["Destination", "Type", "Quantity", "Fee", "Job"]} rows={data.disposalRecords.map((record) => [record.destination_name, materialLabel(record.destination_type), record.quantity ? formatMaterialQuantity(record.quantity, record.unit, record.is_estimated) : "Not measured", data.canViewFinancials && record.fee_cents != null ? money(record.fee_cents) : "Restricted / not entered", record.job_id ? <Link href={`/admin/jobs/${record.job_id}`} key="job">Open job</Link> : "Not linked"])} />
-    <ReportTable title="Production yield" columns={["Batch", "Product", "Status", "Output", "Direct cost"]} rows={data.productionBatches.map((batch) => [batch.batch_number, name(batch.product_material_id), materialLabel(batch.status), batch.estimated_output_quantity ? formatMaterialQuantity(batch.estimated_output_quantity, batch.output_unit, true) : "Not entered", data.canViewFinancials && batch.direct_cost_cents != null ? money(batch.direct_cost_cents) : "Restricted / not entered"])} />
-  </>;
-}
-
-function DataQualityReport({ data }: { data: ReportData }) {
-  const checks = qualityChecks(data);
-  return <><section className="report-callout quality"><AlertTriangle size={22} /><div><strong>Reporting accuracy queue</strong><p>These are correction opportunities only. No data is changed automatically.</p></div></section><section className="quality-grid">{checks.map((check) => <article key={check.label}><strong>{check.count}</strong><div><h3>{check.label}</h3><p>{check.note}</p></div><Link href={check.href}>Review</Link></article>)}</section><ReportTable title="Contracting party manual review" columns={["Issue", "Record", "Details", "Detected"]} rows={data.contractingPartyReviewItems.map((item) => [title(item.issue_type), <Link href={reviewItemHref(item.record_type, item.record_id)} key={item.id}>{title(item.record_type)}</Link>, ownershipReviewDetails(item.details), formatDate(item.created_at)])} /></>;
-}
-
-function ReportPanel({ children, note, title: label }: { children: React.ReactNode; note: string; title: string }) { return <section className="report-panel"><header><div><h2>{label}</h2><p>{note}</p></div></header>{children}</section>; }
-function MetricCard({ current, href, label, previous, value }: { current?: number | null; href?: string; label: string; previous?: number | null; value: string }) { const change = current != null && previous != null ? percentChange(current, previous) : null; const content = <><span>{label}</span><strong>{value}</strong>{change == null ? <small><Minus size={14} />No reliable comparison</small> : <small className={change >= 0 ? "positive" : "negative"}>{change >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(change).toFixed(1)}% vs previous</small>}</>; return href ? <Link className="report-metric" href={href}>{content}</Link> : <article className="report-metric">{content}</article>; }
-function BarList({ rows }: { rows: { label: string; value: number; display: string }[] }) { const max = Math.max(1, ...rows.map((row) => row.value)); return rows.length ? <div className="report-bars">{rows.map((row) => <div key={row.label}><div><span>{row.label}</span><strong>{row.display}</strong></div><progress aria-label={`${row.label}: ${row.display}`} max={max} value={row.value} /></div>)}</div> : <EmptyReport />; }
-function AttentionList({ rows }: { rows: { label: string; detail: string; href: string; count: number }[] }) { return rows.length ? <div className="attention-list">{rows.map((row) => <Link href={row.href} key={row.label}><span><strong>{row.label}</strong><small>{row.detail}</small></span><b>{row.count}</b></Link>)}</div> : <EmptyReport />; }
-function ReportTable({ columns, rows, title: label }: { columns: string[]; rows: React.ReactNode[][]; title: string }) { return <section className="report-table-panel"><header><h2>{label}</h2><span>{rows.length} records</span></header>{rows.length ? <div className="report-table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 250).map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div> : <EmptyReport />}{rows.length > 250 ? <p className="report-inline-note">Showing the first 250 records. Use CSV export for the complete filtered dataset.</p> : null}</section>; }
-function EmptyReport() { return <p className="report-empty">No records in this range.</p>; }
-function RestrictedReport() { return <section className="empty-state"><CircleDollarSign size={30} /><h2>Financial report restricted</h2><p>Owner, admin, or payroll-capable access is required. Employee labor cost rates are never sent to unauthorized users.</p></section>; }
-function DataWarning({ message }: { message: string }) { return <section className="data-warning" role="status"><strong>Reporting notice</strong><p>{message}</p></section>; }
-
-function quoteRow(quote: ReportQuote): React.ReactNode[] { return [<Link href={`/admin/quotes/${quote.id}`} key="quote">{quote.quote_number || `Quote for ${contractingPartyName(quote)}`}</Link>, contractingPartyName(quote), relation(quote.profiles)?.full_name || relation(quote.profiles)?.email || "Not assigned", title(quote.status), money(quote.total_cents), quote.sent_at ? formatDate(quote.sent_at) : `${ageDays(quote.created_at)} days old`]; }
-function invoiceRow(invoice: ReportInvoice): React.ReactNode[] { return [<Link href={`/admin/invoices/${invoice.id}`} key="invoice">{invoice.invoice_number || `Invoice for ${contractingPartyName(invoice)}`}</Link>, contractingPartyName(invoice), invoice.due_at ? `${formatDate(invoice.due_at)}${daysOverdue(invoice) > 0 ? ` · ${daysOverdue(invoice)}d overdue` : ""}` : "Missing", money(invoice.total_cents), money(successfulPaymentTotal(invoice)), money(invoice.balance_due_cents)]; }
-function contractingPartyKey(record: { customer_id: string | null; organization_id: string | null }) { return record.organization_id ? `organization:${record.organization_id}` : `customer:${record.customer_id ?? "unknown"}`; }
-function contractingPartyName(record?: { customers: unknown; organizations: unknown } | null) { return displayContractingPartyName({ organizations: relation(record?.organizations as never) as { name?: string } | null, customers: relation(record?.customers as never) as { display_name?: string } | null }); }
-function assetLink(record: any) { const asset = relation(record.equipment_assets); return asset ? <Link href={`/admin/equipment/${asset.id}`} key="asset">{asset.name}</Link> : "Unknown asset"; }
-function eligibleQuotes(quotes: ReportQuote[]) { return quotes.filter((quote) => !["draft", "cancelled"].includes(quote.status)); }
-function isApprovedQuote(quote: ReportQuote) { return quote.status === "approved" || Boolean(quote.approved_at); }
-function isCompletedJob(job: ReportJob) { return Boolean(job.completed_at) || ["completed", "ready_to_invoice", "invoiced", "paid"].includes(job.status); }
-function isOpenInvoice(invoice: ReportInvoice) { return invoice.balance_due_cents > 0 && !["paid", "void"].includes(invoice.status); }
-function sum<T>(rows: T[], key: keyof T) { return rows.reduce((total, row) => total + Number(row[key] ?? 0), 0); }
-function groupCount<T>(rows: T[], label: (row: T) => string) { const map = new Map<string, number>(); rows.forEach((row) => map.set(label(row), (map.get(label(row)) ?? 0) + 1)); return [...map].map(([rowLabel, value]) => ({ label: rowLabel, value })).sort((a, b) => b.value - a.value); }
-function groupValue<T>(rows: T[], label: (row: T) => string, value: ((row: T) => number) | keyof T) { const map = new Map<string, number>(); rows.forEach((row) => { const amount = typeof value === "function" ? value(row) : Number(row[value] ?? 0); map.set(label(row), (map.get(label(row)) ?? 0) + amount); }); return [...map].map(([rowLabel, amount]) => ({ label: rowLabel, value: amount })).sort((a, b) => b.value - a.value); }
-function monthlySeries<T>(rows: T[], dateKey: keyof T, valueKey: keyof T) { return groupValue(rows, (row) => String(row[dateKey]).slice(0, 7), valueKey).sort((a, b) => a.label.localeCompare(b.label)); }
-function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100); }
-function formatPercent(value: number | null) { return value == null ? "Not available" : `${value.toFixed(1)}%`; }
-function formatDate(value: string | null) { return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "Not set"; }
-function title(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
-function ageDays(value: string) { return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000)); }
-function averageAge(records: { created_at: string }[]) { return records.length ? `${(records.reduce((total, record) => total + ageDays(record.created_at), 0) / records.length).toFixed(1)}d` : "N/A"; }
-function averageElapsed<T>(records: T[], startKey: keyof T, endKey: keyof T) { if (!records.length) return "Not available"; const days = records.reduce((total, record) => total + Math.max(0, (new Date(String(record[endKey])).getTime() - new Date(String(record[startKey])).getTime()) / 86_400_000), 0) / records.length; return `${days.toFixed(1)} days`; }
-function daysOverdue(invoice: ReportInvoice) { return invoice.due_at ? Math.max(0, Math.floor((Date.now() - new Date(invoice.due_at).getTime()) / 86_400_000)) : 0; }
-function latestApproval(entry: ReportData["timeEntries"][number]) { return [...entry.time_entry_approvals].sort((a, b) => b.approved_at.localeCompare(a.approved_at))[0]?.approval_status ?? null; }
-function durationHours(entry: ReportData["timeEntries"][number]) { return entry.clock_out_at ? Math.max(0, (new Date(entry.clock_out_at).getTime() - new Date(entry.clock_in_at).getTime()) / 3_600_000 - entry.break_minutes / 60) : 0; }
-function eventHours(event: ReportData["scheduleEvents"][number]) { return event.ends_at ? Math.max(0, (new Date(event.ends_at).getTime() - new Date(event.starts_at).getTime()) / 3_600_000) : 0; }
-function averageDaysToPayment(invoices: ReportInvoice[]) { const paid = invoices.filter((invoice) => invoice.paid_at); if (!paid.length) return "Not available"; return `${(paid.reduce((total, invoice) => total + Math.max(0, (new Date(invoice.paid_at!).getTime() - new Date(invoice.created_at).getTime()) / 86_400_000), 0) / paid.length).toFixed(1)} days`; }
-function completenessLabel(value: string) { return ({ missing_time: "Incomplete · approved time missing", missing_labor_rate: "Incomplete · labor rate missing", missing_revenue: "Incomplete · invoice missing", complete: "Complete" } as Record<string, string>)[value] ?? "Incomplete"; }
-function arAging(invoices: ReportInvoice[]) { const buckets = [{ label: "Current / not due", min: -Infinity, max: 0 }, { label: "1-30 days", min: 1, max: 30 }, { label: "31-60 days", min: 31, max: 60 }, { label: "61-90 days", min: 61, max: 90 }, { label: "More than 90 days", min: 91, max: Infinity }]; return buckets.map((bucket) => { const records = invoices.filter((invoice) => daysOverdue(invoice) >= bucket.min && daysOverdue(invoice) <= bucket.max); return { label: bucket.label, count: records.length, amount: sum(records, "balance_due_cents") }; }); }
-function attentionRows(data: ReportData) { return [{ label: "Approved work unscheduled", detail: "Accepted work without a start date", href: "/admin/jobs", count: data.jobs.filter((job) => job.status === "accepted" && !job.scheduled_start_at).length }, { label: "Completed work awaiting invoice", detail: "Closeout complete, billing not started", href: "/admin/jobs", count: data.jobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)).length }, { label: "Overdue invoices", detail: "Open balance past due", href: viewHrefSimple("revenue"), count: data.arInvoices.filter((invoice) => daysOverdue(invoice) > 0).length }, { label: "Data quality items", detail: "Missing classifications or links", href: viewHrefSimple("quality"), count: qualityChecks(data).reduce((total, check) => total + check.count, 0) }].filter((row) => row.count > 0); }
-function stalledRows(data: ReportData) { return [{ label: "New leads", detail: `Older than ${data.settings.lead_stale_business_days} day(s)`, href: "/admin/jobs", count: data.jobs.filter((job) => job.status === "new_lead" && ageDays(job.created_at) > data.settings.lead_stale_business_days).length }, { label: "Draft quotes", detail: `Older than ${data.settings.draft_quote_stale_days} days`, href: "/admin/quotes", count: data.quotes.filter((quote) => quote.status === "draft" && ageDays(quote.created_at) > data.settings.draft_quote_stale_days).length }, { label: "Sent quotes", detail: `Awaiting response longer than ${data.settings.sent_quote_stale_days} days`, href: "/admin/quotes", count: data.quotes.filter((quote) => quote.status === "sent" && ageDays(quote.sent_at || quote.created_at) > data.settings.sent_quote_stale_days).length }, { label: "Approved unscheduled", detail: "Needs a work date", href: "/admin/jobs", count: data.jobs.filter((job) => job.status === "accepted" && !job.scheduled_start_at).length }, { label: "Completed without invoice", detail: "Ready for billing", href: "/admin/jobs", count: data.jobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)).length }, { label: "Overdue invoices", detail: "Open balance past due", href: viewHrefSimple("revenue"), count: data.arInvoices.filter((invoice) => daysOverdue(invoice) > 0).length }].filter((row) => row.count > 0); }
-function qualityChecks(data: ReportData) { return [{ label: "Contracting party ownership", count: data.contractingPartyReviewItems.length, note: "Ambiguous ownership, contact, and linked-record mismatches require a staff decision.", href: viewHrefSimple("quality") }, { label: "Leads without source", count: data.jobs.filter((job) => !job.lead_source_id).length, note: "Source reporting cannot attribute these leads.", href: "/admin/jobs" }, { label: "Quote lines without service", count: data.quotes.flatMap((quote) => quote.quote_line_items).filter((line) => !line.service_category_id).length, note: "These remain uncategorized; no text inference is used.", href: "/admin/quotes" }, { label: "Invoice lines without service", count: data.invoices.flatMap((invoice) => invoice.invoice_line_items).filter((line) => !line.service_category_id).length, note: "Service revenue cannot be categorized.", href: "/admin/invoices" }, { label: "Approved quotes without work order", count: data.quotes.filter((quote) => isApprovedQuote(quote) && !relation(quote.jobs)).length, note: "Approval did not produce a linked work order.", href: "/admin/quotes" }, { label: "Completed jobs without invoice", count: data.jobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)).length, note: "Completed work has not entered billing.", href: "/admin/jobs" }, { label: "Time not linked to jobs", count: data.timeEntries.filter((entry) => entry.entry_type === "job" && !entry.job_id).length, note: "Job labor cannot be allocated.", href: "/admin/time" }, { label: "Jobs without assigned crew", count: data.jobs.filter((job) => !job.assigned_crew_user_id && ["scheduled", "in_progress"].includes(job.status)).length, note: "Scheduled work has no primary crew assignment.", href: "/admin/jobs" }, { label: "Completed jobs without closeout", count: data.jobs.filter((job) => isCompletedJob(job) && !job.job_closeouts.length).length, note: "Closeout completeness cannot be measured.", href: "/admin/jobs/closeouts" }, { label: "Quotes without estimator", count: data.quotes.filter((quote) => !quote.estimator_user_id).length, note: "Estimator reporting is incomplete for historical records.", href: "/admin/quotes" }, { label: "Invoices without due date", count: data.invoices.filter((invoice) => !invoice.due_at && isOpenInvoice(invoice)).length, note: "Accounts-receivable aging cannot classify these accurately.", href: "/admin/invoices" }, { label: "Uncategorized direct costs", count: data.jobCosts.filter((cost) => cost.category === "other").length, note: "Review whether a more specific direct-cost category applies.", href: "/admin/jobs" }].filter((check) => check.count > 0); }
-function reviewItemHref(recordType: string, recordId: string) { const section = ({ quote: "quotes", job: "jobs", invoice: "invoices", change_order: "change-orders", recurring_service_plan: "recurring" } as Record<string, string>)[recordType]; return section ? `/admin/${section}/${recordId}` : viewHrefSimple("quality"); }
-function ownershipReviewDetails(details: Record<string, unknown>) { return Object.entries(details).filter(([, value]) => value != null).map(([key, value]) => `${title(key)}: ${String(value)}`).join("; ") || "Review ownership and contact selections."; }
-function viewHref(filters: ReportFilters, view: ReportView) { const params = new URLSearchParams({ view, range: filters.preset, start: filters.startDate, end: filters.endDate }); if (filters.leadSourceId) params.set("source", filters.leadSourceId); if (filters.serviceCategoryId) params.set("service", filters.serviceCategoryId); if (filters.customerId) params.set("customer", filters.customerId); if (filters.employeeId) params.set("employee", filters.employeeId); if (filters.status) params.set("status", filters.status); return `/admin/reports?${params}`; }
-function viewHrefSimple(view: ReportView) { return `/admin/reports?view=${view}`; }
-function exportHref(filters: ReportFilters) { return `/admin/reports/export?${new URLSearchParams({ view: filters.view, range: filters.preset, start: filters.startDate, end: filters.endDate, source: filters.leadSourceId, service: filters.serviceCategoryId, customer: filters.customerId, employee: filters.employeeId, status: filters.status })}`; }

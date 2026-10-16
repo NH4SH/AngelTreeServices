@@ -266,12 +266,13 @@ export default async function AdminPage() {
           <section className="panel dashboard-panel dashboard-reporting-panel">
             <PanelHeader title="This month" detail="Sales, cash, and accounts receivable" />
             <div className="pipeline-list">
-              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.error ? "Unavailable" : reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></Link>
+              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></Link>
             </div>
+            {reportingSummary.error ? <p className="pipeline-count-notice">{reportingSummary.error}</p> : null}
           </section>
           <section className="panel dashboard-panel">
             <PanelHeader title="Today's crew schedule" detail="Who is scheduled where today" />

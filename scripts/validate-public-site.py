@@ -517,8 +517,8 @@ class Validator:
         if testimonial_sizes != 2:
             self.error("/: testimonial AVIF and WebP sources must share accurate responsive sizes")
 
-        service_sizes = "(max-width: 575px) 70vw, (max-width: 1099px) 28vw, 263px"
-        if sum(image.get("sizes") == service_sizes for image in homepage.images) != 3:
+        service_sizes = "(max-width: 575px) 70vw, (max-width: 1500px) calc(35vw - 37px), 488px"
+        if sum(image.get("sizes") == service_sizes for image in homepage.images) != 2:
             self.error("/: service-card images must use the measured desktop width hint")
 
     def validate_homepage_footer_visibility(self) -> None:
@@ -897,12 +897,26 @@ class Validator:
         if not homepage or not page:
             return
 
+        # The owner retired this service. Check all shipped page content, metadata,
+        # embedded legacy card data and the generated machine-readable summary.
+        for route, source in self.page_sources.items():
+            if re.search(r"lawn[\s-]+care", source, re.IGNORECASE):
+                self.error(f"{route}: retired lawn-care offering must not be published")
+        summary = self.site_dir / "llms.txt"
+        if summary.is_file() and re.search(r"lawn[\s-]+care", summary.read_text(encoding="utf-8"), re.IGNORECASE):
+            self.error("llms.txt: retired lawn-care offering must not be published")
+        landscaping_links = [link for link in page.links if link.get("data-estimate-service") == "Landscaping"]
+        if len(landscaping_links) != 1 or landscaping_links[0].get("href") != "/?service=Landscaping#contact":
+            self.error("/: landscaping card needs a service-specific estimate link with an in-place enhancement")
+        if '<option value="Landscaping">Landscaping</option>' not in homepage:
+            self.error("/: landscaping must remain available in the estimate form")
+
         expected_title = "Tree Service in Fredericksburg, VA | Angel Tree Services"
         expected_heading = "Your yard’s best friend."
         expected_eyebrow = "Fredericksburg Tree Service"
         expected_description = (
             "Certified-arborist-led tree service in Fredericksburg for removal, pruning, storm "
-            "cleanup, stump grinding, landscaping, and lawn care. Free estimates."
+            "cleanup, stump grinding, and landscaping. Free estimates."
         )
 
         if page.title != expected_title:
@@ -1213,7 +1227,7 @@ class Validator:
                     self.error(f"{route}: new-tab link must use rel=\"noopener noreferrer\"")
 
         responsive_image_expectations = {
-            "/projects/": ("service-tree-320", "service-lawn-320", "service-landscaping-320"),
+            "/projects/": ("service-tree-320", "service-landscaping-320"),
             "/about/": ("service-tree-320",),
             "/services/tree-removal/": ("service-tree-320",),
             "/services/commercial-hoa-tree-care/": ("service-landscaping-320",),

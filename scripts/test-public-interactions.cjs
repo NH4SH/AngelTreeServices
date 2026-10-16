@@ -16,7 +16,7 @@ const contextCases = [
 ];
 
 function contextHarness(search) {
-  const service = { value: "", options: ["", "Tree Care", "Storm Cleanup", "Lawn Care", "Multiple Services / Not Sure Yet"].map(value => ({ value })) };
+  const service = { value: "", options: ["", "Tree Care", "Storm Cleanup", "Landscaping", "Multiple Services / Not Sure Yet"].map(value => ({ value })) };
   const customer = { value: "Commercial / Property Management", checked: false };
   const picker = { value: "", disabled: true, options: ["", ...contextCases.map(x => x[0])].map(value => ({ value })) };
   const panel = { hidden: true };
@@ -28,7 +28,7 @@ function contextHarness(search) {
     querySelectorAll: s => s === 'input[name="customer_type"]' ? [customer] : [],
   };
   const requests = [];
-  const helpers = loadScript("ats-form-enhancements.js", ["applyEstimatePrefill", "syncEstimateContext", "clearEstimateContext", "getMessagePrefix", "submitLead"], {
+  const helpers = loadScript("ats-form-enhancements.js", ["applyEstimatePrefill", "applyEstimateService", "syncEstimateContext", "clearEstimateContext", "getMessagePrefix", "submitLead"], {
     URLSearchParams,
     window: { addEventListener() {}, location: { search } },
     FormData: class {
@@ -69,7 +69,7 @@ for (const input of ["unknown", "__proto__", "constructor", "<img onerror=alert(
 }
 
 test("incompatible category and commercial request type do not attach context", () => {
-  for (const search of ["?service=Lawn%20Care&estimate_context=tree-removal", "?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&estimate_context=commercial-hoa-tree-care"]) {
+  for (const search of ["?service=Landscaping&estimate_context=tree-removal", "?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&estimate_context=commercial-hoa-tree-care"]) {
     const h = contextHarness(search); assert.equal(h.panel.hidden, true); assert.equal(h.helpers.getMessagePrefix(h.form), "");
   }
 });
@@ -80,12 +80,71 @@ test("changing, clearing, category switching and reset do not edit details or re
   assert.equal(h.requests[0].get("message"), "Service requested: Tree pruning\n\n" + draft);
   h.picker.value = ""; h.helpers.syncEstimateContext(h.form); await h.helpers.submitLead(h.form);
   assert.equal(h.requests[1].get("message"), draft);
-  h.picker.value = "tree-removal"; h.service.value = "Lawn Care"; h.helpers.syncEstimateContext(h.form);
+  h.picker.value = "tree-removal"; h.service.value = "Landscaping"; h.helpers.syncEstimateContext(h.form);
   assert.equal(h.picker.value, ""); assert.equal(h.panel.hidden, true);
   h.service.value = "Tree Care"; h.helpers.syncEstimateContext(h.form); assert.equal(h.picker.value, "");
   h.picker.value = "tree-removal"; h.helpers.clearEstimateContext(h.form);
   assert.equal(h.panel.hidden, true); assert.equal(h.picker.value, ""); assert.equal(h.details.value, draft);
 });
+
+for (const [slug, service] of [["", ""], ...contextCases]) {
+  test(`landscaping action replaces ${slug || "generic entry"} without changing customer details or submission identity`, async () => {
+    const h = contextHarness("?" + new URLSearchParams({ service, estimate_context: slug, customer_type: "Commercial / Property Management" }));
+    h.form.dataset.submissionId = "same-local-request";
+    const draft = h.details.value, customer = h.customer.checked;
+    assert.equal(h.helpers.applyEstimateService(h.form, "Landscaping"), true);
+    assert.equal(h.service.value, "Landscaping");
+    assert.equal(h.picker.value, ""); assert.equal(h.panel.hidden, true); assert.equal(h.picker.disabled, true);
+    assert.equal(h.details.value, draft); assert.equal(h.customer.checked, customer);
+    assert.equal(h.form.dataset.submissionId, "same-local-request");
+    await h.helpers.submitLead(h.form);
+    assert.equal(h.requests[0].get("service"), "Landscaping");
+    assert.equal(h.requests[0].get("message"), draft);
+  });
+}
+
+test("retired lawn-care links cannot select a service or attach tree context", () => {
+  const h = contextHarness("?service=Lawn%20Care&estimate_context=tree-removal");
+  assert.equal(h.service.value, ""); assert.equal(h.picker.value, ""); assert.equal(h.panel.hidden, true);
+  assert.equal(h.helpers.applyEstimateService(h.form, "Lawn Care"), false);
+});
+
+test("landscaping action leaves an in-flight request unchanged", () => {
+  const h = contextHarness("?service=Tree%20Care&estimate_context=tree-pruning"), draft = h.details.value;
+  h.form.dataset.submitting = "true";
+  assert.equal(h.helpers.applyEstimateService(h.form, "Landscaping"), false);
+  assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-pruning"); assert.equal(h.details.value, draft);
+});
+
+test("unavailable or unsupported landscaping actions leave existing selections intact", () => {
+  const h = contextHarness("?service=Tree%20Care&estimate_context=tree-removal");
+  for (const value of ["unknown", "__proto__", "Tree Care", ""]) assert.equal(h.helpers.applyEstimateService(h.form, value), false);
+  h.service.disabled = true; assert.equal(h.helpers.applyEstimateService(h.form, "Landscaping"), false);
+  h.service.disabled = false; h.service.options.find(x => x.value === "Landscaping").disabled = true;
+  assert.equal(h.helpers.applyEstimateService(h.form, "Landscaping"), false);
+  assert.equal(h.service.value, "Tree Care"); assert.equal(h.picker.value, "tree-removal");
+});
+
+for (const previous of ["success", "error", ""]) {
+  test(`new estimate clears stale success and preserves customer state (previous feedback: ${previous || "empty"})`, () => {
+    const classes = new Set(previous ? [previous] : []), bodyClasses = new Set(["ats-form-submitted"]);
+    const status = { textContent: previous ? "Previous response" : "", hidden: !previous,
+      classList: { contains: x => classes.has(x), toggle(x, enabled) { if (enabled) classes.add(x); else classes.delete(x); } },
+      focus() { assert.fail("clearing confirmation must not move focus to an empty status"); },
+    };
+    const form = { dataset: { submissionId: "same-request" }, draft: "Keep every word.",
+      querySelector: selector => selector === ".ats-form-server-status" ? status : null };
+    const helpers = loadScript("ats-form-enhancements.js", ["clearEstimateConfirmation"], {
+      document: { addEventListener() {}, body: { classList: { remove: x => bodyClasses.delete(x) } } },
+    });
+    helpers.clearEstimateConfirmation(form);
+    assert.equal(bodyClasses.has("ats-form-submitted"), false);
+    assert.equal(status.hidden, previous !== "error");
+    assert.equal(status.textContent, previous === "error" ? "Previous response" : "");
+    assert.equal(classes.has("error"), previous === "error");
+    assert.equal(form.draft, "Keep every word."); assert.equal(form.dataset.submissionId, "same-request");
+  });
+}
 
 test("message budget includes context, never truncates details and prevents oversized transport", async () => {
   const h = contextHarness("?service=Tree%20Care&estimate_context=tree-removal"), prefix = h.helpers.getMessagePrefix(h.form);
@@ -279,7 +338,7 @@ function formHarness() {
       crypto: { randomUUID: () => `local-${++sequence}` },
       ATSWebsite: { track: (...args) => events.push(args), getAttribution: () => ({ utm_source: "mock" }) },
     },
-    document: { referrer: "", addEventListener() {}, createElement: () => ({}), body: { classList: { remove() {}, add() {} } } },
+    document: { referrer: "", addEventListener() {}, querySelectorAll() { return []; }, createElement: () => ({}), body: { classList: { remove() {}, add() {} } } },
   });
   helpers.initForm(form);
   return { form, listeners, events, requests, status, resets: () => resetCount,

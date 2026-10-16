@@ -1,6 +1,66 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Current approved batch — October 16, 2026
+## Current approved batch — remove lawn care and correct Landscaping
+
+The owner approved removing lawn care from the public offering and correcting the
+homepage Landscaping estimate action. This batch is local implementation and
+testing only; no commit, push, preview, or deployment is authorized. Analytics
+collection stays disabled and CRM code/settings stay unchanged.
+
+Production remains public commit `562c2e6`, Netlify deploy
+`6ad229c8706d729b079fc672`. The CRM remains on deployment
+`6ab9b03884d68c00086ce380`. The source below also preserves historical reviews;
+their earlier production-status statements are superseded by this section and
+the maintained handoff.
+
+- Remove the homepage lawn-care card, dropdown option, hero/metadata/structured
+  description, services-overview wording, project-gallery card, and generated
+  machine-readable offering. Keep the remaining tree-care and Landscaping content.
+- Keep all 13 URLs, titles, canonicals, sitemap entries, indexing rules, contact
+  destinations, emergency availability, credentials, and analytics gates unchanged.
+  The homepage description changes only to remove the retired service. There is
+  no known dedicated lawn-care route in the approved public artifact to redirect.
+- The Landscaping card has a direct service-specific link. Normal click or Enter
+  updates the current form, clears incompatible tree context, updates the URL,
+  and focuses Service needed. All other customer fields and submission identity
+  remain intact. Modified clicks retain normal link behavior. In-flight requests
+  keep their current service and draft.
+- Check generic and all five tree-service entry contexts, commercial details,
+  contact preference, message budget, failure/retry, retired lawn-care query links,
+  history-unavailable fallback, keyboard activation, and narrow/200%-text layouts.
+  Submit synthetic payloads only to the loopback-only fixture, with production
+  connections and form actions blocked by CSP.
+- Verify the two-card homepage and project gallery, responsive image hints, all
+  13 built pages, absence of retired-service wording in shipped HTML/llms.txt,
+  unchanged analytics initializer, and a public-only patch before release review.
+
+Before a separately approved release, recheck shared-repository overlap and both
+Netlify projects, deploy only the public artifact, and run non-submitting live
+smoke checks. Roll back a problem through an approved public-only fix or prior
+public deploy; do not rebuild or change the CRM to reverse this website batch.
+Production inquiry persistence/notification delivery and physical-device/spoken
+screen-reader certification remain outside the checks completed for this batch.
+
+### Regression review
+
+Starting a new Landscaping estimate now clears a previous successful-request
+announcement and removes its legacy `contact=success` URL marker. This prevents
+an earlier acknowledgment from appearing to confirm the new request. Failed-request
+feedback, entered fields, submission identity and in-flight behavior are preserved.
+Regression checks first reproduced the stale confirmation at all three reference
+widths before the fix.
+
+Review also corrected an existing four-pixel horizontal overflow at the 801px
+desktop/mobile boundary: the hero estimate action now includes padding and borders
+inside its declared width, matching the existing mobile box model. No hero copy,
+contact destination or visual identity changed in that correction. Focus checks
+wait for the site's existing smooth scroll to settle before checking visibility.
+
+Final review: 93 automated behavior tests, validation of all 13 pages, and 776
+browser assertions in each of Chromium and native Safari passed. The reviewed
+patch remains local and uncommitted; no push or deployment has been performed.
+
+## Earlier service-context batch — historical pre-release review
 
 The owner approved implementing service-specific estimate context, preserving
 customer-entered details, matching the Prefer to call action to Send My Request,

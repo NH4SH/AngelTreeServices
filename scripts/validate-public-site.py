@@ -965,6 +965,7 @@ class Validator:
             "Is stump grinding included with tree removal?",
             "How do you protect my property and handle cleanup?",
             "Are you insured, and can I request proof?",
+            "Do you offer a veterans discount?",
             'href="/credentials-safety/"',
             'href="/services/tree-removal/"',
             'href="/services/tree-pruning/"',
@@ -976,11 +977,11 @@ class Validator:
             if term not in faq:
                 self.error(f"/: FAQ invariant is missing: {term}")
 
-        if len(re.findall(r"<details\b", faq, re.IGNORECASE)) != 8:
-            self.error("/: homepage FAQ must contain exactly eight native disclosures")
-        if len(re.findall(r"<summary\b", faq, re.IGNORECASE)) != 8:
+        if len(re.findall(r"<details\b", faq, re.IGNORECASE)) != 9:
+            self.error("/: homepage FAQ must contain exactly nine native disclosures")
+        if len(re.findall(r"<summary\b", faq, re.IGNORECASE)) != 9:
             self.error("/: every homepage FAQ disclosure must have a native summary")
-        if faq.count('name="ats-home-faq"') != 8:
+        if faq.count('name="ats-home-faq"') != 9:
             self.error("/: FAQ disclosures must share the single-open native group name")
         if '"FAQPage"' in homepage or "'FAQPage'" in homepage:
             self.error("/: homepage must not add FAQPage structured data")

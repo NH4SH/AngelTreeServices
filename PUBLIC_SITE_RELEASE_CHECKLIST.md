@@ -1,6 +1,40 @@
 # Angel Tree Services Public Site Release Checklist
 
-## Current approved batch — Fredericksburg tree-removal case study
+## Approved release batch — 5% discount for veterans
+
+On October 16, 2026, the owner confirmed the business can honor these terms and
+approved commit, push and publication of this reviewed patch. Skip automatic
+Netlify builds and trigger only the public project. The prior case study and
+named credential below were released at
+`44fa2e2` / public deploy `6ad2863dff988526ec0e1c3a` on October 16, 2026.
+
+- Owner-confirmed policy: 5% off the full service and material subtotal before
+  taxes and fees; cannot be combined with another discount. Do not invent proof,
+  eligibility restrictions, expiration dates or automatic discount application.
+- Homepage: one existing native FAQ addition and a short estimate-form reminder.
+  Customers mention the offer in their existing project-details field. Preserve
+  the form contract, optional service context and customer-entered details.
+- Preserve established URLs, titles, headings, canonicals and structured data,
+  the six-photo case study, Saul's credential and existing service priorities.
+  Do not add discount/city doorway pages or unsupported Offer/FAQ rich-result data.
+- Keep analytics disabled. Do not edit CRM source, settings or business records.
+  The separate CRM workstream owns discount calculation, rounding and documents.
+- Local tests: 93/93 pass, public build and validation of all 14 pages pass.
+  Homepage head/metadata/schema, headings, form markup and scripts match the
+  released baseline. Desktop (1440px) and mobile (390px) checks found no overflow;
+  the native FAQ expands by keyboard, retains single-open behavior, and its
+  estimate link works. Typed details survived service and optional-context changes.
+- Independent finish review: `ship` for this narrow local homepage extension;
+  no material fixes required. This does not certify CRM calculations or release
+  approval. The incumbent design system is preserved.
+- Release: owner approval and confirmation that staff can honor these terms are
+  recorded. Refresh shared repository and both projects' release state, then use
+  a website-only release with automatic builds skipped. CRM functionality remains
+  outside this website verification.
+  After release, run non-submitting production smoke checks. Physical-device and
+  spoken screen-reader checks and search indexing/rankings are not established.
+
+## Released batch — Fredericksburg tree-removal case study
 
 The owner approved the six-photo case study and local website implementation.
 The project is confirmed to be in Fredericksburg; public copy uses the city only.

@@ -405,6 +405,18 @@ body.ats-form-submitted .ats-form-success {
   margin-right: auto;
 }
 
+#contact .ats-form-discount {
+  max-width: 42rem;
+  margin: 14px auto 0;
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.56;
+}
+
+#contact .ats-form-discount strong {
+  font-weight: 700;
+}
+
 #contact .ats-form-meta span {
   display: inline-flex;
   align-items: center;

@@ -26,6 +26,25 @@ import XCTest
         let partial = invoice(id: "partial", status: "partially_paid", total: 200_00, balance: 75_00)
         XCTAssertEqual(partial.totalCents, 200_00); XCTAssertEqual(partial.balanceDueCents, 75_00)
     }
+    func testManualAttemptSurvivesNewStoreAndRemainsAccountScoped() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = MobileManualPaymentRequest(requestId: UUID().uuidString, amountCents: 10000, method: "cash", receivedAt: "2026-10-15T12:00:00Z", reference: nil, notes: "Disposable")
+        try await ManualPaymentAttemptStore(directory: root).save(original, userID: "owner", invoiceID: "invoice")
+        let restored = try await ManualPaymentAttemptStore(directory: root).read(userID: "owner", invoiceID: "invoice")
+        let otherUser = try await ManualPaymentAttemptStore(directory: root).read(userID: "other", invoiceID: "invoice")
+        XCTAssertEqual(restored, original); XCTAssertNil(otherUser)
+    }
+    func testConfirmedAttemptClearsOnlyItsOwnInvoice() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ManualPaymentAttemptStore(directory: root)
+        let attempt = MobileManualPaymentRequest(requestId: UUID().uuidString, amountCents: 10000, method: "cash", receivedAt: "2026-10-15T12:00:00Z", reference: nil, notes: nil)
+        try await store.save(attempt, userID: "owner", invoiceID: "first"); try await store.save(attempt, userID: "owner", invoiceID: "second")
+        try await store.clear(userID: "owner", invoiceID: "first")
+        let first = try await store.read(userID: "owner", invoiceID: "first"), second = try await store.read(userID: "owner", invoiceID: "second")
+        XCTAssertNil(first); XCTAssertEqual(second, attempt)
+    }
     private func invoice(id: String, status: String, total: Int = 200_00, balance: Int = 200_00) -> MobileInvoiceDirectoryItem {
         .init(id: id, invoiceNumber: "INV-42", status: status, totalCents: total, balanceDueCents: balance, createdAt: "2026-08-13T12:00:00Z", sentAt: nil, paidAt: nil, dueAt: "2026-08-28T12:00:00Z", updatedAt: "2026-08-13T12:00:00Z", party: .init(id: "customer-one", kind: .customer, name: "Donna"), serviceLocation: .init(id: "location-one", label: nil, fullAddress: "100 Main St"), linkedJobId: nil, linkedQuoteId: nil)
     }

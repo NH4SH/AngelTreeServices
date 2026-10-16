@@ -53,7 +53,7 @@ function receiptStatus(row: Receipt) {
 }
 function eventLabel(type: string) {
   if (type.includes("dispute")) return "Payment dispute";
-  if (type.includes("refunded")) return "Payment refund";
+  if (type.includes("refund")) return "Payment refund";
   if (type.includes("failed")) return "Payment did not complete";
   if (type.includes("expired")) return "Checkout expired";
   if (type.includes("processing")) return "Payment in progress";

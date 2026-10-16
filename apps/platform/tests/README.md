@@ -1,5 +1,53 @@
 # CRM Usability Regression Checks
 
+## PR07 ordered payments and manual attempts
+
+The regular unit gate includes `ordered-payments.test.mjs` (actual new migration
+and incumbent commands in embedded PostgreSQL) and `manual-payment-attempt.test.mjs`
+(actual server actions, validation and uncertainty outcomes). The shared receipt
+SQL fixture is only an untouched-schema stand-in; live authorization and real
+row-lock concurrency are verified separately below. No provider keys are needed.
+
+Provision the existing loopback disposable stack with all **73 migrations**
+through `20261016032012_ordered_payment_reconciliation.sql`. Do not reset the
+active review fixtures merely to rerun tests. Configure the private local status
+file outside Git, mode 0600, and the dedicated Docker Unix socket as in PR06.
+Run from `apps/platform` with the local review Next app already on port 3102:
+
+```sh
+PR07_DISPOSABLE_STACK=1 \
+PR07_LOCAL_STATUS_FILE="$PR07_STATUS_FILE" \
+PR07_DOCKER_BIN="$PR07_DOCKER_BIN" \
+PR07_WEB_URL=http://127.0.0.1:3102 \
+PR07_RESULTS_FILE="$PR07_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/ordered-payments.integration.test.mjs
+```
+
+The suite refuses every API origin except `http://127.0.0.1:54321` and the web
+origin except `http://127.0.0.1:3102`. It targets only the named disposable DB
+container. It creates synthetic confirmed Auth identities and unsendable payment/
+receipt fixtures, preserving history. It never reads a project `.env`, sends real
+money/mail, changes automation settings, or disables RLS/application triggers.
+Run PR06 and prior invoice/offboarding suites too: their counterexamples remain,
+with keyed manual fixture calls and current observation-fence expectations.
+
+Cases cover equal installments vs same-key replay, simultaneous record/resolve,
+tombstones defeating delayed requests, correction/restore, audit rollback,
+old-JWT/role denial, pending/succeeded/failed/canceled/requires-action refunds,
+full-refund failure, paginated/omitted/invalid refund objects, live older snapshots
+superseded by newer observations, a genuinely delayed provider response, manual/
+Stripe/refund contention, current disputes, pre-payment refund delivery and the
+actual authenticated local mobile HTTP route. Provider reads and office mail are
+controlled doubles; real local Auth, PostgREST, SQL and mobile HTTP are used.
+
+The iOS request/store tests are in the existing `InvoiceDirectoryTests.swift`
+target. Run the documented Xcode simulator suite when Xcode is installed. The
+local verification report separately distinguishes syntax/compiled Foundation
+storage checks from the unavailable full simulator build. The updated app uses
+the distinct `/manual-payment/attempt` endpoint; old servers cannot silently
+ignore its request identity. See `ORDERED_PAYMENT_RECONCILIATION.md` for semantics,
+storage limits, event subscription and future rollout/rollback requirements.
+
 ## PR06 webhook recovery
 
 The normal `npm run test:unit` gate includes `webhook-receipt.test.mjs` (the real

@@ -190,7 +190,7 @@ test("invoice visibility and manual-payment authority remain role aware", () => 
 });
 
 test("manual payment input uses integer cents and bounded methods", () => {
-  const valid = validateMobileManualPayment({ amountCents: 12500, method: "check", receivedAt: "2026-08-13T12:00:00Z", reference: "Check 1042" });
+  const valid = validateMobileManualPayment({ requestId: "00000000-0000-4000-8000-000000000001", amountCents: 12500, method: "check", receivedAt: "2026-08-13T12:00:00Z", reference: "Check 1042" });
   assert.equal(valid.error, "");
   assert.equal(valid.value.amountCents, 12500);
   assert.equal(validateMobileManualPayment({ amountCents: 12.5, method: "card", receivedAt: "bad" }).value, null);

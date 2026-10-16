@@ -1,8 +1,9 @@
 # Recoverable Stripe webhooks (PR06)
 
 This is the receipt/recovery slice of the existing CRM roadmap. It builds on
-PR03's invoice commands and guarded void. It does not complete PR07's refund
-lifecycle/manual-payment idempotency work or PR14's communications work.
+PR03's invoice commands and guarded void. PR07 extends its provider ordering and
+manual-payment protocol; see `ORDERED_PAYMENT_RECONCILIATION.md`. PR14's broader
+communications work remains separate.
 
 ## Contract
 
@@ -63,16 +64,12 @@ notifying newly added staff about the same historical effect. Existing legacy
 activity is repaired once. Previously pending legacy email without acceptance
 evidence becomes a review exception, never an automatic resend.
 
-Refund allocation preserves the existing principal/surcharge convention. Current
-charge evidence also prevents a success first observed after a refund from
-crediting the refunded principal. **Do not assume refund amounts are irreversible
-facts:** a decrease against the recorded amount aborts with
-`refund_snapshot_conflict`, keeps the receipt unfinished and preserves the prior
-ledger. A fresh consistent read can recover a stale snapshot; a genuine failed
-or canceled refund needs the PR07 lifecycle correction. It is not silently
-clamped and acknowledged. Refund.created/updated/failed lifecycle processing and
-ordered dispute corrections are not added here. Review these in PR07 before a
-production release of the combined financial work.
+Refund allocation preserves the existing principal/surcharge convention. PR06
+alone held lower aggregate snapshots as unresolved conflicts. PR07 replaces that
+temporary guard with fenced observations of every individual refund, successful-
+only refund accounting and failed/canceled lifecycle corrections. It also extends
+dispute ordering. Read `ORDERED_PAYMENT_RECONCILIATION.md` for the current contract
+and coordinated release requirements; these changes remain local until approved.
 
 ## Downstream effects and email
 

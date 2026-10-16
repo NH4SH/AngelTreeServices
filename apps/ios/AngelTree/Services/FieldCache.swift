@@ -89,3 +89,29 @@ actor FieldCache {
         return directory.appendingPathComponent("\(safeKey).json")
     }
 }
+
+// Financial attempts are account-scoped and survive ordinary cache/logout
+// clearing. Write before HTTP; never discard an uncertain attempt on failure.
+actor ManualPaymentAttemptStore {
+    private let directory: URL
+    init(directory: URL? = nil) {
+        let root = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
+        self.directory = root.appendingPathComponent("AngelTree/PaymentAttempts", isDirectory: true)
+    }
+    func read(userID: String, invoiceID: String) throws -> MobileManualPaymentRequest? {
+        let url = file(userID, invoiceID)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return try JSONDecoder().decode(MobileManualPaymentRequest.self, from: Data(contentsOf: url))
+    }
+    func save(_ request: MobileManualPaymentRequest, userID: String, invoiceID: String) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(request).write(to: file(userID, invoiceID), options: .atomic)
+    }
+    func clear(userID: String, invoiceID: String) throws {
+        let url = file(userID, invoiceID)
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+    }
+    private func file(_ userID: String, _ invoiceID: String) -> URL {
+        directory.appendingPathComponent("\(userID.replacingOccurrences(of: "/", with: "-"))-\(invoiceID.replacingOccurrences(of: "/", with: "-")).json")
+    }
+}

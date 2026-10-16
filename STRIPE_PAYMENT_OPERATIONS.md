@@ -23,8 +23,12 @@ Subscribe the production webhook to:
 - `checkout.session.async_payment_failed`
 - `payment_intent.payment_failed`
 - `charge.refunded`
+- `refund.created`, `refund.updated`, `refund.failed`
+- `charge.refund.updated` (legacy compatibility)
 - `charge.dispute.created`
+- `charge.dispute.updated`
 - `charge.dispute.closed`
+- `charge.dispute.funds_withdrawn`, `charge.dispute.funds_reinstated`
 
 ## Payment States
 
@@ -36,9 +40,16 @@ Pickup and mail choices update only the invoice preference and activity log. The
 
 ## Refunds And Disputes
 
-Stripe Dashboard refunds are reflected by `charge.refunded`. Full refunds restore all principal; partial refunds allocate the provider refund proportionally between principal and surcharge using integer-cent rounding. Surcharge is currently always zero because production surcharge is disabled.
+The local PR07 handler reads complete individual Refund objects after an invoice observation fence. Only succeeded refunds reduce paid principal; pending/failed/canceled/requires-action refunds remain tracked. Full successful refunds restore all principal; partial refunds allocate principal/surcharge using the existing integer-cent rounding. Failed or canceled refunds can restore the original payment's net credit without creating another payment. Surcharge activation remains unchanged.
 
-Dispute creation and closure add invoice activity without automatically changing accounting. Staff must review the Stripe Dashboard and CRM invoice before making any manual accounting correction.
+Current dispute status is reconciled inside the same invoice transaction. A lost dispute reduces paid principal; won/pending status follows the existing net-principal convention. Observations are fenced so a delayed older read cannot overwrite newer committed provider state. Staff should still compare provider evidence and the CRM before making any correction.
+
+These PR06/PR07 changes are verified locally, not deployed. A future authorized
+release must coordinate migrations/callers, drain older financial handlers and
+enable/verify the event subscriptions listed above. No Stripe Dashboard event
+subscription, production flag, credential or provider configuration was changed.
+See `apps/platform/src/lib/payments/ORDERED_PAYMENT_RECONCILIATION.md` for bounds,
+manual request identities and rollout/rollback requirements.
 
 ## Rollback
 

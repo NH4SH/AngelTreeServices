@@ -22766,3 +22766,7 @@ body:has(.appointment-overlay) {
 .payment-recovery p { font-size: 1rem; line-height: 1.5; max-inline-size: 75ch; }
 .payment-recovery button, .payment-recovery summary { min-block-size: var(--control-touch-size); }
 .payment-recovery > details > summary { font-size: 1rem; }
+
+/* Keep grouped payment fields consistent with the existing CRM form layout. */
+.manual-payment-form .manual-payment-fields { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 1rem; }
+.manual-payment-form :is(input, select, textarea) { font-size: 1rem; }

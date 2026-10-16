@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
@@ -168,7 +168,7 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
   });
   await run("partial prepayments survive invoice editing and cannot be edited away", async () => {
     const inv = await draft();
-    const payId = check(await owner.client.rpc("record_manual_invoice_payment",{p_invoice_id:inv.id,p_amount_cents:400,p_paid_at:new Date().toISOString(),p_method:"cash"}));
+    const payId = check(await owner.client.rpc("record_manual_invoice_payment_request",{p_request_id:randomUUID(),p_invoice_id:inv.id,p_amount_cents:400,p_paid_at:new Date().toISOString(),p_method:"cash"})).payment_id;
     let current = await read(inv.id); assert.equal(current.status,"draft"); assert.equal(current.balance_due_cents,600);
     denied(await save(current,lines(399)),"23514");
     check(await save(current,lines(1200))); current = await read(inv.id);
@@ -190,7 +190,7 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
   });
   await run("recording delivery preserves full payment and manual correction returns unsent payment to draft", async () => {
     const inv = await draft();
-    const p = check(await owner.client.rpc("record_manual_invoice_payment",{p_invoice_id:inv.id,p_amount_cents:1000,p_paid_at:new Date().toISOString(),p_method:"cash"}));
+    const p = check(await owner.client.rpc("record_manual_invoice_payment_request",{p_request_id:randomUUID(),p_invoice_id:inv.id,p_amount_cents:1000,p_paid_at:new Date().toISOString(),p_method:"cash"})).payment_id;
     let current = await read(inv.id); assert.equal(current.status,"paid"); denied(await save(current),"23514");
     check(await owner.client.rpc("cancel_manual_invoice_payment",{p_invoice_id:inv.id,p_payment_id:p,p_reason:"Local correction"}));
     current = await read(inv.id); assert.equal(current.status,"draft");
@@ -214,7 +214,7 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
   });
   await run("save waits behind payment transaction then rejects the outdated form", async () => {
     const inv = await draft();
-    const release = await hold(`select public.record_manual_invoice_payment('${inv.id}',400,now(),'cash',null,null) from (select set_config('request.jwt.claim.sub','${owner.id}',true)) claims`);
+    const release = await hold(`select public.record_manual_invoice_payment_request('${randomUUID()}','${inv.id}',400,now(),'cash',null,null) from (select set_config('request.jwt.claim.sub','${owner.id}',true)) claims`);
     let done = false; const saving = save(inv,lines(1500)).then(r=>{done=true;return r;});
     try { await new Promise(r=>setTimeout(r,150)); assert.equal(done,false); } finally { await release(); }
     denied(await saving,"40001"); assert.equal((await read(inv.id)).balance_due_cents,600);
@@ -247,7 +247,7 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
     const job = check(await service.from("jobs").insert({customer_id:customer.id,service_location_id:location.id,status:"completed"}).select("id").single());
     const material = check(await service.from("material_catalog").insert({name:`Local material ${marker}`,category:"mulch",default_unit:"each"}).select("id").single());
     const inv = await draft(owner,1000,{job_id:job.id,service_location_id:location.id});
-    check(await owner.client.rpc("record_manual_invoice_payment",{p_invoice_id:inv.id,p_amount_cents:400,p_paid_at:new Date().toISOString(),p_method:"cash"}));
+    check(await owner.client.rpc("record_manual_invoice_payment_request",{p_request_id:randomUUID(),p_invoice_id:inv.id,p_amount_cents:400,p_paid_at:new Date().toISOString(),p_method:"cash"})).payment_id;
     const order = check(await service.from("change_orders").insert({job_id:job.id,customer_id:customer.id,status:"approved",title:"Fixture addition",created_by_user_id:owner.id}).select("id").single());
     const source = check(await service.from("change_order_line_items").insert({change_order_id:order.id,title:"Material",material_id:material.id,quantity:1,unit_price_cents:500,amount_cents:500}).select("id").single());
     check(await owner.client.rpc("attach_approved_change_orders_to_invoice",{p_invoice_id:inv.id}));

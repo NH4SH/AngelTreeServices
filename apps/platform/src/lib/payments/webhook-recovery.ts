@@ -23,7 +23,9 @@ type Evidence = Record<string, unknown> & { operation: string };
 const handled = new Set([
   "checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired",
   "payment_intent.succeeded", "payment_intent.processing", "payment_intent.payment_failed",
-  "charge.refunded", "charge.dispute.created", "charge.dispute.closed",
+  "charge.refunded", "refund.created", "refund.updated", "refund.failed", "charge.refund.updated",
+  "charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed",
+  "charge.dispute.funds_withdrawn", "charge.dispute.funds_reinstated",
 ]);
 
 // Provider reads are outside the DB transaction. The owned apply RPC is the only
@@ -38,8 +40,8 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
   async function rpc(name: string, args: Record<string, unknown>) {
     const timeout = budget.requestOptions().timeout;
     const result = await budget.run(() => supabase.rpc(name, args).abortSignal(AbortSignal.timeout(timeout)));
-    if (result.error) throw new WebhookProcessingError(result.error.details === "refund_snapshot_conflict"
-      ? "refund_snapshot_conflict" : `${name.replace("stripe_webhook", "receipt")}_failed`, true);
+    if (result.error) throw new WebhookProcessingError(result.error.details === "provider_snapshot_superseded"
+      ? "provider_snapshot_superseded" : `${name.replace("stripe_webhook", "receipt")}_failed`, true);
     return result.data;
   }
   const claim = await rpc("claim_stripe_webhook", {
@@ -53,7 +55,17 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
     let needsSync = !claim.communications_synced;
     let invoiceId = claim.invoice_id;
     if (claim.phase !== "effects_ready") {
-      const evidence = await normalizeStripeWebhook(event, deps, budget);
+      // The preliminary read resolves immutable local/provider bindings only.
+      // Financial evidence is fetched again AFTER issuing an invoice observation
+      // fence. A later observation makes this one's apply fail, even if its own
+      // receipt lease is still live. Event timestamps are not object versions.
+      let evidence = await normalizeStripeWebhook(event, deps, budget, false);
+      if (evidence.operation !== "ignored") {
+        const snapshot = await rpc("prepare_stripe_webhook_snapshot", { ...owned, p_evidence: evidence });
+        const current = await normalizeStripeWebhook(event, deps, budget);
+        if (current.operation === "ignored") throw new WebhookProcessingError("provider_binding_changed", false);
+        evidence = { ...current, snapshot_token: snapshot };
+      }
       const applied = await rpc("apply_stripe_webhook", { ...owned, p_evidence: evidence });
       if (applied?.ignored) needsSync = false;
       invoiceId = applied?.invoice_id ?? invoiceId;
@@ -107,7 +119,7 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
   }
 }
 
-export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<Dependencies, "supabase" | "stripe" | "livemode">, budget: CheckoutBudget): Promise<Evidence> {
+export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<Dependencies, "supabase" | "stripe" | "livemode">, budget: CheckoutBudget, includeRefunds = true): Promise<Evidence> {
   if (!handled.has(event.type)) return { operation: "ignored" };
   if (!deps.stripe) throw new WebhookProcessingError("provider_config_unavailable", true);
   const stripe = deps.stripe;
@@ -148,7 +160,9 @@ export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<
       if (!intent || intent.status !== "succeeded" || intent.amount_received !== checkout.total_charge_cents || intent.currency !== session.currency) {
         throw new WebhookProcessingError("checkout_payment_not_ready", true);
       }
-      return { ...common, ...chargeEvidence(object(intent.latest_charge), deps.livemode, intent.id, checkout.total_charge_cents, checkout.currency), operation: "succeeded" };
+      const charge = object(intent.latest_charge);
+      const evidence = chargeEvidence(charge, deps.livemode, intent.id, checkout.total_charge_cents, checkout.currency);
+      return { ...common, ...evidence, refunds: includeRefunds ? await readRefunds(charge!, stripe, budget) : undefined, operation: "succeeded" };
     }
     if (event.type === "checkout.session.async_payment_succeeded") throw new WebhookProcessingError("checkout_payment_not_ready", true);
     if (session.status === "expired" && (!intent || ["canceled", "requires_payment_method"].includes(intent.status))) return { ...common, operation: "expired" };
@@ -160,7 +174,12 @@ export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<
   if (event.type.startsWith("payment_intent.")) {
     const intent = await budget.run(() => stripe.paymentIntents.retrieve(id, { expand: ["latest_charge.balance_transaction"] }, request()));
     requireMode(intent, deps.livemode);
-    if (intent.metadata.payment_channel !== "card") return { operation: "ignored" };
+    if (intent.metadata.payment_channel !== "card") {
+      const known = await lookup("stripe_payment_intent_id", id);
+      const reserved = intent.metadata.checkout_reservation_id ? await lookup("id", intent.metadata.checkout_reservation_id) : null;
+      if (known?.payment_channel === "card" || reserved?.payment_channel === "card") throw new WebhookProcessingError("intent_binding_invalid", false);
+      return { operation: "ignored" };
+    }
     const reservationId = intent.metadata.checkout_reservation_id;
     if (!reservationId || !intent.metadata.invoice_id) throw new WebhookProcessingError("intent_binding_invalid", false);
     const checkout = await lookup("id", reservationId);
@@ -174,25 +193,59 @@ export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<
       amount_cents: intent.amount, currency: intent.currency };
     if (intent.status === "succeeded") {
       if (intent.amount_received !== checkout.total_charge_cents) throw new WebhookProcessingError("intent_amount_invalid", false);
-      return { ...common, ...chargeEvidence(object(intent.latest_charge), deps.livemode, intent.id, checkout.total_charge_cents, checkout.currency), operation: "succeeded" };
+      const charge = object(intent.latest_charge);
+      const evidence = chargeEvidence(charge, deps.livemode, intent.id, checkout.total_charge_cents, checkout.currency);
+      return { ...common, ...evidence, refunds: includeRefunds ? await readRefunds(charge!, stripe, budget) : undefined, operation: "succeeded" };
     }
     if (intent.status === "processing") return { ...common, operation: "pending" };
     if (["requires_payment_method", "canceled"].includes(intent.status)) return { ...common, operation: "failed" };
     throw new WebhookProcessingError("intent_state_unresolved", true);
   }
-  if (event.type === "charge.refunded") {
-    const charge = await budget.run(() => stripe.charges.retrieve(id, {}, request()));
+  if (event.type === "charge.refunded" || event.type.startsWith("refund.") || event.type === "charge.refund.updated") {
+    const refund = event.type === "charge.refunded" ? null : await budget.run(() => stripe.refunds.retrieve(id, {}, request()));
+    if (refund && refund.id !== id) throw new WebhookProcessingError("refund_binding_invalid", false);
+    const chargeId = refund ? providerId(refund.charge) : id;
+    if (!chargeId) throw new WebhookProcessingError("refund_binding_invalid", false);
+    const charge = await budget.run(() => stripe.charges.retrieve(chargeId, {}, request()));
     requireMode(charge, deps.livemode);
-    if (!Number.isSafeInteger(charge.amount_refunded) || charge.amount_refunded < 0 || charge.amount_refunded > charge.amount) {
+    if (charge.id !== chargeId || !charge.paid || !Number.isSafeInteger(charge.amount_refunded) || charge.amount_refunded < 0 || charge.amount_refunded > charge.amount) {
       throw new WebhookProcessingError("refund_amount_invalid", false);
     }
     return { operation: "refund", charge_id: charge.id, intent_id: providerId(charge.payment_intent),
-      amount_cents: charge.amount, currency: charge.currency, refund_gross_cents: charge.amount_refunded };
+      refund_id: refund?.id, amount_cents: charge.amount, currency: charge.currency,
+      refunds: includeRefunds ? await readRefunds(charge, stripe, budget, refund?.id) : undefined };
   }
   const dispute = await budget.run(() => stripe.disputes.retrieve(id, {}, request()));
   requireMode(dispute, deps.livemode);
+  if (dispute.id !== id) throw new WebhookProcessingError("dispute_binding_invalid", false);
   return { operation: "dispute", dispute_id: dispute.id, charge_id: providerId(dispute.charge),
     dispute_status: dispute.status, dispute_amount_cents: dispute.amount, currency: dispute.currency };
+}
+
+async function readRefunds(charge: Stripe.Charge, stripe: Stripe, budget: CheckoutBudget, requiredId?: string) {
+  const refunds = [], seen = new Set<string>();
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await budget.run(() => stripe.refunds.list({ charge: charge.id, limit: 100, starting_after: cursor }, budget.requestOptions()));
+    if (!page.data.length && page.has_more) throw new WebhookProcessingError("refund_page_incomplete", true);
+    for (const refund of page.data) {
+      if (seen.has(refund.id) || providerId(refund.charge) !== charge.id
+        || (providerId(refund.payment_intent) && providerId(refund.payment_intent) !== providerId(charge.payment_intent))
+        || refund.currency.toLowerCase() !== charge.currency.toLowerCase() || !Number.isSafeInteger(refund.amount)
+        || refund.amount <= 0 || refund.amount > charge.amount || !Number.isSafeInteger(refund.created)
+        || !["pending", "requires_action", "succeeded", "failed", "canceled"].includes(refund.status ?? "")) {
+        throw new WebhookProcessingError("refund_binding_invalid", false);
+      }
+      seen.add(refund.id);
+      refunds.push({ id: refund.id, charge_id: charge.id, intent_id: providerId(refund.payment_intent), amount_cents: refund.amount,
+        currency: refund.currency.toLowerCase(), status: refund.status, created_at: new Date(refund.created * 1000).toISOString() });
+      if (refunds.length > 1000) throw new WebhookProcessingError("refund_page_limit", true);
+    }
+    if (!page.has_more) break;
+    cursor = page.data.at(-1)!.id;
+  }
+  if (requiredId && !seen.has(requiredId)) throw new WebhookProcessingError("refund_page_incomplete", true);
+  return refunds;
 }
 
 function requireMode(value: { livemode: boolean }, expected: boolean) {

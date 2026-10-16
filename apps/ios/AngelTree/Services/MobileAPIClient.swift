@@ -27,6 +27,7 @@ protocol MobileAPIClientProtocol: Sendable {
     func invoices(scope: MobileInvoiceScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileInvoicePage
     func invoiceDetail(id: String, accessToken: String) async throws -> MobileInvoicePayload
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest, accessToken: String) async throws -> MobileInvoicePayload
+    func resolveManualPayment(invoiceID: String, requestID: String, accessToken: String) async throws -> MobileInvoicePayload
     func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail
     func jobDetail(jobID: String, accessToken: String) async throws -> MobileJobDetail
     func uploadJobPhoto(
@@ -192,7 +193,12 @@ actor MobileAPIClient: MobileAPIClientProtocol {
     }
 
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest, accessToken: String) async throws -> MobileInvoicePayload {
-        try await sendJSON(path: "api/mobile/invoices/\(invoiceID)/manual-payment", method: "POST", body: input, accessToken: accessToken)
+        try await sendJSON(path: "api/mobile/invoices/\(invoiceID)/manual-payment/attempt", method: "POST", body: input, accessToken: accessToken)
+    }
+
+    func resolveManualPayment(invoiceID: String, requestID: String, accessToken: String) async throws -> MobileInvoicePayload {
+        struct Input: Encodable { let requestId: String; let intent = "resolve" }
+        return try await sendJSON(path: "api/mobile/invoices/\(invoiceID)/manual-payment/attempt", method: "POST", body: Input(requestId: requestID), accessToken: accessToken)
     }
 
     func partyDetail(kind: MobilePartyKind, id: String, accessToken: String) async throws -> MobilePartyDetail {

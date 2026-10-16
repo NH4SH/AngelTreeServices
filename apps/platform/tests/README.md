@@ -1,5 +1,54 @@
 # CRM Usability Regression Checks
 
+## PR06 webhook recovery
+
+The normal `npm run test:unit` gate includes `webhook-receipt.test.mjs` (the real
+PR06 migration executed in embedded PostgreSQL) and `webhook-retry.test.mjs`
+(the actual retry server action behind controlled request/provider boundaries).
+Existing contested-webhook cases in `invoice-void.test.mjs` still verify failure
+instead of acknowledgment. No provider secrets are needed.
+
+The real integration suite requires the existing disposable stack and **all 72
+migrations** through `20261016020444_recoverable_stripe_webhook_receipts.sql`.
+It does not migrate or reset the active review database. Use only its private
+local status JSON, outside Git with mode 0600. Never print that file, use a
+hosted project, or source production environment variables. From `apps/platform`:
+
+```sh
+PR06_DISPOSABLE_STACK=1 \
+PR06_LOCAL_STATUS_FILE="$PR06_STATUS_FILE" \
+PR06_DOCKER_BIN="$PR06_DOCKER_BIN" \
+PR06_RESULTS_FILE="$PR06_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/webhook-recovery.integration.test.mjs
+```
+
+Set `DOCKER_HOST` to the existing dedicated local Unix socket. The suite refuses
+every API origin except `http://127.0.0.1:54321` and targets only the named
+`supabase_db_ats_pr02_disposable` container. Explicit opt-out produces SKIP, not
+an integration pass. It creates synthetic confirmed Auth accounts and financial/
+receipt fixtures; history remains locally for inspection. RLS and application
+triggers remain enabled. No real Stripe/Resend/Calendar credentials are read.
+
+Coverage includes simultaneous claims and different event IDs for one payment,
+expired ownership, stale failure/completion, lock-wait expiry, atomic rollback,
+failure after financial commit, queue-planning resume, duplicate activity and
+frozen recipients, legacy receipt/effect repair, current provider bindings/mode,
+late payment transitions, decreased refund evidence held unfinished, refunds
+including surcharge, disputes, attempt limits, live role/old-JWT denial,
+uncertain office-email acceptance with no replay resend, and late acceptance.
+The actual POST route is exercised using the real Stripe HMAC verifier and real
+local database, with provider HTTP reads/email replaced by controlled doubles.
+The scoped queue case uses real local payment queries/unique inserts and a
+settings-read projection; it never enables the actual automation master switch
+or runs a sender. Its temporary communications are canceled before completion.
+
+`PR06_PREPARE_REVIEW_FILE` optionally saves a non-secret fixture-ID JSON for
+interactive review of an effects-ready failed receipt; omit it in routine runs.
+Do not run any customer-email worker against disposable fixtures. The app's
+System Health retry was also verified interactively against that local fixture.
+Read `src/lib/payments/WEBHOOK_RECOVERY.md` for protocol, exceptions, deployment
+compatibility, rollback and remaining PR07/PR14 limits.
+
 ## Required local and CI baseline
 
 Run `npm ci`, `npm run test:unit`, `npm run typecheck`, and `npm run build` from

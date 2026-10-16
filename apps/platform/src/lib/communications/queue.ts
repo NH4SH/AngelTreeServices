@@ -87,6 +87,19 @@ export async function syncAutomatedCommunications(supabase: SupabaseClient) {
   };
 }
 
+// Webhook recovery plans only this invoice's existing reminder/confirmation
+// families. It must not revisit unrelated schedules or run any sender.
+export async function syncInvoicePaymentCommunications(supabase: SupabaseClient, invoiceId: string) {
+  const settings = await getCommunicationSettingsFromClient(supabase);
+  if (settings.error || !settings.data) return { created: 0, error: settings.error ?? "Communication settings are unavailable." };
+  if (!settings.data.automated_sending_enabled) return { created: 0, error: null };
+  const results = await Promise.all([
+    syncInvoices(supabase, settings.data, invoiceId),
+    syncPayments(supabase, settings.data, invoiceId),
+  ]);
+  return { created: results.reduce((sum, item) => sum + item.created, 0), error: results.find(item => item.error)?.error ?? null };
+}
+
 export async function cancelPendingCommunications(
   supabase: SupabaseClient,
   filters: {
@@ -157,11 +170,11 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
   return insertQueueRows(supabase, queue);
 }
 
-async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSettings) {
+async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSettings, invoiceId?: string) {
   if (!settings.invoice_reminder_enabled) return emptySyncResult();
 
   const dueLookback = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
+  let query = supabase
     .from("invoices")
     .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers:customers!invoices_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
     .in("status", ["sent", "partially_paid", "overdue"])
@@ -169,6 +182,9 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
     .gt("balance_due_cents", 0)
     .not("due_at", "is", null)
     .gte("due_at", dueLookback);
+
+  if (invoiceId) query = query.eq("id", invoiceId);
+  const { data, error } = await query;
 
   if (error) return { created: 0, error: error.message };
 
@@ -319,14 +335,17 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
   return insertQueueRows(supabase, queue);
 }
 
-async function syncPayments(supabase: SupabaseClient, settings: CommunicationSettings) {
+async function syncPayments(supabase: SupabaseClient, settings: CommunicationSettings, invoiceId?: string) {
   if (!settings.payment_confirmation_enabled) return emptySyncResult();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("payments")
     .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status), invoices(accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active))")
     .eq("status", "succeeded")
     .gte("created_at", settings.updated_at);
+
+  if (invoiceId) query = query.eq("invoice_id", invoiceId);
+  const { data, error } = await query;
 
   if (error) return { created: 0, error: error.message };
 

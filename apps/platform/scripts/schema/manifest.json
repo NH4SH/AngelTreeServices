@@ -357,6 +357,10 @@
     {
       "name": "20261016224352_private_document_scan_gate.sql",
       "sha256": "01e811a46d1ed11cd3a0569c7bb5af3ebfd5f72a6154cac4ee8ac1e583a97d6f"
+    },
+    {
+      "name": "20261016225410_measured_document_quote_lookup.sql",
+      "sha256": "e1d80312a9f8e2ba3ee30526689e93cdd1f331c6de5c0def307d5a09cd7e2913"
     }
   ]
 }

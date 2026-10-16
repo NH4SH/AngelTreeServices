@@ -1,5 +1,69 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Approved bucket-truck and Services-button publication — October 16, 2026
+
+The owner approved commit, push and publication of this reviewed four-file
+website patch. This supersedes the local-only holds below for this batch. Keep
+analytics disabled and CRM code/settings unchanged; do not submit production
+leads. Preserve the newer CRM-only commit on the shared branch. Use a commit
+with `[skip netlify]`, then trigger a Git build only for the public project.
+Verify the published commit, readable completed Services hover, bucket photo
+and caption, SEO/estimate links, production autocomplete and disabled analytics
+with non-submitting checks. Confirm the current CRM deployment is preserved.
+
+## Final bucket-truck and Services-button review — October 16, 2026
+
+- Reproduced the owner's Services-button defect after the hover animation: a
+  white `::before` fill covered the button while its label remained white.
+  The scoped override used `.user-items-list-section-button`, but the actual
+  link uses `.list-section-button`. Corrected all nine occurrences in that
+  existing override group, so its existing readable hover/focus colors and
+  pseudo-element suppression apply. No button text, destination or JavaScript
+  changed. Other button selectors and declarations are untouched.
+- Confirmed the completed hover state shows a green label on the pale surface,
+  with no fill overlay and full opacity. Keyboard focus has a visible white
+  outline; Enter on the Services link reaches `/services/`. Desktop 1440px and
+  widths 320/390/800/801 have no horizontal overflow; service and spotlight
+  links retain at least 48px height. The complete bucket photograph and caption
+  remain readable on desktop and mobile.
+- Fresh local verification: all 101 tests and the 14-page build validation pass.
+  Homepage HTML outside its approved photo/caption figure is byte-identical to
+  the published baseline. Only built `index.html` and `overrides.css` differ;
+  the other 211 artifacts, all image bytes and full case study are unchanged.
+  SEO, estimate links, form and script behavior remain unchanged. The detector
+  reports the same 41 inherited findings with no new findings.
+- Ready for release approval at this public-patch scope. No unresolved patch
+  regression was found after the hover fix. No commit, push, deployment,
+  production lead or CRM/settings change. Analytics remains disabled. For a
+  future approved release, refresh shared repository/hosting state, preserve
+  the existing production autocomplete input, and run non-submitting live checks
+  including the completed Services hover state. Physical-device, spoken screen
+  reader and isolated end-to-end CRM delivery remain outside these local checks.
+- Current review proof is in the October 16 chat under
+  `work/bucket-spotlight-release-review/` and
+  `.impeccable/review/bucket-spotlight-release-review/`. Earlier photo-only
+  review bundles are historical; use the final combined review manifest/patch.
+
+## Approved local refinement — homepage bucket-truck spotlight, October 16, 2026
+
+The owner approved replacing only the homepage spotlight photo and its caption.
+Reuse the documented project's existing bucket-access WebP variants and source
+provenance. Alt text describes the visible worker, tree, house and overhead lines;
+the caption reads “Bucket-truck access during tree removal beside the home.”
+Keep the full case study and its hollow-log photograph unchanged, along with
+homepage SEO, project/estimate links, form behavior and all other imagery.
+
+- Keep analytics disabled and CRM code/settings unchanged.
+- Run the local public test/build/validation suite and inspect desktop/mobile
+  framing, image loading and unchanged spotlight links before review.
+- Completed: 101 local tests pass and all 14 approved pages validate. Desktop
+  1440px and mobile 390px show the complete photograph and matching caption,
+  with no horizontal overflow and both links at least 48px high. Only built
+  `index.html` changes; the other 212 artifacts, full case study, image bytes,
+  homepage SEO, form, scripts and spotlight links are unchanged. The 41 existing
+  homepage detector findings are identical to the previous photo review.
+- This approval is local only: do not commit, push, deploy or submit leads.
+
 ## Approved production release — October 16, 2026
 
 The owner approved commit, push and publication of the reviewed photography and

@@ -5,7 +5,15 @@ primary_target: "index.html"
 related_targets: ["overrides.css","scripts/build-public-pages.py","site-pages.css"]
 ---
 
-Scope: Local photography refinement of the homepage, Projects gallery and
+Current refinement: owner approved replacing only the homepage case spotlight
+image with its existing bucket-truck photograph, plus literal caption and alt
+text. Preserve all SEO, project/estimate links, layout, full case and other photos.
+Run local checks only; no commit/push/deploy. Analytics disabled; CRM unchanged.
+Final review also fixes the owner's reported Services-button hover contrast:
+correct the existing scoped selector to `.list-section-button`, preserving its
+intended color transition and removing the inherited white fill overlay.
+
+Released baseline: Local photography refinement of the homepage, Projects gallery and
 Commercial page. Persuade / Experience within the incumbent visual system.
 User: "Definitely use them to improve the site." Keep analytics disabled, CRM
 unchanged, no commit/push/deploy. Owner authorized website use and confirmed

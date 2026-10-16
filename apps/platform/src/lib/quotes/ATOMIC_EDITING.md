@@ -92,12 +92,11 @@ Do not roll back to old callers while phase 2 grants remain enforced, and do not
 restore broad financial writes as a convenience workaround. Preserve revision
 columns and historical data in a reviewed forward fix.
 
-Quote approval/work-order conversion and message delivery remain existing
-multi-request workflows. This PR does not make approval, operational scope copy,
-source follow-up linking, lead archival or customer communications atomic with
-editing. Review approval versus editing concurrency before claiming end-to-end
-proposal acceptance is serialized; it is a separate narrow workflow follow-up.
-No automatic customer email or reminder is introduced here.
+The subsequent local approval follow-up serializes acceptance/work-order
+conversion against editing; see `ATOMIC_APPROVAL.md`. PR05 itself did not include
+that command. Source follow-up linking, lead archival and external message
+delivery retain their existing separate transaction boundaries. No automatic
+customer email or reminder is introduced here.
 
 ## Verification
 

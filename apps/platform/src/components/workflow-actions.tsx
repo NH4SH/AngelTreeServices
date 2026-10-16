@@ -94,14 +94,14 @@ export function MarkJobCompleteAction({
   );
 }
 
-export function QuoteStatusActions({ quoteId, status }: { quoteId: string; status: QuoteStatus }) {
+export function QuoteStatusActions({ quoteId, status, expectedRevision }: { quoteId: string; status: QuoteStatus; expectedRevision: number }) {
   const [state, formAction, pending] = useReliableActionState(updateQuoteStatus, initialState);
   const isClosed = ["approved", "declined", "expired", "cancelled"].includes(status);
 
   return (
     <WorkflowActionPanel message={state.message} status={state.status}>
       <div className="workflow-button-row">
-        <QuoteStatusButton disabled={pending || status === "approved"} formAction={formAction} icon="check" quoteId={quoteId} status="approved" />
+        <QuoteStatusButton disabled={pending || isClosed} expectedRevision={expectedRevision} formAction={formAction} icon="check" quoteId={quoteId} status="approved" />
         <QuoteStatusButton
           disabled={pending || isClosed}
           formAction={formAction}
@@ -356,12 +356,14 @@ function WorkflowActionPanel({
 
 function QuoteStatusButton({
   disabled,
+  expectedRevision,
   formAction,
   icon,
   quoteId,
   status,
 }: {
   disabled: boolean;
+  expectedRevision?: number;
   formAction: (payload: FormData) => void;
   icon: "check" | "change" | "decline";
   quoteId: string;
@@ -372,6 +374,7 @@ function QuoteStatusButton({
     <form action={formAction} className="inline-action-form">
       <input name="quote_id" type="hidden" value={quoteId} />
       <input name="next_status" type="hidden" value={status} />
+      {status === "approved" ? <input name="expected_revision" type="hidden" value={expectedRevision ?? ""} /> : null}
       <button disabled={disabled} type="submit">
         <Icon aria-hidden="true" size={18} />
         {getQuoteActionLabel(status)}

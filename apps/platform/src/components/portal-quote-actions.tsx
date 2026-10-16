@@ -18,6 +18,7 @@ const initialState: PortalTokenActionState = {
 export function PortalQuoteActions({
   approved,
   expirationLabel,
+  expectedRevision,
   rawToken,
   statusLabel,
   totalLabel,
@@ -25,6 +26,7 @@ export function PortalQuoteActions({
 }: {
   approved: boolean;
   expirationLabel: string;
+  expectedRevision: number;
   rawToken: string;
   statusLabel: string;
   totalLabel: string;
@@ -88,6 +90,7 @@ export function PortalQuoteActions({
           <div className="customer-quote-action-stack">
             <form action={approvalAction}>
               <input name="token" type="hidden" value={rawToken} />
+              <input name="expected_revision" type="hidden" value={expectedRevision} />
               <button className="customer-approve-button" disabled={approvalPending || changePending} type="submit">
                 <CheckCircle2 aria-hidden="true" size={20} />
                 {approvalPending ? "Approving..." : "Approve proposal"}

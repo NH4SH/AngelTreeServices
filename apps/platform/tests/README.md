@@ -1,5 +1,42 @@
 # CRM Usability Regression Checks
 
+## Atomic quote approval follow-up
+
+The normal unit gate includes `quote-approval.test.mjs` (actual new migration,
+PR05 commands and incumbent inactive-lead trigger in embedded PostgreSQL) and
+`quote-approval-workflow.test.mjs` (actual staff/portal workflow module with a
+controlled transport, verifying one command, displayed versions and uncertain
+acknowledgments). Live authorization and transaction waits are separate below.
+
+Use the existing disposable stack with all **77 migrations**, through
+`20261016064442_atomic_quote_approval.sql`. Keep the local status JSON outside Git,
+mode 0600, and the dedicated Docker Unix socket. With the local app on port 3102:
+
+```sh
+QUOTE_APPROVAL_DISPOSABLE_STACK=1 \
+QUOTE_APPROVAL_LOCAL_STATUS_FILE="$QUOTE_APPROVAL_STATUS_FILE" \
+QUOTE_APPROVAL_DOCKER_BIN="$QUOTE_APPROVAL_DOCKER_BIN" \
+QUOTE_APPROVAL_WEB_URL=http://127.0.0.1:3102 \
+QUOTE_APPROVAL_RESULTS_FILE="$QUOTE_APPROVAL_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/quote-approval.integration.test.mjs
+```
+
+Only the named disposable container and loopback API/web origins are accepted.
+The suite creates synthetic identities/records, retires its own identities and
+retains history. Narrow failure constraints are removed in `finally`; RLS and
+application triggers stay enabled. It does not use project `.env` files, contact
+production or send real money/mail. Cases include concurrent approval/editing,
+one job across retries, competing quotes, post-wait deactivation, token expiry/
+revocation, history rollback, archived-lead restoration, recurrence/material
+planning, direct-write denial, staff-only legacy repair and PR04 compatibility.
+
+Run previous financial/offboarding/quote suites too. Shared-recipient PR03/06/07
+suites must run sequentially; cleanup must only retire their completed runs'
+accounts. PR04 and PR05 retire their own accounts: a broad concurrent fixture
+cleanup can deactivate another suite's active test actor and invalidate results.
+Never reset the active review DB or disable authorization to fix such a harness
+collision. See `src/lib/quotes/ATOMIC_APPROVAL.md` for the release contract.
+
 ## PR05 atomic quote editing
 
 The regular unit gate includes `quote-editing.test.mjs`: both actual additive

@@ -87,6 +87,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
           <PortalQuoteActions
             approved={isApproved}
             expirationLabel={expirationLabel}
+            expectedRevision={lookup.quote.edit_revision}
             rawToken={token}
             statusLabel={statusLabel}
             totalLabel={totalLabel}

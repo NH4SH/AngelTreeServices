@@ -55,6 +55,49 @@
     syncEstimateContext(form);
   }
 
+  function applyEstimateService(form, requestedService) {
+    if (form.dataset.submitting === "true" || requestedService !== "Landscaping") return false;
+    var service = form.querySelector('select[name="service"]');
+    if (!service || service.disabled || !Array.prototype.some.call(service.options, function (option) {
+      return option.value === requestedService && !option.disabled;
+    })) return false;
+    service.value = requestedService;
+    clearEstimateContext(form);
+    return true;
+  }
+
+  function clearEstimateConfirmation(form) {
+    document.body.classList.remove("ats-form-submitted");
+    var status = form.querySelector(".ats-form-server-status");
+    if (status && status.classList.contains("success")) setServerStatus(form, "", "");
+  }
+
+  function initEstimateServiceLinks(form) {
+    Array.prototype.forEach.call(document.querySelectorAll("a[data-estimate-service]"), function (link) {
+      link.addEventListener("click", function (event) {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!applyEstimateService(form, link.dataset.estimateService)) {
+          if (form.dataset.submitting === "true") event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        clearEstimateConfirmation(form);
+        var service = form.querySelector('select[name="service"]');
+        validateField(service);
+        setSummaryState(form, !!form.querySelector('[aria-invalid="true"]'));
+        try {
+          var destination = new URL(window.location.href);
+          destination.searchParams.set("service", service.value);
+          destination.searchParams.delete("estimate_context");
+          if (destination.searchParams.get("contact") === "success") destination.searchParams.delete("contact");
+          destination.hash = "contact";
+          window.history.replaceState(window.history.state, "", destination.pathname + destination.search + destination.hash);
+        } catch (error) { /* Service selection works even when history is unavailable. */ }
+        service.focus();
+      });
+    });
+  }
+
   function getMessagePrefix(form) {
     var context = getEstimateContext(form);
     return context ? "Service requested: " + context.label + "\n\n" : "";
@@ -628,6 +671,7 @@
     setSubmitting(form, false);
     setSummaryState(form, false);
     setServerStatus(form, "", "");
+    initEstimateServiceLinks(form);
 
     form.addEventListener(
       "input",

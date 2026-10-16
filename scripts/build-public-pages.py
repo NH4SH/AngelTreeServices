@@ -255,11 +255,6 @@ RESPONSIVE_PUBLIC_IMAGES = {
         "/assets/versioned/service-tree-512.705dacd21f.webp 512w",
         "/assets/versioned/service-tree-840.58f189d9e9.webp 840w",
     ),
-    "/assets/LightroomGrassPictureSquooshed_014.jpg": (
-        "/assets/versioned/service-lawn-320.3f543d77c6.webp 320w",
-        "/assets/versioned/service-lawn-512.9ff7f9f9f8.webp 512w",
-        "/assets/versioned/service-lawn-840.457847928f.webp 840w",
-    ),
     "/assets/GardenLandscaping+(2)_008.jpg": (
         "/assets/versioned/service-landscaping-320.3e41165331.webp 320w",
         "/assets/versioned/service-landscaping-512.5bf56f3b1f.webp 512w",
@@ -643,7 +638,7 @@ def services_hub_body() -> str:
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose"><p class="ats-eyebrow">Not sure which service fits?</p><h2>Describe the problem, not the solution.</h2><p>You do not need to diagnose a tree or choose a technical service before contacting us. Tell us what changed, what concerns you, and what part of the property is affected.</p></div>
-        <aside class="ats-callout"><h2>Landscaping and lawn care</h2><p>Angel Tree Services also accepts landscaping and lawn-care estimate requests through the same form. Select the service that best matches your project, or choose “multiple services / not sure yet.”</p></aside>
+        <aside class="ats-callout"><h2>Landscaping</h2><p>Angel Tree Services also accepts landscaping estimate requests through the same form. Tell us about your project, or choose “multiple services / not sure yet” if you need help deciding.</p><p><a class="ats-estimate-link" href="/?service=Landscaping#contact">Request a landscaping estimate</a></p></aside>
       </div>
     </section>
     {final_cta('Tell us what your property needs.', 'A short description is enough to start. We’ll follow up about the next step for your free estimate.', '/#contact', 'Request a free estimate')}"""
@@ -760,11 +755,10 @@ def credentials_body() -> str:
 def projects_body() -> str:
     projects = [
         ("/assets/AngelChainsawSquooshed_008.jpg", 1080, 1080, "Angel Tree Services crew member during tree work", "Tree service", "Tree-service work", "Real Angel Tree Services field imagery. Detailed project facts and a privacy-safe case study are awaiting internal approval."),
-        ("/assets/LightroomGrassPictureSquooshed_014.jpg", 1633, 919, "Close view of maintained green grass", "Lawn care", "Lawn-care work", "Real Angel Tree Services lawn imagery. No unverified address, customer, treatment, or outcome is attached to this image."),
         ("/assets/GardenLandscaping+(2)_008.jpg", 2500, 1407, "Landscaped garden and lawn", "Landscaping", "Landscaping work", "Real Angel Tree Services landscaping imagery. A fuller case study will be published only after project details are verified."),
     ]
     cards_html = "".join(
-        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 33vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
+        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 50vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
         for src, w, h, alt, kind, title, copy in projects
     )
     return f"""
@@ -1278,7 +1272,7 @@ Angel Tree Services serves homeowners as well as businesses, HOAs, property mana
 
 ## Core Services
 
-- [Tree services overview]({SITE}/services/): Guidance on the company's primary tree services, estimate process, written scopes, and related landscaping and lawn-care requests.
+- [Tree services overview]({SITE}/services/): Guidance on the company's primary tree services, estimate process, written scopes, and related landscaping requests.
 - [Tree removal]({SITE}/services/tree-removal/): Professional removal of hazardous, declining, storm-damaged, large, or poorly positioned trees. Capabilities include complex removals near structures and obstacles, hazardous and large-tree work, crane-assisted removal where appropriate, bucket-truck work, climbing, rigging, cutting, hauling, and cleanup.
 - [Tree pruning]({SITE}/services/tree-pruning/): Structural pruning, deadwood removal, canopy raising, clearance pruning, young-tree training, and other pruning tied to a defined objective. Recommendations consider tree biology, structure, condition, site constraints, and long-term health rather than indiscriminate cutting.
 - [Stump grinding]({SITE}/services/stump-grinding/): Grinding or reducing unwanted stumps to improve usability, appearance, mowing access, and future landscape planning. Access, underground utilities, grinding depth, chips, remaining roots, and replanting plans are addressed as part of a clear scope.

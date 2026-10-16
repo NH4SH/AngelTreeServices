@@ -1,7 +1,7 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Clock3, HardHat, Leaf, LogOut, ShieldCheck, UserRoundPlus } from "lucide-react";
-import { signOut } from "@/app/login/actions";
+import { SignOutForm } from "@/components/sign-out-form";
 import type { EmployeeAccessRequestWithReviewer } from "@/lib/data/access-requests";
 
 type AccessStatusShellProps = {
@@ -46,12 +46,12 @@ export function AccessStatusShell({
               <Clock3 aria-hidden="true" size={18} />
               Back to login
             </Link>
-            <form action={signOut}>
+            <SignOutForm>
               <button className="secondary-action button-reset" type="submit">
                 <LogOut aria-hidden="true" size={18} />
                 Sign out
               </button>
-            </form>
+            </SignOutForm>
           </div>
         </section>
       </main>
@@ -105,12 +105,12 @@ export function AccessStatusShell({
               <Leaf aria-hidden="true" size={18} />
               Open login
             </Link>
-            <form action={signOut}>
+            <SignOutForm>
               <button className="secondary-action button-reset" type="submit">
                 <LogOut aria-hidden="true" size={18} />
                 Sign out
               </button>
-            </form>
+            </SignOutForm>
           </div>
         </section>
       </main>
@@ -140,12 +140,12 @@ export function AccessStatusShell({
             <UserRoundPlus aria-hidden="true" size={18} />
             Open login
           </Link>
-          <form action={signOut}>
+          <SignOutForm>
             <button className="secondary-action button-reset" type="submit">
               <LogOut aria-hidden="true" size={18} />
               Sign out
             </button>
-          </form>
+          </SignOutForm>
         </div>
       </section>
     </main>

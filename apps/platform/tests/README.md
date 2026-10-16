@@ -602,3 +602,45 @@ issued-JWT revocation during independent lock waits, crew all-or-nothing submiss
 required evidence, immutable revisions, corrections and retained time/actor, timer
 independence, operations visibility and remaining reminder scope. Browser review
 uses 3102 with unchanged flags and an isolated 3103 local flags-on preview.
+
+## PR12 draft recovery, saved wording, and return context
+
+`npm run test:unit` includes the bounded recovery parser, expiry and identity
+isolation, stale-version/line identity rules, safe navigation destinations,
+price-free wording projection, and deterministic persistence lifecycle tests.
+The lifecycle cases cover typing before identity verification, recovery choices,
+logout fencing, other-tab conflicts, pending fieldsets, and immediate submission
+before the input debounce.
+
+For the additional real-session checks, run only against the existing disposable
+stack and local development server, after its 81 migrations:
+
+```sh
+PR12_DISPOSABLE_STACK=1 \
+PR12_LOCAL_STATUS_FILE="$PR12_STATUS_FILE" \
+PR12_WEB_URL=http://127.0.0.1:3102 \
+node --conditions=react-server --experimental-strip-types --test tests/draft-session.integration.test.mjs
+```
+
+The suite rejects non-loopback targets, creates and retires its own synthetic
+actor, and verifies anonymous denial, a minimal non-cacheable session response,
+offboarding with an already-issued cookie, and logout. It also exercises the real
+new-quote server action against the disposable database, including acknowledged
+navigation, hostile return destinations and legacy redirects. Never print the private
+status file. No hosted database or provider sender is used.
+
+Browser review: reopen both editors after unsaved work and failed validation;
+restore/discard; verify newer saved content cannot be overwritten by recovery;
+save and save-and-close; confirm search/status/page return links; insert/edit
+personal scopes with blank prices and explicit wood/chips wording; use another
+account after logout; inspect mobile and keyboard behavior. Before-unload warnings
+can cancel an automated reload: verify a fresh editor document, or close/reopen
+only the disposable review tab, before claiming a recovery test passed.
+
+Recovery is local browser storage, not a financial command or cross-device backup.
+It lasts up to 24 hours, is cleared on logout/account change, and never automatically
+submits. Existing invoice generation request IDs survive uncertain responses.
+Recovered new-record attempts require checking existing records; standalone quote
+and invoice creation do not gain new database idempotency in this UI change.
+Personal wording survives logout under its own user key and contains no prices or
+record/material identifiers. New walk-in contact/address entries must be re-entered.

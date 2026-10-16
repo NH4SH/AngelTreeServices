@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import Link from "next/link";
 import { FileSignature } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -15,12 +16,13 @@ import { AddQuoteForm } from "../../QuoteForm";
 
 type QuoteEditPageProps = {
   params: Promise<{ quoteId: string }>;
-  searchParams: Promise<{ contact_warning?: string; duplicated?: string; lead_archive_warning?: string; line_error?: string; renewal?: string; saved?: string; source_lead_job_id?: string }>;
+  searchParams: Promise<{ returnTo?: string; contact_warning?: string; duplicated?: string; lead_archive_warning?: string; line_error?: string; renewal?: string; saved?: string; source_lead_job_id?: string }>;
 };
 
 export default async function QuoteEditPage({ params, searchParams }: QuoteEditPageProps) {
   const { quoteId } = await params;
   const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo, "/admin/quotes");
   const context = await getAuthenticatedPlatformContext(`/admin/quotes/${quoteId}/edit`);
 
   if (!context.configured) {
@@ -42,7 +44,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
-        <Link className="crew-back-link" href={`/admin/quotes/${quoteId}`}>Back to quote</Link>
+        <Link className="crew-back-link" href={withReturnTo(`/admin/quotes/${quoteId}`, returnTo, "/admin/quotes")}>Back to quote</Link>
         {[detail.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => <DataWarning key={message} message={message ?? ""} />)}
@@ -56,7 +58,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
           <section className="empty-state">
             <h2>This quote is locked</h2>
             <p>Approved, declined, expired, and cancelled quotes cannot be changed through regular editing.</p>
-            <Link className="primary-action" href={`/admin/quotes/${quoteId}`}>Return to quote</Link>
+            <Link className="primary-action" href={withReturnTo(`/admin/quotes/${quoteId}`, returnTo, "/admin/quotes")}>Return to quote</Link>
           </section>
         ) : (
           <>
@@ -91,6 +93,8 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
               </p>
             ) : null}
             <AddQuoteForm
+              userId={context.user.id}
+              returnTo={returnTo}
               key={detail.data.id}
               customers={customers.data}
               estimateScheduleEvents={estimateScheduleEvents.data}

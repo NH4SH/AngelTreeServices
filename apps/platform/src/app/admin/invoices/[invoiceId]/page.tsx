@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -43,12 +44,13 @@ type InvoiceDetailPageProps = {
   params: Promise<{
     invoiceId: string;
   }>;
-  searchParams: Promise<{ created?: string; job_completed?: string; job_completion_warning?: string; note_warning?: string }>;
+  searchParams: Promise<{ returnTo?: string; created?: string; job_completed?: string; job_completion_warning?: string; note_warning?: string }>;
 };
 
 export default async function InvoiceDetailPage({ params, searchParams }: InvoiceDetailPageProps) {
   const { invoiceId } = await params;
   const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo, "/admin/invoices");
   const context = await getAuthenticatedPlatformContext(`/admin/invoices/${invoiceId}`);
 
   if (!context.configured) {
@@ -82,7 +84,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page">
-        <Link className="crew-back-link" href="/admin/invoices">Back to invoices</Link>
+        <Link className="crew-back-link" href={returnTo}>Back to invoices</Link>
         {query.created === "1" ? <p className="form-message success" role="status">Invoice created. Review it before sending.</p> : null}
         {query.job_completed === "1" ? <p className="form-message success" role="status">Work was explicitly completed. This invoice is ready for review.</p> : null}
         {query.job_completion_warning === "1" ? <p className="form-message error" role="status">The invoice was created, but the linked work order could not be marked complete. Open the work order and mark it complete manually.</p> : null}
@@ -115,7 +117,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 <strong>{formatCurrency(detail.data.balance_due_cents)}</strong>
                 <span>balance due</span>
                 {isInvoiceEditable(detail.data.status) ? (
-                  <Link className="primary-action" href={`/admin/invoices/${detail.data.id}/edit`}>
+                  <Link className="primary-action" href={withReturnTo(`/admin/invoices/${detail.data.id}/edit`, returnTo, "/admin/invoices")}>
                     <Pencil aria-hidden="true" size={17} />
                     Edit invoice
                   </Link>
@@ -135,6 +137,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
               </div>
             </section>
 
+            {detail.data.status === "void" ? <p className="form-guidance">This invoice is void. Its history and payments remain attached to this record. Review the invoice and linked work order before preparing any replacement.</p> : null}
             <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="invoice_id" id={invoiceId} /></Suspense>
 
             {canManageDelivery ? (

@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { CircleDollarSign, Plus, ReceiptText, X } from "lucide-react";
 import Link from "next/link";
 import { DuplicateRecordButton } from "@/components/duplicate-record-button";
@@ -23,6 +24,7 @@ import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, 
 type InvoicesPageProps = {
   searchParams: Promise<{
     new?: string;
+    returnTo?: string;
     customer_id?: string;
     job_id?: string;
     archived?: string;
@@ -63,6 +65,8 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     getServiceLocations(),
   ]);
   const summary = statusCounts.data;
+  const listContext = safeReturnTo(listHref("/admin/invoices", params, { new: undefined }), "/admin/invoices");
+  const returnTo = safeReturnTo(params.returnTo, listContext);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
@@ -76,7 +80,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
             <h1>Invoices</h1>
             <p>Track sent invoices, balances, and payment follow-up.</p>
           </div>
-          <Link className="primary-action" href="/admin/invoices?new=1">
+          <Link className="primary-action" href={withReturnTo("/admin/invoices?new=1", listContext, "/admin/invoices")}>
             <Plus aria-hidden="true" size={18} />
             New invoice
           </Link>
@@ -118,7 +122,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
               {invoices.data.map((invoice) => (
                 <article className="commerce-row invoice-grid" key={invoice.id}>
                   <div className="commerce-record-title">
-                    <Link href={`/admin/invoices/${invoice.id}`}>{getInvoiceDisplayNumber(invoice.invoice_number)}</Link>
+                    <Link href={withReturnTo(`/admin/invoices/${invoice.id}`, listContext, "/admin/invoices")}>{getInvoiceDisplayNumber(invoice.invoice_number)}</Link>
                     <span>{invoice.invoice_line_items?.length ?? 0} line items</span>
                   </div>
                   <div className="commerce-cell">
@@ -140,7 +144,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     <PortalViewStatus engagement={invoice} />
                   </div>
                   <div className="commerce-actions">
-                    <Link className="secondary-action" href={`/admin/invoices/${invoice.id}`}>
+                    <Link className="secondary-action" href={withReturnTo(`/admin/invoices/${invoice.id}`, listContext, "/admin/invoices")}>
                       Open
                     </Link>
                     <DuplicateRecordButton
@@ -168,13 +172,14 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
-        {params.new === "1" ? <InvoiceCreateDrawer customers={customers.data} initialCustomerId={params.customer_id} initialJobId={params.job_id} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} serviceLocations={serviceLocations.data} /> : null}
+        {params.new === "1" ? <InvoiceCreateDrawer userId={context.user.id} returnTo={returnTo} customers={customers.data} initialCustomerId={params.customer_id} initialJobId={params.job_id} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} serviceLocations={serviceLocations.data} /> : null}
       </div>
     </PlatformFrame>
   );
 }
 
 function InvoiceCreateDrawer({
+  userId, returnTo,
   customers,
   initialCustomerId,
   initialJobId,
@@ -183,6 +188,7 @@ function InvoiceCreateDrawer({
   serviceCategories,
   serviceLocations,
 }: {
+  userId: string; returnTo: string;
   customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
   initialCustomerId?: string;
   initialJobId?: string;
@@ -193,7 +199,7 @@ function InvoiceCreateDrawer({
 }) {
   return (
     <div aria-labelledby="new-invoice-title" className="commerce-drawer-overlay" role="dialog">
-      <Link aria-label="Close new invoice panel" className="commerce-drawer-backdrop" href="/admin/invoices" />
+      <Link aria-label="Close new invoice panel" className="commerce-drawer-backdrop" href={returnTo} />
       <aside className="commerce-drawer">
         <div className="commerce-drawer-header">
           <div>
@@ -204,12 +210,12 @@ function InvoiceCreateDrawer({
             <h2 id="new-invoice-title">New invoice</h2>
             <p>Choose a customer, then optionally attach a property or completed work order.</p>
           </div>
-          <Link aria-label="Close new invoice panel" className="secondary-action icon-action" href="/admin/invoices">
+          <Link aria-label="Close new invoice panel" className="secondary-action icon-action" href={returnTo}>
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddInvoiceForm customers={customers} initialCustomerId={initialCustomerId} initialJobId={initialJobId} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} serviceLocations={serviceLocations} />
-        <Link className="secondary-action commerce-cancel-link" href="/admin/invoices">
+        <AddInvoiceForm key={`${userId}:${initialCustomerId ?? ""}:${initialJobId ?? ""}`} userId={userId} returnTo={returnTo} customers={customers} initialCustomerId={initialCustomerId} initialJobId={initialJobId} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} serviceLocations={serviceLocations} />
+        <Link className="secondary-action commerce-cancel-link" href={returnTo}>
           Cancel
         </Link>
       </aside>

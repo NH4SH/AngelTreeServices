@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { PlatformModal } from "@/components/platform-modal";
-import { signOut } from "@/app/login/actions";
+import { SignOutForm } from "@/components/sign-out-form";
 import { NotificationBell } from "@/components/notification-bell";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import {
@@ -143,12 +143,12 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
             <strong>{userEmail ?? "Platform user"}</strong>
             <span>{roleSummary}</span>
           </div>
-          <form action={signOut}>
+          <SignOutForm>
             <button className="app-signout" type="submit">
               <LogOut aria-hidden="true" size={16} />
               Sign out
             </button>
-          </form>
+          </SignOutForm>
         </div>
       </aside>
 
@@ -185,7 +185,7 @@ export function PlatformNavigation({ audience, roles, userEmail }: PlatformNavig
                 ) : null;
               })}
             </nav>
-            <form action={signOut}><button className="mobile-signout" type="submit"><LogOut size={17} />Sign out</button></form>
+            <SignOutForm><button className="mobile-signout" type="submit"><LogOut size={17} />Sign out</button></SignOutForm>
           </aside>
         </PlatformModal>
       ) : null}

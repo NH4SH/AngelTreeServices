@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import Link from "next/link";
 import { ReceiptText } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
@@ -10,12 +11,13 @@ import { EditInvoiceForm } from "../../InvoiceForm";
 
 type InvoiceEditPageProps = {
   params: Promise<{ invoiceId: string }>;
-  searchParams: Promise<{ contact_warning?: string; duplicated?: string }>;
+  searchParams: Promise<{ returnTo?: string; contact_warning?: string; duplicated?: string }>;
 };
 
 export default async function InvoiceEditPage({ params, searchParams }: InvoiceEditPageProps) {
   const { invoiceId } = await params;
   const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo, "/admin/invoices");
   const context = await getAuthenticatedPlatformContext(`/admin/invoices/${invoiceId}/edit`);
 
   if (!context.configured) {
@@ -27,7 +29,7 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
-        <Link className="crew-back-link" href={`/admin/invoices/${invoiceId}`}>Back to invoice</Link>
+        <Link className="crew-back-link" href={withReturnTo(`/admin/invoices/${invoiceId}`, returnTo, "/admin/invoices")}>Back to invoice</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {serviceCategories.error ? <DataWarning message={serviceCategories.error} /> : null}
         {!detail.data ? (
@@ -39,7 +41,7 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
           <section className="empty-state">
             <h2>This invoice is locked</h2>
             <p>Paid and void invoices cannot be changed through regular editing.</p>
-            <Link className="primary-action" href={`/admin/invoices/${invoiceId}`}>Return to invoice</Link>
+            <Link className="primary-action" href={withReturnTo(`/admin/invoices/${invoiceId}`, returnTo, "/admin/invoices")}>Return to invoice</Link>
           </section>
         ) : (
           <>
@@ -57,7 +59,7 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
             {query.contact_warning === "1" ? (
               <p className="form-message error" role="alert">One or more selected organization billing contacts were inactive and were not copied. Review recipients before sending.</p>
             ) : null}
-            <EditInvoiceForm invoice={detail.data} serviceCategories={serviceCategories.data} />
+            <EditInvoiceForm key={`${context.user.id}:${detail.data.id}`} userId={context.user.id} returnTo={returnTo} invoice={detail.data} serviceCategories={serviceCategories.data} />
           </>
         )}
       </div>

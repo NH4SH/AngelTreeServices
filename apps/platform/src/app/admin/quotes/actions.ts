@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { withReturnTo } from "@/lib/drafts/return-context";
 import { parseBusinessDateTime } from "@/lib/business-time";
 import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ import type { QuoteStatus } from "@/lib/types/database";
 export type QuoteActionState = {
   status: "idle" | "success" | "error";
   message: string;
+  navigateTo?: string;
   savedRevision?: number;
   savedLineIds?: Record<string, string>;
   conflict?: QuoteEditConflict;
@@ -216,9 +218,11 @@ export async function createQuote(
   if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
   const warningQuery = leadArchiveWarning ? "lead_archive_warning=1" : "";
-  redirect(submitIntent === "save_close"
+  const destination = withReturnTo(submitIntent === "save_close"
     ? `/admin/quotes/${quote.id}${warningQuery ? `?${warningQuery}` : ""}`
-    : `/admin/quotes/${quote.id}/edit?saved=1${warningQuery ? `&${warningQuery}` : ""}`);
+    : `/admin/quotes/${quote.id}/edit?saved=1${warningQuery ? `&${warningQuery}` : ""}`, formData.get("returnTo"));
+  if (formData.get("client_navigation") === "1") return { status: "success", message: "Quote saved.", navigateTo: destination };
+  redirect(destination);
 }
 
 export async function updateQuote(
@@ -429,7 +433,9 @@ export async function updateQuote(
   if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
 
   if (submitIntent === "save_close") {
-    redirect(`/admin/quotes/${quoteId}${leadArchiveWarning ? "?lead_archive_warning=1" : ""}`);
+    const destination = withReturnTo(`/admin/quotes/${quoteId}${leadArchiveWarning ? "?lead_archive_warning=1" : ""}`, formData.get("returnTo"));
+    if (formData.get("client_navigation") === "1") return { status: "success", message: "Quote saved.", navigateTo: destination };
+    redirect(destination);
   }
 
   return {

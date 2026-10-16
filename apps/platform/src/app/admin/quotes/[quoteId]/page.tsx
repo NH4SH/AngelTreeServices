@@ -1,3 +1,4 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -48,12 +49,13 @@ type QuoteDetailPageProps = {
   params: Promise<{
     quoteId: string;
   }>;
-  searchParams: Promise<{ lead_archive_warning?: string }>;
+  searchParams: Promise<{ returnTo?: string; lead_archive_warning?: string }>;
 };
 
 export default async function QuoteDetailPage({ params, searchParams }: QuoteDetailPageProps) {
   const { quoteId } = await params;
   const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo, "/admin/quotes");
   const context = await getAuthenticatedPlatformContext(`/admin/quotes/${quoteId}`);
 
   if (!context.configured) {
@@ -85,7 +87,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page">
-        <Link className="crew-back-link" href="/admin/quotes">Back to quotes</Link>
+        <Link className="crew-back-link" href={returnTo}>Back to quotes</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {approvalSource.error ? <DataWarning message={`Approval history: ${approvalSource.error}`} /> : null}
         {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
@@ -118,7 +120,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 ) : null}
                 <strong>{formatCurrency(detail.data.total_cents)}</strong>
                 {isQuoteEditable(detail.data.status) ? (
-                  <Link className="primary-action" href={`/admin/quotes/${detail.data.id}/edit`}>
+                  <Link className="primary-action" href={withReturnTo(`/admin/quotes/${detail.data.id}/edit`, returnTo, "/admin/quotes")}>
                     <Pencil aria-hidden="true" size={17} />
                     Edit quote
                   </Link>

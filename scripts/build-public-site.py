@@ -22,9 +22,9 @@ STATIC_FILES = (
     "ats-address-autocomplete.js",
     "site-pages.css",
     "site-pages.js",
+    "ats-website.js",
     "angeltreeservices_backup_files/200x200-hortz-logo.jpg",
     "angeltreeservices_backup_files/LightroomGrassPictureSquooshed_013.jpg",
-    "angeltreeservices_backup_files/google-analytics_analytics.js",
     "angeltreeservices_backup_files/isamember1_004.jpg",
 )
 
@@ -53,7 +53,7 @@ HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
 """
 
 GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
-FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=release1"></script>'
+FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=analytics1"></script>'
 ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release3"></script>'
 
 EMERGENCY_AVAILABILITY_REPLACEMENTS = (

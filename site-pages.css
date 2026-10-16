@@ -1,6 +1,6 @@
 /* Shared static-page system for Angel Tree Services. */
 :root {
-  --ats-green: #2f8e2f;
+  --ats-green: #287228;
   --ats-green-aa: #287228;
   --ats-green-dark: #1f5a22;
   --ats-green-deep: #163f19;
@@ -28,6 +28,7 @@ html {
 body {
   margin: 0;
   overflow-x: clip;
+  overflow-wrap: anywhere;
   background: var(--ats-cream);
   color: var(--ats-ink);
   font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -229,7 +230,7 @@ img {
   min-height: 590px;
   padding: clamp(72px, 9vw, 126px) 24px 130px;
   overflow: hidden;
-  background: linear-gradient(135deg, #238127 0%, var(--ats-green) 52%, #43a948 100%);
+  background: linear-gradient(135deg, var(--ats-green-dark) 0%, var(--ats-green-deep) 52%, var(--ats-green-aa) 100%);
   color: var(--ats-white);
 }
 
@@ -718,7 +719,7 @@ img {
 .ats-project-grid {
   margin-top: 42px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
 }
 
@@ -1659,8 +1660,9 @@ img {
 }
 
 :focus-visible {
-  outline: 3px solid #ffe95c;
-  outline-offset: 4px;
+  outline: 3px solid var(--ats-green-deep);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--ats-white);
 }
 
 @media (max-width: 960px) {
@@ -1705,11 +1707,19 @@ img {
   }
 
   .ats-page-brand {
+    min-width: 0;
     gap: 8px;
     font-size: 0.92rem;
+    white-space: normal;
+  }
+
+  .ats-page-brand span {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .ats-page-brand img {
+    flex-shrink: 0;
     width: 46px;
     height: 42px;
   }

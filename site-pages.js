@@ -1,55 +1,4 @@
 (function () {
-  var trackedParameters = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
-
-  function trackEvent(name, parameters) {
-    if (typeof window.gtag !== "function") {
-      return;
-    }
-
-    try {
-      window.gtag("event", name, parameters || {});
-    } catch (error) {
-      // Optional analytics must not interrupt navigation.
-    }
-  }
-
-  function trackPrimaryNavigation() {
-    document.addEventListener("click", function (event) {
-      var link = event.target.closest("a[data-ats-nav]");
-      if (!link) {
-        return;
-      }
-
-      trackEvent("navigation_link_click", {
-        destination: link.dataset.atsNav,
-        navigation: link.closest(".ats-mobile-menu") ? "mobile_menu" : "desktop_header",
-      });
-    });
-  }
-
-  function preserveCampaignParameters() {
-    var currentParameters = new URLSearchParams(window.location.search);
-
-    document.querySelectorAll("a.ats-estimate-link").forEach(function (link) {
-      var destination;
-
-      try {
-        destination = new URL(link.href, window.location.origin);
-      } catch (error) {
-        return;
-      }
-
-      trackedParameters.forEach(function (name) {
-        var value = currentParameters.get(name);
-        if (value && !destination.searchParams.has(name)) {
-          destination.searchParams.set(name, value);
-        }
-      });
-
-      link.href = destination.pathname + destination.search + destination.hash;
-    });
-  }
-
   function closeMobileMenuAfterNavigation() {
     var menu = document.querySelector(".ats-mobile-menu");
     if (!menu) {
@@ -103,8 +52,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    trackPrimaryNavigation();
-    preserveCampaignParameters();
     closeMobileMenuAfterNavigation();
     enablePrivacyEnhancedVideos();
   });

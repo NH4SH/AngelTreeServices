@@ -255,11 +255,6 @@ RESPONSIVE_PUBLIC_IMAGES = {
         "/assets/versioned/service-tree-512.705dacd21f.webp 512w",
         "/assets/versioned/service-tree-840.58f189d9e9.webp 840w",
     ),
-    "/assets/LightroomGrassPictureSquooshed_014.jpg": (
-        "/assets/versioned/service-lawn-320.3f543d77c6.webp 320w",
-        "/assets/versioned/service-lawn-512.9ff7f9f9f8.webp 512w",
-        "/assets/versioned/service-lawn-840.457847928f.webp 840w",
-    ),
     "/assets/GardenLandscaping+(2)_008.jpg": (
         "/assets/versioned/service-landscaping-320.3e41165331.webp 320w",
         "/assets/versioned/service-landscaping-512.5bf56f3b1f.webp 512w",
@@ -338,7 +333,8 @@ def page_document(page: dict) -> str:
 {page['body']}
   </main>
 {footer()}
-  <script src="/site-pages.js?v=recognition1" defer></script>
+  <script src="/ats-website.js?v=analytics1" defer></script>
+  <script src="/site-pages.js?v=analytics1" defer></script>
 </body>
 </html>
 """
@@ -461,7 +457,7 @@ SERVICE_PAGES = [
         "h1": "Tree removal planned around your property.",
         "lead": "When removal may be the right next step, we begin with the tree, its surroundings, access, and your goals—not a one-size-fits-all assumption.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Tree Removal", "/services/tree-removal/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=tree-removal#contact",
         "estimate_label": "Request a tree-removal estimate",
         "hero_image": "/assets/AngelChainsawSquooshed_008.jpg",
         "image_width": 1080,
@@ -504,7 +500,7 @@ SERVICE_PAGES = [
         "h1": "Tree pruning with a clear purpose.",
         "lead": "Pruning decisions should begin with the outcome you need—clearance, deadwood, structure, young-tree training, or appropriate storm-damage cleanup.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Tree Pruning", "/services/tree-pruning/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=tree-pruning#contact",
         "estimate_label": "Request a pruning estimate",
         "hero_image": "/assets/VerySquooshedSideGreenwall.jpg",
         "image_width": 1000,
@@ -547,7 +543,7 @@ SERVICE_PAGES = [
         "h1": "A clearer plan for the stump that remains.",
         "lead": "Stump grinding is different from removing an entire root system. Access, underground utilities, expected depth, chips, and the future use of the area all matter.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Stump Grinding", "/services/stump-grinding/")],
-        "estimate_href": "/?service=Tree%20Care#contact",
+        "estimate_href": "/?service=Tree%20Care&estimate_context=stump-grinding#contact",
         "estimate_label": "Request a stump estimate",
         "fit_heading": "Define what you want to do with the space next.",
         "fit_intro": "A stump left after removal and an older existing stump can both be considered, but the practical scope depends on the site and your next use for the area.",
@@ -586,7 +582,7 @@ SERVICE_PAGES = [
         "h1": "Call first when safety cannot wait.",
         "lead": "For a fallen tree, blocked access, storm damage, or another immediate tree concern, keep people clear and tell us what happened. Availability is confirmed when you call.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Storm and Emergency Guidance", "/services/emergency-tree-service/")],
-        "estimate_href": "/?service=Storm%20Cleanup#contact",
+        "estimate_href": "/?service=Storm%20Cleanup&estimate_context=emergency-tree-service#contact",
         "estimate_label": "Send storm-damage details",
         "fit_heading": "Separate immediate danger from an urgent estimate.",
         "fit_intro": "The safest first action depends on whether people, roads, structures, vehicles, or electrical lines are involved.",
@@ -642,7 +638,7 @@ def services_hub_body() -> str:
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose"><p class="ats-eyebrow">Not sure which service fits?</p><h2>Describe the problem, not the solution.</h2><p>You do not need to diagnose a tree or choose a technical service before contacting us. Tell us what changed, what concerns you, and what part of the property is affected.</p></div>
-        <aside class="ats-callout"><h2>Landscaping and lawn care</h2><p>Angel Tree Services also accepts landscaping and lawn-care estimate requests through the same form. Select the service that best matches your project, or choose “multiple services / not sure yet.”</p></aside>
+        <aside class="ats-callout"><h2>Landscaping</h2><p>Angel Tree Services also accepts landscaping estimate requests through the same form. Tell us about your project, or choose “multiple services / not sure yet” if you need help deciding.</p><p><a class="ats-estimate-link" href="/?service=Landscaping#contact">Request a landscaping estimate</a></p></aside>
       </div>
     </section>
     {final_cta('Tell us what your property needs.', 'A short description is enough to start. We’ll follow up about the next step for your free estimate.', '/#contact', 'Request a free estimate')}"""
@@ -696,7 +692,7 @@ def commercial_body() -> str:
         ('Can you coordinate certificates of insurance?', 'Describe the documentation your organization requires. The office will confirm what current documentation can be provided rather than making a blanket public claim.'),
         ('Do you offer recurring maintenance?', 'Share the property and desired frequency. Angel Tree Services can confirm whether a recurring or phased approach fits the current services and property.'),
     ])}
-    {final_cta('Start a property-management request.', 'Choose commercial / property management in the form and include the organization, property, and approval context.', '/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management#contact', 'Request a property estimate')}"""
+    {final_cta('Start a property-management request.', 'Choose commercial / property management in the form and include the organization, property, and approval context.', '/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact', 'Request a property estimate')}"""
 
 
 def credentials_body() -> str:
@@ -710,12 +706,12 @@ def credentials_body() -> str:
           <p>Angel Tree Services was founded in 2015 after its founder had already spent more than 20 years in the tree industry. Together with the company’s local service since 2015, that continuous history represents {COMPANY_EXPERIENCE_PROOF}. No additional qualification should be inferred from these badges.</p>
           <p><strong>Angel Tree Services is insured.</strong> Certificates of insurance are available upon request. Specific policy details remain available directly from the office rather than being published as a blanket guarantee.</p>
         </div>
-        <div class="ats-badges" aria-label="ISA credentials">
+        <div class="ats-badges" role="group" aria-label="ISA credentials">
           <img src="/assets/isamember1_004.jpg" width="190" height="299" alt="ISA Member">
           <img src="/assets/certified-arborist.png" width="646" height="1126" alt="ISA Certified Arborist">
         </div>
       </div>
-      <div class="ats-section-inner ats-affiliations" aria-labelledby="professional-affiliations-title">
+      <div class="ats-section-inner ats-affiliations" role="group" aria-labelledby="professional-affiliations-title">
         <div>
           <p class="ats-eyebrow">Professional affiliations</p>
           <h2 id="professional-affiliations-title">Connected to the Fredericksburg business community.</h2>
@@ -759,11 +755,10 @@ def credentials_body() -> str:
 def projects_body() -> str:
     projects = [
         ("/assets/AngelChainsawSquooshed_008.jpg", 1080, 1080, "Angel Tree Services crew member during tree work", "Tree service", "Tree-service work", "Real Angel Tree Services field imagery. Detailed project facts and a privacy-safe case study are awaiting internal approval."),
-        ("/assets/LightroomGrassPictureSquooshed_014.jpg", 1633, 919, "Close view of maintained green grass", "Lawn care", "Lawn-care work", "Real Angel Tree Services lawn imagery. No unverified address, customer, treatment, or outcome is attached to this image."),
         ("/assets/GardenLandscaping+(2)_008.jpg", 2500, 1407, "Landscaped garden and lawn", "Landscaping", "Landscaping work", "Real Angel Tree Services landscaping imagery. A fuller case study will be published only after project details are verified."),
     ]
     cards_html = "".join(
-        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 33vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
+        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 50vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
         for src, w, h, alt, kind, title, copy in projects
     )
     return f"""
@@ -812,7 +807,7 @@ def about_body() -> str:
           <p>Since founding Angel Tree Services, he has brought that background into more than a decade of operating a local family business. Together, that continuous history represents {COMPANY_EXPERIENCE_PROOF}.</p>
           <p class="ats-about-history__disclaimer">These former roles are part of the founder’s work history. They do not imply endorsement of Angel Tree Services by either former employer or any current utility affiliation.</p>
         </div>
-        <div class="ats-about-territories" aria-label="Virginia service territories from the founder's prior leadership experience">
+        <div class="ats-about-territories" role="group" aria-label="Virginia service territories from the founder's prior leadership experience">
           <p>Leadership experience across Virginia</p>
           <ul>
             <li>Fredericksburg area</li>
@@ -910,7 +905,7 @@ def recognition_body() -> str:
           </div>
           <p>Google remains the primary review signal. Angi adds a longer project-history view, while BBB publishes a separate business rating. No scores or review counts are combined.</p>
         </div>
-        <div class="ats-review-metrics" aria-label="Current third-party review and rating information">
+        <div class="ats-review-metrics" role="group" aria-label="Current third-party review and rating information">
           <article>
             <p class="ats-review-metrics__platform">Google</p>
             <p class="ats-review-metrics__value">120+</p>
@@ -919,7 +914,7 @@ def recognition_body() -> str:
           </article>
           <article>
             <p class="ats-review-metrics__platform">Angi</p>
-            <p class="ats-review-metrics__value" aria-label="5.0 out of 5 stars">5.0 <span aria-hidden="true">★</span></p>
+            <p class="ats-review-metrics__value" role="img" aria-label="5.0 out of 5 stars">5.0 <span aria-hidden="true">★</span></p>
             <p><strong>44 customer reviews</strong></p>
             <a href="{html_attr(ANGI_URL)}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on Angi</a>
           </article>
@@ -1151,7 +1146,7 @@ PAGES = [
         "h1": "Clear tree-service coordination for managed properties.",
         "lead": "For HOAs, property managers, apartment communities, churches, nonprofits, commercial sites, and multi-property organizations, a useful proposal starts with the property and approval path.",
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Commercial and HOA", "/services/commercial-hoa-tree-care/")],
-        "estimate_href": "/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management#contact",
+        "estimate_href": "/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact",
         "estimate_label": "Request a property estimate",
         "hero_image": "/assets/GardenLandscaping+(2)_008.jpg",
         "image_width": 2500,
@@ -1277,7 +1272,7 @@ Angel Tree Services serves homeowners as well as businesses, HOAs, property mana
 
 ## Core Services
 
-- [Tree services overview]({SITE}/services/): Guidance on the company's primary tree services, estimate process, written scopes, and related landscaping and lawn-care requests.
+- [Tree services overview]({SITE}/services/): Guidance on the company's primary tree services, estimate process, written scopes, and related landscaping requests.
 - [Tree removal]({SITE}/services/tree-removal/): Professional removal of hazardous, declining, storm-damaged, large, or poorly positioned trees. Capabilities include complex removals near structures and obstacles, hazardous and large-tree work, crane-assisted removal where appropriate, bucket-truck work, climbing, rigging, cutting, hauling, and cleanup.
 - [Tree pruning]({SITE}/services/tree-pruning/): Structural pruning, deadwood removal, canopy raising, clearance pruning, young-tree training, and other pruning tied to a defined objective. Recommendations consider tree biology, structure, condition, site constraints, and long-term health rather than indiscriminate cutting.
 - [Stump grinding]({SITE}/services/stump-grinding/): Grinding or reducing unwanted stumps to improve usability, appearance, mowing access, and future landscape planning. Access, underground utilities, grinding depth, chips, remaining roots, and replanting plans are addressed as part of a clear scope.

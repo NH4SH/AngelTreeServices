@@ -3,6 +3,8 @@
 ### Users
 Primary users are homeowners and commercial or property-management buyers in the Fredericksburg region, including Spotsylvania, Stafford, King George, and Caroline. They typically arrive with a practical need and want to request a quote quickly, while also confirming that the company is credible, experienced, and worth trusting with visible outdoor work on their property.
 
+The public website promotes tree care and landscaping. The owner removed lawn care from the public offering on October 16, 2026; do not reintroduce it in service copy, project showcases, metadata, or estimate choices.
+
 ### Brand Personality
 The brand should feel confident, warm, and premium. The voice should be direct, trustworthy, and professional without feeling stiff or corporate. The interface should reduce hesitation, reinforce legitimacy, and make older homeowners feel comfortable moving forward.
 

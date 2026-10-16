@@ -36,13 +36,14 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
-    "/services/tree-removal/": {"service": "Tree Care"},
-    "/services/tree-pruning/": {"service": "Tree Care"},
-    "/services/stump-grinding/": {"service": "Tree Care"},
-    "/services/emergency-tree-service/": {"service": "Storm Cleanup"},
+    "/services/tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
+    "/services/tree-pruning/": {"service": "Tree Care", "estimate_context": "tree-pruning"},
+    "/services/stump-grinding/": {"service": "Tree Care", "estimate_context": "stump-grinding"},
+    "/services/emergency-tree-service/": {"service": "Storm Cleanup", "estimate_context": "emergency-tree-service"},
     "/services/commercial-hoa-tree-care/": {
         "service": "Multiple Services / Not Sure Yet",
         "customer_type": "Commercial / Property Management",
+        "estimate_context": "commercial-hoa-tree-care",
     },
 }
 
@@ -516,8 +517,8 @@ class Validator:
         if testimonial_sizes != 2:
             self.error("/: testimonial AVIF and WebP sources must share accurate responsive sizes")
 
-        service_sizes = "(max-width: 575px) 70vw, (max-width: 1099px) 28vw, 263px"
-        if sum(image.get("sizes") == service_sizes for image in homepage.images) != 3:
+        service_sizes = "(max-width: 575px) 70vw, (max-width: 1500px) calc(35vw - 37px), 488px"
+        if sum(image.get("sizes") == service_sizes for image in homepage.images) != 2:
             self.error("/: service-card images must use the measured desktop width hint")
 
     def validate_homepage_footer_visibility(self) -> None:
@@ -565,6 +566,11 @@ class Validator:
 
     def validate_references(self) -> None:
         for route, page in self.pages.items():
+            measurement_scripts = [item for item in page.scripts if item.get("src", "").split("?", 1)[0] == "/ats-website.js"]
+            if len(measurement_scripts) != 1 or "defer" not in measurement_scripts[0]:
+                self.error(f"{route}: expected one deferred shared website initializer")
+            if "google-analytics_analytics.js" in self.page_sources[route] or "gtag(" in self.page_sources[route]:
+                self.error(f"{route}: legacy or duplicate analytics initialization")
             for attribute, reference in page.references:
                 target = self.resolve_local_reference(route, reference)
                 if target is not None and not target.is_file():
@@ -794,11 +800,11 @@ class Validator:
             "utm_source",
             "utm_medium",
             "utm_campaign",
-            "body.ok === false",
+            "body.ok !== true",
             "form.dataset.submitting",
             "form.reset()",
         )
-        combined = source + "\n" + script
+        combined = source + "\n" + script + "\n" + (self.site_dir / "ats-website.js").read_text(encoding="utf-8")
         for term in required_runtime_terms:
             if term not in combined:
                 self.error(f"/: lead-form release invariant is missing: {term}")
@@ -891,12 +897,26 @@ class Validator:
         if not homepage or not page:
             return
 
+        # The owner retired this service. Check all shipped page content, metadata,
+        # embedded legacy card data and the generated machine-readable summary.
+        for route, source in self.page_sources.items():
+            if re.search(r"lawn[\s-]+care", source, re.IGNORECASE):
+                self.error(f"{route}: retired lawn-care offering must not be published")
+        summary = self.site_dir / "llms.txt"
+        if summary.is_file() and re.search(r"lawn[\s-]+care", summary.read_text(encoding="utf-8"), re.IGNORECASE):
+            self.error("llms.txt: retired lawn-care offering must not be published")
+        landscaping_links = [link for link in page.links if link.get("data-estimate-service") == "Landscaping"]
+        if len(landscaping_links) != 1 or landscaping_links[0].get("href") != "/?service=Landscaping#contact":
+            self.error("/: landscaping card needs a service-specific estimate link with an in-place enhancement")
+        if '<option value="Landscaping">Landscaping</option>' not in homepage:
+            self.error("/: landscaping must remain available in the estimate form")
+
         expected_title = "Tree Service in Fredericksburg, VA | Angel Tree Services"
         expected_heading = "Your yard’s best friend."
         expected_eyebrow = "Fredericksburg Tree Service"
         expected_description = (
             "Certified-arborist-led tree service in Fredericksburg for removal, pruning, storm "
-            "cleanup, stump grinding, landscaping, and lawn care. Free estimates."
+            "cleanup, stump grinding, and landscaping. Free estimates."
         )
 
         if page.title != expected_title:
@@ -1207,7 +1227,7 @@ class Validator:
                     self.error(f"{route}: new-tab link must use rel=\"noopener noreferrer\"")
 
         responsive_image_expectations = {
-            "/projects/": ("service-tree-320", "service-lawn-320", "service-landscaping-320"),
+            "/projects/": ("service-tree-320", "service-landscaping-320"),
             "/about/": ("service-tree-320",),
             "/services/tree-removal/": ("service-tree-320",),
             "/services/commercial-hoa-tree-care/": ("service-landscaping-320",),
@@ -1225,9 +1245,13 @@ class Validator:
         expected_legacy_assets = {
             "200x200-hortz-logo.jpg",
             "LightroomGrassPictureSquooshed_013.jpg",
-            "google-analytics_analytics.js",
             "isamember1_004.jpg",
         }
+        if list(self.site_dir.rglob("google-analytics_analytics.js")):
+            self.error("Public artifact must not ship the legacy analytics no-op")
+        analytics = (self.site_dir / "ats-website.js").read_text(encoding="utf-8")
+        if "var COLLECTION_ENABLED = false;" not in analytics or 'var MEASUREMENT_ID = "";' not in analytics:
+            self.error("Analytics activation requires a separate approved release")
         legacy_directory = self.site_dir / "angeltreeservices_backup_files"
         delivered_legacy_assets = (
             {path.name for path in legacy_directory.iterdir() if path.is_file()}
@@ -1235,7 +1259,7 @@ class Validator:
             else set()
         )
         if delivered_legacy_assets != expected_legacy_assets:
-            self.error("Public artifact must include only the four homepage legacy assets still in use")
+            self.error("Public artifact must include only the three homepage legacy assets still in use")
 
         for path in self.site_dir.rglob("*"):
             if not path.is_file():
@@ -1255,6 +1279,7 @@ class Validator:
             self.site_dir / "ats-form-enhancements.js",
             self.site_dir / "site-pages.css",
             self.site_dir / "site-pages.js",
+            self.site_dir / "ats-website.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",
             self.site_dir / "llms.txt",

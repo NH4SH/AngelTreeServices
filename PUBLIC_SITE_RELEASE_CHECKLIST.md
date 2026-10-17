@@ -1,5 +1,120 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Approved draft-recovery, Landscaping-link and privacy publication — October 17, 2026
+
+The owner approved commit, push and publication of the final reviewed public
+website patch. This supersedes this batch's local-only holds below. The approved
+homepage includes “Explore landscaping services” above its retained estimate
+button. Keep analytics disabled and CRM code/settings unchanged. Preserve newer
+shared-main work, use `[skip netlify]` to prevent both projects' automatic builds,
+and trigger only the public project's Git build. Preserve production Maps input.
+Do not submit production leads; run non-submitting live smoke checks and verify
+CRM's published deployment remains unchanged. No additional feature changes.
+
+## Final draft-recovery / Landscaping-link / privacy review — October 17, 2026
+
+Owner requested final regression/release review and correction of the privacy
+wording. Keep analytics disabled, CRM code/settings unchanged, no push/deploy.
+This review supersedes the implementation-only evidence and privacy follow-up
+below. Readiness: local patch passes independent final review (`ship`, no material
+fixes). Publication remains held; release steps below still apply.
+
+- Corrected public privacy body/date only: Google Analytics collection is
+  disabled, no active public-analytics provider claim, factual tab draft storage,
+  30-minute inactivity expiry, suspended-timer caveat, Clear draft, verified
+  success cleanup, consent exclusion and storage-unavailable fallback. All
+  metadata, links and unrelated platform claims remain intact.
+- Found and fixed an expired-draft history regression. A reconstructed history
+  document could remove an expired record during initialization, then recover
+  browser-native field values before pageshow. The first pageshow now retains
+  the initial expiry result and resets those expired values. Added a meaningful
+  failing-before/passing-after regression test. Browser confirmation: expire
+  while visiting Privacy, then Back → empty fields, expiry notice, no saved copy.
+- Fresh final checks:134/134 tests and15-page build validation pass. Compared to
+  released73a099d,4existing built files change (homepage, shared form helper,
+  overrides and privacy body),1draft script is added;210others are identical.
+  All15page heads, every previous homepage href, all photos/provenance,
+  analytics bytes and production autocomplete source are preserved.
+- Fresh keyboard homepage Explore landscaping services → Landscaping hero
+  estimate selects Landscaping. Privacy browse/Back preserves exact multiline
+  and emoji customer text and resets marketing opt-in. Clear resets fields,
+  context and retry identity, focusing Fullname. Existing isolated mock failure,
+  ambiguous acknowledgment and success evidence remains applicable; no new
+  browser submission was made in this review. No production lead or CRM call.
+- New desktop1440x1000 privacy, user1280x720 estimate/expiry and390x844 mobile
+  captures show the complete new draft and analytics paragraphs without clipping
+  or horizontal overflow. Earlier unchanged service-card captures remain valid;
+  previous320/390/760/761/1280/1440 numeric layout checks cover shared UI.
+  All synthetic review drafts were cleared and viewport/test clock reset.
+- Read-only GitHub snapshot:main bd6ea2d8972a6435052c5604e0e106dc2371c1f8
+  is5commits ahead of local73a099d; changed paths only apps/ and supabase/,
+  with no public patch overlap. No fetch, merge, rebase or repository-index
+  change. Preserve those newer commits in a later approved release and rebuild
+  its exact final commit. Hosting state/settings were not queried or changed.
+- Before publication: preserve current shared-main work, verify exact release
+  build, refresh both Netlify projects/production Maps input, then publish only
+  the website and run non-submitting production smoke checks. Physical devices,
+  spoken screen reader and isolated CRM delivery remain untested. These local
+  browser/form changes introduce no CRM contract or endpoint change.
+- Final independent review: `ship`, all9required section captures valid and no
+  material fixes. Final documentation comparison preserves incumbent system
+  files; no design-token, visual-world or unrelated legacy repair is required.
+- Final evidence: October16 chat work/estimate-draft-recovery/final-review-*
+  and .impeccable/review/estimate-draft-recovery/final-*.jpg. Local preview
+  http://127.0.0.1:53639/privacy/ uses a loopback fixture and blocks external
+  form/connect traffic; it is not the production CRM. No commit, push or deploy.
+
+## Approved local estimate draft recovery and Landscaping access — October 17, 2026
+
+Owner approved tab-only estimate draft recovery with Clear draft, expiry and
+cleanup after successful submission. Preserve SEO/estimate links, disabled
+analytics and unchanged CRM. No commit, push, deploy or production lead tests.
+The homepage Landscaping card gains an additive “Explore landscaping services”
+link while its existing estimate button and destination stay intact. On the
+current live website the route remains Services → Explore landscaping services;
+the homepage shortcut is part of this local patch.
+
+- Save only allowlisted customer fields and compatible service/context choices
+  in sessionStorage for the current tab. Expire after 30 minutes without edits;
+  restoration and browsing do not extend expiry. No persistent-storage fallback,
+  marketing consent, honeypot, attribution, endpoint URL or server response saved.
+- Preserve literal text and retry identity through browsing/reload. Explicit
+  estimate links still select their service. Clear draft resets current fields,
+  context and retry identity, focuses Full name, and prevents stale browser
+  history from recovering the discarded details. Disable Clear while submitting.
+- Clear saved details only after the existing verified success acknowledgment.
+  Failed, network and ambiguous responses keep the draft. The real browser
+  exposed a native history-restoration case; reconciliation now also covers
+  reconstructed back/forward pages as well as bfcache pages.
+- Storage denial, quota, malformed/expired records and oversized entries leave
+  the form usable; never silently truncate customer text. Active form timers and
+  reads enforce expiry. Suspended background pages can delay physical cleanup;
+  an expired record is never restored. Current open fields remain after expiry.
+- Local checks pass: 134/134 tests and all 15 pages validate. All 15 existing
+  page heads and every previous homepage link are preserved. Four existing
+  built files change (homepage, form helper, overrides and privacy body), one
+  draft script is added, and the other 210 artifact files are byte-identical. All photos,
+  provenance, analytics configuration and CRM/hosting settings are unchanged.
+- Isolated local browser checks cover browse/return, literal multiline/emoji
+  input, conditional email, consent exclusion, failure/ambiguous/success, Back
+  after success, keyboard Clear/focus, reload and 31-minute expiry simulation.
+  Desktop 1280/1440 and widths 320/390/760/761 show no horizontal overflow. New
+  actions are at least 48px tall and keyboard focus is visible. Synthetic data
+  was cleared; four mock submissions went only to a loopback fixture endpoint.
+- Independent finish review: `ship`, no material fixes. One detector pass finds
+  exactly the same 41 inherited findings as the previous homepage review; no
+  new notice/link findings. Documentation comparison preserves incumbent files.
+- Local evidence: October 16 chat work/estimate-draft-recovery/ and
+  .impeccable/review/estimate-draft-recovery/. Preview at
+  http://127.0.0.1:53639/#services uses an isolated mock transport, not the CRM.
+- Before a future approved release: reconcile newer shared-main work, rerun the
+  final release build, refresh both Netlify projects and production Maps input,
+  publish only the website, and run non-submitting production smoke checks.
+  Physical-device/spoken-screen-reader and isolated CRM-delivery tests remain
+  unperformed. The final review above corrects the public analytics wording
+  and adds the factual draft disclosure; collection remains disabled. No
+  unrelated platform policy rewrite is included in this local feature.
+
 ## Approved Landscaping publication — October 17, 2026
 
 The owner approved commit, push and publication of the final reviewed Landscaping

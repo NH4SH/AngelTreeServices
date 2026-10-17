@@ -1336,6 +1336,7 @@ class Validator:
             *self.site_dir.rglob("*.html"),
             self.site_dir / "overrides.css",
             self.site_dir / "ats-form-enhancements.js",
+            self.site_dir / "ats-estimate-draft.js",
             self.site_dir / "site-pages.css",
             self.site_dir / "site-pages.js",
             self.site_dir / "ats-website.js",

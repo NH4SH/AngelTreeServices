@@ -544,6 +544,64 @@ body.ats-form-submitted .ats-form-success {
   color: #8e2323;
 }
 
+#contact .ats-estimate-draft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-block: 0 18px;
+  color: var(--ats-green-deep);
+}
+
+#contact .ats-estimate-draft[hidden],
+#contact [data-draft-clear][hidden] {
+  display: none;
+}
+
+#contact [data-draft-status] {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#contact [data-draft-clear] {
+  min-height: 48px;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+#contact [data-draft-clear]:focus-visible,
+#about .ats-landscaping-details a:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+#contact [data-draft-clear]:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+#about .ats-landscaping-details {
+  margin-block: 8px 0;
+}
+
+#about .ats-landscaping-details a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 #contact .ats-contact-form .field-list > * {
   min-width: 0;
 }

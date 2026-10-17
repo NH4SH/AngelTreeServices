@@ -105,6 +105,7 @@
           destination.hash = "contact";
           window.history.replaceState(window.history.state, "", destination.pathname + destination.search + destination.hash);
         } catch (error) { /* Service selection works even when history is unavailable. */ }
+        if (form.atsEstimateDraft) form.atsEstimateDraft.save();
         service.focus();
       });
     });
@@ -422,6 +423,7 @@
 
     form.classList.toggle("is-submitting", isSubmitting);
     form.dataset.submitting = isSubmitting ? "true" : "false";
+    if (form.atsEstimateDraft) form.atsEstimateDraft.setBusy(isSubmitting);
     button.disabled = isSubmitting;
     button.setAttribute("aria-busy", isSubmitting ? "true" : "false");
     setButtonText(button, isSubmitting ? loadingLabel : button.dataset.defaultLabel);
@@ -674,16 +676,52 @@
     syncEstimateContext(form);
   }
 
+  function syncRecoveredForm(form) {
+    syncCommercialFields(form);
+    syncEmailRequirement(form);
+    syncEstimateContext(form);
+    setSubmissionMetadata(form, false);
+  }
+
+  function clearRecoveredForm(form) {
+    form.reset();
+    clearEstimateContext(form);
+    syncCommercialFields(form);
+    syncEmailRequirement(form);
+    Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid="true"]'), clearFieldError);
+    setSummaryState(form, false);
+    setServerStatus(form, "", "");
+    document.body.classList.remove("ats-form-submitted");
+    try {
+      var destination = new URL(window.location.href);
+      ["service", "estimate_context", "customer_type"].forEach(function (key) { destination.searchParams.delete(key); });
+      if (destination.searchParams.get("contact") === "success") destination.searchParams.delete("contact");
+      window.history.replaceState(window.history.state, "", destination.pathname + destination.search + destination.hash);
+    } catch (error) { /* Clearing the form does not depend on history access. */ }
+    form.dataset.formStartedAt = String(Date.now());
+    setSubmissionMetadata(form, true);
+    var first = form.querySelector('input[name="name"]');
+    if (first) first.focus();
+  }
+
   function initForm(form) {
     form.dataset.formStartedAt = String(Date.now());
     setSubmissionMetadata(form, true);
+    if (window.ATSEstimateDrafts && typeof window.ATSEstimateDrafts.create === "function") {
+      try {
+        form.atsEstimateDraft = window.ATSEstimateDrafts.create(form, {
+          clearForm: function () { clearRecoveredForm(form); },
+          syncForm: function () { syncRecoveredForm(form); }
+        });
+      } catch (error) { /* Optional recovery must never block the estimate form. */ }
+    }
     applyEstimatePrefill(form);
-    syncCommercialFields(form);
-    syncEmailRequirement(form);
+    syncRecoveredForm(form);
     setSubmitting(form, false);
     setSummaryState(form, false);
     setServerStatus(form, "", "");
     initEstimateServiceLinks(form);
+    if (form.atsEstimateDraft) form.atsEstimateDraft.finishRestore();
 
     form.addEventListener(
       "input",
@@ -776,6 +814,7 @@
 
       submitLead(form)
         .then(function (response) {
+          if (form.atsEstimateDraft) form.atsEstimateDraft.forget();
           form.reset();
           form.dataset.formStartedAt = String(Date.now());
           setSubmissionMetadata(form, true);

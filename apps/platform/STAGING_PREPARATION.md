@@ -1,6 +1,7 @@
 # Isolated staging preparation — October 17, 2026
 
-Status: **local preparation verified; hosted staging is not created or ready**.
+Status: **local preparation verified; separate targets created but not ready**.
+See STAGING_TARGET_SETUP.md for actual assignments, verification and blockers.
 This continues PR18/F17 and the existing scanner activation runbook. No deploy,
 preview deploy, project/branch purchase, DNS change, hosted schema/history repair,
 production credential change or production data operation is included.
@@ -36,8 +37,10 @@ target evidence. No manifest flag grants deployment approval.
 Use a separate Supabase staging project (or separately approved branch), a
 separate Netlify site and a separate company-controlled scanner credential and
 endpoint. Do not use a preview of the live CRM site with its inherited secrets.
-No suitable Supabase branch currently exists; no company staging target/site or
-hostname was assigned or provisioned. Cost/provisioning approval is still needed.
+The separately created targets are CRM Staging in ATS and the dedicated
+angel-tree-admin-staging Netlify project. Their inventory is in
+staging/PROVISIONED_TARGETS.json; schema/Auth, visitor protection, scanner hosting
+and remaining evidence are not complete. No application has been deployed.
 
 Initial profile is **core-no-providers**. Copy schema/code, not customer data,
 Auth users, sessions, Storage bytes, saved integrations, production queues or

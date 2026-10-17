@@ -1,0 +1,53 @@
+{
+  "verifiedOn": "2026-10-17",
+  "status": "provisioned-not-ready",
+  "sourceCommit": "55b7d6c26f356a7cd30ac88765949fd6dd8652d2",
+  "supabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "name": "CRM Staging",
+    "organizationId": "crisckykyefqdpatbfgb",
+    "organizationName": "ATS",
+    "planAtVerification": "free",
+    "region": "us-east-2",
+    "postgresVersion": "17.11.0.003",
+    "expectedMigrationCount": 92,
+    "appliedMigrationCount": 0,
+    "authUserCount": 0,
+    "storageObjectCount": 0,
+    "publishableKeyBindingVerified": true,
+    "privilegedKeyBindingVerified": false,
+    "authIsolationVerified": false
+  },
+  "netlify": {
+    "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "name": "angel-tree-admin-staging",
+    "teamId": "6887e1d10bc00c09293eae2c",
+    "teamSlug": "nh4sh",
+    "reservedAppOrigin": "https://angel-tree-admin-staging.netlify.app",
+    "originLiveVerified": false,
+    "publishedDeployId": null,
+    "visitorProtectionVerified": false,
+    "visitorProtectionBlocker": "Current legacy Free plan requires an upgrade; no plan change authorized or made.",
+    "publicConfigurationVerifiedInDashboard": [
+      "APP_ENV",
+      "STAGING_MODE",
+      "APP_BASE_URL",
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ],
+    "publicConfigurationScopes": "all",
+    "publicConfigurationContexts": "all",
+    "credentialsInstalled": false,
+    "runtimeEnvironmentVerified": false
+  },
+  "scanner": {
+    "host": null,
+    "origin": null,
+    "maintainer": null,
+    "minimumRamGiB": 8,
+    "minimumVcpu": 2,
+    "isolationVerified": false,
+    "backupRecoveryVerified": false
+  },
+  "readyToBuildForHosting": false,
+  "deploymentAuthorized": false
+}

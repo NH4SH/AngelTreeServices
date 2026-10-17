@@ -1,9 +1,9 @@
 # Isolated staging preparation — October 17, 2026
 
-Status: **local preparation verified; separate targets created but not ready**.
+Status: **local preparation verified; separate targets created; staging schema initialized but hosting not ready**.
 See STAGING_TARGET_SETUP.md for actual assignments, verification and blockers.
 This continues PR18/F17 and the existing scanner activation runbook. No deploy,
-preview deploy, project/branch purchase, DNS change, hosted schema/history repair,
+preview deploy, project/branch purchase, DNS change, production schema/history change,
 production credential change or production data operation is included.
 
 ## Concrete package
@@ -39,8 +39,12 @@ separate Netlify site and a separate company-controlled scanner credential and
 endpoint. Do not use a preview of the live CRM site with its inherited secrets.
 The separately created targets are CRM Staging in ATS and the dedicated
 angel-tree-admin-staging Netlify project. Their inventory is in
-staging/PROVISIONED_TARGETS.json; schema/Auth, visitor protection, scanner hosting
-and remaining evidence are not complete. No application has been deployed.
+staging/PROVISIONED_TARGETS.json. The original 92 migrations are now applied and
+their ledger verified on staging; automation and all scan switches are OFF.
+The exact staging Auth Site URL/reset redirect and disabled public signup are
+verified. Fresh hosted default grants differ from local replay and need a scoped
+reconciliation before app release. Auth/mail, visitor protection, scanner hosting
+and remaining runtime evidence are incomplete. No application has been deployed.
 
 Initial profile is **core-no-providers**. Copy schema/code, not customer data,
 Auth users, sessions, Storage bytes, saved integrations, production queues or

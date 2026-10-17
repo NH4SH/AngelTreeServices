@@ -1,6 +1,6 @@
 {
   "verifiedOn": "2026-10-17",
-  "status": "provisioned-not-ready",
+  "status": "schema-initialized-not-ready",
   "sourceCommit": "55b7d6c26f356a7cd30ac88765949fd6dd8652d2",
   "supabase": {
     "projectRef": "gbyhdsuiqeslgjdnbqng",
@@ -11,12 +11,32 @@
     "region": "us-east-2",
     "postgresVersion": "17.11.0.003",
     "expectedMigrationCount": 92,
-    "appliedMigrationCount": 0,
+    "appliedMigrationCount": 92,
     "authUserCount": 0,
     "storageObjectCount": 0,
     "publishableKeyBindingVerified": true,
     "privilegedKeyBindingVerified": false,
-    "authIsolationVerified": false
+    "authIsolationVerified": false,
+    "originalMigrationHashesVerified": true,
+    "exactMigrationLedgerVerified": true,
+    "pendingMigrationCount": 0,
+    "schemaSourceCommit": "58231ef627a32173d415665f149da0260982e8b3",
+    "defaultAutomationOffVerified": true,
+    "scanSwitchesOffVerified": true,
+    "privateBucketCount": 8,
+    "applicationObjectsCompared": 4723,
+    "matchingSchemaExceptGrants": true,
+    "extraDefaultAclEntries": 6,
+    "objectsWithAdditionalGrants": 109,
+    "grantReconciliationVerified": false,
+    "publicSignupDisabled": true,
+    "emailPasswordProviderEnabled": true,
+    "authSiteUrl": "https://angel-tree-admin-staging.netlify.app",
+    "authAdditionalRedirectUrls": [
+      "https://angel-tree-admin-staging.netlify.app/update-password"
+    ],
+    "authDeclaredConfigurationVerified": true,
+    "authMailIsolationVerified": false
   },
   "netlify": {
     "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",

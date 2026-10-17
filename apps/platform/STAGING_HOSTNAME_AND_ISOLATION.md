@@ -4,8 +4,10 @@ Status: **implemented and verified locally; separate targets exist but are not r
 Subsequent target provisioning is recorded in STAGING_TARGET_SETUP.md. The
 hostname/isolation verification below describes the original local source pass;
 the new staging database now has 92/92 migrations and restricted signup/redirects,
-but fresh-project grants and the remaining hosting/Auth-mail/scanner gates are
-unresolved. No approved deployment or readiness claim exists.
+and its current application grants and normal migration-owner named defaults are
+now reconciled. Protected administrator/default policy and the remaining
+hosting/Auth-mail/scanner gates are unresolved; see STAGING_PERMISSION_RECONCILIATION.md.
+No approved deployment or readiness claim exists.
 This continues PR18/F17 and STAGING_PREPARATION.md. Reconciliation/preparation
 `d72e5d1` is pushed to main and its branch, with Netlify deployment skipped.
 The branch also includes latest main `73a099d` (an independent public-website

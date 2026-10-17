@@ -40,7 +40,7 @@ select lives_ok(
     '6917 Bloomsbury Ln', 'Spotsylvania', 'VA', '22553',
     'Use side gate', 'Dog inside', 'trimming', 'Trim oak over driveway',
     'Estimate - oak', 'Customer prefers afternoon',
-    '2026-08-03 14:00:00+00', null, null
+    '2026-08-03 14:00:00+00', null, null, null, null
   )$$,
   'owner can schedule from an existing customer'
 );
@@ -48,7 +48,7 @@ select is((select count(*)::integer from public.schedule_events where source_req
 select is((select primary_contact_name from public.customers where id = '92000000-0000-0000-0000-000000000001'), 'Corrected Contact', 'editable customer contact fields are saved');
 select is((select street from public.service_locations where id = '93000000-0000-0000-0000-000000000001'), '6917 Bloomsbury Ln', 'editable property fields are saved');
 
-select lives_ok(
+select throws_ok(
   $$select public.schedule_party_estimate(
     '94000000-0000-0000-0000-000000000001',
     '92000000-0000-0000-0000-000000000001', null, null,
@@ -57,12 +57,13 @@ select lives_ok(
     '6917 Bloomsbury Ln', 'Spotsylvania', 'VA', '22553',
     'Use side gate', 'Dog inside', 'trimming', 'Trim oak and maple',
     'Estimate - two trees', 'Updated',
-    '2026-08-04 14:00:00+00', null, null
+    '2026-08-04 14:00:00+00', null, null, null, null
   )$$,
-  'retry updates the same customer estimate'
+  '40001', 'This estimate is already scheduled. Open the current calendar visit to make changes.',
+  'a duplicate creation request cannot overwrite the existing visit'
 );
 select is((select count(*)::integer from public.schedule_events where source_request_key = '94000000-0000-0000-0000-000000000001'), 1, 'retry cannot create a duplicate event');
-select is((select description from public.schedule_events where source_request_key = '94000000-0000-0000-0000-000000000001'), 'Trim oak and maple', 'retry keeps the latest saved fields');
+select is((select description from public.schedule_events where source_request_key = '94000000-0000-0000-0000-000000000001'), 'Trim oak over driveway', 'duplicate creation preserves the saved visit');
 
 set local "request.jwt.claim.sub" = '91000000-0000-0000-0000-000000000002';
 select set_config('request.jwt.claims', '{"sub":"91000000-0000-0000-0000-000000000002"}', true);
@@ -71,7 +72,7 @@ select throws_ok(
     gen_random_uuid(), '92000000-0000-0000-0000-000000000001', null, null,
     '93000000-0000-0000-0000-000000000001', 'Contact', '540-555-0199', null,
     '6917 Bloomsbury Ln', 'Spotsylvania', 'VA', '22553', null, null,
-    'other', 'Scope', 'Estimate', null, '2026-08-05 14:00:00+00', null, null
+    'other', 'Scope', 'Estimate', null, '2026-08-05 14:00:00+00', null, null, null, null
   )$$,
   '42501',
   'Only owners and admins can schedule estimates from customer records.',

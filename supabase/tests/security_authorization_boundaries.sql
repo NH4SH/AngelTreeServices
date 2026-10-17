@@ -1,6 +1,6 @@
 begin;
 
-select plan(21);
+select plan(22);
 
 insert into public.roles (name) values
   ('owner'), ('admin'), ('payroll_admin'), ('estimator'), ('crew'), ('customer'), ('property_manager')
@@ -80,7 +80,8 @@ select throws_ok($$delete from public.payments$$, '42501', 'permission denied fo
 
 set local "request.jwt.claim.sub" = 'a1000000-0000-0000-0000-000000000001';
 select set_config('request.jwt.claims', '{"sub":"a1000000-0000-0000-0000-000000000001"}', true);
-select lives_ok($$select public.record_manual_invoice_payment('b3000000-0000-0000-0000-000000000001', 4000, now(), 'check', 'security-test', null)$$, 'owner can record a manual payment');
+select ok(not has_function_privilege('authenticated', 'public.record_manual_invoice_payment(uuid,integer,timestamptz,text,text,text)', 'EXECUTE'), 'manual payments cannot bypass the request identity command');
+select lives_ok($$select public.record_manual_invoice_payment_request('b4000000-0000-0000-0000-000000000001', 'b3000000-0000-0000-0000-000000000001', 4000, now(), 'check', 'security-test', null)$$, 'owner can record a manual payment through its request identity');
 select is((select balance_due_cents from public.invoices where id = 'b3000000-0000-0000-0000-000000000001'), 6000, 'manual payment updates invoice balance transactionally');
 select is((select count(*)::integer from public.activity_log where subject_id = 'b3000000-0000-0000-0000-000000000001' and event_type = 'manual_payment_recorded'), 1, 'manual payment writes one audit event');
 select lives_ok($$select public.cancel_manual_invoice_payment('b3000000-0000-0000-0000-000000000001', (select id from public.payments where invoice_id = 'b3000000-0000-0000-0000-000000000001'), 'fixture correction')$$, 'owner can correct a manual payment');

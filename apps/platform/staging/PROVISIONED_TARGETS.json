@@ -1,6 +1,6 @@
 {
   "verifiedOn": "2026-10-17",
-  "status": "schema-initialized-not-ready",
+  "status": "application-grants-reconciled-hosting-not-ready",
   "sourceCommit": "55b7d6c26f356a7cd30ac88765949fd6dd8652d2",
   "supabase": {
     "projectRef": "gbyhdsuiqeslgjdnbqng",
@@ -27,7 +27,7 @@
     "applicationObjectsCompared": 4723,
     "matchingSchemaExceptGrants": true,
     "extraDefaultAclEntries": 6,
-    "objectsWithAdditionalGrants": 109,
+    "objectsWithAdditionalGrants": 1,
     "grantReconciliationVerified": false,
     "publicSignupDisabled": true,
     "emailPasswordProviderEnabled": true,
@@ -36,7 +36,24 @@
       "https://angel-tree-admin-staging.netlify.app/update-password"
     ],
     "authDeclaredConfigurationVerified": true,
-    "authMailIsolationVerified": false
+    "authMailIsolationVerified": false,
+    "initialObjectsWithAdditionalGrants": 109,
+    "remainingObjectGrantDifference": "Redundant managed public-schema USAGE only; current public relation/routine ACLs exactly match fresh replay.",
+    "currentObjectGrantContractVerified": true,
+    "currentObjectGrantAclSeal": "edff606fc762a401d61b9c9e31989a9c",
+    "reconciledApplicationObjects": 108,
+    "explicitObjectRevocations": 279,
+    "migrationOwnerNamedDefaultsRestricted": true,
+    "migrationOwnerNamedDefaultApiGrantsBefore": 36,
+    "migrationOwnerNamedDefaultApiGrantsAfter": 0,
+    "managedAdminDefaultGrantsRestricted": false,
+    "managedAdminDefaultGrantsChanged": false,
+    "globalDefaultsChanged": false,
+    "futureFunctionsRequireExplicitPublicRevocation": true,
+    "remainingGrantReview": "Protected supabase_admin defaults require a supported provider/default policy review; normal postgres is not a member.",
+    "permissionProfileSha256": "7e9ba66bae57d6b1468929c492b7b6aa9571b3702b9fd4ba871e0b2b44c59994",
+    "anonymousApplicationDefinerCount": 0,
+    "permissionsPreparedFromCommit": "87b6251bf205ccbfeeb86758b5f60406177cd253"
   },
   "netlify": {
     "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",

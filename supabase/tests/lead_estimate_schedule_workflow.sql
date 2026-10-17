@@ -23,6 +23,10 @@ from (values
 ) as fixture(user_id, role_name)
 join public.roles as role on role.name = fixture.role_name;
 
+-- Current scheduling normalizes selected account IDs to active employee rows.
+insert into public.employee_records(id,auth_user_id,legal_name,employment_status,is_active)
+values ('85000000-0000-0000-0000-000000000001','81000000-0000-0000-0000-000000000001','Synthetic owner estimator','active',true);
+
 insert into public.customers (
   id, display_name, primary_contact_name, customer_type, email, phone
 ) values (
@@ -66,7 +70,7 @@ insert into public.jobs (
 select has_column('public', 'schedule_events', 'lead_intake_job_id', 'schedule events preserve a stable website-lead association');
 select ok(
   not (select prosecdef from pg_proc where oid = 'public.schedule_lead_estimate(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,timestamp with time zone,timestamp with time zone,uuid)'::regprocedure),
-  'lead scheduling function is security invoker'
+  'legacy lead scheduling helper remains security invoker'
 );
 select ok(
   not has_function_privilege('anon', 'public.schedule_lead_estimate(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,timestamp with time zone,timestamp with time zone,uuid)', 'EXECUTE'),
@@ -86,7 +90,7 @@ select lives_ok(
     'Trim oak over driveway', 'Customer reported hanging limb',
     'text', 'Tuesday afternoon', 'Estimate - driveway oak',
     'Meet customer by driveway', '2026-07-30 14:30:00+00', null,
-    '81000000-0000-0000-0000-000000000001'
+    '81000000-0000-0000-0000-000000000001', null, null
   )$$,
   'owner can schedule a complete website lead'
 );
@@ -116,9 +120,10 @@ select lives_ok(
     'Trim oak over driveway', 'Customer reported hanging limb',
     'text', 'Wednesday morning', 'Estimate - driveway oak',
     'Updated calendar note', '2026-07-31 13:00:00+00', null,
-    '81000000-0000-0000-0000-000000000001'
+    '81000000-0000-0000-0000-000000000001', null,
+    (select edit_revision from public.schedule_events where lead_intake_job_id='84000000-0000-0000-0000-000000000001')
   )$$,
-  'retrying the same lead updates the existing estimate'
+  'editing the same lead with its current revision updates the existing estimate'
 );
 select is((select count(*)::integer from public.schedule_events where lead_intake_job_id = '84000000-0000-0000-0000-000000000001'), 1, 'a retry cannot create a duplicate appointment');
 select is((select calendar_notes from public.schedule_events where lead_intake_job_id = '84000000-0000-0000-0000-000000000001'), 'Updated calendar note', 'retry preserves corrected schedule fields');
@@ -131,7 +136,7 @@ select throws_ok(
     'Corrected Lead Name', null, '540-555-0199', null,
     '6917 Bloomsbury Ln', 'Spotsylvania', 'VA', '22553',
     null, null, 'trimming', 'Trim oak', null, 'phone', null,
-    'Estimate', null, '2026-08-01 13:00:00+00', null, null
+    'Estimate', null, '2026-08-01 13:00:00+00', null, null, null, null
   )$$,
   '42501',
   'Only owners and admins can schedule lead estimates.',
@@ -141,13 +146,10 @@ select throws_ok(
 set local "request.jwt.claim.sub" = '81000000-0000-0000-0000-000000000001';
 select set_config('request.jwt.claims', '{"sub":"81000000-0000-0000-0000-000000000001"}', true);
 select lives_ok(
-  $$insert into public.schedule_events (
-    title, event_type, status, starts_at, ends_at, created_by_user_id
-  ) values (
-    'Manual estimate', 'estimate', 'scheduled',
-    '2026-08-02 13:00:00+00', '2026-08-02 14:00:00+00',
-    '81000000-0000-0000-0000-000000000001'
-  )$$,
+  $$select public.save_schedule_event(null, null, jsonb_build_object(
+    'title','Manual estimate', 'event_type','estimate', 'status','scheduled',
+    'starts_at','2026-08-02 13:00:00+00', 'ends_at','2026-08-02 14:00:00+00'
+  ))$$,
   'manual estimate scheduling remains available without a lead'
 );
 select is((select count(*)::integer from public.schedule_events where title = 'Manual estimate' and lead_intake_job_id is null), 1, 'manual events do not receive a false lead association');

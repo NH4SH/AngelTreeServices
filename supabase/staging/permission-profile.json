@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "87b6251bf205ccbfeeb86758b5f60406177cd253",
+  "shapeSeal": "b112c8212ae2f4bb9373f8dc626c591d",
+  "ledgerSeal": "c63edca3d116b1d41f958b0d64b6a072",
+  "initialApiAclSeal": "4b20eee1271c14a3b5b34168d6e29bba",
+  "expectedApiAclSeal": "edff606fc762a401d61b9c9e31989a9c",
+  "allowedOwnedDefaultsSeals": [
+    "ee8284bcedd4f9b42aac698aa3546913",
+    "d751713988987e9331980363e24189ce",
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82",
+    "d751713988987e9331980363e24189ce"
+  ],
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "commandsSha256": "254895c4627c2ef38cd6ef6b1c8c51ecb65b9e7c3c7a668e3f38c81cb6405734",
+  "expectedMigrationCount": 92,
+  "currentObjectCount": 4723,
+  "affectedObjectCount": 108,
+  "managedDefaultsRestricted": false,
+  "globalDefaultsChanged": false
+}

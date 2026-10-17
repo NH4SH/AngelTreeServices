@@ -42,8 +42,10 @@ angel-tree-admin-staging Netlify project. Their inventory is in
 staging/PROVISIONED_TARGETS.json. The original 92 migrations are now applied and
 their ledger verified on staging; automation and all scan switches are OFF.
 The exact staging Auth Site URL/reset redirect and disabled public signup are
-verified. Fresh hosted default grants differ from local replay and need a scoped
-reconciliation before app release. Auth/mail, visitor protection, scanner hosting
+verified. Current application grants now match fresh replay and the normal
+migration-owner named defaults are restricted; protected administrator/global
+defaults remain separately documented. See STAGING_PERMISSION_RECONCILIATION.md.
+Auth/mail, visitor protection, scanner hosting
 and remaining runtime evidence are incomplete. No application has been deployed.
 
 Initial profile is **core-no-providers**. Copy schema/code, not customer data,

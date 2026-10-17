@@ -1,6 +1,6 @@
 # Staging target setup and verification — October 17, 2026
 
-Status: **separate database initialized; hosted app not ready or deployed**.
+Status: **staging application grants reconciled; full provider/default and hosting readiness remain incomplete**.
 This continues PR18/F17 and the existing roadmap. The user selected ATS and
 completed Supabase CLI authentication. Production and the disposable review app
 are preserved.
@@ -65,8 +65,7 @@ its targeted Auth properties changed; undeclared remote settings were left alone
   configuration, SMTP/provider secret or user was imported.
 - The staging publishable key works over HTTPS; an invalid key returns 401.
   Anonymous invoice-void, employee-access and webhook-recovery commands return
-  **401 / 42501**. The extra anonymously executable invoice helper below rejects
-  the request at its existing staff check (**400 / P0001**).
+  **401 / 42501**. The invoice helper below now also denies anonymous execution after reconciliation.
 - Anonymous customer/invoice/quote/profile reads return empty arrays on this empty
   database; employee-record reads are denied. These are transport/denial checks,
   **not** a substitute for seeded owner/admin/estimator/crew RLS tests.
@@ -77,36 +76,34 @@ No recovery email, customer notification, payment, calendar operation or scanner
 request was sent. No privileged API key was retrieved or installed; public-key
 binding alone does not establish server-key binding.
 
-## Fresh-project grants — resolve before app release
+## Fresh-project grant reconciliation follow-through
 
-The managed project adds **six default-ACL entries** and extra grants on **109
-existing objects**: 101 relations, seven routines and the public schema. All
-common-object differences are ACL-only, but **not limited to MAINTAIN**. They
-include anonymous/authenticated SELECT/INSERT/UPDATE/DELETE, sequence permissions
-and routine EXECUTE. There are no missing application catalog objects. Private
-application schemas do not gain extra object grants. Affected views retain
-`security_invoker=true`; all application table RLS remains enabled.
+The verified setup commits `58231ef` and `87b6251` are now pushed to main with
+deployment skipped. The staging-only reconciliation has removed the extra grants
+on **108 public application objects** using 279 explicit REVOKE statements.
+All current relation/routine ACLs now exactly match the original 92-migration
+fresh-replay contract. Three statements restrict the normal `postgres` owner's
+named API-role defaults in `public`, reducing those default grants from 36 to 0.
+The redundant managed public-schema USAGE grants are intentionally retained.
 
-The security advisor reports 26 informational deny-by-default RLS tables without
-policies, 56 authenticated SECURITY DEFINER entry points and one anonymous
-SECURITY DEFINER entry point:
-`public.attach_approved_change_orders_to_invoice(uuid)`. Its real anonymous call
-fails at the existing staff guard. Three other routines gain anonymous EXECUTE
-(two invoker change-order helpers and one trigger-returning routine). These
-observations do not establish a row-level bypass, but prevent claiming fresh
-hosted permissions match the verified local contract.
+The anonymous invoice helper now returns **401 / 42501** before execution;
+its staff caller grant is preserved. The security advisor's anonymous definer
+warning is gone, with zero public application definers executable by anon.
+Original migration history, bodies, RLS, column permissions and all empty/OFF
+state are unchanged; a second apply is a no-op.
 
-**Decision:** keep this target undeployed. Next prepare a narrowly scoped,
-additive grant/default-grant reconciliation against the intended permission
-contract, then test it in the disposable stack and on staging. Do not rewrite
-the 92 original files, blanket-revoke legitimate staff commands, change RLS or
-silently apply the local comparison as a production cleanup. Preserve the
-separate production baseline decisions and its extra column/helper. No ad-hoc
-ACL normalization or new application migration was applied here.
+Three protected `supabase_admin` default ACLs remain unchanged. The normal account
+cannot alter them; no privilege escalation was attempted. PostgreSQL's global
+implicit PUBLIC EXECUTE also requires explicit per-function revocation in future
+migrations; schema-scoped default changes do not remove it. Full provider/default
+reconciliation remains false, separately from the verified current-object and
+normal migration-owner results. No production cleanup is implied.
 
-Advisor references: [anonymous definer entry points](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable),
-[authenticated definer entry points](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
-[RLS without policies](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+See **STAGING_PERMISSION_RECONCILIATION.md** and `supabase/staging/README.md` for
+the guarded package, test evidence, remaining managed-default review and the
+existing release gates. Fresh verification adds 714 passing regressions, 160
+passing database assertions, typecheck, real HTTPS denials and transactional
+rollback/idempotence checks. No application code or production migration changed.
 
 ## Remaining release gates
 
@@ -131,12 +128,13 @@ Advisor references: [anonymous definer entry points](https://supabase.com/docs/g
 
 ## Verification, preservation and next step
 
-Fresh verification: real staging migration apply; exact 92-entry ledger;
+Initial setup verification at `87b6251`: real staging migration apply; exact 92-entry ledger;
 idempotent dry run; full catalog comparison; security advisor; OFF/private/empty
 inventory; Auth readback and HTTPS positive/negative probes; **13/13** existing
 migration-review/staging-preflight tests. The actual assigned export must still
-fail preflight. No application source changed, so the prior 704 regressions,
-typecheck and build remain prior source evidence, not freshly rerun tests.
+fail preflight. Permission follow-through adds 714 passing regressions, 160
+database assertions and a fresh typecheck, detailed in STAGING_PERMISSION_RECONCILIATION.md.
+Application runtime source remains unchanged; no new app build was needed.
 Hosted UI, adapter upload/cache behavior and seeded role/session scenarios need
 a later explicitly approved, protected staging deployment.
 
@@ -150,9 +148,9 @@ Private CLI/config/catalog/API evidence is outside Git under
 Reports and inventory contain no credentials. These results do not authorize
 any app/scanner release or production activation.
 
-**Recommended next implementation:** the additive permission reconciliation above
-within the existing PR18 staging gate. Alongside it, decide visitor protection and
-the company-controlled scanner host/operator. Finish isolated Auth/mail,
+**Recommended next step:** review the protected managed defaults and finish the
+existing PR18 visitor-protection and company-controlled scanner host/operator
+decisions. Complete isolated Auth/mail,
 server-key binding, runtime scopes and paired restore proof before requesting an
 actual staging deployment. See STAGING_PREPARATION.md,
 MIGRATION_RECONCILIATION_REPORT.md and SCANNER_HOSTING_AND_RESTORE.md.

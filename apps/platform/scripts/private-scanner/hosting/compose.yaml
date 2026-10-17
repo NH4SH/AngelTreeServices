@@ -1,0 +1,83 @@
+name: ats-private-scanner
+x-runtime: &runtime
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 64
+  ulimits:
+    core: {soft: 0, hard: 0}
+    nofile: {soft: 1024, hard: 1024}
+  logging:
+    driver: local
+    options: {max-size: 1m, max-file: '3'}
+services:
+  signature-updater:
+    <<: *runtime
+    image: ats-scanner-engine:1.5.4-v1
+    build: {context: .., dockerfile: hosting/Engine.Dockerfile}
+    command: [freshclam, --daemon, --foreground, --config-file=/etc/clamav/freshclam.conf]
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 0.5
+    tmpfs: ['/tmp:rw,noexec,nosuid,nodev,size=64m,mode=700,uid=10001,gid=10001']
+    volumes: ['definitions:/var/lib/clamav']
+    networks: [updates]
+  engine:
+    <<: *runtime
+    image: ats-scanner-engine:1.5.4-v1
+    build: {context: .., dockerfile: hosting/Engine.Dockerfile}
+    mem_limit: 4g
+    memswap_limit: 4g
+    cpus: 1.5
+    tmpfs: ['/tmp:rw,noexec,nosuid,nodev,size=1g,mode=700,uid=10001,gid=10001']
+    volumes: ['definitions:/var/lib/clamav:ro']
+    networks: [engine]
+    logging: {driver: none}
+  bridge:
+    <<: *runtime
+    image: ats-scanner-bridge:node22-v1
+    build: {context: .., dockerfile: hosting/Bridge.Dockerfile}
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
+    tmpfs: ['/tmp:rw,noexec,nosuid,nodev,size=16m,mode=700,uid=1000,gid=1000']
+    environment:
+      DOCUMENT_SCANNER_TOKEN_FILE: /run/secrets/scanner_token
+      SCANNER_BIND: 0.0.0.0
+      SCANNER_PORT: '3311'
+      CLAMD_HOST: engine
+      CLAMD_PORT: '3310'
+      SCANNER_PROBE_LOCAL: '1'
+    secrets: [scanner_token]
+    networks: [ingress, engine]
+    depends_on: [engine]
+    healthcheck:
+      test: [CMD, node, probe.mjs]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+  proxy:
+    <<: *runtime
+    image: ats-scanner-proxy:v1
+    build: {context: .., dockerfile: hosting/Proxy.Dockerfile}
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    tmpfs: ['/tmp:rw,noexec,nosuid,nodev,size=32m,mode=700,uid=101,gid=101']
+    ports: ['${SCANNER_LISTEN_IP:-127.0.0.1}:${SCANNER_HTTPS_PORT:-8443}:8443']
+    secrets: [tls_cert, tls_key]
+    networks: [edge, ingress]
+    depends_on: [bridge]
+volumes:
+  definitions:
+networks:
+  engine: {internal: true}
+  ingress: {internal: true}
+  updates:
+  edge:
+secrets:
+  scanner_token: {file: '${SCANNER_TOKEN_FILE:?Provide the private token file path}'}
+  tls_cert: {file: '${SCANNER_TLS_CERT_FILE:?Provide the TLS certificate file path}'}
+  tls_key: {file: '${SCANNER_TLS_KEY_FILE:?Provide the private TLS key file path}'}

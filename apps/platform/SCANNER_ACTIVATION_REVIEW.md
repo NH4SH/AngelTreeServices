@@ -1,5 +1,13 @@
 # PR18 scanner hosting, retention and legacy-file activation review
 
+**Local follow-through, October 17 UTC:** upload/access fixes `aa5c1b2` are now
+pushed to main, deployment skipped. Versioned hosting configuration and paired
+synthetic recovery tests are verified locally; see
+[hosting and restore evidence](SCANNER_HOSTING_AND_RESTORE.md). The repository
+now contains 92 unchanged migration files. The 65-version hosted observation
+below remains a dated snapshot, not a fresh comparison. Host provisioning,
+monitoring, source backup operations and isolated staging/activation remain open.
+
 Reviewed October 16, 2026 against published commit `df59d8a`. This is a review,
 not a release authorization. No host, DNS entry, secret, hosted schema change,
 retention job, production scan or deployment was created. Existing application

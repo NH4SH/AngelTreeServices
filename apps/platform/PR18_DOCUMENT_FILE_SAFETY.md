@@ -44,6 +44,15 @@ or quarantine cannot revoke one already issued. Before activation, allow the old
 
 ## Private scanner boundary
 
+**Hosting follow-through:** use the versioned package and verified recovery
+procedure in `SCANNER_HOSTING_AND_RESTORE.md` and
+`scripts/private-scanner/hosting/README.md`. Its real encrypted/expanded-size ZIP
+test found that the old 26 MiB member / 100 MiB aggregate combination could
+report a truncated member clean. Both supplied configs now align these two
+engine budgets at 100 MiB; the application/HTTP upload ceiling stays 25 MiB.
+The new hosting package was tested only on isolated local ARM64 containers.
+Existing running services were not reconfigured and production is not activated.
+
 The owner selected **infrastructure under our control**, not a managed service
 receiving document copies. `scripts/private-scanner/bridge.mjs` runs with Node 22
 and built-in modules only. It receives bytes, not names, customer/employee details,

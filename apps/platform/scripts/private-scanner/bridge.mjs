@@ -3,6 +3,7 @@ import { createConnection } from 'node:net';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
+import { readScannerToken } from './token.mjs';
 const MAX = 25 * 1024 * 1024;
 // clamd's unauthenticated TCP port must be isolated. Only this bridge is exposed
 // through your authenticated HTTPS ingress; never expose clamd to the internet.
@@ -32,12 +33,17 @@ async function command(command, bytes, { host, port }) {
     return await response;
   } finally { clearTimeout(timeout); socket.destroy(); }
 }
-export async function scanWithClamAV(bytes, connection) {
+export async function getClamAVState(connection, now = Date.now()) {
   const version = await command('VERSION', null, connection);
-  const match = /^ClamAV [^/]+\/\d+\/(.+)$/.exec(version);
-  const signatureTime = match ? Date.parse(`${match[1]} UTC`) : NaN;
-  const age = Date.now() - signatureTime;
+  const match = /^ClamAV ([^/]+)\/(\d+)\/(.+)$/.exec(version);
+  const signatureTime = match ? Date.parse(`${match[3]} UTC`) : NaN;
+  const age = now - signatureTime;
   if (!Number.isFinite(age) || age < -3600000 || age > 48 * 3600000) throw new Error('scanner_signatures_stale');
+  return { engineVersion: match[1], signatureVersion: Number(match[2]), signatureAgeSeconds: Math.max(0, Math.floor(age / 1000)),
+    freshness: age >= 36 * 3600000 ? 'urgent' : age >= 24 * 3600000 ? 'warning' : 'current' };
+}
+export async function scanWithClamAV(bytes, connection) {
+  await getClamAVState(connection);
   const reply = await command('INSTREAM', bytes, connection);
   if (reply === 'stream: OK') return 'clean';
   if (/^stream: [^\r\n]+ FOUND$/.test(reply)) return 'quarantined';
@@ -72,7 +78,7 @@ export function createScannerBridge({ token, scan }) {
   return server;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const server = createScannerBridge({ token: process.env.DOCUMENT_SCANNER_TOKEN,
+  const server = createScannerBridge({ token: readScannerToken(),
     scan: bytes => scanWithClamAV(bytes, { host: process.env.CLAMD_HOST ?? '127.0.0.1', port: Number(process.env.CLAMD_PORT ?? 3310) }),
   });
   server.listen(Number(process.env.SCANNER_PORT ?? 3311), process.env.SCANNER_BIND ?? '127.0.0.1', () => console.log('Private file scanner bridge is listening.'));

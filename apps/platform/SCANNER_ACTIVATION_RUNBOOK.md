@@ -1,5 +1,14 @@
 # PR18 staged activation runbook
 
+**Readiness update, October 17 UTC:** main includes verified upload/access
+`aa5c1b2`, deployment skipped, and the release chain contains 92 migrations.
+The versioned host package and synthetic seven-area/catalog recovery drills are
+verified locally in [SCANNER_HOSTING_AND_RESTORE.md](SCANNER_HOSTING_AND_RESTORE.md).
+Use its corrected scanner limits and secret-mount guidance. Earlier 65/91 counts
+below describe the original review snapshot; repeat reconciliation against the
+exact 92-file release chain. Gates 2/3 still need separate approval and evidence
+on the actual host/provider. Local recovery does not create production backups.
+
 Status: **reviewed plan; execution not authorized**. Baseline: published `df59d8a`.
 Use with SCANNER_ACTIVATION_REVIEW.md and SUPABASE_MIGRATION_RECONCILIATION.md.
 No step in this document grants permission to create a host, buy capacity,

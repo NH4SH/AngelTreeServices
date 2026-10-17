@@ -1,5 +1,10 @@
 # PR18 local upload-size and cache/access fixes
 
+**Published October 17 UTC:** this verified package is now on main and
+`codex/pr18-upload-access` at `aa5c1b2`, with `[skip netlify]`. The next local
+hosting/recovery package is documented in `SCANNER_HOSTING_AND_RESTORE.md`.
+No hosted migration, environment update or deployment followed the push.
+
 October 16, 2026. Based on main `89c3d59` (scanner activation review). That review
 and its parent stack have been pushed to main with `[skip netlify]`. This follow-up
 is local work; no hosted schema, environment, credential, scanner host or deploy

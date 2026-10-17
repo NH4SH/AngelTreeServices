@@ -1,0 +1,85 @@
+{
+  "verifiedAt": "2026-10-17T01:37:58.457Z",
+  "baseMain": "aa5c1b291daa9226bca5ca7b89b64490ae8ab99a",
+  "scope": "isolated local Linux ARM64; no hosted activation or image publication",
+  "versions": {
+    "node": "22.23.3",
+    "npm": "10.9.9",
+    "clamav": "1.5.4",
+    "ubuntuClamavPackage": "1.5.4+dfsg-0ubuntu0.24.04.1",
+    "nginx": "1.30.6",
+    "compose": "5.6.0"
+  },
+  "images": [
+    {
+      "tags": [
+        "ats-scanner-engine:1.5.4-v1"
+      ],
+      "imageId": "sha256:c7e276e90d746cb25c4475e06a507494245b254dd53196b40950458245947258",
+      "platform": "linux/arm64"
+    },
+    {
+      "tags": [
+        "ats-scanner-bridge:node22-v1"
+      ],
+      "imageId": "sha256:1575dee44642e6df7c04cd9d5e69e89898839b3d42165bf352f6fe263fc135d4",
+      "platform": "linux/arm64"
+    },
+    {
+      "tags": [
+        "ats-scanner-proxy:v1"
+      ],
+      "imageId": "sha256:6c119afe4b0f68211dba25dbb37bc4d3188fe8954c966e04ea544dcb2ee9586c",
+      "platform": "linux/arm64"
+    }
+  ],
+  "sourceSha256": {
+    "bridge.mjs": "af22d177ed9e61b245692b04c9b4c0bc0d4d17b286137fc8f545ed7ff9445ad6",
+    "token.mjs": "800eb28bb56057c6fcc19cc9a2a44d4afc1af9c3d2483b0af0bc1d05d633b527",
+    "probe.mjs": "9e52e5a0ee00a4fa77d533f0a36102b68d4667ac924373e06ade36cd5a7fe523",
+    "clamd.conf": "79e34c6b8275714b302a376e8dd7280d73ded60bcfaa035d051fb69fce340e4b",
+    "test-local-db-restore.mjs": "832ebc19559db300ba51bc76da965d7a3f8ce302bedc50ea29aa3730056441b3",
+    "hosting/Bridge.Dockerfile": "356046486299acd527d0e0339ca8ccf41026c93551575cb19edec4c57122e03a",
+    "hosting/Engine.Dockerfile": "d93e336830591a52f974e4a8a0b6c95b104c70b6218ab0cd4cd0be0259284e9a",
+    "hosting/Proxy.Dockerfile": "5eb3f34f07fd9b0d67504a59f629d32478036fa1a04aef2379bc8fefa3901e11",
+    "hosting/README.md": "082abde0549dc5157abf45cf163391198c9a6748524bd260c7b9e640ee3a7e6c",
+    "hosting/clamd.conf": "122203becce818a3b54a983134bc631b9d916add8eaeb5123cb518bf3a4f5db1",
+    "hosting/compose.yaml": "34a9036e0881ab665cd67d8d2adbf5946d2927f9e3ada77568e65356beea0b1b",
+    "hosting/coredump.conf": "8aab07233e77d50455a1ca53ff40a8d8e693b79adb289513aee722cf0f3c21c0",
+    "hosting/freshclam.conf": "8360d8b36a2946121c9236140dd4a37a96fc842d918b09ac23e3eea33fed23de",
+    "hosting/nginx.conf": "7bd57b6c882d5852956c4c8eacaebd06c0bdd750bcbcf491440045e5a051031d"
+  },
+  "tests": {
+    "regressions": 682,
+    "hostingIncludingParent": 8,
+    "attachmentRestoreIncludingParent": 10,
+    "existingUploadAccessIncludingParent": 11,
+    "existingAttachmentScanIncludingParent": 25,
+    "existingDocumentLibraryIncludingParent": 12,
+    "typecheck": "passed",
+    "applicationBuild": "previous aa5c1b2 pass; unchanged build inputs, not rerun"
+  },
+  "loadedSignatureState": {
+    "name": "loaded signature state",
+    "status": "ok",
+    "engineVersion": "1.5.4",
+    "signatureVersion": 28155,
+    "signatureAgeSeconds": 69169,
+    "freshness": "current"
+  },
+  "catalogRestore": {
+    "source": "ats_upload_access_v1_20261017",
+    "target": "ats_restore_local_a71702ac0f9b4361b92b77c02ef884a9",
+    "policies": 321,
+    "functions": 243,
+    "repositoryMigrationFiles": 92,
+    "sourceMigrationLedgerPresent": false,
+    "restoredFunctionDefinitionsAndGrants": true,
+    "restoredPoliciesAndRLS": true,
+    "restoredPrivateBuckets": true,
+    "scanGatesDefaultOff": true,
+    "storagePayloadsIncluded": false,
+    "scope": "empty 92-migration catalog in existing disposable cluster; not production PITR or global-role recovery"
+  },
+  "productionChanged": false
+}

@@ -870,3 +870,75 @@ during scanning must prevent finalization with an already issued access token.
 Also run the original `document-scanning.integration.test.mjs` library suite,
 `npm run test:unit`, `npm run typecheck`, `npm run build`, and the existing fresh
 schema contract check. These commands authorize no hosted migration or deployment.
+
+## Scanner hosting and synthetic recovery — local only
+
+`scanner-hosting.test.mjs` joins the ordinary credential-free unit runner. The
+two integration suites below are opt-in and require the isolated hosting package
+in `scripts/private-scanner/hosting/README.md`, an explicitly trusted localhost
+certificate and a private fixture file. Never supply hosted credentials or
+disable TLS verification. The host suite also needs the local `zip` utility for
+synthetic encrypted/expanded-size archive fixtures.
+
+The fixture JSON contains paths and owned container IDs, **no token value**:
+
+```json
+{
+  "url": "https://127.0.0.1:33443/scan",
+  "tokenFile": "/private/local-test/token",
+  "caFile": "/private/local-test/localhost-cert.pem",
+  "docker": "/absolute/path/to/docker",
+  "project": "ats_host_local_unique",
+  "ids": {"engine": "owned-id", "bridge": "owned-id", "proxy": "owned-id", "signature-updater": "owned-id"}
+}
+```
+
+The tests require `DOCKER_HOST` to name the existing `pr02-disposable` Unix socket
+and verify Compose project/service labels before stopping their own engine.
+Use a separate project/port/token from the existing local CRM scanner.
+From `apps/platform`, set these non-secret paths in the process environment:
+
+```sh
+SCANNER_HOSTING_DISPOSABLE=1 \
+SCANNER_HOSTING_FIXTURE_FILE=/private/local-test/fixture.json \
+NODE_EXTRA_CA_CERTS=/private/local-test/localhost-cert.pem \
+DOCKER_HOST=unix:///absolute/path/to/pr02-disposable/sock/docker.sock \
+node --experimental-strip-types --test tests/scanner-hosting.integration.test.mjs
+```
+
+Run recovery after the host suite finishes; both intentionally interrupt the
+same owned engine. Keep `SCANNER_HOSTING_FIXTURE_FILE`, `NODE_EXTRA_CA_CERTS` and
+`DOCKER_HOST` set, then run:
+
+```sh
+ATTACHMENT_DISPOSABLE_STACK=1 \
+ATTACHMENT_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+node --experimental-strip-types --test tests/attachment-restore.integration.test.mjs
+```
+
+Recovery refuses an API other than `http://127.0.0.1:54321`. Only uniquely marked
+new test objects are deleted to simulate byte loss; existing files are never
+read or restored. New synthetic actors are disabled, their document records
+archived, original scan switches restored and all business/audit fixtures
+retained. An AES-GCM fixture archive/key is written privately outside Git; this
+is a test fixture, not a new production backup system. The local review owner and
+recurring-generation switch are checked unchanged. Optional non-secret summary
+paths: `SCANNER_HOSTING_RESULTS_FILE` and `ATTACHMENT_RESTORE_RESULTS_FILE`.
+
+For the separate empty-catalog restore drill:
+
+```sh
+SCANNER_RESTORE_DISPOSABLE=1 \
+ATTACHMENT_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///absolute/path/to/pr02-disposable/sock/docker.sock \
+node scripts/private-scanner/test-local-db-restore.mjs
+```
+
+This fixed source is the previously created independent
+`ats_upload_access_v1_20261017` replay, verified empty of Auth/Storage/financial/
+customer data. A random new target is created; the shared review DB is never
+reset or overwritten. The existing local `supabase_admin` preserves schema
+ownership; no role grants/passwords change. An optional
+`SCANNER_RESTORE_RESULTS_FILE` saves a credential-free result. This proves
+catalog/ACL/RLS restoration within the disposable cluster, not hosted PITR or
+production source-file backup coverage.

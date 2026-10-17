@@ -75,7 +75,11 @@ only on loopback outside production; production requires HTTPS. The authenticate
 bridge submits raw bytes only and checks engine and matching digest responses.
 
 Use `scripts/private-scanner/bridge.mjs` and its strict `clamd.conf` with a private
-ClamAV daemon. Keep signature updates and scanner health supervised. The bridge
+ClamAV daemon. The versioned hosting package and synthetic restore evidence are
+in `SCANNER_HOSTING_AND_RESTORE.md`; use its updated matching 100 MiB member/total
+engine budgets to avoid the verified ZIP-truncation gap. The upload ceiling
+remains 25 MiB, and existing live/local services are not changed by these files.
+Keep signature updates and scanner health supervised. The bridge
 holds files if definitions exceed 48 hours, the engine is unavailable, replies are
 invalid or bounded scanning limits are exceeded. Do not disable this boundary to
 work around a scanner outage. Apply the reviewed schema before rolling out the new application: a missing scan-mode RPC blocks new uploads with a configuration error rather than silently bypassing checks. Validate the switches-OFF flow in staging before any approved activation. Do not enable production switches before planning

@@ -9,9 +9,10 @@ removes the unintended current application grants from **CRM Staging only**,
 92-migration fresh-replay contract exactly. Normal migration-owner defaults no
 longer automatically grant named API roles access to new public objects.
 
-Keep the site undeployed. Protected provider defaults, isolated mail/runtime
-keys, visitor protection and scanner hosting/recovery remain separately
-documented gates. This is part of the existing PR18 staging sequence, not a new
+Keep the site undeployed. The protected-default review is now completed in
+SUPABASE_MANAGED_DEFAULTS_REVIEW.md: retain those defaults for this pinned staging
+candidate with the verified creator/catalog controls. Isolated mail/runtime keys,
+visitor protection and scanner hosting/recovery remain gates. This is part of the existing PR18 staging sequence, not a new
 roadmap or authorization to change production.
 
 ## Applied changes and scope
@@ -79,10 +80,14 @@ grant and its removal by explicit per-function REVOKE. Global managed defaults
 were deliberately left alone. This package does not claim to solve all future
 function exposure by changing three default ACLs.
 
-The inventory records current-object reconciliation and migration-owner default
-success separately, while full provider/default reconciliation remains false.
-Resolve the remaining protected-default policy through a supported Supabase
-review; do not seek broader database privileges to make a status flag pass.
+The inventory records current-object reconciliation, migration-owner default
+success and the completed managed-default policy review separately. Full
+provider/default normalization remains false: the three protected entries are
+retained, not restricted. No provider change is required for the current pinned
+candidate under the reviewed creator/catalog controls. Recheck before release;
+do not seek broader database privileges to make a status flag pass. The runner
+now also rejects protected-role membership explicitly. See
+SUPABASE_MANAGED_DEFAULTS_REVIEW.md for the measured risks and review limits.
 
 ## Local tests and preserved workflows
 
@@ -124,8 +129,9 @@ data, financial record, file, communication or deployment changed. Employee UI,
 iOS, all earlier implementation work, original Netlify configuration, shared
 unassigned target manifest and the existing local review environment are intact.
 
-Current object grants and normal migration-owner named defaults are verified.
-Full readiness remains false for the protected-default decision, Netlify visitor
+Current object grants and normal migration-owner named defaults are verified;
+the protected-default decision is documented and locally tested. Full readiness
+remains false for Netlify visitor
 protection on the current plan, isolated Auth templates/mail and server/runtime
 key binding, scanner host/TLS/operator and paired source-object/database recovery.
 No paid upgrade or scanner provision was made. Continue these existing PR18

@@ -39,8 +39,10 @@ this release and target; a new migration/object requires a new review.
 - Three `supabase_admin` defaults remain unchanged. The normal `postgres` account
   is neither superuser nor a member of this protected managed role. Do not grant
   yourself that role, change managed ownership or bypass its permission boundary.
-  Changes to those defaults need a supported provider review; only `postgres`
-  may create application objects in the current reviewed staging process.
+  Any change to those defaults needs a supported provider path; only `postgres`
+  may create application objects in the current reviewed staging process. The
+  completed review accepts preserving them for this pinned candidate, with exact
+  creator/catalog checks; it does not claim they are restricted or always safe.
 - Schema-scoped default REVOKE cannot remove PostgreSQL's global implicit PUBLIC
   EXECUTE. New functions must explicitly revoke PUBLIC before granting their
   intended callers, in the same migration transaction. Global managed defaults
@@ -71,3 +73,23 @@ unexpected rights/defaults, live data/gates and modified SQL rejection.
 
 See `apps/platform/STAGING_PERMISSION_RECONCILIATION.md` for actual results,
 preserved behavior and remaining release gates. No production cleanup is implied.
+
+## Completed managed-default review
+
+`review-managed-defaults.sql` is a read-only metadata query. Run it against the
+assigned staging ref using the already-reviewed explicit CLI targeting process;
+do not paste local fixture SQL into hosted tools. The permission runner also
+requires that normal `postgres` is not a member of the protected managed role.
+
+`review-tests/managed-defaults.local.sql` is intentionally outside the ordinary
+test directory. It requires a new `ats_defaults_review_*` local clone (created
+with `OWNER postgres`) and the already-existing local `supabase_admin` fixture
+connection. It switches to the normal role for application assertions and
+returns to the fixture connection for simulated provider-created objects. Never
+grant a role to make this test work or run it against hosted Supabase.
+
+The 25 assertions exercise creator-specific defaults, protected-role denial,
+implicit PUBLIC versus direct named grants, and actual TRUNCATE despite RLS.
+Everything rolls back. The full local run passes 185 database assertions, and a
+real provider-created object is rejected by the frozen-catalog runner. See
+`apps/platform/SUPABASE_MANAGED_DEFAULTS_REVIEW.md` for the disposition and scope.

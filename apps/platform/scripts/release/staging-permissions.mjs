@@ -35,6 +35,7 @@ select jsonb_build_object(
  'unexpectedDefaultScope',exists(select 1 from catalog where kind='default_acl' and (value->>'schema' is distinct from 'public' or value->>'owner' not in ('postgres','supabase_admin'))),
  'unsafeSchemaCreate',has_schema_privilege('anon','public','CREATE') or has_schema_privilege('authenticated','public','CREATE'),
  'currentUser',current_user,'superuser',(select rolsuper from pg_roles where rolname=current_user),
+ 'managedAdminMember',pg_has_role(current_user,'supabase_admin','MEMBER'),
  'state',jsonb_build_object(
   'authUsers',(select count(*) from auth.users),'storageObjects',(select count(*) from storage.objects),
   'customers',(select count(*) from public.customers),'jobs',(select count(*) from public.jobs),'quotes',(select count(*) from public.quotes),
@@ -52,6 +53,7 @@ export function assessSnapshot(profile, snapshot) {
   assert.equal(profile.projectRef, stagingRef);
   assert.equal(snapshot.currentUser, 'postgres', 'Use the normal migration owner.');
   assert.equal(snapshot.superuser, false, 'Do not escalate privileges.');
+  assert.equal(snapshot.managedAdminMember, false, 'The migration role must not be a member of the protected managed role.');
   assert.equal(snapshot.shapeSeal, profile.shapeSeal, 'Schema, owners, RLS, private grants or column permissions changed.');
   assert.equal(snapshot.ledgerSeal, profile.ledgerSeal, 'Migration versions/names changed.');
   assert.equal(snapshot.migrationCount, 92);

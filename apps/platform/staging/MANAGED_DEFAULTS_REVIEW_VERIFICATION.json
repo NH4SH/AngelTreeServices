@@ -1,0 +1,127 @@
+{
+  "verifiedAt": "2026-10-17T20:54:49.585581+00:00",
+  "sourceCommit": "95da7721a379041e375ab51c0a8dc4c020cffc12",
+  "pushedPermissionCommit": "95da7721a379041e375ab51c0a8dc4c020cffc12",
+  "pushTargets": [
+    "main",
+    "codex/pr18-staging-permissions"
+  ],
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "decision": "Retain protected defaults for the pinned 92-migration staging candidate with normal-creator and frozen-catalog controls. Recheck before release; provider/schema/default changes reopen review.",
+  "hostedReview": {
+    "anonymousApplicationDefiners": 0,
+    "browserSchemaCreate": false,
+    "currentUser": "postgres",
+    "defaultAclEntries": 3,
+    "memberOfManagedAdmin": false,
+    "publicApplicationObjectsNotOwnedByPostgres": 0,
+    "publicApplicationOwners": [
+      {
+        "kind": "relation",
+        "objects": 122,
+        "owner": "postgres"
+      },
+      {
+        "kind": "routine",
+        "objects": 121,
+        "owner": "postgres"
+      }
+    ],
+    "superuser": false
+  },
+  "normalOwnerNamedDefaultApiGrants": 0,
+  "managedNamedDefaultApiGrants": 36,
+  "snapshot": {
+    "apiAclSeal": "edff606fc762a401d61b9c9e31989a9c",
+    "currentUser": "postgres",
+    "ledgerSeal": "c63edca3d116b1d41f958b0d64b6a072",
+    "managedAdminMember": false,
+    "managedDefaultsSeal": "08e1e381da30d8e4fba99db479f16a82",
+    "migrationCount": 92,
+    "ownedDefaultApiGrants": 0,
+    "ownedDefaultsSeal": "7847b3f907bfe39c5cbd1c7696f2e003",
+    "shapeSeal": "b112c8212ae2f4bb9373f8dc626c591d",
+    "state": {
+      "attachmentScanning": false,
+      "authUsers": 0,
+      "calendarConnections": 0,
+      "communications": 0,
+      "customers": 0,
+      "documentScanning": false,
+      "invoices": 0,
+      "jobs": 0,
+      "payments": 0,
+      "quotes": 0,
+      "recurring": false,
+      "sending": false,
+      "storageObjects": 0,
+      "stripeReceipts": 0
+    },
+    "superuser": false,
+    "unexpectedDefaultScope": false,
+    "unsafeSchemaCreate": false
+  },
+  "readOnlyRunner": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "changed": false,
+    "currentObjectGrantsMatch": true,
+    "migrationOwnerDefaultsRestricted": true,
+    "managedAdminDefaultsChanged": false,
+    "globalDefaultsChanged": false,
+    "migrationHistoryChanged": false,
+    "productionWrites": false,
+    "deployed": false,
+    "readyForHosting": false
+  },
+  "tests": {
+    "regressions": {
+      "passed": 714,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pgtap": {
+      "passed": 185,
+      "failed": 0,
+      "files": 11,
+      "newAssertions": 25,
+      "snapshotUnchanged": true,
+      "fixtureObjectsRemaining": 0
+    },
+    "realDrift": {
+      "reviewedSnapshotAccepted": true,
+      "realProviderObjectDriftRejected": true,
+      "hostedWrites": false
+    },
+    "typecheck": "passed",
+    "applicationBuild": "not repeated: no application runtime source changes",
+    "activeReviewAppHealth": "200 /api/health/live"
+  },
+  "preservation": {
+    "hostedWrites": false,
+    "protectedDefaultsChanged": false,
+    "globalDefaultsChanged": false,
+    "roleMembershipsChanged": false,
+    "originalMigrationsChanged": false,
+    "applicationRuntimeSourceChanged": false,
+    "sharedTargetManifestChanged": false,
+    "productionPublishedDeploy": "6ad23c757dfc53f702ae00b9",
+    "stagingPublishedDeploy": null,
+    "deployed": false
+  },
+  "remainingGates": [
+    "Netlify visitor protection",
+    "Company-controlled scanner host/TLS/operator and paired recovery",
+    "Isolated Auth mail/session tests and server-key/runtime binding"
+  ],
+  "managedDefaultsRestricted": false,
+  "fullProviderDefaultNormalizationVerified": false,
+  "readyForHosting": false,
+  "deploymentAuthorized": false,
+  "files": {
+    "supabase/staging/review-managed-defaults.sql": "1c8de77490c31c9d710c1287b2d0f96bdde556c028ce888c2e83a6ab3b296824",
+    "supabase/staging/review-tests/managed-defaults.local.sql": "d1429073ef4b78586407723fdb8254aa25403f99c77d055c8876b8be09a79ca2",
+    "apps/platform/scripts/release/staging-permissions.mjs": "d658315ef202737457460db4cecdd9c708a8b12588864d00d6d3664f0bfb7c54",
+    "apps/platform/tests/staging-permissions.test.mjs": "ef43760880a04e89828c7f754c1865f1888040c0e96bf7cc1fa79ebf1d991ec1",
+    "supabase/staging/permission-profile.json": "7e9ba66bae57d6b1468929c492b7b6aa9571b3702b9fd4ba871e0b2b44c59994"
+  }
+}

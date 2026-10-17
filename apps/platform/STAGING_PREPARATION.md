@@ -44,7 +44,9 @@ their ledger verified on staging; automation and all scan switches are OFF.
 The exact staging Auth Site URL/reset redirect and disabled public signup are
 verified. Current application grants now match fresh replay and the normal
 migration-owner named defaults are restricted; protected administrator/global
-defaults remain separately documented. See STAGING_PERMISSION_RECONCILIATION.md.
+defaults are reviewed and retained for this pinned candidate, with creator/catalog
+checks; this does not claim full normalization. See
+SUPABASE_MANAGED_DEFAULTS_REVIEW.md and STAGING_PERMISSION_RECONCILIATION.md.
 Auth/mail, visitor protection, scanner hosting
 and remaining runtime evidence are incomplete. No application has been deployed.
 

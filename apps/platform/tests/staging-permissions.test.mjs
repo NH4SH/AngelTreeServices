@@ -13,7 +13,7 @@ const target = { id:stagingRef, organization_id:'crisckykyefqdpatbfgb', name:'CR
 function fixture() {
   return { apiAclSeal:profile.initialApiAclSeal, shapeSeal:profile.shapeSeal, ledgerSeal:profile.ledgerSeal,
     migrationCount:92, ownedDefaultsSeal:profile.allowedOwnedDefaultsSeals[0], managedDefaultsSeal:profile.allowedManagedDefaultsSeals[0],
-    ownedDefaultApiGrants:36, currentUser:'postgres', superuser:false, unexpectedDefaultScope:false, unsafeSchemaCreate:false,
+    ownedDefaultApiGrants:36, currentUser:'postgres', superuser:false, managedAdminMember:false, unexpectedDefaultScope:false, unsafeSchemaCreate:false,
     state:{ authUsers:0,storageObjects:0,customers:0,jobs:0,quotes:0,invoices:0,payments:0,communications:0,calendarConnections:0,stripeReceipts:0,
       sending:false,recurring:false,documentScanning:false,attachmentScanning:false } };
 }
@@ -42,7 +42,7 @@ test('business rows, accounts, files, queue work or enabled automation stop this
   for (const mutate of [s=>delete s.state.sending,s=>s.state.unreviewed=0,s=>s.state.attachmentScanning=null]) {const s=fixture();mutate(s);assert.throws(() => assessSnapshot(profile,s));}
 });
 test('no superuser, alternate owner, global defaults or browser schema creation is accepted', () => {
-  for (const change of [{superuser:true},{currentUser:'supabase_admin'},{unexpectedDefaultScope:true},{unsafeSchemaCreate:true}]) assert.throws(() => assessSnapshot(profile,{...fixture(),...change}));
+  for (const change of [{superuser:true},{currentUser:'supabase_admin'},{managedAdminMember:true},{managedAdminMember:undefined},{unexpectedDefaultScope:true},{unsafeSchemaCreate:true}]) assert.throws(() => assessSnapshot(profile,{...fixture(),...change}));
 });
 test('changing the reviewed SQL or catalog query cannot execute a partial or broader repair', () => {
   assert.throws(() => buildApplySQL(profile,fixture(),commands+'\ngrant all on schema public to anon;',catalog));

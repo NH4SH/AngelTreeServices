@@ -1,6 +1,6 @@
 # Staging target setup and verification — October 17, 2026
 
-Status: **staging application grants reconciled; full provider/default and hosting readiness remain incomplete**.
+Status: **staging application grants reconciled; managed defaults reviewed and retained; hosting not ready**.
 This continues PR18/F17 and the existing roadmap. The user selected ATS and
 completed Supabase CLI authentication. Production and the disposable review app
 are preserved.
@@ -96,11 +96,14 @@ Three protected `supabase_admin` default ACLs remain unchanged. The normal accou
 cannot alter them; no privilege escalation was attempted. PostgreSQL's global
 implicit PUBLIC EXECUTE also requires explicit per-function revocation in future
 migrations; schema-scoped default changes do not remove it. Full provider/default
-reconciliation remains false, separately from the verified current-object and
-normal migration-owner results. No production cleanup is implied.
+normalization remains false, separately from the verified current-object and
+normal migration-owner results. The completed managed-default review accepts
+preserving them for this pinned staging candidate under strict creator/catalog
+checks; all 243 public application relations/routines are owned by `postgres`.
+No production cleanup is implied. See SUPABASE_MANAGED_DEFAULTS_REVIEW.md.
 
 See **STAGING_PERMISSION_RECONCILIATION.md** and `supabase/staging/README.md` for
-the guarded package, test evidence, remaining managed-default review and the
+the guarded package, test evidence, completed managed-default review and the
 existing release gates. Fresh verification adds 714 passing regressions, 160
 passing database assertions, typecheck, real HTTPS denials and transactional
 rollback/idempotence checks. No application code or production migration changed.
@@ -148,8 +151,7 @@ Private CLI/config/catalog/API evidence is outside Git under
 Reports and inventory contain no credentials. These results do not authorize
 any app/scanner release or production activation.
 
-**Recommended next step:** review the protected managed defaults and finish the
-existing PR18 visitor-protection and company-controlled scanner host/operator
+**Recommended next step:** finish the existing PR18 visitor-protection and company-controlled scanner host/operator
 decisions. Complete isolated Auth/mail,
 server-key binding, runtime scopes and paired restore proof before requesting an
 actual staging deployment. See STAGING_PREPARATION.md,

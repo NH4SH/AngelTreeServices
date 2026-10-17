@@ -1,6 +1,6 @@
 {
   "verifiedOn": "2026-10-17",
-  "status": "application-grants-reconciled-hosting-not-ready",
+  "status": "application-grants-and-managed-defaults-reviewed-hosting-not-ready",
   "sourceCommit": "55b7d6c26f356a7cd30ac88765949fd6dd8652d2",
   "supabase": {
     "projectRef": "gbyhdsuiqeslgjdnbqng",
@@ -50,7 +50,17 @@
     "managedAdminDefaultGrantsChanged": false,
     "globalDefaultsChanged": false,
     "futureFunctionsRequireExplicitPublicRevocation": true,
-    "remainingGrantReview": "Protected supabase_admin defaults require a supported provider/default policy review; normal postgres is not a member.",
+    "remainingGrantReview": "Pinned staging defaults reviewed and retained. Recheck role membership, creators, exact catalog and ACLs before release; full provider-default normalization is not claimed.",
+    "managedDefaultsReviewCompleted": true,
+    "managedDefaultsDisposition": "Retain protected defaults for the pinned 92-migration staging candidate under verified creator and catalog controls.",
+    "managedDefaultsReviewSourceCommit": "95da7721a379041e375ab51c0a8dc4c020cffc12",
+    "reviewedApplicationCreatorRole": "postgres",
+    "publicApplicationRelationsOwnedByPostgres": 122,
+    "publicApplicationRoutinesOwnedByPostgres": 121,
+    "publicApplicationObjectsNotOwnedByPostgres": 0,
+    "managedAdminNamedDefaultApiGrants": 36,
+    "migrationOwnerIsManagedAdminMember": false,
+    "managedDefaultsRecheckRequiredBeforeRelease": true,
     "permissionProfileSha256": "7e9ba66bae57d6b1468929c492b7b6aa9571b3702b9fd4ba871e0b2b44c59994",
     "anonymousApplicationDefinerCount": 0,
     "permissionsPreparedFromCommit": "87b6251bf205ccbfeeb86758b5f60406177cd253"

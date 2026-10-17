@@ -69,5 +69,30 @@
     "Existing PR18 scanner host/operator/recovery",
     "Isolated hosted mail/runtime keys/Auth verification"
   ],
-  "unrelatedLocalIssue": "Dashboard URI too long warning also reproduces directly on original port 3102."
+  "unrelatedLocalIssue": "Dashboard URI too long warning also reproduces directly on original port 3102.",
+  "committedExportVerification": {
+    "sourceCommit": "25f8393a47188b60c96fa890b38d658fb798e222",
+    "exportedGateExists": true,
+    "catchAllDeclaration": true,
+    "scheduledFunctionsSelected": 0,
+    "credentialsCopied": false,
+    "readinessFlagsUnchanged": true,
+    "negativeChecks": {
+      "unassignedPreflight": {
+        "exitCode": 1,
+        "denied": true
+      },
+      "missingGateSettings": {
+        "exitCode": 1,
+        "denied": true
+      }
+    },
+    "built": false,
+    "deployed": false
+  },
+  "finalGateTestsAfterBorderCorrection": {
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0
+  }
 }

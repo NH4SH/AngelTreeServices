@@ -116,7 +116,10 @@ production or remote destinations. No access codes or keys are logged.
   it is unrelated to the gateway and was not changed in this scoped task.
 - No application source/build inputs were changed. Existing typecheck/regression
   coverage was run; no additional Next production build or Netlify deployment
-  is claimed. The isolated source export is verified separately after commit.
+  is claimed. The committed source export at `25f8393` includes the catch-all
+  gate and no scheduled functions or credentials. Both unassigned-target preflight
+  and missing-gate-settings checks correctly fail with exit 1. All 13 gate unit
+  tests pass again after the border correction.
 
 Local screenshots and raw logs are retained outside Git in the existing Codex
 work directory. No business screenshots, access codes or key material are

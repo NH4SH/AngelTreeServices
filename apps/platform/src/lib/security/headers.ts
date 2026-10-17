@@ -1,3 +1,10 @@
+import { targets } from "./deployment.ts";
+import { isStagingDeployment } from "./staging-policy.mjs";
+
+const staging = isStagingDeployment(targets, process.env);
+const stagingApi = `https://${targets.staging.supabaseProjectRef}.supabase.co`;
+const stagingRealtime = `wss://${targets.staging.supabaseProjectRef}.supabase.co`;
+
 const scriptDevelopmentSources = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
 const localStorageSource = (() => {
   if (process.env.NODE_ENV !== "development") return "";
@@ -11,13 +18,13 @@ export const contentSecurityPolicy = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "form-action 'self' https://checkout.stripe.com",
-  `script-src 'self' 'unsafe-inline'${scriptDevelopmentSources} https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com`,
+  staging ? "form-action 'self'" : "form-action 'self' https://checkout.stripe.com",
+  `script-src 'self' 'unsafe-inline'${scriptDevelopmentSources}${staging ? "" : " https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://maps.gstatic.com",
+  staging ? "img-src 'self' data: blob:" : "img-src 'self' data: blob: https://maps.gstatic.com",
   "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com${localStorageSource}`,
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  staging ? `connect-src 'self' ${stagingApi} ${stagingRealtime}` : `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com${localStorageSource}`,
+  staging ? "frame-src 'none'" : "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
   "worker-src 'self' blob:",
 ].join("; ");
 

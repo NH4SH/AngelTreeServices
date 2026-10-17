@@ -470,6 +470,11 @@ export async function sendEmployeePasswordReset(
     return { status: "error", message: "This employee profile is missing an email address." };
   }
 
+  const redirectTo = buildCanonicalAppUrl("/update-password");
+  if (!redirectTo) {
+    return { status: "error", message: "The secure reset link could not be built. Verify APP_BASE_URL before sending." };
+  }
+
   const passwordRecoveryClient = createPasswordRecoveryRequestClient();
 
   if (!passwordRecoveryClient) {
@@ -477,7 +482,7 @@ export async function sendEmployeePasswordReset(
   }
 
   const { error } = await passwordRecoveryClient.auth.resetPasswordForEmail(email, {
-    redirectTo: await getPasswordResetRedirectTo(),
+    redirectTo,
   });
 
   if (error) {
@@ -612,8 +617,4 @@ function revalidateAccessPaths(userId?: string) {
   if (userId) {
     revalidatePath(`/admin/time/${userId}`);
   }
-}
-
-async function getPasswordResetRedirectTo() {
-  return buildCanonicalAppUrl("/update-password") ?? "https://admin.angeltreeservices.org/update-password";
 }

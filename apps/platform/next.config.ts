@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 import { platformSecurityHeaders, privateNoStoreHeaders } from "./src/lib/security/headers";
+import { assertCurrentDeploymentIsolation } from "./src/lib/security/deployment";
+
+assertCurrentDeploymentIsolation();
 
 const appRoot = process.cwd();
 

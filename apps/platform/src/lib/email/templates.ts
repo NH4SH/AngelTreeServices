@@ -23,9 +23,9 @@ export type TransactionalEmailTemplate = {
 };
 
 const companyName = "Angel Tree Services";
-const adminUrl = "https://admin.angeltreeservices.org";
 
 export function employeeAccessRequestAdminTemplate(request: EmployeeAccessRequest): TransactionalEmailTemplate {
+  const reviewUrl = buildCanonicalAppUrl("/admin/access");
   const subject = `Employee access request: ${request.full_name}`;
   const text = [
     `${request.full_name} requested Angel Tree Platform access.`,
@@ -35,7 +35,7 @@ export function employeeAccessRequestAdminTemplate(request: EmployeeAccessReques
     `Requested role: ${request.requested_role?.replace("_", " ") || "General access"}`,
     request.note ? `Note: ${request.note}` : "",
     "",
-    `Review in admin: ${adminUrl}/admin/access`,
+    reviewUrl ? `Review in admin: ${reviewUrl}` : "Open the CRM to review this access request.",
   ].filter(Boolean).join("\n");
 
   return buildTemplate(subject, text);
@@ -45,12 +45,13 @@ export function employeeAccessApprovedTemplate(input: {
   fullName: string;
   assignedRole: EmployeeAccessAssignedRole;
 }): TransactionalEmailTemplate {
+  const loginUrl = buildCanonicalAppUrl("/login");
   const subject = "Angel Tree Platform access approved";
   const text = [
     `Hi ${input.fullName},`,
     "",
     `Your Angel Tree Platform access has been approved as ${input.assignedRole.replace("_", " ")}.`,
-    `Sign in here: ${adminUrl}/login`,
+    loginUrl ? `Sign in here: ${loginUrl}` : "Open the CRM to sign in.",
     "",
     "If you need a password reset, ask an owner or admin to send a secure reset link.",
     "",
@@ -85,6 +86,7 @@ export function leadInternalNoticeTemplate(input: {
   jobId: string;
   submission: PublicLeadSubmission;
 }): TransactionalEmailTemplate {
+  const jobUrl = buildCanonicalAppUrl(`/admin/jobs/${encodeURIComponent(input.jobId)}`);
   const subject = `New website lead: ${input.submission.name}`;
   const text = [
     "A new website lead was saved in the CRM.",
@@ -101,7 +103,7 @@ export function leadInternalNoticeTemplate(input: {
     "Project details:",
     input.submission.projectDetails,
     "",
-    `Open job: ${adminUrl}/admin/jobs/${input.jobId}`,
+    jobUrl ? `Open job: ${jobUrl}` : "Open the CRM to review this job.",
   ].filter(Boolean).join("\n");
 
   return buildTemplate(subject, text);

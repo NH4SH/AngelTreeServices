@@ -8,6 +8,7 @@
     "scannerIsolationVerified": false,
     "environmentIsolationVerified": false,
     "runtimeKeyBindingVerified": false,
+    "authIsolationVerified": false,
     "accessProtectionVerified": false,
     "canonicalLinksSupported": false,
     "backupRecoveryVerified": false,

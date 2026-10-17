@@ -1,5 +1,12 @@
 # PR18 staged activation runbook
 
+**Reconciliation update, October 17:** the exact 65/92 comparison and local CLI
+upgrade are complete in [MIGRATION_RECONCILIATION_REPORT.md](MIGRATION_RECONCILIATION_REPORT.md).
+All 27 versions are pending; no history repair was performed or recommended.
+Use [STAGING_PREPARATION.md](STAGING_PREPARATION.md) for the isolated export,
+unassigned targets and remaining canonical-origin/operations decisions. The
+hosted schema, current deployment and production settings remain unchanged.
+
 **Readiness update, October 17 UTC:** main includes verified upload/access
 `aa5c1b2`, deployment skipped, and the release chain contains 92 migrations.
 The versioned host package and synthetic seven-area/catalog recovery drills are

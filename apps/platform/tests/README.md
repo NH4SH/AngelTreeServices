@@ -942,3 +942,27 @@ ownership; no role grants/passwords change. An optional
 `SCANNER_RESTORE_RESULTS_FILE` saves a credential-free result. This proves
 catalog/ACL/RLS restoration within the disposable cluster, not hosted PITR or
 production source-file backup coverage.
+
+## Migration reconciliation and staging preparation
+
+`migration-review.test.mjs` and `staging-preflight.test.mjs` run in the ordinary
+credential-free unit suite. They reject non-prefix/duplicate migration history,
+preserve catalog differences and prevent automatic history repair. Staging tests
+reject production targets, borrowed legacy project-bound keys, provider/worker
+credentials, public privileged values, unverified isolation/protection and
+unsafe endpoints. Test keys are unsigned synthetic fixtures; no API call runs.
+
+See `STAGING_PREPARATION.md` for the intentionally unassigned target manifest,
+source-only export and guarded CLI upgrade drill. Run the preflight against the
+unassigned manifest and require a failure. Export only after committing reviewed
+tools locally; verify the export has the recorded source commit, no copied env
+or linkage files and an empty selected functions directory. The real production
+Netlify configuration and worker sources remain unchanged.
+
+The local-only rehearsal requires explicit private local status/history/bootstrap
+paths and binaries. It rejects non-loopback DB/API targets and creates a new
+randomly named database, never a shared reset. It applies a genuine CLI ledger
+65→92, checks migration SHA-256 preservation and OFF scan/recurring/communication
+gates, and retains evidence outside Git. A hosted-like schema overlay is a local
+fixture, not a reconciliation migration or a production backup. No hosted link,
+repair, db push, provider call or deployment is part of this test command.

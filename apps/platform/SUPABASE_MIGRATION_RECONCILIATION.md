@@ -2,6 +2,22 @@
 
 Use this process when the repository migration list, production migration history, and production schema disagree. Production schema state must be inspected before any repair.
 
+## Verified October 17 release review
+
+See [actual reconciliation](MIGRATION_RECONCILIATION_REPORT.md),
+[staging preparation](STAGING_PREPARATION.md) and
+`supabase/reconciliation/release-2026-10-17.json`. All 27 versions after the
+recorded 65 are pending; none qualifies for a history-only repair. The complete
+92-file chain and a real CLI 65→92 ledger upgrade passed locally. Nine hosted
+extras and baseline grant drift are documented and preserved, not silently
+normalized. No hosted schema or history was changed.
+
+Use `supabase/verification/release_catalog.sql` inside a read-only transaction
+with a short timeout. `scripts/release/migration-review.mjs` compares evidence;
+`scripts/release/rehearse-local-upgrade.mjs` creates a new isolated local target.
+The reset/link commands in the generic process below are **not** instructions
+to reset the shared disposable review stack or link/push production now.
+
 ## Safety rules
 
 - Never run `supabase db push` merely because `migration list` shows missing remote versions.

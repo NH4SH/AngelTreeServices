@@ -1,5 +1,11 @@
 # PR18 scanner hosting configuration and local restore verification
 
+**Published/follow-through, October 17:** this package is pushed to main at
+`449f73e`, deployment skipped. The subsequent local migration comparison and
+staging preparation are in MIGRATION_RECONCILIATION_REPORT.md and
+STAGING_PREPARATION.md. All 27 unrecorded versions are genuinely pending; no
+hosted schema/history or production service has changed.
+
 Verified October 17, 2026 UTC (October 16 local). Continues existing PR18/F17;
 does not create another roadmap or authorize a release.
 

@@ -326,8 +326,9 @@ def page_document(page: dict) -> str:
     schema = json.dumps(schema_for_page(page), ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     page_footer = footer()
     page_header = header(page["active"])
-    if page["type"] == "project":
+    if page["type"] == "project" or page.get("contextual_estimate_footer"):
         page_footer = page_footer.replace('href="/#contact"', f'href="{html_attr(page["estimate_href"])}"')
+    if page["type"] == "project":
         page_header = page_header.replace('aria-current="page"', 'aria-current="location"')
 
     return f"""<!doctype html>
@@ -684,10 +685,53 @@ def services_hub_body() -> str:
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose"><p class="ats-eyebrow">Not sure which service fits?</p><h2>Describe the problem, not the solution.</h2><p>You do not need to diagnose a tree or choose a technical service before contacting us. Tell us what changed, what concerns you, and what part of the property is affected.</p></div>
-        <aside class="ats-callout"><h2>Landscaping</h2><p>Angel Tree Services also accepts landscaping estimate requests through the same form. Tell us about your project, or choose “multiple services / not sure yet” if you need help deciding.</p><p><a class="ats-estimate-link" href="/?service=Landscaping#contact">Request a landscaping estimate</a></p></aside>
+        <aside class="ats-callout"><h2>Landscaping</h2><p>Angel Tree Services also accepts landscaping estimate requests through the same form. Tell us about your project, or choose “multiple services / not sure yet” if you need help deciding.</p><p><a href="/services/landscaping/">Explore landscaping services</a></p><p><a class="ats-estimate-link" href="/?service=Landscaping#contact">Request a landscaping estimate</a></p></aside>
       </div>
     </section>
     {final_cta('Tell us what your property needs.', 'A short description is enough to start. We’ll follow up about the next step for your free estimate.', '/#contact', 'Request a free estimate')}"""
+
+
+def landscaping_body() -> str:
+    photo = SITE_PHOTOGRAPHY["commercial-detail"]
+    return f"""
+    <section class="ats-content-section" aria-labelledby="landscaping-scope-title">
+      <div class="ats-section-inner ats-two-column">
+        <div class="ats-prose">
+          <h2 id="landscaping-scope-title">Care for the garden you already have.</h2>
+          <h3>Bush and hedge trimming</h3>
+          <p>Trimming for existing bushes and hedges, with the areas and desired finish agreed in your estimate.</p>
+          <h3>Weeding and edging</h3>
+          <p>Weeding planting beds and defining their edges beside paths and other landscape areas. Tell us which beds need attention and where you want a clearer outline.</p>
+          <h3>Mulch and bed care</h3>
+          <p>Mulch work around existing planting beds, with the areas, materials and cleanup included in the written scope.</p>
+          <p>Need tree trimming as well? Explore our <a href="/services/tree-pruning/">tree-pruning guidance</a> and include it with your request.</p>
+        </div>
+        <figure class="ats-case-photo">
+          <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], '(max-width: 760px) calc(100vw - 48px), 46vw')} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
+          <figcaption>Existing bushes trimmed, beds weeded and edges defined beside the walkway at this commercial property.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="ats-content-section ats-content-section--white">
+      <div class="ats-section-inner ats-two-column">
+        <div class="ats-prose">
+          <h2>Help us understand your project.</h2>
+          <p>A short description is enough to start your estimate request. Include:</p>
+          <ul>
+            <li>The bushes, hedges or planting beds that need attention.</li>
+            <li>Your goals for trimming, weeding, edging or mulch.</li>
+            <li>The property address, access details and timing preferences.</li>
+          </ul>
+        </div>
+        <div class="ats-prose">
+          <h2>A clear scope before work begins.</h2>
+          <p>We’ll define the work areas, materials and cleanup in a written estimate, so you can review what is included before approving the work.</p>
+          <p>For a commercial or managed property, include the site contact and anyone who needs to review the proposed work.</p>
+          <p><a href="/projects/">See more Angel Tree Services project photos</a>.</p>
+        </div>
+      </div>
+    </section>
+    {final_cta('Tell us which areas need attention.', 'Share your landscaping goals and property address. We’ll follow up about the next step for your free estimate.', '/?service=Landscaping#contact', 'Request a landscaping estimate')}"""
 
 
 def commercial_body() -> str:
@@ -1248,6 +1292,27 @@ PAGES = [
     },
     *[dict(page, body=service_body(page)) for page in SERVICE_PAGES],
     {
+        "path": "/services/landscaping/",
+        "active": "services",
+        "type": "service",
+        "service_name": "Landscaping",
+        "title": "Landscaping in Fredericksburg, VA | Angel Tree Services",
+        "description": "Bush trimming, weeding, edging and mulch for established gardens and planting beds in the Fredericksburg region. Request a free landscaping estimate.",
+        "h1": "Landscaping for your property.",
+        "lead": "Bush trimming, weeding, edging and mulch for established gardens and planting beds in the Fredericksburg region. Tell us which areas need attention, and we’ll define the work in a written estimate.",
+        "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Landscaping", "/services/landscaping/")],
+        "estimate_href": "/?service=Landscaping#contact",
+        "estimate_label": "Request a landscaping estimate",
+        "contextual_estimate_footer": True,
+        "hero_image": SITE_PHOTOGRAPHY["garden-path"]["src"],
+        "image_width": SITE_PHOTOGRAPHY["garden-path"]["width"],
+        "image_height": SITE_PHOTOGRAPHY["garden-path"]["height"],
+        "hero_alt": SITE_PHOTOGRAPHY["garden-path"]["alt"],
+        "hero_landscape": True,
+        "social_image": f"{SITE}{SITE_PHOTOGRAPHY['garden-path']['variants'][-1]['src']}",
+        "body": landscaping_body(),
+    },
+    {
         "path": "/services/commercial-hoa-tree-care/",
         "active": "commercial",
         "type": "service",
@@ -1410,6 +1475,7 @@ Angel Tree Services serves homeowners as well as businesses, HOAs, property mana
 - [Stump grinding]({SITE}/services/stump-grinding/): Grinding or reducing unwanted stumps to improve usability, appearance, mowing access, and future landscape planning. Access, underground utilities, grinding depth, chips, remaining roots, and replanting plans are addressed as part of a clear scope.
 - [Emergency tree service]({SITE}/services/emergency-tree-service/): Help with storm-damaged, fallen, split, leaning, or otherwise hazardous trees when prompt professional attention is needed. Availability is confirmed by phone; the company does not claim guaranteed around-the-clock response or energized-line work.
 - [Commercial and HOA tree care]({SITE}/services/commercial-hoa-tree-care/): Tree maintenance and project support for businesses, HOAs, property managers, community associations, institutions, and public-sector clients. Work can be organized around site access, stakeholder approval, written scopes, scheduling, documentation, and phased or recurring property needs.
+- [Landscaping]({SITE}/services/landscaping/): Bush and hedge trimming, weeding, edging, and mulch work for existing gardens and planting beds, with materials and cleanup defined in the written scope.
 
 Additional capabilities include tree preservation, brush removal, lot clearing, mulching, limited landscape work, and limited lawn and property-care services where they fit the company's current scope. Professional equipment includes bucket trucks, mini skid steers, Vermeer chippers, dump trucks, trailers, chainsaws, climbing equipment, and rigging equipment.
 
@@ -1469,6 +1535,7 @@ Angel Tree Services does not position itself as the cheapest provider. It aims t
 
 - [Homepage]({SITE}/): Company overview, primary services, trust information, reviews, frequently asked questions, and estimate request.
 - [Services]({SITE}/services/): Canonical service hub.
+- [Landscaping]({SITE}/services/landscaping/): Existing bushes, hedges and bed care, with real project photography and a landscaping estimate request.
 - [Tree Removal]({SITE}/services/tree-removal/): Tree-removal planning, scope, access, and cleanup guidance.
 - [Tree Pruning]({SITE}/services/tree-pruning/): Purposeful pruning and tree-care guidance.
 - [Stump Grinding]({SITE}/services/stump-grinding/): Stump, access, utility, chip, and replanting considerations.

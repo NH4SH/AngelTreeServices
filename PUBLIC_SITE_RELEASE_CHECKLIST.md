@@ -1,5 +1,92 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Approved Landscaping publication — October 17, 2026
+
+The owner approved commit, push and publication of the final reviewed Landscaping
+service-page patch. This supersedes this batch's earlier local-only holds.
+Keep analytics disabled and CRM code/settings unchanged. Preserve newer shared
+main work, use `[skip netlify]` to prevent automatic builds, and trigger only the
+public project build. Preserve production autocomplete configuration. Do not
+submit production leads; run non-submitting production smoke checks and confirm
+the CRM deployment is unchanged. No additional website features or draft-storage
+changes are included in this release.
+
+## Final Landscaping regression and release review — October 17, 2026
+
+- Ready for release approval at this public-patch scope; no blocking regression
+  or code fix identified. Fresh 101/101 tests and all 15 pages pass. All 214
+  rebuilt files match the reviewed artifact, preserving existing SEO, homepage,
+  previous estimate links, shared CSS/JS and photo bytes.
+- Keyboard hero/Services/footer and mobile quick-estimate journeys select
+  Landscaping. Desktop and 320/390/760/761px checks pass; the mobile menu opens
+  and Escape closes it. Fresh valid desktop/mobile captures saved.
+- Existing limitation: in-page estimate actions preserve entered details, but
+  unsent details are not persisted through a full trip to another page and a
+  fresh form. Reproduced with a local synthetic note and cleared it afterward.
+  This is unchanged baseline form behavior, not a new regression. Cross-page
+  draft recovery would be a separate improvement; it was not added here.
+- Read-only GitHub comparison: shared main at `449f73e` is three commits ahead
+  of this base, all changes under `apps/` and `supabase/`; no public patch
+  overlap. Preserve that newer work in a future approved release and rerun
+  the release build on its final commit. No branch/checkout was changed.
+- Before publication, refresh both hosting projects' state and preserve the
+  existing production Maps input; publish only the public website and run
+  non-submitting live smoke checks. Current hosting settings were not queried
+  in this local review. Physical devices, spoken screen reader and isolated
+  CRM lead delivery remain unverified. Analytics stays disabled; CRM/settings
+  unchanged; zero production leads. No commit, push or deployment.
+- Final review bundle: October 16 chat `outputs/website-landscaping-service-final-review.*`,
+  with fresh test/invariant/browser evidence in `work/landscaping-service/`.
+  Use this final bundle for a later approved release.
+
+## Approved local Landscaping service page — October 17, 2026
+
+Add `/services/landscaping/` using the existing service-page layout, approved
+garden-path and commercial-hedge photographs, and confirmed bush/hedge trimming,
+weeding, edging and mulch/bed care. Link from the Services page while preserving
+its existing estimate link. Keep tree trimming connected to existing pruning
+guidance. Do not infer planting, lawn care, job dates/locations or before/after
+claims. General Fredericksburg wording describes the existing service area.
+
+- Reuse existing image variants and provenance without modifying photo bytes.
+- Keep all existing page metadata, H1s, URLs, homepage and estimate links intact.
+  Add the new page's metadata, Service/Breadcrumb schema, sitemap and resource
+  links. Its own hero, final, footer and mobile estimates select Landscaping
+  through the existing form; no new CRM fields, intent, JavaScript or endpoint.
+- Run public tests/build/15-page validation, responsive/keyboard checks, and
+  verify existing SEO, image/script bytes and form behaviors are preserved.
+- Keep analytics disabled and CRM code/settings unchanged. Do not commit,
+  push, deploy, submit production leads or change hosting settings.
+
+### Completed local checks
+
+- All 101 tests pass; the generated release artifact validates all 15 approved
+  pages. Existing 14 page heads, homepage, estimate links, full case study,
+  image bytes and shared CSS/JavaScript are preserved. Only the Services hub,
+  sitemap and crawler resource list change, alongside the new page.
+- Browser checks pass at 320/390/760/761/1280/1440px with no horizontal overflow
+  or clipped heading. Both approved images load in complete frames. Services
+  navigation and the Landscaping estimate work with the keyboard and mouse;
+  all four new-page estimate actions retain Landscaping. Mobile menu Escape
+  dismissal works. Main actions are 54px high; the mobile estimate is 48px.
+- Independent visual finish review: `ship` at this ordinary-extension scope,
+  with no material fixes. One malformed mobile screenshot was replaced and
+  the complete page reviewed again. Eleven inherited detector findings in
+  unchanged shared styling/Services eyebrow remain outside this patch.
+- Final documentation comparison is complete. The page matches the incumbent
+  public-site system; no new design tokens, components or system files are
+  needed. Existing guide/context drift is recorded without unrelated repair.
+- Local preview: `http://127.0.0.1:63816/services/landscaping/`. Local evidence
+  is in the October 16 chat's `work/landscaping-service/` and
+  `.impeccable/review/landscaping-service/`. The preview blocks outbound
+  requests and website submissions. No production leads were submitted.
+- This remains a local patch. Analytics is disabled; CRM code/settings and
+  hosting are unchanged. No commit, push or deployment. An approved release
+  still needs current shared-main/hosting reconciliation, preservation of the
+  production autocomplete input, and non-submitting production smoke checks.
+  Physical-device, spoken screen-reader and isolated CRM-delivery checks
+  have not been performed.
+
 ## Approved bucket-truck and Services-button publication — October 16, 2026
 
 The owner approved commit, push and publication of this reviewed four-file

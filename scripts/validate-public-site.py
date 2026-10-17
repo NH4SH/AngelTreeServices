@@ -27,6 +27,7 @@ EXPECTED_PATHS = (
     "/services/stump-grinding/",
     "/services/emergency-tree-service/",
     "/services/commercial-hoa-tree-care/",
+    "/services/landscaping/",
     "/credentials-safety/",
     "/projects/",
     "/projects/hollow-tree-removal/",
@@ -37,6 +38,7 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
+    "/services/landscaping/": {"service": "Landscaping"},
     "/projects/hollow-tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
     "/services/tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
     "/services/tree-pruning/": {"service": "Tree Care", "estimate_context": "tree-pruning"},
@@ -1266,6 +1268,14 @@ class Validator:
             self.error(f"{route}: do not invent job dates or customer-review schema")
 
     def validate_artifact_contents(self) -> None:
+        # Every estimate action on the new service page must keep its category,
+        # including shared footer and mobile actions; no new intent is needed.
+        landscaping = self.pages.get("/services/landscaping/")
+        if landscaping:
+            for link in landscaping.links:
+                if "ats-estimate-link" in link.get("class", "").split():
+                    if link.get("href") != "/?service=Landscaping#contact":
+                        self.error("/services/landscaping/: an estimate action lost its existing Landscaping category")
         for route, page in self.pages.items():
             for link in page.links:
                 if link.get("target", "").lower() != "_blank":
@@ -1275,6 +1285,7 @@ class Validator:
                     self.error(f"{route}: new-tab link must use rel=\"noopener noreferrer\"")
 
         responsive_image_expectations = {
+            "/services/landscaping/": ("photo-garden-path-480", "photo-commercial-detail-480"),
             "/projects/": ("photo-garden-path-480", "photo-flowering-tree-480", "photo-commercial-overview-480", "photo-commercial-detail-480"),
             "/about/": ("service-tree-320",),
             "/services/tree-removal/": ("service-tree-320",),

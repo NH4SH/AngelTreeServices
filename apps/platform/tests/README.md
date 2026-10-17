@@ -873,6 +873,13 @@ schema contract check. These commands authorize no hosted migration or deploymen
 
 ## Scanner hosting and synthetic recovery — local only
 
+The staging host/protection handoff is in
+`../STAGING_VISITOR_AND_SCANNER_PREPARATION.md`. The credential-free
+`scanner-host-preparation.test.mjs` verifies preliminary host screening and local
+socket targeting. `scripts/private-scanner/hosting/inspect-host.mjs` is run on a
+future approved Linux host, never as a deploy/provisioning command. Its suitable
+result does not prove activation readiness or modify any staging manifest.
+
 `scanner-hosting.test.mjs` joins the ordinary credential-free unit runner. The
 two integration suites below are opt-in and require the isolated hosting package
 in `scripts/private-scanner/hosting/README.md`, an explicitly trusted localhost

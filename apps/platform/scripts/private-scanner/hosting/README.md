@@ -4,6 +4,8 @@ Local preparation for existing PR18/F17. No host, DNS, service credential,
 staging deployment or production activation is created by adding these files.
 Use with `../../../SCANNER_ACTIVATION_RUNBOOK.md` and
 `../../../SCANNER_HOSTING_AND_RESTORE.md`. Provisioning remains a separate step.
+The current staging procurement/protection recommendation and host handoff are
+in `../../../STAGING_VISITOR_AND_SCANNER_PREPARATION.md`; no host is assigned.
 
 ## Runtime boundary
 
@@ -107,6 +109,22 @@ Rollback selects the previous verified image/config with the **same** retained
 definitions volume; check compatibility and a synthetic scan before use. Never
 disable scan gates to hide an outage. Stop approved file processing if recovery
 cannot preserve the access boundary.
+
+For a rootless host, review port 443 binding explicitly; the default high-port
+loopback test does not prove privileged-port support. Do not change a system-wide
+privileged-port boundary or run scanner containers as root to make it work.
+Docker port publishing can bypass UFW rules, so use the cloud firewall and real
+external IPv4/IPv6 denial tests as well as the reviewed Docker/host rules. Do not
+disable Docker's firewall handling. These are future host gates, not changes
+installed by this package.
+
+`inspect-host.mjs --socket /absolute/local/docker.sock` is a read-only preliminary
+check run directly on the approved candidate Linux host. It explicitly selects
+a local Unix socket, emits only selected OS/daemon facts and never reads
+credentials or installs/starts services. Nominal 8 GiB hosts must expose at least
+7.5 GiB usable memory after kernel reservation. Suitable preliminary facts do
+not establish native image behavior, enforced limits, TLS, firewall, operator,
+monitoring or recovery proof; `readyForActivation` always remains false.
 
 ## Health, updates and retention
 

@@ -1,0 +1,142 @@
+{
+  "verifiedAt": "2026-10-17T23:33:30.533687+00:00",
+  "baseMain": "bd6ea2d8972a6435052c5604e0e106dc2371c1f8",
+  "defaultsReviewPushedTo": [
+    "main",
+    "codex/pr18-managed-defaults-review"
+  ],
+  "scope": "PR18 preparation and synthetic local scanner verification only",
+  "visitorProtection": {
+    "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "siteName": "angel-tree-admin-staging",
+    "currentTeamId": "6887e1d10bc00c09293eae2c",
+    "currentTeamPlan": "legacy Free",
+    "currentUserRole": "Owner",
+    "dashboardReadback": [
+      "No protection settings",
+      "Upgrade to unlock"
+    ],
+    "publishedAppDeploy": null,
+    "configured": false,
+    "verified": false,
+    "preparedRoute": "Separate eligible Credit-based staging team; Private; production and previews; no shared production team plan/default changes.",
+    "newTeamId": null,
+    "transferPerformed": false,
+    "privateEligibleOwnerOnlyPlanCostUsd": 0,
+    "proBaseMonthlyUsdAtReview": 20,
+    "planOrPurchaseApproved": false
+  },
+  "scanner": {
+    "recommendation": "DigitalOcean Basic bundled Regular VM, Ubuntu24.04 AMD64, available US-east region",
+    "nominalMemoryGiB": 8,
+    "vcpu": 4,
+    "cpuClass": "shared",
+    "diskGiB": 160,
+    "baseMonthlyUsdAtReview": 48,
+    "optionalWeeklyVmBackupMonthlyUsd": 9.6,
+    "accountId": null,
+    "hostId": null,
+    "region": null,
+    "hostname": null,
+    "operator": null,
+    "approvedForPurchase": false,
+    "provisioned": false,
+    "nativeAmd64Verified": false,
+    "actualHostCapacityVerified": false
+  },
+  "tests": {
+    "regressions": {
+      "passed": 718,
+      "failed": 0,
+      "skipped": 0
+    },
+    "newHostScreeningUnitTests": 4,
+    "focusedTestsIncludedInRegressionTotal": 16,
+    "scannerIntegrationIncludingParent": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    "localArchitecture": "arm64",
+    "realLocalHostScreening": {
+      "preliminaryHostSuitable": false,
+      "checks": {
+        "linuxUbuntu2404": false,
+        "supportedArchitecture": true,
+        "hostCpu": true,
+        "hostUsableMemory": false,
+        "noActiveSwap": true,
+        "dockerLinux": true,
+        "dockerSameArchitecture": true,
+        "dockerCpu": true,
+        "dockerUsableMemory": false,
+        "rootlessDocker": true,
+        "cgroupV2Systemd": true
+      },
+      "architecture": "arm64",
+      "requiredNominalMemoryGiB": 8,
+      "readyForActivation": false,
+      "changesApplied": false,
+      "pendingEvidence": [
+        "Approved company account, host identity, cost and named operator",
+        "Native image build/runtime and enforced cgroup limits on the actual host",
+        "Two concurrent 25 MiB scans during definition update/reload within application timeout",
+        "TLS/renewal and external firewall checks for IPv4 and IPv6; no bypass ports",
+        "Reviewed rootless binding of public port 443 without a broad host security change",
+        "Private credential mapping, no-swap/coredump policy and bounded logs",
+        "Monitoring delivery, operator response and paired source-object/database recovery"
+      ]
+    },
+    "macRefusal": {
+      "exitCode": 1,
+      "changesApplied": false,
+      "detail": "Non-Linux launcher refused before querying Docker."
+    },
+    "typecheck": "passed",
+    "applicationBuild": "not repeated: no application runtime/build-input change",
+    "stagingPreflight": {
+      "ready": false,
+      "networkRequests": 0,
+      "changesApplied": false
+    },
+    "activeReviewAppHealth": "200 /api/health/live",
+    "ownedLocalStackAfter": {
+      "project": "ats_host_local_20261017",
+      "services": {
+        "engine": "exited",
+        "bridge": "exited",
+        "proxy": "exited",
+        "signature-updater": "exited"
+      }
+    }
+  },
+  "preservation": {
+    "productionWrites": false,
+    "hostedConfigurationChanges": false,
+    "billingOrAccountChanges": false,
+    "newCredentialsGenerated": false,
+    "productionPublishedDeploy": "6ad23c757dfc53f702ae00b9",
+    "stagingPublishedAppDeploy": null,
+    "deployed": false,
+    "migrationOrRlsChanges": false,
+    "appRuntimeSourceChanged": false,
+    "scannerRuntimeConfigChanged": false,
+    "sharedTargetManifestChanged": false,
+    "sourceRetentionPolicyChanged": false
+  },
+  "readyForHosting": false,
+  "deploymentAuthorized": false,
+  "remainingDecisions": [
+    "Approved company hosting account, budget and operator",
+    "Separate Netlify staging-team eligibility/plan and supported staging-only site transfer",
+    "Approved scanner hostname/TLS/rootless443 binding/firewall/monitoring/recovery",
+    "Actual host and protected runtime/mail/key evidence before a separately approved release"
+  ],
+  "sourceSha256": {
+    "apps/platform/scripts/private-scanner/hosting/inspect-host.mjs": "96ff35fd64e853545f8dca3796b2fcb1e8ed96a7a9477f6a176293aaa6eeecf7",
+    "apps/platform/tests/scanner-host-preparation.test.mjs": "4a9b019271895ae9ded4e4baf28cf410095e76dccec2466affe0a402e25096af",
+    "apps/platform/scripts/private-scanner/hosting/compose.yaml": "34a9036e0881ab665cd67d8d2adbf5946d2927f9e3ada77568e65356beea0b1b",
+    "apps/platform/scripts/private-scanner/hosting/nginx.conf": "7bd57b6c882d5852956c4c8eacaebd06c0bdd750bcbcf491440045e5a051031d",
+    "apps/platform/staging/targets.json": "e504f427f8faa37e27257cd7be152f7cf55ec2f02784e399c1456141c40b2a4f"
+  }
+}

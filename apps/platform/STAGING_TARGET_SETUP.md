@@ -110,6 +110,13 @@ rollback/idempotence checks. No application code or production migration changed
 
 ## Remaining release gates
 
+The next preparation pass is documented in
+STAGING_VISITOR_AND_SCANNER_PREPARATION.md. The managed-default review `bd6ea2d`
+is now pushed to main. Visitor protection was reconfirmed locked on the current
+legacy Free staging site. A separate staging-team Private configuration and a
+company-controlled DigitalOcean 8 GiB scanner VM are prepared recommendations,
+not configured or purchased resources. All unverified flags below stay false.
+
 1. **Visitor protection:** Netlify's legacy Free plan returned HTTP422 when team
    protection was requested. The real dashboard says “No protection settings” /
    “Upgrade to unlock.” No plan or shared production setting changed. A protection

@@ -1,5 +1,7 @@
 # Isolated staging preparation — October 17, 2026
 
+**Local access-gate follow-through (October 17):** the owner selected a free, custom approach. A staging-only gate is implemented and tested locally; see [local access protection](STAGING_ACCESS_PROTECTION.md). Native Netlify protection is still locked, no plan/team change or scanner purchase is approved, and hosted visitor protection remains unverified. The earlier paid host recommendation is retained as historical review, not the selected budget.
+
 Status: **local preparation verified; separate targets created; staging schema initialized but hosting not ready**.
 See STAGING_TARGET_SETUP.md for actual assignments, verification and blockers.
 This continues PR18/F17 and the existing scanner activation runbook. No deploy,

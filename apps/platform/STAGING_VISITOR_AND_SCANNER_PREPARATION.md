@@ -1,5 +1,7 @@
 # PR18 staging visitor protection and scanner hosting preparation
 
+**Local access-gate follow-through (October 17):** the owner selected a free, custom approach. A staging-only gate is implemented and tested locally; see [local access protection](STAGING_ACCESS_PROTECTION.md). Native Netlify protection is still locked, no plan/team change or scanner purchase is approved, and hosted visitor protection remains unverified. The earlier paid host recommendation is retained as historical review, not the selected budget.
+
 ## Outcome
 
 The verified managed-default review **`bd6ea2d` is pushed to main** and

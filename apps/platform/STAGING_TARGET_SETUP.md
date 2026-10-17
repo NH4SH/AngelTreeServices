@@ -1,5 +1,7 @@
 # Staging target setup and verification — October 17, 2026
 
+**Local access-gate follow-through (October 17):** the owner selected a free, custom approach. A staging-only gate is implemented and tested locally; see [local access protection](STAGING_ACCESS_PROTECTION.md). Native Netlify protection is still locked, no plan/team change or scanner purchase is approved, and hosted visitor protection remains unverified. The earlier paid host recommendation is retained as historical review, not the selected budget.
+
 Status: **staging application grants reconciled; managed defaults reviewed and retained; hosting not ready**.
 This continues PR18/F17 and the existing roadmap. The user selected ATS and
 completed Supabase CLI authentication. Production and the disposable review app

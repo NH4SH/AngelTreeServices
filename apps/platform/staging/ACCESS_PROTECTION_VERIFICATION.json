@@ -1,0 +1,73 @@
+{
+  "verifiedOn": "2026-10-17",
+  "scope": "local-staging-access-only",
+  "nodeVersion": "22.23.3",
+  "dependenciesAdded": 0,
+  "unitTests": {
+    "passed": 731,
+    "failed": 0,
+    "skipped": 0,
+    "newGateTestsIncluded": 13
+  },
+  "loopbackIntegrationTests": {
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "syntheticUpstream": true
+  },
+  "typecheckPassed": true,
+  "browserChecks": {
+    "wrongCodeDenied": true,
+    "correctCodeOpensExistingCrm": true,
+    "endAccessReturnsToGate": true,
+    "followingAdminVisitDenied": true,
+    "existingCrmLoginRetained": true,
+    "keyboardFocusVisible": true,
+    "errorAssociatedWithInput": true,
+    "desktopViewport": [
+      1280,
+      720
+    ],
+    "narrowTemplateViewport": [
+      390,
+      640
+    ],
+    "physicalMobileDeviceTested": false
+  },
+  "actualAppProbes": {
+    "anonymousHealth": 401,
+    "login": 303,
+    "authorizedHealth": 200,
+    "authorizedAdmin": 307,
+    "originalHealth": 200,
+    "mutationRequests": 0
+  },
+  "visualReview": {
+    "initialDisposition": "fix",
+    "fix": "Strengthen input normal-state border contrast",
+    "verdictDisposition": "ship",
+    "verdictScope": "single listed material fix resolved"
+  },
+  "gateOrigin": "http://127.0.0.1:3110",
+  "originalAppOrigin": "http://127.0.0.1:3102",
+  "localLoopbackBypassPortStillExists": true,
+  "hostedAdapterPrepared": true,
+  "hostedAdapterExecuted": false,
+  "liveCdnVerified": false,
+  "hostedVisitorProtectionVerified": false,
+  "sharedTargetManifestChanged": false,
+  "productionNetlifyConfigurationChanged": false,
+  "applicationFeatureCodeChanged": false,
+  "databaseOperations": 0,
+  "providerOperations": 0,
+  "hostedCredentialsInstalled": false,
+  "pushed": false,
+  "deployed": false,
+  "productionChanged": false,
+  "remainingGates": [
+    "Actual hosted Edge/CDN/all-route and old-deploy verification",
+    "Existing PR18 scanner host/operator/recovery",
+    "Isolated hosted mail/runtime keys/Auth verification"
+  ],
+  "unrelatedLocalIssue": "Dashboard URI too long warning also reproduces directly on original port 3102."
+}

@@ -17,13 +17,14 @@ const directory = mkdtempSync(join(tmpdir(), 'ats-staging-export-'));
 const archive = git('archive', '--format=tar', commit, 'apps/platform');
 execFileSync('tar', ['-xf', '-', '-C', directory], { input: archive });
 const app = join(directory, 'apps/platform');
-const config = `[build]\n  command = "node scripts/release/staging-preflight.mjs --manifest staging/targets.json && npm run build"\n  publish = ".next"\n[build.environment]\n  NODE_VERSION = "22.23.3"\n  NETLIFY_NEXT_SKEW_PROTECTION = "true"\n[functions]\n  directory = "staging/no-schedules"\n  node_bundler = "esbuild"\n`;
+const config = `[build]\n  command = "node scripts/release/staging-preflight.mjs --manifest staging/targets.json && node staging/access/check.mjs && npm run build"\n  publish = ".next"\n  edge_functions = "staging/access/edge"\n[build.environment]\n  NODE_VERSION = "22.23.3"\n  NETLIFY_NEXT_SKEW_PROTECTION = "true"\n[functions]\n  directory = "staging/no-schedules"\n  node_bundler = "esbuild"\n[[edge_functions]]\n  path = "/*"\n  function = "staging-access"\n`;
 // Only the NEW export's configuration is replaced. Production source stays intact.
 writeFileSync(join(app, 'netlify.toml'), config);
 mkdirSync(join(app, 'staging/no-schedules'), { recursive: true });
 writeFileSync(join(app, 'staging/no-schedules/README.md'), 'No scheduled functions in the initial staging export. Original worker sources remain in netlify/functions for review; they are not selected for bundling.\n');
 writeFileSync(join(app, '.gitignore'), '.netlify/\n.env*\n.next/\nnode_modules/\n');
 assert.ok(readFileSync(join(app, 'scripts/release/staging-preflight.mjs')).length > 0, 'Commit the reviewed preparation tools before exporting.');
-const result = { directory: app, sourceCommit: commit, sourceTree: git('rev-parse', commit + ':apps/platform').toString().trim(), sourceArchiveSha256: createHash('sha256').update(archive).digest('hex'), stagingConfigSha256: createHash('sha256').update(config).digest('hex'), scheduledFunctionsSelected: 0, credentialsCopied: false, linked: false, built: false, deployed: false };
+assert.ok(readFileSync(join(app,'staging/access/edge/staging-access.js')).length>0,'Commit the staging gate before exporting.');
+const result = { directory: app, sourceCommit: commit, sourceTree: git('rev-parse', commit + ':apps/platform').toString().trim(), sourceArchiveSha256: createHash('sha256').update(archive).digest('hex'), stagingConfigSha256: createHash('sha256').update(config).digest('hex'), scheduledFunctionsSelected: 0, stagingAccessGateSelected:true, hostedAccessProtectionVerified:false, credentialsCopied: false, linked: false, built: false, deployed: false };
 writeFileSync(join(app, 'STAGING_EXPORT.json'), JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));

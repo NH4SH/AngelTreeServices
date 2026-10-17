@@ -74,7 +74,7 @@
     "originLiveVerified": false,
     "publishedDeployId": null,
     "visitorProtectionVerified": false,
-    "visitorProtectionBlocker": "Current legacy Free site still shows No protection settings / Upgrade to unlock. An eligible separate Credit-based staging team and Private all-deploy visibility require review; no shared production team plan change is made.",
+    "visitorProtectionBlocker": "Legacy Free native protection remains locked. Owner selected a custom free gate, implemented and verified locally only; hosted routes/CDN/aliases still require approved verification. No team/plan change.",
     "visitorProtectionPreparationCompleted": true,
     "preparedVisibility": "Private",
     "preparedVisibilityScope": "Production and previews on the separate staging site only",
@@ -90,7 +90,11 @@
     "publicConfigurationScopes": "all",
     "publicConfigurationContexts": "all",
     "credentialsInstalled": false,
-    "runtimeEnvironmentVerified": false
+    "runtimeEnvironmentVerified": false,
+    "localAccessGateImplemented": true,
+    "localAccessGateVerified": true,
+    "customHostedGatePrepared": true,
+    "customHostedGateVerified": false
   },
   "scanner": {
     "host": null,
@@ -118,7 +122,8 @@
       "approvedForPurchase": false,
       "provisioned": false,
       "nativeArchitectureVerified": false,
-      "actualHostCapacityVerified": false
+      "actualHostCapacityVerified": false,
+      "ownerBudgetPreference": "Free option requested after this paid recommendation; no purchase approved. Scanner host remains unassigned."
     },
     "isolationVerified": false,
     "backupRecoveryVerified": false

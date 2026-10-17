@@ -226,6 +226,8 @@ test("photo parity: real PostgreSQL policies and production upload path in isola
       "@/lib/security/upload-validation": { prepareSafeUpload },
     });
     const { getJobPhotos } = loadModule("../src/lib/data/job-photos.ts", {
+      // This F08 fixture predates PR18 views; its Storage SELECT still runs real RLS.
+      "@/lib/files/private-file-links": { privateFileLinks: async (client, _type, rows) => client.storage.from("job-photos").createSignedUrls(rows.map(row => row.storage_path), 900) },
       "@/lib/supabase/server": { createClient() { throw new Error("Must supply isolated client"); } },
       "@/lib/storage/job-photo-paths": { JOB_PHOTO_BUCKET: "job-photos" },
       "@/lib/security/errors": { safeStaffMessage: (value) => value },

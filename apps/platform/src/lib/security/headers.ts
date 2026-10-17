@@ -1,4 +1,10 @@
 const scriptDevelopmentSources = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+const localStorageSource = (() => {
+  if (process.env.NODE_ENV !== "development") return "";
+  try { const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ? ` ${url.origin}` : "";
+  } catch { return ""; }
+})();
 
 export const contentSecurityPolicy = [
   "default-src 'self'",
@@ -10,7 +16,7 @@ export const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://maps.gstatic.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com${localStorageSource}`,
   "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
   "worker-src 'self' blob:",
 ].join("; ");

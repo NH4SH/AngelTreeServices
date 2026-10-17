@@ -15562,6 +15562,22 @@ export type Database = {
                 };
                 Returns: (string)[];
             };
+            "private_file_descriptor": {
+                Args: {
+                    "p_source_id": string;
+                    "p_source_type": string;
+                };
+                Returns: {
+                    "bucket_id": string;
+                    "etag": string;
+                    "label": string;
+                    "mime_type": string;
+                    "object_id": string;
+                    "object_version": string;
+                    "size_bytes": number;
+                    "storage_path": string;
+                }[];
+            };
             "queue_google_calendar_connection_sync": {
                 Args: {
                     "queue_reason"?: string;
@@ -15954,6 +15970,13 @@ export type Database = {
                     "p_employee_id": string;
                     "p_reason": string;
                     "p_status": string;
+                };
+                Returns: Json;
+            };
+            "staged_upload_info": {
+                Args: {
+                    "p_actor": string;
+                    "p_upload": string;
                 };
                 Returns: Json;
             };

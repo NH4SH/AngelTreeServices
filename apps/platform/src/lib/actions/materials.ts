@@ -134,6 +134,11 @@ export async function createInventoryLocation(_state: MaterialActionState, formD
 }
 
 export async function recordInventoryMovement(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => recordInventoryMovement(_state, hydrated));
+  }
+
   const context = await getContext();
   if (!context || !hasAllowedRole(context.roles, platformRoleGroups.crewApp)) return fail("This account cannot record material use.");
   const staff = isStaff(context.roles);
@@ -298,6 +303,11 @@ export async function releaseMaterialReservation(_state: MaterialActionState, fo
 }
 
 export async function recordMaterialPurchase(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => recordMaterialPurchase(_state, hydrated));
+  }
+
   const context = await getContext();
   if (!context || !isFinancial(context.roles)) return fail("Financial material access is required to record purchases and unit costs.");
   const materialId = text(formData, "material_id", 80);
@@ -346,6 +356,11 @@ export async function recordMaterialPurchase(_state: MaterialActionState, formDa
 }
 
 export async function recordDisposal(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => recordDisposal(_state, hydrated));
+  }
+
   const context = await getContext();
   if (!context || !hasAllowedRole(context.roles, platformRoleGroups.crewApp)) return fail("This account cannot record disposal loads.");
   const staff = isStaff(context.roles);
@@ -450,6 +465,11 @@ export async function recordProductionBatch(_state: MaterialActionState, formDat
 }
 
 export async function recordCustomerDelivery(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => recordCustomerDelivery(_state, hydrated));
+  }
+
   const context = await getContext();
   if (!context || !isStaff(context.roles)) return fail("Only authorized staff can schedule or complete deliveries.");
   const party = parseContractingParty(formData.get("contracting_party"));
@@ -498,6 +518,11 @@ export async function recordCustomerDelivery(_state: MaterialActionState, formDa
 }
 
 export async function recordStockpileMeasurement(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => recordStockpileMeasurement(_state, hydrated));
+  }
+
   const context = await getContext();
   if (!context || !isStaff(context.roles)) return fail("Only authorized staff can record stockpile measurements.");
   const materialId = text(formData, "material_id", 80);

@@ -161,7 +161,22 @@ final class MobileAPIClientTests: XCTestCase {
     func testPhotoUploadAcceptsSuccessAndSurfacesValidationFailure() async throws {
         URLProtocolStub.handler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+            if request.url?.path == "/api/uploads" {
+                XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+                return Self.response(request, status: 200, json: """
+                {"reference":"ats-upload:v1:test","bucket":"platform-upload-staging","path":"actor/file","storageUrl":"https://storage.example.test","publicKey":"public-key"}
+                """)
+            }
+            if request.url?.host == "storage.example.test" {
+                XCTAssertEqual(Self.fileBody(request), Data([1, 2, 3]))
+                XCTAssertEqual(request.value(forHTTPHeaderField: "apikey"), "public-key")
+                return Self.response(request, status: 200, json: "{}")
+            }
             XCTAssertTrue(request.value(forHTTPHeaderField: "Content-Type")?.contains("multipart/form-data") == true)
+            let body = String(data: Self.fileBody(request), encoding: .utf8) ?? ""
+            XCTAssertTrue(body.contains("ats-upload:v1:test"))
+            XCTAssertFalse(body.contains("filename="))
             return Self.response(request, status: 201, json: """
             {"data":{"message":"Photo uploaded."},"meta":{"apiVersion":"test"}}
             """)
@@ -194,8 +209,44 @@ final class MobileAPIClientTests: XCTestCase {
             )
             XCTFail("Expected upload validation to fail")
         } catch let error as MobileAPIError {
-            XCTAssertEqual(error, .requestRejected("Upload photos as multipart form data."))
+            XCTAssertEqual(error, .requestRejected("File unavailable. Check the file and try again."))
         }
+    }
+
+    func testPrivatePhotoRequiresFreshVersionedChunksAndNeverUsesSignedURL() async throws {
+        let id = "00000000-0000-4000-8000-000000000001"
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.path, "/files/job_photo/\(id)")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer access-token")
+            XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalAndRemoteCacheData)
+            if request.url?.query == "info=1" {
+                return Self.response(request, status: 200, json: """
+                {"size":3,"mimeType":"image/png","version":"version-one","chunkBytes":1048576}
+                """)
+            }
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Range"), "bytes=0-2")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "If-Match"), "version-one")
+            return (HTTPURLResponse(url: request.url!, statusCode: 206, httpVersion: nil,
+                headerFields: ["Content-Range":"bytes 0-2/3", "ETag":"version-one"])!, Data([1, 2, 3]))
+        }
+        let data = try await makeClient().privateJobPhoto(id: id, accessToken: "access-token")
+        XCTAssertEqual(data, Data([1, 2, 3]))
+        URLProtocolStub.handler = { request in Self.response(request, status: 404, json: "{}") }
+        do { _ = try await makeClient().privateJobPhoto(id: id, accessToken: "access-token"); XCTFail("Revoked access must fail") }
+        catch let error as MobileAPIError { XCTAssertEqual(error, .requestRejected("File unavailable. Check the file and try again.")) }
+    }
+
+    private static func fileBody(_ request: URLRequest) -> Data {
+        if let body = request.httpBody { return body }
+        guard let stream = request.httpBodyStream else { return Data() }
+        stream.open(); defer { stream.close() }
+        var result = Data(); var bytes = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&bytes, maxLength: bytes.count)
+            if count <= 0 { break }
+            result.append(contentsOf: bytes.prefix(count))
+        }
+        return result
     }
 
     private func makeClient() -> MobileAPIClient {

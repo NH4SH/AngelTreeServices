@@ -103,7 +103,7 @@ test("Directory time-clock reads stay within authorized employees and retain mul
   for (const visibleTimer of [true, false]) {
     const reads = [];
     const data = load("../src/lib/data/employees.ts", {
-      "server-only": {}, "@/lib/employee-presentation": presentation,
+      "server-only": {}, "@/lib/files/private-file-links": { privateFileLinks: () => assert.fail("Directory must not read attachments") }, "@/lib/employee-presentation": presentation,
       "@/lib/auth/roles": { platformRoleGroups: { timeClockEligible: ["owner", "admin", "payroll_admin", "estimator", "crew"] } },
       "@/lib/security/errors": {}, "@/lib/business-time": {},
       "@/lib/supabase/server": { createClient: async () => ({

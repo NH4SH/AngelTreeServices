@@ -8,7 +8,12 @@
 .file-checks .secondary-action { min-height: var(--control-touch-size); }
 .file-checks :is(input,select):focus-visible { outline: 2px solid var(--color-forest); outline-offset: 3px; }
 .file-checks nav { margin-block: 1.25rem; align-items: center; }
+.file-checks .private-file-preview { max-width: 72rem; }
+.file-checks .private-file-preview img { display: block; max-width: 100%; max-height: 75vh; object-fit: contain; margin-block: 1.5rem; }
+.file-checks .page-heading h1 { overflow-wrap: anywhere; }
 @media (max-width: 720px) {
   .file-checks .attachment-check-row { flex-direction: column; gap: .5rem; }
   .file-checks :is(input,select) { font-size: 1rem; }
 }
+
+.file-checks .file-open-actions { display: flex; flex-wrap: wrap; gap: .75rem; }

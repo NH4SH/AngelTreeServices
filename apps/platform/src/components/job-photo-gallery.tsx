@@ -1,4 +1,5 @@
 import { AttachmentCheckLink } from "@/components/AttachmentCheckLink";
+import { PrivateFileImage } from "@/components/PrivateFileImage";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { Camera, ImageOff } from "lucide-react";
 import type { JobPhotoType, SignedJobPhoto } from "@/lib/types/database";
@@ -50,9 +51,8 @@ function PhotoGroup({ photos, title }: { photos: SignedJobPhoto[]; title: string
             <li key={photo.id}>
               {photo.signed_url ? (
                 <a href={photo.signed_url} rel="noreferrer" target="_blank">
-                  <img
+                  <PrivateFileImage
                     alt={photo.caption || `${title} job photo`}
-                    loading="lazy"
                     src={photo.signed_url}
                   />
                 </a>

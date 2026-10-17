@@ -37,8 +37,15 @@ export function useReliableActionState<State, Payload>(
     pendingRef.current = true;
     setPending(true);
 
+    let submitted = false;
     try {
-      const nextState = await actionRef.current(stateRef.current, payload);
+      let prepared = payload;
+      if (payload instanceof FormData && [...payload.values()].some(value => value instanceof File && value.size > 0)) {
+        const { stageFormUploads } = await import("@/lib/files/stage-browser-upload");
+        prepared = await stageFormUploads(payload) as Payload;
+      }
+      submitted = true;
+      const nextState = await actionRef.current(stateRef.current, prepared);
 
       // Redirecting server actions may finish without a state payload while the
       // destination is loading. Keep the current state until navigation unmounts.
@@ -53,7 +60,7 @@ export function useReliableActionState<State, Payload>(
         throw error;
       }
 
-      const failureState = toFailureState(stateRef.current);
+      const failureState = toFailureState(stateRef.current, submitted);
       if (!failureState || !mountedRef.current) {
         throw error;
       }
@@ -74,7 +81,7 @@ export function useReliableActionState<State, Payload>(
   return [state, dispatch, pending];
 }
 
-function toFailureState<State>(currentState: State): State | null {
+function toFailureState<State>(currentState: State, submitted = true): State | null {
   if (!currentState || typeof currentState !== "object" || !("status" in currentState) || !("message" in currentState)) {
     return null;
   }
@@ -82,7 +89,8 @@ function toFailureState<State>(currentState: State): State | null {
   return {
     ...currentState,
     status: "error",
-    message: "That action could not finish. Please try again. Your previous click may already have been saved.",
+    message: submitted ? "That action could not finish. Please try again. Your previous click may already have been saved."
+      : "The file transfer did not finish. Your form has not been submitted. Check the file and your connection, then try again.",
   } as State;
 }
 

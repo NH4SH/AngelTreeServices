@@ -182,3 +182,19 @@ Review-time evidence: 18 targeted tests and 7 local rehearsals passed; existing
 switches were restored. Production stayed on its existing deployment, with scan
 schema absent and no activation. Further staging/provisioning/production steps
 remain unexecuted.
+
+## Upload/access local follow-through
+
+Read UPLOAD_ACCESS_READINESS.md before the next approved release rehearsal. The
+local chain now has 92 migrations, including a private transport holding bucket.
+Keep it permanently unreadable to ordinary clients. Successful transfers remove
+only their temporary buffers; failed/uncertain buffers require preserve-first
+review and expire for consumption after one hour. No scheduled purge is present.
+
+Stage the web/server and updated native contract together in isolated targets.
+Prove 6/10/15/25 MiB supported uploads, 25 MiB chunked downloads, object replacement
+and actor revocation, all original scan gates/classifications, CDN no-store headers,
+and exact byte reconstruction on the actual adapter. Existing old native multipart
+uploads still have the hosting request limit. Previously issued signed links and
+saved copies are not revoked by the new route. Never rotate production Auth keys
+or delete business objects to manufacture a successful revocation test.

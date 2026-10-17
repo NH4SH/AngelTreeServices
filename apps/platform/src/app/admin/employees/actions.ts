@@ -24,6 +24,11 @@ async function getStaffContext(adminOnly = false) {
 }
 
 export async function createEmployee(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => createEmployee(_state, hydrated));
+  }
+
   const context = await getStaffContext(true); if (!context) return fail("Only owner/admin can create employee records.");
   const input = employeeInput(formData); if ("message" in input) return fail(String(input.message));
   const duplicateFilters = [input.employee_number && `employee_number.ilike.${safeFilter(input.employee_number)}`, input.contact_email && `contact_email.ilike.${safeFilter(input.contact_email)}`].filter(Boolean).join(",");
@@ -40,6 +45,11 @@ export async function createEmployee(_state: EmployeeActionState, formData: Form
 }
 
 export async function updateEmployee(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => updateEmployee(_state, hydrated));
+  }
+
   const context = await getStaffContext(true); if (!context) return fail("Only owner/admin can edit employee identity and employment fields.");
   const employeeId = text(formData, "employee_id", 80); const input = employeeInput(formData);
   if (!employeeId || "message" in input) return fail(!employeeId ? "Employee record is missing." : String(input.message));
@@ -114,6 +124,11 @@ async function changeEmployeeAccess(formData: FormData, status: string, defaultR
 }
 
 export async function addEmployeeCredential(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => addEmployeeCredential(_state, hydrated));
+  }
+
   const context = await getStaffContext(); if (!context) return fail("Only authorized staff can add credentials.");
   const employeeId = text(formData, "employee_id", 80); const typeId = text(formData, "credential_type_id", 80);
   if (!employeeId || !typeId) return fail("Employee and credential type are required.");
@@ -147,6 +162,11 @@ export async function verifyEmployeeCredential(formData: FormData) {
 }
 
 export async function uploadEmployeeDocument(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => uploadEmployeeDocument(_state, hydrated));
+  }
+
   const context = await getStaffContext(); if (!context) return fail("Only authorized staff can upload employee documents.");
   const employeeId = text(formData, "employee_id", 80); const title = text(formData, "title", 180); const classification = text(formData, "access_classification", 40); const file = formData.get("file");
   if (!employeeId || !title || !["employee_visible", "supervisor_visible", "admin_only", "owner_only"].includes(classification)) return fail("Employee, title, and access classification are required.");
@@ -171,6 +191,11 @@ export async function reviewEmployeeDocument(formData: FormData) {
 }
 
 export async function createTrainingSession(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => createTrainingSession(_state, hydrated));
+  }
+
   const context = await getStaffContext(); if (!context) return fail("Only authorized staff can record training.");
   const title = text(formData, "title", 180); const startsAt = dateTime(formData, "starts_at"); const attendees = formData.getAll("employee_ids").map(String).filter(Boolean);
   if (!title || !startsAt || !attendees.length) return fail("Training title, date, and at least one employee are required.");
@@ -184,6 +209,11 @@ export async function createTrainingSession(_state: EmployeeActionState, formDat
 }
 
 export async function createSafetyMeeting(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => createSafetyMeeting(_state, hydrated));
+  }
+
   const context = await getStaffContext(); if (!context) return fail("Only authorized staff can record safety meetings.");
   const title = text(formData, "title", 180); const startsAt = dateTime(formData, "starts_at"); const presentIds = formData.getAll("present_employee_ids").map(String).filter(Boolean); const absentIds = formData.getAll("absent_employee_ids").map(String).filter(Boolean);
   if (!title || !startsAt) return fail("Safety topic and date are required.");

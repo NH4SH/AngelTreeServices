@@ -39,6 +39,12 @@ export async function uploadJobPhotoForUser({
   supabase: SupabaseClient<any, "public", any>;
   userId: string;
 }): Promise<JobPhotoUploadState & { jobId?: string }> {
+  if (typeof file === "string" && file.startsWith("ats-upload:v1:")) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    const input = new FormData(); input.set("photo", file);
+    return withStagedUploads(input, hydrated => uploadJobPhotoForUser({ caption: rawCaption, category,
+      file: hydrated.get("photo"), jobId, supabase, userId }), { user: { id: userId } });
+  }
   const caption = rawCaption.trim().slice(0, 240) || null;
 
   if (!uuidPattern.test(jobId)) {
@@ -72,7 +78,7 @@ export async function uploadJobPhotoForUser({
     fileName: file.name,
   });
 
-  const { error: uploadError } = await uploadCheckedAttachment(supabase, JOB_PHOTO_BUCKET, storagePath, prepared.data, userId, { cacheControl: "3600" });
+  const { error: uploadError } = await uploadCheckedAttachment(supabase, JOB_PHOTO_BUCKET, storagePath, prepared.data, userId, { cacheControl: "0" });
 
   if (uploadError) {
     return {

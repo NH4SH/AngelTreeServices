@@ -49,7 +49,13 @@ test('remaining attachment areas retain permissions and bind scans to actual obj
   await sql("update app_private.attachment_scan_settings set enabled=true where bucket_id='equipment-files'");assert.ok((await owner.client.storage.from('equipment-files').createSignedUrl(p,60)).error);assert.equal(await service.checkStoredAttachment(db,'equipment-files',p,owner.id),'clean');
  });
  for(const bucket of buckets)await run(`${bucket}: real uploader, ClamAV, stored digest, metadata and private download`,async()=>{
-  const p=path(bucket);const r=await service.uploadCheckedAttachment(owner.client,bucket,p,prepared,owner.id);assert.equal(r.error,null);assert.equal(r.scanStatus,'clean');await metadata(bucket,p);
+  const p=path(bucket);const r=await service.uploadCheckedAttachment(owner.client,bucket,p,prepared,owner.id);assert.equal(r.error,null);assert.equal(r.scanStatus,'clean');const meta=await metadata(bucket,p);
+  const sourceType={'employee-files':'employee_document','employee-program-files':'employee_program','equipment-files':'equipment_document','material-files':'material_purchase','job-cost-receipts':'job_cost','job-photos':'job_photo'}[bucket];
+  const token=(await owner.client.auth.getSession()).data.session.access_token,route=process.env.ATTACHMENT_APP_URL+'/files/'+sourceType+'/'+meta.id;
+  const manifest=await fetch(route+'?info=1',{headers:{Authorization:'Bearer '+token}});assert.equal(manifest.status,200);const info=await manifest.json();
+  const delivered=await fetch(route,{headers:{Authorization:'Bearer '+token,range:'bytes=0-'+(bytes.length-1),'if-match':info.version}});assert.equal(delivered.status,206);assert.match(delivered.headers.get('cache-control'),/no-store/);assert.deepEqual(Buffer.from(await delivered.arrayBuffer()),bytes);
+  const denied=await fetch(route+'?info=1',{headers:{Authorization:'Bearer '+(await other.client.auth.getSession()).data.session.access_token}});assert.equal(denied.status,404);
+
   const stored=JSON.parse(await sql(`select row_to_json(s) from app_private.attachment_scans s where bucket_id='${bucket}' and storage_path='${p}'`));assert.equal(stored.upload_actor,owner.id);assert.equal(stored.sha256,hash);
   const signed=ok(await owner.client.storage.from(bucket).createSignedUrl(p,60));assert.equal((await fetch(signed.signedUrl)).status,200);
   const states=ok(await owner.client.rpc('get_attachment_scan_states',{p_bucket:bucket,p_paths:[p]}));assert.equal(states[0].status,'clean');assert.equal(ok(await owner.client.from('attachment_file_checks').select('can_open').eq('bucket_id',bucket).eq('storage_path',p).limit(1).single()).can_open,true);
@@ -69,13 +75,13 @@ test('remaining attachment areas retain permissions and bind scans to actual obj
    const audit=ok(await db.from('activity_log').select('actor_user_id,metadata_json').eq('idempotency_key','job-photo-uploaded/'+photo.id).single());assert.equal(audit.actor_user_id,crew.id);assert.equal(audit.metadata_json.photo_type,category);
   }
  });
- await t.test('authenticated file routes refuse held/forged records and freshly sign only authorized clean bytes',{skip:process.env.ATTACHMENT_APP_URL!=='http://127.0.0.1:3102'},async()=>{
+ await t.test('authenticated file routes refuse held/forged records and open only authorized clean bytes without issuing bearer URLs',{skip:process.env.ATTACHMENT_APP_URL!=='http://127.0.0.1:3102'},async()=>{
   async function headers(who){const cookies=new Map();const ssr=createServerClient(c.API_URL,c.ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:entries=>entries.forEach(({name,value})=>cookies.set(name,value))}});const session=ok(await who.client.auth.getSession()).session;ok(await ssr.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token}));return{cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; ')};}
   const p=path('employee-files');ok(await owner.client.storage.from('employee-files').upload(p,bytes,{contentType:'image/png'}));const record=await metadata('employee-files',p,owner,'admin_only');const url=process.env.ATTACHMENT_APP_URL+'/files/employee_document/'+record.id;
   const ownerHeaders=await headers(owner),otherHeaders=await headers(other);
   assert.equal((await fetch(url,{headers:ownerHeaders,redirect:'manual'})).status,404);
   assert.equal(await service.checkStoredAttachment(db,'employee-files',p,owner.id),'clean');
-  const response=await fetch(url,{headers:ownerHeaders,redirect:'manual'});assert.equal(response.status,303);assert.match(response.headers.get('cache-control'),/private.*no-store/);const location=new URL(response.headers.get('location'));assert.equal(location.origin,c.API_URL);assert.equal((await fetch(location)).status,200);
+  const response=await fetch(url,{headers:ownerHeaders,redirect:'manual'});assert.equal(response.status,303);assert.match(response.headers.get('cache-control'),/private.*no-store/);assert.equal(response.headers.get('location'),'/files/open/employee_document/'+record.id);const manifest=await fetch(url+'?info=1',{headers:ownerHeaders});assert.equal(manifest.status,200);const info=await manifest.json();const file=await fetch(url,{headers:{...ownerHeaders,range:'bytes=0-'+(bytes.length-1),'if-match':info.version}});assert.equal(file.status,206);assert.deepEqual(Buffer.from(await file.arrayBuffer()),bytes);
   assert.equal((await fetch(url,{headers:otherHeaders,redirect:'manual'})).status,404);
   assert.equal((await fetch(process.env.ATTACHMENT_APP_URL+'/files/employee_document/'+randomUUID(),{headers:ownerHeaders,redirect:'manual'})).status,404);
   results.push({name:'real authenticated attachment download route',pass:true});

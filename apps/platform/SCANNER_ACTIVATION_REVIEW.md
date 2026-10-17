@@ -205,3 +205,10 @@ new product features, bulk scanner, purge worker or deployment is warranted now.
 Companion: SCANNER_ACTIVATION_RUNBOOK.md. Repeatable aggregate query:
 `supabase/verification/attachment_activation_inventory.sql` at repository root.
 That query is read-only and returns counts only; it authorizes no mutation.
+
+## Local follow-through after this review
+
+The subsequent local upload-size and cache/access implementation is documented in
+UPLOAD_ACCESS_READINESS.md. It adds migration 92 and preserves this review's dated
+hosted snapshot. This does not authorize hosting, staged deployment or production
+activation. Re-read the readiness contract before following the activation runbook.

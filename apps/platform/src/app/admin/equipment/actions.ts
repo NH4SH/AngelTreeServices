@@ -326,6 +326,11 @@ export async function resolveEquipmentProblem(formData: FormData) {
 }
 
 export async function uploadEquipmentDocument(_state: EquipmentActionState, formData: FormData): Promise<EquipmentActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => uploadEquipmentDocument(_state, hydrated));
+  }
+
   const context = await getStaffContext();
   if (!context) return error("Only authorized staff can upload equipment files.");
   const assetId = text(formData, "asset_id", 80);

@@ -1,3 +1,4 @@
+import { privateFileLinks } from "@/lib/files/private-file-links";
 import "server-only";
 import { withDeadline } from "@/lib/runtime/deadline";
 import {
@@ -460,9 +461,7 @@ export async function getJobCostEntries(jobId: string) {
     .map((row) => row.receipt_storage_path)
     .filter((path): path is string => Boolean(path));
   if (!paths.length) return { data: rows, error: null };
-  const signed = await supabase.storage
-    .from("job-cost-receipts")
-    .createSignedUrls(paths, 1800, { download: true });
+  const signed = await privateFileLinks(supabase, "job_cost", rows.map(row => ({ id: row.id, storage_path: row.receipt_storage_path })));
   const urls = new Map(
     (signed.data ?? []).map((file) => [file.path, file.signedUrl]),
   );

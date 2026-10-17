@@ -38,6 +38,11 @@ export async function uploadPlatformDocument(
   _state: DocumentActionState,
   formData: FormData,
 ): Promise<DocumentActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => uploadPlatformDocument(_state, hydrated));
+  }
+
   const context = await getStaffContext();
   if (!context) return failure("Only authorized staff can upload documents.");
 
@@ -90,7 +95,7 @@ export async function uploadPlatformDocument(
   }
 
   const { error: uploadError } = await context.supabase.storage.from("platform-documents")
-    .upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, upsert: false });
+    .upload(storagePath, prepared.data.bytes, { contentType: prepared.data.contentType, cacheControl: "0", upsert: false });
   if (uploadError) {
     // Metadata-first avoids the old inaccessible orphan-file cleanup path.
     await context.supabase.from("documents").update({ archived_at: new Date().toISOString(), archived_by_user_id: context.user.id }).eq("id", documentId);

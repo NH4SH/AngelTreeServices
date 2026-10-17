@@ -96,3 +96,13 @@ was not part of this web/read-only change.
 
 Official batch-signing reference:
 [Supabase createSignedUrls](https://supabase.com/docs/reference/javascript/storage-from-createsignedurls).
+
+### PR18 authenticated file delivery follow-through
+
+PR11's paged metadata and batches of at most 100 remain. Instead of minting bearer
+Storage URLs, each caller checks `attachment_file_checks.can_open` and returns an
+authenticated CRM record route. Missing/failed batches preserve metadata and later
+successful batches. There is no cross-user link cache. Every manifest and 1 MiB
+chunk checks current metadata plus Storage RLS and object identity. Web thumbnails
+and the updated native client fetch those chunks privately; see
+`apps/platform/UPLOAD_ACCESS_READINESS.md` for the complete release contract.

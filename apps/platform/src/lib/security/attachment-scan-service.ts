@@ -39,7 +39,7 @@ export async function uploadCheckedAttachment(client: Client, bucket: Attachment
   const mode = await client.rpc('attachment_scan_enabled', { p_bucket: bucket });
   if (mode.error || typeof mode.data !== 'boolean') return { error: { message: 'File checks could not be loaded. Refresh and try again.' }, scanStatus: 'unavailable' as const };
   const uploaded = await client.storage.from(bucket).upload(path, upload.bytes,
-    { contentType: upload.contentType, upsert: false, ...options });
+    { ...options, contentType: upload.contentType, upsert: false, cacheControl: "0" });
   if (uploaded.error) return { error: uploaded.error, scanStatus: 'unavailable' as const };
   if (!mode.data) return { error: null, scanStatus: 'unscanned' as const };
   const actor = actorId ?? (await client.auth.getUser()).data.user?.id;

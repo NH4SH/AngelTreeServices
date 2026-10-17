@@ -1,3 +1,4 @@
+import { privateFileLinks } from "@/lib/files/private-file-links";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type {
@@ -55,8 +56,8 @@ export async function getEquipmentAsset(assetId: string): Promise<DataResult<Equ
   const photoPaths = (detail.equipment_problem_reports ?? []).map((report) => report.photo_storage_path).filter((path): path is string => Boolean(path));
   if (documentPaths.length || photoPaths.length) {
     const [signedDocuments, signedPhotos] = await Promise.all([
-      documentPaths.length ? supabase.storage.from("equipment-files").createSignedUrls(documentPaths, 3600, { download: true }) : Promise.resolve({ data: [], error: null }),
-      photoPaths.length ? supabase.storage.from("equipment-files").createSignedUrls(photoPaths, 3600) : Promise.resolve({ data: [], error: null }),
+      documentPaths.length ? privateFileLinks(supabase, "equipment_document", detail.equipment_documents ?? []) : Promise.resolve({ data: [], error: null }),
+      photoPaths.length ? privateFileLinks(supabase, "equipment_problem", (detail.equipment_problem_reports ?? []).map(row => ({ id: row.id, storage_path: row.photo_storage_path }))) : Promise.resolve({ data: [], error: null }),
     ]);
     const signedByPath = new Map([...(signedDocuments.data ?? []), ...(signedPhotos.data ?? [])].map((file) => [file.path, file.signedUrl]));
     detail.equipment_documents = (detail.equipment_documents ?? []).map((document) => ({ ...document, signed_url: signedByPath.get(document.storage_path) ?? null }));

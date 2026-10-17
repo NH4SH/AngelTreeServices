@@ -40,7 +40,7 @@ struct JobPhotosSection: View {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(photos) { photo in
                         Button { selectedPhoto = photo } label: {
-                            PhotoThumbnail(photo: photo)
+                            PhotoThumbnail(photo: photo, photoService: photoService)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(photo.caption ?? "\(photo.photoType.capitalized) job photo")
@@ -56,7 +56,7 @@ struct JobPhotosSection: View {
             Task { await preparePickerItem(item) }
         }
         .sheet(item: $selectedPhoto) { photo in
-            FullScreenPhotoView(photo: photo)
+            FullScreenPhotoView(photo: photo, photoService: photoService)
         }
         .sheet(isPresented: $cameraPresented) {
             CameraPicker { image in
@@ -148,19 +148,11 @@ struct JobPhotosSection: View {
 
 private struct PhotoThumbnail: View {
     let photo: JobPhotoSummary
+    let photoService: any JobPhotoService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            AsyncImage(url: photo.signedUrl.flatMap(URL.init(string:))) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .failure:
-                    Image(systemName: "photo.badge.exclamationmark").font(.title2).foregroundStyle(.secondary)
-                default:
-                    ProgressView()
-                }
-            }
+            PrivateJobImage(photoID: photo.id, photoService: photoService, fit: false)
             .frame(maxWidth: .infinity)
             .aspectRatio(1.2, contentMode: .fit)
             .background(AngelTreeTheme.secondarySurface)
@@ -174,26 +166,14 @@ private struct PhotoThumbnail: View {
 
 private struct FullScreenPhotoView: View {
     let photo: JobPhotoSummary
+    let photoService: any JobPhotoService
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ZStack {
                 AngelTreeTheme.charcoal.ignoresSafeArea()
-                AsyncImage(url: photo.signedUrl.flatMap(URL.init(string:))) { phase in
-                    if case .success(let image) = phase {
-                        image.resizable().scaledToFit()
-                    } else if case .failure = phase {
-                        FieldUnavailableView(
-                            title: "Photo unavailable",
-                            systemImage: "photo.badge.exclamationmark",
-                            detail: "Close this photo and try again."
-                        )
-                        .foregroundStyle(.white)
-                    } else {
-                        ProgressView().tint(.white)
-                    }
-                }
+                PrivateJobImage(photoID: photo.id, photoService: photoService, fit: true)
                 .padding(12)
             }
             .navigationTitle(photo.caption ?? "Job photo")
@@ -329,5 +309,34 @@ private enum ImagePreparation {
             }
         }
         return nil
+    }
+}
+
+private struct PrivateJobImage: View {
+    let photoID: String
+    let photoService: any JobPhotoService
+    let fit: Bool
+    @State private var image: UIImage?
+    @State private var failed = false
+    var body: some View {
+        Group {
+            if let image {
+                if fit { Image(uiImage: image).resizable().scaledToFit() }
+                else { Image(uiImage: image).resizable().scaledToFill() }
+            } else if failed {
+                Label("Photo unavailable. Open it again to retry.", systemImage: "photo.badge.exclamationmark")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else { ProgressView().accessibilityLabel("Loading private photo") }
+        }
+        .task(id: photoID) {
+            image = nil; failed = false
+            do {
+                let data = try await photoService.imageData(for: photoID)
+                try Task.checkCancellation()
+                guard let decoded = UIImage(data: data) else { throw MobileAPIError.invalidResponse }
+                image = decoded
+            } catch { if !Task.isCancelled { failed = true } }
+        }
+        .onDisappear { image = nil }
     }
 }

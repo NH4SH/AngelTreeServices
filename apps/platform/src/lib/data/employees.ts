@@ -1,3 +1,4 @@
+import { privateFileLinks } from "@/lib/files/private-file-links";
 import "server-only";
 import { employeeClockState, type EmployeeClockState } from "@/lib/employee-presentation";
 import { platformRoleGroups } from "@/lib/auth/roles";
@@ -116,7 +117,7 @@ export async function getEmployeeDetail(employeeId: string, includePrivateNotes 
 
   const documents = employee.employee_documents ?? [];
   if (documents.length) {
-    const { data: signed } = await supabase.storage.from("employee-files").createSignedUrls(documents.map((document) => document.storage_path), 3600, { download: true });
+    const { data: signed } = await privateFileLinks(supabase, "employee_document", documents);
     const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
     employee.employee_documents = documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
   }
@@ -182,7 +183,7 @@ export async function getMyEmployeeSelfService(): Promise<DataResult<EmployeeSel
   const { data, error } = await supabase.rpc("get_my_employee_self_service");
   const result = (data as EmployeeSelfServiceData | null) ?? null;
   if (result?.documents.length) {
-    const { data: signed, error: signedError } = await supabase.storage.from("employee-files").createSignedUrls(result.documents.map((document) => document.storage_path), 1800, { download: true });
+    const { data: signed, error: signedError } = await privateFileLinks(supabase, "employee_document", result.documents);
     const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
     result.documents = result.documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
     return { data: result, error: error ? safeStaffMessage(error.message) : signedError ? safeStaffMessage(signedError.message) : null };
@@ -199,7 +200,7 @@ export async function getMySupervisedTeam(): Promise<DataResult<SupervisedTeamDa
   const employeeIds = result.employees.map((employee) => employee.id);
   const documents = await supabase.from("employee_documents").select("id, employee_id, title, storage_path, access_classification").in("employee_id", employeeIds).in("access_classification", ["employee_visible", "supervisor_visible"]).eq("review_status", "approved").is("archived_at", null);
   const paths = (documents.data ?? []).map((document) => document.storage_path);
-  const signed = paths.length ? await supabase.storage.from("employee-files").createSignedUrls(paths, 1800, { download: true }) : { data: [], error: null };
+  const signed = paths.length ? await privateFileLinks(supabase, "employee_document", documents.data ?? []) : { data: [], error: null };
   const signedByPath = new Map((signed.data ?? []).map((file) => [file.path, file.signedUrl]));
   result.employees = result.employees.map((employee) => ({ ...employee, documents: (documents.data ?? []).filter((document) => document.employee_id === employee.id).map((document) => ({ id: document.id, title: document.title, access_classification: document.access_classification, signed_url: signedByPath.get(document.storage_path) ?? null })) }));
   return { data: result, error: error ? safeStaffMessage(error.message) : documents.error ? safeStaffMessage(documents.error.message) : signed.error ? safeStaffMessage(signed.error.message) : null };

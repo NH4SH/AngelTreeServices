@@ -49,6 +49,11 @@ export async function addLaborCostRate(_state: ReportingActionState, formData: F
 }
 
 export async function addJobCost(_state: ReportingActionState, formData: FormData): Promise<ReportingActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => addJobCost(_state, hydrated));
+  }
+
   const auth = await authorize("job_cost");
   if (!auth.ok) return fail(auth.message);
   const jobId = text(formData, "job_id", 80); const category = text(formData, "category", 40); const description = text(formData, "description", 500); const amountCents = moneyCents(formData, "amount");

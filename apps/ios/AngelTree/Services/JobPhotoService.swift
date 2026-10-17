@@ -1,6 +1,7 @@
 import Foundation
 
 protocol JobPhotoService: Sendable {
+    func imageData(for photoID: String) async throws -> Data
     func photos(for jobID: String) async throws -> [JobPhotoSummary]
     func upload(
         jobID: String,
@@ -22,6 +23,11 @@ actor LiveJobPhotoService: JobPhotoService {
     ) {
         self.authentication = authentication
         self.api = api
+    }
+
+    func imageData(for photoID: String) async throws -> Data {
+        let token = try await authentication.validAccessToken()
+        return try await api.privateJobPhoto(id: photoID, accessToken: token)
     }
 
     func photos(for jobID: String) async throws -> [JobPhotoSummary] {
@@ -48,4 +54,8 @@ actor LiveJobPhotoService: JobPhotoService {
             accessToken: token
         )
     }
+}
+
+extension JobPhotoService {
+    func imageData(for photoID: String) async throws -> Data { throw MobileAPIError.invalidResponse }
 }

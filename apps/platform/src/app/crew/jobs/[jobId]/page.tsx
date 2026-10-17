@@ -369,7 +369,7 @@ function CrewJobDetail({
           />
         </div>
         <p className="field-note">
-          Uploads stay private in Supabase Storage. Preview links expire automatically.
+          Photos stay private. Opening a photo checks your current access.
         </p>
       </section>
 

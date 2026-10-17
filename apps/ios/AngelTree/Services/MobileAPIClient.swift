@@ -8,6 +8,7 @@ protocol MobileAPIClientProtocol: Sendable {
         scope: ScheduleScope,
         accessToken: String
     ) async throws -> MobileSchedulePayload
+    func privateJobPhoto(id: String, accessToken: String) async throws -> Data
     func jobPhotos(jobID: String, accessToken: String) async throws -> [JobPhotoSummary]
     func customerDirectory(cursor: String?, limit: Int, accessToken: String) async throws -> MobilePartyDirectoryPage
     func searchCustomers(query: String, accessToken: String) async throws -> [MobilePartySearchResult]
@@ -226,35 +227,84 @@ actor MobileAPIClient: MobileAPIClientProtocol {
         caption: String?,
         accessToken: String
     ) async throws {
+        guard data.count > 0, data.count <= 6 * 1024 * 1024 else {
+            throw MobileAPIError.requestRejected("Choose an image up to 6 MB.")
+        }
+        var ticketRequest = fileRequest(path: "api/uploads", accessToken: accessToken)
+        ticketRequest.httpMethod = "POST"
+        ticketRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        ticketRequest.httpBody = try JSONSerialization.data(withJSONObject: ["name": fileName, "type": mimeType, "size": data.count])
+        let ticketData = try await fileResponse(ticketRequest)
+        let ticket = try decoder.decode(UploadTicket.self, from: ticketData)
+        guard let storage = URL(string: ticket.storageUrl), ["https", "http"].contains(storage.scheme),
+              storage.scheme == "https" || ["127.0.0.1", "localhost"].contains(storage.host ?? ""),
+              ticket.bucket == "platform-upload-staging", !ticket.path.contains("..") else { throw MobileAPIError.invalidResponse }
+        var transfer = URLRequest(url: storage.appendingPathComponent("storage/v1/object/\(ticket.bucket)/\(ticket.path)"), cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+        transfer.httpMethod = "POST"
+        transfer.timeoutInterval = 60
+        transfer.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        transfer.setValue(ticket.publicKey, forHTTPHeaderField: "apikey")
+        transfer.setValue(mimeType, forHTTPHeaderField: "Content-Type")
+        transfer.setValue("0", forHTTPHeaderField: "cache-control")
+        transfer.setValue("false", forHTTPHeaderField: "x-upsert")
+        transfer.httpBody = data
+        _ = try await fileResponse(transfer)
         let boundary = "AngelTree-\(UUID().uuidString)"
-        var request = URLRequest(url: baseURL.appendingPathComponent("api/crew/jobs/\(jobID)/photos"))
+        var request = fileRequest(path: "api/crew/jobs/\(jobID)/photos", accessToken: accessToken)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = MultipartFormData(boundary: boundary)
             .addingField(name: "photo_type", value: category)
             .addingField(name: "caption", value: caption ?? "")
-            .addingFile(name: "photo", fileName: fileName, mimeType: mimeType, data: data)
+            .addingField(name: "photo", value: ticket.reference)
             .finalized()
+        _ = try await fileResponse(request)
+    }
 
-        let (responseData, response): (Data, URLResponse)
-        do {
-            (responseData, response) = try await session.data(for: request)
-        } catch {
-            throw MobileAPIError.networkUnavailable
+    func privateJobPhoto(id: String, accessToken: String) async throws -> Data {
+        guard UUID(uuidString: id) != nil else { throw MobileAPIError.invalidResponse }
+        let path = "files/job_photo/\(id)"
+        let manifestData = try await fileResponse(fileRequest(path: path + "?info=1", accessToken: accessToken, query: true))
+        let manifest = try decoder.decode(PrivateFileManifest.self, from: manifestData)
+        guard manifest.size > 0, manifest.size <= 6 * 1024 * 1024, manifest.chunkBytes == 1024 * 1024,
+              manifest.mimeType.hasPrefix("image/") else { throw MobileAPIError.invalidResponse }
+        var result = Data()
+        for start in stride(from: 0, to: manifest.size, by: manifest.chunkBytes) {
+            let end = min(start + manifest.chunkBytes, manifest.size) - 1
+            var request = fileRequest(path: path, accessToken: accessToken)
+            request.setValue("bytes=\(start)-\(end)", forHTTPHeaderField: "Range")
+            request.setValue(manifest.version, forHTTPHeaderField: "If-Match")
+            let (part, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 206,
+                  http.value(forHTTPHeaderField: "Content-Range") == "bytes \(start)-\(end)/\(manifest.size)",
+                  http.value(forHTTPHeaderField: "ETag") == manifest.version,
+                  part.count == end - start + 1 else { throw MobileAPIError.requestRejected("Photo changed or access is unavailable. Try again.") }
+            result.append(part)
         }
+        return result
+    }
+
+    private func fileRequest(path: String, accessToken: String, query: Bool = false) -> URLRequest {
+        let url = query ? URL(string: path, relativeTo: baseURL.appendingPathComponent("/"))!.absoluteURL : baseURL.appendingPathComponent(path)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+        request.timeoutInterval = 60
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+        return request
+    }
+
+    private func fileResponse(_ request: URLRequest) async throws -> Data {
+        let (data, response): (Data, URLResponse)
+        do { (data, response) = try await session.data(for: request) }
+        catch { throw MobileAPIError.networkUnavailable }
         guard let http = response as? HTTPURLResponse else { throw MobileAPIError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            let envelope = try? decoder.decode(APIEnvelope<EmptyPayload>.self, from: responseData)
             if http.statusCode == 401 { throw MobileAPIError.authenticationRequired }
-            if http.statusCode == 403 { throw MobileAPIError.accessDenied(envelope?.error?.message) }
-            if [400, 413, 415].contains(http.statusCode) {
-                throw MobileAPIError.requestRejected(envelope?.error?.message)
-            }
+            if http.statusCode == 403 { throw MobileAPIError.accessDenied(nil) }
+            if [400, 404, 412, 413, 415].contains(http.statusCode) { throw MobileAPIError.requestRejected("File unavailable. Check the file and try again.") }
             throw MobileAPIError.serverUnavailable(nil)
         }
+        return data
     }
 
     private func get<Response: Decodable>(
@@ -427,4 +477,21 @@ struct JobPhotoSummary: Codable, Equatable, Identifiable, Sendable {
 private struct JobPhotoPayload: Codable, Sendable {
     let photos: [JobPhotoSummary]
     let warning: String?
+}
+
+private struct UploadTicket: Decodable {
+    let reference: String
+    let bucket: String
+    let path: String
+    let storageUrl: String
+    let publicKey: String
+}
+private struct PrivateFileManifest: Decodable {
+    let size: Int
+    let mimeType: String
+    let version: String
+    let chunkBytes: Int
+}
+extension MobileAPIClientProtocol {
+    func privateJobPhoto(id: String, accessToken: String) async throws -> Data { throw MobileAPIError.invalidResponse }
 }

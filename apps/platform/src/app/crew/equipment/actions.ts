@@ -48,6 +48,11 @@ export async function submitEquipmentInspection(_state: CrewEquipmentActionState
 }
 
 export async function reportEquipmentProblem(_state: CrewEquipmentActionState, formData: FormData): Promise<CrewEquipmentActionState> {
+  if ([...formData.values()].some(value => typeof value === "string" && value.startsWith("ats-upload:v1:"))) {
+    const { withStagedUploads } = await import("@/lib/files/staged-uploads");
+    return withStagedUploads(formData, hydrated => reportEquipmentProblem(_state, hydrated));
+  }
+
   const context = await getUserContext();
   if (!context) return fail("Sign in before reporting a problem.");
   const assetId = text(formData, "asset_id", 80);

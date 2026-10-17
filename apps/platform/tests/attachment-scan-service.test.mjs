@@ -12,9 +12,9 @@ test('unknown/failed scan configuration cannot silently upload',async()=>{
   const c={rpc:async()=>response,storage:{from(){assert.fail('must not upload')}}};assert.ok((await moduleWith().uploadCheckedAttachment(c,'equipment-files','path',upload,'actor')).error);
  }
 });
-test('disabled rollout preserves upload options without claiming a scan',async()=>{
+test('disabled rollout keeps files unscanned and forces zero browser cache lifetime',async()=>{
  let captured;const c={rpc:async()=>({data:false,error:null}),storage:{from:bucket=>({upload:async(path,body,options)=>{captured={bucket,path,body,options};return{error:null}}})}};
- const result=await moduleWith().uploadCheckedAttachment(c,'job-photos','path',upload,'actor',{cacheControl:'3600'});assert.equal(result.scanStatus,'unscanned');assert.deepEqual(captured.options,{contentType:'application/pdf',upsert:false,cacheControl:'3600'});assert.equal(captured.body,bytes);
+ const result=await moduleWith().uploadCheckedAttachment(c,'job-photos','path',upload,'actor',{cacheControl:'3600'});assert.equal(result.scanStatus,'unscanned');assert.deepEqual(captured.options,{contentType:'application/pdf',upsert:false,cacheControl:'0'});assert.equal(captured.body,bytes);
 });
 test('missing scanner retains uploaded bytes for metadata and explicit retry',async()=>{
  let uploads=0;const c={rpc:async()=>({data:true,error:null}),storage:{from:()=>({upload:async()=>{uploads++;return{error:null}}})}};

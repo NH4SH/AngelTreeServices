@@ -1,5 +1,12 @@
 # Staging target setup and verification — October 17, 2026
 
+**October 18 UTC runtime review:** staging's exact four public site variables and
+Auth redirects/templates were independently checked. No application keys or gate
+credentials are installed; Auth's built-in mail route remains unisolated. Local
+runtime rejection and Mailpit recovery tests pass. No hosted config or keys were
+changed. See [runtime/key/email review](STAGING_RUNTIME_KEY_EMAIL_REVIEW.md);
+readiness remains false and the scanner remains parked.
+
 **October 18 UTC follow-through:** staging now has the unchanged appointment-safety
 migration, with an exact 93-entry ledger and full catalog/permissions match to
 the locally rehearsed upgrade. The original 92-file candidate and permission

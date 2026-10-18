@@ -1,5 +1,13 @@
 # Isolated staging preparation — October 17, 2026
 
+**Runtime/key/mail review, October 18 UTC:** the four public site settings are
+correct across their declared scopes, but no public/server application keys,
+portal encryption value or hosted gate credentials are installed. Auth uses its
+built-in mail route; no isolated SMTP or Send Email Hook is configured. Hosting
+readiness remains false. The next scanner-independent recommendation is a local
+staging-only no-send Auth hook prototype, followed by separately reviewed
+staging-only credentials. See [runtime/key/email review](STAGING_RUNTIME_KEY_EMAIL_REVIEW.md).
+
 **Current database candidate:** the original 92-file manifest/profile remain
 frozen; the additional appointment migration is now verified on staging at 93/93.
 `supabase/staging/appointment-candidate-93.json` binds the original prefix and the

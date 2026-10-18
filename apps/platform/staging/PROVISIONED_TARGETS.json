@@ -81,7 +81,12 @@
       "anonymousCommandDeniedOverHttps": true,
       "hostedSyntheticBusinessDataCreated": false,
       "appDeployed": false
-    }
+    },
+    "authEffectiveConfigReadOnlyReviewed": true,
+    "authDefaultTemplatesReviewed": 13,
+    "authBuiltInMailIsIsolated": false,
+    "authSendEmailHookEnabled": false,
+    "authCustomSmtpConfigured": false
   },
   "netlify": {
     "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
@@ -112,7 +117,13 @@
     "localAccessGateImplemented": true,
     "localAccessGateVerified": true,
     "customHostedGatePrepared": true,
-    "customHostedGateVerified": false
+    "customHostedGateVerified": false,
+    "runtimeKeyEmailReviewCompleted": true,
+    "runtimeKeyEmailReviewReport": "STAGING_RUNTIME_KEY_EMAIL_REVIEW.md",
+    "runtimeKeyEmailReviewEvidence": "staging/RUNTIME_KEY_EMAIL_REVIEW_VERIFICATION.json",
+    "publicVariableScopeReviewCompleted": true,
+    "sharedVariableCountReturnedAtReview": 0,
+    "runtimeObserved": false
   },
   "scanner": {
     "host": null,

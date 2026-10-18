@@ -1,5 +1,11 @@
 # Staging appointment migration reconciliation
 
+Publication/review update: this verified reconciliation (`24d6b3e`) is pushed to
+main and its branch, deployment skipped. The following runtime/key/mail review
+is complete locally and read-only against staging; see
+[remaining isolation gates](STAGING_RUNTIME_KEY_EMAIL_REVIEW.md). No app deploy,
+Auth change or credential provisioning resulted from that review.
+
 Verified October 18, 2026 UTC / October 17 Eastern.
 
 ## Outcome

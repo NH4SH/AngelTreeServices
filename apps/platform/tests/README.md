@@ -969,6 +969,15 @@ See `SIGN_IN_ABUSE_PROTECTION.md` for commands, boundaries and release gates.
 
 ## Legacy appointment transaction follow-through
 
+`staging-runtime-review.test.mjs` exercises the offline review of site/shared
+variable precedence separately across contexts and Build/Functions/Runtime
+scopes, without network access or value output. Masked secrets, named overrides,
+missing evidence and good-looking mail settings never become hosted proof.
+See `STAGING_RUNTIME_KEY_EMAIL_REVIEW.md` for actual configuration review,
+compiled isolated-runtime checks and the existing local Mailpit recovery test.
+No SMTP, email hook, hosted account, key or environment setting is changed by
+these tests or by the offline reviewer.
+
 Staging reconciliation extends verification with
 `staging-appointment-candidate.test.mjs` and the local-only
 `supabase/staging/tests/legacy-appointments.sql`. The former checks source,

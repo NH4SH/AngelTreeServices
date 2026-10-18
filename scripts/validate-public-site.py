@@ -663,10 +663,11 @@ class Validator:
                     self.error(f"/services/: service page is not linked from the hub: {route}")
 
     def validate_shared_navigation(self) -> None:
-        desktop_keys = ["about", "services", "projects", "commercial"]
+        desktop_keys = ["about", "services", "landscaping", "projects", "commercial"]
         mobile_keys = [
             "about",
             "services",
+            "landscaping",
             "projects",
             "commercial",
             "credentials",
@@ -688,7 +689,7 @@ class Validator:
                     self.error("/: desktop navigation is missing")
                 for block in desktop_blocks:
                     if keys_in(block) != desktop_keys:
-                        self.error("/: desktop navigation must be About, Services, Projects, Commercial")
+                        self.error("/: desktop navigation must be About, Tree services, Landscaping, Projects, Commercial")
 
                 mobile_match = re.search(
                     r'<details\b[^>]*class="[^"]*ats-home-mobile-menu[^"]*"[^>]*>.*?'
@@ -715,6 +716,22 @@ class Validator:
                 )
                 if not mobile_match or keys_in(mobile_match.group(1)) != mobile_keys:
                     self.error(f"{route}: shared mobile navigation order is incorrect")
+
+            for key, href, label in [
+                ("services", "/services/", "Tree services"),
+                ("landscaping", "/services/landscaping/", "Landscaping"),
+            ]:
+                matches = re.findall(r'<a\b([^>]*data-ats-nav="' + key + r'"[^>]*)>(.*?)</a>', source, re.DOTALL)
+                for attrs, content in matches:
+                    text = re.sub(r"<[^>]+>", "", content).strip()
+                    if f'href="{href}"' not in attrs or text != label:
+                        self.error(f"{route}: {key} navigation needs its own destination and sentence-case label")
+                if route == "/services/landscaping/" and key == "landscaping":
+                    if len(matches) != 2 or any('aria-current="page"' not in attrs for attrs, _ in matches):
+                        self.error(f"{route}: Landscaping must be current in both navigation menus")
+                if route == "/services/landscaping/" and key == "services":
+                    if any('aria-current=' in attrs for attrs, _ in matches):
+                        self.error(f"{route}: Tree services must not be marked current on Landscaping")
 
             if re.search(r'data-ats-nav="home"', source, re.IGNORECASE):
                 self.error(f"{route}: Home must remain the brand link rather than a navigation label")

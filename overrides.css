@@ -34,7 +34,7 @@
   display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1101px) {
   /* The brand already links home, so the exported Home item can yield room to
      the new public-site destinations without wrapping the legacy header. */
   #header .header-nav-item--homepage {
@@ -61,11 +61,13 @@
     display: flex;
     flex-wrap: nowrap;
     justify-content: center;
-    gap: clamp(14px, 2vw, 30px);
+    gap: clamp(16px, 1.8vw, 26px);
   }
 
   #header .header-nav-item {
-    margin-right: 0;
+    flex: 0 0 auto;
+    margin: 0;
+    white-space: nowrap;
   }
 
   #header .header-actions {
@@ -75,38 +77,36 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1100px) {
-  #header .header-inner {
-    padding-right: 20px;
-    padding-left: 20px;
+/* Use the same compact navigation as interior pages before desktop links crowd. */
+@media (min-width: 801px) and (max-width: 1100px) {
+  #header { display: none !important; }
+
+  body .ats-mobile-header {
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(22, 63, 25, 0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+    z-index: 99999;
   }
 
-  #header .header-actions-action--social {
-    display: flex !important;
-  }
-
-  #header .header-nav-item a {
-    font-size: 0.9rem;
-    white-space: nowrap;
-  }
+  .ats-mobile-header img { width: 28px; height: 28px; object-fit: contain; }
+  .ats-mobile-header span { color: #fff; font-size: 15px; font-weight: 600; }
 }
 
-@media (min-width: 901px) and (max-width: 1100px) {
-  #header .header-title {
-    flex-basis: 350px;
-    flex-shrink: 0;
-  }
-
-  #header .header-nav-list {
-    gap: 12px;
-  }
-
-  #header .header-actions {
-    margin-left: 8px;
-  }
+@media (min-width: 1101px) and (max-width: 1280px) {
+  #header .header-title { flex: 0 0 350px; }
+  #header .header-nav-list { gap: 16px; }
+  #header .header-nav-item a { white-space: nowrap; font-size: 0.9rem; }
+  #header .header-actions { margin-left: 16px; }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1100px) {
   .ats-home-mobile-menu {
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + 8px);
@@ -116,6 +116,7 @@
   }
 
   .ats-home-mobile-menu summary {
+    box-sizing: border-box;
     min-height: 44px;
     padding: 8px 13px;
     display: flex;
@@ -124,6 +125,7 @@
     border-radius: 999px;
     cursor: pointer;
     font-size: 0.78rem;
+    line-height: 1.4;
     font-weight: 700;
     list-style: none;
   }
@@ -138,6 +140,9 @@
     right: 0;
     width: min(260px, calc(100vw - 24px));
     padding: 10px;
+    max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 1px solid rgba(255, 255, 255, 0.24);
     border-radius: 18px;
     background: rgba(22, 63, 25, 0.98);
@@ -145,8 +150,11 @@
   }
 
   .ats-home-mobile-menu nav a {
+    min-height: 44px;
+    box-sizing: border-box;
     padding: 11px 13px;
-    display: block;
+    display: flex;
+    align-items: center;
     border-radius: 11px;
     color: #fff;
     font-size: 0.88rem;

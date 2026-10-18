@@ -105,13 +105,15 @@ def wave() -> str:
 def header(active: str) -> str:
     primary_links = [
         ("about", "/about/", "About"),
-        ("services", "/services/", "Services"),
+        ("services", "/services/", "Tree services"),
+        ("landscaping", "/services/landscaping/", "Landscaping"),
         ("projects", "/projects/", "Projects"),
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial"),
     ]
     mobile_links = [
         ("about", "/about/", "About"),
-        ("services", "/services/", "Services"),
+        ("services", "/services/", "Tree services"),
+        ("landscaping", "/services/landscaping/", "Landscaping"),
         ("projects", "/projects/", "Projects"),
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial & HOA"),
         ("credentials", "/credentials-safety/", "Credentials & Safety"),
@@ -1295,7 +1297,7 @@ PAGES = [
     *[dict(page, body=service_body(page)) for page in SERVICE_PAGES],
     {
         "path": "/services/landscaping/",
-        "active": "services",
+        "active": "landscaping",
         "type": "service",
         "service_name": "Landscaping",
         "title": "Landscaping in Fredericksburg, VA | Angel Tree Services",

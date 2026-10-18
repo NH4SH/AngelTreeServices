@@ -1,5 +1,78 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Approved navigation publication
+
+The owner explicitly approved commit, push and publication of the reviewed
+Tree services/Landscaping navigation patch, preserving newer repository work,
+analytics disabled and CRM unchanged. This supersedes this batch's earlier local-
+only holds below. Apply only the reviewed public patch on current main; use
+[skip netlify] to skip both projects' automatic builds, then trigger only the
+public project's Git build. Preserve production Maps input and hosting settings.
+Do not submit production leads. Run non-submitting production smoke checks and
+verify CRM deployment/settings unchanged. No extra product changes authorized.
+
+## Final Tree services / Landscaping navigation review — local only
+
+Ready for owner release approval at this public-navigation scope. Do not commit,
+push or deploy until approved. Analytics remains disabled; CRM code/settings
+remain unchanged. No product edits were needed in this final review.
+
+- Fresh134tests pass and all15approved pages validate. Fresh build exactly
+  matches all215implementation artifact hashes. All15SEO heads, content outside
+  headers, estimate links/context, photos, form/draft/address scripts, analytics
+  and crawler files remain unchanged; only15HTMLheaders and2CSS differ frombase.
+- Fresh loopback browser review passes at1440/1280/1101/1100/960/760/390/320px
+  and568x320landscape. No overflow or desktop identity wrapping. Both desktop/
+  mobile service links and current states work. Keyboard focus, Escape return,
+  outside click, focus exit and scrollable short-screen access pass.
+- Nonpersonal local project details survive navigation and Landscaping estimate
+  selection. Clear draft empties the marker, resets context and focuses Fullname.
+  No personal/contact data entered, no form submitted, zero production leads.
+- Fresh full independent finish review: ship, no material fixes; all10required
+  header/menu captures valid. This replaces the implementation's F1-only verdict
+  as the latest full navigation review. Documentation comparison follows.
+- Fetched main27b70da:6newercommits onlyapps/platform, no public-file overlap.
+  Preserve newer shared main when preparing any future approved release; do not
+  recommit or revert CRM work. Recheck main/build inputs at publication time,
+  skip both automatic builds, publish public website only, then non-submitting
+  production smoke and verify CRM deploy/settings unchanged.
+- Final evidence: October16chat work/service-navigation-final-review/ and
+  .impeccable/review/service-navigation-final-review/. No second detector:
+  unchanged product/build uses prior single scan's42inheritedfindings. Physical-
+  device/spoken-screen-reader and CRM delivery testing were not performed here.
+
+## Separate Tree services and Landscaping navigation — local only
+
+Owner approved implementation/local tests only. Do not commit, push or deploy this
+new batch under earlier publication approvals. Keep analytics disabled and CRM
+code/settings unchanged.
+
+- Both homepage header variants, homepage compact/legacy menus, and the shared
+  interior-page generator include Tree services → /services/ and Landscaping →
+  /services/landscaping/, in sentence case. Existing destinations remain.
+- Landscaping receives its own current-page state rather than marking Tree
+  services. Fixed specificity that suppressed desktop underline/hover states.
+- Navigation switches to the existing native-details menu at <=1100px to avoid
+  crowding; short menus can scroll. Homepage menu links and summary are >=44px.
+  Interior menu links retain their existing >44px dimensions.
+- Local134tests and15-page validation pass. Validator checks both new navigation
+  labels/destinations/order and Landscaping's exclusive current state.
+- All15page heads and content outside headers are unchanged against5bfc9a2.
+  Estimate destinations/prefills, photos, crawler files, privacy, analytics-off
+  and all form/draft/address-autocomplete scripts remain unchanged. Only15HTML
+  headers and2stylesheets change in the215-file build;198files unchanged.
+- Local browser checks cover desktop1440/1280, breakpoint1101/1100,960,760,
+  mobile390 and narrow320. Both service destinations work with keyboard;
+  Landscaping's estimate still selects Landscaping. Escape closes/focuses Menu.
+  No personal data entered, no form submitted and no production lead.
+- Evidence: October16 chat work/service-navigation/ and
+  .impeccable/review/service-navigation/. Independent finish review and
+  documentation comparison required before final delivery; record their result
+  there. Fresh full finish review found one desktop-brand wrapping issue;
+  reserved350px at1101–1280px, rebuilt and recaptured all8viewports. Reviewer
+  scored F1 resolved (ship, F1-only verdict). Physical-device and spoken-screen-
+  reader checks are not claimed.
+
 ## Matching homepage Explore buttons — October 17, 2026
 
 The owner rejected the published asymmetry: Tree Service had an animated Explore

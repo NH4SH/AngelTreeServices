@@ -578,8 +578,7 @@ body.ats-form-submitted .ats-form-success {
   cursor: pointer;
 }
 
-#contact [data-draft-clear]:focus-visible,
-#about .ats-landscaping-details a:focus-visible {
+#contact [data-draft-clear]:focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 3px;
 }
@@ -587,19 +586,6 @@ body.ats-form-submitted .ats-form-success {
 #contact [data-draft-clear]:disabled {
   opacity: 0.6;
   cursor: wait;
-}
-
-#about .ats-landscaping-details {
-  margin-block: 8px 0;
-}
-
-#about .ats-landscaping-details a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 48px;
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 
 #contact .ats-contact-form .field-list > * {
@@ -1030,8 +1016,39 @@ body.ats-form-submitted .ats-form-success {
   box-shadow: 0 12px 30px rgba(20, 50, 25, 0.12);
 }
 
-#about .user-items-list-item-container .list-item-content__button {
+#about .user-items-list-item-container .list-item-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+}
+
+#about .user-items-list-item-container .list-item-content__button-wrapper {
+  width: 100%;
+  margin-top: auto;
+}
+
+#about .user-items-list-item-container .list-item-content__button-container {
+  width: 100%;
+}
+
+#about .user-items-list-item-container .ats-service-explore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(100%, 300px);
+  min-height: 56px;
+  padding: 12px 20px;
+  font-size: 16px !important;
   font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+#about .ats-service-explore:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

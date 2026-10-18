@@ -128,7 +128,18 @@
     },
     "isolationVerified": false,
     "backupRecoveryVerified": false,
-    "preferredHostingRoute": "Netlify/Supabase-first architecture per owner; scanner deployment remains unresolved. Oracle verification stopped; no additional infrastructure account approved.",
+    "preferredHostingRoute": "Owner-controlled home Apple Silicon MacBook candidate for staging scanner; Ubuntu24.04 ARM64/rootless VM preparation only. Keep Netlify/Supabase core providers; Oracle stopped. Actual hardware/network and activation remain unverified.",
+    "homeMacPreparation": {
+      "preparedLocally": true,
+      "report": "MACBOOK_SCANNER_SETUP.md",
+      "manifest": "staging/HOME_MAC_SCANNER_PREPARATION.json",
+      "targetAvailableNow": false,
+      "actualHardwareVerified": false,
+      "vmCreated": false,
+      "connectionConfigured": false,
+      "credentialsCreated": false,
+      "readyForActivation": false
+    },
     "freeHostingReview": {
       "completed": true,
       "reviewedOnLocal": "2026-10-17",

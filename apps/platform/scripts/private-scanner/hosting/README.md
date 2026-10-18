@@ -1,6 +1,6 @@
 # Private scanner hosting package
 
-For the current owner direction, see [hosting review](../../../FREE_SCANNER_HOSTING_REVIEW.md): keep Netlify/Supabase as core providers; Oracle verification is stopped and scanner deployment remains unresolved. This package’s existing limits are preserved; no host is assigned or provisioned.
+For the current owner direction, see [home Mac preparation](../../../MACBOOK_SCANNER_SETUP.md): keep Netlify/Supabase as core providers and prepare the owner-controlled Mac as a candidate staging host. Oracle verification is stopped. This package’s existing limits are preserved; no host is assigned or provisioned. The earlier [hosting review](../../../FREE_SCANNER_HOSTING_REVIEW.md) remains historical research.
 
 Local preparation for existing PR18/F17. No host, DNS, service credential,
 staging deployment or production activation is created by adding these files.

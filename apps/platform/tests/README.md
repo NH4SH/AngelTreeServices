@@ -952,6 +952,15 @@ production source-file backup coverage.
 
 ## Migration reconciliation and staging preparation
 
+Home-Mac scanner preparation is separate from host installation. The ordinary
+credential-free suite includes `scanner-home-mac.test.mjs`: Mac screening,
+exclusive allowlisted packet export, integrity/tamper/missing-file checks,
+symlink/traversal refusal and permanently false activation flags. No VM,
+network, credential or service is created. `limactl validate` and effective
+template inspection check the prepared Ubuntu 24.04 ARM profile offline;
+actual home hardware/runtime/network remain untested. See
+`MACBOOK_SCANNER_SETUP.md` for the deferred operator handoff.
+
 `migration-review.test.mjs` and `staging-preflight.test.mjs` run in the ordinary
 credential-free unit suite. They reject non-prefix/duplicate migration history,
 preserve catalog differences and prevent automatic history repair. Staging tests

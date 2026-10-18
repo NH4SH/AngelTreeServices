@@ -1076,3 +1076,47 @@ Synthetic users and owned services are cleaned up, and original service start
 times/network membership are checked. Retained private evidence/database are
 outside Git; do not publish their generated test credentials. See
 `STAGING_AUTH_EMAIL_GUARD.md` for results and bounded hosted readiness.
+
+
+## Targeted staging Auth installation and activation review
+
+`staging-auth-activation.test.mjs` adds nine offline cases to the normal suite:
+physical/project identity,93-candidate/state drift, private API schema exposure,
+expiry, minimal Auth patch, value-free diagnostics and rejection of write flags.
+No credentials or network are required for these cases.
+
+The read-only target reviewer uses the existing authenticated CLI and a fresh
+mode0600 effective Management API config GET for this exact project:
+
+```sh
+STAGING_SUPABASE_BIN=/absolute/path/to/supabase \
+node scripts/release/review-staging-auth-activation.mjs \
+  --project-ref gbyhdsuiqeslgjdnbqng \
+  --auth-config-file /private/local-test/fresh-managed-config.json
+```
+
+It writes a private15-minute review packet, never applies SQL or changes Auth.
+Config must include the effective full Auth/API sections and matching data.id;
+a CLI config pull with missing fields is insufficient. Do not copy keys/config
+values into a report or repository. Capture Auth health/version separately with
+an existing staging publishable key; never use a production key or send test mail
+from the hosted default provider.
+
+For the opt-in native rehearsal, use the same `AUTH_EMAIL_GUARD_*` paths and
+pr02-disposable socket as the preceding suite, and run:
+
+```sh
+node --test tests/staging-auth-activation.integration.test.mjs
+```
+
+Run these native suites sequentially: both temporarily attach owned internal
+networks to the preserved local DB container and verify its original membership.
+The new suite uses a new owned database with93 replayed migrations, applies the
+same transaction template bound to its own identity/preimage, rejects the actual
+hosted binding on that clone, and verifies real lock contention, failed-postcheck
+rollback, exact permissions and local Auth activation. The hosted profile is
+never substituted into the shared DB. SQL/Auth settings are separate boundaries;
+metadata reconciliation never claims real hosted mail isolation. See
+`STAGING_AUTH_ACTIVATION_REVIEW.md` for the exact activation and keep-blocked
+failure plan. No deployment, hosted mutation or shared reset is part of either
+native command.

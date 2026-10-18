@@ -1,5 +1,10 @@
 # Staging-only Auth email guard — local verification, October 18, 2026
 
+**Published/follow-through:** guard `56d3c13` is now pushed to main and its preserved
+branch. The targeted staging installation and activation review is prepared and
+tested locally; see [current review](STAGING_AUTH_ACTIVATION_REVIEW.md). Original
+local SQL bytes are unchanged. Hosted installation/activation remain false.
+
 The isolation review is published on main and `codex/staging-runtime-key-mail-review`
 at `e6dbc02`, with Netlify deployment skipped. Its next recommended step is now
 implemented and verified **locally** on `codex/staging-auth-email-guard`.

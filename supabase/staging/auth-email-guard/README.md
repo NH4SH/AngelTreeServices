@@ -16,3 +16,12 @@ local database and owned unpublished Auth/Mailpit containers. It never resets th
 shared stack. Rollback restores mail only on that owned test service. A future
 hosted rollback must first close staging entry points to prevent built-in mail.
 There is no hosted install, activation or credential management command here.
+
+`target-review.json` adds read-only identity/version evidence for the actual ATS
+staging project. The separate pure transaction builder reuses this package's
+pinned create/grant/revoke statements, supplies physical identity/preimage/expiry
+checks and verifies exact postconditions. It does not weaken the local SQL files'
+database restrictions. The read-only review CLI writes a private expiring SQL
+artifact and unsent two-field Auth patch; it cannot apply or activate either.
+See `apps/platform/STAGING_AUTH_ACTIVATION_REVIEW.md`. Never disable the hosted
+hook automatically after a failure: default SMTP would become available again.

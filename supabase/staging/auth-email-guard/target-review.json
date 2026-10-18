@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "organizationId": "crisckykyefqdpatbfgb",
+  "appOrigin": "https://angel-tree-admin-staging.netlify.app",
+  "databaseIdentity": {
+    "systemIdentifier": "7692130048193495360",
+    "database": "postgres",
+    "databaseOid": "5",
+    "serverVersionNum": "170011"
+  },
+  "identityReadOn": "2026-10-18",
+  "identityIsNotACredential": true,
+  "requiresFreshManagementAndDatabaseReadback": true,
+  "hostedWriteRunnerIncluded": false,
+  "activationAuthorized": false,
+  "productionApplicable": false,
+  "authVersionAtReadOnlyReview": "v2.197.0",
+  "freshAuthVersionReadbackRequiredBeforeActivation": true
+}

@@ -1,0 +1,109 @@
+{
+  "verifiedOn": "2026-10-18",
+  "baseCommit": "56d3c13",
+  "branch": "codex/staging-auth-activation-review",
+  "guardPushedToMain": true,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "databaseIdentity": {
+    "database": "postgres",
+    "databaseOid": "5",
+    "serverVersionNum": "170011",
+    "systemIdentifier": "7692130048193495360"
+  },
+  "candidateMigrations": 93,
+  "exactMigrationLedgerAndHashesPreserved": true,
+  "currentApplicationCatalogAndGrantsMatch": true,
+  "managedDefaultsChanged": false,
+  "migrationOwnerDefaultsRestricted": true,
+  "allReviewedDataCountersZero": true,
+  "allAutomationAndScanSwitchesOff": true,
+  "hostedAuthVersion": "v2.197.0",
+  "hostedAuthHealthStatus": 200,
+  "hostedVersionMatchesNativeTests": true,
+  "authConfigFingerprintUnchanged": true,
+  "apiSchemas": [
+    "public",
+    "graphql_public"
+  ],
+  "guardSchemaExposed": false,
+  "reviewArtifactGenerated": true,
+  "reviewArtifactExpiryMinutes": 15,
+  "installationSqlSha256AtVerification": "f419871dedbb19d5705f5c70d28e4ba4a49230f6060e156b9dca50598e0215a1",
+  "targetProfileSha256": "a692c17b3a86ce79a2cd980cabc24084986ecee84563c4e9cd0dea45ec31db60",
+  "minimalUnsentPatchFields": [
+    "hook_send_email_enabled",
+    "hook_send_email_uri"
+  ],
+  "hostedWriteRunnerIncluded": false,
+  "hostedInstalled": false,
+  "hostedActivated": false,
+  "hostedMailIsolationVerified": false,
+  "nativeResults": {
+    "passedIncludingParent": 9,
+    "scenarios": [
+      {
+        "name": "hosted database identity cannot be used on a same-schema local clone",
+        "passed": true
+      },
+      {
+        "name": "expired packet and elevated/API roles cannot install anything",
+        "passed": true
+      },
+      {
+        "name": "a changed business/automation preimage is refused before DDL",
+        "passed": true
+      },
+      {
+        "name": "a simultaneous installer holds an advisory lock and the second attempt fails",
+        "passed": true
+      },
+      {
+        "name": "injected post-install permission drift rolls the entire transaction back",
+        "passed": true
+      },
+      {
+        "name": "targeted transaction installs exact least-privilege metadata without changing app/defaults",
+        "passed": true
+      },
+      {
+        "name": "fresh activation decision permits only the hook flag/URI and rejects config/permission drift",
+        "passed": true
+      },
+      {
+        "name": "real local Auth activation blocks delivery while password sign-in remains usable",
+        "passed": true
+      }
+    ],
+    "failed": 0,
+    "skipped": 0
+  },
+  "regressionResults": {
+    "passed": 792,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheckPassed": true,
+  "offlineSchemaContractPassed": true,
+  "localSecurityAdvisors": {
+    "errors": 0,
+    "newGuardFindings": 0,
+    "existingWarnings": [
+      "extension_in_public_pgcrypto"
+    ]
+  },
+  "originalServicesPreserved": true,
+  "ownedServicesStopped": true,
+  "reviewAppHealthStatus": 200,
+  "productionDeployIdsUnchanged": {
+    "crm": "6ad23c757dfc53f702ae00b9",
+    "website": "6ad41cc12fd086f697f224e8"
+  },
+  "stagingPublishedDeployId": null,
+  "hostedMailRequests": 0,
+  "privilegedProjectKeysRetrieved": false,
+  "remoteWrites": 0,
+  "productionWrites": 0,
+  "deployed": false,
+  "readyForHosting": false,
+  "activationAuthorized": false
+}

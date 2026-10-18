@@ -1,5 +1,12 @@
 # Staging target setup and verification — October 17, 2026
 
+**Targeted Auth activation review, October 18:** guard `56d3c13` is pushed to main.
+A separate, expiring installation packet and minimal activation plan are locally
+verified against the actual staging identity/catalog and matching Auth version.
+See [installation/activation review](STAGING_AUTH_ACTIVATION_REVIEW.md). Hosted
+staging remains unchanged; there is no apply/activate runner or deployment. The
+original prototype is complete locally; current mail/readiness flags stay false.
+
 **Local Auth email guard, October 18:** the free Postgres rejection hook now passes
 real isolated Auth/Mailpit tests, without changing hosted staging or production.
 See [guard verification](STAGING_AUTH_EMAIL_GUARD.md). It remains outside ordinary

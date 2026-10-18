@@ -97,6 +97,22 @@
       "installedOnHostedStaging": false,
       "enabledOnHostedStaging": false,
       "productionChanges": false
+    },
+    "authEmailActivationReview": {
+      "reviewCompletedLocally": true,
+      "report": "STAGING_AUTH_ACTIVATION_REVIEW.md",
+      "verification": "staging/AUTH_ACTIVATION_REVIEW_VERIFICATION.json",
+      "targetIdentityBound": true,
+      "catalogAndPermissionsVerifiedReadOnly": true,
+      "hostedAuthVersion": "v2.197.0",
+      "versionMatchesLocalTests": true,
+      "installationPacketPreparedLocally": true,
+      "installationPacketExpiresAfterMinutes": 15,
+      "hostedWriteRunnerIncluded": false,
+      "installedOnHostedStaging": false,
+      "enabledOnHostedStaging": false,
+      "hostedBehaviorVerified": false,
+      "activationAuthorized": false
     }
   },
   "netlify": {

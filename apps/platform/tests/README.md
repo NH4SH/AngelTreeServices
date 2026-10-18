@@ -950,6 +950,23 @@ ownership; no role grants/passwords change. An optional
 catalog/ACL/RLS restoration within the disposable cluster, not hosted PITR or
 production source-file backup coverage.
 
+## Shared password sign-in abuse protection
+
+`sign-in-rate-limit.test.mjs` is part of the normal credential-free suite. It
+checks source/header trust, IPv6 canonicalization, IP/account budget scope,
+generic failures, one three-second limiter deadline, malformed RPC replies,
+cookie-action ordering, redirects and unthrottled sign-out.
+
+The separate opt-in `sign-in-rate-limit.integration.test.mjs` requires
+`SIGNIN_DISPOSABLE_STACK=1` and `SIGNIN_LOCAL_STATUS_FILE` selecting exactly
+`http://127.0.0.1:54321`. It creates only new synthetic local accounts/counters,
+checks real service-only permissions and concurrency, and disables new accounts
+afterward. With `SIGNIN_BUILD_DIRECTORY` pointing to a separate completed
+source-only build, it also starts/stops one new loopback server and exercises
+the compiled Next sign-in action over HTTP. It does not sign out the review
+user, mutate roles, reset the DB, read customer records or call hosted providers.
+See `SIGN_IN_ABUSE_PROTECTION.md` for commands, boundaries and release gates.
+
 ## Migration reconciliation and staging preparation
 
 Home-Mac scanner preparation is separate from host installation. The ordinary

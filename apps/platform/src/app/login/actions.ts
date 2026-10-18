@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { safeLocalRedirect } from "@/lib/security/local-redirect";
+import { checkPasswordSignInRateLimit } from "@/lib/security/sign-in-rate-limit";
 
 export type LoginActionState = {
   status: "idle" | "error";
@@ -26,22 +28,32 @@ export async function signInWithPassword(
   const password = String(formData.get("password") ?? "");
   const nextPath = safeLocalRedirect(String(formData.get("next") || "/admin"));
 
-  if (!email || !password) {
+  if (!email || email.length > 320 || !password) {
     return {
       status: "error",
       message: "Enter an email and password to sign in.",
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
+  const budget = await checkPasswordSignInRateLimit(email, await headers());
+  if (budget !== "allowed") {
     return {
       status: "error",
-      message: "The email or password was not accepted.",
+      message: budget === "limited"
+        ? "Too many sign-in attempts. Wait a few minutes and try again."
+        : "Sign-in is temporarily unavailable. Please try again shortly.",
+    };
+  }
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { status: "error", message: "The email or password was not accepted." };
+    }
+  } catch {
+    return {
+      status: "error",
+      message: "Sign-in is temporarily unavailable. Please try again shortly.",
     };
   }
 

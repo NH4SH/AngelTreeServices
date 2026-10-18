@@ -37,18 +37,25 @@ export async function enforceSharedRateLimit({
 
 export async function consumeRateLimitWithClient(
   client: SupabaseClient<any, "public", any>,
-  input: { action: string; keyHash: string; limit: number; windowSeconds: number },
+  input: { action: string; keyHash: string; limit: number; windowSeconds: number; signal?: AbortSignal },
 ): Promise<RateLimitResult> {
-  const { data, error } = await client.rpc("consume_security_rate_limit", {
+  let query = client.rpc("consume_security_rate_limit", {
     p_action_name: input.action,
     p_key_hash: input.keyHash,
     p_limit: input.limit,
     p_window_seconds: input.windowSeconds,
   });
+  if (input.signal) query = query.abortSignal(input.signal);
+  const { data, error } = await query;
   const row = Array.isArray(data) ? data[0] : data;
-  if (error || !row) return unavailable();
+  if (error || !row || (Array.isArray(data) && data.length !== 1)
+    || typeof row.allowed !== "boolean" || !Number.isInteger(row.remaining) || row.remaining < 0
+    || row.remaining > input.limit || !Number.isInteger(row.retry_after_seconds) || row.retry_after_seconds < 0
+    || row.retry_after_seconds > input.windowSeconds
+    || (row.allowed && row.retry_after_seconds !== 0)
+    || (!row.allowed && (row.remaining !== 0 || row.retry_after_seconds === 0))) return unavailable();
   return {
-    allowed: Boolean(row.allowed),
+    allowed: row.allowed,
     available: true,
     remaining: Number(row.remaining ?? 0),
     retryAfterSeconds: Number(row.retry_after_seconds ?? 0),

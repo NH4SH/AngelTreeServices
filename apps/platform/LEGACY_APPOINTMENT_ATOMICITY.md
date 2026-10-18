@@ -1,5 +1,11 @@
 # Legacy appointment save integrity
 
+Publication update, October 18 UTC: `fcd5b73` is now pushed to main and its branch.
+The new migration is also reconciled on the isolated staging database at 93/93,
+with no app deploy or production change. The original implementation results
+below describe the preceding local-only state. See
+[staging follow-through](STAGING_APPOINTMENT_RECONCILIATION.md).
+
 Verified locally October 17, 2026 (migration timestamp October 18 UTC).
 
 ## Decision and publication state

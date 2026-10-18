@@ -1,5 +1,11 @@
 # Staging target setup and verification — October 17, 2026
 
+**October 18 UTC follow-through:** staging now has the unchanged appointment-safety
+migration, with an exact 93-entry ledger and full catalog/permissions match to
+the locally rehearsed upgrade. The original 92-file candidate and permission
+profile remain immutable historical records. No app deploy or production change
+occurred. See [93-migration reconciliation](STAGING_APPOINTMENT_RECONCILIATION.md).
+
 **Published/follow-through:** staging access/preparation is pushed to main and `codex/pr18-local-staging-access` at `bd206a8`, deployment skipped. The [hosting review](FREE_SCANNER_HOSTING_REVIEW.md) is now historical: the owner selected a Netlify/Supabase-first commercial direction and stopped Oracle verification. Scanner deployment remains unresolved. No host is provisioned and all hosted readiness gates remain open.
 
 **Local access-gate follow-through (October 17):** the owner selected a free, custom approach. A staging-only gate is implemented and tested locally; see [local access protection](STAGING_ACCESS_PROTECTION.md). Native Netlify protection is still locked, no plan/team change or scanner purchase is approved, and hosted visitor protection remains unverified. The earlier paid host recommendation is retained as historical review, not the selected budget.
@@ -13,7 +19,7 @@ are preserved.
 
 | Target | Assignment | Verified state |
 | --- | --- | --- |
-| Supabase | CRM Staging, `gbyhdsuiqeslgjdnbqng`, ATS | Healthy; Free; us-east-2; Postgres 17.11; 92/92 migrations |
+| Supabase | CRM Staging, `gbyhdsuiqeslgjdnbqng`, ATS | Healthy; Free; us-east-2; Postgres 17.11; 93/93 migrations |
 | Netlify | angel-tree-admin-staging, `d81d923d-6ccf-4c1e-87cc-263f3d51555d`, ats/nh4sh | Dedicated project; no published app deploy or Git deployment connection |
 | App origin | `https://angel-tree-admin-staging.netlify.app` | Reserved hostname; live app/TLS not verified |
 | Scanner | Unassigned | Separate host, endpoint and maintainer still needed |

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "fcd5b7336c0efa2c7c0f4abb9797c82d96daaf07",
+  "previousCandidateCount": 92,
+  "expectedMigrationCount": 93,
+  "previousProfileSha256": "7e9ba66bae57d6b1468929c492b7b6aa9571b3702b9fd4ba871e0b2b44c59994",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261018004943_atomic_legacy_appointments.sql",
+    "sha256": "d9fee0228be0cf8a2f85fb8cdef37a2aeb58013f74d815e2433354ef312cba6e"
+  },
+  "shapeSeal": "67eff18b8ed46fffcf3275571f4b6023",
+  "ledgerSeal": "c30ed3945961266287b3d1d7da9f36b0",
+  "initialApiAclSeal": "82b08f022523d7f5d50102ee90f0bb29",
+  "expectedApiAclSeal": "82b08f022523d7f5d50102ee90f0bb29",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4736,
+  "delta": {
+    "added": [
+      {
+        "key": "column|public.appointments.created_by_user_id",
+        "hash": "63c3ef272ea5420222d40253da9504ba75a1ad1665aa80bea9c8ece1b887f68f"
+      },
+      {
+        "key": "column|public.appointments.creation_request_hash",
+        "hash": "808cddd7c5eba6e0e1f72aecea3e47f388f12340e60fb46fa6bfe93b4d4af5e7"
+      },
+      {
+        "key": "column|public.appointments.edit_revision",
+        "hash": "245306125663f33e30d2a385bce5924dde7b8adef17a539e6d7644ab658786c2"
+      },
+      {
+        "key": "constraint|public.appointments.appointments_edit_revision_check",
+        "hash": "771513d34f49c01f65ff2a43ccc483b65f5b7c35921d4c54fe888e9ad299c65e"
+      },
+      {
+        "key": "routine|app_private.guard_legacy_appointment_command()",
+        "hash": "e0777d2bf91284968a0c1710574ae4c7b8f0c6119fface872bb1edafe8c9a5b4"
+      },
+      {
+        "key": "routine|public.save_legacy_appointment(p_appointment_id uuid, p_job_id uuid, p_expected_revision integer, p_values jsonb, p_mode text, p_override_reason text)",
+        "hash": "d6d02c2211b130b50886e7b7ccdb26a0fbcd8687ba36477c1bdfeecd05785efe"
+      },
+      {
+        "key": "trigger|public.appointments.appointments_command_boundary",
+        "hash": "064d9d84bff24b6de9ed6cd8d2db4668d167a45996d24937d7ea25132fc9920f"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

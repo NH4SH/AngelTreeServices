@@ -1,5 +1,11 @@
 # Staging permission reconciliation — October 17, 2026
 
+**October 18 UTC:** this original 92-file permission repair is preserved. Staging
+has since advanced to the separately reviewed 93-file appointment candidate,
+with no changes to old objects, policies or defaults. Use the new read-only
+candidate verifier; the old repair runner intentionally rejects the new inventory.
+See [appointment reconciliation](STAGING_APPOINTMENT_RECONCILIATION.md).
+
 ## Outcome and decision
 
 The verified staging setup (`58231ef`, `87b6251`) is pushed to **main** and

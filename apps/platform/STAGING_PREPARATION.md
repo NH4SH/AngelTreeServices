@@ -1,5 +1,13 @@
 # Isolated staging preparation — October 17, 2026
 
+**Current database candidate:** the original 92-file manifest/profile remain
+frozen; the additional appointment migration is now verified on staging at 93/93.
+`supabase/staging/appointment-candidate-93.json` binds the original prefix and the
+new source bytes. See [staging reconciliation](STAGING_APPOINTMENT_RECONCILIATION.md)
+for current evidence and the read-only verifier. Hosting remains unready and no
+app is deployed. The original initialization results below describe the 92-file
+baseline, not an instruction to downgrade or repair its history.
+
 **Local access-gate follow-through (October 17):** the owner selected a free, custom approach. A staging-only gate is implemented and tested locally; see [local access protection](STAGING_ACCESS_PROTECTION.md). Native Netlify protection is still locked, no plan/team change or scanner purchase is approved, and hosted visitor protection remains unverified. The earlier paid host recommendation is retained as historical review, not the selected budget.
 
 Status: **local preparation verified; separate targets created; staging schema initialized but hosting not ready**.
@@ -152,7 +160,7 @@ does not reset the review database or change cluster roles.
 1. Assign/verify separate targets, company ownership/billing, hostname and maintainer.
    Configure visitor protection and private logs; no customer data is needed.
 2. Verify the full migration manifest, provider defaults and the recorded baseline
-   decisions. Build the isolated schema with the supported CLI, check all 92
+   decisions and the reviewed additive candidate. Build the isolated schema with the supported CLI, check all 93
    ledger entries, routines/owners/grants/RLS and OFF switches. Preserve the
    extra production column/helper instead of dropping them during reconciliation.
 3. Verify the implemented canonical-origin policy on the actual target and all

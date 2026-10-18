@@ -969,6 +969,16 @@ See `SIGN_IN_ABUSE_PROTECTION.md` for commands, boundaries and release gates.
 
 ## Legacy appointment transaction follow-through
 
+Staging reconciliation extends verification with
+`staging-appointment-candidate.test.mjs` and the local-only
+`supabase/staging/tests/legacy-appointments.sql`. The former checks source,
+target, exact old-numbered/timestamp ledger identities, permission/default
+fingerprints and empty/OFF guards without network access. The latter rolls back
+16 real command/permission assertions under normal `postgres` in the new
+reconciled disposable database. All existing database/staging suites plus that
+file pass 176 assertions. The full CLI local upgrade, forced rollback and
+read-only hosted comparison are documented in `STAGING_APPOINTMENT_RECONCILIATION.md`.
+
 `legacy-appointments.test.mjs` runs with the ordinary credential-free suite. It
 checks request/revision validation, strict acknowledgment parsing, safe failures,
 the shared action adapter and post-commit reminder warnings.

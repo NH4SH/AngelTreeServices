@@ -1,5 +1,22 @@
 # Staging permission reconciliation
 
+**Current candidate:** staging has advanced to 93 migrations through the separately
+reviewed appointment addition. `permission-profile.json` and the original repair
+below remain frozen at 92. Use the read-only verifier for the new candidate:
+
+```sh
+node scripts/release/verify-staging-appointment-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng
+```
+
+Run from `apps/platform`. `appointment-candidate-93.json` binds the old profile,
+original 92-file manifest and unchanged additive migration. The old repair runner
+intentionally rejects the new inventory; do not rerun its bare SQL or reinterpret
+its old profile as a 93-file approval. See
+`apps/platform/STAGING_APPOINTMENT_RECONCILIATION.md` for exact hosted/local evidence,
+rollback testing, 176 local database assertions and remaining release gates.
+
+## Original 92-migration repair (historical)
+
 This is a versioned **staging-only operational package**, not a production
 migration. Nothing here is selected by `supabase db push`. The original 92
 migrations and their pinned manifest remain unchanged.

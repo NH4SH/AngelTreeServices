@@ -56,7 +56,7 @@ export function assessSnapshot(profile, snapshot) {
   assert.equal(snapshot.managedAdminMember, false, 'The migration role must not be a member of the protected managed role.');
   assert.equal(snapshot.shapeSeal, profile.shapeSeal, 'Schema, owners, RLS, private grants or column permissions changed.');
   assert.equal(snapshot.ledgerSeal, profile.ledgerSeal, 'Migration versions/names changed.');
-  assert.equal(snapshot.migrationCount, 92);
+  assert.equal(snapshot.migrationCount, profile.expectedMigrationCount);
   assert.ok([profile.initialApiAclSeal, profile.expectedApiAclSeal].includes(snapshot.apiAclSeal), 'Unknown object grants; review instead of normalizing them.');
   assert.ok(profile.allowedOwnedDefaultsSeals.includes(snapshot.ownedDefaultsSeal), 'Unknown migration-owner defaults.');
   assert.ok(profile.allowedManagedDefaultsSeals.includes(snapshot.managedDefaultsSeal), 'Protected managed defaults changed.');

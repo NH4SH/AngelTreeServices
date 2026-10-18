@@ -113,6 +113,12 @@ migration files are unchanged; the new boundary is an additive migration.
 
 ## Legacy appointment follow-through
 
+Release-preparation update: the unchanged additive migration is now verified on
+isolated staging at 93/93. The old 92-file manifest/profile remain frozen; a new
+candidate binds that prefix and the addition. No app deploy or production change
+occurred. See `../../../STAGING_APPOINTMENT_RECONCILIATION.md`; the original local
+verification and compatibility boundaries below remain applicable.
+
 `save_legacy_appointment` now owns create, details and status changes from the
 remaining legacy forms. It locks the job before the appointment and selected
 employee, rechecks current office access after waits, and commits the visit,
@@ -139,6 +145,5 @@ failure reports that the appointment saved and directs review to Communications.
 The old gap repair remains available for historical/service-maintenance cases.
 
 See `../../../LEGACY_APPOINTMENT_ATOMICITY.md`. The new migration is
-`20261018004943_atomic_legacy_appointments.sql`; it is tested locally only. The
-frozen hosted staging candidate remains at 92 migrations until a separately
-approved reconciliation includes this 93rd version. No deployment is implied.
+`20261018004943_atomic_legacy_appointments.sql`; its local verification is now
+followed by the approved isolated-staging reconciliation. No deployment is implied.

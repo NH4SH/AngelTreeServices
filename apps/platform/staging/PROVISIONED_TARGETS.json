@@ -162,6 +162,17 @@
       "oracleCapacityVerified": false,
       "scannerReplacementImplemented": false,
       "scanSafeguardsChanged": false
+    },
+    "netlifyEvaluation": {
+      "completedLocally": true,
+      "localReviewDate": "2026-10-17",
+      "directFreeMigrationAccepted": false,
+      "largerMemoryLocalCorpusPassed": true,
+      "hostedRuntimeVerified": false,
+      "securityEquivalentIsolationVerified": false,
+      "paidPlanAuthorized": false,
+      "workerImplemented": false,
+      "report": "NETLIFY_SCANNER_EVALUATION.md"
     }
   },
   "readyToBuildForHosting": false,

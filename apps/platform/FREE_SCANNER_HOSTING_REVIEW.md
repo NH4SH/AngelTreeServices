@@ -7,8 +7,10 @@ created, no session authenticated and no host provisioned. The prior review is
 pushed to main and its branch at `27b70da`, deployment skipped, and is retained
 as historical research rather than an instruction to add a provider.
 
-Next engineering decision: assess a credible scanner implementation within the
-existing providers before proposing another infrastructure account. The current
+The [Netlify evaluation](NETLIFY_SCANNER_EVALUATION.md) is now complete locally:
+1GiB failed with OOM, while the larger budget passed six scenarios. A direct/free
+migration is rejected; paid queued compute remains conditional on enforceable
+parser isolation and target-runtime packaging, neither of which is verified. The current
 four-container scanner is not a drop-in serverless function. Supabase Edge limits
 are 256 MB RAM /2s CPU; Netlify Functions default to1024 MB and configurable larger
 functions require eligible paid plans. This is a feasibility question, not an

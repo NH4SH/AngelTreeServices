@@ -1,0 +1,208 @@
+{
+  "localReviewDate": "2026-10-17",
+  "baseCommit": "c2a810bbff5a4717392a59b31d0a9eb75dba2c93",
+  "decision": "Reject direct/free migration; paid queued Netlify candidate requires unresolved isolation/runtime proof.",
+  "existingTeamReadOnly": {
+    "id": "6887e1d10bc00c09293eae2c",
+    "name": "ats",
+    "planName": "Free",
+    "accountOrPlanChanged": false
+  },
+  "regressions": {
+    "passed": 731,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheck": "passed",
+  "benchmark": {
+    "scope": "isolated Linux ARM64 Docker engine budgets; not Netlify runtime, bundle, billing or network proof",
+    "images": {
+      "engine": "sha256:c7e276e90d746cb25c4475e06a507494245b254dd53196b40950458245947258",
+      "client": "sha256:1575dee44642e6df7c04cd9d5e69e89898839b3d42165bf352f6fe263fc135d4"
+    },
+    "profiles": [
+      {
+        "memoryMiB": 1024,
+        "cpu": 0.5,
+        "clientMemoryBudgetMiB": 256,
+        "clientCpuBudget": 0.5,
+        "ready": true,
+        "enforcedMemoryBytes": 1073741824,
+        "swapMax": 0,
+        "observedPeakMemoryBytes": 1021784064,
+        "signatureState": {
+          "engineVersion": "1.5.4",
+          "signatureVersion": 28156,
+          "signatureAgeSeconds": 64110,
+          "freshness": "current"
+        },
+        "coldReadinessMilliseconds": 15224,
+        "scans": {
+          "ready": false,
+          "verdict": "unavailable",
+          "completedResults": [
+            {
+              "name": "clean",
+              "expected": "clean",
+              "status": "clean",
+              "passed": true,
+              "milliseconds": 15
+            },
+            {
+              "name": "eicar",
+              "expected": "quarantined",
+              "status": "quarantined",
+              "passed": true,
+              "milliseconds": 3
+            },
+            {
+              "name": "25-MiB",
+              "expected": "clean",
+              "status": "clean",
+              "passed": true,
+              "milliseconds": 667
+            },
+            {
+              "name": "encrypted-archive",
+              "expected": "quarantined",
+              "status": "quarantined",
+              "passed": true,
+              "milliseconds": 11
+            }
+          ],
+          "errorCode": "incomplete_scanner_reply"
+        },
+        "allCasesPassed": false,
+        "exitCode": 137,
+        "oomKilled": true,
+        "writableLayerClean": true,
+        "tmpFilesAfter": []
+      },
+      {
+        "memoryMiB": 4096,
+        "cpu": 1.5,
+        "clientMemoryBudgetMiB": 256,
+        "clientCpuBudget": 0.5,
+        "ready": true,
+        "enforcedMemoryBytes": 4294967296,
+        "swapMax": 0,
+        "observedPeakMemoryBytes": 1116971008,
+        "signatureState": {
+          "engineVersion": "1.5.4",
+          "signatureVersion": 28156,
+          "signatureAgeSeconds": 64126,
+          "freshness": "current"
+        },
+        "coldReadinessMilliseconds": 14942,
+        "scans": {
+          "ready": true,
+          "results": [
+            {
+              "name": "clean",
+              "expected": "clean",
+              "status": "clean",
+              "passed": true,
+              "milliseconds": 18
+            },
+            {
+              "name": "eicar",
+              "expected": "quarantined",
+              "status": "quarantined",
+              "passed": true,
+              "milliseconds": 4
+            },
+            {
+              "name": "25-MiB",
+              "expected": "clean",
+              "status": "clean",
+              "passed": true,
+              "milliseconds": 473
+            },
+            {
+              "name": "encrypted-archive",
+              "expected": "quarantined",
+              "status": "quarantined",
+              "passed": true,
+              "milliseconds": 15
+            },
+            {
+              "name": "110-MiB-expanded-archive",
+              "expected": "quarantined",
+              "status": "quarantined",
+              "passed": true,
+              "milliseconds": 247
+            },
+            {
+              "name": "two-25-MiB",
+              "status": [
+                "clean",
+                "clean"
+              ],
+              "passed": true,
+              "milliseconds": 244
+            }
+          ],
+          "clientMaxRssKiB": 146764
+        },
+        "allCasesPassed": true,
+        "exitCode": 0,
+        "oomKilled": false,
+        "writableLayerClean": true,
+        "tmpFilesAfter": [
+          "/tmp/clamd.pid"
+        ]
+      }
+    ],
+    "sharedServicesChanged": false,
+    "definitionVolumeReadOnly": true,
+    "cloudRequests": 0,
+    "cleanupCompleted": true,
+    "clientSourceSha256": "eff31ec2a72a11198c1ecdf990f8b90b61fde5bb26e02503f827cdef7b91b1ab"
+  },
+  "interpretation": {
+    "defaultMemoryFailedByOom": true,
+    "largerBudgetComputeOnlyPassed": true,
+    "coldReadinessExceedsCurrent12SecondTimeout": true,
+    "minimumSafeMemoryEstablished": false,
+    "netlifyRuntimeTested": false,
+    "lambdaBundleBuilt": false,
+    "parserIsolationEquivalent": false,
+    "queuedWorkerImplemented": false,
+    "claimLeaseSecondsUnchanged": 90
+  },
+  "definitionFiles": {
+    "daily.cld": 86214656,
+    "bytecode.cvd": 281702,
+    "main.cvd": 89072577
+  },
+  "sources": [
+    "https://docs.netlify.com/build/functions/configuration/",
+    "https://docs.netlify.com/build/functions/background-functions/",
+    "https://docs.netlify.com/build/functions/usage-and-billing/",
+    "https://docs.netlify.com/build/edge-functions/limits/",
+    "https://docs.netlify.com/manage/security/private-connectivity/",
+    "https://docs.netlify.com/build/async-workloads/limitations/",
+    "https://docs.clamav.net/manual/Installing/Docker.html"
+  ],
+  "preservation": {
+    "applicationRuntimeChanged": false,
+    "scannerRuntimeConfigurationChanged": false,
+    "financialOrEmployeeWorkChanged": false,
+    "dependenciesChanged": false,
+    "migrationsOrRlsChanged": false,
+    "scanSwitchesChanged": false,
+    "sharedManifestChanged": false,
+    "providerSettingsChanged": false,
+    "productionChanged": false,
+    "hostedRequestsForScan": 0,
+    "newServiceCredentials": 0,
+    "deployed": false,
+    "pushed": false
+  },
+  "newSourceHashes": {
+    "scripts/private-scanner/evaluation/benchmark.mjs": "e73d16f85fbbd0fbc6eb5d53cb89dd6023f76d8d6b31b4be0b3aed5fff0bef0a",
+    "scripts/private-scanner/evaluation/probe-client.mjs": "eff31ec2a72a11198c1ecdf990f8b90b61fde5bb26e02503f827cdef7b91b1ab"
+  },
+  "readyForHosting": false,
+  "deploymentAuthorized": false
+}

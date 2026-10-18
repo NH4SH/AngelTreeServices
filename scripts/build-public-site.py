@@ -24,6 +24,8 @@ STATIC_FILES = (
     "site-pages.css",
     "site-pages.js",
     "ats-website.js",
+    "ats-consent.js",
+    "ats-consent.css",
     "angeltreeservices_backup_files/200x200-hortz-logo.jpg",
     "angeltreeservices_backup_files/LightroomGrassPictureSquooshed_013.jpg",
     "angeltreeservices_backup_files/isamember1_004.jpg",
@@ -188,12 +190,33 @@ def apply_emergency_availability_copy() -> None:
         )
 
 
+def apply_public_consent_controls() -> None:
+    fragment = (ROOT / "public-consent.html").read_text(encoding="utf-8")
+    trigger = '<button type="button" class="ats-privacy-settings" data-ats-privacy aria-controls="ats-consent" aria-expanded="false">Privacy settings</button>'
+    for target in OUTPUT.rglob("index.html"):
+        source = target.read_text(encoding="utf-8")
+        assert 'id="ats-consent"' not in source, target
+        # The privacy-request breadcrumb also contains a literal Privacy link.
+        # Insert only inside the site's footer, never into navigation or prose.
+        footer_marker = '<footer class="ats-page-footer">' if '<footer class="ats-page-footer">' in source else '<footer class="sections" id="footer-sections"'
+        before, marker, tail = source.partition(footer_marker)
+        footer, end, after = tail.partition("</footer>")
+        privacy_link = '<a href="/privacy/">Privacy</a>'
+        if not marker or not end or footer.count(privacy_link) != 1:
+            raise RuntimeError(f"Expected one public footer Privacy link in {target}")
+        source = before + marker + footer.replace(privacy_link, privacy_link + " " + trigger) + end + after
+        source = source.replace('</head>', '<link rel="stylesheet" href="/ats-consent.css?v=consent1"></head>')
+        source = source.replace('</body>', fragment + '</body>')
+        target.write_text(source, encoding="utf-8")
+
+
 def build() -> None:
     prepare_output()
     copy_static_sources()
     apply_homepage_footer_alignment()
     generate_pages()
     apply_emergency_availability_copy()
+    apply_public_consent_controls()
     # Configure the final homepage artifact so future page-generation changes
     # cannot overwrite the injected progressive-enhancement script.
     configure_public_address_autocomplete()

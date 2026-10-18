@@ -1331,8 +1331,21 @@ class Validator:
         if list(self.site_dir.rglob("google-analytics_analytics.js")):
             self.error("Public artifact must not ship the legacy analytics no-op")
         analytics = (self.site_dir / "ats-website.js").read_text(encoding="utf-8")
-        if "var COLLECTION_ENABLED = false;" not in analytics or 'var MEASUREMENT_ID = "";' not in analytics:
-            self.error("Analytics activation requires a separate approved release")
+        if "var COLLECTION_ENABLED = true;" not in analytics or 'var MEASUREMENT_ID = "G-8WMD200TXP";' not in analytics:
+            self.error("Analytics must use the owner-approved public website property")
+        if 'consent !== "granted"' not in analytics or 'allow_google_signals: false' not in analytics or 'allow_ad_personalization_signals: false' not in analytics:
+            self.error("Analytics requires opt-in and disabled advertising features")
+        for route, source in self.page_sources.items():
+            if source.count('id="ats-consent"') != 1 or source.count('src="/ats-consent.js?v=consent1"') != 1:
+                self.error(f"{route}: public consent controls must load exactly once")
+            if source.count('data-ats-privacy aria-controls="ats-consent"') != 1:
+                self.error(f"{route}: expose exactly one keyboard-accessible Privacy settings control")
+            footer_marker = '<footer class="ats-page-footer">' if '<footer class="ats-page-footer">' in source else '<footer class="sections" id="footer-sections"'
+            footer = source.partition(footer_marker)[2].partition("</footer>")[0]
+            if 'data-ats-privacy aria-controls="ats-consent"' not in footer:
+                self.error(f"{route}: Privacy settings control must be in the public footer")
+            if 'href="/ats-consent.css?v=consent1"' not in source:
+                self.error(f"{route}: public consent styles missing")
         legacy_directory = self.site_dir / "angeltreeservices_backup_files"
         delivered_legacy_assets = (
             {path.name for path in legacy_directory.iterdir() if path.is_file()}

@@ -3,28 +3,26 @@
   if (window.ATSWebsite) return;
 
   // Release gates: change only after property verification and consent UX approval.
-  var COLLECTION_ENABLED = false;
-  var MEASUREMENT_ID = "";
+  var COLLECTION_ENABLED = true;
+  var MEASUREMENT_ID = "G-8WMD200TXP";
   var consent = "denied";
   var ready = false;
   var loading = false;
+  var libraryLoaded = false;
   var pageSent = false;
   var attributionKey = "ats-attribution-v1";
   var maxAge = 30 * 60 * 1000;
   var campaignKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
   var routes = ["/", "/services/", "/services/tree-removal/", "/services/tree-pruning/",
     "/services/stump-grinding/", "/services/emergency-tree-service/",
-    "/services/commercial-hoa-tree-care/", "/credentials-safety/", "/projects/",
+    "/services/commercial-hoa-tree-care/", "/services/landscaping/",
+    "/credentials-safety/", "/projects/", "/projects/hollow-tree-removal/",
     "/about/", "/recognition/", "/privacy/", "/privacy-request/"];
+  // Minimal public-site launch: only phone and estimate intent are custom events.
+  // Google also supplies its own basic session/engagement events after consent.
   var schemas = {
-    navigation_link_click: { destination: ["about", "services", "projects", "commercial", "credentials", "recognition", "contact"], navigation: ["mobile_menu", "desktop_header"] },
     phone_link_click: { location: ["contact", "hero", "mobile_actions", "site"] },
-    emergency_cta_click: { location: ["homepage_guidance"] },
-    estimate_cta_click: { location: ["contact", "hero", "mobile_actions", "site"] },
-    service_link_click: { destination: routes },
-    estimate_form_started: { form_name: ["contact"] },
-    estimate_request_acknowledged: { form_name: ["contact"] },
-    estimate_form_failed: { form_name: ["contact"], reason: ["network_or_server"] }
+    estimate_cta_click: { location: ["contact", "hero", "mobile_actions", "site"] }
   };
 
   function safePath(path) {
@@ -39,15 +37,31 @@
     if (pageSent || !ready || consent !== "granted") return;
     pageSent = true;
     command("event", "page_view", {
+      send_to: MEASUREMENT_ID,
       page_location: "https://angeltreeservices.org" + safePath(window.location.pathname),
       page_title: safePath(window.location.pathname),
       page_referrer: ""
     });
   }
 
+  function configureCollection() {
+    if (!libraryLoaded || ready || consent !== "granted") return;
+    ready = true;
+    command("consent", "update", { analytics_storage: "granted" });
+    command("js", new Date());
+    // Suppress implicit page views; never allow raw location, title or referrer.
+    command("config", MEASUREMENT_ID, { send_page_view: false, allow_google_signals: false,
+      cookie_domain: "none", cookie_path: "/", cookie_expires: 180 * 24 * 60 * 60, cookie_update: false,
+      allow_ad_personalization_signals: false,
+      page_location: "https://angeltreeservices.org" + safePath(window.location.pathname),
+      page_title: safePath(window.location.pathname), page_referrer: "" });
+    pageView();
+  }
+
   function initializeCollection() {
     if (!COLLECTION_ENABLED || !/^G-[A-Z0-9]+$/.test(MEASUREMENT_ID) || consent !== "granted") return;
     if (ready) { pageView(); return; }
+    if (libraryLoaded) { configureCollection(); return; }
     if (loading) return;
     loading = true;
     window.dataLayer = window.dataLayer || [];
@@ -58,16 +72,8 @@
     script.src = "https://www.googletagmanager.com/gtag/js?id=" + MEASUREMENT_ID;
     script.onload = function () {
       loading = false;
-      if (consent !== "granted") return;
-      ready = true;
-      command("consent", "update", { analytics_storage: "granted" });
-      command("js", new Date());
-      // Suppress implicit page views; never allow raw location, title or referrer.
-      command("config", MEASUREMENT_ID, { send_page_view: false, allow_google_signals: false,
-        allow_ad_personalization_signals: false,
-        page_location: "https://angeltreeservices.org" + safePath(window.location.pathname),
-        page_title: safePath(window.location.pathname), page_referrer: "" });
-      pageView();
+      libraryLoaded = true;
+      configureCollection();
     };
     script.onerror = function () { loading = false; script.remove(); };
     document.head.appendChild(script);
@@ -77,15 +83,28 @@
     try { window.sessionStorage.removeItem(attributionKey); } catch (error) { /* Storage may be unavailable. */ }
   }
 
+  function clearAnalyticsCookies() {
+    // Only this public site's GA cookies; never clear arbitrary cookies or storage.
+    var suffix = (MEASUREMENT_ID || "G-8WMD200TXP").replace(/^G-/, "");
+    var host = window.location.hostname;
+    ["_ga", "_ga_" + suffix].forEach(function (name) {
+      ["", host, host && "." + host].forEach(function (domain) {
+        try { document.cookie = name + "=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/" +
+          (domain ? "; domain=" + domain : "") + "; SameSite=Lax"; } catch (error) { /* Browser policy may restrict cookies. */ }
+      });
+    });
+  }
+
   function setConsent(value) {
     consent = value === "granted" ? "granted" : "denied";
     if (MEASUREMENT_ID) window["ga-disable-" + MEASUREMENT_ID] = consent !== "granted";
     if (consent !== "granted") {
       forgetAttribution();
+      clearAnalyticsCookies();
       if (ready) command("consent", "update", { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
       return;
     }
-    // Consent is intentionally not persisted. Approved consent UI must restore it per page.
+    // The public consent controls restore an unexpired browser choice per page.
     getAttribution();
     if (ready) command("consent", "update", { analytics_storage: "granted" });
     initializeCollection();
@@ -93,7 +112,7 @@
 
   function track(name, parameters) {
     if (!COLLECTION_ENABLED || consent !== "granted" || !ready || !Object.prototype.hasOwnProperty.call(schemas, name)) return;
-    var clean = {};
+    var clean = { send_to: MEASUREMENT_ID };
     Object.keys(schemas[name]).forEach(function (key) {
       var value = parameters && parameters[key];
       if (schemas[name][key].indexOf(value) !== -1) clean[key] = value;
@@ -161,26 +180,18 @@
     var link = target && target.closest && target.closest("a");
     if (!link) return;
     var location = clickLocation(link);
-    if (link.dataset.atsNav) track("navigation_link_click", {
-      destination: link.dataset.atsNav,
-      navigation: link.closest(".ats-home-mobile-menu, .ats-mobile-menu") ? "mobile_menu" : "desktop_header"
-    });
-    if (link.classList.contains("ats-emergency-call")) {
-      track("emergency_cta_click", { location: "homepage_guidance" });
-    } else if (link.matches('a[href^="tel:"]')) {
+    if (link.matches('a[href^="tel:"]')) {
       track("phone_link_click", { location: location });
     }
     try {
       var destination = new URL(link.href, window.location.origin);
       if (destination.origin !== window.location.origin) return;
       if (destination.pathname === "/" && destination.hash === "#contact") track("estimate_cta_click", { location: location });
-      if (destination.pathname.indexOf("/services/") === 0 && routes.indexOf(destination.pathname) !== -1) {
-        track("service_link_click", { destination: destination.pathname });
-      }
     } catch (error) { /* Ignore unsupported links. */ }
   }
 
-  window.ATSWebsite = { track: track, setConsent: setConsent, getAttribution: getAttribution };
+  window.ATSWebsite = { track: track, setConsent: setConsent, getAttribution: getAttribution,
+    isCollectionEnabled: function () { return COLLECTION_ENABLED && /^G-[A-Z0-9]+$/.test(MEASUREMENT_ID); } };
   document.addEventListener("DOMContentLoaded", function () {
     preserveEstimateAttribution();
     document.addEventListener("click", trackClick);

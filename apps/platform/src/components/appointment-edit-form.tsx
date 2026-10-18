@@ -1,6 +1,8 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { updateAppointmentDetails, type AppointmentActionState } from "@/app/admin/schedule/actions";
 import type { AppointmentWithRelations, AssignableUser } from "@/lib/types/database";
@@ -19,11 +21,15 @@ export function AppointmentEditForm({
   assignedUsers: AssignableUser[];
 }) {
   const [state, formAction, pending] = useReliableActionState(updateAppointmentDetails, initialState);
+  const [revision, setRevision] = useState(appointment.edit_revision);
+  const router = useRouter();
+  useEffect(() => { if (state.appointmentId && state.revision) { setRevision(state.revision); router.refresh(); } }, [state, router]);
 
   return (
-    <form action={formAction} className="appointment-edit-form">
+    <form onSubmit={event => { event.preventDefault(); void formAction(new FormData(event.currentTarget)); }} className="appointment-edit-form">
       <input name="appointment_id" type="hidden" value={appointment.id} />
       <input name="job_id" type="hidden" value={appointment.job_id} />
+      <input name="expected_revision" type="hidden" value={revision} />
       <input name="appointment_type" type="hidden" value={appointment.appointment_type} />
       <div className="form-grid-two">
         <label>

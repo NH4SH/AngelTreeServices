@@ -18,7 +18,7 @@ test("schedule selectors use active operational employees without requiring logi
   const scheduleActions = await source("apps/platform/src/app/admin/schedule/actions.ts");
   assert.match(scheduleData, /from\("employee_records"\)/);
   assert.match(scheduleData, /\.eq\("is_active", true\)/);
-  assert.match(scheduleActions, /employee_id: assignedUserId/);
+  assert.match(scheduleActions, /values\.assigned_id = getOptionalString\(formData, "assigned_user_id"\)/);
 });
 
 test("multi-day work sessions persist employee IDs through the compatibility RPC", async () => {
@@ -100,7 +100,7 @@ test("schedule assignment surfaces use the reusable checkbox picker and preserve
   assert.match(manager, /name="sessions_json"/);
   assert.match(manager, /assigned_user_ids: employeeIds/);
   assert.match(eventActions, /\.getAll\("assigned_user_ids"\)/);
-  assert.match(eventActions, /employee_id: assignedUserId/);
+  assert.match(eventActions, /values\.assigned_id = getOptionalString\(formData, "assigned_user_id"\)/);
   assert.match(styles, /\.employee-selection-option\s*\{[^}]*min-height:\s*48px/s);
   assert.match(styles, /\.employee-selection-chips\s*\{[^}]*flex-wrap:\s*wrap/s);
   assert.match(styles, /@media \(max-width: 430px\)[\s\S]*\.employee-multi-select/);

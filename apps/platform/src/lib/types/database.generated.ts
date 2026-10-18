@@ -351,6 +351,9 @@ export type Database = {
                     "assigned_user_id": string | null;
                     "calendar_notes": string | null;
                     "created_at": string;
+                    "created_by_user_id": string | null;
+                    "creation_request_hash": string | null;
+                    "edit_revision": number;
                     "ends_at": string | null;
                     "id": string;
                     "job_id": string;
@@ -366,6 +369,9 @@ export type Database = {
                     "assigned_user_id"?: string | null;
                     "calendar_notes"?: string | null;
                     "created_at"?: string;
+                    "created_by_user_id"?: string | null;
+                    "creation_request_hash"?: string | null;
+                    "edit_revision"?: number;
                     "ends_at"?: string | null;
                     "id"?: string;
                     "job_id": string;
@@ -380,6 +386,9 @@ export type Database = {
                     "assigned_user_id"?: string | null;
                     "calendar_notes"?: string | null;
                     "created_at"?: string;
+                    "created_by_user_id"?: string | null;
+                    "creation_request_hash"?: string | null;
+                    "edit_revision"?: number;
                     "ends_at"?: string | null;
                     "id"?: string;
                     "job_id"?: string;
@@ -15822,6 +15831,17 @@ export type Database = {
                     "p_job_id": string;
                     "p_mode"?: string;
                     "p_sessions": Json;
+                };
+                Returns: Json;
+            };
+            "save_legacy_appointment": {
+                Args: {
+                    "p_appointment_id": string;
+                    "p_expected_revision": number;
+                    "p_job_id": string;
+                    "p_mode"?: string;
+                    "p_override_reason"?: string;
+                    "p_values": Json;
                 };
                 Returns: Json;
             };

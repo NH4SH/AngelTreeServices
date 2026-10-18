@@ -100,11 +100,13 @@ test('PR15 real authorized search and owned scheduling handoffs',{skip:!enabled,
   const f=new FormData();f.set('job_id',jobId);assert.equal((await actionsFor(owner.client).trackSchedulingHandoff({status:'idle',message:''},f)).status,'success');
   assert.equal((await task(jobId)).id,primary.id);assert.equal((await task(jobId)).status,'open');assert.equal(check(await owner.client.from('approved_work_handoff_gaps').select('id').eq('id',jobId)).length,0);
  });
- await run('legacy booking, rescheduling and cancellation use checked repair with a visible crash gap',async()=>{
+ await run('legacy maintenance repair remains available and normal appointment edits reconcile in their transaction',async()=>{
   const a=check(await service.from('appointments').insert({job_id:jobId,service_location_id:loc.id,appointment_type:'job',status:'scheduled',starts_at:'2030-04-01T13:00:00Z',ends_at:'2030-04-01T14:00:00Z'}).select('id').single());
   assert.equal(await checkLegacySchedulingHandoff(owner.client,jobId),true);assert.equal((await task(jobId)).status,'completed');
-  check(await owner.client.from('appointments').update({starts_at:'2030-04-02T13:00:00Z',ends_at:'2030-04-02T14:00:00Z'}).eq('id',a.id));assert.equal(await checkLegacySchedulingHandoff(owner.client,jobId),true);assert.equal((await task(jobId)).status,'completed');
-  check(await owner.client.from('appointments').update({status:'cancelled'}).eq('id',a.id));assert.equal(check(await owner.client.from('approved_work_handoff_gaps').select('id').eq('id',jobId)).length,1);
+  let current=check(await service.from('appointments').select('*').eq('id',a.id).single());
+  check(await owner.client.rpc('save_legacy_appointment',{p_appointment_id:a.id,p_job_id:jobId,p_expected_revision:current.edit_revision,p_values:{starts_at:'2030-04-02T13:00:00Z',ends_at:'2030-04-02T14:00:00Z',assigned_id:null,calendar_notes:current.calendar_notes},p_mode:'details'}));assert.equal((await task(jobId)).status,'completed');
+  current=check(await service.from('appointments').select('*').eq('id',a.id).single());
+  check(await owner.client.rpc('save_legacy_appointment',{p_appointment_id:a.id,p_job_id:jobId,p_expected_revision:current.edit_revision,p_values:{status:'cancelled'},p_mode:'status'}));assert.equal(check(await owner.client.from('approved_work_handoff_gaps').select('id').eq('id',jobId)).length,0);
   assert.equal(await checkLegacySchedulingHandoff(crew.client,jobId),false);assert.equal(await checkLegacySchedulingHandoff(owner.client,jobId),true);assert.equal((await task(jobId)).id,primary.id);assert.equal((await task(jobId)).status,'open');
  });
  await run('removing an owner makes the task visible in Needs an owner without granting another role access',async()=>{

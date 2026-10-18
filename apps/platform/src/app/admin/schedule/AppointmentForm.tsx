@@ -1,6 +1,8 @@
 "use client";
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { createAppointment, type AppointmentActionState } from "./actions";
 import type { AppointmentType, AssignableUser, Job } from "@/lib/types/database";
@@ -26,9 +28,17 @@ export function AddAppointmentForm({
   lockedAppointmentType?: AppointmentType;
 }) {
   const [state, formAction, pending] = useReliableActionState(createAppointment, initialState);
+  const [requestId, setRequestId] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  useEffect(() => { setRequestId(crypto.randomUUID()); }, []);
+  useEffect(() => {
+    if (state.appointmentId) { form.current?.reset(); setRequestId(crypto.randomUUID()); router.refresh(); }
+  }, [state, router]);
 
   return (
-    <form action={formAction} className="crm-form">
+    <form ref={form} onSubmit={event => { event.preventDefault(); void formAction(new FormData(event.currentTarget)); }} className="crm-form">
+      <input name="request_id" type="hidden" value={requestId} />
       {state.message ? (
         <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
           {state.message}
@@ -90,7 +100,7 @@ export function AddAppointmentForm({
           rows={2}
         />
       </label>
-      <button disabled={pending || (!jobId && jobs.length === 0)} type="submit">
+      <button disabled={pending || !requestId || (!jobId && jobs.length === 0)} type="submit">
         <CalendarPlus aria-hidden="true" size={18} />
         {pending ? "Saving..." : "Add appointment"}
       </button>

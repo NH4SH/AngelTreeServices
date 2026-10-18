@@ -176,6 +176,13 @@ The optional results file contains test names/status only, not credentials.
 
 ## Operations and remaining work
 
+Publication update, October 17: verified implementation `099315f` and the
+independent-release observation `55d0ba5` are now pushed to `main` and
+`codex/crm-sign-in-abuse-protection`, with deployment skipped. Read-only Netlify
+checks during that push and the subsequent local appointment work show CRM
+`6ad23c757dfc53f702ae00b9` and website `6ad4161bdbf2175dcdccac7e` unchanged.
+This source publication did not apply hosted configuration or migrations.
+
 Future authorized operators can inspect aggregate attempt volume by action and
 window from the existing service-only table. Do not expose raw hashes or rows
 to ordinary clients or log credentials. Counts reflect budget consumption,

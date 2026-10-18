@@ -219,7 +219,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
           {(job.appointments ?? []).filter((appointment) => appointment.appointment_type !== "job").length ? <div className="job-appointment-list legacy-appointment-list">{(job.appointments ?? []).filter((appointment) => appointment.appointment_type !== "job").map((appointment) => (
             <article key={appointment.id}>
               <div><strong>{title(appointment.appointment_type)}</strong><span>{formatDateTime(appointment.starts_at)} · {title(appointment.status)}{appointment.profiles ? ` · ${appointment.profiles.full_name ?? appointment.profiles.email ?? "Assigned staff"}` : " · Unassigned"}</span></div>
-              <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={job.id} />
+              <AppointmentStatusActions appointmentId={appointment.id} currentStatus={appointment.status} jobId={job.id} revision={appointment.edit_revision} />
             </article>
           ))}</div> : null}
         </section>

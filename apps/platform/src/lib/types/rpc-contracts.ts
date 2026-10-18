@@ -8,3 +8,7 @@ export type ScheduleCommandArgs = Omit<RpcArgs<'save_schedule_event'>, 'p_event_
   p_event_id: string | null;
   p_expected_revision: number | null;
 };
+export type LegacyAppointmentCommandArgs = Omit<RpcArgs<'save_legacy_appointment'>, 'p_expected_revision' | 'p_override_reason'> & {
+  p_expected_revision: number | null;
+  p_override_reason: string | null;
+};

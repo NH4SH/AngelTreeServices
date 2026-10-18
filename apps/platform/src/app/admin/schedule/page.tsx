@@ -1075,7 +1075,7 @@ function QuickAppointmentStatusButton({
   label: string;
   nextStatus: AppointmentStatus;
 }) {
-  return <AppointmentStatusAction appointmentId={appointment.id} currentStatus={appointment.status} jobId={appointment.job_id} label={label} nextStatus={nextStatus} />;
+  return <AppointmentStatusAction appointmentId={appointment.id} currentStatus={appointment.status} jobId={appointment.job_id} revision={appointment.edit_revision} label={label} nextStatus={nextStatus} />;
 }
 
 function EmployeeSummaryCard({

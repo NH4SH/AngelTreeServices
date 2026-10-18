@@ -110,3 +110,35 @@ submit_job_closeout_atomic. Both retain PR08 event assignments, audit/outbox rul
 and parent ordering. New active work visits on a completed job are rejected until
 work is reviewed/reopened. See ../jobs/EXPLICIT_COMPLETION.md. The 78 pre-PR09
 migration files are unchanged; the new boundary is an additive migration.
+
+## Legacy appointment follow-through
+
+`save_legacy_appointment` now owns create, details and status changes from the
+remaining legacy forms. It locks the job before the appointment and selected
+employee, rechecks current office access after waits, and commits the visit,
+existing create-time job transition, pending-reminder invalidation, audit and
+PR15 scheduling handoff together. Direct authenticated appointment mutations
+cannot bypass the command; service maintenance/older definer workflows retain
+their reviewed access. Existing RLS policies and all previous migrations remain.
+
+Create uses a stable request UUID plus actor/payload binding. Retry acknowledges
+the original without repeating writes; another actor or changed payload must
+review it. Details/status require the displayed revision, including updates made
+by maintenance/internal completion. Forms retain failed drafts and adopt a new
+revision only from a verified save acknowledgement. Appointment types, existing
+office role boundaries and historic closed assignments remain available.
+Employment readiness stays separate from onboarding checklist progress. New
+inactive/missing employee assignments cannot be forged; qualification overrides
+require the existing owner/admin authority and reason in SQL.
+
+This is not a migration of old appointments into normalized events, nor a new
+legacy overlap override workflow. It preserves the existing provider/Calendar
+source selection. New reminder preparation stays outside the transaction;
+processing/sent communications remain under PR14. A post-commit preparation
+failure reports that the appointment saved and directs review to Communications.
+The old gap repair remains available for historical/service-maintenance cases.
+
+See `../../../LEGACY_APPOINTMENT_ATOMICITY.md`. The new migration is
+`20261018004943_atomic_legacy_appointments.sql`; it is tested locally only. The
+frozen hosted staging candidate remains at 92 migrations until a separately
+approved reconciliation includes this 93rd version. No deployment is implied.

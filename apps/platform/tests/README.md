@@ -967,6 +967,30 @@ the compiled Next sign-in action over HTTP. It does not sign out the review
 user, mutate roles, reset the DB, read customer records or call hosted providers.
 See `SIGN_IN_ABUSE_PROTECTION.md` for commands, boundaries and release gates.
 
+## Legacy appointment transaction follow-through
+
+`legacy-appointments.test.mjs` runs with the ordinary credential-free suite. It
+checks request/revision validation, strict acknowledgment parsing, safe failures,
+the shared action adapter and post-commit reminder warnings.
+
+The opt-in native suite requires the existing disposable local stack:
+
+```sh
+LEGACY_APPOINTMENTS_DISPOSABLE=1 \
+LEGACY_APPOINTMENTS_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+LEGACY_APPOINTMENTS_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///absolute/path/to/disposable/docker.sock \
+node --experimental-strip-types --test tests/legacy-appointments.integration.test.mjs
+```
+
+It rejects targets other than `http://127.0.0.1:54321`, creates only synthetic
+local fixtures, and tests actual permissions, revisions, retries, concurrent
+writes, qualification checks and transactional rollback. It uses temporary
+test-only audit constraints and removes them in cleanup. It does not reset the
+database, inspect existing customer records, send communications, or contact
+hosted providers. See `LEGACY_APPOINTMENT_ATOMICITY.md` for results and the
+93-local-vs-92-frozen-staging release boundary.
+
 ## Migration reconciliation and staging preparation
 
 Home-Mac scanner preparation is separate from host installation. The ordinary

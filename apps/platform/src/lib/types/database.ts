@@ -744,6 +744,7 @@ export type Payment = {
 
 export type Appointment = {
   id: string;
+  edit_revision: number;
   job_id: string;
   service_location_id: string;
   assigned_user_id: string | null;

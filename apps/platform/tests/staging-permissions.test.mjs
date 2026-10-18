@@ -61,10 +61,12 @@ test('reviewed operations only revoke extras and scope future named-role grants 
   assert.ok(lines.every(x=>/^revoke .* on (table|sequence|function) ("public"\.|public\.)/.test(x)||/^alter default privileges for role postgres in schema public revoke all /.test(x)));
   assert.ok(lines.every(x=>! /\b(cascade|grant|drop|delete|update|create)\b/.test(x.replace(/^revoke [\w, ]+ on /,'revoke on '))));
 });
-test('profile binds the existing immutable 92-file release and does not add a production migration', () => {
+test('profile binds the immutable 92-file staging prefix even as later local migrations are added', () => {
   const manifest=read('supabase/reconciliation/release-2026-10-17.json');
   assert.equal(createHash('sha256').update(manifest).digest('hex'),profile.migrationManifestSha256);
-  assert.deepEqual(readdirSync(new URL('supabase/migrations/',root)).filter(f=>f.endsWith('.sql')).sort(),JSON.parse(manifest).files.map(f=>f.file).sort());
+  const repository=readdirSync(new URL('supabase/migrations/',root)).filter(f=>f.endsWith('.sql')).sort();
+  const pinned=JSON.parse(manifest).files.map(f=>f.file).sort();
+  assert.deepEqual(repository.slice(0,pinned.length),pinned);
   for (const file of JSON.parse(manifest).files) assert.equal(createHash('sha256').update(read('supabase/migrations/'+file.file)).digest('hex'),file.sha256);
   assert.equal(profile.expectedMigrationCount,92);assert.equal(profile.managedDefaultsRestricted,false);assert.equal(profile.globalDefaultsChanged,false);
 });

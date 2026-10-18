@@ -1,6 +1,6 @@
 "use server";
 import type { ScheduleCommandArgs } from "@/lib/types/rpc-contracts";
-import {checkLegacySchedulingHandoff} from "@/lib/schedule/legacy-handoff";
+import { saveLegacyAppointment } from "@/lib/schedule/legacy-appointment";
 
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
@@ -24,6 +24,7 @@ export type AppointmentActionState = {
   message: string;
   eventId?: string;
   jobId?: string;
+  appointmentId?: string;
   revision?: number;
 };
 
@@ -382,150 +383,14 @@ export async function createAppointment(
   _previousState: AppointmentActionState,
   formData: FormData,
 ): Promise<AppointmentActionState> {
-  const supabase = await createClient();
-
-  if (!supabase) {
-    return { status: "error", message: "Supabase is not configured." };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { status: "error", message: "Sign in before adding CRM records." };
-  }
-
-  const jobId = String(formData.get("job_id") ?? "");
-  const appointmentType = String(formData.get("appointment_type") ?? "estimate") as AppointmentType;
-  const startsAt = parseDateTime(formData.get("starts_at"));
-  const endsAt = parseDateTime(formData.get("ends_at"), true);
-  const assignedUserId = getOptionalString(formData, "assigned_user_id");
-  const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
-  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
-
-  if (!jobId || !startsAt) {
-    return { status: "error", message: "Job and start time are required." };
-  }
-
-  if (!appointmentTypes.includes(appointmentType)) {
-    return { status: "error", message: "That appointment type is not available here." };
-  }
-
-  if (endsAt && endsAt <= startsAt) {
-    return { status: "error", message: "End time must be after the start time." };
-  }
-
-  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserId ? [assignedUserId] : [], appointmentType, eligibilityOverrideReason);
-  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
-
-  const { data: job, error: jobError } = await supabase
-    .from("jobs")
-    .select("id, service_location_id, status")
-    .eq("id", jobId)
-    .single();
-
-  if (jobError || !job) {
-    return { status: "error", message: jobError?.message ?? "Could not find selected job." };
-  }
-
-  const { data: appointment, error } = await supabase
-    .from("appointments")
-    .insert({
-      job_id: jobId,
-      service_location_id: job.service_location_id,
-      appointment_type: appointmentType,
-      assigned_employee_id: assignedUserId,
-      starts_at: startsAt.toISOString(),
-      ends_at: endsAt?.toISOString() ?? null,
-      calendar_notes: calendarNotes,
-    })
-    .select("id")
-    .single();
-
-  if (error || !appointment) {
-    return { status: "error", message: error?.message ?? "Could not save the appointment." };
-  }
-  if (eligibility.warningCount) await recordActivity(supabase, { actorUserId: user.id, eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning", metadata: { assigned_user_ids: assignedUserId ?? "", reason: eligibilityOverrideReason, warning_count: eligibility.warningCount }, subjectId: appointment.id, subjectType: "appointment" });
-
-  const nextJobStatus = getScheduledJobStatus(job.status as JobStatus, appointmentType);
-  if (nextJobStatus) {
-    const { error: statusError } = await supabase.from("jobs").update({ status: nextJobStatus }).eq("id", jobId);
-    if (statusError) {
-      return { status: "error", message: `Appointment saved, but the job status could not be updated: ${statusError.message}` };
-    }
-
-    await recordActivity(supabase, {
-      actorUserId: user.id,
-      eventType: nextJobStatus === "scheduled" ? "work_order_scheduled" : "estimate_scheduled",
-      metadata: { appointment_id: appointment.id },
-      subjectId: jobId,
-      subjectType: "job",
-    });
-  }
-
-  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
-  await syncScheduleCommunications();
-
-  revalidateSchedulePaths(jobId);
-  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
-  return eligibility.warningCount
-    ? { status: "warning", message: `Appointment saved with a qualification warning. ${eligibility.message}` }
-    : { status: "success", message: "Appointment saved." };
+  return saveLegacyAppointmentAction(formData, "create");
 }
 
 export async function updateAppointmentStatus(
   _previousState: AppointmentActionState,
   formData: FormData,
 ): Promise<AppointmentActionState> {
-  const supabase = await createClient();
-
-  if (!supabase) {
-    return { status: "error", message: "Supabase is not configured." };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { status: "error", message: "Sign in before updating appointments." };
-  }
-
-  const appointmentId = String(formData.get("appointment_id") ?? "");
-  const jobId = String(formData.get("job_id") ?? "");
-  const nextStatus = String(formData.get("next_status") ?? "") as AppointmentStatus;
-  const allowedStatuses: AppointmentStatus[] = ["scheduled", "confirmed", "in_progress", "completed", "cancelled", "no_show"];
-
-  if (!appointmentId || !jobId || !allowedStatuses.includes(nextStatus)) {
-    return { status: "error", message: "Choose a valid appointment status." };
-  }
-
-  const { data, error } = await supabase
-    .from("appointments")
-    .update({ status: nextStatus })
-    .eq("id", appointmentId)
-    .eq("job_id", jobId)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    return { status: "error", message: safeStaffMessage(error.message) };
-  }
-
-  if (!data) {
-    return { status: "error", message: "Appointment not found or no access." };
-  }
-
-  if (["completed", "cancelled", "no_show"].includes(nextStatus)) {
-    await cancelPendingCommunications(supabase, { appointmentId }, `Appointment marked ${nextStatus.replaceAll("_", " ")}.`);
-  }
-  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
-  await syncScheduleCommunications();
-
-  revalidateSchedulePaths(jobId);
-  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
-  return { status: "success", message: `Appointment marked ${nextStatus.replace("_", " ")}.` };
+  return saveLegacyAppointmentAction(formData, "status");
 }
 
 export async function updateAppointmentStatusFromForm(formData: FormData) {
@@ -536,88 +401,43 @@ export async function updateAppointmentDetails(
   _previousState: AppointmentActionState,
   formData: FormData,
 ): Promise<AppointmentActionState> {
+  return saveLegacyAppointmentAction(formData, "details");
+}
+
+async function saveLegacyAppointmentAction(formData: FormData, mode: "create" | "details" | "status"): Promise<AppointmentActionState> {
   const supabase = await createClient();
-
-  if (!supabase) {
-    return { status: "error", message: "Supabase is not configured." };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { status: "error", message: "Sign in before editing appointments." };
-  }
-
-  const appointmentId = String(formData.get("appointment_id") ?? "");
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before changing appointments." };
   const jobId = String(formData.get("job_id") ?? "");
-  const startsAt = parseDateTime(formData.get("starts_at"));
-  const endsAt = parseDateTime(formData.get("ends_at"), true);
-  const assignedUserId = getOptionalString(formData, "assigned_user_id");
-  const appointmentType = String(formData.get("appointment_type") ?? "job") as AppointmentType;
-  const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
-  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
-
-  if (!appointmentId || !jobId || !startsAt) {
-    return { status: "error", message: "Appointment, job, and start time are required." };
+  const values: Record<string, string | null> = {};
+  if (mode === "status") {
+    values.status = String(formData.get("next_status") ?? "");
+  } else {
+    const startsAt = parseDateTime(formData.get("starts_at"));
+    const endText = String(formData.get("ends_at") ?? "").trim();
+    const endsAt = parseDateTime(formData.get("ends_at"), true);
+    if (!startsAt || (endText && !endsAt) || (endsAt && endsAt <= startsAt)) {
+      return { status: "error", message: "Choose a valid start and an end after the start time." };
+    }
+    values.starts_at = startsAt.toISOString();
+    values.ends_at = endsAt?.toISOString() ?? null;
+    values.assigned_id = getOptionalString(formData, "assigned_user_id");
+    values.calendar_notes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+    if (mode === "create") values.appointment_type = String(formData.get("appointment_type") ?? "estimate");
   }
-
-  if (endsAt && endsAt <= startsAt) {
-    return { status: "error", message: "End time must be after the start time." };
-  }
-  const eligibility = await checkAssignmentEligibility(
-    supabase,
-    user.id,
-    assignedUserId ? [assignedUserId] : [],
-    appointmentTypes.includes(appointmentType) ? appointmentType : "job",
-    eligibilityOverrideReason,
-  );
-  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
-
-  const { data, error } = await supabase
-    .from("appointments")
-    .update({
-      assigned_employee_id: assignedUserId,
-      starts_at: startsAt.toISOString(),
-      ends_at: endsAt?.toISOString() ?? null,
-      calendar_notes: calendarNotes,
-    })
-    .eq("id", appointmentId)
-    .eq("job_id", jobId)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    return { status: "error", message: safeStaffMessage(error.message) };
-  }
-
-  if (!data) {
-    return { status: "error", message: "Appointment not found or no access." };
-  }
-
-  if (eligibility.warningCount) {
-    await recordActivity(supabase, {
-      actorUserId: user.id,
-      eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning",
-      metadata: {
-        assigned_user_ids: assignedUserId ?? "",
-        reason: eligibilityOverrideReason,
-        warning_count: eligibility.warningCount,
-      },
-      subjectId: appointmentId,
-      subjectType: "appointment",
-    });
-  }
-
-  const handoffChecked = await checkLegacySchedulingHandoff(supabase,jobId);
-  await syncScheduleCommunications();
-
+  const result = await saveLegacyAppointment(supabase, {
+    id: String(formData.get(mode === "create" ? "request_id" : "appointment_id") ?? ""),
+    jobId, mode, revision: mode === "create" ? null : Number(formData.get("expected_revision") ?? 0),
+    values, overrideReason: getOptionalString(formData, "eligibility_override_reason"),
+  });
+  if (!("appointmentId" in result)) return result;
   revalidateSchedulePaths(jobId);
-  if (!handoffChecked) return {status:"warning",message:"Appointment saved. Its scheduling handoff still needs review in Follow-ups; no additional appointment or email was created by this check."};
-  return eligibility.warningCount
-    ? { status: "warning", message: `Appointment updated with a qualification warning. ${eligibility.message}` }
-    : { status: "success", message: "Appointment details updated." };
+  try { await syncScheduleCommunications(); }
+  catch {
+    return { ...result, status: "warning", message: "Appointment saved. Reminder preparation needs review in Communications." };
+  }
+  return result;
 }
 
 export async function createScheduleEvent(
@@ -965,18 +785,6 @@ function normalizeScheduleEnd(start: Date | null, end: Date | null, allDay: bool
   }
 
   return parseScheduleDateTime(`${toScheduleDateTimeLocal(start.toISOString()).slice(0, 10)}T23:59`);
-}
-
-function getScheduledJobStatus(currentStatus: JobStatus, appointmentType: AppointmentType): JobStatus | null {
-  if (appointmentType === "estimate" && currentStatus === "new_lead") {
-    return "estimate_scheduled";
-  }
-
-  if (appointmentType === "job" && currentStatus === "accepted") {
-    return "scheduled";
-  }
-
-  return null;
 }
 
 async function getJobScheduleContext(

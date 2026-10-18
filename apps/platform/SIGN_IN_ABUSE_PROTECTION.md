@@ -32,6 +32,15 @@ During verification, main advanced with homepage service descriptions at
 security work; none of the incoming changes touches the platform. The final
 branch preserves that newer main as well as the published scanner preparation.
 
+Final read-only verification observed a **separate website release**:
+`6ad4161bdbf2175dcdccac7e`, with source commit `64ff25c`, published at
+2026-10-18T00:43:20Z (October17,20:43 Eastern). Netlify reports `deploy_source:api`;
+this task made only read calls to Netlify and issued no deployment request.
+Do not misreport the website as globally unchanged over the entire session.
+Its earlier baseline/immediate post-push checks above remain historical facts.
+The CRM published deploy is still `6ad23c757dfc53f702ae00b9`. No action was taken
+against that separate website release.
+
 ## Resulting behavior
 
 The ordinary web sign-in action consumes two existing database-backed budgets

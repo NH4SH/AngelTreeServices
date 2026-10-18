@@ -1,6 +1,6 @@
 # Private scanner hosting package
 
-For the owner’s free budget, see [free hosting review](../../../FREE_SCANNER_HOSTING_REVIEW.md): Oracle A1 ARM64 is the conditional staging candidate. This package’s existing limits are preserved; no host is assigned or provisioned.
+For the current owner direction, see [hosting review](../../../FREE_SCANNER_HOSTING_REVIEW.md): keep Netlify/Supabase as core providers; Oracle verification is stopped and scanner deployment remains unresolved. This package’s existing limits are preserved; no host is assigned or provisioned.
 
 Local preparation for existing PR18/F17. No host, DNS, service credential,
 staging deployment or production activation is created by adding these files.

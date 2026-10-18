@@ -1,5 +1,24 @@
 # Free scanner hosting review — October 17, 2026 (US Eastern)
 
+**Owner direction supersedes the hosting recommendation below:** keep Netlify and
+Supabase as the core infrastructure providers while developing toward a potential
+commercial CRM. Oracle account/capacity verification is stopped; no account was
+created, no session authenticated and no host provisioned. The prior review is
+pushed to main and its branch at `27b70da`, deployment skipped, and is retained
+as historical research rather than an instruction to add a provider.
+
+Next engineering decision: assess a credible scanner implementation within the
+existing providers before proposing another infrastructure account. The current
+four-container scanner is not a drop-in serverless function. Supabase Edge limits
+are 256 MB RAM /2s CPU; Netlify Functions default to1024 MB and configurable larger
+functions require eligible paid plans. This is a feasibility question, not an
+implemented scanner replacement or a promise of free production scanning.
+[Supabase limits](https://supabase.com/docs/guides/functions/limits),
+[Netlify function configuration](https://docs.netlify.com/build/functions/configuration/).
+Preserve current quarantine, access rules, scan semantics and local test setup.
+No application code, scan switch, provider setting or production service changes.
+
+
 Decision: **recommend an Oracle Cloud Always Free ARM VM for a disposable staging
 scanner, conditional on account eligibility, actual capacity and host verification.**
 Keep the existing local scanner as the working test environment until then.

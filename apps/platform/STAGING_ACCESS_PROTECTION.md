@@ -1,6 +1,6 @@
 # Local staging access protection — October 17, 2026
 
-**Published/follow-through:** staging access/preparation is pushed to main and `codex/pr18-local-staging-access` at `bd206a8`, deployment skipped. The [free scanner hosting review](FREE_SCANNER_HOSTING_REVIEW.md) now recommends a conditional Oracle A1 ARM64 staging candidate. No host is provisioned and all hosted readiness gates remain open.
+**Published/follow-through:** staging access/preparation is pushed to main and `codex/pr18-local-staging-access` at `bd206a8`, deployment skipped. The [hosting review](FREE_SCANNER_HOSTING_REVIEW.md) is now historical: the owner selected a Netlify/Supabase-first commercial direction and stopped Oracle verification. Scanner deployment remains unresolved. No host is provisioned and all hosted readiness gates remain open.
 
 Status: **implemented and verified locally; hosted protection remains unverified**.
 This continues the existing PR18 staging-isolation work. There is no paid service,

@@ -128,7 +128,7 @@
     },
     "isolationVerified": false,
     "backupRecoveryVerified": false,
-    "preferredHostingRoute": "Oracle Cloud Always Free A1 ARM64, conditional free staging candidate; see FREE_SCANNER_HOSTING_REVIEW.md.",
+    "preferredHostingRoute": "Netlify/Supabase-first architecture per owner; scanner deployment remains unresolved. Oracle verification stopped; no additional infrastructure account approved.",
     "freeHostingReview": {
       "completed": true,
       "reviewedOnLocal": "2026-10-17",
@@ -147,7 +147,21 @@
       "eligibilityVerified": false,
       "capacityVerified": false,
       "provisioned": false,
-      "actualHostCapacityVerified": false
+      "actualHostCapacityVerified": false,
+      "pursuitStatus": "Stopped at owner request before account sign-in; historical research only."
+    },
+    "providerDirection": {
+      "coreInfrastructure": [
+        "Netlify",
+        "Supabase"
+      ],
+      "commercialProductPotential": true,
+      "additionalInfrastructureProviderApproved": false,
+      "oracleAccountAuthenticated": false,
+      "oracleAccountOwnershipVerified": false,
+      "oracleCapacityVerified": false,
+      "scannerReplacementImplemented": false,
+      "scanSafeguardsChanged": false
     }
   },
   "readyToBuildForHosting": false,

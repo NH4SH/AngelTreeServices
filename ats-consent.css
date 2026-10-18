@@ -1,0 +1,45 @@
+/* A non-modal privacy panel; the page and quick actions remain available. */
+.ats-privacy-settings {
+  display: none;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 10px 8px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.ats-privacy-settings[data-ready] { display: inline-block; }
+.ats-consent[hidden] { display: none; }
+.ats-consent {
+  position: fixed;
+  z-index: 10000;
+  inset-inline-start: 24px;
+  bottom: 24px;
+  width: min(520px, calc(100% - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px;
+  background: #f6fbf2;
+  color: #163f19;
+  border: 1px solid #287228;
+  border-radius: 12px;
+  font: 16px/1.55 Poppins, sans-serif;
+  text-align: start;
+}
+.ats-consent h2 { margin: 0 0 12px; color: #163f19; font: 600 24px/1.25 Poppins, sans-serif; letter-spacing: -0.02em; }
+.ats-consent p { margin: 0 0 16px; font: inherit; color: inherit; }
+.ats-consent a { color: #1f5a22; text-decoration: underline; text-underline-offset: 3px; }
+.ats-consent__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.ats-consent button { min-height: 48px; cursor: pointer; font: 600 16px/1.4 Poppins, sans-serif; }
+.ats-consent__actions button { flex: 1 1 180px; padding: 12px 16px; background: #fff; color: #163f19; border: 2px solid #287228; border-radius: 28px; }
+.ats-consent__actions button:hover { color: #fff; background: #1f5a22; }
+.ats-consent__actions button:disabled { color: #4c614a; background: #e6eee2; border-color: #788c74; cursor: not-allowed; }
+.ats-consent .ats-consent__detail { font-size: 14px; }
+.ats-consent__close { background: transparent; border: 0; color: #1f5a22; padding: 8px 0; text-decoration: underline; text-underline-offset: 4px; }
+.ats-consent :focus-visible, .ats-privacy-settings:focus-visible { outline: 3px solid #287228; outline-offset: 4px; }
+@media (max-width: 767px) {
+  .ats-consent { inset-inline-start: 12px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 24px); max-height: calc(100dvh - 108px - env(safe-area-inset-bottom, 0px)); padding: 20px; }
+}

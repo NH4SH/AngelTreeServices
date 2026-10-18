@@ -1,5 +1,68 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Minimal Analytics activation — approved October 18, 2026
+
+Owner delegated the recommended consent-based public-site launch. This supersedes
+the earlier disabled/local-only hold for this batch. Commit with [skip ci] and
+[skip netlify], preserve newer repository changes, and trigger only the public
+website build. CRM code/settings/deployment unchanged; no leads or calls.
+
+- Verified public GA property 437728721, stream 7989355946, G-8WMD200TXP.
+- Remote automatic enhanced measurement/history/interactions off; tag automatic
+  contact detection/user-provided capabilities off; Signals off; granular device/
+  location off; ads personalization allowed in 0 of 307 regions. No cross-domain
+  rules. Existing retention and historical event rules preserved and documented.
+- Shipping gate active, consent denied by default. Google loads only after Allow.
+  Manual sanitized page views and bounded phone/estimate clicks only; no form,
+  lead, purchase or CRM events. Intrinsic Google session/engagement events remain.
+- Active policy discloses Google processing, choices, 180-day preferences/cookies,
+  actual property retention and withdrawal limits. Equal controls and footer
+  access on all pages; storage failure, expiry and cross-tab withdrawal covered.
+- 152 local tests pass and 15 pages validate. Actual Google DebugView receives
+  all three requested signals from safe local QA; synthetic URL canary excluded.
+  Zero before consent; withdrawal clears public cookies and blocks further clicks;
+  regrant does not duplicate page views. No form submitted or call initiated.
+- Public Netlify main/root build uses netlify.toml (npm run test:public/dist-public),
+  Node 22.x; no injected snippets. Preserve production Maps configuration. Record
+  exact commit/deploy, run production GET and consent/navigation smoke checks,
+  confirm CRM published deploy unchanged, then update handoff/evidence.
+- Tag's previous 48-hour inactivity notice and standard reporting may lag. Treat
+  clicks as intent, not completed calls or verified leads. Physical-device and
+  spoken screen-reader checks remain unperformed.
+
+See PUBLIC_SITE_ANALYTICS_PREPARATION.md for the current configuration and QA.
+Earlier checklist sections below describe their historical batch states.
+
+## Consent controls — historical disabled-state review
+
+Final October 18 review: fixed the saved-opt-in/read-only-storage edge case and
+scoped the Privacy settings insertion to the footer, preserving the privacy-request
+breadcrumb. The failing regression checks now pass. No open blockers found for
+a release with analytics disabled. Activation remains a separate decision.
+
+Owner approved consent controls, withdrawal cleanup, truthful privacy wording and
+read-only automatic-measurement review. No commit, push, deploy, activation, Google
+settings mutation or lead submission. CRM code/settings remain unchanged.
+
+- Footer Privacy settings appears on all 15 public pages. No disabled-state prompt;
+  Allow is unavailable and a saved opt-in cannot be banked while collection is off.
+- Enabled simulation has equal Allow/Reject buttons, optional local preference
+  storage with 180-day expiry, page-only fallback, resume/expiry checks and cross-tab
+  withdrawal. Keyboard focus and mobile quick-action clearance verified.
+- Withdrawal disables collection, clears bounded attribution and targets only the
+  public stream's root GA cookies. Synthetic cookie tests leave unrelated state.
+- All 150 local tests pass; 15 built pages validate. No real Google library or
+  delivery used. Shipping gates remain false / empty measurement ID.
+- Public privacy copy reflects disabled collection, choice storage, withdrawal
+  limits and separate estimate draft/marketing choices. Before activation, update
+  the active policy to match approved provider/retention settings.
+- Remote review found all seven enhanced measurements enabled, including forms and
+  search, plus history-based views. No switches or settings saved. Tag-level editor
+  and quality-issue cause remain unverified; resolve before activation. See
+  PUBLIC_SITE_ANALYTICS_PREPARATION.md for the minimal-setting recommendation.
+- Later authorized Google delivery/cookie checks are required before activation.
+  Form acknowledgments are not verified unique leads. CRM contracts are unchanged.
+
 ## Option 1 homepage and commercial testimonial publication approved
 
 Owner approved committing, pushing and publishing the reviewed option 1 copy and

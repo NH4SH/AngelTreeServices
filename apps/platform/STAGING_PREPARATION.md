@@ -1,5 +1,11 @@
 # Isolated staging preparation — October 17, 2026
 
+**Local Auth email guard, October 18:** the free Postgres rejection hook now passes
+real isolated Auth/Mailpit tests, without changing hosted staging or production.
+See [guard verification](STAGING_AUTH_EMAIL_GUARD.md). It remains outside ordinary
+migrations; no hosted installer or activation is included. The earlier prototype
+recommendation below is complete locally; hosted mail/readiness remain false.
+
 **Runtime/key/mail review, October 18 UTC:** the four public site settings are
 correct across their declared scopes, but no public/server application keys,
 portal encryption value or hosted gate credentials are installed. Auth uses its

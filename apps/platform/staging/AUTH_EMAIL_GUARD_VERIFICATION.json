@@ -1,0 +1,92 @@
+{
+  "verifiedOn": "2026-10-18",
+  "baseCommit": "e6dbc02",
+  "branch": "codex/staging-auth-email-guard",
+  "package": "supabase/staging/auth-email-guard/package.json",
+  "locallyVerified": true,
+  "unitResults": {
+    "passed": 783,
+    "failed": 0,
+    "skipped": 0
+  },
+  "nativeAuthResults": {
+    "passedIncludingParent": 11,
+    "scenarios": [
+      {
+        "name": "dedicated internal network and live SMTP positive control",
+        "passed": true
+      },
+      {
+        "name": "wrong database rejection and injected install failure leave no guard or app changes",
+        "passed": true
+      },
+      {
+        "name": "only Auth role can execute the invoker constant-error function",
+        "passed": true
+      },
+      {
+        "name": "recovery rejects explicitly without SMTP fallback",
+        "passed": true
+      },
+      {
+        "name": "invite, magic-link and signup-confirmation resend cannot deliver",
+        "passed": true
+      },
+      {
+        "name": "email change cannot send or replace the signed-in identity",
+        "passed": true
+      },
+      {
+        "name": "password sign-in, wrong-password rejection and refresh remain independent of email",
+        "passed": true
+      },
+      {
+        "name": "missing hook and revoked execute permission fail closed without SMTP",
+        "passed": true
+      },
+      {
+        "name": "hook ignores attacker-controlled payload, has no store, and does not log its canary",
+        "passed": true
+      },
+      {
+        "name": "reviewed local rollback restores SMTP only in this owned rehearsal",
+        "passed": true
+      }
+    ],
+    "failed": 0,
+    "skipped": 0
+  },
+  "authImage": "public.ecr.aws/supabase/gotrue:v2.197.0",
+  "authImageId": "sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b",
+  "mailImage": "public.ecr.aws/supabase/mailpit:v1.31.3",
+  "typecheckPassed": true,
+  "offlineSchemaContractPassed": true,
+  "originalMigrationsPreserved": 93,
+  "securityAdvisors": {
+    "errors": 0,
+    "warnings": 1,
+    "existingWarning": "extension_in_public_pgcrypto",
+    "newGuardFindings": 0
+  },
+  "originalServicesPreserved": true,
+  "ownedServicesStopped": true,
+  "reviewAppHealthStatus": 200,
+  "stagingMigrationReadback": {
+    "migrations": 93,
+    "currentObjectGrantsMatch": true,
+    "migrationOwnerDefaultsRestricted": true
+  },
+  "hostedAuthConfigurationUnchanged": true,
+  "hostedAuthHookEnabled": false,
+  "hostedMailIsolationVerified": false,
+  "hostedInstallerImplemented": false,
+  "productionDeploysUnchanged": {
+    "crm": "6ad23c757dfc53f702ae00b9",
+    "website": "6ad41cc12fd086f697f224e8"
+  },
+  "stagingPublishedDeployId": null,
+  "hostedWrites": 0,
+  "deployed": false,
+  "readyForHosting": false,
+  "deploymentAuthorized": false
+}

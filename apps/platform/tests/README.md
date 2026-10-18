@@ -1042,3 +1042,37 @@ randomly named database, never a shared reset. It applies a genuine CLI ledger
 gates, and retains evidence outside Git. A hosted-like schema overlay is a local
 fixture, not a reconciliation migration or a production backup. No hosted link,
 repair, db push, provider call or deployment is part of this test command.
+
+
+## Local staging Auth email guard
+
+The ordinary suite includes four offline package/target/rollback checks. The
+native test is deliberately opt-in and excluded from ordinary unit execution:
+
+```sh
+AUTH_EMAIL_GUARD_DISPOSABLE=1 \
+AUTH_EMAIL_GUARD_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+AUTH_EMAIL_GUARD_DOCKER_BIN=/absolute/path/to/docker \
+AUTH_EMAIL_GUARD_SUPABASE_BIN=/absolute/path/to/supabase \
+AUTH_EMAIL_GUARD_BOOTSTRAP=/private/local-test/trusted-schema-only-bootstrap.sql \
+DOCKER_HOST=unix:///absolute/path/to/pr02-disposable/sock/docker.sock \
+node --test tests/staging-auth-email-guard.integration.test.mjs
+```
+
+Requires the existing disposable DB/Auth/Mailpit image installation and a trusted
+schema-only bootstrap matching that managed Auth image. API/DB URLs must be
+127.0.0.1:54321/54322; the socket must be the pr02-disposable socket. This is not a
+generic hosted runner. It verifies93 original migrations, creates a new random
+local database, replays migrations through the CLI and runs new Auth/Mailpit
+containers on an internal network with no published ports. It creates fresh
+synthetic test credentials internally; it never retrieves hosted keys.
+
+The genuine managed Auth version ledger is copied to match the schema-only
+bootstrap, never existing users/sessions/business rows. No shared DB reset or
+service restart occurs. All live requests target owned test services. The native
+suite proves real hook error propagation, SMTP positive control/no fallback,
+password sign-in/refresh, least privilege, failed installation and safe rollback.
+Synthetic users and owned services are cleaned up, and original service start
+times/network membership are checked. Retained private evidence/database are
+outside Git; do not publish their generated test credentials. See
+`STAGING_AUTH_EMAIL_GUARD.md` for results and bounded hosted readiness.

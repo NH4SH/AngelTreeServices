@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "intendedHostedProjectRef": "gbyhdsuiqeslgjdnbqng",
+  "hookUri": "pg-functions://postgres/ats_staging_auth/reject_email",
+  "localDatabasePrefix": "ats_auth_email_guard_",
+  "functionBodyMd5": "3217b69110500f25a29e85e4cb945b7f",
+  "files": {
+    "install.local.sql": "e389a0a5309f701dbd91c6cf7cf3938b277bfb40cc95c7847723a4b8cf6aa34b",
+    "rollback.local.sql": "53d032826592e8f470b8d853776e352da5ca5ac2ce8284cbaf9bccbe4f15ae8b"
+  },
+  "ordinaryMigration": false,
+  "hostedInstallationImplemented": false,
+  "hostedActivationAuthorized": false
+}

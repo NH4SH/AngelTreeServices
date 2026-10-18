@@ -86,7 +86,18 @@
     "authDefaultTemplatesReviewed": 13,
     "authBuiltInMailIsIsolated": false,
     "authSendEmailHookEnabled": false,
-    "authCustomSmtpConfigured": false
+    "authCustomSmtpConfigured": false,
+    "localAuthEmailGuard": {
+      "preparedLocally": true,
+      "verifiedLocally": true,
+      "report": "STAGING_AUTH_EMAIL_GUARD.md",
+      "verification": "staging/AUTH_EMAIL_GUARD_VERIFICATION.json",
+      "ordinaryMigration": false,
+      "hostedInstallationImplemented": false,
+      "installedOnHostedStaging": false,
+      "enabledOnHostedStaging": false,
+      "productionChanges": false
+    }
   },
   "netlify": {
     "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",

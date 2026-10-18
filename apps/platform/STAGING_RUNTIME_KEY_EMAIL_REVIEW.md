@@ -1,5 +1,12 @@
 # Staging runtime, key and email isolation review
 
+**Follow-through, October 18:** this review is pushed to main and its preserved
+branch at `e6dbc02`. The recommended no-send Postgres Auth hook is now implemented
+and tested in a separate local rehearsal package. See
+[Auth email guard](STAGING_AUTH_EMAIL_GUARD.md). Hosted configuration is unchanged;
+mail isolation and hosting readiness remain false. Recommendations below describe
+the original review state.
+
 Reviewed October 18, 2026 UTC / October 17 Eastern.
 
 ## Decision

@@ -909,9 +909,11 @@ class Validator:
         summary = self.site_dir / "llms.txt"
         if summary.is_file() and re.search(r"lawn[\s-]+care", summary.read_text(encoding="utf-8"), re.IGNORECASE):
             self.error("llms.txt: retired lawn-care offering must not be published")
-        landscaping_links = [link for link in page.links if link.get("data-estimate-service") == "Landscaping"]
-        if len(landscaping_links) != 1 or landscaping_links[0].get("href") != "/?service=Landscaping#contact":
-            self.error("/: landscaping card needs a service-specific estimate link with an in-place enhancement")
+        explore_links = [link for link in page.links if "ats-service-explore" in link.get("class", "").split()]
+        if len(explore_links) != 2 or {link.get("href") for link in explore_links} != {"/services/", "/services/landscaping/"}:
+            self.error("/: service cards need matching Explore actions to the services hub and Landscaping page")
+        if any(link.get("data-estimate-service") for link in explore_links):
+            self.error("/: service exploration must navigate to its page, not be intercepted as estimate selection")
         if '<option value="Landscaping">Landscaping</option>' not in homepage:
             self.error("/: landscaping must remain available in the estimate form")
 

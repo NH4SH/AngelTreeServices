@@ -1,5 +1,35 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Matching homepage Explore buttons — October 17, 2026
+
+The owner rejected the published asymmetry: Tree Service had an animated Explore
+pill, while Landscaping had a text link and an estimate pill. The correction
+uses one matching primary Explore pill per card: Explore tree services →
+/services/ and Explore landscaping → /services/landscaping/. This intentionally
+replaces the card-level Landscaping estimate primary; service-page estimates,
+the global estimate path and all form/draft behavior remain unchanged.
+
+- Both buttons share the same300px maximum width,56px height,16px700Poppins,
+  220ms green/white fade, padding and3pxwhite keyboard-focus outline. Width
+  shrinks equally to available card space. Button rows align at desktop/tablet.
+- Desktop1440, user1280, tablet760, mobile390 and narrow320 pass without
+  overflow; labels stay on one line and both target heights remain56px. Both
+  keyboard destinations work; Landscaping's page estimate still preselects it.
+- All134tests/15pages pass. Only homepage/CSS built artifacts change;213other
+  files, all page heads, photography, privacy, analytics and form/draft JS remain
+  byte-identical to f53e951. Validator now checks two real Explore destinations
+  instead of requiring the superseded card-level estimate action.
+- Analytics remains disabled; CRM code/settings and hosting remain untouched.
+  No customer data or form submission. One detector pass gives the same41
+  inherited findings, none new. Fresh review/documentation evidence is in the
+  October16 chat work/equal-service-buttons/ and screenshots in
+  .impeccable/review/equal-service-buttons/.
+- Publish the correction as continuation of the owner's existing explicit
+  commit/push/publish approval and current request to make the live buttons
+  equal. Finish review first, preserve any newer main work, use [skip netlify]
+  and trigger only the public project's Git build. Keep production Maps input,
+  verify CRM deployment unchanged and run non-submitting production smoke.
+
 ## Approved draft-recovery, Landscaping-link and privacy publication — October 17, 2026
 
 The owner approved commit, push and publication of the final reviewed public

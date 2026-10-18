@@ -123,10 +123,32 @@
       "provisioned": false,
       "nativeArchitectureVerified": false,
       "actualHostCapacityVerified": false,
-      "ownerBudgetPreference": "Free option requested after this paid recommendation; no purchase approved. Scanner host remains unassigned."
+      "ownerBudgetPreference": "Free option requested after this paid recommendation; no purchase approved. Scanner host remains unassigned.",
+      "preferenceStatus": "Historical paid alternative; superseded by owner free budget and conditional A1 recommendation."
     },
     "isolationVerified": false,
-    "backupRecoveryVerified": false
+    "backupRecoveryVerified": false,
+    "preferredHostingRoute": "Oracle Cloud Always Free A1 ARM64, conditional free staging candidate; see FREE_SCANNER_HOSTING_REVIEW.md.",
+    "freeHostingReview": {
+      "completed": true,
+      "reviewedOnLocal": "2026-10-17",
+      "sourceCommit": "bd206a82f218d225148fa9248b076336b258cfe2",
+      "provider": "Oracle Cloud Infrastructure",
+      "shape": "VM.Standard.A1.Flex",
+      "architecture": "arm64",
+      "ocpu": 2,
+      "memoryGB": 12,
+      "bootDiskGB": 50,
+      "accountId": null,
+      "hostId": null,
+      "region": null,
+      "operator": null,
+      "approvedForProvisioning": false,
+      "eligibilityVerified": false,
+      "capacityVerified": false,
+      "provisioned": false,
+      "actualHostCapacityVerified": false
+    }
   },
   "readyToBuildForHosting": false,
   "deploymentAuthorized": false

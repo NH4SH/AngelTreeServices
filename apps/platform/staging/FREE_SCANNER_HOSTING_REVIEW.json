@@ -1,0 +1,207 @@
+{
+  "reviewedAtUtc": "2026-10-18T00:04:24Z",
+  "localReviewDate": "2026-10-17",
+  "scope": "PR18 hosting review only; no remote provisioning or deployment",
+  "stagingAccessPublished": {
+    "commit": "bd206a82f218d225148fa9248b076336b258cfe2",
+    "branches": [
+      "main",
+      "codex/pr18-local-staging-access"
+    ],
+    "latestMainIncluded": "5bfc9a205e8529c9068e58de0f3c82d22d8b8e9d",
+    "atomicPush": true,
+    "skipDeployMarker": "[skip netlify]",
+    "gateResultsPassedAgain": 18,
+    "publishedDeploysBefore": {
+      "crm": {
+        "siteId": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "publishedDeployId": "6ad23c757dfc53f702ae00b9",
+        "state": "ready"
+      },
+      "website": {
+        "siteId": "86c48a95-ead4-4b15-8e57-fa827558b2f0",
+        "publishedDeployId": "6ad40c1165a8595413b99ce4",
+        "state": "ready"
+      },
+      "staging": {
+        "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "publishedDeployId": null,
+        "state": null
+      }
+    },
+    "publishedDeploysAfter": {
+      "crm": {
+        "siteId": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "publishedDeployId": "6ad23c757dfc53f702ae00b9",
+        "state": "ready"
+      },
+      "website": {
+        "siteId": "86c48a95-ead4-4b15-8e57-fa827558b2f0",
+        "publishedDeployId": "6ad40c1165a8595413b99ce4",
+        "state": "ready"
+      },
+      "staging": {
+        "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "publishedDeployId": null,
+        "state": null
+      }
+    },
+    "publicationsUnchanged": true
+  },
+  "preferredCandidate": {
+    "provider": "Oracle Cloud Infrastructure",
+    "offer": "Always Free",
+    "shape": "VM.Standard.A1.Flex",
+    "architecture": "arm64",
+    "osBaseline": "Ubuntu 24.04 LTS",
+    "ocpu": 2,
+    "memoryGB": 12,
+    "bootDiskGB": 50,
+    "monthlyHostingUsdIfEligibleWithinLimits": 0,
+    "accountId": null,
+    "hostId": null,
+    "homeRegion": null,
+    "hostname": null,
+    "operator": null,
+    "eligibilityVerified": false,
+    "freeQuotaRemainingVerified": false,
+    "capacityAvailableVerified": false,
+    "provisioned": false,
+    "approvedForProvisioning": false,
+    "actualHostVerified": false,
+    "billingBoundVerified": false,
+    "serviceLevelAgreement": false,
+    "idleReclamationRisk": true
+  },
+  "costModel": {
+    "longestMonthHours": 744,
+    "candidateOcpuHours": 1488,
+    "candidateMemoryGBHours": 8928,
+    "documentedOcpuHoursAllowance": 1500,
+    "documentedMemoryGBHoursAllowance": 9000,
+    "otherTenancyUsageKnown": false,
+    "trialCreditExcluded": true,
+    "paidUpgradeApproved": false
+  },
+  "existingResourceContract": {
+    "nominalHostMemoryFloorGiB": 8,
+    "usableMemoryScreeningFloorGiB": 7.5,
+    "hostCpuFloor": 2,
+    "totalServiceMemoryCapsGiB": 6.625,
+    "totalServiceCpuCaps": 3,
+    "appTimeoutSeconds": 12,
+    "maxFileMiB": 25,
+    "candidateCapacityInferredNotMeasured": true,
+    "timeoutOrCoverageRelaxed": false
+  },
+  "verification": {
+    "existingScannerUnitResults": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "candidateFactsAreSynthetic": true,
+    "realOracleHostTested": false,
+    "realClamAVRerun": false,
+    "containersStarted": 0,
+    "appBuildRerun": false,
+    "typecheckRerun": false,
+    "reason": "Review documents/inventory only; application, scanner runtime and build inputs unchanged.",
+    "hypotheticalArm64ScreeningPassed": true,
+    "screeningNeverMarksReady": true,
+    "undersizedAndNonRootlessDenied": true
+  },
+  "sources": [
+    {
+      "title": "OCI Always Free resource limits",
+      "url": "https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm"
+    },
+    {
+      "title": "OCI Free Tier account and trial rules",
+      "url": "https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm"
+    },
+    {
+      "title": "OCI Free Tier FAQ",
+      "url": "https://www.oracle.com/cloud/free/faq/"
+    },
+    {
+      "title": "ClamAV Docker requirements",
+      "url": "https://docs.clamav.net/manual/Installing/Docker.html"
+    },
+    {
+      "title": "Render compute plans",
+      "url": "https://render.com/docs/compute-plans"
+    },
+    {
+      "title": "Render Free limitations",
+      "url": "https://render.com/docs/free"
+    },
+    {
+      "title": "Railway pricing",
+      "url": "https://railway.com/pricing"
+    },
+    {
+      "title": "Google free program",
+      "url": "https://docs.cloud.google.com/free/docs/free-cloud-features"
+    },
+    {
+      "title": "Google E2 machine sizes",
+      "url": "https://docs.cloud.google.com/compute/docs/general-purpose-machines#e2_machine_types"
+    },
+    {
+      "title": "Fly trial",
+      "url": "https://fly.io/docs/about/free-trial/"
+    },
+    {
+      "title": "AWS EC2 Free Tier",
+      "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-free-tier-usage.html"
+    }
+  ],
+  "preservation": {
+    "applicationCodeChanged": false,
+    "scannerRuntimeConfigurationChanged": false,
+    "dependenciesChanged": false,
+    "migrationsOrRlsChanged": false,
+    "sharedTargetManifestChanged": false,
+    "productionChanged": false,
+    "productionWrites": 0,
+    "hostedConfigurationWrites": 0,
+    "hostedCredentialsGenerated": 0,
+    "accountsCreated": 0,
+    "resourcesProvisioned": 0,
+    "deployed": false,
+    "productionScansOrCustomerCommunications": 0
+  },
+  "remaining": [
+    "Company-owned account, eligibility, free totals, capacity and operator",
+    "Actual ARM64 host build, cgroup/isolation, two-scan definition-reload capacity proof",
+    "TLS/renewal, cloud and Docker firewall remote IPv4/IPv6 checks",
+    "Delivered monitoring and paired source-object/database recovery",
+    "Remaining hosted staging access/Auth/mail/runtime proofs and separate release approval"
+  ],
+  "readyForHosting": false,
+  "deploymentAuthorized": false,
+  "localAssessment": {
+    "scope": "hypothetical local screening, not observed Oracle host or billing evidence",
+    "candidateFactsAreSynthetic": true,
+    "candidatePreliminarySuitable": true,
+    "readyForActivation": false,
+    "undersizedRefused": true,
+    "nonRootlessRefused": true,
+    "serviceMemoryCapsGiB": 6.625,
+    "serviceCpuCapsSum": 3,
+    "candidateCpuCores": 2,
+    "cpuCapacityRequiresBenchmark": true,
+    "longestMonthHours": 744,
+    "nominalOcpuHours": 1488,
+    "nominalMemoryGBHours": 8928,
+    "cloudRequests": 0,
+    "changesApplied": false,
+    "sourceHashes": {
+      "scripts/private-scanner/hosting/compose.yaml": "34a9036e0881ab665cd67d8d2adbf5946d2927f9e3ada77568e65356beea0b1b",
+      "scripts/private-scanner/hosting/inspect-host.mjs": "96ff35fd64e853545f8dca3796b2fcb1e8ed96a7a9477f6a176293aaa6eeecf7",
+      "src/lib/security/document-scanner.ts": "ce55394e7a277c98b94f2d34e1e656f63f62fbc5185378361e162a4045ce8787",
+      "staging/targets.json": "e504f427f8faa37e27257cd7be152f7cf55ec2f02784e399c1456141c40b2a4f"
+    }
+  }
+}

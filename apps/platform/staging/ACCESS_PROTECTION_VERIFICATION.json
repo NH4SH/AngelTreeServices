@@ -61,7 +61,7 @@
   "databaseOperations": 0,
   "providerOperations": 0,
   "hostedCredentialsInstalled": false,
-  "pushed": false,
+  "pushed": true,
   "deployed": false,
   "productionChanged": false,
   "remainingGates": [
@@ -94,5 +94,16 @@
     "passed": 13,
     "failed": 0,
     "skipped": 0
+  },
+  "publication": {
+    "commit": "bd206a82f218d225148fa9248b076336b258cfe2",
+    "branches": [
+      "main",
+      "codex/pr18-local-staging-access"
+    ],
+    "atomic": true,
+    "skipMarker": "[skip netlify]",
+    "publishedDeploysUnchanged": true,
+    "freshGateResultsPassed": 18
   }
 }

@@ -14,6 +14,10 @@
   var status = document.getElementById("ats-consent-status");
   var title = document.getElementById("ats-consent-title");
   var description = document.getElementById("ats-consent-description");
+  var feedback = document.getElementById("ats-consent-feedback");
+  var feedbackText = document.getElementById("ats-consent-feedback-text");
+  var feedbackDismiss = document.getElementById("ats-consent-feedback-dismiss");
+  var main = document.getElementById("main-content") || document.querySelector("main");
   var enabled = api.isCollectionEnabled();
   var triggers = document.querySelectorAll("[data-ats-privacy]");
 
@@ -39,23 +43,35 @@
   function render() {
     allow.disabled = !enabled;
     description.textContent = enabled ?
-      "With your permission, Google Analytics measures visits and phone or estimate-button clicks. It can process online identifiers and browser/device information. Calls and estimates work with either choice." :
+      "We’d like to use Google Analytics cookies to understand visits and clicks." :
       "Google Analytics is currently disabled. We do not load it or send website analytics events. Calls and estimate requests work as usual.";
+    status.hidden = enabled && !choice;
     status.textContent = !enabled ? "Analytics is off for everyone. Allowing analytics is unavailable." :
-      choice ? (choice.value === "granted" ? "Your choice: analytics allowed." : "Your choice: analytics rejected.") :
-        "Analytics stays off until you choose Allow analytics.";
+      choice ? (choice.value === "granted" ? "Analytics cookies accepted." : "Analytics cookies rejected.") :
+        "Analytics stays off until you allow it.";
     if (memoryOnly && choice) status.textContent += " Your browser could not save this choice; it applies only to this page.";
     if (!enabled && choice && choice.value === "denied") status.textContent += " Your rejection is saved" + (memoryOnly ? " for this page." : " in this browser.");
   }
   function show(focus) {
+    feedbackText.textContent = "";
+    feedback.removeAttribute("data-warning");
+    feedbackDismiss.hidden = true;
     panel.hidden = false;
     triggers.forEach(function (button) { button.setAttribute("aria-expanded", "true"); });
     if (focus) title.focus();
   }
+  function restoreFocus(from) {
+    if (!from.contains(document.activeElement)) return;
+    var target = opener || main;
+    if (target) {
+      if (target === main) target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+    }
+  }
   function close() {
+    restoreFocus(panel);
     panel.hidden = true;
     triggers.forEach(function (button) { button.setAttribute("aria-expanded", "false"); });
-    if (opener) opener.focus();
   }
   function apply() {
     window.clearTimeout(timer);
@@ -78,7 +94,12 @@
     try { window.localStorage.setItem(key, JSON.stringify(choice)); }
     catch (error) { memoryOnly = true; removeStored(); }
     apply();
-    // Keep the result visible and announced; the visitor can close it or continue.
+    close();
+    // Announce outside the hidden banner. A storage failure stays visibly explained.
+    feedbackText.textContent = status.textContent + (memoryOnly ? "" : " Change this anytime in Privacy settings.");
+    if (memoryOnly) feedback.setAttribute("data-warning", "");
+    else feedback.removeAttribute("data-warning");
+    feedbackDismiss.hidden = !memoryOnly;
   }
   triggers.forEach(function (button) {
     button.setAttribute("data-ready", "");
@@ -87,12 +108,24 @@
   allow.addEventListener("click", function () { choose("granted"); });
   reject.addEventListener("click", function () { choose("denied"); });
   document.getElementById("ats-consent-close").addEventListener("click", close);
+  feedbackDismiss.addEventListener("click", function () {
+    restoreFocus(feedback);
+    feedback.removeAttribute("data-warning");
+    feedbackDismiss.hidden = true;
+    feedbackText.textContent = "";
+  });
   panel.addEventListener("keydown", function (event) { if (event.key === "Escape") { event.preventDefault(); close(); } });
   window.addEventListener("pageshow", refresh);
   window.addEventListener("focus", refresh);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(); });
   window.addEventListener("storage", function (event) {
-    if (event.key === key || event.key === null) { memoryOnly = false; refresh(); }
+    if (event.key === key || event.key === null) {
+      feedbackText.textContent = "";
+      feedback.removeAttribute("data-warning");
+      feedbackDismiss.hidden = true;
+      memoryOnly = false;
+      refresh();
+    }
   });
   refresh();
 })();

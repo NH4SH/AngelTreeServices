@@ -1,12 +1,18 @@
 <section id="ats-consent" class="ats-consent" aria-labelledby="ats-consent-title" hidden>
-  <h2 id="ats-consent-title" tabindex="-1">Privacy settings</h2>
-  <p id="ats-consent-description">Analytics is optional. Calls and estimate requests work with either choice.</p>
+  <div class="ats-consent__header">
+    <h2 id="ats-consent-title" tabindex="-1">Optional cookies</h2>
+    <button id="ats-consent-close" type="button" class="ats-consent__close" aria-label="Close settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+  </div>
+  <p id="ats-consent-description">We’d like to use Google Analytics cookies to understand visits and clicks.</p>
   <p id="ats-consent-status" role="status" aria-live="polite"></p>
   <div class="ats-consent__actions">
-    <button id="ats-consent-allow" type="button">Allow analytics</button>
-    <button id="ats-consent-reject" type="button">Reject analytics</button>
+    <button id="ats-consent-allow" type="button">Accept cookies</button>
+    <button id="ats-consent-reject" type="button">Reject cookies</button>
   </div>
-  <p class="ats-consent__detail">Your choice stays in this browser for up to 180 days. You can change it here at any time. <a href="/privacy/#website-analytics">Read our privacy policy</a>.</p>
-  <button id="ats-consent-close" type="button" class="ats-consent__close">Close settings</button>
+  <p class="ats-consent__detail"><a href="/privacy/#website-analytics">Cookie details &amp; privacy</a></p>
 </section>
-<script defer src="/ats-consent.js?v=consent1"></script>
+<div id="ats-consent-feedback" class="ats-consent-feedback" role="status" aria-live="polite">
+  <span id="ats-consent-feedback-text"></span>
+  <button id="ats-consent-feedback-dismiss" type="button" hidden>Dismiss notice</button>
+</div>
+<script defer src="/ats-consent.js?v=consent2"></script>

@@ -9,6 +9,57 @@
     "commercial-hoa-tree-care": { label: "Commercial / HOA tree care", service: "Multiple Services / Not Sure Yet", customerType: "Commercial / Property Management" },
   };
 
+  var estimateGuidance = {
+    general: {
+      help: "A short note is plenty. Tell us what you need, where on the property, and anything urgent.",
+      example: "For example: We'd like help with trees and garden beds beside our driveway."
+    },
+    "Tree Care": {
+      help: "Tell us about the trees, what you'd like help with, and nearby buildings, driveways or access limits.",
+      example: "For example: A tree beside our driveway has dead branches. We'd like advice on the next step."
+    },
+    Landscaping: {
+      help: "Mention the bushes or beds, the work you want and any access concerns. A short note is plenty.",
+      example: "For example: Trim the front hedge, weed and edge the beds, and add fresh mulch."
+    },
+    "Storm Cleanup": {
+      help: "From a safe place, describe the damage, nearby structures and any blocked access. Call for urgent hazards.",
+      example: "For example: A fallen limb is blocking the driveway. The rest of the tree is still standing."
+    },
+    "tree-removal": {
+      help: "Tell us which trees you want assessed for removal, nearby structures and equipment access.",
+      example: "For example: We'd like an estimate to remove a large tree beside the house. Access is through a side gate."
+    },
+    "tree-pruning": {
+      help: "Tell us which trees or branches need attention and your goal, such as clearance or deadwood removal.",
+      example: "For example: Trim the branches over our driveway and remove deadwood from the tree beside the house."
+    },
+    "stump-grinding": {
+      help: "Tell us roughly how many stumps there are, their size if known, and how we can reach them.",
+      example: "For example: We have one stump about 2 feet across in the backyard, reached through a side gate."
+    },
+    "commercial-hoa-tree-care": {
+      help: "Describe the properties, the tree work needed and any access or scheduling considerations.",
+      example: "For example: Several trees along our HOA entrance need pruning. We'd like to arrange a site visit."
+    }
+  };
+
+  function syncEstimateGuidance(form) {
+    var help = form.querySelector("[data-estimate-guidance]");
+    var details = form.querySelector('textarea[name="message"]');
+    if (!help || !details) return;
+    var service = form.querySelector('select[name="service"]');
+    var picker = form.querySelector("[data-estimate-intent]");
+    var context = getEstimateContext(form);
+    var key = service ? service.value : "";
+    if (context && picker && Object.prototype.hasOwnProperty.call(estimateGuidance, picker.value)) key = picker.value;
+    // Guidance is display-only: never write an example into the customer's value.
+    var guidance = Object.prototype.hasOwnProperty.call(estimateGuidance, key)
+      ? estimateGuidance[key] : estimateGuidance.general;
+    if (help.textContent !== guidance.help) help.textContent = guidance.help;
+    details.placeholder = guidance.example;
+  }
+
   function contextMatchesForm(form, context) {
     if (!context) return false;
     var service = form.querySelector('select[name="service"]');
@@ -28,7 +79,10 @@
   function syncEstimateContext(form) {
     var picker = form.querySelector("[data-estimate-intent]");
     var panel = form.querySelector("[data-estimate-context]");
-    if (!picker || !panel) return;
+    if (!picker || !panel) {
+      syncEstimateGuidance(form);
+      return;
+    }
     var compatible = false;
     Array.prototype.forEach.call(picker.options, function (option) {
       var enabled = !option.value || (Object.prototype.hasOwnProperty.call(estimateContexts, option.value) &&
@@ -41,6 +95,7 @@
         !contextMatchesForm(form, estimateContexts[picker.value])) picker.value = "";
     panel.hidden = form.dataset.estimateContextAvailable !== "true" || !compatible;
     picker.disabled = panel.hidden;
+    syncEstimateGuidance(form);
     var details = form.querySelector('textarea[name="message"]');
     if (details && details.getAttribute("aria-invalid") === "true") {
       validateField(details);

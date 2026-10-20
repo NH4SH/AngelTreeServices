@@ -655,7 +655,7 @@ body.ats-form-submitted .ats-form-success {
   border-radius: 18px;
   background: #fff;
   color: var(--ats-green-deep);
-  font-size: 0.98rem;
+  font-size: max(16px, 0.98rem);
   line-height: 1.45;
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
@@ -669,6 +669,11 @@ body.ats-form-submitted .ats-form-success {
 #contact .ats-contact-form .qj2U4ppWTRohr5rP {
   min-height: 144px;
   resize: vertical;
+}
+
+#contact .ats-contact-form .qj2U4ppWTRohr5rP::placeholder {
+  color: var(--ats-green-dark);
+  opacity: 1;
 }
 
 #contact .ats-contact-form .ats-select-input {

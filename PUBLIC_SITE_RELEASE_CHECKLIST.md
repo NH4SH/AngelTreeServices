@@ -1,3 +1,53 @@
+## Estimate guidance — final review on current website, October 20, 2026
+
+This section supersedes the earlier local estimate-guidance verification below.
+Reviewed on ef9defd, preserving the published Service Areas release 074b94e and
+newer repository work. The seven-file patch is separate and uncommitted; the
+original older checkout/patch is retained as historical evidence. Use the final
+reviewed patch in outputs/estimate-guidance/estimate-guidance-reviewed.patch.
+
+- 158 tests pass; all 17 pages build and validate. Three of 252 release files
+  change (homepage, form script, overrides); the other 249, including the full
+  Service Areas page, match the published public baseline. Existing metadata,
+  canonical URLs, JSON-LD and estimate links are preserved.
+- Browser checks at 1280px and 320/390px confirm compatible service guidance,
+  Unicode/whitespace preservation, restoration with explicit URL prefill,
+  in-page service selection, Clear draft and help/error association. Placeholder
+  is dark green on white. Form controls now have a 16px minimum font size; the
+  old 0.98rem computed to 15.68px. Corrected narrow layouts have no overflow.
+- Analytics/consent, draft runtime, CRM, GBP and payload contract are unchanged.
+  Local QA blocks external requests, calls and form submission. Physical-phone,
+  spoken screen-reader, and actual production delivery remain unverified.
+- No new commit, push or deploy. Local final preview: http://127.0.0.1:63441/;
+  server session 60044. Current copy, diff and exact results are in chat outputs.
+
+## Service-specific estimate guidance — local, October 20, 2026
+
+Owner approved local implementation and tests only. Based on main170f55d;
+newer CRM alert-recipient work is preserved without edits. No new commit,
+push, merge to main, deployment, lead submission or calls for this patch.
+
+- Project-details help/example follows Landscaping, tree care, removal, pruning,
+  stump grinding, storm cleanup and compatible commercial tree context. Neutral
+  guidance remains for unselected/mixed services and JavaScript unavailable.
+- Updates display copy only; customer-entered values, draft recovery/expiry/clear,
+  retry identity, CRM payload and estimate URLs remain unchanged. aria-describedby
+  associates persistent help and retains it when validation adds an error.
+- Darker project-details placeholder fixes its inherited sub-AA contrast; uses
+  existing dark-green token. Homepage form/CSS cache keys advance to guidance1.
+  Public Maps script insertion follows the updated form-script key.
+- 158 tests pass; 16 pages validate. Only index.html, ats-form-enhancements.js and
+  overrides.css change in the250-file build;247 files match reviewed production
+  build. SEO metadata/schema and all homepage anchor links match their baseline.
+- Inert browser checks pass at1280px and mobile320/390: in-page estimate changes,
+  stump guidance, restored text/choices, explicit Landscaping override preserving
+  customer wording, Clear draft, help/error association and no horizontal overflow.
+  No external collection or actual form submissions. Analytics/consent and CRM
+  code/settings unchanged. Physical-device/spoken screen-reader checks unperformed.
+- Evidence: October16 chat outputs/estimate-guidance/ and work/estimate-guidance/.
+  Local preview60065, server session66764; stop with Ctrl-C through that session.
+  Service-area prompt was critiqued only; no coverage copy/pages added in this batch.
+
 ## Combined public website release approved — October 20, 2026
 
 Owner approved commit, push and publication of the reviewed FAQ, estimate-label
@@ -1628,3 +1678,17 @@ project 86c48a95-ead4-4b15-8e57-fa827558b2f0; its existing build/environment set
 remain unchanged. CRM baseline published deploy: 6ad6ecfc6c03786554247e4a. Record
 final deployment and non-submitting smoke-check evidence in chat outputs. No
 production test lead or call is permitted. Analytics and consent remain unchanged.
+
+## Estimate-guidance publication — October 20, 2026
+
+Owner directed the next step after the final publication-ready review. Preserve
+newer repository commits through 6accd4e without editing CRM files. Publish only
+the reviewed seven-file estimate patch, including the 16px form-control minimum.
+The published Service Areas release and existing SEO/estimate links remain intact.
+
+Push with [skip ci] and [skip netlify], then explicitly trigger a production Git
+build only for public site 86c48a95-ead4-4b15-8e57-fa827558b2f0. Do not change
+project/environment settings. CRM baseline deploy: 6ad6ecfc6c03786554247e4a.
+Run GET-only production checks; do not enter or submit a production test lead.
+Analytics, consent, draft runtime and CRM remain unchanged. Final deployment
+and smoke-check evidence are recorded in chat outputs/estimate-guidance/.

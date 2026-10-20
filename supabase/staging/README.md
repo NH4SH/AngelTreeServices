@@ -1,19 +1,37 @@
 # Staging permission reconciliation
 
-**Current candidate:** staging has advanced to 93 migrations through the separately
-reviewed appointment addition. `permission-profile.json` and the original repair
-below remain frozen at 92. Use the read-only verifier for the new candidate:
+**Current candidate (October20):** ATS staging now has94 migrations, including
+`20261020051222_atomic_customer_quote_changes.sql`. Its exact metadata, ledger,
+permissions and active no-send Auth guard match the separately reviewed local
+rehearsal. Run the current read-only verifier from `apps/platform`:
 
 ```sh
-node scripts/release/verify-staging-appointment-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng
+node scripts/release/verify-staging-quote-change-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json
 ```
 
-Run from `apps/platform`. `appointment-candidate-93.json` binds the old profile,
-original 92-file manifest and unchanged additive migration. The old repair runner
-intentionally rejects the new inventory; do not rerun its bare SQL or reinterpret
-its old profile as a 93-file approval. See
-`apps/platform/STAGING_APPOINTMENT_RECONCILIATION.md` for exact hosted/local evidence,
-rollback testing, 176 local database assertions and remaining release gates.
+The configuration input must be a fresh mode0600 effective Management API GET for
+this exact staging project. The verifier never retrieves keys, applies SQL,
+changes configuration, repairs history or deploys. `STAGING_SUPABASE_BIN` can select
+the existing pinned CLI. It requires the physical database identity, exact94-entry
+version/name ledger, complete reviewed schema/ACL/defaults, empty business/retry
+state, OFF switches and unchanged active email guard. See
+`apps/platform/STAGING_QUOTE_CHANGE_RECONCILIATION.md` for evidence and limits.
+
+The original92 repair and93 appointment/installation verifiers stay historical.
+They intentionally reject a94-entry hosted target. `quote-change-candidate-94.json`
+binds the unchanged93 candidate and the one additional migration.
+`deferred-migrations.json` still pins the migration deferred **from the historical
+93 source candidate**; it is not a current hosted installation/status manifest.
+Earlier dated verification/target JSON files retain their historical observations.
+The new reconciliation report records the94 state without changing readiness.
+
+## Previous 93-migration candidate (historical)
+
+`appointment-candidate-93.json` binds the frozen92 profile, original92-file
+manifest and unchanged appointment addition. Its read-only verifier is
+`verify-staging-appointment-candidate.mjs`. Do not rerun old repair SQL or treat a
+historical approval as permission for a later inventory. See
+`apps/platform/STAGING_APPOINTMENT_RECONCILIATION.md` for its original evidence.
 
 ## Original 92-migration repair (historical)
 

@@ -1272,3 +1272,15 @@ No dispatcher or provider is invoked. The loaded server action substitutes only
 rate/notification/revalidation boundaries; its RPC uses the actual database.
 Do not run shared-stack transactional suites concurrently. See
 `QUOTE_CHANGE_REQUEST_SAFETY.md` for evidence and limits.
+
+### Staging quote change-request candidate94
+
+`staging-quote-change-candidate.test.mjs` runs with regular unit checks and never
+contacts hosted services. `supabase/staging/tests/quote-change-requests.sql` is a
+local-only pgTAP suite for a new fully replayed/reconciled94-migration database
+with the existing no-send Auth guard installed by its guarded local workflow.
+Run it with the other existing database suites as normal `postgres`, with pgTAP
+in `extensions`; verify both plan count and failures, not only the process exit.
+All fixtures/probes roll back. Do not grant protected Auth-role membership.
+See `STAGING_QUOTE_CHANGE_RECONCILIATION.md` for the read-only hosted verifier and
+actual201-assertion local result. Historical93 verifiers intentionally reject94.

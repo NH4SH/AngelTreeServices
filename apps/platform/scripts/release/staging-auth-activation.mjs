@@ -144,8 +144,7 @@ export function verifyActivatedConfiguration(before, after, patch) {
 }
 
 // Empty-target maintenance verification after authorized activation; no mutation.
-export function verifyActiveTarget({projects,identity,snapshot,ledger,guardState,config,observedAt},profile,activeProfile,now=Date.now()) {
-    const sources=loadSources();
+export function verifyActiveTarget({projects,identity,snapshot,ledger,guardState,config,observedAt},profile,activeProfile,now=Date.now(),sources=loadSources()) {
     assert.equal(profile.projectRef,stagingRef);assert.equal(activeProfile.projectRef,stagingRef);
     assertTarget(stagingRef,projects);validateIdentity(identity);assert.deepEqual(identity,profile.databaseIdentity);
     assert.ok(Number.isSafeInteger(observedAt)&&observedAt<=now&&now-observedAt<=900000,'Fresh active configuration evidence required.');
@@ -159,6 +158,7 @@ export function verifyActiveTarget({projects,identity,snapshot,ledger,guardState
     assert.equal(activeProfile.functionBodyMd5,sources.guard.functionBodyMd5);
     assert.equal(fingerprint(attrs.auth),activeProfile.authConfigurationFingerprint,'Active Auth configuration drift.');
     assert.equal(fingerprint(attrs.api),activeProfile.apiConfigurationFingerprint,'Active API configuration drift.');
-    return {projectRef:stagingRef,installed:true,activated:true,exactGuardAndEffectivePermissionsVerified:true,emptyStateAnd93CandidateVerified:true,
+    return {projectRef:stagingRef,installed:true,activated:true,exactGuardAndEffectivePermissionsVerified:true,emptyStateAndCandidateVerified:true,
+      candidateMigrationCount:sources.candidate.expectedMigrationCount,emptyStateAnd93CandidateVerified:sources.candidate.expectedMigrationCount===93,
       historicalSyntheticEvidenceReplayed:false,readyForHosting:false,remoteWrites:0,deployed:false};
 }

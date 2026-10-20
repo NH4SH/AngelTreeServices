@@ -1,8 +1,11 @@
 # Local rehearsal: no-send Auth email hook
 
-Status: locally verified, not installed or enabled on hosted staging/production.
-See `apps/platform/STAGING_AUTH_EMAIL_GUARD.md` for results and the next approved
-staging work boundary.
+Current status (October20): the exact hook is installed and active on ATS staging,
+unchanged through migration94. Production is untouched. Use the current
+`verify-staging-quote-change-candidate.mjs` maintenance verifier with a fresh private
+effective config GET; the older93 `--verify-active` candidate remains historical.
+See `apps/platform/STAGING_QUOTE_CHANGE_RECONCILIATION.md`. The SQL files in this
+package remain local rehearsal/rollback tools with their original restrictions.
 
 `install.local.sql` creates only a dedicated private invoker function returning an
 explicit503; `rollback.local.sql` removes only the exact reviewed function/schema

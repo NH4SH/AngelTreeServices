@@ -1,0 +1,150 @@
+{
+  "verifiedOn": "2026-10-20",
+  "sourceCommit": "c5a3a9858779e9eccfb27f79a7980e0443559f6b",
+  "quoteChangePackagePushedToMain": true,
+  "reconciliationToolsPushed": false,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "stagingDatabaseUpgraded": true,
+  "stagingMigration": "20261020051222_atomic_customer_quote_changes.sql",
+  "migrationsBefore": 93,
+  "migrationsAfter": 94,
+  "exactLedgerVerified": true,
+  "allOriginalMigrationBytesPreserved": true,
+  "fullLocalHostedCatalogMatch": true,
+  "catalogObjects": 4756,
+  "addedObjects": 20,
+  "changedExistingObjects": 0,
+  "removedObjects": 0,
+  "nativeLocalReviewStackReset": false,
+  "sharedLocalReviewDatabaseChanged": false,
+  "localInjectedFailureRolledBack": true,
+  "localRepeatNoOp": true,
+  "hostedRepeatDryRunNoPending": true,
+  "defaultsUnchanged": true,
+  "protectedRoleMembershipExpanded": false,
+  "activeAuthGuardUnchanged": true,
+  "authAndApiConfigurationUnchanged": true,
+  "emptyBusinessAuthStorageQueueStateVerified": true,
+  "privateRetryReceipts": 0,
+  "privateBuckets": 8,
+  "automationAndScanningRemainOff": true,
+  "hostedPermissionProbes": {
+    "anonymousCommand": false,
+    "anonymousReceiptRead": false,
+    "authGuardSyntheticStatus": 503,
+    "authenticatedCommand": false,
+    "authenticatedReceiptRead": false,
+    "serviceCommand": true,
+    "servicePrivateHelper": false,
+    "serviceReceiptRead": false
+  },
+  "unitRegressionResults": 824,
+  "localPgTapAssertions": 201,
+  "localPgTapSuites": [
+    {
+      "file": "supabase/tests/crm_search_and_safe_delete.sql",
+      "assertions": 20,
+      "passed": 20,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/lead_estimate_schedule_workflow.sql",
+      "assertions": 17,
+      "passed": 17,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/payment_activation_blockers.sql",
+      "assertions": 14,
+      "passed": 14,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/schedule_sources_and_lead_lifecycle.sql",
+      "assertions": 15,
+      "passed": 15,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/security_authorization_boundaries.sql",
+      "assertions": 22,
+      "passed": 22,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/security_employee_storage_and_grants.sql",
+      "assertions": 14,
+      "passed": 14,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/security_rate_limits.sql",
+      "assertions": 8,
+      "passed": 8,
+      "success": true
+    },
+    {
+      "file": "supabase/tests/system_health_monitoring.sql",
+      "assertions": 14,
+      "passed": 14,
+      "success": true
+    },
+    {
+      "file": "supabase/staging/tests/defaults.sql",
+      "assertions": 7,
+      "passed": 7,
+      "success": true
+    },
+    {
+      "file": "supabase/staging/tests/legacy-appointments.sql",
+      "assertions": 16,
+      "passed": 16,
+      "success": true
+    },
+    {
+      "file": "supabase/staging/tests/quote-change-requests.sql",
+      "assertions": 25,
+      "passed": 25,
+      "success": true
+    },
+    {
+      "file": "supabase/staging/tests/role-workflows.sql",
+      "assertions": 29,
+      "passed": 29,
+      "success": true
+    }
+  ],
+  "typecheckPassed": true,
+  "appRuntimeSourceChanged": false,
+  "newOptimizedAppBuildRequired": false,
+  "priorQuotePackageOptimizedBuildPassed": true,
+  "offlineSchemaContractPassed": true,
+  "securityAdvisors": {
+    "before": {
+      "INFO": 26,
+      "WARN": 57
+    },
+    "after": {
+      "INFO": 27,
+      "WARN": 57
+    },
+    "new": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "detail": "Table \\`app_private.quote_change_requests\\` has RLS enabled, but no policies exist",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      }
+    ],
+    "newWarningsOrErrors": 0
+  },
+  "hostedPositiveUserWorkflowsTested": false,
+  "providerDeliveryTested": false,
+  "newProjectApiKeysRetrievedOrProvisioned": false,
+  "deployed": false,
+  "productionWrites": false,
+  "productionDeployObserved": "6ad6ecfc6c03786554247e4a",
+  "productionDeployState": "ready",
+  "readyForHosting": false,
+  "readinessFlagsChanged": false
+}

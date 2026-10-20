@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "c5a3a9858779e9eccfb27f79a7980e0443559f6b",
+  "previousCandidateCount": 93,
+  "expectedMigrationCount": 94,
+  "previousCandidateSha256": "96e9655f2686fc09c782fd88a7676bb86bd405c6f189c1f88b3a1dad54bde53d",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261020051222_atomic_customer_quote_changes.sql",
+    "sha256": "dc4f435281d7f24567e03dab42cf4c4e264a1e594770011ea3956f2da04d535e"
+  },
+  "shapeSeal": "30d5ccf71e80f0c5d8b752f52b9b66e0",
+  "ledgerSeal": "b9ff1828a742480f9d343015ff0c89e7",
+  "initialApiAclSeal": "8b0316b65635e29109f13825efc30531",
+  "expectedApiAclSeal": "8b0316b65635e29109f13825efc30531",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4756,
+  "delta": {
+    "added": [
+      {
+        "key": "column|app_private.quote_change_requests.expected_revision",
+        "hash": "5230d24ffec4a3a06ab0014389417b0368f52fecd99beb572fcbff42b8732f20"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.message_sha256",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.note_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.quote_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.request_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.requested_at",
+        "hash": "bc2d6935468562ededb4adfea368ac6e094b055b09d1a9d38a907fa63f78c1b8"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.resulting_revision",
+        "hash": "5230d24ffec4a3a06ab0014389417b0368f52fecd99beb572fcbff42b8732f20"
+      },
+      {
+        "key": "column|app_private.quote_change_requests.token_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_check",
+        "hash": "d083b9f4ff18b4fd412c7162273fb1a269b4746776b8f5e523838b67c0f3d3c5"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_expected_revision_check",
+        "hash": "8e9c6c0b71f24f0408c7fc1230d9c3f5a1efb1be0a02814921faed872cc8163e"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_message_sha256_check",
+        "hash": "3216f7aad18d0a82dea44b03145a13a121f6c34ba49b2cb1e394d5a2746df321"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_pkey",
+        "hash": "e32359ad096807fae4130b9ce17cf5e48da4f0bc537fbcd4b64826ddcfd69eb4"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_quote_id_fkey",
+        "hash": "9f7154fc6c1a710f2d9a818a073d84dcf8f0525a3c7a0345aa18c25c286364f6"
+      },
+      {
+        "key": "constraint|app_private.quote_change_requests.quote_change_requests_token_id_fkey",
+        "hash": "4a77e0df0055aa617772dd361ce932e9325cb9f7b9330733bb77b4fd5ddf7784"
+      },
+      {
+        "key": "index|app_private.quote_change_requests_pkey",
+        "hash": "2906e0c9b024080c3b15a566ad102c6a2d5631bb849596f62065b5b3e72ef228"
+      },
+      {
+        "key": "index|app_private.quote_change_requests_quote_idx",
+        "hash": "492d11ada357f98ca4f14e867d31c3f78300f60442826ec1670dd7746965dfa8"
+      },
+      {
+        "key": "index|app_private.quote_change_requests_token_idx",
+        "hash": "3cd6190ac8f0e10dcd89c0dbc9cd32bc85bec02cd1eb206114e4cf7c3de162ec"
+      },
+      {
+        "key": "relation|app_private.quote_change_requests",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "routine|app_private.request_quote_changes_locked(p_request_id uuid, p_token_hash text, p_expected_revision integer, p_message text)",
+        "hash": "5b0e48e4bab3737ad02085c91681159d5e0a9604950637686fdafc90d5906649"
+      },
+      {
+        "key": "routine|public.request_quote_changes_by_portal(p_request_id uuid, p_token_hash text, p_expected_revision integer, p_message text)",
+        "hash": "8085e1b6bdb6f39cf190b82bde131acc82832b341becf1327e07143e8b6d700f"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

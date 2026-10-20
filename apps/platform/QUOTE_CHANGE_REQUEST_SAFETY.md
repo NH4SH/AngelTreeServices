@@ -123,3 +123,10 @@ the home scanner/restore/operator gates remain independent and outstanding.
 Safe machine-readable results: `staging/QUOTE_CHANGE_REQUEST_VERIFICATION.json`.
 Private local logs and replay/build receipts:
 `/Users/noelsierra/Documents/Codex/2026-10-20/quote-change-safety/`.
+
+Publication/reconciliation update, October20: verified commit `c5a3a98` was pushed
+to main and its branch with deployment skipped. The subsequent targeted staging
+reconciliation applied the unchanged94th migration and verified its exact metadata,
+permissions and active email guard; see `STAGING_QUOTE_CHANGE_RECONCILIATION.md`.
+The earlier dated verification JSON retains its original local-only observation.
+No app deployment or production change resulted.

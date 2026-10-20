@@ -1,0 +1,48 @@
+-- LOCAL DISPOSABLE DATABASE ONLY. All synthetic records and probes roll back.
+begin;
+select plan(25);
+select ok((select relrowsecurity from pg_class where oid='app_private.quote_change_requests'::regclass),'receipt table has RLS');
+select ok(has_function_privilege('service_role','public.request_quote_changes_by_portal(uuid,text,integer,text)','execute'),'trusted service can execute portal command');
+select ok(not has_function_privilege('anon','public.request_quote_changes_by_portal(uuid,text,integer,text)','execute'),'anonymous cannot execute portal command');
+select ok(not has_function_privilege('authenticated','public.request_quote_changes_by_portal(uuid,text,integer,text)','execute'),'authenticated users cannot bypass portal endpoint');
+select ok(not has_function_privilege('anon','app_private.request_quote_changes_locked(uuid,text,integer,text)','execute') and not has_function_privilege('authenticated','app_private.request_quote_changes_locked(uuid,text,integer,text)','execute') and not has_function_privilege('service_role','app_private.request_quote_changes_locked(uuid,text,integer,text)','execute'),'private helper has no API execute grants');
+select ok(not has_table_privilege('anon','app_private.quote_change_requests','select') and not has_table_privilege('authenticated','app_private.quote_change_requests','select') and not has_table_privilege('service_role','app_private.quote_change_requests','select'),'receipt table cannot be read by API roles');
+select ok((select 'search_path=""'=any(proconfig) from pg_proc where oid='public.request_quote_changes_by_portal(uuid,text,integer,text)'::regprocedure),'public definer has empty search path');
+insert into public.customers(id,display_name) values('f2100000-0000-0000-0000-000000000001','Synthetic staging change customer');
+insert into public.service_locations(id,customer_id,street,city,state) values('f2200000-0000-0000-0000-000000000001','f2100000-0000-0000-0000-000000000001','1 Synthetic Street','Fredericksburg','VA');
+insert into public.quotes(id,customer_id,service_location_id,status,subtotal_cents,total_cents) values('f2300000-0000-0000-0000-000000000001','f2100000-0000-0000-0000-000000000001','f2200000-0000-0000-0000-000000000001','draft',1000,1000);
+insert into public.quote_line_items(quote_id,name,quantity,unit_price_cents,total_cents) values('f2300000-0000-0000-0000-000000000001','Synthetic work',1,1000,1000);
+insert into public.quote_portal_tokens(id,quote_id,customer_id,token_hash,expires_at) values('f2400000-0000-0000-0000-000000000001','f2300000-0000-0000-0000-000000000001','f2100000-0000-0000-0000-000000000001',repeat('b',64),clock_timestamp()+interval '1 day');
+insert into public.customer_communications(customer_id,quote_id,communication_type,reminder_stage,recipient_source,recipient_email,scheduled_for,status,idempotency_key) select 'f2100000-0000-0000-0000-000000000001','f2300000-0000-0000-0000-000000000001','quote_follow_up','first','customer','synthetic@example.invalid',clock_timestamp(),s,'staging94-'||s from unnest(array['pending','processing']) s;
+set local role service_role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select lives_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000001',repeat('b',64),2,'Please adjust synthetic scope')$$,'service endpoint atomically records reviewed request');
+select lives_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000001',repeat('b',64),2,'Please adjust synthetic scope')$$,'same request replays after its revision changed');
+reset role;
+select is((select count(*)::integer from public.notes where customer_id='f2100000-0000-0000-0000-000000000001'),1,'one internal note retained');
+select is((select count(*)::integer from public.activity_log where subject_id='f2300000-0000-0000-0000-000000000001' and event_type='quote_change_request_recorded'),1,'one required audit event retained');
+select is((select count(*)::integer from app_private.quote_change_requests where request_id='f2500000-0000-0000-0000-000000000001'),1,'one private receipt retained');
+select is((select edit_revision from public.quotes where id='f2300000-0000-0000-0000-000000000001'),3,'request advances revision once, replay does not');
+select is((select status from public.customer_communications where idempotency_key='staging94-pending'),'cancelled','pending reminder is cancelled');
+select is((select status from public.customer_communications where idempotency_key='staging94-processing'),'processing','processing delivery keeps existing reconciliation boundary');
+select ok((select used_at is not null from public.quote_portal_tokens where id='f2400000-0000-0000-0000-000000000001'),'token use is recorded');
+select is((select message_sha256 from app_private.quote_change_requests where request_id='f2500000-0000-0000-0000-000000000001'),encode(sha256(convert_to('Please adjust synthetic scope','UTF8')),'hex'),'receipt stores a digest');
+set local role service_role;
+select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000001',repeat('b',64),2,'A changed payload')$$,'22023',null,'same identity cannot carry a different message');
+select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000002',repeat('b',64),2,'Another request')$$,'40001',null,'new request cannot use stale review');
+select set_config('request.jwt.claims','{"role":"service_role","sub":"f2600000-0000-0000-0000-000000000001"}',true);
+select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000003',repeat('b',64),3,'Subject cannot act as portal')$$,'42501',null,'service invocation with end-user subject is refused');
+reset role;
+select set_config('request.jwt.claims','{}',true);
+set local role authenticated;
+select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000003',repeat('b',64),3,'Browser cannot bypass endpoint')$$,'42501',null,'actual browser role invocation fails');
+reset role;
+select ok(not exists(select 1 from app_private.quote_change_requests r where to_jsonb(r)::text like '%Please adjust synthetic scope%'),'private receipt has no message plaintext');
+select ok(has_function_privilege('supabase_auth_admin','ats_staging_auth.reject_email(jsonb)','execute'),'Auth service retains no-send hook execution');
+select ok(not has_function_privilege('anon','ats_staging_auth.reject_email(jsonb)','execute') and not has_function_privilege('authenticated','ats_staging_auth.reject_email(jsonb)','execute') and not has_function_privilege('service_role','ats_staging_auth.reject_email(jsonb)','execute'),'API roles still cannot invoke the private Auth hook');
+-- Normal migration owner executes the pure hook; protected Auth-role membership
+-- is deliberately unavailable. The intended Auth service grant is checked above.
+select is(ats_staging_auth.reject_email('{"synthetic":"no-send"}'::jsonb),'{"error":{"http_code":503,"message":"Email delivery is disabled in staging. Use the local test environment for email testing."}}'::jsonb,'Auth hook still refuses delivery without contacting a provider');
+reset role;
+select * from finish();
+rollback;

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
-import { cardIntentMatches, closeCheckoutReservation, closableReservationColumns, type ClosableReservation } from "@/lib/payments/checkout-closure";
+import { cardIntentMatches, closeCheckoutReservation, closableReservationColumns, isClosableReservation, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { createCheckoutBudget } from "@/lib/payments/checkout-budget";
 import {
   cardAuthenticationLifetimeMs,
@@ -152,52 +152,86 @@ export async function createCardReview({
   };
 }
 
-export async function confirmCardReview({
-  billingEmail,
-  invoiceId,
-  invoiceNumber,
-  invoicePrincipalCents,
-  portalUrl,
-  reviewId,
-  stripe,
-  supabase,
-  surchargeBps,
-  surchargeEnabled,
-}: {
+type CardConfirmationInput = {
   billingEmail: string | null;
   invoiceId: string;
   invoiceNumber: string | null;
   invoicePrincipalCents: number;
   portalUrl: string;
   reviewId: string;
+  livemode: boolean;
   stripe: Stripe;
   supabase: SupabaseClient<any, "public", any>;
   surchargeBps: number;
   surchargeEnabled: boolean;
-}): Promise<{ ok: true; clientSecret: string | null; status: Stripe.PaymentIntent.Status } | { ok: false; message: string }> {
+};
+type CardConfirmationResult = { ok: true; clientSecret: string | null; status: Stripe.PaymentIntent.Status } | { ok: false; message: string };
+type CardConfirmationReservation = ClosableReservation & {
+  customer_id: string;
+  organization_id: string | null;
+  stripe_confirmation_token_id: string;
+  invoice_principal_cents: number;
+  surcharge_cents: number;
+  card_brand: string;
+  card_country: string | null;
+  card_funding_type: string;
+  reviewed_at: string;
+};
+
+export async function confirmCardReview(input: CardConfirmationInput): Promise<CardConfirmationResult> {
+  try { return await confirmCardReviewCommand(input); }
+  catch (error) {
+    console.error("Stripe card confirmation was not confirmed", safeStripeError(error));
+    return { ok: false, message: "Your payment confirmation is not yet verified. Please wait for its status to update before trying again." };
+  }
+}
+
+async function confirmCardReviewCommand({
+  billingEmail,
+  invoiceId,
+  invoiceNumber,
+  invoicePrincipalCents,
+  portalUrl,
+  reviewId,
+  livemode,
+  stripe,
+  supabase,
+  surchargeBps,
+  surchargeEnabled,
+}: CardConfirmationInput): Promise<CardConfirmationResult> {
   const reserved = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, customer_id, organization_id, stripe_confirmation_token_id, invoice_principal_cents, surcharge_cents, total_charge_cents, card_brand, card_country, card_funding_type, reviewed_at, status")
+    .select(`${closableReservationColumns}, stripe_confirmation_token_id, invoice_principal_cents, surcharge_cents, card_brand, card_country, card_funding_type, reviewed_at`)
     .eq("id", reviewId)
     .eq("invoice_id", invoiceId)
     .maybeSingle();
-  if (reserved.error || !reserved.data || reserved.data.status !== "open" || !reserved.data.stripe_confirmation_token_id) {
+  if (reserved?.error !== null || !isCardConfirmationReservation(reserved.data)
+    || reserved.data.id !== reviewId || reserved.data.invoice_id !== invoiceId || reserved.data.status !== "open"
+    || reserved.data.payment_channel !== "card" || reserved.data.currency.toLowerCase() !== "usd"
+    || reserved.data.stripe_checkout_session_id !== null || reserved.data.stripe_payment_intent_id !== null || reserved.data.submitted_at !== null) {
     return { ok: false, message: "This card review is no longer active. Please review your card again." };
   }
-  if (!reserved.data.reviewed_at || Date.now() - new Date(reserved.data.reviewed_at).getTime() > cardReviewLifetimeMs) {
-    await supabase.from("invoice_checkout_sessions").update({ status: "expired" }).eq("id", reviewId).eq("status", "open");
+  const review = reserved.data;
+  if (!Number.isFinite(Date.parse(review.reviewed_at))) return { ok: false, message: "This card review is no longer active. Please review your card again." };
+  if (!review.reviewed_at || Date.now() - new Date(review.reviewed_at).getTime() > cardReviewLifetimeMs) {
+    await supabase.from("invoice_checkout_sessions").update({ status: "expired" }).eq("id", reviewId).eq("invoice_id", invoiceId).eq("status", "open")
+      .is("stripe_payment_intent_id", null).is("submitted_at", null);
     return { ok: false, message: "This card review expired. Please review your card again." };
   }
-  if (Number(reserved.data.invoice_principal_cents) !== invoicePrincipalCents) {
-    await supabase.from("invoice_checkout_sessions").update({ status: "cancelled" }).eq("id", reviewId).eq("status", "open");
+  if (review.invoice_principal_cents !== invoicePrincipalCents) {
+    await supabase.from("invoice_checkout_sessions").update({ status: "cancelled" }).eq("id", reviewId).eq("invoice_id", invoiceId).eq("status", "open")
+      .is("stripe_payment_intent_id", null).is("submitted_at", null);
     return { ok: false, message: "The invoice balance changed. Please review the updated amount before paying." };
   }
 
   let confirmationToken: Stripe.ConfirmationToken;
   try {
-    confirmationToken = await stripe.confirmationTokens.retrieve(reserved.data.stripe_confirmation_token_id);
+    confirmationToken = await stripe.confirmationTokens.retrieve(review.stripe_confirmation_token_id);
   } catch (error) {
     console.error("Stripe card confirmation token retrieval failed", safeStripeError(error));
+    return { ok: false, message: "Your card details could not be confirmed. Please enter them again." };
+  }
+  if (confirmationToken?.id !== review.stripe_confirmation_token_id || confirmationToken.livemode !== livemode) {
     return { ok: false, message: "Your card details could not be confirmed. Please enter them again." };
   }
   const preview = confirmationToken.payment_method_preview;
@@ -208,13 +242,14 @@ export async function confirmCardReview({
   const cardCountry = card.country?.toUpperCase() ?? null;
   const current = calculateCardCharge({ cardCountry, funding, invoicePrincipalCents, surchargeBps, surchargeEnabled });
   if (
-    current.grossChargeCents !== Number(reserved.data.total_charge_cents)
-    || current.surchargeCents !== Number(reserved.data.surcharge_cents)
-    || funding !== reserved.data.card_funding_type
-    || card.brand !== reserved.data.card_brand
-    || cardCountry !== reserved.data.card_country
+    current.grossChargeCents !== review.total_charge_cents
+    || current.surchargeCents !== review.surcharge_cents
+    || funding !== review.card_funding_type
+    || card.brand !== review.card_brand
+    || cardCountry !== review.card_country
   ) {
-    await supabase.from("invoice_checkout_sessions").update({ status: "cancelled" }).eq("id", reviewId).eq("status", "open");
+    await supabase.from("invoice_checkout_sessions").update({ status: "cancelled" }).eq("id", reviewId).eq("invoice_id", invoiceId).eq("status", "open")
+      .is("stripe_payment_intent_id", null).is("submitted_at", null);
     return { ok: false, message: "The card review changed. Please review the payment amount again." };
   }
 
@@ -223,22 +258,31 @@ export async function confirmCardReview({
     .from("invoice_checkout_sessions")
     .update({ status: "creating", submitted_at: submittedAt })
     .eq("id", reviewId)
+    .eq("invoice_id", invoiceId)
+    .eq("payment_channel", "card")
+    .eq("stripe_confirmation_token_id", review.stripe_confirmation_token_id)
+    .eq("reviewed_at", review.reviewed_at)
+    .eq("invoice_principal_cents", review.invoice_principal_cents)
+    .eq("surcharge_cents", review.surcharge_cents)
+    .eq("total_charge_cents", review.total_charge_cents)
+    .is("stripe_checkout_session_id", null).is("stripe_payment_intent_id", null).is("submitted_at", null)
     .eq("status", "open")
     .select("id")
     .maybeSingle();
-  if (claim.error || !claim.data) {
+  if (!confirmsCheckoutRow(claim, reviewId)) {
     return { ok: false, message: "This payment is already being submitted. Please wait for its status to update." };
   }
 
   const metadata = compactMetadata({
     checkout_reservation_id: reviewId,
-    customer_id: reserved.data.customer_id ?? "",
+    customer_id: review.customer_id ?? "",
     invoice_id: invoiceId,
     invoice_number: invoiceNumber ?? "",
-    organization_id: reserved.data.organization_id ?? "",
+    organization_id: review.organization_id ?? "",
     payment_channel: "card",
   });
 
+  let knownPaymentIntentId: string | null = null;
   try {
     const lineItems: Stripe.PaymentIntentCreateParams.AmountDetails.LineItem[] = [
       { product_name: `Invoice ${invoiceNumber ?? "payment"}`, quantity: 1, unit_cost: invoicePrincipalCents },
@@ -260,30 +304,60 @@ export async function confirmCardReview({
       use_stripe_sdk: true,
     }, { idempotencyKey: `angel-tree-card-confirm-${reviewId}` });
 
+    if (!paymentIntent || typeof paymentIntent.id !== "string" || !/^pi_[a-zA-Z0-9]+$/.test(paymentIntent.id)
+      || !cardIntentMatches(paymentIntent, { ...review, stripe_payment_intent_id: paymentIntent.id }, livemode)) {
+      throw new Error("card_intent_binding_unconfirmed");
+    }
+    knownPaymentIntentId = paymentIntent.id;
+    if (!["requires_payment_method", "requires_confirmation", "requires_action", "processing", "requires_capture", "succeeded", "canceled"].includes(paymentIntent.status)
+      || !Number.isSafeInteger(paymentIntent.amount_received) || paymentIntent.amount_received < 0 || paymentIntent.amount_received > paymentIntent.amount
+      || (paymentIntent.client_secret !== null && (typeof paymentIntent.client_secret !== "string"
+        || !paymentIntent.client_secret.startsWith(`${paymentIntent.id}_secret_`) || paymentIntent.client_secret.length <= paymentIntent.id.length + 8))) {
+      throw new Error("card_intent_response_unconfirmed");
+    }
+
     const authorizedAt = ["processing", "requires_capture", "succeeded"].includes(paymentIntent.status) ? new Date().toISOString() : null;
     const processingExpiresAt = cardIntentCanExpire(paymentIntent.status)
       ? new Date(Date.now() + cardAuthenticationLifetimeMs).toISOString()
       : null;
-    const { data: saved, error } = await supabase.from("invoice_checkout_sessions").update({
+    const saved = await supabase.from("invoice_checkout_sessions").update({
       authorized_at: authorizedAt,
       processing_expires_at: processingExpiresAt,
       // Even an immediately succeeded intent remains reserved until its webhook
       // writes the payment and reconciles the invoice balance.
       status: "processing",
       stripe_payment_intent_id: paymentIntent.id,
-    }).eq("id", reviewId).eq("status", "creating").select("id").maybeSingle();
-    if (error || !saved) throw new Error(error?.message ?? "Payment state changed. Review its status.");
+    }).eq("id", reviewId).eq("invoice_id", invoiceId).eq("status", "creating")
+      .eq("submitted_at", submittedAt).eq("stripe_confirmation_token_id", review.stripe_confirmation_token_id)
+      .is("stripe_payment_intent_id", null).select("id").maybeSingle();
+    if (!confirmsCheckoutRow(saved, reviewId)) throw new Error("card_intent_save_unconfirmed");
 
     return { ok: true, clientSecret: paymentIntent.client_secret, status: paymentIntent.status };
   } catch (error) {
-    const paymentIntentId = getPaymentIntentIdFromError(error);
+    const paymentIntentId = knownPaymentIntentId ?? getPaymentIntentIdFromError(error);
     // A timeout or failed local write can follow a successful remote charge.
     // Keep the collection guard until webhook/authoritative reconciliation.
-    if (paymentIntentId) await supabase.from("invoice_checkout_sessions")
-      .update({ stripe_payment_intent_id: paymentIntentId }).eq("id", reviewId).eq("status", "creating");
+    if (typeof paymentIntentId === "string" && /^pi_[a-zA-Z0-9]+$/.test(paymentIntentId)) await supabase.from("invoice_checkout_sessions")
+      .update({ stripe_payment_intent_id: paymentIntentId }).eq("id", reviewId).eq("invoice_id", invoiceId)
+      .eq("status", "creating").eq("submitted_at", submittedAt).is("stripe_payment_intent_id", null);
     console.error("Stripe card confirmation failed", safeStripeError(error));
     return { ok: false, message: "Your payment confirmation is not yet verified. Please wait for its status to update before trying again." };
   }
+}
+
+function isCardConfirmationReservation(value: unknown): value is CardConfirmationReservation {
+  if (!isClosableReservation(value)) return false;
+  const row = value as CardConfirmationReservation;
+  return typeof row.customer_id === "string" && row.customer_id.length > 0
+    && (row.organization_id === null || typeof row.organization_id === "string")
+    && typeof row.stripe_confirmation_token_id === "string" && /^ctoken_[a-zA-Z0-9]+$/.test(row.stripe_confirmation_token_id)
+    && Number.isSafeInteger(row.invoice_principal_cents) && row.invoice_principal_cents > 0
+    && Number.isSafeInteger(row.surcharge_cents) && row.surcharge_cents >= 0
+    && row.total_charge_cents === row.invoice_principal_cents + row.surcharge_cents
+    && typeof row.card_brand === "string" && row.card_brand.length > 0
+    && (row.card_country === null || typeof row.card_country === "string")
+    && ["credit", "debit", "prepaid", "unknown"].includes(row.card_funding_type)
+    && typeof row.reviewed_at === "string";
 }
 
 export async function releaseStaleCardReservations({

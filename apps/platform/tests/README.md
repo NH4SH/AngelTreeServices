@@ -1478,6 +1478,32 @@ SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
 
+### Card confirmation handoff
+
+`card-confirmation-handoff.test.mjs` runs with the ordinary gate. It uses the real
+confirmation helper and one actual route failure case with synthetic adapters.
+It checks exact claim/save receipts, invoice/review/token/mode bindings, safe
+client-secret handoff, fee exclusions, retained uncertainty and no repeat create.
+
+For the separate installed-SQL suite using the existing disposable local stack:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+CARD_CONFIRMATION_DISPOSABLE=1 \
+CARD_CONFIRMATION_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+CARD_CONFIRMATION_RESULTS_FILE="$LOCAL_CARD_CONFIRMATION_RESULTS_FILE" \
+node --experimental-strip-types --test tests/card-confirmation-handoff.integration.test.mjs
+```
+
+Use the installed Docker executable and a private results path. Ten scenarios
+interleave real helper calls and installed SQL under service-role reads/writes,
+including lost acknowledgements after writes, a fee change, a competing completed
+reservation, a real owner void lease, expiry and debit fees. All fixtures and the
+temporary error-capture helper roll back. Provider behavior is synthetic. This is
+one connection/outer rollback, not concurrent transactions, independent commit,
+full webhook accounting, hosted Auth or actual browser/Stripe authentication.
+See `../CARD_CONFIRMATION_HANDOFF.md` for scope and limitations.
+
 ### Bank checkout handoff
 
 `ach-checkout-handoff.test.mjs` is included in the ordinary gate. It exercises the

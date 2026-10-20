@@ -34,6 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     invoicePrincipalCents: context.invoicePrincipalCents,
     portalUrl,
     reviewId: body.reviewId,
+    livemode: stripeConfig.livemode,
     stripe: stripeConfig.stripe,
     supabase: context.supabase,
     surchargeBps: paymentConfig.surchargeBps,

@@ -1,0 +1,161 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "a88bce2",
+  "pushedPreparationCommit": "b86a14d",
+  "mode": "existing-disposable-loopback-only",
+  "existingSuiteResults": [
+    {
+      "suite": "website-lead",
+      "exitCode": 0,
+      "counts": {
+        "tests": 23,
+        "pass": 23,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 4.01
+    },
+    {
+      "suite": "quote-editing",
+      "exitCode": 0,
+      "counts": {
+        "tests": 26,
+        "pass": 26,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 8.2
+    },
+    {
+      "suite": "quote-approval",
+      "exitCode": 0,
+      "counts": {
+        "tests": 23,
+        "pass": 23,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 3.88
+    },
+    {
+      "suite": "atomic-scheduling",
+      "exitCode": 0,
+      "counts": {
+        "tests": 30,
+        "pass": 30,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 3.67
+    },
+    {
+      "suite": "explicit-job-completion",
+      "exitCode": 0,
+      "counts": {
+        "tests": 37,
+        "pass": 37,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 6.85
+    },
+    {
+      "suite": "invoice-generation",
+      "exitCode": 0,
+      "counts": {
+        "tests": 31,
+        "pass": 31,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 8.18
+    },
+    {
+      "suite": "invoice-boundary",
+      "exitCode": 0,
+      "counts": {
+        "tests": 26,
+        "pass": 26,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 4.39
+    },
+    {
+      "suite": "webhook-recovery",
+      "exitCode": 0,
+      "counts": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 18.94
+    },
+    {
+      "suite": "ordered-payments",
+      "exitCode": 0,
+      "counts": {
+        "tests": 24,
+        "pass": 24,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 20.19
+    }
+  ],
+  "existingIntegrationResults": 249,
+  "connectedIntegrationCases": 1,
+  "connectedStages": [
+    "Lead retries retain one customer, property and lead without sending a message.",
+    "Reviewed quote appears through the mobile API; stale approval fails and repeated approval keeps one work order.",
+    "Scheduled crew visit completes explicitly, retaining its assignment and creating no invoice implicitly.",
+    "One invoice retains quote pricing; manual delivery sends nothing; payment retries create one payment and one audit event.",
+    "Anonymous/crew money commands fail; the same admin JWT loses access on deactivation and regains its roles without clock permission on reactivation."
+  ],
+  "syntheticRecordIds": {
+    "jobId": "65d24b46-b1fc-4d8c-86dc-d6fc506f8ccf",
+    "quoteId": "c84c2eed-d075-4d11-8656-647009f278d4",
+    "invoiceId": "f9a035c8-e4dc-43d4-8620-c95c930aea38",
+    "paymentId": "b46ca5c1-df18-4b07-acf8-1d1622ac4814"
+  },
+  "syntheticAmountCents": 24000,
+  "balanceDueCents": 0,
+  "syntheticActorsRetired": 3,
+  "connectedPreservation": {
+    "preexistingRowFingerprintsPreserved": {
+      "roles": true,
+      "profiles": true,
+      "user_roles": true,
+      "employee_records": true,
+      "time_clock_permissions": true,
+      "customers": true,
+      "service_locations": true,
+      "jobs": true,
+      "quotes": true,
+      "quote_line_items": true,
+      "invoices": true,
+      "invoice_line_items": true,
+      "payments": true,
+      "schedule_events": true,
+      "schedule_event_assignments": true
+    },
+    "migrationLedgerUnchanged": true,
+    "constraintsUnchanged": true,
+    "newSyntheticRowsRetained": true
+  },
+  "unitResults": 800,
+  "publicWebsiteChecks": 155,
+  "typecheckPassed": true,
+  "schemaContractPassed": true,
+  "connectedTransportBlockedOutbound": 0,
+  "providersUsed": false,
+  "hostedTestsRun": false,
+  "hostedReadiness": false,
+  "deploymentAuthorized": false,
+  "productionChanged": false,
+  "appDeployed": false,
+  "existingLocalLedgerEntries": 68,
+  "fresh93ReplayRerun": false,
+  "localApplicationHealthStatus": 200
+}

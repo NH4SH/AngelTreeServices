@@ -1131,3 +1131,36 @@ A passing metadata check does not rerun historical synthetic tests. The actual
 hosted activation and two-user cleanup are recorded in
 `STAGING_AUTH_EMAIL_ACTIVATION.md`; the hosted email limit blocked the remaining
 per-route hook-message matrix. Keep those limits and the hook enabled.
+
+## Connected CRM workflow acceptance
+
+`crm-workflow.integration.test.mjs` carries one uniquely marked synthetic customer
+through existing lead intake, quote editing/approval, crew scheduling, explicit
+completion, invoice generation, manual delivery and a manual payment. It uses real
+local Auth/commands and the mobile quote detail HTTP route, then deactivates and
+reactivates only its own synthetic admin to test the original issued JWT.
+
+```sh
+CRM_WORKFLOW_DISPOSABLE=1 \
+CRM_WORKFLOW_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+CRM_WORKFLOW_WEB_URL=http://127.0.0.1:3102 \
+CRM_WORKFLOW_RESULTS_FILE=/private/local-test/workflow-results.private.json \
+node --conditions=react-server --experimental-strip-types --test tests/crm-workflow.integration.test.mjs
+```
+
+Use the existing disposable loopback stack with the current reviewed definitions;
+the test refuses any API except127.0.0.1:54321 or web app except127.0.0.1:3102.
+Its API clients use an explicit loopback-only fetch transport. No Stripe/email
+transport, key retrieval, hosted request, migration, trigger/RLS change or reset
+is part of this test. Opt-in integration files remain excluded from unit checks.
+
+It checks stale-version rejection, stable customer/job/quote/invoice relationships,
+approval/generation/payment replay, retained visit/crew/completion history, exact
+money totals and required audit counts. Anonymous and crew money commands fail;
+the same admin JWT loses both original/replay access after deactivation. Roles
+return after reactivation while clock permission stays disabled. Cleanup signs
+out all new actors globally, verifies their profile/employee retirement, and
+retains their synthetic records/history. Existing review users stay untouched.
+Run shared-stack financial/notification suites sequentially. See
+`LOCAL_WORKFLOW_ACCEPTANCE.md` for results and the remaining hosted acceptance
+matrix; local success never marks staging hosting/activation ready.

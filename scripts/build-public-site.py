@@ -36,26 +36,6 @@ STATIC_DIRECTORIES = (
     "assets",
 )
 
-HOMEPAGE_FOOTER_ALIGNMENT_CSS = """
-
-/* Center the legacy Chamber membership block in the homepage footer. */
-@media (min-width: 768px) {
-  #footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 {
-    grid-column: 1 / -1 !important;
-    justify-self: center !important;
-    width: min(320px, 100%) !important;
-  }
-}
-
-#footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 .sqs-block,
-#footer-sections .fe-block-yui_3_17_2_1_1695766381503_12458 .sqs-block-content,
-#footer-sections #mni-membership-638313265276444260 {
-  width: 100%;
-  margin-inline: auto;
-  text-align: center;
-}
-"""
-
 GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
 FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=guidance1"></script>'
 ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release3"></script>'
@@ -109,12 +89,6 @@ def copy_static_sources() -> None:
         source = ROOT / relative_path
         require_source(source)
         shutil.copytree(source, OUTPUT / relative_path)
-
-
-def apply_homepage_footer_alignment() -> None:
-    stylesheet = OUTPUT / "overrides.css"
-    with stylesheet.open("a", encoding="utf-8") as output:
-        output.write(HOMEPAGE_FOOTER_ALIGNMENT_CSS)
 
 
 def configure_public_address_autocomplete() -> None:
@@ -214,7 +188,6 @@ def apply_public_consent_controls() -> None:
 def build() -> None:
     prepare_output()
     copy_static_sources()
-    apply_homepage_footer_alignment()
     generate_pages()
     apply_emergency_availability_copy()
     apply_public_consent_controls()

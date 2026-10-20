@@ -1,3 +1,76 @@
+## Homepage footer — release approved, October 20, 2026
+
+Owner approved commit, push and publication of the reviewed homepage footer.
+Latest main 1041a17 is included; its newer CRM changes are preserved verbatim.
+All five reviewed hashes matched before adding this release record. Tests remain
+158 passing, 0 failing, and all 17 pages build/validate. Only the homepage and
+overrides differ among 252 public artifacts; all 250 others match the baseline.
+
+Commit with [skip ci] [skip netlify], then trigger only public website project
+86c48a95-ead4-4b15-8e57-fa827558b2f0. Preserve analytics, consent, CRM source and
+settings. CRM published baseline is 6ad6ecfc6c03786554247e4a. After publication,
+verify footer destinations, badge, privacy/focus, estimate context and metadata
+without form submissions, calls or email sends. Record deployment and production
+smoke evidence in outputs/homepage-footer/. Earlier release holds below describe
+the local review stage and are superseded by this explicit publication approval.
+
+## Homepage footer — final release review, October 20, 2026
+
+Verdict: ready for release approval after correcting one estimate-link regression.
+Current base remains a9a762b; fetched main has no newer changes. No commit, push
+or deployment is authorized or performed in this review.
+
+- Fixed the footer estimate destination from /#contact to #contact. The root URL
+  could reload a service-prefilled page and lose unsaved entries when browser
+  storage was unavailable. The same-document link retains the existing query,
+  service context and entries. The validator now rejects the old destination;
+  a temporary-build negative check confirms that guard catches the regression.
+- In the browser with session storage blocked, pointer and keyboard activation
+  preserve Unicode, whitespace, service selection, pruning context and request
+  identity. The draft-unavailable notice is present; no submission occurred.
+- Re-ran all 158 tests (0 failures), build and 17-page validation. Checked layout
+  boundaries at 600/959px, plus prior 320/390/768/960/1280 checks. A local 200%
+  footer-text simulation at 320px reflows without horizontal overflow or clipped
+  links; privacy controls remain above fixed actions. This is not a physical
+  device or native browser zoom test. Keyboard focus and return focus pass.
+- Chamber image/link/name, single footer privacy trigger, all 17 pages' metadata
+  and schema, existing estimate URLs and all content outside the footer/cache key
+  remain preserved. Only 2 of 252 built files differ; 250 are byte-identical.
+  Analytics/consent, CRM and form/draft runtime source remain unchanged.
+- Exact tests, verification, homepage-footer-reviewed.patch and regression-guard
+  evidence are in outputs/homepage-footer/. Actual-device and spoken-screen-reader checks remain
+  unperformed; non-submitting production smoke checks follow an approved release.
+
+## Homepage footer — local review, October 20, 2026
+
+Owner approved implementation and local testing only. Based on main a9a762b,
+preserving its newer CRM work. This patch is uncommitted; do not push or deploy.
+
+- Replaced the hidden, overlapping exported footer grid with static contact,
+  service navigation and Chamber columns. Phone and email are tappable; Tree
+  services, Landscaping, Service areas and a free-estimate link are visible.
+  Chamber badge image, destination, accessible name and membership copy remain.
+- Removed obsolete build-only positioning for the replaced legacy grid. The
+  existing consent injection still supplies the single Privacy settings control.
+  Only the homepage and overrides change in the 252-file public build; all other
+  250 artifacts match the baseline. All 17 pages retain their SEO metadata and
+  schema. Homepage content outside the footer is byte-identical apart from the
+  stylesheet cache key. All existing estimate links and the form are preserved.
+- 158 tests pass, 0 fail; build and validation pass for all 17 pages. Browser
+  checks at 320/390/768/960/1280px show no horizontal overflow. Footer targets
+  are at least 44px tall; white text on dark green has 8.26:1 contrast. Keyboard
+  focus is visible; Privacy settings opens/closes and returns focus correctly.
+  Mobile privacy links remain above the fixed quick actions. All three service
+  destinations open; the estimate link preserves entered synthetic project text.
+- Analytics, consent, form/draft runtimes, CRM, GBP and Netlify settings remain
+  unchanged. Inert local QA blocks external requests, calls and all lead sends;
+  no production lead was submitted. Physical devices and a spoken screen reader
+  remain untested. Publication and non-submitting production smoke checks are
+  pending a separate release approval.
+- Local preview: http://127.0.0.1:50463/#footer-sections (server session 43936).
+  Review diff, exact test output, verification and screenshots are under the
+  October 16 chat outputs/homepage-footer/ directory.
+
 ## Estimate guidance — final review on current website, October 20, 2026
 
 This section supersedes the earlier local estimate-guidance verification below.

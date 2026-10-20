@@ -2429,6 +2429,125 @@ body.ats-form-submitted .ats-form-success {
   color: #fff !important;
 }
 
+/* Static footer content stays visible without the exported animation/grid. */
+#footer-sections .ats-home-footer {
+  padding: 48px 24px;
+  background: var(--ats-green-dark);
+  color: #fff;
+  font: 400 16px/1.6 "Poppins", sans-serif;
+}
+
+.ats-home-footer__inner,
+.ats-home-footer-links {
+  width: min(1200px, 100%);
+  margin-inline: auto;
+}
+
+.ats-home-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 220px;
+  gap: 48px;
+  align-items: start;
+}
+
+#footer-sections h2 {
+  margin: 0 0 12px;
+  color: inherit;
+  font: 700 18px/1.4 "Poppins", sans-serif;
+  letter-spacing: normal;
+}
+
+#footer-sections p,
+#footer-sections ul {
+  margin: 0;
+}
+
+#footer-sections ul {
+  padding: 0;
+  list-style: none;
+}
+
+#footer-sections .ats-home-footer__contact ul {
+  margin-top: 12px;
+}
+
+#footer-sections a,
+#footer-sections .ats-privacy-settings {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding-block: 8px;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+#footer-sections a {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+}
+
+#footer-sections a:hover,
+#footer-sections .ats-privacy-settings:hover {
+  text-decoration-thickness: 2px;
+}
+
+#footer-sections a:focus-visible,
+#footer-sections .ats-privacy-settings:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+#footer-sections .mn-widget-member-logo {
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+}
+
+#footer-sections .ats-home-footer-links {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 14px;
+}
+
+.ats-home-footer-links .ats-privacy-settings {
+  margin-left: 16px;
+}
+
+@media (max-width: 959px) {
+  .ats-home-footer__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .ats-home-footer__chamber {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 220px;
+  }
+}
+
+@media (max-width: 599px) {
+  #footer-sections .ats-home-footer {
+    padding: 36px 24px;
+  }
+
+  .ats-home-footer__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ats-home-footer__chamber {
+    justify-self: start;
+  }
+
+  #footer-sections #mni-membership-638313265276444260 {
+    text-align: start;
+  }
+}
+
 #contact .form-submit-button:focus-visible,
 #contact .ats-contact-form input:focus-visible,
 #contact .ats-contact-form select:focus-visible,

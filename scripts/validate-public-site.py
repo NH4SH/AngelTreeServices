@@ -543,10 +543,29 @@ class Validator:
             self.error("/: homepage must include the public footer section")
             return
 
-        if re.search(r'class="[^"]*\bpreFade\b', footer_match.group(1)):
-            self.error("/: static footer content must not retain an unresolved preFade animation state")
-        if 'class="ats-home-footer-links"' not in footer_match.group(1):
-            self.error("/: coverage and privacy links need a static footer row without an unresolved animation state")
+        footer = footer_match.group(1)
+        if re.search(r'class="[^"]*\bpre(?:Fade|Flex)\b', footer):
+            self.error("/: static footer content must not retain an unresolved animation state")
+        required_links = {
+            "tel:+15403888715": "(540) 388-8715",
+            "mailto:info@angeltreeservice.org": "info@angeltreeservice.org",
+            "/services/": "Tree services",
+            "/services/landscaping/": "Landscaping",
+            "/service-areas/": "Service areas",
+            "#contact": "Request a free estimate",
+            "/privacy/": "Privacy",
+        }
+        for href, label in required_links.items():
+            if not re.search(r'<a\b[^>]*href="' + re.escape(href) + r'"[^>]*>' + re.escape(label) + r'</a>', footer):
+                self.error(f"/: homepage footer needs a visible {label} link to {href}")
+        if 'aria-label="Footer services"' not in footer:
+            self.error("/: homepage footer service navigation needs an accessible label")
+        if not re.search(
+            r'<a\b[^>]*href="https://www\.fredericksburgchamber\.org/"[^>]*>\s*'
+            r'<img\b[^>]*src="angeltreeservices_backup_files/200x200-hortz-logo\.jpg"'
+            r'[^>]*alt="Fredericksburg Regional Chamber of Commerce"', footer,
+        ):
+            self.error("/: homepage footer must preserve the linked Chamber badge and its accessible name")
 
     @staticmethod
     def is_external_reference(reference: str) -> bool:

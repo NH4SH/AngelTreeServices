@@ -1478,6 +1478,33 @@ SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
 
+### Stale card cleanup and explicit unpaid proof
+
+`card-cleanup-confirmation.test.mjs` runs with the ordinary gate. It exercises the
+real cleanup helper and shared closer/classifier with controlled lookup, provider,
+write and transition responses. It verifies explicit unpaid proof, exact expiry
+acknowledgement, retained protected states and no token retrieval after an
+unconfirmed cleanup.
+
+For installed SQL on the existing disposable local stack:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+CARD_CLEANUP_DISPOSABLE=1 \
+CARD_CLEANUP_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+CARD_CLEANUP_RESULTS_FILE="$LOCAL_CARD_CLEANUP_RESULTS_FILE" \
+node --experimental-strip-types --test tests/card-cleanup-confirmation.integration.test.mjs
+```
+
+Use the installed Docker executable and a private results-file path. Twelve
+scenarios interleave actual helper calls and installed service-role SQL/triggers,
+including response loss after expiry and same-status submission/binding/deadline
+changes. The provider is synthetic. Each case requires zero SQL errors; all
+fixtures and the temporary error-capture helper roll back. This is one
+connection/outer rollback, not simultaneous transactions, independent commits,
+actual charges, full webhook accounting or hosted HTTP/Auth proof. See
+`../CARD_CLEANUP_CONFIRMATION.md` for details and remaining boundaries.
+
 ### Card confirmation handoff
 
 `card-confirmation-handoff.test.mjs` runs with the ordinary gate. It uses the real

@@ -72,7 +72,7 @@ export function classifyCheckoutForClosure(session: Stripe.Checkout.Session, res
   if (intent && (intent.metadata.invoice_id !== reservation.invoice_id || intent.livemode !== livemode
     || (intent.metadata.checkout_reservation_id && intent.metadata.checkout_reservation_id !== reservation.id)
     || intent.amount !== reservation.total_charge_cents || intent.currency.toLowerCase() !== reservation.currency.toLowerCase())) return "checkout_binding_mismatch" as const;
-  if (intent && (intent.amount_received > 0 || !["canceled", "requires_payment_method"].includes(intent.status))) return "checkout_payment_in_progress" as const;
+  if (intent && (intent.amount_received !== 0 || !["canceled", "requires_payment_method"].includes(intent.status))) return "checkout_payment_in_progress" as const;
   if (session.status === "open" || session.status === "expired") return session.status;
   return "checkout_remote_state_unknown" as const;
 }
@@ -153,7 +153,7 @@ export async function closeCheckoutReservation({ reservation, stripe, supabase, 
       let intent = await remoteCall(() => stripe!.paymentIntents.retrieve(reservation.stripe_payment_intent_id!, {}, budget.requestOptions()));
       if (!cardIntentMatches(intent, reservation, livemode)) return fail("checkout_binding_mismatch");
       if (intent.status !== "canceled") {
-        if (intent.amount_received > 0 || !["requires_action", "requires_confirmation", "requires_payment_method"].includes(intent.status)) return fail("checkout_payment_in_progress");
+        if (intent.amount_received !== 0 || !["requires_action", "requires_confirmation", "requires_payment_method"].includes(intent.status)) return fail("checkout_payment_in_progress");
         try {
           intent = await remoteCall(() => stripe!.paymentIntents.cancel(intent.id, {}, budget.requestOptions()));
         } catch {
@@ -161,7 +161,7 @@ export async function closeCheckoutReservation({ reservation, stripe, supabase, 
         }
       }
       if (!cardIntentMatches(intent, reservation, livemode)) return fail("checkout_binding_mismatch");
-      if (intent.status !== "canceled" || intent.amount_received > 0) return fail("checkout_payment_in_progress");
+      if (intent.status !== "canceled" || intent.amount_received !== 0) return fail("checkout_payment_in_progress");
       terminalStatus = "expired";
     } catch (error) { return fail("checkout_remote_unavailable", true, error); }
   } else if (reservation.stripe_payment_intent_id || reservation.submitted_at || reservation.payment_channel !== "card" || reservation.status === "creating" || reservation.status === "processing") {

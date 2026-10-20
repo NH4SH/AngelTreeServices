@@ -360,36 +360,51 @@ function isCardConfirmationReservation(value: unknown): value is CardConfirmatio
     && typeof row.reviewed_at === "string";
 }
 
-export async function releaseStaleCardReservations({
-  invoiceId,
-  stripe,
-  supabase,
-  livemode,
-}: {
+type CardCleanupInput = {
   invoiceId: string;
   stripe: Stripe;
   livemode: boolean;
   supabase: SupabaseClient<any, "public", any>;
-}): Promise<{ ok: true } | { ok: false }> {
+};
+type StaleCardReservation = ClosableReservation & { processing_expires_at: string };
+
+export async function releaseStaleCardReservations(input: CardCleanupInput): Promise<{ ok: true } | { ok: false }> {
+  try { return await releaseStaleCardReservationsCommand(input); }
+  catch (error) {
+    console.error("Stripe card reservation cleanup was not confirmed", safeStripeError(error));
+    return { ok: false };
+  }
+}
+
+async function releaseStaleCardReservationsCommand({
+  invoiceId,
+  stripe,
+  supabase,
+  livemode,
+}: CardCleanupInput): Promise<{ ok: true } | { ok: false }> {
   const budget = createCheckoutBudget();
   const nowIso = new Date().toISOString();
-  const stale = await supabase
+  const stale = await budget.run(() => supabase
     .from("invoice_checkout_sessions")
     .select(`${closableReservationColumns}, processing_expires_at`)
     .eq("invoice_id", invoiceId)
     .eq("payment_channel", "card")
     .in("status", ["creating", "open", "processing"])
-    .lte("processing_expires_at", nowIso);
-  if (stale.error) return { ok: false };
+    .lte("processing_expires_at", nowIso));
+  if (stale?.error !== null || !Array.isArray(stale.data)
+    || !stale.data.every(row => isStaleCardReservation(row) && row.invoice_id === invoiceId
+      && row.payment_channel === "card" && ["creating", "open", "processing"].includes(row.status))
+    || new Set(stale.data.map(row => row.id)).size !== stale.data.length) return { ok: false };
 
-  for (const reservation of stale.data ?? []) {
+  // Validate the whole invoice-bound list before cancelling any remote intent.
+  for (const reservation of stale.data as StaleCardReservation[]) {
     if (!reservationIsStale(reservation.processing_expires_at)) continue;
     const paymentIntentId = reservation.stripe_payment_intent_id as string | null;
     if (!paymentIntentId) {
       // Only an unsubmitted open card review is proven to have no remote intent.
       // A stale creating/processing row may still have an in-flight request.
-      if (reservation.status !== "open" || reservation.submitted_at) return { ok: false };
-      const expired = await expireCardReservation(supabase, reservation.id, null, nowIso, "open");
+      if (reservation.status !== "open" || reservation.submitted_at !== null) return { ok: false };
+      const expired = await expireCardReservation(supabase, reservation, nowIso, budget);
       if (!expired) return { ok: false };
       continue;
     }
@@ -402,9 +417,9 @@ export async function releaseStaleCardReservations({
       return { ok: false };
     }
 
-    if (!cardIntentMatches(paymentIntent, reservation as ClosableReservation, livemode)) return { ok: false };
+    if (!cardIntentMatches(paymentIntent, reservation, livemode)) return { ok: false };
     if (cardIntentMustRemainReserved(paymentIntent.status)) continue;
-    if (!cardIntentCanExpire(paymentIntent.status)) continue;
+    if (!cardIntentCanExpire(paymentIntent.status) || paymentIntent.amount_received !== 0) return { ok: false };
 
     if (paymentIntent.status !== "canceled") {
       try {
@@ -421,34 +436,48 @@ export async function releaseStaleCardReservations({
       }
     }
 
-    if (!cardIntentMatches(paymentIntent, reservation as ClosableReservation, livemode) || paymentIntent.amount_received > 0) return { ok: false };
-    if (paymentIntent.status !== "canceled") continue;
-    const expired = await expireCardReservation(supabase, reservation.id, paymentIntent.id, nowIso, reservation.status);
+    if (!cardIntentMatches(paymentIntent, reservation, livemode) || paymentIntent.amount_received !== 0) return { ok: false };
+    if (paymentIntent.status !== "canceled") {
+      if (cardIntentMustRemainReserved(paymentIntent.status)) continue;
+      return { ok: false };
+    }
+    const expired = await expireCardReservation(supabase, reservation, nowIso, budget);
     if (!expired) return { ok: false };
   }
 
   return { ok: true };
 }
 
+function isStaleCardReservation(value: unknown): value is StaleCardReservation {
+  if (!isClosableReservation(value)) return false;
+  const row = value as StaleCardReservation;
+  return row.stripe_checkout_session_id === null
+    && (row.stripe_payment_intent_id === null || /^pi_[a-zA-Z0-9]+$/.test(row.stripe_payment_intent_id))
+    && (row.submitted_at === null || Number.isFinite(Date.parse(row.submitted_at)))
+    && typeof row.processing_expires_at === "string" && Number.isFinite(Date.parse(row.processing_expires_at));
+}
+
 async function expireCardReservation(
   supabase: SupabaseClient<any, "public", any>,
-  reservationId: string,
-  paymentIntentId: string | null,
+  reservation: StaleCardReservation,
   nowIso: string,
-  expectedStatus: string,
+  budget: ReturnType<typeof createCheckoutBudget>,
 ) {
   let query = supabase
     .from("invoice_checkout_sessions")
     .update({ status: "expired" })
-    .eq("id", reservationId)
+    .eq("id", reservation.id)
+    .eq("invoice_id", reservation.invoice_id)
     .eq("payment_channel", "card")
-    .eq("status", expectedStatus)
+    .eq("status", reservation.status)
+    .eq("total_charge_cents", reservation.total_charge_cents).eq("currency", reservation.currency)
+    .eq("processing_expires_at", reservation.processing_expires_at)
     .lte("processing_expires_at", nowIso);
-  query = paymentIntentId
-    ? query.eq("stripe_payment_intent_id", paymentIntentId)
-    : query.is("stripe_payment_intent_id", null);
-  const result = await query.select("id").maybeSingle();
-  return !result.error && Boolean(result.data);
+  for (const column of ["stripe_checkout_session_id", "stripe_payment_intent_id", "submitted_at"] as const) {
+    query = reservation[column] === null ? query.is(column, null) : query.eq(column, reservation[column]);
+  }
+  const result = await budget.run(() => query.select("id").maybeSingle());
+  return confirmsCheckoutRow(result, reservation.id);
 }
 
 function compactMetadata(values: Record<string, string>) {

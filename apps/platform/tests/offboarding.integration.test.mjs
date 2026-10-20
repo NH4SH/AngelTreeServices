@@ -49,7 +49,7 @@ test(
       check(
         await service
           .from("roles")
-          .upsert({ name: role }, { onConflict: "name" }),
+          .upsert({ name: role }, { onConflict: "name", ignoreDuplicates: true }),
       );
       const email = `pr02-${label}-${marker}@example.invalid`,
         password = randomBytes(24).toString("base64url");

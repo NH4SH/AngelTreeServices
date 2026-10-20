@@ -1,5 +1,38 @@
 # CRM Usability Regression Checks
 
+## Local permissions and private files (October 20 acceptance)
+
+The opt-in `permissions-private-files.integration.test.mjs` checks real local
+Auth, Data API/RLS, Storage and HTTP delivery with fixed issued tokens and SSR
+cookies. It covers seven roles, restricted documents, an assigned crew photo,
+assignment removal, deactivation/reactivation, clock permission, actual signed
+URL expiry, stale manifests and privacy headers on successes and errors.
+The existing local ClamAV bridge must have fresh definitions. Do not weaken its
+48-hour freshness check to make a fixture pass.
+
+```sh
+PRIVATE_FILES_DISPOSABLE=1 \
+PRIVATE_FILES_LOCAL_STATUS_FILE="$PRIVATE_FILES_STATUS_FILE" \
+PRIVATE_FILES_DOCKER_BIN="$PRIVATE_FILES_DOCKER_BIN" \
+PRIVATE_FILES_WEB_URL=http://127.0.0.1:3102 \
+PRIVATE_FILES_RESULTS_FILE="$PRIVATE_FILES_RESULTS_FILE" \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+DOCUMENT_SCANNER_URL=http://127.0.0.1:3311/scan \
+DOCUMENT_SCANNER_TOKEN="$LOCAL_SCANNER_TOKEN" \
+node --conditions=react-server --experimental-strip-types --test tests/permissions-private-files.integration.test.mjs
+```
+
+Use only the existing named disposable stack and private status file. Read the
+scanner token privately from the existing local setup; never paste it into logs
+or tracked files. Run sequentially with the document/attachment/upload suites:
+they temporarily enable local scan gates and restore their original settings.
+This suite signs out and disables only its own synthetic actors, archives its
+own document fixtures and retains business/audit history. It makes no schema,
+grant or RLS changes and does not reset the stack. The effective later definitions
+are present in the iterative stack; its preserved native ledger is not a fresh
+full-chain replay. See `../LOCAL_PERMISSIONS_PRIVATE_FILES.md` for evidence,
+the initial legacy-test timestamp exception and hosted verification limits.
+
 ## PR17 complete reports and consistent exports
 
 The normal unit runner includes reporting date, aggregate presentation, completeness, exact-filter and CSV tests. The integration suite is opt-in and refuses non-loopback Supabase / web targets. It creates uniquely marked synthetic records, retains their history, archives its own bulk quotes and retires only its own users. The existing review owner is preserved. No provider call or hosted migration is required.

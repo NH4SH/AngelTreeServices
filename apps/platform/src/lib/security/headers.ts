@@ -43,3 +43,9 @@ export const privateNoStoreHeaders = [
   { key: "Expires", value: "0" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 ];
+
+// Next's route configuration can override the response handler's headers.
+// File viewers and downloads must not disclose private record URLs as referrers.
+export const privateFileHeaders = privateNoStoreHeaders.map((header) =>
+  header.key === "Referrer-Policy" ? { ...header, value: "no-referrer" } : header,
+);

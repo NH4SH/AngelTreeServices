@@ -1,0 +1,119 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "8327a33328a5a26701d04b1a390c24da6dffa646",
+  "localOnly": true,
+  "applicationOrigin": "http://127.0.0.1:3102",
+  "supabaseOrigin": "http://127.0.0.1:54321",
+  "integrationSuites": [
+    {
+      "suite": "document-scanning",
+      "exitCode": 0,
+      "counts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 2.19
+    },
+    {
+      "suite": "remaining-attachment-scanning",
+      "exitCode": 0,
+      "counts": {
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 4.64
+    },
+    {
+      "suite": "upload-access",
+      "exitCode": 0,
+      "counts": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 10.88
+    },
+    {
+      "suite": "offboarding",
+      "exitCode": 0,
+      "counts": {
+        "tests": 6,
+        "pass": 6,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 2.75
+    },
+    {
+      "suite": "permissions-private-files",
+      "exitCode": 0,
+      "counts": {
+        "tests": 17,
+        "pass": 17,
+        "fail": 0,
+        "skipped": 0
+      },
+      "seconds": 10.07
+    }
+  ],
+  "integrationResultsIncludingParents": 71,
+  "unitRegressionResults": 801,
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "syntheticBuildCredentialsOnly": true,
+  "offlineSchemaContractPassed": true,
+  "publicWebsiteCodeChanged": false,
+  "rolesVerified": [
+    "owner",
+    "admin",
+    "payroll_admin",
+    "estimator",
+    "crew",
+    "customer",
+    "property_manager"
+  ],
+  "issuedTokensAndCookiesRechecked": true,
+  "crewAssignmentRevocationVerified": true,
+  "clockPermissionNotRestored": true,
+  "actualSignedUrlExpiryVerified": true,
+  "historicalSignedUrlImmediateRevocation": false,
+  "privateFileReferrerPolicyOverrideFixed": true,
+  "localScannerSignaturesRefreshed": true,
+  "loadedSignatureVersion": 28158,
+  "schemaMigrationsApplied": false,
+  "rlsOrGrantsChanged": false,
+  "productionServicesChanged": false,
+  "deployed": false,
+  "pushed": false,
+  "hostedRuntimeOrCDNVerified": false,
+  "broaderReleaseReady": false,
+  "preservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": false,
+    "changedTables": [
+      "roles"
+    ],
+    "allOtherPublicTablesPreserved": true,
+    "legacyHarnessRoleTimestampChanges": 5,
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "followUp": "Bounded dashboard query construction: local browser shows Database notice URI too long; hosted staging/scanner/restore gates unchanged.",
+  "newSuiteRetirementVerified": {
+    "retiredProfiles": 8,
+    "retiredEmployees": 8,
+    "remainingSessions": 0
+  }
+}

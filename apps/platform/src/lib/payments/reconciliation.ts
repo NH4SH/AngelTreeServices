@@ -11,6 +11,23 @@ type ReconcileResult =
   | { ok: true; balanceDueCents: number; paidCents: number; status: InvoiceStatus }
   | { ok: false; message: string };
 
+type InvoiceBalanceReceipt = {
+  balance_due_cents: number;
+  paid_cents: number;
+  status: InvoiceStatus;
+};
+const invoiceStatuses = new Set<string>(["draft", "sent", "partially_paid", "paid", "void", "overdue"]);
+const unconfirmedBalance = "The invoice balance could not be confirmed. Refresh the invoice and review its payment history before trying again.";
+
+function isInvoiceBalanceReceipt(value: unknown): value is InvoiceBalanceReceipt {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const receipt = value as Record<string, unknown>;
+  return typeof receipt.balance_due_cents === "number" && Number.isSafeInteger(receipt.balance_due_cents)
+    && receipt.balance_due_cents >= 0 && receipt.balance_due_cents <= 2147483647
+    && typeof receipt.paid_cents === "number" && Number.isSafeInteger(receipt.paid_cents) && receipt.paid_cents >= 0
+    && typeof receipt.status === "string" && invoiceStatuses.has(receipt.status);
+}
+
 export async function syncReconciledPaymentCommunications(invoiceId: string) {
   const supabase = getServiceRoleClient();
   if (!supabase) return false;
@@ -51,13 +68,20 @@ export async function reconcileInvoiceBalance(
   supabase: SupabaseClient<any, "public", any>,
   invoiceId: string,
 ): Promise<ReconcileResult> {
-  const { data, error } = await supabase.rpc("reconcile_invoice_balance", { p_invoice_id: invoiceId } satisfies RpcArgs<"reconcile_invoice_balance">);
-  if (error || !data) {
-    return { ok: false, message: error?.message ?? "Invoice could not be reconciled." };
+  let receipt: unknown;
+  try {
+    const { data, error } = await supabase.rpc("reconcile_invoice_balance", { p_invoice_id: invoiceId } satisfies RpcArgs<"reconcile_invoice_balance">);
+    if (error) return { ok: false, message: unconfirmedBalance };
+    receipt = data;
+  } catch {
+    // The transaction may already have committed. Never imply rollback, start
+    // another payment or run follow-ups on an unconfirmed acknowledgement.
+    return { ok: false, message: unconfirmedBalance };
   }
-  const balanceDueCents = Number(data.balance_due_cents);
-  const paidCents = Number(data.paid_cents);
-  const status = data.status as InvoiceStatus;
+  if (!isInvoiceBalanceReceipt(receipt)) return { ok: false, message: unconfirmedBalance };
+  const balanceDueCents = receipt.balance_due_cents;
+  const paidCents = receipt.paid_cents;
+  const status = receipt.status;
 
   const communicationSupabase = getServiceRoleClient();
   if (communicationSupabase) {

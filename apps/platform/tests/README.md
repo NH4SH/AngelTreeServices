@@ -1424,3 +1424,26 @@ recipients are synthetic. No deployment, live provider, actual hosted credential
 database mutation or scanner activation runs. The results explicitly leave hosted
 runtime/CDN/key verification and hosting readiness false. See
 `../STAGING_RUNTIME_ACCESS_ACCEPTANCE.md` for scope and remaining hosted checks.
+
+### Invoice reconciliation acknowledgements
+
+`payment-reconciliation-acknowledgement.test.mjs` runs in the ordinary unit gate.
+It exercises the real reconciliation helper with malformed/lost acknowledgements,
+valid SQL-shaped receipts and the existing manual correction/restore actions.
+
+The opt-in database companion is restricted to the existing local disposable
+container/database. It executes the installed financial command for six synthetic
+invoice/payment cases and checks anonymous/unauthorised denial. Every fixture and
+write rolls back; no Auth user, migration, network provider, hosted database or
+communication worker is involved. Set `DOCKER_HOST` to the existing disposable
+stack's Unix socket and `RECONCILIATION_ACK_DOCKER_BIN` to your local Docker binary.
+
+```sh
+RECONCILIATION_ACK_DISPOSABLE=1 \
+RECONCILIATION_ACK_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+RECONCILIATION_ACK_RESULTS_FILE="$LOCAL_RECONCILIATION_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/payment-reconciliation-acknowledgement.integration.test.mjs
+```
+
+This proves receipt compatibility and retained denials on local PostgreSQL. It
+does not simulate an actual committed response loss or establish hosted acceptance.

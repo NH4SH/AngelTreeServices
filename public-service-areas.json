@@ -1,0 +1,101 @@
+{
+  "path": "/service-areas/",
+  "groups": [
+    {
+      "id": "fredericksburg",
+      "heading": "Fredericksburg and nearby",
+      "places": [
+        "Fredericksburg",
+        "Falmouth",
+        "Spotsylvania Courthouse",
+        "Chancellorsville",
+        "Massaponax",
+        "Lee’s Hill",
+        "Salem Fields",
+        "Five Mile Fork"
+      ]
+    },
+    {
+      "id": "stafford",
+      "heading": "Stafford area",
+      "places": [
+        "Stafford",
+        "Hartwood",
+        "Aquia Harbour",
+        "Garrisonville",
+        "Brooke",
+        "White Oak"
+      ]
+    },
+    {
+      "id": "north",
+      "heading": "North of Fredericksburg",
+      "places": [
+        "Triangle",
+        "Dumfries",
+        "Montclair",
+        "Woodbridge"
+      ]
+    },
+    {
+      "id": "west",
+      "heading": "West of Fredericksburg",
+      "places": [
+        "Locust Grove",
+        "Lake of the Woods",
+        "Culpeper",
+        "Orange"
+      ]
+    },
+    {
+      "id": "northwest",
+      "heading": "Northwest of Fredericksburg",
+      "places": [
+        "Bealeton",
+        "Remington",
+        "Opal",
+        "Warrenton"
+      ]
+    },
+    {
+      "id": "south",
+      "heading": "South of Fredericksburg",
+      "places": [
+        "Thornburg",
+        "Woodford",
+        "Ladysmith",
+        "Ruther Glen",
+        "Bowling Green",
+        "Lake Caroline",
+        "Lake Land’Or",
+        "Ashland"
+      ]
+    },
+    {
+      "id": "lake-anna",
+      "heading": "Lake Anna area",
+      "places": [
+        "Lake Anna",
+        "Bumpass",
+        "Mineral"
+      ],
+      "note": "Coverage includes the farther reaches of Lake Anna."
+    },
+    {
+      "id": "east",
+      "heading": "East of Fredericksburg",
+      "places": [
+        "King George",
+        "Port Royal",
+        "Dahlgren",
+        "Colonial Beach"
+      ]
+    }
+  ],
+  "richmond_tree_only": [
+    "Richmond",
+    "Glen Allen",
+    "Short Pump",
+    "Mechanicsville"
+  ]
+}

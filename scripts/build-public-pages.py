@@ -17,6 +17,7 @@ TREE_PROJECT = json.loads((ROOT / "public-tree-removal-project.json").read_text(
 SITE_PHOTOGRAPHY = json.loads((ROOT / "public-site-photography.json").read_text(encoding="utf-8"))
 SITE_PHOTOGRAPHY.update(json.loads((ROOT / "public-drive-photography.json").read_text(encoding="utf-8")))
 LANDSCAPING_PROJECT = json.loads((ROOT / "public-landscaping-project.json").read_text(encoding="utf-8"))
+COVERAGE = json.loads((ROOT / "public-service-areas.json").read_text(encoding="utf-8"))
 LANDSCAPING_PROJECT_PHOTOS = [dict(SITE_PHOTOGRAPHY[photo["key"]], caption=photo["caption"])
                               for photo in LANDSCAPING_PROJECT["photos"]]
 PHONE_DISPLAY = "(540) 388-8715"
@@ -126,6 +127,7 @@ def header(active: str) -> str:
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial & HOA"),
         ("credentials", "/credentials-safety/", "Credentials & Safety"),
         ("recognition", "/recognition/", "Reviews & Recognition"),
+        ("service-areas", "/service-areas/", "Service areas"),
         ("contact", "/#contact", "Contact"),
     ]
 
@@ -176,6 +178,7 @@ def footer() -> str:
           <li><a href="/credentials-safety/">Credentials and safety</a></li>
           <li><a href="/services/tree-removal/">Tree removal</a></li>
           <li><a href="/services/tree-pruning/">Tree pruning</a></li>
+          <li><a href="/service-areas/">Service areas</a></li>
         </ul>
       </div>
       <div>
@@ -196,7 +199,7 @@ def footer() -> str:
         </ul>
       </div>
     </div>
-    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, and Caroline. Service availability is confirmed during the estimate process. <a href="/privacy/">Privacy</a></p>
+    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Richmond-area service is tree work only. <a href="/service-areas/">View service areas</a>. <a href="/privacy/">Privacy</a></p>
   </footer>
   <nav class="ats-mobile-actions" aria-label="Quick actions">
     <a class="ats-mobile-actions__call" href="tel:{PHONE_LINK}">Call now</a>
@@ -365,6 +368,7 @@ def page_document(page: dict) -> str:
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/css2.css">
   <link rel="stylesheet" href="/site-pages.css?v=about1">
+  {('<link rel="stylesheet" href="/ats-service-areas.css?v=areas1">' if page.get('coverage_styles') else '')}
   <script type="application/ld+json">{schema}</script>
 </head>
 <body{(' class="ats-project-page"' if page['type'] == 'project' else '')}>
@@ -1044,7 +1048,7 @@ def about_body() -> str:
           <p class="ats-eyebrow">Family operated and locally grounded</p>
           <h2 id="family-business-title">Field knowledge carried into a connected customer experience</h2>
           <p>As Angel Tree Services grew, it developed as a family-operated business. Customers may interact with different people during estimates, scheduling, field work, and follow-up, but the goal is a coordinated experience from the first conversation through cleanup.</p>
-          <p>The company serves homeowners and property professionals throughout Fredericksburg, Spotsylvania, Stafford, King George, and Caroline.</p>
+          <p>The company serves homeowners and property professionals in Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only; landscaping is not offered in those Richmond-area communities. <a href="/service-areas/">View our full service areas</a>.</p>
         </div>
         <nav class="ats-about-links" aria-label="Learn more about Angel Tree Services">
           <a href="/services/">Explore services</a>
@@ -1333,7 +1337,63 @@ def privacy_request_body() -> str:
     </section>"""
 
 
+def service_areas_body() -> str:
+    groups = "\n".join(
+        f'''<section class="ats-area-group" aria-labelledby="area-{html_attr(group['id'])}">
+          <h3 id="area-{html_attr(group['id'])}">{html_text(group['heading'])}</h3>
+          <p>{html_text(', '.join(group['places']))}.</p>
+          {('<p>' + html_text(group['note']) + '</p>') if group.get('note') else ''}
+        </section>'''
+        for group in COVERAGE["groups"]
+    )
+    richmond = html_text(", ".join(COVERAGE["richmond_tree_only"][:-1]) + " and " + COVERAGE["richmond_tree_only"][-1])
+    return f'''
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="coverage-directory-title">
+      <div class="ats-section-inner">
+        <div class="ats-area-intro">
+          <h2 class="ats-section-heading" id="coverage-directory-title">Tree care and landscaping coverage.</h2>
+          <p>We serve the communities below for <a href="/services/">tree care</a> and <a href="/services/landscaping/">landscaping</a>. Landscaping includes bush and hedge trimming, weeding, edging and mulch for existing planting beds.</p>
+          <p>Tree care includes <a href="/services/tree-removal/">tree removal</a>, <a href="/services/tree-pruning/">pruning</a> and <a href="/services/stump-grinding/">stump grinding</a>. See our <a href="/projects/hollow-tree-removal/">William Street tree removal in Fredericksburg</a> for an example of our work.</p>
+        </div>
+        <div class="ats-area-directory">{groups}</div>
+      </div>
+    </section>
+    <section class="ats-content-section ats-area-richmond" aria-labelledby="richmond-coverage-title">
+      <div class="ats-section-inner ats-two-column">
+        <h2 class="ats-section-heading" id="richmond-coverage-title">Richmond-area tree services.</h2>
+        <div class="ats-prose">
+          <p>We offer tree services in {richmond}, including removal, pruning, stump grinding and storm-related tree work.</p>
+          <p><strong>Landscaping is not offered in these Richmond-area communities.</strong></p>
+          <p><a href="/services/">Explore tree services</a> or <a class="ats-estimate-link" href="/?service=Tree%20Care#contact">request a tree-service estimate</a>.</p>
+        </div>
+      </div>
+    </section>
+    <section class="ats-content-section ats-content-section--white" aria-labelledby="coverage-question-title">
+      <div class="ats-section-inner ats-section-inner--narrow ats-prose">
+        <h2 id="coverage-question-title">Not sure where your property fits?</h2>
+        <p>We generally work within about an hour of Fredericksburg and also serve all the named communities above, including farther areas around Lake Anna. Travel time is a guide, and the named places are included even when they are farther away.</p>
+        <p>If your location is not listed, share the property address and the work you have in mind. We’ll confirm whether we can help.</p>
+        <a class="ats-button ats-button--green ats-estimate-link" href="/#contact">Request a free estimate</a>
+      </div>
+    </section>'''
+
+
 PAGES = [
+    {
+        "path": COVERAGE["path"],
+        "active": "service-areas",
+        "type": "page",
+        "schema_type": "WebPage",
+        "coverage_styles": True,
+        "title": "Fredericksburg Tree & Landscaping Service Areas | Angel Tree Services",
+        "description": "Tree removal, pruning, stump grinding and landscaping service areas around Fredericksburg, VA. Richmond-area locations receive tree services only.",
+        "h1": "Service areas around Fredericksburg.",
+        "lead": "Find your community and plan the work your property needs. We offer tree care and landscaping across our confirmed service areas, with tree services only in the Richmond area.",
+        "breadcrumbs": [("Home", "/"), ("Service areas", "/service-areas/")],
+        "estimate_href": "/#contact",
+        "estimate_label": "Request a free estimate",
+        "body": service_areas_body(),
+    },
     {
         "path": "/services/",
         "active": "services",
@@ -1562,7 +1622,7 @@ Additional capabilities include tree preservation, brush removal, lot clearing, 
 
 ## Service Area
 
-Angel Tree Services primarily serves Fredericksburg, Spotsylvania County, and Stafford County. Its broader service region includes King George County, Caroline County, Orange County, Louisa County, Culpeper County, and surrounding communities in the Fredericksburg region. Select projects may also be accepted in Northern Virginia, and occasional projects may be accepted in the Richmond area. These service locations do not represent separate company offices.
+Tree care and landscaping serve Fredericksburg, Spotsylvania, Stafford, King George, Caroline and the other [confirmed service areas]({SITE}/service-areas/), including the farther reaches of Lake Anna. Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only, not landscaping. The approximate one-hour range is a guide; farther named places remain included. Coverage does not imply every surrounding county or separate offices.
 
 ## Credentials, Arboriculture, and Safety
 

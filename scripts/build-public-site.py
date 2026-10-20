@@ -21,6 +21,7 @@ STATIC_FILES = (
     "ats-form-enhancements.js",
     "ats-estimate-draft.js",
     "ats-address-autocomplete.js",
+    "ats-service-areas.css",
     "site-pages.css",
     "site-pages.js",
     "ats-website.js",

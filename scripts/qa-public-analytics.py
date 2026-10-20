@@ -15,7 +15,7 @@ from threading import Event, Thread
 from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-ROUTES = ["/", "/services/", "/services/tree-removal/", "/services/tree-pruning/",
+ROUTES = ["/", "/service-areas/", "/services/", "/services/tree-removal/", "/services/tree-pruning/",
           "/services/stump-grinding/", "/services/emergency-tree-service/",
           "/services/landscaping/", "/services/commercial-hoa-tree-care/",
           "/credentials-safety/", "/projects/", "/projects/hollow-tree-removal/", "/projects/bush-trimming-mulch/",

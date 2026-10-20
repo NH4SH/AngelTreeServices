@@ -21,6 +21,7 @@ PHONE_LINK = "+15403888715"
 
 EXPECTED_PATHS = (
     "/",
+    "/service-areas/",
     "/services/",
     "/services/tree-removal/",
     "/services/tree-pruning/",
@@ -544,6 +545,8 @@ class Validator:
 
         if re.search(r'class="[^"]*\bpreFade\b', footer_match.group(1)):
             self.error("/: static footer content must not retain an unresolved preFade animation state")
+        if 'class="ats-home-footer-links"' not in footer_match.group(1):
+            self.error("/: coverage and privacy links need a static footer row without an unresolved animation state")
 
     @staticmethod
     def is_external_reference(reference: str) -> bool:
@@ -674,6 +677,7 @@ class Validator:
             "commercial",
             "credentials",
             "recognition",
+            "service-areas",
             "contact",
         ]
 
@@ -782,6 +786,55 @@ class Validator:
         for route, source in self.page_sources.items():
             if route != "/" and '/assets/angel-tree-logo-transparent.webp' not in source:
                 self.error(f"{route}: shared header must use the transparent logo asset")
+
+    def validate_service_areas(self) -> None:
+        route = "/service-areas/"
+        source = self.page_sources.get(route, "")
+        homepage = self.page_sources.get("/", "")
+        coverage = json.loads((ROOT / "public-service-areas.json").read_text(encoding="utf-8"))
+        expected = {
+            "Fredericksburg", "Falmouth", "Spotsylvania Courthouse", "Chancellorsville",
+            "Massaponax", "Lee’s Hill", "Salem Fields", "Five Mile Fork", "Stafford",
+            "Hartwood", "Aquia Harbour", "Garrisonville", "Brooke", "White Oak",
+            "Triangle", "Dumfries", "Montclair", "Woodbridge", "Locust Grove",
+            "Lake of the Woods", "Culpeper", "Orange", "Bealeton", "Remington", "Opal",
+            "Warrenton", "Thornburg", "Woodford", "Ladysmith", "Ruther Glen",
+            "Bowling Green", "Lake Caroline", "Lake Land’Or", "Ashland", "Lake Anna",
+            "Bumpass", "Mineral", "King George", "Port Royal", "Dahlgren", "Colonial Beach",
+        }
+        places = [place for group in coverage["groups"] for place in group["places"]]
+        if set(places) != expected or len(places) != len(expected):
+            self.error("Service-area data must contain every confirmed non-Richmond location once")
+        if coverage["richmond_tree_only"] != ["Richmond", "Glen Allen", "Short Pump", "Mechanicsville"]:
+            self.error("Richmond-area tree-only locations must match the owner-confirmed list")
+        for group in coverage["groups"]:
+            if f'id="area-{group["id"]}"' not in source or ", ".join(group["places"]) not in source:
+                self.error(f"Service-area group missing or incomplete: {group['id']}")
+        for term in ("farther reaches of Lake Anna", "within about an hour of Fredericksburg",
+                     "named places are included even when they are farther away",
+                     "Landscaping is not offered in these Richmond-area communities.",
+                     "Richmond, Glen Allen, Short Pump and Mechanicsville"):
+            if term not in source:
+                self.error(f"Service-area scope qualifier missing: {term}")
+        for term in ("lawn care", "lawn-care", "all surrounding counties", "travel fee", "minimum job"):
+            if term in source.lower():
+                self.error(f"Service-area page includes an unapproved offering/restriction: {term}")
+        position = homepage.find('id="service-areas"')
+        if not homepage.find('id="faq"') < position < homepage.find('id="contact"'):
+            self.error("Homepage coverage must appear between FAQ and the estimate invitation")
+        block = re.search(r'<section class="ats-home-coverage".*?</section>', homepage, re.DOTALL)
+        if not block or 'href="/service-areas/"' not in block.group() or "tree services only" not in block.group():
+            self.error("Homepage coverage needs the directory link and Richmond tree-only qualifier")
+        for path, html in self.page_sources.items():
+            if 'data-ats-nav="service-areas"' not in html or 'href="/service-areas/"' not in html:
+                self.error(f"{path}: Service areas must be discoverable in navigation")
+        if 'href="/?service=Tree%20Care#contact"' not in source:
+            self.error("Richmond-area estimate must select existing Tree Care category")
+        if 'href="/service-areas/"' not in self.page_sources.get("/about/", ""):
+            self.error("About must link to full service coverage")
+        llms = (self.site_dir / "llms.txt").read_text(encoding="utf-8")
+        if "served for tree services only, not landscaping" not in llms or "Louisa County, Culpeper County" in llms:
+            self.error("Machine-readable summary must reflect named coverage and Richmond tree-only scope")
 
     def validate_homepage_form(self) -> None:
         page = self.pages.get("/")
@@ -1639,6 +1692,7 @@ class Validator:
             self.validate_prefill_links()
             self.validate_navigation_graph()
             self.validate_shared_navigation()
+            self.validate_service_areas()
             self.validate_homepage_form()
             self.validate_privacy_layer()
             self.validate_homepage_address_autocomplete()

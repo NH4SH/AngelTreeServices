@@ -1556,3 +1556,75 @@ local checks or authorize external actions. The local actual POST/CORS contract
 now passes; production POST, real email delivery, real analytics, and physical-device
 testing remain unverified. Historical
 July/August scores and empty-2xx success expectations are superseded.
+
+
+## Service Areas coverage — local, October 20, 2026
+
+Owner approved a separate local patch for /service-areas/ and a compact homepage
+coverage section before the estimate invitation. Based on latest main ce1ca85;
+newer CRM changes preserved without edits. Estimate guidance remains separately
+reviewable in the website-release-photography-case checkout. No commit/push/deploy.
+
+- Public manifest lists 41 tree-care/landscaping communities and 4 Richmond-area
+  tree-only places. Includes farther Lake Anna reaches and named exceptions to
+  the approximate hour range. No blanket county expansion or invented fees,
+  minimums, offices, projects, reviews or photos. Existing lawn-care removal holds.
+- Adds canonical/title/description/WebPage/breadcrumbs and sitemap entry through
+  the existing builder. Desktop header stays uncluttered; mobile menus, footers
+  and About link to full coverage. Existing 16-page titles/meta/schema unchanged.
+- New stylesheet scopes to coverage and the new directory. Existing form/draft,
+  photos, core CSS, analytics/consent and CRM code/settings unchanged. Machine
+  summary replaces broad county wording with named-coverage link and Richmond
+  exception. No GBP changes.
+- Standalone: 155 tests pass; 17 pages validate. Exact separate estimate patch
+  applies cleanly alongside this one: 158 tests pass and 17 pages validate.
+  Final CSS correction rebuilt and revalidated successfully in both variants.
+- Desktop 1280, tablet 768 and mobile 390/320 checks: readable groups, visible
+  Richmond exception, no horizontal overflow. Homepage coverage is 280px tall
+  desktop and 401px at 390px. Links/metadata validated. Framed mobile-menu pointer
+  action hit a browser automation limitation; structural menu/current-page links
+  and existing keyboard tests pass. Physical-device/spoken-reader checks pending.
+- Design scans: 42 homepage warnings (41 incumbent plus a coverage-padding
+  false positive; actual 40–64px padding) and 4 inherited page-template warnings.
+  No new image assets. Independent review scored the desktop hero alignment fix
+  resolved; disposition ship is for local owner review only. Documentation and
+  evidence are in the October 16 chat outputs/service-areas/ folder. Preview port
+  61177. Review fixes: responsive single-column hero using an 850px maximum and a
+  static coverage/privacy footer link row. Existing hidden legacy footer text
+  and layout remain outside this patch.
+- Search Console data unavailable through connected tools; future town-page
+  suggestions are provisional and require demand plus original local evidence.
+  Proposed copy, complete standalone diff and exact tests are in that evidence
+  folder. No production lead submissions, external collection or calls.
+
+### Final coverage release review — October 20, 2026
+
+- Clarified the new page's title/description with services and Fredericksburg;
+  added direct service links and the confirmed William Street project example.
+  Existing 16-page metadata, canonical URLs and structured data compare equal
+  to the Git base. Canonical, sitemap, robots and all local links validate.
+- Final standalone suite: 155 passed, 0 failed; combined exact estimate patch:
+  158 passed, 0 failed. Both builds validate 17 pages. New page rechecked at
+  1280/768/390/320 pixels without horizontal overflow. Native mobile menu opens
+  with Enter, marks Service areas current and closes with Escape in browser QA;
+  this supersedes the earlier unverified keyboard-menu interaction limitation.
+- No release-blocking regression found in this scope. Physical-phone touch and
+  spoken screen-reader checks remain unperformed. After an approved deployment,
+  verify the production route/links without submitting a lead; Search Console
+  indexing and performance checks can then measure actual search outcomes.
+- Analytics, consent, CRM and GBP remain unchanged. Separate estimate checkout
+  and patch remain unmodified. No commit, push, deployment or lead submission.
+
+### Approved Service Areas publication — October 20, 2026
+
+Owner approved publication after the final review. Fast-forwarded the isolated
+website checkout to ca30809, preserving the newer CRM staging-verification commit
+without editing CRM files. Final local suite: 155 passed, 0 failed; all 17 pages
+validate. Estimate guidance stays in its original separate checkout/patch.
+
+Commit and push use [skip ci] and [skip netlify] so neither shared-repository
+project automatically builds. Trigger a production Git build only for public
+project 86c48a95-ead4-4b15-8e57-fa827558b2f0; its existing build/environment settings
+remain unchanged. CRM baseline published deploy: 6ad6ecfc6c03786554247e4a. Record
+final deployment and non-submitting smoke-check evidence in chat outputs. No
+production test lead or call is permitted. Analytics and consent remain unchanged.

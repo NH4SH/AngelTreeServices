@@ -6,6 +6,7 @@ import { hashPortalToken } from "@/lib/portal/tokens";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
 import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
+import type { RpcCommandArgs } from "@/lib/types/rpc-contracts";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const { data, error } = await supabase.rpc("record_invoice_preference_with_event", {
     p_preference: body.preference,
     p_token_hash: tokenHash,
-  });
+  } satisfies RpcCommandArgs<"record_invoice_preference_with_event">);
   if (error) {
     console.error("Invoice payment preference save failed", {
       applicationErrorCode: "payment_preference_save_failed",

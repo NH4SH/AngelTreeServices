@@ -7,6 +7,7 @@ import { withDeadline } from "@/lib/runtime/deadline";
 import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
 import { sendDurableEmail } from "@/lib/email/delivery";
 import type { EmailEvent, EmailEventType } from "@/lib/types/database";
+import type { Json } from "@/lib/types/database.generated";
 
 export type SendEmailInput = {
   deliveryId?: string;
@@ -14,7 +15,7 @@ export type SendEmailInput = {
   skipLegacyHistory?: boolean;
   deliveryQuoteIds?: string[];
   expectedSourceVersions?: Record<string,string|number>;
-  expectedSourceSnapshot?: unknown;
+  expectedSourceSnapshot?: Json;
   deliveryPortalTokens?: {kind:string;id:string}[];
   confirmedAdditionalCopy?: boolean;
   additionalCopyRequestId?: string;

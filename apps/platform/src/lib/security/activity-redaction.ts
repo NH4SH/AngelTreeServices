@@ -1,7 +1,9 @@
+import type { Json } from "../types/database.generated";
+
 const sensitiveKeyPattern =
   /(password|secret|token|credential|authorization|cookie|session|stripe.*(?:id|key|secret)|card|account_number|routing_number|file_content|raw_body)/i;
 
-export function redactActivityData(value: unknown, depth = 0): unknown {
+export function redactActivityData(value: unknown, depth = 0): Json {
   if (depth > 4) return "[truncated]";
   if (value === null || typeof value === "boolean" || typeof value === "number") return value;
   if (typeof value === "string") return value.length > 800 ? `${value.slice(0, 800)}…` : value;

@@ -18,6 +18,7 @@ import { getServiceRoleClient } from "@/lib/supabase/admin";
 import type { ChangeOrderActionState } from "@/lib/action-states/change-orders";
 import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
+import type { RpcCommandArgs } from "@/lib/types/rpc-contracts";
 
 export async function createChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
@@ -222,7 +223,7 @@ export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState,
     p_approval_method: method,
     p_approval_notes: approvalNotes,
     p_recorded_by_user_id: auth.userId,
-  }).single();
+  } satisfies RpcCommandArgs<"approve_change_order">).single();
   if (error || !data) return failure(error?.message ?? "Could not record approval.");
   const result = data as { job_id: string; newly_approved: boolean };
   revalidateChangeOrderPaths(id, result.job_id, null);
@@ -329,7 +330,7 @@ export async function approveChangeOrderByPortal(_state: ChangeOrderActionState,
     p_approval_method: "portal",
     p_approval_notes: null,
     p_recorded_by_user_id: null,
-  }).single();
+  } satisfies RpcCommandArgs<"approve_change_order">).single();
   if (error || !data) return failure(error?.message ?? "Could not approve the change order.");
   await supabase.from("change_order_portal_tokens").update({ used_at: new Date().toISOString() }).eq("id", lookup.tokenId);
   await deliverCustomerSourceEvent({key: `change-order:${lookup.changeOrder.id}:portal-approved`});
@@ -354,7 +355,7 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   if(!tokenHash||!isUuid(requestId)||!expectedUpdatedAt)return failure("Refresh and review this addition before responding.");
   const {data,error}=await supabase.rpc("respond_to_change_order_by_portal",{
     p_request_id:requestId,p_token_hash:tokenHash,p_expected_updated_at:expectedUpdatedAt,p_intent:intent,p_message:message,
-  });
+  } satisfies RpcCommandArgs<"respond_to_change_order_by_portal">);
   if(error)return {...failure(safeStaffMessage(error.message,"The response could not be confirmed. Review its saved status before trying again.")),responseRejected:["22023","40001","42501","23514"].includes(error.code??"")};
   if(!data||!isUuid(data.source_event_id)||data.change_order_id!==lookup.changeOrder.id||typeof data.replayed!=="boolean")return failure("The response could not be confirmed. Review its saved status before trying again.");
   await deliverCustomerSourceEvent({id:data.source_event_id});

@@ -6,7 +6,7 @@ import { hashPortalToken } from "@/lib/portal/tokens";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
 import { getCanonicalAppBaseUrl } from "@/lib/security/app-base-url";
-import type { RpcCommandArgs } from "@/lib/types/rpc-contracts";
+import { saveInvoicePaymentPreference } from "@/lib/payments/payment-preference";
 
 export const runtime = "nodejs";
 
@@ -38,24 +38,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return responseError("This payment preference could not be saved right now.", 503);
   }
 
-  const { data, error } = await supabase.rpc("record_invoice_preference_with_event", {
-    p_preference: body.preference,
-    p_token_hash: tokenHash,
-  } satisfies RpcCommandArgs<"record_invoice_preference_with_event">);
-  if (error) {
-    console.error("Invoice payment preference save failed", {
-      applicationErrorCode: "payment_preference_save_failed",
-      route: "invoice_portal_payment_preference",
-    });
-    return responseError("This payment preference could not be saved right now.", 409);
+  const result = await saveInvoicePaymentPreference({
+    supabase, invoiceId: lookup.invoice.id, tokenHash, preference: body.preference,
+  });
+  if (!result.ok) {
+    return responseError("This payment preference could not be confirmed. Refresh to review its saved status.", 503);
   }
 
-  const result=data;
-  if(!result||result.invoice_id!==lookup.invoice.id||typeof result.preference_changed!=="boolean"
-    ||(result.preference_changed&&result.source_event_id===null)
-    ||(result.source_event_id!==null&&!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(result.source_event_id??"")))return responseError("This payment preference could not be confirmed. Refresh to review its saved status.",503);
-  const changed=result.preference_changed;
-  const notificationFailed=result.source_event_id?!(await deliverCustomerSourceEvent({id:result.source_event_id})).prepared:false;
+  // Preference storage is already confirmed. A notification failure must not
+  // imply the preference rolled back or create a replacement source event.
+  const changed = result.changed;
+  let notificationFailed = false;
+  if (result.sourceEventId) {
+    try {
+      const delivery = await deliverCustomerSourceEvent({ id: result.sourceEventId });
+      notificationFailed = delivery?.prepared !== true;
+    } catch {
+      notificationFailed = true;
+    }
+  }
 
   return NextResponse.json({ ok: true, changed, notificationFailed });
 }

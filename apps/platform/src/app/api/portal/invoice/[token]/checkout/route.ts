@@ -1,3 +1,4 @@
+import { saveCheckoutPaymentPreference } from "@/lib/payments/payment-preference";
 import { NextResponse } from "next/server";
 import { getPortalPaymentContext } from "@/lib/payments/portal-card-context";
 import { hashPortalToken } from "@/lib/portal/tokens";
@@ -40,11 +41,10 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   if (!tokenHash) {
     return paymentError("This invoice link is not available.", 404);
   }
-  const { error: preferenceError } = await supabase.rpc("record_invoice_payment_preference", {
-    p_preference: "ach",
-    p_token_hash: tokenHash,
+  const preference = await saveCheckoutPaymentPreference({
+    supabase: supabase, invoiceId: invoice.id, tokenHash, preference: "ach",
   });
-  if (preferenceError) {
+  if (!preference.ok) {
     console.error("Checkout payment preference save failed", { applicationErrorCode: "payment_preference_save_failed", route: "invoice_portal_ach_checkout" });
     return paymentError("Online payment is not available right now. Please try again later.", 503);
   }

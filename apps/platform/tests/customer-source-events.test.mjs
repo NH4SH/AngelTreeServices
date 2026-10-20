@@ -1,3 +1,4 @@
+import * as preference from '../src/lib/payments/payment-preference.ts';
 import assert from 'node:assert/strict';import test from 'node:test';import {randomUUID} from 'node:crypto';import {load} from './pr10-test-helpers.mjs';import {mapBounded} from '../src/lib/runtime/deadline.ts';
 const id=randomUUID(),activity=randomUUID(),review=randomUUID(),deliveries=Array.from({length:7},()=>randomUUID());
 const validator=load('../src/lib/notifications/customer-activity.ts',{'server-only':{},'@/lib/security/activity-redaction':{},'@/lib/runtime/deadline':{},'@/lib/email/delivery-commands':{},'@/lib/email/delivery':{},'@/lib/email/delivery-followups':{},'@/lib/email/send':{},'@/lib/email/config':{},'@/lib/security/app-base-url':{},'@/lib/supabase/admin':{}});
@@ -27,6 +28,7 @@ test('recovery action requires exact authenticated review acknowledgement before
 function invoiceRoute(receipt,options={}){
  const calls=[],handoffs=[],invoiceId=options.invoiceId??activity;
  const route=load('../src/app/api/portal/invoice/[token]/payment-preference/route.ts',{
+  '@/lib/payments/payment-preference':preference,
   'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
   '@/lib/data/portal-invoice':{getInvoiceByPortalToken:async()=>({status:'ready',invoice:{id:invoiceId}})},
   '@/lib/payments/payment-options':{isInvoicePaymentPreference:v=>v==='ach'},

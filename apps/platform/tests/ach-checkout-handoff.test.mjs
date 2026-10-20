@@ -1,3 +1,4 @@
+import * as preference from '../src/lib/payments/payment-preference.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { load } from './pr10-test-helpers.mjs';
@@ -135,12 +136,13 @@ for (const throwAt of ['lookup', 'insert', 'publish']) {
 }
 test('the actual portal route returns no URL for unconfirmed publication', async () => {
   const f = fixture({ faultAt: 'publish', receipt: { data: {}, error: null } });
-  f.input.supabase.rpc = async () => ({ data: true, error: null });
+  f.input.supabase.rpc = async () => ({ data: [{invoice_id:invoice,preference_changed:true}], error: null });
   const route = load('../src/app/api/portal/invoice/[token]/checkout/route.ts', {
+    '@/lib/payments/payment-preference':preference,
     'next/server': { NextResponse: { json: (data, options) => Response.json(data, options) } },
     '@/lib/payments/portal-card-context': { getPortalPaymentContext: async () => ({ ok: true, invoicePrincipalCents: 1000,
       invoice: { id: invoice, customer_id: customer, organization_id: null, invoice_number: 'SYNTHETIC' }, supabase: f.input.supabase }) },
-    '@/lib/portal/tokens': { hashPortalToken: () => 'synthetic-token-hash' },
+    '@/lib/portal/tokens': { hashPortalToken: () => 'a'.repeat(64) },
     '@/lib/stripe/invoice-checkout': checkout,
     '@/lib/stripe/server': { getStripeServerConfig: () => ({ configured: true, stripe: f.input.stripe, livemode: false, appBaseUrl: 'https://crm.example.invalid' }) },
     '@/lib/security/rate-limit': { enforceSharedRateLimit: async () => ({ available: true, allowed: true }) },
@@ -149,6 +151,7 @@ test('the actual portal route returns no URL for unconfirmed publication', async
     method: 'POST', headers: { origin: 'https://crm.example.invalid', 'content-type': 'application/json' }, body: JSON.stringify({ method: 'ach' }),
   }), { params: Promise.resolve({ token: 'synthetic' }) });
   assert.equal(response.status, 503); assert.equal((await response.json()).url, undefined);
+  assert.ok(f.calls.some(c=>c.operation==='publish'),'route must reach publication after a confirmed preference');
 });
 test('a current open checkout is verified and reused without creating another', async () => {
   const f = fixture({ active: row({ status: 'open', stripe_checkout_session_id: 'cs_fixture' }) });

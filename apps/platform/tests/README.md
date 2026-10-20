@@ -1639,3 +1639,40 @@ SQL state transitions and compatibility of collected responses, rather than live
 interleaving between the runner and database. It does not prove independent
 commits, actual HTTP/Auth, network-loss recovery, lease races or hosted acceptance.
 The separate PR06/07 Auth/concurrency suites retain their existing role.
+
+### Payment preference confirmation
+
+`payment-preference-confirmation.test.mjs` adds 75 regular route/helper checks.
+Bank/card initiation requires exactly one successful installed-command row for
+its invoice, with an explicit boolean change result. The explicit preference
+form retains its separate durable source-event command. Incomplete/foreign
+receipts, missing error envelopes, thrown storage and bounded timeouts cannot
+authorize new checkout/review preparation or notices. A confirmed form save
+remains successful if its existing notification handoff needs review. All four
+methods, unchanged selections, organization-only billing, origin/rate limits and
+portal denials remain covered. Existing bank/card route tests now use canonical
+preference receipts and assert their downstream save failures are actually reached.
+
+The opt-in suite uses only the existing disposable stack:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+PREFERENCE_DISPOSABLE=1 \
+PREFERENCE_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+PREFERENCE_RESULTS_FILE="$LOCAL_PREFERENCE_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/payment-preference-confirmation.integration.test.mjs
+```
+
+Use the installed Docker executable and a private output path. Sixteen scenarios
+call the actual route handlers with installed preference RPCs on one connection,
+under their real service role. Controlled downstream checkout/review/notification
+adapters do not contact providers or send messages. The suite checks changed and
+unchanged saves, organization-only tokens/invoices with no customer fixture,
+response loss/throw after the real SQL write, all four preferences, unchanged
+money, retained legacy holds, exact durable event reuse, expired/revoked links,
+unpayable invoices and actual anonymous/browser-role denials. Expected SQL codes
+are asserted; positive paths require zero errors. Every fixture and the temporary
+SQL helper roll back with per-case savepoints and one outer rollback. This does
+not establish independent commits, simultaneous connections, hosted HTTP/Auth,
+actual network loss, provider/3DS behavior or notification transport acceptance.
+See `../PAYMENT_PREFERENCE_CONFIRMATION.md` for the decision and limits.

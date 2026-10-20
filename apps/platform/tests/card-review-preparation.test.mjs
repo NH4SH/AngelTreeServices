@@ -1,3 +1,4 @@
+import * as preference from '../src/lib/payments/payment-preference.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { load } from './pr10-test-helpers.mjs';
@@ -103,18 +104,20 @@ for(const [funding,country]of [['debit','US'],['prepaid','US'],['unknown','US'],
   });
 }
 test('the actual card-review route refuses an incomplete saved review',async()=>{
-  const f=fixture({faultAt:'insert',receipt:{data:{},error:null}});f.input.supabase.rpc=async()=>({data:true,error:null});
+  const f=fixture({faultAt:'insert',receipt:{data:{},error:null}});f.input.supabase.rpc=async()=>({data:[{invoice_id:invoice,preference_changed:true}],error:null});
   const route=load('../src/app/api/portal/invoice/[token]/card/review/route.ts',{
+    '@/lib/payments/payment-preference':preference,
     'next/server':{NextResponse:{json:(data,options)=>Response.json(data,options)}},
     '@/lib/payments/payment-options':{getInvoicePaymentConfiguration:()=>({cardEnabled:true,surchargeBps:300,surchargeEnabled:true})},
     '@/lib/payments/portal-card-context':{getPortalCardPaymentContext:async()=>({ok:true,invoice:{id:invoice,customer_id:customer,organization_id:null},invoicePrincipalCents:1000,supabase:f.input.supabase})},
-    '@/lib/portal/tokens':{hashPortalToken:()=> 'synthetic-hash'},'@/lib/stripe/card-payment':payment,
+    '@/lib/portal/tokens':{hashPortalToken:()=> 'a'.repeat(64)},'@/lib/stripe/card-payment':payment,
     '@/lib/stripe/server':{getStripeServerConfig:()=>({configured:true,stripe:f.input.stripe,livemode:false,appBaseUrl:'https://crm.example.invalid'})},
     '@/lib/security/rate-limit':{enforceSharedRateLimit:async()=>({available:true,allowed:true})},
   });
   const response=await route.POST(new Request('https://crm.example.invalid/local',{method:'POST',headers:{origin:'https://crm.example.invalid','content-type':'application/json'},
     body:JSON.stringify({confirmationTokenId:'ctoken_fixture'})}),{params:Promise.resolve({token:'synthetic'})});
   assert.equal(response.status,409);assert.equal((await response.json()).review,undefined);
+  assert.ok(f.calls.includes('insert'),'route must reach review insertion after a confirmed preference');
 });
 test('cleanup uncertainty prevents even retrieving a new token',async()=>{
   const f=fixture({faultAt:'cleanup',receipt:{data:null,error:null}});assert.equal((await f.run()).ok,false);assert.equal(f.provider.length,0);

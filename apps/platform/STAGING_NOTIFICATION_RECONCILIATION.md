@@ -166,3 +166,7 @@ skipped. The subsequent local PR14 handoff package is described in
 `DURABLE_SOURCE_EVENT_HANDOFF.md`. It adds checksum-pinned local migration96;
 assigned hosted staging remains95 and the maintenance verifier still requires
 that exact95 target. No hosted change or deployment is part of that follow-up.
+
+The next reconciliation is now complete: assigned staging is at96 with unchanged
+Auth/no-send/OFF controls. Use `STAGING_SOURCE_EVENT_RECONCILIATION.md` and its
+96-entry maintenance verifier; this report/profile remains the historical95 review.

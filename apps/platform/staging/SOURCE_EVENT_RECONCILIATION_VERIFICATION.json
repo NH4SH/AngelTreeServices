@@ -1,0 +1,121 @@
+{
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migrationsBefore": 95,
+  "migrationsAfter": 96,
+  "exactLedgerVerified": true,
+  "originalMigrationBytesPreserved": true,
+  "fullCatalogMatchesLocalRehearsal": true,
+  "addedObjects": 61,
+  "changedExistingObjects": 0,
+  "removedObjects": 0,
+  "defaultsUnchanged": true,
+  "emptyOffStatePreserved": true,
+  "authGuardDefinitionAndEffectivePermissionsUnchanged": true,
+  "authAndApiConfigurationUnchanged": true,
+  "privateChangeRequests": 0,
+  "notificationState": {
+    "activities": 0,
+    "attempts": 0,
+    "deliveries": 0,
+    "emailEvents": 0,
+    "links": 0,
+    "notifications": 0,
+    "preparations": 0,
+    "providerEvents": 0,
+    "requests": 0,
+    "suppressions": 0
+  },
+  "sourceEventState": {
+    "events": 0,
+    "responses": 0
+  },
+  "repeatDryRunUpToDate": true,
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false,
+  "implementationPushedCommit": "ef9defdde96bbc38f0253a1ca1fd44914df8ccda",
+  "branch": "codex/staging-source-event-reconciliation",
+  "regularRegressionResults": 856,
+  "rolledBackLocalPgTapAssertions": 271,
+  "newSourceEventPgTapAssertions": 35,
+  "localCliRollbackAndIdempotencyVerified": true,
+  "independent96MaintenanceVerifierPassed": true,
+  "permissionProbes": {
+    "authGuardSyntheticStatus": 503,
+    "emptySearchPaths": 8,
+    "privateTableApiGrants": 0,
+    "privateTablesWithRls": 2,
+    "responseReceipts": 0,
+    "reviewExecution": {
+      "anon": 0,
+      "authenticated": 2,
+      "service_role": 0
+    },
+    "sequenceApiGrants": 0,
+    "serverExecution": {
+      "anon": 0,
+      "authenticated": 0,
+      "service_role": 5
+    },
+    "sourceEvents": 0,
+    "triggerApiGrants": 0,
+    "actualReadOnlyDenials": 23
+  },
+  "securityAdvisors": {
+    "before": {
+      "INFO": 29,
+      "WARN": 57
+    },
+    "after": {
+      "INFO": 31,
+      "WARN": 59
+    },
+    "added": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "object": "change_order_response_requests"
+      },
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "object": "customer_source_events"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "object": "list_pending_customer_source_events"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "object": "review_customer_source_event"
+      }
+    ],
+    "review": "Two intentionally authenticated SECURITY DEFINER recovery RPCs; each enforces live owner/admin authority with auth.uid and unchanged email_staff. Actual denied-role, missing subject, service-with-subject and disabled-actor tests pass. No private API table/sequence/helper grants; no new permissive RLS policies. Hosted lint reports two WARNs not surfaced by the local CLI advisor; no warning was suppressed."
+  },
+  "sharedLocalPreservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": true,
+    "changedTables": [],
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "node22IsolatedTypecheckPassed": true,
+  "runtimeCodeAndMigrationSourcesUnchanged": true,
+  "priorVerifiedOptimizedBuildRetained": true,
+  "actualProviderCalls": 0,
+  "hostedPositiveFixtures": 0,
+  "hostedAuthHttpDeliveryRetested": false,
+  "productionPublishedDeploy": "6ad6ecfc6c03786554247e4a",
+  "productionDeployReadyMetadataVerified": true,
+  "keysRetrievedOrRotated": false,
+  "reconciliationPackagePushed": false
+}

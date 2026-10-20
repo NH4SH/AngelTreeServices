@@ -151,3 +151,11 @@ staging runtime/access/CDN acceptance and scanner/restore/operator gates remain.
 References: [Supabase functions](https://supabase.com/docs/guides/database/functions),
 [database advisors](https://supabase.com/docs/guides/database/database-advisors),
 [current changelog](https://supabase.com/changelog).
+
+### Follow-up status
+
+Implementation `ef9defd` is now pushed to main and its branch, deployment skipped.
+The assigned staging database has been reconciled to the unchanged96th migration;
+see `STAGING_SOURCE_EVENT_RECONCILIATION.md` for exact verification, hosted advisor
+review and the current read-only maintenance command. No app or production change
+was part of that reconciliation.

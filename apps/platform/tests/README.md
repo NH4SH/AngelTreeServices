@@ -1378,3 +1378,19 @@ and disable only their own synthetic actors. Financial/audit history remains.
 No migration reset, hosted write, real email or scanner activation runs.
 See `../DURABLE_SOURCE_EVENT_HANDOFF.md` for scope, mixed-client holds, reproducible
 local evidence, limitations and the separate staging96 reconciliation boundary.
+
+## Staging source-event candidate96
+
+`staging-source-event-candidate.test.mjs` runs in the regular gate and rejects
+source/metadata drift, missing or nonempty private state, wrong physical target,
+guard/config/default changes and any production/write flags before I/O.
+`supabase/staging/tests/source-event-handoff.sql` contributes35 rolled-back pgTAP
+assertions to the existing NEW EMPTY LOCAL staging rehearsal. It exercises actual
+SQL roles, private source capture, exact owner review, no-send preparation and
+live offboarding checks; do not run positive fixtures on hosted staging.
+
+Current assigned-target read-only maintenance is
+`scripts/release/verify-staging-source-event-candidate.mjs`; see
+`../STAGING_SOURCE_EVENT_RECONCILIATION.md` for fresh private configuration input,
+exact96 seals and the two reviewed hosted privileged-RPC advisor warnings.
+The prior93/94/95 verifiers and profiles retain their historical meaning.

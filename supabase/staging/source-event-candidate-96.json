@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "ef9defdde96bbc38f0253a1ca1fd44914df8ccda",
+  "previousCandidateCount": 95,
+  "expectedMigrationCount": 96,
+  "previousCandidateSha256": "3e59d505707d32a62080e339dafae6b0f173a5fe65c8c682292d7de78b83a73f",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261020064543_durable_customer_source_events.sql",
+    "sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006"
+  },
+  "shapeSeal": "65b32375b979481067e9e11561a4f6ec",
+  "ledgerSeal": "3ccd0a688484650bfc31b4a3a6c809f5",
+  "initialApiAclSeal": "0d2c9a7046947cd1dfd7058e5cfefbfe",
+  "expectedApiAclSeal": "0d2c9a7046947cd1dfd7058e5cfefbfe",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4843,
+  "delta": {
+    "added": [
+      {
+        "key": "column|app_private.change_order_response_requests.change_order_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.expected_updated_at",
+        "hash": "bc2d6935468562ededb4adfea368ac6e094b055b09d1a9d38a907fa63f78c1b8"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.note_id",
+        "hash": "63c3ef272ea5420222d40253da9504ba75a1ad1665aa80bea9c8ece1b887f68f"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.payload_hash",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.request_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.responded_at",
+        "hash": "bc2d6935468562ededb4adfea368ac6e094b055b09d1a9d38a907fa63f78c1b8"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.source_event_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.change_order_response_requests.token_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.customer_source_events_event_order_seq.is_called",
+        "hash": "e02246755cce7c459d52eb07cdf0f6be8af797a5651f5e128c359bdc9f095e77"
+      },
+      {
+        "key": "column|app_private.customer_source_events_event_order_seq.last_value",
+        "hash": "2e76670c347de68c824432ac074b9a2709a46ba18aa1cfa8b88117dfffa05067"
+      },
+      {
+        "key": "column|app_private.customer_source_events_event_order_seq.log_cnt",
+        "hash": "2e76670c347de68c824432ac074b9a2709a46ba18aa1cfa8b88117dfffa05067"
+      },
+      {
+        "key": "column|app_private.customer_source_events.created_at",
+        "hash": "3d04c32817863295bfa15057f8293976861812c72fb56d1b3ec57f13c8c62a6f"
+      },
+      {
+        "key": "column|app_private.customer_source_events.event",
+        "hash": "6fc33c29951350e49b616344c92c670fc70387c137376c9c4d408846f4efe8ce"
+      },
+      {
+        "key": "column|app_private.customer_source_events.event_hash",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "column|app_private.customer_source_events.event_order",
+        "hash": "f16d886f552d058b234acef5a19902db70869a8d041f1231c242c357fdbe49ed"
+      },
+      {
+        "key": "column|app_private.customer_source_events.id",
+        "hash": "380169a2879955b8aa8244c5e29848982e5018308a75672a85db47bb9125641c"
+      },
+      {
+        "key": "column|app_private.customer_source_events.preparation_problem",
+        "hash": "808cddd7c5eba6e0e1f72aecea3e47f388f12340e60fb46fa6bfe93b4d4af5e7"
+      },
+      {
+        "key": "column|app_private.customer_source_events.prepared_activity_id",
+        "hash": "63c3ef272ea5420222d40253da9504ba75a1ad1665aa80bea9c8ece1b887f68f"
+      },
+      {
+        "key": "column|app_private.customer_source_events.prepared_at",
+        "hash": "9f738d4791f5285256634336c0a274be64eab98608d00ebb33664d10d86d5c45"
+      },
+      {
+        "key": "column|app_private.customer_source_events.review_id",
+        "hash": "63c3ef272ea5420222d40253da9504ba75a1ad1665aa80bea9c8ece1b887f68f"
+      },
+      {
+        "key": "column|app_private.customer_source_events.review_reason",
+        "hash": "808cddd7c5eba6e0e1f72aecea3e47f388f12340e60fb46fa6bfe93b4d4af5e7"
+      },
+      {
+        "key": "column|app_private.customer_source_events.reviewed_at",
+        "hash": "9f738d4791f5285256634336c0a274be64eab98608d00ebb33664d10d86d5c45"
+      },
+      {
+        "key": "column|app_private.customer_source_events.reviewed_by",
+        "hash": "63c3ef272ea5420222d40253da9504ba75a1ad1665aa80bea9c8ece1b887f68f"
+      },
+      {
+        "key": "column|app_private.customer_source_events.source_audit_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.customer_source_events.source_key",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "constraint|app_private.change_order_response_requests.change_order_response_requests_change_order_id_fkey",
+        "hash": "cbb1841c2e683636b89396c4504f997bf1a86c7a7442a2a8f4bbf60ffc6fa444"
+      },
+      {
+        "key": "constraint|app_private.change_order_response_requests.change_order_response_requests_payload_hash_check",
+        "hash": "889bce7f071342220ace13f3b05f9e96a473cb52622b1b28735e5dcd8728a048"
+      },
+      {
+        "key": "constraint|app_private.change_order_response_requests.change_order_response_requests_pkey",
+        "hash": "e32359ad096807fae4130b9ce17cf5e48da4f0bc537fbcd4b64826ddcfd69eb4"
+      },
+      {
+        "key": "constraint|app_private.change_order_response_requests.change_order_response_requests_source_event_id_fkey",
+        "hash": "33e34344d1d408bcd812876fe2b38e3a5cfe684367657459df50494680463b6c"
+      },
+      {
+        "key": "constraint|app_private.change_order_response_requests.change_order_response_requests_token_id_fkey",
+        "hash": "6247842b07cb95c12f3ae8108c9157163990592163a69198727034cd05cba6c9"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_check",
+        "hash": "1f324692ec09d72be79648f53f6bdef82d29249778ab3c3bb3323a248104b2a2"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_event_check",
+        "hash": "481a0b8ca3b366ece319bea9a249a93b97243fb893260fa2fe7bed8fa3aac71c"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_event_hash_check",
+        "hash": "e190bced2635f929ffb4cb6e28e8ecae20b1a21ee0aa8c9a6802d88ca527d1c5"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_pkey",
+        "hash": "04ff3e293f7a5409d80246830c71973cda32b1121840b42f4aeb11aaf45fbdfc"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_preparation_problem_check",
+        "hash": "9bf922cb680a144c1a2e09795da654c9dafdf3a709458cc0805b1ed2c71666f8"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_review_id_key",
+        "hash": "fafa6634f4a3d9cf55d20375047a71eb6b16ee369f63b704c5e118595a4efa19"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_source_audit_id_key",
+        "hash": "25b46d25a422895e12cd3bf57c1287fe7c8820fe60a03a8abc934e719db2dde4"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_source_key_check",
+        "hash": "2c346ab134f2c8084eb72a469a7f675910bc16b1dfbf362a83331e647515a25d"
+      },
+      {
+        "key": "constraint|app_private.customer_source_events.customer_source_events_source_key_key",
+        "hash": "4c6cd6cbbea2f662f838cdb836fbede12976969c9785a70381d4c051a9bc3376"
+      },
+      {
+        "key": "index|app_private.change_order_response_requests_event",
+        "hash": "784a4c141e808f3319566548a465973fa894584c4739ad87ed6aea8eb27dd45a"
+      },
+      {
+        "key": "index|app_private.change_order_response_requests_order",
+        "hash": "211dd37696852e7ab9ee341835b0b2f9dd91ad317c1b36c9d02fe5554c269877"
+      },
+      {
+        "key": "index|app_private.change_order_response_requests_pkey",
+        "hash": "fc4fec88b7c4616d772aa4d97254b457dc9399cf698f34afd0bb4a3e7591ea70"
+      },
+      {
+        "key": "index|app_private.change_order_response_requests_token",
+        "hash": "9f9e2ccd2de06756a314ce4c3712d2e86bfffab8e0046c44aad530422c5020cc"
+      },
+      {
+        "key": "index|app_private.customer_source_events_pending",
+        "hash": "9783a5206e204ec99f28f0a2baf14c45eaaa312d4f6b859b9dba5386a2ab45ce"
+      },
+      {
+        "key": "index|app_private.customer_source_events_pkey",
+        "hash": "68031c38c9e892a3571644f6d38a4585c1280fa0b6dc370162faf14c3fdaec99"
+      },
+      {
+        "key": "index|app_private.customer_source_events_review_id_key",
+        "hash": "8e8c16c3949c99edb962d0526b47869bebcf30d6ee5a48bc124ef5fd66e7b7ea"
+      },
+      {
+        "key": "index|app_private.customer_source_events_source_audit_id_key",
+        "hash": "2a151843c44eee672359c088d0accc4e3728b01a3fee3602f2a932c7e14e01c2"
+      },
+      {
+        "key": "index|app_private.customer_source_events_source_key_key",
+        "hash": "98a1a8a7a3250bb14ae06e4a26d8405c0de2d4ab77129d8a06aa55c1af78d5e8"
+      },
+      {
+        "key": "index|app_private.customer_source_events_subject",
+        "hash": "518ed8c0e3b0dbedf7b3dc7aa28e3130cc81dd5705ac0bbcf9a9d727a7471775"
+      },
+      {
+        "key": "relation|app_private.change_order_response_requests",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "relation|app_private.customer_source_events",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "relation|app_private.customer_source_events_event_order_seq",
+        "hash": "85f3c83d8f3620259772bdd2e6029cf0e61ae0e379eaefdecc01c32ad7b0e510"
+      },
+      {
+        "key": "routine|app_private.capture_customer_source_event()",
+        "hash": "1e76151222c8924cfc38eff808ddbdd984540fd97e3436d8a52cde8ac68a97f0"
+      },
+      {
+        "key": "routine|public.find_customer_source_event(p_source_key text)",
+        "hash": "0b2292df2cdb19ba5b5d20ee689f27943ea46e3f70b10024c6802a17ffde5fd2"
+      },
+      {
+        "key": "routine|public.get_customer_source_event(p_source_id uuid)",
+        "hash": "bb467b765d466f3725b90c398d5106bdecd2774c41de882b732f1b4124cced6f"
+      },
+      {
+        "key": "routine|public.list_pending_customer_source_events(p_page integer)",
+        "hash": "5b1f7e8f22d8649c6585992e48bdd44e8ff8d5c0a6610d82ff5b2f6adf45bc52"
+      },
+      {
+        "key": "routine|public.prepare_customer_source_event(p_source_id uuid, p_envelope jsonb, p_destination text, p_review_id uuid)",
+        "hash": "2a2638f1426fc18461c2c94517d22f3c795ca19566c77813f75ff2690038251f"
+      },
+      {
+        "key": "routine|public.record_invoice_preference_with_event(p_token_hash text, p_preference text)",
+        "hash": "76007a38be5fb5eea8f690137cc7cfce86eaff3aafb566050abb1caa712d4584"
+      },
+      {
+        "key": "routine|public.respond_to_change_order_by_portal(p_request_id uuid, p_token_hash text, p_expected_updated_at timestamp with time zone, p_intent text, p_message text)",
+        "hash": "e4942595746fe502dce3b2a73edb691dc1a3164877a6662a6c5a1f2e42b91735"
+      },
+      {
+        "key": "routine|public.review_customer_source_event(p_source_id uuid, p_request_id uuid, p_reason text)",
+        "hash": "f0b846b1090f2f9b82d12d94891709a80753f3b7dae1f9c16696b7e37dad09e9"
+      },
+      {
+        "key": "trigger|public.activity_log.capture_customer_source_event",
+        "hash": "cd03d2e71107b864d8071c1f530beaa98bb6d0f86b5f941ab72a4916d4d604e2"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

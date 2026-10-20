@@ -9,6 +9,7 @@ import { dispatchSavedEmail } from "@/lib/email/delivery";
 import { sendEmailTransport } from "@/lib/email/send";
 import { getEmailSetupState } from "@/lib/email/config";
 import { reconcileProviderReference, reconcileLegacyProviderReference } from "@/lib/email/provider-events";
+import { prepareReviewedCustomerSourceEvent } from "@/lib/notifications/source-events";
 import { notifyOfficeOfWebsiteLead } from "@/lib/leads/notifications";
 export type DeliveryReviewState={status:"idle"|"success"|"error"|"warning";message:string};
 const uuid=(v:string)=>/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
@@ -68,4 +69,20 @@ export async function reviewLegacyEmail(_state:DeliveryReviewState,form:FormData
     revalidatePath('/admin/communications');revalidatePath('/admin/communications/delivery-review');
     return{status:'success',message:'Earlier provider receipt verified. No document status was changed and no email was sent.'};
   }catch{return{status:'error',message:'That provider message could not be matched safely. Check read access and the recipient, subject and original send time. No email was sent.'};}
+}
+
+export async function prepareMissingSourceActivity(_state:DeliveryReviewState,form:FormData):Promise<DeliveryReviewState>{
+  const id=String(form.get("source_event_id")??""),requestId=String(form.get("request_id")??""),reason=String(form.get("reason")??"").trim();
+  if(!uuid(id)||!uuid(requestId)||reason.length<5||reason.length>1000)return{status:"error",message:"Add a short reason for preparing these alerts."};
+  try{
+    const db=await createClient();if(!db)return{status:"error",message:"Sign in to review missing alerts."};
+    const user=(await db.auth.getUser()).data.user;
+    if(!user||!hasAllowedRole(await getUserRoles(db,user.id),platformRoleGroups.accessApproval))return{status:"error",message:"An owner or administrator must review missing alerts."};
+    const review=await callDeliveryCommand(db,"review_customer_source_event",{p_source_id:id,p_request_id:requestId,p_reason:reason});
+    if(review.error||review.data?.source_event_id!==id||review.data?.review_id!==requestId)throw Error("Review unconfirmed");
+    const result=await prepareReviewedCustomerSourceEvent(id,requestId);
+    revalidatePath("/admin/communications/delivery-review");revalidatePath("/admin");
+    return result.prepared?{status:"success",message:"Office alerts and saved emails prepared. No email was sent. Review saved deliveries separately."}
+      :{status:"warning",message:"Preparation could not be confirmed. The saved customer event remains available for review. No email was sent."};
+  }catch{return{status:"error",message:"Preparation could not be confirmed. Refresh and check the saved status before retrying. No email was sent."};}
 }

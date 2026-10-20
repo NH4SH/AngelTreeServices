@@ -158,3 +158,11 @@ Private reproduction and read-only metadata:
 `/Users/noelsierra/Documents/Codex/2026-10-20/staging-95/`.
 References: [Supabase migrations](https://supabase.com/docs/guides/local-development/database-migrations),
 [current changelog](https://supabase.com/changelog).
+
+### Follow-up status
+
+Reconciliation commit `ca30809` is now pushed to `main` and its branch, deployment
+skipped. The subsequent local PR14 handoff package is described in
+`DURABLE_SOURCE_EVENT_HANDOFF.md`. It adds checksum-pinned local migration96;
+assigned hosted staging remains95 and the maintenance verifier still requires
+that exact95 target. No hosted change or deployment is part of that follow-up.

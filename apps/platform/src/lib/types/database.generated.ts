@@ -15291,6 +15291,12 @@ export type Database = {
                 };
                 Returns: boolean;
             };
+            "find_customer_source_event": {
+                Args: {
+                    "p_source_key": string;
+                };
+                Returns: Json;
+            };
             "find_outbound_delivery_request": {
                 Args: {
                     "p_request_key": string;
@@ -15407,6 +15413,12 @@ export type Database = {
                     "sort_order": number;
                     "title": string;
                 }[];
+            };
+            "get_customer_source_event": {
+                Args: {
+                    "p_source_id": string;
+                };
+                Returns: Json;
             };
             "get_employee_operational_directory": {
                 Args: Record<PropertyKey, never>;
@@ -15526,6 +15538,12 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "list_pending_customer_source_events": {
+                Args: {
+                    "p_page"?: number;
+                };
+                Returns: Json;
+            };
             "list_website_sender_blocks": {
                 Args: {
                     "p_all"?: boolean;
@@ -15551,6 +15569,15 @@ export type Database = {
                     "p_destination"?: string;
                     "p_envelope": Json;
                     "p_event": Json;
+                };
+                Returns: Json;
+            };
+            "prepare_customer_source_event": {
+                Args: {
+                    "p_destination"?: string;
+                    "p_envelope": Json;
+                    "p_review_id"?: string;
+                    "p_source_id": string;
                 };
                 Returns: Json;
             };
@@ -15649,6 +15676,13 @@ export type Database = {
                     "invoice_id": string;
                     "preference_changed": boolean;
                 }[];
+            };
+            "record_invoice_preference_with_event": {
+                Args: {
+                    "p_preference": string;
+                    "p_token_hash": string;
+                };
+                Returns: Json;
             };
             "record_legacy_email_provider_check": {
                 Args: {
@@ -15761,6 +15795,16 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "respond_to_change_order_by_portal": {
+                Args: {
+                    "p_expected_updated_at": string;
+                    "p_intent": string;
+                    "p_message": string;
+                    "p_request_id": string;
+                    "p_token_hash": string;
+                };
+                Returns: Json;
+            };
             "restore_cancelled_manual_invoice_payment": {
                 Args: {
                     "p_invoice_id": string;
@@ -15780,6 +15824,14 @@ export type Database = {
                     "p_reason": string;
                     "p_revision": number;
                     "p_updated_at": string;
+                };
+                Returns: Json;
+            };
+            "review_customer_source_event": {
+                Args: {
+                    "p_reason": string;
+                    "p_request_id": string;
+                    "p_source_id": string;
                 };
                 Returns: Json;
             };

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getChangeOrderByPortalToken, getChangeOrderDetail } from "@/lib/data/change-orders";
-import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
+import { deliverCustomerSourceEvent } from "@/lib/notifications/source-events";
+import { hashPortalToken } from "@/lib/portal/tokens";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
   createNewChangeOrderPortalTokenRecord,
@@ -331,23 +332,7 @@ export async function approveChangeOrderByPortal(_state: ChangeOrderActionState,
   }).single();
   if (error || !data) return failure(error?.message ?? "Could not approve the change order.");
   await supabase.from("change_order_portal_tokens").update({ used_at: new Date().toISOString() }).eq("id", lookup.tokenId);
-  if ((data as { newly_approved: boolean }).newly_approved) {
-    await emitCustomerActivity({
-      category: "change_orders",
-      changeOrderId: lookup.changeOrder.id,
-      customerId: lookup.changeOrder.customer_id,
-      destinationPath: `/admin/change-orders/${lookup.changeOrder.id}`,
-      eventType: "change_order_portal_approved",
-      idempotencyKey: `change-order:${lookup.changeOrder.id}:portal-approved`,
-      organizationId: lookup.changeOrder.organization_id,
-      quoteId: lookup.changeOrder.source_quote_id,
-      recordLabel: lookup.changeOrder.change_order_number,
-      subjectId: lookup.changeOrder.id,
-      subjectType: "change_order",
-      summary: `${lookup.changeOrder.organizations?.name ?? lookup.changeOrder.customers?.display_name ?? "Customer"} approved ${lookup.changeOrder.change_order_number}.`,
-      title: "Change order approved",
-    });
-  }
+  await deliverCustomerSourceEvent({key: `change-order:${lookup.changeOrder.id}:portal-approved`});
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
   const result = data as { newly_approved: boolean };
@@ -364,31 +349,15 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   const lookup = await getChangeOrderByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
   if (!supabase || lookup.status !== "ready" || !lookup.changeOrder || !lookup.tokenId) return failure(lookup.message || "This change order link is unavailable.");
-  if (!["sent", "change_requested"].includes(lookup.changeOrder.status)) return failure("This change order is no longer open for a response.");
-  if (intent === "request_changes" && message.length < 3) return failure("Please include a short note about the requested change.");
-  if (!['request_changes', 'decline'].includes(intent)) return failure("Choose a valid response.");
-  const eventAt = new Date().toISOString();
-  const status = intent === "decline" ? "declined" : "change_requested";
-  const { error } = await supabase.from("change_orders").update({ status, declined_at: intent === "decline" ? eventAt : null }).eq("id", lookup.changeOrder.id);
-  if (error) return failure(error.message);
-  if (message) await supabase.from("notes").insert({ customer_id: lookup.changeOrder.customer_id, service_location_id: lookup.changeOrder.service_location_id, job_id: lookup.changeOrder.job_id, visibility: "internal", body: `Change order customer response: ${message}` });
-  await supabase.from("change_order_portal_tokens").update({ used_at: eventAt }).eq("id", lookup.tokenId);
-  await emitCustomerActivity({
-    body: message || null,
-    category: "change_orders",
-    changeOrderId: lookup.changeOrder.id,
-    customerId: lookup.changeOrder.customer_id,
-    destinationPath: `/admin/change-orders/${lookup.changeOrder.id}`,
-    eventType: intent === "decline" ? "change_order_portal_declined" : "change_order_portal_changes_requested",
-    idempotencyKey: `change-order:${lookup.changeOrder.id}:${status}:${eventAt}`,
-    organizationId: lookup.changeOrder.organization_id,
-    quoteId: lookup.changeOrder.source_quote_id,
-    recordLabel: lookup.changeOrder.change_order_number,
-    subjectId: lookup.changeOrder.id,
-    subjectType: "change_order",
-    summary: `${lookup.changeOrder.organizations?.name ?? lookup.changeOrder.customers?.display_name ?? "Customer"} ${intent === "decline" ? "declined" : "requested changes to"} ${lookup.changeOrder.change_order_number}.`,
-    title: intent === "decline" ? "Change order declined" : "Customer requested change-order updates",
+  const tokenHash=hashPortalToken(rawToken);
+  const requestId=text(formData,"request_id",80),expectedUpdatedAt=text(formData,"expected_updated_at",80);
+  if(!tokenHash||!isUuid(requestId)||!expectedUpdatedAt)return failure("Refresh and review this addition before responding.");
+  const {data,error}=await supabase.rpc("respond_to_change_order_by_portal",{
+    p_request_id:requestId,p_token_hash:tokenHash,p_expected_updated_at:expectedUpdatedAt,p_intent:intent,p_message:message,
   });
+  if(error)return {...failure(safeStaffMessage(error.message,"The response could not be confirmed. Review its saved status before trying again.")),responseRejected:["22023","40001","42501","23514"].includes(error.code??"")};
+  if(!data||!isUuid(data.source_event_id)||data.change_order_id!==lookup.changeOrder.id||typeof data.replayed!=="boolean")return failure("The response could not be confirmed. Review its saved status before trying again.");
+  await deliverCustomerSourceEvent({id:data.source_event_id});
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
   return success(intent === "decline" ? "The additional work was declined. Angel Tree Services will follow up if needed." : "Your requested changes were sent to Angel Tree Services.");
@@ -509,3 +478,5 @@ function money(centsValue: number) { return new Intl.NumberFormat("en-US", { sty
 function failure(message: string): ChangeOrderActionState { return { status: "error", message: safeStaffMessage(message) }; }
 function success(message: string): ChangeOrderActionState { return { status: "success", message }; }
 function revalidateChangeOrderPaths(id: string, jobId: string | null, organizationId: string | null) { revalidatePath("/admin/change-orders"); revalidatePath(`/admin/change-orders/${id}`); if (jobId) { revalidatePath(`/admin/jobs/${jobId}`); revalidatePath(`/crew/jobs/${jobId}`); } if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`); }
+
+function isUuid(value:unknown):value is string{return typeof value==="string"&&/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);}

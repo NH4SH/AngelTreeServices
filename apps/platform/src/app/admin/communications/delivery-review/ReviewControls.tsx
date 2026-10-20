@@ -2,7 +2,7 @@
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
-import { reviewEmailDelivery, reviewLegacyEmail, prepareOfficeNotice, type DeliveryReviewState } from "./actions";
+import { reviewEmailDelivery, reviewLegacyEmail, prepareOfficeNotice, prepareMissingSourceActivity, type DeliveryReviewState } from "./actions";
 const initial:DeliveryReviewState={status:'idle',message:''};
 export function ReviewControls({id,recipient,providerReference,canManage,canRetry,canCopy,canRepair}:{id:string;recipient:string;providerReference:string|null;canManage:boolean;canRetry:boolean;canCopy:boolean;canRepair:boolean}) {
   const router=useRouter(),field=useId(),requestId=useRef('');
@@ -38,4 +38,17 @@ export function OfficeNoticeControl({jobId}:{jobId:string}) {
 export function LegacyReviewControl({eventId,reference}:{eventId:string;reference:string|null}) {
   const router=useRouter(),field=useId();const [state,action,pending]=useReliableActionState(async(previous:DeliveryReviewState,form:FormData)=>{const result=await reviewLegacyEmail(previous,form);router.refresh();return result;},initial);
   return <details className="delivery-review-options"><summary>Verify earlier receipt — no email</summary><form className="form-stack" onSubmit={event=>{event.preventDefault();void action(new FormData(event.currentTarget));}}><input name="event_id" type="hidden" value={eventId}/><label htmlFor={field+'ref'}>Provider message ID</label><input id={field+'ref'} name="provider_reference" defaultValue={reference??''} required/><label htmlFor={field+'reason'}>Review reason</label><textarea id={field+'reason'} name="reason" required minLength={5} maxLength={1000} rows={2}/><button className="secondary-action" disabled={pending}>{pending?'Checking…':'Check receipt — no email'}</button>{state.message?<p className={`form-message ${state.status}`} role={state.status==='error'?'alert':'status'}>{state.message}</p>:null}</form></details>;
+}
+
+export function SourceActivityControl({sourceId}:{sourceId:string}){
+  const router=useRouter(),field=useId(),attempt=useRef<{id:string;reason:string}|undefined>(undefined);
+  const [state,action,pending]=useReliableActionState(async(previous:DeliveryReviewState,form:FormData)=>{
+    const reason=String(form.get("reason")??"").trim();if(attempt.current?.reason!==reason)attempt.current={id:crypto.randomUUID(),reason};
+    form.set("request_id",attempt.current.id);const result=await prepareMissingSourceActivity(previous,form);router.refresh();return result;
+  },initial);
+  return <details className="delivery-review-options"><summary>Review missing alerts</summary><form method="post" className="form-stack" onSubmit={event=>{event.preventDefault();void action(new FormData(event.currentTarget));}}>
+    <input type="hidden" name="source_event_id" value={sourceId}/><label htmlFor={field+"reason"}>Review reason</label><textarea id={field+"reason"} name="reason" required minLength={5} maxLength={1000} rows={2}/>
+    <button className="secondary-action" disabled={pending}>{pending?"Preparing…":"Prepare alerts — no email"}</button>
+    {state.message?<p className={`form-message ${state.status}`} role={state.status==="error"||state.status==="warning"?"alert":"status"}>{state.message}</p>:null}
+  </form></details>;
 }

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
-import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
 import { isInvoicePaymentPreference } from "@/lib/payments/payment-options";
-import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
-import { paymentPreferenceLabel } from "@/lib/payments/payment-options";
+import { deliverCustomerSourceEvent } from "@/lib/notifications/source-events";
 import { hashPortalToken } from "@/lib/portal/tokens";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceSharedRateLimit } from "@/lib/security/rate-limit";
@@ -39,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return responseError("This payment preference could not be saved right now.", 503);
   }
 
-  const { data, error } = await supabase.rpc("record_invoice_payment_preference", {
+  const { data, error } = await supabase.rpc("record_invoice_preference_with_event", {
     p_preference: body.preference,
     p_token_hash: tokenHash,
   });
@@ -51,32 +49,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return responseError("This payment preference could not be saved right now.", 409);
   }
 
-  const result = Array.isArray(data) ? data[0] : data;
-  const changed = Boolean(result?.preference_changed);
-  let notificationFailed = false;
-
-  if (changed) {
-    const payments = await getSuccessfulPaymentTotal(supabase, lookup.invoice.id);
-    const customerName = lookup.invoice.organizations?.name ?? lookup.invoice.customers?.display_name ?? "Customer";
-    await emitCustomerActivity({
-      category: "payments",
-      customerId: lookup.invoice.customer_id,
-      destinationPath: `/admin/invoices/${lookup.invoice.id}`,
-      eventType: "customer_selected_payment_preference",
-      idempotencyKey: `invoice:${lookup.invoice.id}:payment-preference:${body.preference}:${Date.now()}`,
-      invoiceId: lookup.invoice.id,
-      metadata: {
-        balance_due_cents: Math.max(0, lookup.invoice.total_cents - payments.totalCents),
-        payment_preference: body.preference,
-      },
-      organizationId: lookup.invoice.organization_id,
-      recordLabel: lookup.invoice.invoice_number || "Invoice",
-      subjectId: lookup.invoice.id,
-      subjectType: "invoice",
-      summary: `${customerName} selected ${paymentPreferenceLabel(body.preference)} for ${lookup.invoice.invoice_number || "an invoice"}. No payment was recorded.`,
-      title: "Customer selected a payment option",
-    });
-  }
+  const result=data;
+  if(!result||result.invoice_id!==lookup.invoice.id||typeof result.preference_changed!=="boolean"
+    ||(result.preference_changed&&result.source_event_id===null)
+    ||(result.source_event_id!==null&&!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(result.source_event_id??"")))return responseError("This payment preference could not be confirmed. Refresh to review its saved status.",503);
+  const changed=result.preference_changed;
+  const notificationFailed=result.source_event_id?!(await deliverCustomerSourceEvent({id:result.source_event_id})).prepared:false;
 
   return NextResponse.json({ ok: true, changed, notificationFailed });
 }

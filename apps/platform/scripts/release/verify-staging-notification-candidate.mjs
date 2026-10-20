@@ -34,7 +34,9 @@ export function verifyNotificationSources(read,inventory){
   assert.equal(candidate.additionalMigration.name,'20261020060328_atomic_customer_activity_notifications.sql');
   assert.equal(candidate.additionalMigration.sha256,sha(read('supabase/migrations/'+candidate.additionalMigration.name)));
   const files=[...previous.files,candidate.additionalMigration];
-  assert.deepEqual(inventory,files.map(f=>f.name).sort(),'Unreviewed migration inventory.');
+  const deferred=JSON.parse(read('supabase/staging/deferred-migrations.json')).migrations.filter(f=>!files.some(known=>known.name===f.name));
+  assert.ok(deferred.every(f=>f.name>candidate.additionalMigration.name),'Local-only changes must follow candidate95.');
+  assert.deepEqual(inventory,[...files,...deferred].map(f=>f.name).sort(),'Unreviewed migration inventory.');
   assert.equal(candidate.catalogObjectCount,4782);assert.equal(candidate.delta.added.length,26);
   assert.deepEqual(candidate.delta.changed.map(r=>r.key),['routine|app_private.email_source_eligible(c jsonb, p jsonb)','routine|app_private.email_source_snapshot(c jsonb)']);
   assert.equal(candidate.delta.removed.length,0);

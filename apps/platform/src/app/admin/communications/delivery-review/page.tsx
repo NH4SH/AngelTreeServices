@@ -8,14 +8,18 @@ import { hasAllowedRole,platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { emailDeliveryLabel } from "@/lib/email/delivery-labels";
-import { OfficeNoticeControl,ReviewControls,LegacyReviewControl } from "./ReviewControls";
+import { OfficeNoticeControl,ReviewControls,LegacyReviewControl,SourceActivityControl } from "./ReviewControls";
 type Row={id:string;kind:string;recipient:string;subject:string;state:string;delivery_status:string;provider_message_id:string|null;attempt_count:number;first_dispatched_at:string|null;lease_expires_at:string|null;repair_state:string;problem_code:string|null;created_at:string;retry_window_open:boolean;followup_sync_pending:boolean;quote_id:string|null;invoice_id:string|null;change_order_id:string|null;job_id:string|null};
-export default async function DeliveryReviewPage({searchParams}:{searchParams:Promise<{all?:string;id?:string;page?:string}>}) {
+export default async function DeliveryReviewPage({searchParams}:{searchParams:Promise<{all?:string;id?:string;page?:string;source_page?:string}>}) {
   const params=await searchParams,context=await getAuthenticatedPlatformContext('/admin/communications/delivery-review');
   if(!context.configured)return <SetupRequired title="Configure Supabase before reviewing delivery"/>;
   const canRead=hasAllowedRole(context.roles,platformRoleGroups.internalStaff),canManage=hasAllowedRole(context.roles,platformRoleGroups.accessApproval);
   const page=params.id?1:Math.max(1,Math.min(10000,Number(params.page)||1));
   const db=await createClient();const result=canRead&&db?await callDeliveryCommand(db,'list_outbound_deliveries',{p_all:params.all==='1',p_page:page,p_id:/^[a-f0-9-]{36}$/i.test(params.id??'')?params.id:null}):null;
+  const sourcePage=Math.max(1,Math.min(10000,Number(params.source_page)||1));
+  const sourceResult=canManage&&db?await callDeliveryCommand(db,"list_pending_customer_source_events",{p_page:sourcePage}):null;
+  const pendingSources=sourceResult?.data as {total:number;events:{id:string;title:string;destination_path:string;created_at:string;preparation_problem:string|null}[]}|null|undefined;
+  const sourceUnavailable=canManage&&(sourceResult?.error||!pendingSources||!Number.isSafeInteger(pendingSources.total)||pendingSources.total<0||!Array.isArray(pendingSources.events));
   const data=result?.data,rows=(data?.deliveries??[]) as Row[];
   return <PlatformFrame active="communications" roles={context.roles} userEmail={context.user.email}><div className="shell app-content delivery-review-page">
     <Link href="/admin/communications">Back to Leads &amp; Communications</Link>
@@ -34,7 +38,17 @@ export default async function DeliveryReviewPage({searchParams}:{searchParams:Pr
           <ReviewControls id={row.id} recipient={row.recipient} providerReference={row.provider_message_id} canManage={canManage} canRetry={canRetry} canCopy={canCopy} canRepair={row.state==='accepted'}/>
         </article>;
       })}</div>}
-      <ListPagination basePath="/admin/communications/delivery-review" count={data?.total??0} page={page} pageSize={50} params={{all:params.all,id:params.id}}/>
+      <ListPagination basePath="/admin/communications/delivery-review" count={data?.total??0} page={page} pageSize={50} params={{all:params.all,id:params.id,source_page:params.source_page}}/>
+      {sourceUnavailable?<p className="form-message error" role="alert">Missing alerts could not be loaded. Refresh before taking action.</p>:null}
+      {!sourceUnavailable&&pendingSources&&pendingSources.total>0?<details className="detail-panel" id="missing-customer-alerts"><summary>Customer activity awaiting alerts ({pendingSources.total})</summary>
+        <p>The customer’s change is saved. Prepare its office alerts and saved emails here without sending email.</p>
+        {pendingSources.events.map((event:{id:string;title:string;destination_path:string;created_at:string;preparation_problem:string|null})=><article className="record-row" key={event.id}>
+          <strong>{event.title}</strong><p>{formatBusinessDateTime(new Date(event.created_at),{dateStyle:"medium",timeStyle:"short"})}</p>
+          <Link href={event.destination_path}>Open record</Link>
+          {event.preparation_problem?<p className="form-helper">Earlier activity needs manual review. No new email has been prepared.</p>:<SourceActivityControl sourceId={event.id}/>}
+        </article>)}
+        <ListPagination basePath="/admin/communications/delivery-review" count={pendingSources.total} page={sourcePage} pageSize={20} pageParam="source_page" params={{all:params.all,id:params.id,page:String(page)}}/>
+      </details>:null}
       {data?.pending_office_notices?.length?<details className="detail-panel"><summary>Office notices not prepared</summary><p>Saved requests remain available. Preparing notices contacts the office, never the customer. Older requests without an original saved submission require manual review.</p>{data.pending_office_notices.map((row:{id:string;name:string;recoverable:boolean})=><div className="record-row" key={row.id}><Link href={`/admin/jobs/${row.id}`}>{row.name}</Link>{row.recoverable&&canManage?<OfficeNoticeControl jobId={row.id}/>:null}</div>)}</details>:null}
       {data?.legacy_attempts?.length?<details className="detail-panel"><summary>Earlier uncertain email attempts</summary><p>These attempts predate saved message versions. A provider check can repair their receipts; it will not guess their content, mark newer documents sent or resend them.</p>{data.legacy_attempts.map((row:{id:string;subject:string;recipient:string;provider_message_id:string|null;quote_id:string|null;invoice_id:string|null})=><article className="record-row" key={row.id}><strong>{row.subject}</strong><p>{row.recipient}</p>{row.quote_id||row.invoice_id?<Link href={row.invoice_id?`/admin/invoices/${row.invoice_id}`:`/admin/quotes/${row.quote_id}`}>Open record</Link>:null}{canManage?<LegacyReviewControl eventId={row.id} reference={row.provider_message_id}/>:null}</article>)}</details>:null}
       {data?.unmatched_events?<p className="form-helper">Some provider receipts could not be linked safely. They were retained without changing a customer record or sending email.</p>:null}

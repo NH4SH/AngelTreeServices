@@ -1351,3 +1351,30 @@ assertion and process exit. All new Auth/profile/role/notification/outbox fixtur
 temporary grants and synthetic provider acceptance roll back. No provider
 transport or network send is invoked. Never run positive fixtures on hosted
 staging or production. See `STAGING_NOTIFICATION_RECONCILIATION.md`.
+
+## Durable customer source handoff
+
+`customer-source-events.test.mjs` and `change-order-response-attempt.test.mjs` run
+in the regular unit gate. The opt-in SQL suite requires a NEW empty local database
+replayed through migration96 using the existing disposable bootstrap. It accepts
+only the named local Docker socket/container and a scratch database named
+`ats_source_event_fresh_` followed by32 lowercase hex characters; it rejects the
+shared `postgres` database. Never point it at staging/production or copy business
+rows into the scratch DB.
+
+```sh
+SOURCE_HANDOFF_DISPOSABLE=1 \
+SOURCE_HANDOFF_DOCKER_BIN=/path/to/local/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+SOURCE_HANDOFF_DATABASE="$SOURCE_HANDOFF_FRESH_DATABASE" \
+SOURCE_HANDOFF_RESULTS_FILE="$SOURCE_HANDOFF_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/source-event-handoff.integration.test.mjs
+```
+
+The17 scenarios exercise actual SQL/RLS/row locks and the response server action;
+provider transport is always a stub. They temporarily inject constraints in their
+own scratch database, remove only those constraints, revoke only their own tokens
+and disable only their own synthetic actors. Financial/audit history remains.
+No migration reset, hosted write, real email or scanner activation runs.
+See `../DURABLE_SOURCE_EVENT_HANDOFF.md` for scope, mixed-client holds, reproducible
+local evidence, limitations and the separate staging96 reconciliation boundary.

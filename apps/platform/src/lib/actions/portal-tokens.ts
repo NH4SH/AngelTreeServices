@@ -20,7 +20,7 @@ import { normalizeMultiQuoteIds } from "@/lib/quotes/multi-email";
 import type { QuoteStatus } from "@/lib/types/database";
 import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { emitCustomerActivity } from "@/lib/notifications/customer-activity";
+import { deliverCustomerSourceEvent } from "@/lib/notifications/source-events";
 
 export type PortalTokenActionState = {
   ok: boolean;
@@ -323,20 +323,7 @@ export async function approveQuoteByPortalToken(
     return { ok: false, status: "error", message: safeStaffMessage(approvalResult.message, "The quote could not be approved.") };
   }
 
-  await emitCustomerActivity({
-    category: "quotes",
-    customerId: lookup.quote.customer_id,
-    destinationPath: `/admin/quotes/${lookup.quote.id}`,
-    eventType: "quote_portal_approved",
-    idempotencyKey: `quote:${lookup.quote.id}:portal-approved`,
-    organizationId: lookup.quote.organization_id,
-    quoteId: lookup.quote.id,
-    recordLabel: lookup.quote.quote_number || "Quote",
-    subjectId: lookup.quote.id,
-    subjectType: "quote",
-    summary: `${lookup.quote.organizations?.name ?? lookup.quote.customers?.display_name ?? "Customer"} approved ${lookup.quote.quote_number || "a quote"}.`,
-    title: "Quote approved by customer",
-  });
+  await deliverCustomerSourceEvent({key: `quote:${lookup.quote.id}:portal-approved`});
 
   revalidatePortalQuote(rawToken, lookup.quote.id);
   return { ok: true, status: "success", message: "Thank you. Your quote has been approved. Angel Tree Services will follow up with scheduling details." };
@@ -359,24 +346,7 @@ export async function requestQuoteChangesByPortalToken(
   });
   if (!result.ok) return { ok: false, status: "error", message: result.message, requestRejected: result.rejected };
   const receipt = result.receipt;
-  // Stable notification identity also allows recovery when a response was lost
-  // before this existing notification boundary ran. Core history is already
-  // committed atomically; notification delivery keeps its existing semantics.
-  await emitCustomerActivity({
-    body: message,
-    category: "quotes",
-    customerId: receipt.customer_id,
-    destinationPath: `/admin/quotes/${receipt.quote_id}`,
-    eventType: "quote_portal_changes_requested",
-    idempotencyKey: `quote:${receipt.quote_id}:change-request:${receipt.note_id}`,
-    organizationId: receipt.organization_id,
-    quoteId: receipt.quote_id,
-    recordLabel: receipt.quote_number || "Quote",
-    subjectId: receipt.quote_id,
-    subjectType: "quote",
-    summary: `${receipt.party_name} requested changes to ${receipt.quote_number || "a quote"}.`,
-    title: "Customer requested quote changes",
-  });
+  await deliverCustomerSourceEvent({key: `quote:${receipt.quote_id}:change-request:${receipt.note_id}`});
   revalidatePortalQuote(rawToken, receipt.quote_id);
   return { ok: true, status: "success", message: "Your change request has been sent. Angel Tree Services will review it and follow up." };
 }

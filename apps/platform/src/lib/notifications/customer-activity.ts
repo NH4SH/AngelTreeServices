@@ -58,10 +58,7 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
       p_destination: path ? buildCanonicalAppUrl(path) : null,
     });
     const saved = prepared.data;
-    if (prepared.error || !uuid(saved?.activity_id) || saved.legacy_hold !== false
-      || typeof saved.created !== "boolean" || !Number.isSafeInteger(saved.notification_count) || saved.notification_count < 0
-      || !Array.isArray(saved.delivery_ids) || !saved.delivery_ids.every(uuid) || saved.delivery_count !== saved.delivery_ids.length
-      || new Set(saved.delivery_ids).size !== saved.delivery_ids.length || saved.delivery_ids.length > saved.notification_count) {
+    if (prepared.error || !isConfirmedCustomerActivity(saved)) {
       throw Error("Activity preparation unconfirmed");
     }
     // Missing configuration leaves complete saved requests visible in Delivery
@@ -78,4 +75,11 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
   } catch {
     console.error("Customer activity notification pipeline needs review.", { eventType: input.eventType, subjectId: input.subjectId });
   }
+}
+
+export function isConfirmedCustomerActivity(saved: any): saved is {activity_id:string;created:boolean;notification_count:number;delivery_count:number;delivery_ids:string[];legacy_hold:false} {
+  return uuid(saved?.activity_id) && saved.legacy_hold === false && typeof saved.created === "boolean"
+    && Number.isSafeInteger(saved.notification_count) && saved.notification_count >= 0
+    && Array.isArray(saved.delivery_ids) && saved.delivery_ids.every(uuid) && saved.delivery_count === saved.delivery_ids.length
+    && new Set(saved.delivery_ids).size === saved.delivery_ids.length && saved.delivery_ids.length <= saved.notification_count;
 }

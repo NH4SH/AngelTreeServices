@@ -10,6 +10,10 @@
     {
       "name": "20261020060328_atomic_customer_activity_notifications.sql",
       "sha256": "4cff8807d44a8c1d3cebff8aac399bf904916c78a5d93329fbda54d85cdc8935"
+    },
+    {
+      "name": "20261020064543_durable_customer_source_events.sql",
+      "sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006"
     }
   ]
 }

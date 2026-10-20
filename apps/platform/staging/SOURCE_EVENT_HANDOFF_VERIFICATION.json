@@ -1,0 +1,90 @@
+{
+  "sourceCommit": "ca308092a1ba1ced1943a5a6f3673fd1b3148be6",
+  "sourceBranch": "codex/durable-source-event-handoff",
+  "priorReconciliationPushedToMain": true,
+  "regularRegressionResults": 849,
+  "sqlIntegrationScenarios": 17,
+  "sqlTapResults": 18,
+  "providerTransport": "stub only",
+  "actualProviderCalls": 0,
+  "freshEmptyReplayMigrations": 96,
+  "sqlLintErrors": 0,
+  "advisorBaselineWarns": 42,
+  "advisorCurrentWarns": 42,
+  "newAdvisorWarnings": 0,
+  "newAdvisorInfo": {
+    "unused_index": 3,
+    "rls_enabled_no_policy": 2
+  },
+  "localUpgrade": {
+    "target": "loopback disposable local only",
+    "migration96Sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006",
+    "nativeLedgerUnchanged": 68,
+    "existingObjectsUnchanged": {
+      "triggers": true,
+      "functions": true,
+      "constraints": true
+    },
+    "addedObjects": {
+      "triggers": 1,
+      "functions": 8,
+      "constraints": 14
+    },
+    "hostedWrites": 0
+  },
+  "preservation": {
+    "preexistingPublicTableRowSetsPreserved": 110,
+    "originalRowFingerprintsUnchanged": true,
+    "configurationUnchanged": {
+      "ledger": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "documentSetting": true
+    },
+    "existingObjectDefinitionsUnchanged": {
+      "triggers": true,
+      "functions": true,
+      "constraints": true
+    },
+    "nativeLocalLedger": 68,
+    "newSchemaVersion": 96,
+    "onlyBusinessAdditions": "one owned synthetic quote-change fixture; token revoked",
+    "hostedWrites": 0,
+    "providerSends": 0
+  },
+  "localApi": {
+    "localTargetOnly": true,
+    "postgrestSchemaReloaded": true,
+    "serviceLookupExact": true,
+    "anonymousRejections": 3,
+    "appResponding": true,
+    "providerCalls": 0,
+    "hostedWrites": 0
+  },
+  "isolatedNode22Typecheck": true,
+  "isolatedOptimizedBuild": true,
+  "browser": {
+    "pendingQueueRendered": true,
+    "keyboardDisclosuresVerified": true,
+    "reasonFieldAndNoSendLabelVerified": true,
+    "viewportWidth": 908,
+    "phoneViewportTested": false,
+    "sharedLocalEmailsPreparedOrSent": 0,
+    "oneSyntheticPendingSourceRetained": true,
+    "ownTokenRevoked": true
+  },
+  "hostedStaging": {
+    "lastVerifiedMigrationCount": 95,
+    "writesThisPackage": 0,
+    "hostedSchemaRecheckedThisPackage": false
+  },
+  "productionPublishedDeploy": "6ad6ecfc6c03786554247e4a",
+  "productionDeployMetadataReadOnlyVerified": true,
+  "productionChanged": false,
+  "deployed": false,
+  "newPackagePushed": false,
+  "readyForHosting": false,
+  "alignedMainCommit": "074b94e32ee54cca4d625202cd47c72d5333adf2",
+  "incomingMainUpdate": "074b94e; website-only changes preserved by fast-forward; no app/migration changes"
+}

@@ -150,9 +150,9 @@ test('quote change requests: real local authorization, atomicity, concurrency an
       '@/lib/quotes/change-request':{requestQuoteChanges},'@/lib/supabase/admin':{getServiceRoleClient:()=>db},'@/lib/supabase/server':{},'@/lib/portal/quote-links':{},
       '@/lib/portal/tokens':{hashPortalToken:raw=>createHash('sha256').update(raw).digest('hex')},'@/lib/portal/urls':{},'@/lib/quotes/multi-email':{},
       '@/lib/security/portal-rate-limit':{checkPortalActionRateLimit:async()=>({available:true,allowed:true})},'@/lib/security/errors':{},
-      '@/lib/notifications/customer-activity':{emitCustomerActivity:async x=>notifications.push(x)},
+      '@/lib/notifications/source-events':{deliverCustomerSourceEvent:async x=>notifications.push(x)},
     }).requestQuoteChangesByPortalToken;
     const form=()=>{const f=new FormData();for(const[key,value]of Object.entries({token:k.raw,message:'Please retain this exact message',request_id:id,expected_revision:String(q.edit_revision)}))f.set(key,value);return f;};
-    const first=await action({},form()),retry=await action({},form());assert.equal(first.status,'success');assert.deepEqual(first,retry);assert.equal(notifications.length,2);assert.equal(notifications[0].idempotencyKey,notifications[1].idempotencyKey);assert.equal((await events(q)).length,1);assert.ok(paths.includes(`/admin/quotes/${q.id}`));
+    const first=await action({},form()),retry=await action({},form());assert.equal(first.status,'success');assert.deepEqual(first,retry);assert.equal(notifications.length,2);assert.equal(notifications[0].key,notifications[1].key);assert.equal((await events(q)).length,1);assert.ok(paths.includes(`/admin/quotes/${q.id}`));
   });
 });

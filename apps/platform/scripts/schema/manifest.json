@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "3776d96e8fc9dace5ba6473e90ba28296a288302459211733145650042ee01c2",
+  "typesSha256": "8835e85c6b3ef3a1a6b4a197dd2d6bb5fc6d216c219eb7cef9b5b23bffe9cfe0",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -381,6 +381,10 @@
     {
       "name": "20261020060328_atomic_customer_activity_notifications.sql",
       "sha256": "4cff8807d44a8c1d3cebff8aac399bf904916c78a5d93329fbda54d85cdc8935"
+    },
+    {
+      "name": "20261020064543_durable_customer_source_events.sql",
+      "sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006"
     }
   ]
 }

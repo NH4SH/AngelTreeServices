@@ -6,7 +6,9 @@ export function ListPagination({
   page,
   pageSize,
   params,
+  pageParam = "page",
 }: {
+  pageParam?: string;
   basePath: string;
   count: number;
   page: number;
@@ -33,7 +35,7 @@ export function ListPagination({
     Object.entries(params).forEach(([key, value]) => {
       if (value) query.set(key, value);
     });
-    query.set("page", String(nextPage));
+    query.set(pageParam, String(nextPage));
     return `${basePath}?${query.toString()}`;
   }
 }

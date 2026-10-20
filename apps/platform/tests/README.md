@@ -1,5 +1,29 @@
 # CRM Usability Regression Checks
 
+## Customer portal local acceptance
+
+`portal-view-input.test.mjs` and the portal header regression run in the ordinary
+unit gate. The opt-in suite uses real local Auth, PostgreSQL commands and anonymous
+HTTP quote/invoice HTML plus view-tracking requests:
+
+```sh
+CUSTOMER_PORTAL_DISPOSABLE=1 \
+CUSTOMER_PORTAL_LOCAL_STATUS_FILE="$CUSTOMER_PORTAL_STATUS_FILE" \
+CUSTOMER_PORTAL_WEB_URL=http://127.0.0.1:3102 \
+CUSTOMER_PORTAL_RESULTS_FILE="$CUSTOMER_PORTAL_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/customer-portal.integration.test.mjs
+```
+
+Only the existing loopback API port 54321 and app port 3102 are accepted. Tokens
+are generated in memory and never logged. The suite revokes its own tokens and
+signs out/disables only its own actor; its synthetic financial/audit history stays.
+It never sends email, invokes Stripe, resets counters or changes scan switches.
+Approval/replay and manual bookkeeping run their real database commands; browser
+form submission and provider notification delivery are separate verification.
+Next dev HTML uses `no-cache, must-revalidate`; the compiled source-copy check
+separately requires private/no-store. Do not infer hosted CDN behavior from local
+checks. See `../CUSTOMER_PORTAL_ACCEPTANCE.md` for exact evidence and scope.
+
 ## Dashboard employee query bounds
 
 `employee-directory-reads.test.mjs` runs in the normal unit gate. It exercises

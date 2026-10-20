@@ -1,0 +1,116 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "06f768d0c2785321f3e206ec33b177993d6c4101",
+  "dashboardFixPushedToMain": true,
+  "portalChangesPushed": false,
+  "portalChangesDeployed": false,
+  "nullViewBodyBeforeStatus": 500,
+  "nullViewBodyAfterStatus": 400,
+  "viewBodyLimitBytes": 4096,
+  "chunkedBodyLimitVerified": true,
+  "portalReferrerPolicy": "no-referrer",
+  "unitRegressionResults": 810,
+  "integrationResultsIncludingParent": 7,
+  "integrationScenarios": [
+    {
+      "name": "anonymous quote capability renders reviewed scope and totals without internal details or stored credentials",
+      "pass": true
+    },
+    {
+      "name": "simultaneous view beacons count one meaningful session and retain one history event",
+      "pass": true
+    },
+    {
+      "name": "stale customer approval fails; concurrent current/repeated approval creates one work order and audit event",
+      "pass": true
+    },
+    {
+      "name": "customer invoice renders the correct balance before and after an idempotent local manual payment",
+      "pass": true
+    },
+    {
+      "name": "quote and invoice expired, revoked, unknown and wrong-document capabilities reveal no customer record",
+      "pass": true
+    },
+    {
+      "name": "malformed and streamed oversized beacons fail safely; foreign origin and direct RPC callers cannot record a view",
+      "pass": true
+    }
+  ],
+  "compiledHeaders": {
+    "checks": [
+      {
+        "kind": "quote",
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "referrerPolicy": "no-referrer"
+      },
+      {
+        "kind": "invoice",
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "referrerPolicy": "no-referrer"
+      },
+      {
+        "kind": "change-order",
+        "status": 200,
+        "cacheControl": "private, no-store, max-age=0",
+        "referrerPolicy": "no-referrer"
+      },
+      {
+        "kind": "api-denial",
+        "status": 403,
+        "cacheControl": "private, no-store, max-age=0",
+        "referrerPolicy": "no-referrer"
+      }
+    ],
+    "sourceCommit": "06f768d0c2785321f3e206ec33b177993d6c4101",
+    "syntheticConfigurationOnly": true,
+    "outboundNetworkBlocked": true,
+    "hostedVerification": false,
+    "deployed": false
+  },
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "buildConfigurationSyntheticOnly": true,
+  "offlineSchemaContractPassed": true,
+  "tokenExpiryRevocationAndWrongDocumentVerified": true,
+  "internalCanariesAndServerKeyAbsentFromHttpResponses": true,
+  "approvalReplayAndConcurrentWorkOrderCreationVerified": true,
+  "duplicateViewSessionsDeduplicated": true,
+  "manualPaymentReplayAndDisplayedBalanceVerified": true,
+  "approvalTestTransport": "real transactional database commands and actual anonymous HTTP page reads",
+  "browserApprovalFormSubmissionTested": false,
+  "providerDeliveryOrSettlementTested": false,
+  "retirement": {
+    "actors": 3,
+    "disabledProfiles": 3,
+    "separatedEmployees": 3,
+    "remainingSessions": 0,
+    "unrevokedTokens": 0
+  },
+  "preservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": false,
+    "changedTables": [
+      "security_rate_limits"
+    ],
+    "allOtherPublicTablesPreserved": true,
+    "expectedRateLimitCounterUpdates": true,
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "blockedOutboundRequestsInLiveSuite": 0,
+  "databaseSchemaOrGrantsChanged": false,
+  "productionWritesOrDeployments": false,
+  "productionDeployObserved": "6ad6ecfc6c03786554247e4a",
+  "productionDeployState": "ready",
+  "stagingOrScannerReadinessFlagsChanged": false
+}

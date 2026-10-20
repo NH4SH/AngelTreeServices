@@ -49,3 +49,6 @@ export const privateNoStoreHeaders = [
 export const privateFileHeaders = privateNoStoreHeaders.map((header) =>
   header.key === "Referrer-Policy" ? { ...header, value: "no-referrer" } : header,
 );
+
+// Customer portal paths contain bearer tokens; keep them out of referrers too.
+export const privatePortalHeaders = privateFileHeaders;

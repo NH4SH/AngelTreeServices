@@ -27,12 +27,24 @@ export async function POST(request: Request) {
     return response(false, 415);
   }
 
-  let body: PortalViewRequest;
+  let parsed: unknown;
   try {
-    body = await request.json() as PortalViewRequest;
+    // Content-Length may be absent on a chunked request. Bound actual bytes too.
+    const reader = request.body?.getReader();
+    if (!reader) return response(false, 400);
+    const parts: Uint8Array[] = []; let bytes = 0;
+    while (true) {
+      const part = await reader.read(); if (part.done) break;
+      bytes += part.value.length;
+      if (bytes > maxBodyBytes) { await reader.cancel(); return response(false, 413); }
+      parts.push(part.value);
+    }
+    parsed = JSON.parse(Buffer.concat(parts).toString("utf8"));
   } catch {
     return response(false, 400);
   }
+  const body: PortalViewRequest = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? parsed as PortalViewRequest : {};
 
   const documentType = body.documentType === "quote" || body.documentType === "invoice"
     ? body.documentType

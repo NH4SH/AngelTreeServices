@@ -1,5 +1,9 @@
 # Dashboard URI warning: local fix and verification
 
+**Published October 20:** verified dashboard fix `06f768d` is pushed to main and
+`codex/dashboard-query-bounds`, with `[skip netlify]`. The dated local verification
+below precedes that push. The next local work is in `CUSTOMER_PORTAL_ACCEPTANCE.md`.
+
 October 20, 2026. Based on current main `b2a0b22`, which contains the verified
 permissions/private-file package pushed with `[skip netlify]`. The dashboard fix
 is local and pending push. No deployment or production write was performed.

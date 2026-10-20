@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contentSecurityPolicy, platformSecurityHeaders, privateNoStoreHeaders, privateFileHeaders } from "./headers.ts";
+import { contentSecurityPolicy, platformSecurityHeaders, privateNoStoreHeaders, privateFileHeaders, privatePortalHeaders } from "./headers.ts";
 
 test("platform headers block framing and limit browser capabilities", () => {
   const headers = new Map(platformSecurityHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
@@ -27,6 +27,12 @@ test("private route headers disable browser and intermediary caching", () => {
 
 test("private file routes retain no-store and suppress record URL referrers", () => {
   const headers = new Headers(privateFileHeaders.map(({key,value}) => [key,value]));
+  assert.match(headers.get("cache-control"), /private, no-store/);
+  assert.equal(headers.get("referrer-policy"), "no-referrer");
+});
+
+test("customer capability paths retain no-store and never send a referrer", () => {
+  const headers = new Headers(privatePortalHeaders.map(({key,value}) => [key,value]));
   assert.match(headers.get("cache-control"), /private, no-store/);
   assert.equal(headers.get("referrer-policy"), "no-referrer");
 });

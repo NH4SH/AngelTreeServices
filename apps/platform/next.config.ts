@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { platformSecurityHeaders, privateNoStoreHeaders, privateFileHeaders } from "./src/lib/security/headers";
+import { platformSecurityHeaders, privateNoStoreHeaders, privateFileHeaders, privatePortalHeaders } from "./src/lib/security/headers";
 import { assertCurrentDeploymentIsolation } from "./src/lib/security/deployment";
 
 assertCurrentDeploymentIsolation();
@@ -22,8 +22,8 @@ const nextConfig: NextConfig = {
       { source: "/crew/:path*", headers: privateNoStoreHeaders },
       { source: "/employee/:path*", headers: privateNoStoreHeaders },
       { source: "/files/:path*", headers: privateFileHeaders },
-      { source: "/portal/:path*", headers: privateNoStoreHeaders },
-      { source: "/api/portal/:path*", headers: privateNoStoreHeaders },
+      { source: "/portal/:path*", headers: privatePortalHeaders },
+      { source: "/api/portal/:path*", headers: privatePortalHeaders },
       { source: "/api/stripe/:path*", headers: privateNoStoreHeaders },
     ];
   },

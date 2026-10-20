@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "ce1ca85c6f97de903969d590cbbf9fa1064fc780",
+  "previousCandidateCount": 94,
+  "expectedMigrationCount": 95,
+  "previousCandidateSha256": "3c22b95773c782293a6ddfb8708e0e28a1d16e8f833f3cfe9499ab139d83aa3f",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261020060328_atomic_customer_activity_notifications.sql",
+    "sha256": "4cff8807d44a8c1d3cebff8aac399bf904916c78a5d93329fbda54d85cdc8935"
+  },
+  "shapeSeal": "11d743ad1d17d02c8dcff348ea97547a",
+  "ledgerSeal": "130b0d88c0c6ebe44f1a229fd187b4b4",
+  "initialApiAclSeal": "45e9f3474364dd26b69e029d82ca4e69",
+  "expectedApiAclSeal": "45e9f3474364dd26b69e029d82ca4e69",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4782,
+  "delta": {
+    "added": [
+      {
+        "key": "column|app_private.customer_activity_deliveries.delivery_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.customer_activity_deliveries.notification_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.customer_activity_preparations.activity_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.customer_activity_preparations.created_at",
+        "hash": "3d04c32817863295bfa15057f8293976861812c72fb56d1b3ec57f13c8c62a6f"
+      },
+      {
+        "key": "column|app_private.customer_activity_preparations.event_hash",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "column|app_private.customer_activity_preparations.request_key",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_deliveries.customer_activity_deliveries_delivery_id_fkey",
+        "hash": "e876a587b289185304408a6a2679f22a58567925e186ee1d9ce8eec721db7c20"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_deliveries.customer_activity_deliveries_delivery_id_key",
+        "hash": "f2266a7cfbdc3884e194571a0f06164797403f27844e9773f94011f543adb247"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_deliveries.customer_activity_deliveries_notification_id_fkey",
+        "hash": "f1d3954d0cd4390fdb10867517a68d5790d491509dc1a0b2d6a0237724ad1eeb"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_deliveries.customer_activity_deliveries_pkey",
+        "hash": "643c56190f8f179804ba8af11c88f3ffaf7e359d0215bef2751fb4f624886427"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_preparations.customer_activity_preparations_activity_id_fkey",
+        "hash": "bcf9514d366c915038375a6c97410df476a68670fe461a8df5957e5976f0a421"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_preparations.customer_activity_preparations_activity_id_key",
+        "hash": "69fad15a1d467a570c30c003e79a8d27a2ac3b9430b22d6192d64dd9fa5d42e2"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_preparations.customer_activity_preparations_event_hash_check",
+        "hash": "e190bced2635f929ffb4cb6e28e8ecae20b1a21ee0aa8c9a6802d88ca527d1c5"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_preparations.customer_activity_preparations_pkey",
+        "hash": "cbb6bc176548e5d590255cff91136a2a5b29c6cdf11d15c7d9242612d43fa813"
+      },
+      {
+        "key": "constraint|app_private.customer_activity_preparations.customer_activity_preparations_request_key_check",
+        "hash": "5673815cb1c1cf6724f39c98e98eed9ec136983cc8c5d33d5badebea30e134a2"
+      },
+      {
+        "key": "index|app_private.customer_activity_deliveries_delivery_id_key",
+        "hash": "f0439a3e80d489a81b832ea29aa23753eadcabe82685cb3dc6c28ae4b0249912"
+      },
+      {
+        "key": "index|app_private.customer_activity_deliveries_pkey",
+        "hash": "c72a2d34649061ee4dcec7e00785ccd44e792544b5222b1035c8f33eed5aaa5a"
+      },
+      {
+        "key": "index|app_private.customer_activity_preparations_activity_id_key",
+        "hash": "22e6389b8e557df3d9c8374410204772eb14cbb77428d94e2663c2625796a528"
+      },
+      {
+        "key": "index|app_private.customer_activity_preparations_pkey",
+        "hash": "41030df14027efa76b79c94260489293737b39fdcd8f2c126d98eb4b65c94cc1"
+      },
+      {
+        "key": "relation|app_private.customer_activity_deliveries",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "relation|app_private.customer_activity_preparations",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "routine|app_private.admin_activity_email_eligible(c jsonb, p jsonb)",
+        "hash": "e5a26a15f03d05632d08197318e7bcc1e714ed97af3a7ee1830168d9ea99574e"
+      },
+      {
+        "key": "routine|app_private.admin_activity_email_enabled(p_user uuid, p_category text)",
+        "hash": "74ed161e77fb54eeda291495ad21872d1d7a66df148a78d21693e6a23d311b10"
+      },
+      {
+        "key": "routine|app_private.sync_admin_activity_delivery()",
+        "hash": "fb04eb33c60a1f604b18897b72b6f496105689b3cabddf129708a90bcc137a19"
+      },
+      {
+        "key": "routine|public.prepare_customer_activity(p_event jsonb, p_envelope jsonb, p_destination text)",
+        "hash": "8430e3794a7cd56700aceda0378332d13df12ff8b78a66afe7842daf1e0a412f"
+      },
+      {
+        "key": "trigger|app_private.outbound_deliveries.sync_admin_activity_delivery",
+        "hash": "0a79b4e11e4d00797298d796869cadadfcfd4ee615e1e89e04b41830aadaf7d5"
+      }
+    ],
+    "changed": [
+      {
+        "key": "routine|app_private.email_source_eligible(c jsonb, p jsonb)",
+        "before": "e94f5cbedecd562504553df73053ff5c0c9dbb15aa0a887048b659439c97d6a1",
+        "after": "6bf966c389efd2055cf0e3d24dd9f9ec65bcd49bb04ae47981420219307bc67c"
+      },
+      {
+        "key": "routine|app_private.email_source_snapshot(c jsonb)",
+        "before": "b42da3bf5614113c0bb57eefc3d8cb096295b092fc8fccaee9718b5b7373678f",
+        "after": "e56bcb89eeff14c11c93a3e94dfb2e69c19811e3df2ef484f822d2c0400d77d2"
+      }
+    ],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

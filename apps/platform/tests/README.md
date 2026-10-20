@@ -1332,3 +1332,22 @@ history writes, with cleanup in `finally`. Actual database lock waits verify
 contention, not just sequential replays. Regular unit tests separately exercise
 redaction, incomplete acknowledgements, disabled configuration and bounded fan-out.
 See `ATOMIC_CUSTOMER_ACTIVITY_NOTIFICATIONS.md` for the precise recovery boundary.
+
+### Staging notification candidate95
+
+`staging-notification-candidate.test.mjs` is included in regular unit checks and
+never contacts a hosted service. It pins the unchanged94 candidate and exact95th
+migration, accepts only the two reviewed existing-helper extensions, and requires
+the exact95 catalog/ACL/defaults/ledger, empty private notification/outbox state,
+active Auth guard, assigned physical target and fresh effective configuration.
+Earlier93/94 verifiers remain historical and reject a95-entry target.
+
+`supabase/staging/tests/atomic-notifications.sql` adds35 local-only pgTAP assertions
+to the existing database suites, for236 in total. Run only in a NEW empty95-entry
+rehearsal database with the existing guarded Auth installer and reviewed local
+provider-default/object-grant overlay workflow. Use normal `postgres`; install
+pgTAP in `extensions` using the existing local harness. Check the plan, each
+assertion and process exit. All new Auth/profile/role/notification/outbox fixtures,
+temporary grants and synthetic provider acceptance roll back. No provider
+transport or network send is invoked. Never run positive fixtures on hosted
+staging or production. See `STAGING_NOTIFICATION_RECONCILIATION.md`.

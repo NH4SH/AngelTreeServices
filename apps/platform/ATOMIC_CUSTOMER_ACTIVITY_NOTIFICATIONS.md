@@ -141,3 +141,13 @@ Private local reproduction/build evidence:
 `/Users/noelsierra/Documents/Codex/2026-10-20/atomic-admin-notifications/`.
 Database-function guidance checked against the current
 [Supabase documentation](https://supabase.com/docs/guides/database/functions).
+
+## Publication and staging follow-up
+
+October20: verified implementation `ce1ca85` is pushed to `main` and
+`codex/atomic-admin-notifications`, deployment skipped. The separately authorized
+reconciliation now installs unchanged migration95 on the assigned staging database.
+See `STAGING_NOTIFICATION_RECONCILIATION.md` for current95 maintenance, exact local/
+hosted catalog/permissions and remaining gates. The verification and local-only
+statements above describe the implementation package's original review boundary;
+no production or app deployment is implied by the staging follow-up.

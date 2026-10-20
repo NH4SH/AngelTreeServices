@@ -1,0 +1,116 @@
+{
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migrationsBefore": 94,
+  "migrationsAfter": 95,
+  "exactLedgerVerified": true,
+  "originalMigrationBytesPreserved": true,
+  "fullCatalogMatchesLocalRehearsal": true,
+  "addedObjects": 26,
+  "changedExistingObjects": 2,
+  "removedObjects": 0,
+  "defaultsUnchanged": true,
+  "emptyOffStatePreserved": true,
+  "authGuardDefinitionAndEffectivePermissionsUnchanged": true,
+  "authAndApiConfigurationUnchanged": true,
+  "privateChangeRequests": 0,
+  "notificationState": {
+    "activities": 0,
+    "attempts": 0,
+    "deliveries": 0,
+    "emailEvents": 0,
+    "links": 0,
+    "notifications": 0,
+    "preparations": 0,
+    "providerEvents": 0,
+    "requests": 0,
+    "suppressions": 0
+  },
+  "repeatDryRunUpToDate": true,
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false,
+  "version": 1,
+  "sourceFixPushedToMain": "ce1ca85",
+  "reconciliationBranch": "codex/staging-notification-reconciliation",
+  "newReconciliationPackagePushed": false,
+  "regularTestsPassed": 836,
+  "localPgTapAssertionsPassed": 236,
+  "localNotificationAssertionsPassed": 35,
+  "isolatedTypecheckPassed": true,
+  "runtimeSourceChanged": false,
+  "optimizedBuildReusedFromVerifiedSource": "ce1ca85",
+  "offlineSchemaContractPassed": true,
+  "independentReadOnlyVerifierPassed": true,
+  "hostedEffectivePermissionProbes": {
+    "anonymousCommand": false,
+    "anonymousDeliveryReview": false,
+    "authGuardSyntheticStatus": 503,
+    "authenticatedCommand": false,
+    "authenticatedDeliveryReview": true,
+    "emptyCommandSearchPath": true,
+    "privateHelperApiGrants": 0,
+    "privateTableApiGrants": 0,
+    "privateTablesWithRls": 2,
+    "serviceCommand": true
+  },
+  "securityAdvisors": {
+    "before": {
+      "INFO": 27,
+      "WARN": 57
+    },
+    "after": {
+      "INFO": 29,
+      "WARN": 57
+    },
+    "added": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "detail": "Table \\`app_private.customer_activity_deliveries\\` has RLS enabled, but no policies exist",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "detail": "Table \\`app_private.customer_activity_preparations\\` has RLS enabled, but no policies exist",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      }
+    ]
+  },
+  "sharedLocalPreservation": {
+    "publicTablesChecked": 110,
+    "allRetainedVerifiedRowsExactlyMatch": true,
+    "baselineReference": "2026-10-20/atomic-admin-notifications/before.private.json",
+    "baselineEvidenceNote": "Initial current-turn local snapshot filename collided with the hosted metadata capture; independently reverified using retained previous-package baseline plus exact migration95 helper extensions.",
+    "existingConstraintsPreserved": true,
+    "originalFunctionsAndExactReviewedExtensionsVerified": true,
+    "unchanged": {
+      "ledger": true,
+      "policies": true,
+      "settings": true,
+      "documentSetting": true,
+      "buckets": true
+    },
+    "sharedNativeLedgerEntries": 68,
+    "sharedLocalBusinessWrites": 0,
+    "newNotificationCatalogMatchesRehearsal": true,
+    "newOrExtendedObjectsChecked": 28
+  },
+  "catalogObjectCount": 4782,
+  "schemaSeals": {
+    "shapeSeal": "11d743ad1d17d02c8dcff348ea97547a",
+    "apiAclSeal": "45e9f3474364dd26b69e029d82ca4e69",
+    "ledgerSeal": "130b0d88c0c6ebe44f1a229fd187b4b4",
+    "ownedDefaultsSeal": "7847b3f907bfe39c5cbd1c7696f2e003",
+    "managedDefaultsSeal": "08e1e381da30d8e4fba99db479f16a82"
+  },
+  "productionPublishedDeploy": "6ad6ecfc6c03786554247e4a",
+  "providerCalls": 0,
+  "projectKeysRetrievedOrRotated": false,
+  "sharedReadinessFlagsChanged": false,
+  "remainingGates": [
+    "Protected staging runtime/access/CDN acceptance",
+    "PR14 durable source-event handoff for older callers",
+    "Home scanner connection, restore/operator acceptance"
+  ]
+}

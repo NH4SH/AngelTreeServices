@@ -1,4 +1,134 @@
+## Combined public website release approved — October 20, 2026
+
+Owner approved commit, push and publication of the reviewed FAQ, estimate-label
+contrast, Landscaping case study and Drive photography patch. Release includes
+latest main a7a8543 and preserves its CRM staging changes without edits. All 43
+reviewed source hashes match before this release-record addition. Local release
+checks: 155 tests pass, 16 public pages validate; all built artifacts match the
+reviewed build. Use [skip ci] [skip netlify] on this commit and trigger only the
+public website project (86c48a95-ead4-4b15-8e57-fa827558b2f0). CRM production deploy
+6ad6ecfc6c03786554247e4a and analytics/consent configuration must remain unchanged.
+After publication verify the 16 pages, photos, metadata, links, FAQ, conditional
+email and Landscaping estimate selection without leads or calls. Capture exact
+commit/deploy and production checks in the October 16 chat release evidence.
+
 # Angel Tree Services Public Site Release Checklist
+
+## Combined release review — local only, October 20, 2026
+
+Verdict: ready for publishing approval after one corrected service-summary issue.
+Scope: tenth homepage FAQ, optional-field contrast, Landscaping case study and
+entry links, four approved Drive photos on Projects and pruning/grinding heroes.
+
+- Fixed a pre-existing public llms.txt sentence that still offered limited lawn
+  and property-care services. It now lists the confirmed existing-bush/hedge/bed
+  landscaping scope. Validator now rejects lawn-care offering terminology there.
+- Fetched GitHub main c5a3a98. Nine commits newer than local e6c5c30 affect only
+  apps/platform and supabase; none overlap this public patch. Tested an isolated
+  archive of that main revision with only the reviewed public files overlaid.
+  All 1,014 CRM/database source blobs match main verbatim. Actual checkout remains
+  at e6c5c30 with its pending changes preserved; no merge or commit performed.
+- Latest-main integration: 155/155 tests and 16 public-page validations pass.
+  Local build/validation also pass, and both public artifacts are byte-identical.
+- Compared against a fresh e6c5c30 build: eight existing artifacts change, one
+  new HTML page plus 32 responsive-photo/sidecar files added, no removals. All
+  15 existing pages preserve SEO metadata and JSON-LD. Sitemap adds only the new
+  case-study route. Analytics/consent, form/draft engines, shared page CSS,
+  robots and existing William Street case study remain unchanged.
+- Browser checks use inert loopback servers blocking Google, external connections
+  and lead submissions. FAQ has ten disclosures and 5/5 desktop columns; native
+  keyboard opening, visible focus and single-open grouping work. Optional labels
+  render at 14px, full opacity, deep green. Choosing Email makes email required;
+  No preference restores optional. No form was submitted or personal data entered.
+- Landscaping-to-case link opens correctly; both entry links are validated.
+  All four case-study estimate actions retain Landscaping; opening that URL
+  selects Landscaping. Case page has one H1, both approved photos and no overflow
+  at 320/390/768/1280 layout widths. Prior photo pass verifies responsive loading
+  and complete framing on the three photo-updated routes. No desktop case errors.
+- Detector warnings recorded in the preceding local photo/case reviews concern
+  unchanged shared styling; this review adds no visual/CSS change. Physical
+  devices and spoken screen-reader checks remain unperformed. No real lead or
+  end-to-end CRM test was attempted; intake implementation is unchanged.
+- Release requirement: apply this public patch atop the latest main at release,
+  preserving all newer CRM/database commits; never force-push this older checkout.
+  Confirm public-site-only Netlify publication and run non-submitting production
+  checks after release. Existing no-push/no-deploy hold remains in effect.
+- Evidence: October16 chat work/combined-release-review/ and
+  outputs/combined-release-review/. Final patch and explicit source/asset manifest
+  are captured there for review; private analysis artifacts are excluded.
+
+## Approved Drive photography — local only, October 20, 2026
+
+- Owner cleared the selected Drive photos for website use and confirmed tree/bush
+  trimming beside the Fredericksburg tower. Neighboring business name uncertain,
+  so no business name, endorsement, customer identity or unconfirmed date added.
+  The former client's photos 5/6 and associated job remain excluded.
+- Pruning hero now shows the confirmed trimming climber. Stump-grinding hero now
+  shows the operator following tree removal. Projects gains four full-frame photos:
+  trimming, grinding, cleanup in progress and trimming beside the tower. Existing
+  SD-card landscaping images and both case studies retained without alteration.
+- New public-drive-photography.json and scripts/generate-drive-photography.py
+  produce 480/840/1280/1600px WebP from hash-checked private originals. No source
+  Drive credentials/URLs or original files ship. EXIF/GPS removed; all 16 shipping
+  derivatives have provenance sidecars. No retouching or generative alteration.
+- 155 local tests and validation of all 16 pages pass. Artifact comparison against
+  the pre-edit local baseline: exactly three existing pages changed, plus 32 new
+  derivative/sidecar files. All existing page heads and link destinations identical;
+  homepage, shared styles, analytics/consent, estimate/draft code, sitemap, existing
+  project content and CRM unchanged. Prior pending local work preserved.
+- Browser review: desktop 1280x720; isolated same-origin 320px and 390px frames
+  running the actual pages with collection/submissions blocked. No horizontal
+  overflow, new hero images use contain, and gallery images load when scrolled
+  into view. No console errors in the desktop review. Native browser viewport
+  override had no effect; mobile checks use actual iframe layout widths, not
+  physical-device or touch emulation. Physical-device checks remain unperformed.
+- Mechanical detector findings concern retained shared styles/labels (legacy
+  uppercase labels, overflow, padding and shadows); no new CSS or controls.
+  Scoped visual review found no photo-layout regression. Verdict: ready for owner
+  review locally. Evidence: October16 chat outputs/drive-photo-integration/.
+- No commit, push, deployment, real analytics collection or lead submission.
+  Before release, review the combined pending Landscaping/FAQ/label/photo patch
+  and recheck the current repository head. Roll back only this photo patch's
+  hunks/manifest/assets; do not restore whole files over other pending work.
+
+## Landscaping case study and estimate-label contrast — local only, October 20, 2026
+
+- Added `/projects/bush-trimming-mulch/` using the two approved commercial-property
+  photos and confirmed trimming, weeding, edging and mulch scope. No planting,
+  specific job location, date, client identity, testimonial or before/after claim.
+- Linked from Landscaping and the Projects gallery. Existing page metadata and
+  existing estimate destinations preserved; all four new-page estimate actions
+  preselect Landscaping. Correct project photos/service in CreativeWork, plus
+  canonical, social metadata, sitemap and resource-list entry.
+- Optional form labels now 14px, fully opaque dark green. Measured contrast 10.96:1;
+  optional/required email switching retained on desktop and phone.
+- 155 tests /16 page validations pass. Manual desktop 1280×900 and mobile 390×844
+  views, 320×568 overflow checks, both entry links and email preference verified
+  through isolated loopback QA. No leads, calls or Google collection.
+- Relative to the tenth-FAQ baseline, only six existing artifacts change, plus
+  one new page. All 15 existing pages' metadata preserved. Analytics, consent,
+  submission/draft engines, shared page CSS, privacy and tree case study unchanged.
+- Independent finish reviewer: ship for this local extension; no material findings.
+  Proof/reports: October16 chat outputs/landscaping-case-study/ and
+  work/landscaping-case-study/. Desktop full-page image omitted painted photos;
+  valid section captures used and accepted by reviewer. Mobile full capture valid.
+- Includes pending tenth Landscaping FAQ. No commit, push or deployment authorized
+  for this batch; public release remains e6c5c30. CRM unchanged.
+
+
+## Tenth Landscaping FAQ — local only, October 20, 2026
+
+- Added the owner-approved Landscaping question and confirmed service wording with
+  a link to `/services/landscaping/`. Ten native disclosures, five per desktop column.
+- 155 tests and 15 page validations pass; desktop and phone keyboard, single-open
+  grouping, answer layout and Landscaping destination checked in isolated local QA.
+- Only homepage output changed among 217 artifacts. All other homepage content,
+  SEO, photos, buttons, estimate links, analytics/consent and CRM remain unchanged.
+- No commit, push or deployment. Live public release remains e6c5c30.
+- Fresh mobile PageSpeed lab report: performance 97, accessibility 97, LCP 2.0s,
+  CLS 0; no field data. Next recommended task is contrast for the estimate form's
+  optional-field labels. Evidence: October16 chat outputs/faq10-next-step/.
+
 
 ## Quieter cookie notice — push approved, publication held
 

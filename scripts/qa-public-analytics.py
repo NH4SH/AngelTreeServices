@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROUTES = ["/", "/services/", "/services/tree-removal/", "/services/tree-pruning/",
           "/services/stump-grinding/", "/services/emergency-tree-service/",
           "/services/landscaping/", "/services/commercial-hoa-tree-care/",
-          "/credentials-safety/", "/projects/", "/projects/hollow-tree-removal/",
+          "/credentials-safety/", "/projects/", "/projects/hollow-tree-removal/", "/projects/bush-trimming-mulch/",
           "/about/", "/recognition/", "/privacy/", "/privacy-request/"]
 SAFETY = b"""document.addEventListener('click',function(e){
  var a=e.target.closest&&e.target.closest('a');if(!a)return;

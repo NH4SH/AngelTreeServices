@@ -23,7 +23,7 @@ test('original numbered migrations and timestamp migrations retain their exact h
  assert.throws(()=>migrationIdentity('not_a_migration.sql'));
 });
 test('changed source, added/removed migration or edited old profile cannot pass verification',()=>{
- for(const path of ['supabase/staging/permission-profile.json','supabase/reconciliation/release-2026-10-17.json','supabase/verification/release_catalog.sql','supabase/migrations/'+files[0].name,'supabase/migrations/'+files[92].name]) {
+ for(const path of ['supabase/staging/permission-profile.json','supabase/reconciliation/release-2026-10-17.json','supabase/verification/release_catalog.sql','supabase/migrations/'+files[0].name,'supabase/migrations/'+files[92].name,'supabase/migrations/20261020051222_atomic_customer_quote_changes.sql']) {
    assert.throws(()=>verifySources(candidate,p=>p===path?Buffer.concat([read(p),Buffer.from('\n')]):read(p),inventory));
  }
  assert.throws(()=>verifySources(candidate,read,inventory.slice(1)));
@@ -55,4 +55,12 @@ test('production targets and write flags fail before starting any tool or networ
  const result=spawnSync(process.execPath,[new URL('../scripts/release/verify-staging-appointment-candidate.mjs',import.meta.url).pathname,...args],{encoding:'utf8',env:{PATH:'/usr/bin:/bin',STAGING_SUPABASE_BIN:'/does/not/exist'}});
  assert.equal(result.status,1);assert.match(result.stderr,/Only a read-only check/);assert.doesNotMatch(result.stderr,/ENOENT|private evidence/);
  }
+});
+
+test('deferred source migrations do not enter the historic staging ledger or bypass source review',()=>{
+ const deferred=JSON.parse(read('supabase/staging/deferred-migrations.json'));
+ assert.equal(inventory.length,94);assert.equal(files.length,93);assert.equal(deferred.migrations.length,1);
+ assert.throws(()=>verifySources(candidate,p=>p==='supabase/staging/deferred-migrations.json'?Buffer.from(JSON.stringify({...deferred,readyForHosting:true})):read(p),inventory));
+ assert.throws(()=>verifySources(candidate,p=>p==='supabase/staging/deferred-migrations.json'?Buffer.from(JSON.stringify({...deferred,migrations:[]})):read(p),inventory));
+ assert.throws(()=>verifyCandidate(candidate,{...snapshot(),migrationCount:94},[...ledger,migrationIdentity(deferred.migrations[0].name)],files));
 });

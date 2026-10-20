@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import { prepareQuoteChangeAttempt, forgetQuoteChangeAttempt, type QuoteChangeAttempt } from "@/lib/portal/quote-change-attempt";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, MessageSquareText, ShieldCheck } from "lucide-react";
 import {
@@ -33,7 +35,21 @@ export function PortalQuoteActions({
   workSummary: PortalWorkSummary | null;
 }) {
   const [approvalState, approvalAction, approvalPending] = useReliableActionState(approveQuoteByPortalToken, initialState);
-  const [changeState, changeAction, changePending] = useReliableActionState(requestQuoteChangesByPortalToken, initialState);
+  const attemptRef = useRef<QuoteChangeAttempt | undefined>(undefined);
+  const [changeState, changeAction, changePending] = useReliableActionState(async (previous: PortalTokenActionState, form: FormData) => {
+    let storage: Storage | null = null;
+    try { storage = window.sessionStorage; } catch { /* Keep a page-local retry identity. */ }
+    const { key, attempt } = await prepareQuoteChangeAttempt(rawToken, String(form.get("message") ?? ""), expectedRevision, storage, attemptRef.current);
+    attemptRef.current = attempt;
+    form.set("request_id", attempt.requestId);
+    form.set("expected_revision", String(attempt.revision));
+    const result = await requestQuoteChangesByPortalToken(previous, form);
+    if (result.ok || result.requestRejected) {
+      forgetQuoteChangeAttempt(key, storage);
+      attemptRef.current = undefined;
+    }
+    return result;
+  }, initialState);
 
   if (approvalState.status === "success") {
     return (
@@ -103,7 +119,10 @@ export function PortalQuoteActions({
             </p>
           </div>
 
-          <form action={changeAction} className="customer-change-form">
+          <form method="post" onSubmit={(event) => {
+            event.preventDefault();
+            if (!approvalPending && !changePending) void changeAction(new FormData(event.currentTarget));
+          }} className="customer-change-form">
             <input name="token" type="hidden" value={rawToken} />
             <div className="customer-change-form-copy">
               <h3>Need an adjustment?</h3>

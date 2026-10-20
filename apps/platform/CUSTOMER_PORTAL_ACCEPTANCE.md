@@ -105,3 +105,8 @@ settlement and full browser form submission remain separate acceptance work.
 Protected hosted runtime/access/CDN proof and the existing home-Mac scanner,
 signature monitoring and paired restore/operator gates remain required before
 the larger CRM release. This local package changes no release-readiness flag.
+
+Publication update, October20: verified commit `e90a9fc` was subsequently pushed
+to main and `codex/customer-portal-acceptance`, deployment skipped. The dated
+verification JSON above retains its original pre-push state. The next local
+package is documented in `QUOTE_CHANGE_REQUEST_SAFETY.md`.

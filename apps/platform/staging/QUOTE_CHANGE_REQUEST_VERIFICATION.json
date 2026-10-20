@@ -1,0 +1,122 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "e90a9fc",
+  "branch": "codex/quote-change-safety",
+  "customerPortalPushedToMain": true,
+  "newChangesPushed": false,
+  "deployed": false,
+  "productionWrites": false,
+  "hostedDatabaseOrConfigurationWrites": false,
+  "productionDeployObserved": "6ad6ecfc6c03786554247e4a",
+  "productionDeployState": "ready",
+  "atomicRequestCommand": "request_quote_changes_by_portal",
+  "reviewedRevisionRequired": true,
+  "durableRequestReplay": true,
+  "tokenRecheckedAfterWait": true,
+  "wallClockExpiryDuringWaitVerified": true,
+  "privateReceiptTableApiAccess": false,
+  "rawTokenOrMessagePersistedInBrowserRetryStorage": false,
+  "oldFunctionDefinitionsAndConstraintsPreserved": true,
+  "existingLinkDeletionCompatible": true,
+  "notificationBoundaryUnchanged": true,
+  "providerDeliveryTested": false,
+  "successfulBrowserSubmissionTested": false,
+  "browserStaleErrorRetainsMessageAndRestoresButtons": true,
+  "nativeFormMethod": "POST",
+  "unitRegressionResults": 817,
+  "integrationResultsIncludingParent": 13,
+  "integrationScenarios": [
+    {
+      "name": "simultaneous duplicate requests commit one note, revision, audit and stable replay",
+      "pass": true
+    },
+    {
+      "name": "second intentional note advances revision while already change_requested and invalidates old approval",
+      "pass": true
+    },
+    {
+      "name": "stale review and closed or archived proposals create no notes or receipts",
+      "pass": true
+    },
+    {
+      "name": "approval versus change request chooses one transaction without reopening or orphan notes",
+      "pass": true
+    },
+    {
+      "name": "real editor lock rechecks revision after waiting",
+      "pass": true
+    },
+    {
+      "name": "revocation and expiry committed during parent lock are rechecked after waiting",
+      "pass": true
+    },
+    {
+      "name": "wall-clock expiry during an actual lock wait is refused even though the transaction began earlier",
+      "pass": true
+    },
+    {
+      "name": "audit failure rolls back note, quote, reminders, token and receipt; retry succeeds",
+      "pass": true
+    },
+    {
+      "name": "lost response replays after approval; revoked link cannot recover or mutate receipt",
+      "pass": true
+    },
+    {
+      "name": "anonymous and authenticated callers cannot invoke command or read private receipts",
+      "pass": true
+    },
+    {
+      "name": "existing link deletion can remove retry metadata while retaining the note and required history",
+      "pass": true
+    },
+    {
+      "name": "actual server action uses stable notification identity on response-loss retry",
+      "pass": true
+    }
+  ],
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "buildConfigurationSyntheticOnly": true,
+  "freshReplayMigrations": 94,
+  "generatedSchemaContractPassed": true,
+  "sqlLintErrors": 0,
+  "advisorBaselineWarnings": 42,
+  "advisorCandidateWarnings": 42,
+  "advisorNewWarningsOrErrors": 0,
+  "advisorNewInfo": [
+    "unused_index",
+    "unused_index",
+    "rls_enabled_no_policy"
+  ],
+  "historicalStagingCandidateMigrations": 93,
+  "newMigrationDeferredFromStaging": true,
+  "scanOrReadinessFlagsChanged": false,
+  "preservation": {
+    "publicTablesChecked": 110,
+    "unchangedBusinessTables": 110,
+    "changedTables": [],
+    "expectedRateLimitCounterUpdates": true,
+    "allExistingFunctionBodiesPreserved": true,
+    "addedFunctions": 2,
+    "allExistingConstraintsPreserved": true,
+    "unchanged": {
+      "ledger": true,
+      "policies": true,
+      "settings": true,
+      "documentSetting": true,
+      "buckets": true
+    },
+    "nativeLedgerEntries": 68,
+    "retirement": {
+      "actors": 4,
+      "disabled": 4,
+      "sessions": 0,
+      "separated": 4,
+      "unrevokedTokens": 0
+    },
+    "syntheticBrowserTokenRevoked": true
+  },
+  "blockedOutboundRequests": 0,
+  "providerRequests": 0
+}

@@ -24,7 +24,19 @@ export function verifySources(candidate, read, inventory) {
   assert.equal(sha(read('supabase/verification/release_catalog.sql')), candidate.catalogQuerySha256, 'Catalog query changed.');
   const files = [...JSON.parse(manifest).files.map(f => ({ name:f.file, sha256:f.sha256 })), candidate.additionalMigration];
   assert.equal(files.length, 93);
-  assert.deepEqual(inventory, files.map(f => f.name).sort(), 'Unexpected migration inventory; review the next candidate.');
+  // New local application work must be pinned separately. It is NOT part of
+  // this historical 93-entry candidate or the hosted ledger/permission verdict.
+  const deferred = JSON.parse(read('supabase/staging/deferred-migrations.json'));
+  assert.equal(deferred.version, 1);
+  assert.equal(deferred.requiresSeparateStagingReview, true);
+  assert.equal(deferred.readyForHosting, false);
+  assert.equal(new Set([...files, ...deferred.migrations].map(f => f.name)).size, files.length + deferred.migrations.length);
+  assert.deepEqual(inventory, [...files, ...deferred.migrations].map(f => f.name).sort(), 'Unexpected migration inventory; review the next candidate.');
+  for (const f of deferred.migrations) {
+    migrationIdentity(f.name);
+    assert.ok(f.name > candidate.additionalMigration.name, 'Deferred migrations must follow the reviewed candidate.');
+    assert.equal(sha(read('supabase/migrations/' + f.name)), f.sha256, 'Deferred migration bytes changed: ' + f.name);
+  }
   for (const f of files) assert.equal(sha(read('supabase/migrations/' + f.name)), f.sha256, 'Migration bytes changed: ' + f.name);
   return files;
 }

@@ -5,7 +5,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 import { approveQuoteWithPortalToken } from "@/lib/quotes/workflow";
-import { cancelPendingCommunications } from "@/lib/communications/queue";
+import { requestQuoteChanges } from "@/lib/quotes/change-request";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -29,6 +29,7 @@ export type PortalTokenActionState = {
   portalUrl?: string;
   expiresAt?: string;
   reusedExisting?: boolean;
+  requestRejected?: boolean;
 };
 
 export type MultiQuotePortalRecoveryState = {
@@ -350,68 +351,33 @@ export async function requestQuoteChangesByPortalToken(
   const rateLimit = await checkPortalActionRateLimit("quote-change-request", rawToken);
   if (!rateLimit.available) return { ok: false, status: "error", message: "Quote responses are temporarily unavailable. Please try again shortly." };
   if (!rateLimit.allowed) return { ok: false, status: "error", message: "Please wait before submitting another response." };
-  const lookup = await getQuoteByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
-
-  if (!supabase || lookup.status !== "ready" || !lookup.quote || !lookup.tokenId) {
-    return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available.") };
-  }
-
-  if (!canCustomerRespondToQuote(lookup.quote.status)) {
-    return { ok: false, status: "error", message: "This quote is no longer open for changes." };
-  }
-
-  if (message.length < 3 || message.length > 1000) {
-    return { ok: false, status: "error", message: "Please enter a short message between 3 and 1,000 characters." };
-  }
-
-  const requestedAt = new Date().toISOString();
-  const { data: note, error: noteError } = await supabase
-    .from("notes")
-    .insert({
-      customer_id: lookup.quote.customer_id,
-      service_location_id: lookup.quote.service_location_id,
-      job_id: lookup.quote.job_id ?? null,
-      visibility: "internal",
-      body: `Customer portal change request: ${message}`,
-    })
-    .select("id")
-    .single();
-
-  if (noteError || !note) {
-    return { ok: false, status: "error", message: noteError?.message ?? "We could not save your message right now. Please try again." };
-  }
-
-  const { error: quoteError } = await supabase
-    .from("quotes")
-    .update({ status: "change_requested", approved_at: null })
-    .eq("id", lookup.quote.id);
-
-  if (quoteError) {
-    await supabase.from("notes").delete().eq("id", note.id);
-    return { ok: false, status: "error", message: safeStaffMessage(quoteError.message, "The quote could not be updated.") };
-  }
-
-  await cancelPendingCommunications(supabase, { quoteId: lookup.quote.id }, "Customer requested changes to the quote.");
-
-  await supabase.from("quote_portal_tokens").update({ used_at: requestedAt }).eq("id", lookup.tokenId);
+  if (!supabase) return { ok: false, status: "error", message: "Quote responses are temporarily unavailable. Please try again shortly." };
+  const result = await requestQuoteChanges(supabase, {
+    requestId: getString(formData, "request_id"), tokenHash: hashPortalToken(rawToken),
+    expectedRevision: Number(getString(formData, "expected_revision")), message,
+  });
+  if (!result.ok) return { ok: false, status: "error", message: result.message, requestRejected: result.rejected };
+  const receipt = result.receipt;
+  // Stable notification identity also allows recovery when a response was lost
+  // before this existing notification boundary ran. Core history is already
+  // committed atomically; notification delivery keeps its existing semantics.
   await emitCustomerActivity({
     body: message,
     category: "quotes",
-    customerId: lookup.quote.customer_id,
-    destinationPath: `/admin/quotes/${lookup.quote.id}`,
+    customerId: receipt.customer_id,
+    destinationPath: `/admin/quotes/${receipt.quote_id}`,
     eventType: "quote_portal_changes_requested",
-    idempotencyKey: `quote:${lookup.quote.id}:change-request:${note.id}`,
-    organizationId: lookup.quote.organization_id,
-    quoteId: lookup.quote.id,
-    recordLabel: lookup.quote.quote_number || "Quote",
-    subjectId: lookup.quote.id,
+    idempotencyKey: `quote:${receipt.quote_id}:change-request:${receipt.note_id}`,
+    organizationId: receipt.organization_id,
+    quoteId: receipt.quote_id,
+    recordLabel: receipt.quote_number || "Quote",
+    subjectId: receipt.quote_id,
     subjectType: "quote",
-    summary: `${lookup.quote.organizations?.name ?? lookup.quote.customers?.display_name ?? "Customer"} requested changes to ${lookup.quote.quote_number || "a quote"}.`,
+    summary: `${receipt.party_name} requested changes to ${receipt.quote_number || "a quote"}.`,
     title: "Customer requested quote changes",
   });
-
-  revalidatePortalQuote(rawToken, lookup.quote.id);
+  revalidatePortalQuote(rawToken, receipt.quote_id);
   return { ok: true, status: "success", message: "Your change request has been sent. Angel Tree Services will review it and follow up." };
 }
 

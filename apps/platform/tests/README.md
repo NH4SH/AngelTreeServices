@@ -1246,3 +1246,29 @@ retains their synthetic records/history. Existing review users stay untouched.
 Run shared-stack financial/notification suites sequentially. See
 `LOCAL_WORKFLOW_ACCEPTANCE.md` for results and the remaining hosted acceptance
 matrix; local success never marks staging hosting/activation ready.
+
+### Customer quote change-request safety
+
+`quote-change-request.test.mjs` runs with the normal unit suite. The real local
+suite is deliberately opt-in and excluded from that suite:
+
+```sh
+QUOTE_CHANGE_DISPOSABLE=1 \
+QUOTE_CHANGE_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+QUOTE_CHANGE_WEB_URL=http://127.0.0.1:3102 \
+QUOTE_CHANGE_DOCKER_BIN=/path/to/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+QUOTE_CHANGE_RESULTS_FILE=/private/local-test/quote-change-results.private.json \
+node --test tests/quote-change-request.integration.test.mjs
+```
+
+Use only the existing disposable stack after iterating the reviewed migration94.
+The suite refuses other API/web origins and Docker sockets. It creates its own
+synthetic owner and records, retains history, signs out and disables only that
+actor, and revokes only its own links. Concurrency uses independent PostgreSQL
+sessions and observed locks. The audit fault adds/removes a temporary constraint
+scoped to one synthetic quote. The link-delete compatibility check rolls back.
+No dispatcher or provider is invoked. The loaded server action substitutes only
+rate/notification/revalidation boundaries; its RPC uses the actual database.
+Do not run shared-stack transactional suites concurrently. See
+`QUOTE_CHANGE_REQUEST_SAFETY.md` for evidence and limits.

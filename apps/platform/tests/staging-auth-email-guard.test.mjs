@@ -22,14 +22,14 @@ test('hosted API/database, alternate ports/databases and decorated URLs are reje
     for (const [url, api] of [['postgresql://fixture@db.gbyhdsuiqeslgjdnbqng.supabase.co/postgres', 'http://127.0.0.1:54321'], ['postgresql://fixture@127.0.0.1:54322/postgres', 'https://gbyhdsuiqeslgjdnbqng.supabase.co'], ['postgresql://fixture@127.0.0.1:54323/postgres', 'http://127.0.0.1:54321'], ['postgresql://fixture@127.0.0.1:54322/other', 'http://127.0.0.1:54321'], ['postgresql://fixture@127.0.0.1:54322/postgres?host=remote.invalid', 'http://127.0.0.1:54321']])
         assert.throws(() => localConfiguration(fixture(url, api)));
 });
-test('guard is a separate local operations package with pinned bytes, not migration94 or hosted activation', () => {
+test('guard is a separate local operations package with pinned bytes, never an application migration or hosted activation', () => {
     assert.equal(manifest.ordinaryMigration, false);
     assert.equal(manifest.hostedInstallationImplemented, false);
     assert.equal(manifest.hostedActivationAuthorized, false);
     assert.equal(manifest.hookUri, 'pg-functions://postgres/ats_staging_auth/reject_email');
     for (const [name, hash] of Object.entries(manifest.files))
         assert.equal(createHash('sha256').update(read('supabase/staging/auth-email-guard/' + name)).digest('hex'), hash);
-    assert.equal(readdirSync(new URL('supabase/migrations/', root)).filter(x => x.endsWith('.sql')).length, 93);
+    assert.ok(readdirSync(new URL('supabase/migrations/', root)).filter(x => x.endsWith('.sql')).every(name => !name.includes('auth_email_guard')));
 });
 test('rollback is bound to the exact function body and rejects schema drift without cascade', () => {
     const install = read('supabase/staging/auth-email-guard/install.local.sql'), rollback = read('supabase/staging/auth-email-guard/rollback.local.sql');

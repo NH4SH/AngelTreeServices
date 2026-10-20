@@ -15731,6 +15731,15 @@ export type Database = {
                 };
                 Returns: string;
             };
+            "request_quote_changes_by_portal": {
+                Args: {
+                    "p_expected_revision": number;
+                    "p_message": string;
+                    "p_request_id": string;
+                    "p_token_hash": string;
+                };
+                Returns: Json;
+            };
             "request_stripe_webhook_retry": {
                 Args: {
                     "p_event_id": string;

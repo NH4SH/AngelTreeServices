@@ -46,18 +46,35 @@ export type EmployeeDetailData = {
   privateNotes: string | null;
 };
 
+// UUID filters grow with the full retained directory, including former staff.
+// Bound each caller-scoped lookup, rather than truncating the directory or using
+// a privileged client. Read batches sequentially within each of the three reads.
+async function readEmployeeAccountRows<T>(
+  ids: string[],
+  read: (batch: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+) {
+  const data: T[] = [];
+  let error: { message: string } | null = null;
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const result = await read(ids.slice(offset, offset + 100));
+    data.push(...(result.data ?? []));
+    error ??= result.error;
+  }
+  return { data, error };
+}
+
 export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
   const supabase = await createClient();
   if (!supabase) return { data: [], error: "Supabase is not configured." };
   const { data, error } = await supabase.rpc("get_employee_operational_directory");
   if (error) return { data: [], error: safeStaffMessage(error.message) };
   const rows = ((data as { employees?: unknown[] } | null)?.employees ?? []) as (EmployeeRecord & { employee_onboarding_items?: { completion_status: string }[]; employee_credentials?: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]; training_attendees?: { id: string }[] })[];
-  const authIds = rows.map((row) => row.auth_user_id).filter((id): id is string => Boolean(id));
+  const authIds = [...new Set(rows.map((row) => row.auth_user_id).filter((id): id is string => Boolean(id)))];
   const [rolesResult, profilesResult, pendingResult, timerResult] = await Promise.all([
-    authIds.length ? supabase.from("user_roles").select("user_id, roles(name)").in("user_id", authIds) : Promise.resolve({ data: [], error: null }),
-    authIds.length ? supabase.from("profiles").select("id, status").in("id", authIds) : Promise.resolve({ data: [], error: null }),
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("user_roles").select("user_id, roles(name)").in("user_id", ids)),
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("profiles").select("id, status").in("id", ids)),
     supabase.from("employee_access_requests").select("id, email, status").eq("status", "pending"),
-    authIds.length ? supabase.from("time_clock_permissions").select("user_id, is_enabled").in("user_id", authIds) : Promise.resolve({ data: [], error: null }),
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("time_clock_permissions").select("user_id, is_enabled").in("user_id", ids)),
   ]);
   const rolesByUser = new Map<string, string[]>();
   for (const row of rolesResult.data ?? []) {

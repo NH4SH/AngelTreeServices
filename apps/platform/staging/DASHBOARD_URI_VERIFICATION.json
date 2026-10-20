@@ -1,0 +1,98 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "b2a0b22a63765572455cb39429fb7293a66f1229",
+  "permissionsPackagePushedToMain": true,
+  "dashboardFixPushed": false,
+  "dashboardFixDeployed": false,
+  "oldRequestMaxCharacters": 81138,
+  "oldFailureStatus": 414,
+  "officeRoles": [
+    "owner",
+    "admin",
+    "payroll_admin",
+    "estimator"
+  ],
+  "visibleEmployeesPerOfficeRole": 2317,
+  "accountRequestsPerOfficeRole": 63,
+  "newRequestMaxCharacters": 3996,
+  "maxAccountIdsPerRequest": 100,
+  "unitRegressionResults": 805,
+  "liveIntegrationResultsIncludingParent": 8,
+  "liveScenarios": 7,
+  "liveScenarioSummary": [
+    {
+      "name": "owner: complete directory and dashboard retain rows beyond the original URI limit",
+      "visibleEmployees": 2317,
+      "accountRequests": 63,
+      "maxRequestLength": 3996,
+      "pass": true
+    },
+    {
+      "name": "admin: complete directory and dashboard retain rows beyond the original URI limit",
+      "visibleEmployees": 2317,
+      "accountRequests": 63,
+      "maxRequestLength": 3996,
+      "pass": true
+    },
+    {
+      "name": "payroll_admin: complete directory and dashboard retain rows beyond the original URI limit",
+      "visibleEmployees": 2317,
+      "accountRequests": 63,
+      "maxRequestLength": 3996,
+      "pass": true
+    },
+    {
+      "name": "estimator: complete directory and dashboard retain rows beyond the original URI limit",
+      "visibleEmployees": 2317,
+      "accountRequests": 63,
+      "maxRequestLength": 3996,
+      "pass": true
+    },
+    {
+      "name": "crew, customer and anonymous readers gain no staff directory through the batching change",
+      "restrictedRoles": 3,
+      "pass": true
+    },
+    {
+      "name": "a real middle-query failure stays visible without dropping the directory or granting clock access",
+      "injectedReadFailures": 1,
+      "pass": true
+    },
+    {
+      "name": "same issued estimator token loses directory access on deactivation and returns without clock permission",
+      "originalJwtRechecked": true,
+      "pass": true
+    }
+  ],
+  "syntheticActorsRetired": 6,
+  "blockedOutboundRequests": 0,
+  "originalIssuedJwtRechecked": true,
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "buildCredentialsSyntheticOnly": true,
+  "offlineSchemaContractPassed": true,
+  "browserDashboardVisible": true,
+  "browserEmployeeReadinessVisible": true,
+  "browserUriOrDatabaseNoticePresent": false,
+  "reviewSessionPreserved": true,
+  "preservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": true,
+    "changedTables": [],
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "databaseMigrationsApplied": false,
+  "authorizationRlsOrGrantChanges": false,
+  "hostedWrites": false,
+  "productionDeployObserved": "6ad6ecfc6c03786554247e4a",
+  "productionDeployState": "ready",
+  "broaderReleaseReadinessChanged": false
+}

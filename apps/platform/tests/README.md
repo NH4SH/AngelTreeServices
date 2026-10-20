@@ -1,5 +1,30 @@
 # CRM Usability Regression Checks
 
+## Dashboard employee query bounds
+
+`employee-directory-reads.test.mjs` runs in the normal unit gate. It exercises
+actual Supabase query encoding with 2,251 fixture employees, accountless/shared
+accounts, later-batch results and visible errors without granting unknown clock
+access. No network is used by that unit fixture.
+
+`dashboard-employee-reads.integration.test.mjs` runs actual local Auth, RLS and
+dashboard data functions. It expects the existing retained scale-test directory
+with more than 1,000 rows; do not reset or truncate that stack to run this test.
+
+```sh
+DASHBOARD_READS_DISPOSABLE=1 \
+DASHBOARD_READS_LOCAL_STATUS_FILE="$DASHBOARD_READS_STATUS_FILE" \
+DASHBOARD_READS_RESULTS_FILE="$DASHBOARD_READS_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/dashboard-employee-reads.integration.test.mjs
+```
+
+Only loopback API port 54321 is accepted. The suite creates six marked actors,
+globally signs out only those actors and disables/separates them afterward.
+Existing employees, role rows, history, scan settings, schemas and the review
+owner stay intact. One read failure is injected at the transport boundary; the
+remaining requests use the real local services. No provider or hosted key is used.
+See `../DASHBOARD_URI_READINESS.md` for actual request lengths and preservation.
+
 ## Local permissions and private files (October 20 acceptance)
 
 The opt-in `permissions-private-files.integration.test.mjs` checks real local

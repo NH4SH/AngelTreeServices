@@ -1,5 +1,10 @@
 # Local permissions and private-file acceptance
 
+**Published October 20:** the verified package is pushed to main and
+`codex/dashboard-attention-layout` at `b2a0b22`, with `[skip netlify]`.
+The verification snapshot below records the earlier local verification state.
+The next local follow-up is documented in `DASHBOARD_URI_READINESS.md`.
+
 Verified October 20, 2026, against main `8327a33` on the existing disposable
 review stack and app at `http://127.0.0.1:3102`. This continues the existing
 CRM/staging roadmap. Nothing was pushed, deployed or changed in production.

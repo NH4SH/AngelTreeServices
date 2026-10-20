@@ -1,5 +1,63 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Cookie-banner publication approved — October 19, 2026
+
+Owner approved committing, pushing and publishing the reviewed simple cookie
+banner. Preserve the two newer CRM staging commits through d0241d7 without edits.
+Use [skip ci] [skip netlify] on the release commit; trigger only the public Netlify
+website project. Keep analytics property settings and CRM code/settings/deploy
+unchanged. Run non-submitting production smoke checks: both choices close/save,
+rejection survives navigation/reload, footer reopens, details link and mobile
+layout remain correct. Do not submit leads or place calls. Record exact commit,
+public deployment and unchanged CRM deployment in the release evidence/handoff.
+
+Earlier local-review sections below describe their historical candidate states.
+
+## Simple cookie banner and automatic dismissal — local, October 19, 2026
+
+This supersedes the earlier compact panel candidate below. No new commit, push or
+publish. Keep the live consent-based analytics configuration and CRM unchanged.
+
+- Short Optional cookies notice, equal Accept cookies / Reject cookies controls,
+  and Cookie details & privacy link to the existing full analytics policy section.
+  No retention/provider details removed from that policy; no metadata changes.
+- Both choices save/apply and close immediately. Footer Privacy settings reopens
+  the controls. Focus returns to the opener or main content without scrolling.
+  Confirmation is announced outside the closed banner; storage failure gets a
+  compact visible page-only warning with Dismiss, instead of false saved success.
+- 154 tests pass; 15 pages validate. Inert local browser verifies acceptance and
+  rejection across reloads, withdrawal/reopen, Escape/focus, policy link, and
+  mobile storage denial. No real Google requests, leads or calls.
+- Desktop 420×203.5px; mobile 296×224.5px at 320×568. Equal 127×44px mobile
+  actions, no overflow; storage warning 296×133px clears mobile quick actions.
+- All 217 artifacts checked; 200 unchanged. All 15 HTML pages normalize exactly
+  after consent-only markup/version changes; analytics engine unchanged.
+- Evidence: October 16 chat work/cookie-banner/ and outputs/cookie-banner/.
+  Design reference: https://design-system.service.gov.uk/components/cookie-banner/
+  Physical-device and spoken screen-reader verification remain unperformed.
+
+## Compact privacy panel — local review, October 19, 2026
+
+Owner requested a smaller panel. No new commit, push or deployment in this batch.
+Preserve the live consent-based analytics configuration and CRM code/settings.
+
+- Compact 420 × 244px desktop panel; 296 × 286px at a 320 × 568px viewport.
+  Shorter optional-analytics summary, less padding and an accessible header Close
+  button. Initial redundant status line is hidden; saved choices and storage
+  warnings remain visible. Full policy and 180-day preference wording retained.
+- Equal side-by-side Allow/Reject controls, each 44px high (127px wide on the
+  narrowest screen). No overflow or scrolling at 320px; above mobile quick actions.
+  At 568 × 320px, the panel scrolls and controls remain reachable.
+- Allow/Reject, saved rejection, Close, footer reopen, Escape/focus restoration
+  verified with an inert local tag. No real Google requests, leads or calls.
+- All 152 tests pass; 15 pages validate. All 217 artifacts checked: 200 unchanged;
+  15 pages differ only in consent markup/asset versions, plus the two consent
+  assets. Photos, SEO, copy, estimate links and analytics engine remain unchanged.
+- Consent assets versioned consent2; validator follows the new version. Evidence:
+  October 16 chat work/compact-privacy/ and outputs/compact-privacy/.
+
+Earlier sections below record historical approvals and releases.
+
 ## Minimal Analytics activation — approved October 18, 2026
 
 Owner delegated the recommended consent-based public-site launch. This supersedes

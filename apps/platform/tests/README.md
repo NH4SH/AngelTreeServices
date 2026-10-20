@@ -1478,6 +1478,32 @@ SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
 
+### Bank checkout handoff
+
+`ach-checkout-handoff.test.mjs` is included in the ordinary gate. It exercises the
+real bank checkout helper and one portal-route failure case using controlled
+database/provider responses. It checks exact reservation/publication receipts,
+session bindings, safe reuse/replacement, HTTPS custom domains and retained guards.
+
+With the existing disposable local stack, run the installed-SQL suite separately:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+ACH_HANDOFF_DISPOSABLE=1 \
+ACH_HANDOFF_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+ACH_HANDOFF_RESULTS_FILE="$LOCAL_ACH_HANDOFF_RESULTS_FILE" \
+node --experimental-strip-types --test tests/ach-checkout-handoff.integration.test.mjs
+```
+
+Use the installed Docker executable and a private results-file path. Ten scenarios
+interleave actual helper calls with installed service-role SQL and collection
+triggers; no external provider is called. Synthetic insertion/publication response
+loss, a processing transition before publication, a real unique conflict and
+amount/party/void-invoice denials are covered. All records and the temporary SQL
+helper roll back. This is one connection/outer rollback, not simultaneous
+transactions, independently committed recovery or hosted HTTP/Auth proof. See
+`../ACH_CHECKOUT_HANDOFF.md` for scope and limitations.
+
 ### Invoice checkout closure confirmation
 
 The ordinary regression gate includes `checkout-closure-confirmation.test.mjs`.

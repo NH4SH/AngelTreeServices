@@ -4,6 +4,7 @@ import { load } from './pr10-test-helpers.mjs';
 import { stagingFixture } from './staging-fixture.mjs';
 import * as policy from '../src/lib/security/staging-policy.mjs';
 import { normalizeAppBaseUrl } from '../src/lib/security/app-base-url.ts';
+import * as checkoutClosure from '../src/lib/payments/checkout-closure.ts';
 
 function canonical(f) {
   return load('../src/lib/security/app-base-url.ts', {
@@ -127,22 +128,27 @@ test('real checkout preparation keeps both payment return URLs on the bound stag
   const f = stagingFixture(), urls = canonical(f);
   const portal = load('../src/lib/portal/urls.ts', { 'server-only': {}, '@/lib/security/app-base-url': urls });
   let parameters;
-  const reservation = { id: 'synthetic-reservation', status: 'creating', payment_channel: 'ach', invoice_principal_cents: 1000 };
+  const reservation = { id: 'synthetic-reservation', invoice_id: 'synthetic-invoice', customer_id: 'synthetic-customer', organization_id: null,
+    status: 'creating', payment_channel: 'ach', invoice_principal_cents: 1000, amount_cents: 1000, total_charge_cents: 1000,
+    currency: 'usd', stripe_checkout_session_id: null, stripe_payment_intent_id: null, submitted_at: null };
   const db = { from(table) {
     assert.equal(table, 'invoice_checkout_sessions'); let operation = 'read';
-    const q = { select() { return q; }, eq() { return q; }, in() { return q; }, order() { return q; }, limit() { return q; },
+    const q = { select() { return q; }, eq() { return q; }, is() { return q; }, in() { return q; }, order() { return q; }, limit() { return q; },
       insert() { operation = 'insert'; return q; }, update() { operation = 'update'; return q; },
-      single: async () => ({ data: reservation }), maybeSingle: async () => ({ data: operation === 'update' ? { id: reservation.id } : null }) };
+      single: async () => ({ data: reservation, error: null }), maybeSingle: async () => ({ data: operation === 'update' ? { id: reservation.id } : null, error: null }) };
     return q;
   } };
   const checkout = load('../src/lib/stripe/invoice-checkout.ts', {
-    'server-only': {}, '@/lib/payments/checkout-closure': {}, '@/lib/payments/ach-checkout': { achCheckoutPaymentMethodTypes: ['us_bank_account'] },
+    'server-only': {}, '@/lib/payments/checkout-closure': checkoutClosure, '@/lib/payments/ach-checkout': { achCheckoutPaymentMethodTypes: ['us_bank_account'] },
   });
   await withEnvironment(f.env, async () => {
     const portalUrl = await portal.getPortalUrl('invoice', 'synthetic-token');
-    const result = await checkout.createOrReuseInvoiceCheckout({ invoiceId: 'synthetic-invoice', customerId: null,
+    const result = await checkout.createOrReuseInvoiceCheckout({ invoiceId: 'synthetic-invoice', customerId: 'synthetic-customer',
       amountCents: 1000, portalUrl, livemode: false, supabase: db,
-      stripe: { checkout: { sessions: { create: async value => { parameters = value; return { id: 'cs_synthetic', url: 'https://checkout.example.invalid/test' }; } } } },
+      stripe: { checkout: { sessions: { create: async value => { parameters = value; return {
+        id: 'cs_synthetic', url: 'https://checkout.example.invalid/test', mode: 'payment', status: 'open', payment_status: 'unpaid', livemode: false,
+        metadata: value.metadata, client_reference_id: value.client_reference_id, amount_total: 1000, currency: 'usd', payment_intent: null, expires_at: 1792600000,
+      }; } } } },
     });
     assert.equal(result.ok, true);
     for (const key of ['success_url', 'cancel_url']) {

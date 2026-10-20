@@ -9,10 +9,13 @@ export type WebhookEnvelope = {
   account?: string; data: { object: { id: string } };
 };
 export type WebhookEmail = {
-  to: string; title: string; body: string; destination: string;
+  to: string; title: string; body: string | null; destination: string | null;
   invoice_id: string; notificationId: string; signal: AbortSignal;
 };
-export type WebhookEmailResult = { ok: boolean; configured: boolean; providerMessageId: string | null; retryable: boolean };
+export type WebhookEmailResult = {
+  ok: boolean; configured: boolean; providerMessageId: string | null; retryable: boolean;
+  outcome?: "accepted" | "rejected" | "unknown" | "not_attempted";
+};
 type Dependencies = {
   supabase: Client; stripe: Stripe | null; livemode: boolean;
   sendEmail(input: WebhookEmail): Promise<WebhookEmailResult>;
@@ -20,6 +23,37 @@ type Dependencies = {
   budget?: CheckoutBudget;
 };
 type Evidence = Record<string, unknown> & { operation: string };
+type WebhookClaim = { status: "completed" | "busy" | "review" } | {
+  status: "claimed"; token: string; phase: "pending" | "effects_ready";
+  invoice_id: string | null; communications_synced: boolean;
+};
+type NotificationAttempt = { status: "done" | "review" | "gone" } | {
+  status: "send"; to: string; title: string; body: string | null;
+  destination: string | null; invoice_id: string;
+};
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
+const isUuid = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
+function isWebhookClaim(value: unknown): value is WebhookClaim {
+  if (!isRecord(value)) return false;
+  if (typeof value.status === "string" && ["completed", "busy", "review"].includes(value.status)) return true;
+  return value.status === "claimed" && isUuid(value.token) && typeof value.phase === "string" && ["pending", "effects_ready"].includes(value.phase)
+    && (value.invoice_id === null || isUuid(value.invoice_id)) && typeof value.communications_synced === "boolean";
+}
+function isNotificationAttempt(value: unknown): value is NotificationAttempt {
+  if (!isRecord(value)) return false;
+  if (typeof value.status === "string" && ["done", "review", "gone"].includes(value.status)) return true;
+  return value.status === "send" && typeof value.to === "string" && value.to.length > 0
+    && typeof value.title === "string" && value.title.length > 0
+    && (value.body === null || typeof value.body === "string")
+    && (value.destination === null || typeof value.destination === "string") && isUuid(value.invoice_id);
+}
+function isWebhookEmailResult(value: unknown): value is WebhookEmailResult {
+  return isRecord(value) && typeof value.ok === "boolean" && typeof value.configured === "boolean" && typeof value.retryable === "boolean"
+    && (value.providerMessageId === null || (typeof value.providerMessageId === "string" && /^[A-Za-z0-9_-]{1,200}$/.test(value.providerMessageId)))
+    && (value.ok || value.providerMessageId === null)
+    && (value.outcome === undefined || (typeof value.outcome === "string" && ["accepted", "rejected", "unknown", "not_attempted"].includes(value.outcome)))
+    && (value.outcome !== "accepted" || value.ok) && (!value.ok || value.outcome === undefined || value.outcome === "accepted");
+}
 const handled = new Set([
   "checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired",
   "payment_intent.succeeded", "payment_intent.processing", "payment_intent.payment_failed",
@@ -37,10 +71,10 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
     || event.livemode !== deps.livemode || event.account) {
     throw new WebhookProcessingError("event_binding_invalid", false);
   }
-  async function rpc(name: string, args: Record<string, unknown>) {
+  async function rpc(name: string, args: Record<string, unknown>): Promise<unknown> {
     const timeout = budget.requestOptions().timeout;
     const result = await budget.run(() => supabase.rpc(name, args).abortSignal(AbortSignal.timeout(timeout)));
-    if (result.error) throw new WebhookProcessingError(result.error.details === "provider_snapshot_superseded"
+    if (!result || result.error !== null) throw new WebhookProcessingError(result?.error?.details === "provider_snapshot_superseded"
       ? "provider_snapshot_superseded" : `${name.replace("stripe_webhook", "receipt")}_failed`, true);
     return result.data;
   }
@@ -48,8 +82,10 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
     p_event_id: event.id, p_event_type: event.type, p_object_id: event.data.object.id,
     p_created_at: new Date(event.created * 1000).toISOString(), p_livemode: event.livemode,
   });
-  if (["completed", "busy", "review"].includes(claim?.status)) return { status: claim.status as "completed" | "busy" | "review" };
-  if (claim?.status !== "claimed" || !claim.token) throw new WebhookProcessingError("receipt_claim_invalid", true);
+  // An unconfirmed claim cannot authorize use of an ownership token. Its lease
+  // stays reclaimable; do not guess progress or fail a potentially different owner.
+  if (!isWebhookClaim(claim)) throw new WebhookProcessingError("receipt_claim_invalid", true);
+  if (claim.status !== "claimed") return { status: claim.status };
   const owned = { p_event_id: event.id, p_token: claim.token };
   try {
     let needsSync = !claim.communications_synced;
@@ -62,33 +98,51 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
       let evidence = await normalizeStripeWebhook(event, deps, budget, false);
       if (evidence.operation !== "ignored") {
         const snapshot = await rpc("prepare_stripe_webhook_snapshot", { ...owned, p_evidence: evidence });
+        if (!isUuid(snapshot)) throw new WebhookProcessingError("receipt_snapshot_invalid", true);
         const current = await normalizeStripeWebhook(event, deps, budget);
         if (current.operation === "ignored") throw new WebhookProcessingError("provider_binding_changed", false);
         evidence = { ...current, snapshot_token: snapshot };
       }
       const applied = await rpc("apply_stripe_webhook", { ...owned, p_evidence: evidence });
-      if (applied?.ignored) needsSync = false;
-      invoiceId = applied?.invoice_id ?? invoiceId;
+      if (!isRecord(applied)) throw new WebhookProcessingError("receipt_apply_invalid", true);
+      if (evidence.operation === "ignored") {
+        // The SQL command returns {ignored:true} initially and {invoice_id:null}
+        // when that same ignored checkpoint is replayed under its owned lease.
+        if (!((applied.ignored === true && applied.invoice_id == null)
+          || (applied.ignored === undefined && applied.invoice_id === null))) throw new WebhookProcessingError("receipt_apply_invalid", true);
+        needsSync = false;
+        invoiceId = null;
+      } else {
+        if (!isUuid(applied.invoice_id) || applied.ignored !== undefined
+          || (typeof evidence.invoice_id === "string" && applied.invoice_id !== evidence.invoice_id)) throw new WebhookProcessingError("receipt_apply_invalid", true);
+        invoiceId = applied.invoice_id;
+      }
     }
     // Existing queue planning is idempotent and sends no messages. Preserve its
     // settings/master switch; resume it after failures without rerunning money.
     if (needsSync) {
-      if (!invoiceId) throw new WebhookProcessingError("invoice_checkpoint_missing", true);
+      if (!isUuid(invoiceId)) throw new WebhookProcessingError("invoice_checkpoint_missing", true);
       const sync = await budget.run(() => deps.syncCommunications(invoiceId));
-      if (sync.error) throw new WebhookProcessingError("communication_sync_failed", true);
+      if (!isRecord(sync) || sync.error !== null) throw new WebhookProcessingError("communication_sync_failed", true);
       if (await rpc("mark_stripe_webhook_sync", owned) !== true) throw new WebhookProcessingError("communication_checkpoint_failed", true);
     }
     const notifications = await budget.run(() => supabase.from("admin_notifications").select("id")
       .eq("stripe_event_id", event.id).in("stripe_email_state", ["queued", "submitting"]).order("id").limit(100)
       .abortSignal(AbortSignal.timeout(budget.requestOptions().timeout)));
-    if (notifications.error) throw new WebhookProcessingError("notification_read_failed", true);
-    for (const row of notifications.data ?? []) {
+    if (!notifications || notifications.error !== null || !Array.isArray(notifications.data)
+      || notifications.data.some(row => !isRecord(row) || !isUuid(row.id))
+      || new Set(notifications.data.map(row => row.id)).size !== notifications.data.length) throw new WebhookProcessingError("notification_read_failed", true);
+    for (const row of notifications.data) {
       const attempt = await rpc("begin_stripe_notification_email", { ...owned, p_notification: row.id });
-      if (attempt?.status !== "send") continue;
+      if (!isNotificationAttempt(attempt)) throw new WebhookProcessingError("notification_claim_invalid", true);
+      if (attempt.status !== "send") continue;
+      if (attempt.invoice_id !== invoiceId) throw new WebhookProcessingError("notification_binding_invalid", true);
       let result: WebhookEmailResult;
       try {
-        result = await budget.run(() => deps.sendEmail({ ...attempt, notificationId: row.id,
+        const received = await budget.run(() => deps.sendEmail({ ...attempt, notificationId: row.id,
           signal: AbortSignal.timeout(budget.requestOptions().timeout) }));
+        if (!isWebhookEmailResult(received)) throw new WebhookProcessingError("notification_result_invalid", true);
+        result = received;
       } catch {
         // Persist uncertainty; do not send this notification again on replay.
         await supabase.rpc("finish_stripe_notification_email", {
@@ -96,7 +150,10 @@ export async function processStripeWebhook(event: WebhookEnvelope, deps: Depende
         }).abortSignal(AbortSignal.timeout(2000));
         throw new WebhookProcessingError("notification_delivery_uncertain", true);
       }
-      const outcome = result.ok && result.providerMessageId ? "accepted"
+      // A timeout/lost acknowledgement may have reached the provider. The
+      // durable sender deliberately disables automatic retries for that case.
+      const uncertain = result.outcome === "unknown" || (!result.ok && result.configured && result.outcome === undefined);
+      const outcome = uncertain ? "review" : result.ok && result.providerMessageId ? "accepted"
         : result.ok || (result.configured && result.retryable) ? "review" : "failed";
       // The immutable submission token may record a late positive acceptance,
       // but cannot complete a newer owner's receipt or authorize another send.

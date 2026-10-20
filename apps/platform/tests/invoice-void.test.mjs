@@ -105,15 +105,16 @@ test("invalid invoice/status never reaches financial commands", async () => {
 
 for (const type of ["checkout.session.async_payment_failed", "payment_intent.processing", "payment_intent.payment_failed"]) {
   test(`a contested webhook write returns retryable failure rather than ACK: ${type}`, async () => {
-    let completed = 0, failed = 0, notified = 0;
+    let completed = 0, failed = 0, notified = 0, applied = 0;
     const checkout = { id, invoice_id:id, payment_channel:type.startsWith("checkout") ? "ach" : "card", currency:"usd", total_charge_cents:1000,
       stripe_confirmation_token_id:"ct_fixture", stripe_payment_intent_id:"pi_fixture", stripe_checkout_session_id:type.startsWith("checkout") ? "cs_fixture" : null };
     const intent = { id:"pi_fixture", livemode:false, status:type.includes("processing") ? "processing" : "requires_payment_method", amount:1000, amount_received:0, currency:"usd",
       metadata:{payment_channel:checkout.payment_channel,invoice_id:id,checkout_reservation_id:id} };
     function response(data,error=null){const q={abortSignal(){return q;},then(resolve,reject){return Promise.resolve({data,error}).then(resolve,reject);}};return q;}
     const service = {
-      rpc(name){if(name === "claim_stripe_webhook") return response({status:"claimed",token:id,phase:"pending"});
-        if(name === "apply_stripe_webhook")return response(null,{code:"55P03",message:"Lock unavailable"});
+      rpc(name){if(name === "claim_stripe_webhook") return response({status:"claimed",token:id,phase:"pending",invoice_id:null,communications_synced:false});
+        if(name === "prepare_stripe_webhook_snapshot")return response(id);
+        if(name === "apply_stripe_webhook"){applied++;return response(null,{code:"55P03",message:"Lock unavailable"});}
         if(name === "fail_stripe_webhook")failed++;if(name === "complete_stripe_webhook")completed++;
         return response(true);
       },
@@ -130,6 +131,6 @@ for (const type of ["checkout.session.async_payment_failed", "payment_intent.pro
       "@/lib/supabase/admin":{getServiceRoleClient:()=>service},
     });
     const result=await route.POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:"fixture",headers:{"stripe-signature":"fixture"}}));
-    assert.equal(result.status,500);assert.equal(completed,0);assert.equal(failed,1);assert.equal(notified,0);
+    assert.equal(result.status,500);assert.equal(completed,0);assert.equal(failed,1);assert.equal(notified,0);assert.equal(applied,1);
   });
 }

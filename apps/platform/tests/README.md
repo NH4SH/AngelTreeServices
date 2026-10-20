@@ -1477,3 +1477,32 @@ fixture and write rolls back, including failed connections. This verifies instal
 SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
+
+### Stripe webhook checkpoint confirmation
+
+`webhook-checkpoint.test.mjs` runs in the regular gate. It exercises the actual
+runner and HTTP route with incomplete claims, snapshots, apply results, reminder
+planning, notification reads/claims and sender outcomes. It preserves terminal
+claim/ignored-event replays and checks that unknown outcomes with retries disabled
+remain review cases. Nullable notification content is checked against the adapter.
+
+The opt-in companion calls the installed local SQL protocol inside one outer
+rollback: financial apply, failure/reclaim, reminder checkpoint, reserved email
+submission, review on replay, completion and attempt exhaustion. It collects only
+synthetic-recipient response shapes and exercises them through controlled runner
+adapters. No email/payment provider, API keys or hosted database is involved.
+Other recipients' newly generated fixture-event inbox rows are skipped using the
+existing protocol inside that same rollback; existing inbox rows are untouched.
+
+```sh
+WEBHOOK_CHECKPOINT_DISPOSABLE=1 \
+WEBHOOK_CHECKPOINT_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+WEBHOOK_CHECKPOINT_RESULTS_FILE="$LOCAL_WEBHOOK_CHECKPOINT_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/webhook-checkpoint.integration.test.mjs
+```
+
+Use the existing disposable Unix `DOCKER_HOST` above. This test verifies installed
+SQL state transitions and compatibility of collected responses, rather than live
+interleaving between the runner and database. It does not prove independent
+commits, actual HTTP/Auth, network-loss recovery, lease races or hosted acceptance.
+The separate PR06/07 Auth/concurrency suites retain their existing role.

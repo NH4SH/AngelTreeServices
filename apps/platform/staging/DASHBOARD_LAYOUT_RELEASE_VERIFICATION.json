@@ -1,0 +1,37 @@
+{
+  "productionBaseline": "49a0b82d6a1d028039249aa32a375acbdf8eec2d",
+  "hotfixCommit": "8a510950d1c5dc8a4f6ef1ea4ae3edc3285315df",
+  "changed": [
+    "apps/platform/src/styles/globals.css"
+  ],
+  "onlyTwoCssLinesAdded": true,
+  "syntheticLocalBuildPassed": true,
+  "compiledRulesPresent": true,
+  "cssFilesChecked": 1,
+  "productionCredentialsUsedInLocalVerification": false,
+  "deployBuildMustUseProductionContext": true,
+  "liveDeploymentChanged": true,
+  "productionDeployId": "6ad6ecfc6c03786554247e4a",
+  "sourceArchiveSha256": "f7901ef2d5053c820588e65508a0a3700ce74af6bc01ee9d0f01570597f8d68b",
+  "liveChecks": {
+    "productionOrigin": "https://admin.angeltreeservices.org",
+    "loginStatus": 200,
+    "adminRequiresLogin": true,
+    "adminNoStore": true,
+    "healthStatus": 200,
+    "frameProtection": "DENY",
+    "mimeSniffingDisabled": true,
+    "liveCssFileCount": 1,
+    "bothLayoutRulesVerifiedOnLiveOrigin": true,
+    "databaseOrEnvironmentChangesPerformed": false,
+    "authenticatedDashboardVisualCheckPerformed": false
+  },
+  "hostedProductionBuildVerified": true,
+  "initialCliMaskedPublicSettingsFailureCorrectedForward": true,
+  "initialCliDeployId": "6ad6ebc2c6dfa436a2c06d97",
+  "storedEnvironmentChanges": false,
+  "databaseChanges": false,
+  "secretScanFiles": 24615,
+  "secretScanMatches": 0,
+  "scheduledFunctionsRetained": 5
+}

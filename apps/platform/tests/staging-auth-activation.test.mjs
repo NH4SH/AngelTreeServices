@@ -4,7 +4,7 @@ import { readFileSync,writeFileSync,mkdtempSync } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { loadSources, absentGuard, reviewTarget, buildInstallationTransaction, expectedGuard, activationDecision, verifyActivatedConfiguration, fingerprint } from '../scripts/release/staging-auth-activation.mjs';
+import { loadSources, absentGuard, reviewTarget, buildInstallationTransaction, expectedGuard, activationDecision, verifyActivatedConfiguration, fingerprint, verifyActiveTarget } from '../scripts/release/staging-auth-activation.mjs';
 const sources = loadSources(), c = sources.candidate;
 const profile = JSON.parse(readFileSync(new URL('../../../supabase/staging/auth-email-guard/target-review.json', import.meta.url)));
 export function fixture() {
@@ -92,3 +92,8 @@ test('failure output never includes malformed private config or drift canaries',
  const {input}=fixture(),after=structuredClone(input.config);after.data.attributes.auth.smtp_pass=canary;
  assert.throws(()=>verifyActivatedConfiguration(input.config,after,{hook_send_email_enabled:true,hook_send_email_uri:sources.guard.hookUri}),error=>!error.message.includes(canary));
 });
+
+function activeFixture(){const {input,now}=fixture();input.config.data.attributes.auth.hook_send_email_enabled=true;input.config.data.attributes.auth.hook_send_email_uri=sources.guard.hookUri;input.guardState=expectedGuard(sources.guard.functionBodyMd5);return{input,now,activeProfile:{projectRef:c.projectRef,functionBodyMd5:sources.guard.functionBodyMd5,authConfigurationFingerprint:fingerprint(input.config.data.attributes.auth),apiConfigurationFingerprint:fingerprint(input.config.data.attributes.api)}};}
+test('active verifier accepts the exact installed empty93 target without replaying historical mail proof',()=>{const{input,now,activeProfile}=activeFixture();const r=verifyActiveTarget(input,profile,activeProfile,now);assert.equal(r.activated,true);assert.equal(r.remoteWrites,0);assert.equal(r.readyForHosting,false);assert.equal(r.historicalSyntheticEvidenceReplayed,false);});
+test('active verification rejects disabled/changed hook, effective access, config, source and database drift',()=>{for(const mutate of[x=>x.config.data.attributes.auth.hook_send_email_enabled=false,x=>x.guardState.effectivePrivileges.anon.execute=true,x=>x.config.data.attributes.auth.disable_signup=false,x=>x.identity.systemIdentifier='9999999999999999999',x=>x.snapshot.state.authUsers=1,x=>x.observedAt-=900001]){const{input,now,activeProfile}=activeFixture();mutate(input);assert.throws(()=>verifyActiveTarget(input,profile,activeProfile,now));}const{input,now,activeProfile}=activeFixture();assert.throws(()=>verifyActiveTarget(input,profile,{...activeProfile,functionBodyMd5:'unreviewed'},now));});
+test('a verify-active write combination and production target are rejected without external tools',()=>{for(const args of[['--project-ref','ddvlnixdugcbnrewktes','--auth-config-file','/not/read','--verify-active'],['--project-ref',c.projectRef,'--auth-config-file','/not/read','--verify-active','--apply']]){const r=spawnSync(process.execPath,[new URL('../scripts/release/review-staging-auth-activation.mjs',import.meta.url).pathname,...args],{encoding:'utf8',env:{PATH:'/usr/bin:/bin',STAGING_SUPABASE_BIN:'/not/executed'}});assert.equal(r.status,1);assert.doesNotMatch(r.stderr,/ENOENT/);}});

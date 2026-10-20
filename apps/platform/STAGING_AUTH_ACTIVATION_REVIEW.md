@@ -1,5 +1,13 @@
 # Targeted staging Auth installation and activation review — October 18, 2026
 
+**Current state, October19:** the reviewed hook is now installed/enabled on the
+separate staging project after explicit authorization. Exact permissions/state
+and bounded hosted recovery invocation are verified; two synthetic users and
+all sessions were removed. Other hosted email routes were rate-limited; full
+per-route hook-message proof remains open. See
+[activation record](STAGING_AUTH_EMAIL_ACTIVATION.md). Earlier statements below
+record their original review date. No app deployment or production change occurred.
+
 **Decision: accept the targeted installation design and staged activation plan.**
 The verified local guard is pushed to main and `codex/staging-auth-email-guard` at
 `56d3c13`, with deployment skipped. This follow-through prepares a concrete

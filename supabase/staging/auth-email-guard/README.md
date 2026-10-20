@@ -25,3 +25,10 @@ database restrictions. The read-only review CLI writes a private expiring SQL
 artifact and unsent two-field Auth patch; it cannot apply or activate either.
 See `apps/platform/STAGING_AUTH_ACTIVATION_REVIEW.md`. Never disable the hosted
 hook automatically after a failure: default SMTP would become available again.
+
+Current state (October19): the separate targeted operation has installed/enabled
+this exact hook on ATS staging. `active-profile.json` records safe post-activation
+fingerprints for the read-only `--verify-active` check. Local SQL/rollback files
+retain their original restrictions; do not run them on hosted databases. See
+`apps/platform/STAGING_AUTH_EMAIL_ACTIVATION.md` for bounded synthetic proof and
+the shared email-rate-limit caveat. The app is undeployed; production is untouched.

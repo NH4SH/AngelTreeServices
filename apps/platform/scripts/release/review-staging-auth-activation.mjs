@@ -6,16 +6,17 @@ import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, statSync } from 'n
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
-import { loadSources, identitySQL, guardSQL, reviewTarget, buildInstallationTransaction, fingerprint } from './staging-auth-activation.mjs';
+import { loadSources, identitySQL, guardSQL, reviewTarget, buildInstallationTransaction, fingerprint, verifyActiveTarget } from './staging-auth-activation.mjs';
 import { snapshotSQL, assertTarget, stagingRef } from './staging-permissions.mjs';
 const root = new URL('../../../../', import.meta.url);
 function run() {
     const args = process.argv.slice(2);
     if (args.length === 1 && args[0] === '--help') {
-        console.log('review-staging-auth-activation.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json\nRead-only. Requires a fresh mode0600 effective config GET for this staging project. Writes review artifacts privately; never applies SQL or sends an Auth config patch.');
+        console.log('review-staging-auth-activation.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json\nRead-only. Requires a fresh mode0600 effective config GET for this staging project. Add --verify-active to verify the installed/active guard instead of preparing an installation packet. Never applies SQL or sends an Auth config patch.');
         return;
     }
-    assert.equal(args.length, 4, 'Only read-only review arguments are supported.');
+    const active = args.length===5 && args[4]==='--verify-active';
+    assert.ok(args.length===4 || active, 'Only read-only review arguments are supported.');
     assert.deepEqual(args.slice(0, 3), ['--project-ref', stagingRef, '--auth-config-file'], 'Only the assigned staging review is supported.');
     const stats = statSync(args[3]);
     assert.ok(stats.isFile() && (stats.mode & 0o077) === 0, 'Use a private regular config file.');
@@ -42,7 +43,14 @@ function run() {
     const file = join(directory, 'read-only-snapshot.sql');
     writeFileSync(file, sql, { mode: 0o600 });
     const observed = call(['db', 'query', '--linked', '--project-ref', stagingRef, '--file', file], 'database').rows[0].evidence;
-    const review = reviewTarget({ ...observed, projects, config, observedAt: Math.floor(stats.mtimeMs) }, profile);
+    const evidence={...observed,projects,config,observedAt:Math.floor(stats.mtimeMs)};
+    if(active){
+        const activeProfile=JSON.parse(readFileSync(new URL('supabase/staging/auth-email-guard/active-profile.json',root)));
+        const result={...verifyActiveTarget(evidence,profile,activeProfile),evidenceDirectory:directory};
+        writeFileSync(join(directory,'active-result.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});
+        console.log(JSON.stringify(result,null,2));return;
+    }
+    const review = reviewTarget(evidence,profile);
     const installSQL = buildInstallationTransaction(review, sources);
     writeFileSync(join(directory, 'review-only-install.sql'), installSQL, { mode: 0o600 });
     writeFileSync(join(directory, 'review-only-auth-patch.json'), JSON.stringify(review.desiredAuthPatch, null, 2) + '\n', { mode: 0o600 });

@@ -1,6 +1,6 @@
 {
-  "verifiedOn": "2026-10-18",
-  "status": "93-migration-candidate-reconciled-hosting-not-ready",
+  "verifiedOn": "2026-10-19",
+  "status": "93-migration-candidate-auth-guard-active-hosting-not-ready",
   "sourceCommit": "fcd5b7336c0efa2c7c0f4abb9797c82d96daaf07",
   "supabase": {
     "projectRef": "gbyhdsuiqeslgjdnbqng",
@@ -36,7 +36,7 @@
       "https://angel-tree-admin-staging.netlify.app/update-password"
     ],
     "authDeclaredConfigurationVerified": true,
-    "authMailIsolationVerified": false,
+    "authMailIsolationVerified": true,
     "initialObjectsWithAdditionalGrants": 109,
     "remainingObjectGrantDifference": "Redundant managed public-schema USAGE only; current public relation/routine ACLs exactly match fresh replay.",
     "currentObjectGrantContractVerified": true,
@@ -85,7 +85,7 @@
     "authEffectiveConfigReadOnlyReviewed": true,
     "authDefaultTemplatesReviewed": 13,
     "authBuiltInMailIsIsolated": false,
-    "authSendEmailHookEnabled": false,
+    "authSendEmailHookEnabled": true,
     "authCustomSmtpConfigured": false,
     "localAuthEmailGuard": {
       "preparedLocally": true,
@@ -94,8 +94,8 @@
       "verification": "staging/AUTH_EMAIL_GUARD_VERIFICATION.json",
       "ordinaryMigration": false,
       "hostedInstallationImplemented": false,
-      "installedOnHostedStaging": false,
-      "enabledOnHostedStaging": false,
+      "installedOnHostedStaging": true,
+      "enabledOnHostedStaging": true,
       "productionChanges": false
     },
     "authEmailActivationReview": {
@@ -109,10 +109,42 @@
       "installationPacketPreparedLocally": true,
       "installationPacketExpiresAfterMinutes": 15,
       "hostedWriteRunnerIncluded": false,
-      "installedOnHostedStaging": false,
-      "enabledOnHostedStaging": false,
-      "hostedBehaviorVerified": false,
-      "activationAuthorized": false
+      "installedOnHostedStaging": true,
+      "enabledOnHostedStaging": true,
+      "hostedBehaviorVerified": true,
+      "activationAuthorized": true,
+      "hostedBehaviorScope": "Bounded recovery hook invocation proven by server logs; other email routes blocked by unchanged shared limit. Full hosted route matrix remains unverified."
+    },
+    "authBuiltInMailBypassedByHook": true,
+    "authEmailActivation": {
+      "completedOn": "2026-10-19",
+      "report": "STAGING_AUTH_EMAIL_ACTIVATION.md",
+      "verification": "staging/AUTH_GUARD_ACTIVATION_VERIFICATION.json",
+      "activeProfile": "supabase/staging/auth-email-guard/active-profile.json",
+      "sourceReviewCommit": "a311c0e",
+      "alignedMainCommit": "d0241d7",
+      "hostedInstalled": true,
+      "hostedEnabled": true,
+      "effectiveConfigurationChangeFields": [
+        "hook_send_email_enabled",
+        "hook_send_email_uri"
+      ],
+      "original93MigrationsPreserved": true,
+      "originalApplicationAndDefaultsPreserved": true,
+      "hostedRecoveryHookInvocationsObserved": 2,
+      "hostedEmailClientsRejected": 5,
+      "fullHostedEmailRouteMatrixVerified": false,
+      "hostedClientResponsesRateLimited": true,
+      "rateLimitsChanged": false,
+      "ephemeralStagingAdminAccessVerified": true,
+      "privilegedCredentialPersistedOrInstalled": false,
+      "syntheticUsersCreated": 2,
+      "syntheticUsersRemoved": 2,
+      "authUsersAfterCleanup": 0,
+      "authSessionsAfterCleanup": 0,
+      "authRefreshTokensAfterCleanup": 0,
+      "appDeployed": false,
+      "productionChanges": false
     }
   },
   "netlify": {

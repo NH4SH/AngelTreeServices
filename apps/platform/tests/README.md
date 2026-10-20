@@ -1120,3 +1120,14 @@ metadata reconciliation never claims real hosted mail isolation. See
 `STAGING_AUTH_ACTIVATION_REVIEW.md` for the exact activation and keep-blocked
 failure plan. No deployment, hosted mutation or shared reset is part of either
 native command.
+
+
+After authorized hosted activation, add `--verify-active` to the preceding
+read-only reviewer command. It checks the committed safe active fingerprints,
+exact invoker/effective permissions, exposed schemas and unchanged empty93
+candidate; it never applies, repairs or sends mail. Three additional ordinary
+unit cases reject active/config/identity/access drift and production/write flags.
+A passing metadata check does not rerun historical synthetic tests. The actual
+hosted activation and two-user cleanup are recorded in
+`STAGING_AUTH_EMAIL_ACTIVATION.md`; the hosted email limit blocked the remaining
+per-route hook-message matrix. Keep those limits and the hook enabled.

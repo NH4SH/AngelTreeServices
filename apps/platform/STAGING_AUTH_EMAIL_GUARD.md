@@ -1,5 +1,13 @@
 # Staging-only Auth email guard — local verification, October 18, 2026
 
+**Current state, October19:** the reviewed hook is now installed/enabled on the
+separate staging project after explicit authorization. Exact permissions/state
+and bounded hosted recovery invocation are verified; two synthetic users and
+all sessions were removed. Other hosted email routes were rate-limited; full
+per-route hook-message proof remains open. See
+[activation record](STAGING_AUTH_EMAIL_ACTIVATION.md). Earlier statements below
+record their original review date. No app deployment or production change occurred.
+
 **Published/follow-through:** guard `56d3c13` is now pushed to main and its preserved
 branch. The targeted staging installation and activation review is prepared and
 tested locally; see [current review](STAGING_AUTH_ACTIVATION_REVIEW.md). Original

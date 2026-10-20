@@ -1,0 +1,97 @@
+{
+  "verifiedOn": "2026-10-19",
+  "reviewCommit": "a311c0e",
+  "reviewPushedWithMainMerge": "d0241d7",
+  "preservedIndependentMainCommit": "cc9ebb7",
+  "branch": "codex/staging-auth-activation",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "installed": true,
+  "activated": true,
+  "originalFunctionBodyMd5": "3217b69110500f25a29e85e4cb945b7f",
+  "originalInstallationSqlBytesPreserved": true,
+  "exactFunctionSchemaAclAndEffectivePermissionsVerified": true,
+  "databaseIdentityAndVersionVerified": true,
+  "original93LedgerSourceCatalogAndDefaultsPreserved": true,
+  "ordinaryProductionMigrationAdded": false,
+  "changedAuthFields": [
+    "hook_send_email_enabled",
+    "hook_send_email_uri"
+  ],
+  "effectiveConfigChangedOnlyAsAuthorized": true,
+  "dataApiExcludesGuardSchema": true,
+  "authVersion": "v2.197.0",
+  "rateLimitsChanged": false,
+  "smtpConfigured": false,
+  "existingStagingKeysUsedOnlyInMemory": true,
+  "keysCreatedRotatedPrintedCommittedOrInstalled": false,
+  "hostedClientChecks": {
+    "passed": 15,
+    "failed": 0,
+    "emailRoutesRejected": 5,
+    "emailRouteClientStatus": 429,
+    "directClient503MatrixVerified": false
+  },
+  "hostedRecoveryLogProof": {
+    "sameRequestIdGroups": 1,
+    "hookInvocationErrorEvents": 2,
+    "completed503Events": 2,
+    "final429Events": 1,
+    "guardMessageObserved": true,
+    "retryingIntermediaryIdentified": false
+  },
+  "remainingHostedPerRouteHookProof": [
+    "invitation",
+    "magic link",
+    "confirmation resend",
+    "email change"
+  ],
+  "scopedLogReview": {
+    "authRows": 25,
+    "edgeRows": 19,
+    "postgresRowsReturned": 0,
+    "payloadCanaryMatches": 0,
+    "smtpNamedEvents": 0,
+    "completeProviderDeliveryAudit": false
+  },
+  "syntheticUsersCreated": 2,
+  "syntheticUsersRemoved": 2,
+  "cleanup": {
+    "authUsers": 0,
+    "authIdentities": 0,
+    "authSessions": 0,
+    "authRefreshTokens": 0,
+    "publicProfiles": 0
+  },
+  "historicalAuditRowsPurged": false,
+  "allReviewedApplicationCountersZero": true,
+  "communicationsRecurringAndScanSwitchesRemainOff": true,
+  "unitTests": {
+    "passed": 795,
+    "failed": 0,
+    "skipped": 0
+  },
+  "publicSiteJsChecks": {
+    "passed": 152,
+    "failed": 0
+  },
+  "typecheckPassed": true,
+  "offlineSchemaContractPassed": true,
+  "hostedAdvisors": {
+    "errors": 0,
+    "hookSpecificFindings": 0,
+    "retainedNames": [
+      "rls_enabled_no_policy",
+      "authenticated_security_definer_function_executable"
+    ]
+  },
+  "finalActiveReadOnlyVerifierPassed": true,
+  "reviewAppHealthStatus": 200,
+  "productionDeploysUnchangedFromActivationStart": {
+    "crm": "6ad23c757dfc53f702ae00b9",
+    "website": "6ad55139227a40602bbc1df3"
+  },
+  "stagingPublishedDeployId": null,
+  "appDeployed": false,
+  "productionChanges": false,
+  "readyForHosting": false
+}

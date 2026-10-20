@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "verifiedOn": "2026-10-19",
+  "sourceReviewCommit": "a311c0e",
+  "alignedMainCommit": "d0241d7",
+  "functionBodyMd5": "3217b69110500f25a29e85e4cb945b7f",
+  "hookUri": "pg-functions://postgres/ats_staging_auth/reject_email",
+  "authConfigurationFingerprint": "9e48d86379465e90d5da027338dd271d483739236b1332687b5fcb01807cff73",
+  "apiConfigurationFingerprint": "0b0b1ae53a8c58ce2b921371079cb240e26f7657d462b0878ff5bc26ca0933ac",
+  "installationAuthorized": true,
+  "activated": true,
+  "requiresFreshLiveReadback": true,
+  "productionApplicable": false,
+  "appDeployed": false
+}

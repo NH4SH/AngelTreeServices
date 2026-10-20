@@ -142,3 +142,23 @@ export function verifyActivatedConfiguration(before, after, patch) {
     assert.equal(fingerprint(after), fingerprint(expected), 'Unexpected configuration drift; keep guard enabled and stop.');
     return { configurationMatches: true, deliveryIsolationVerified: false, readyForHosting: false };
 }
+
+// Empty-target maintenance verification after authorized activation; no mutation.
+export function verifyActiveTarget({projects,identity,snapshot,ledger,guardState,config,observedAt},profile,activeProfile,now=Date.now()) {
+    const sources=loadSources();
+    assert.equal(profile.projectRef,stagingRef);assert.equal(activeProfile.projectRef,stagingRef);
+    assertTarget(stagingRef,projects);validateIdentity(identity);assert.deepEqual(identity,profile.databaseIdentity);
+    assert.ok(Number.isSafeInteger(observedAt)&&observedAt<=now&&now-observedAt<=900000,'Fresh active configuration evidence required.');
+    verifyCandidate(sources.candidate,snapshot,ledger,sources.files);
+    assert.equal(snapshot.apiAclSeal,sources.candidate.expectedApiAclSeal);assert.equal(snapshot.ownedDefaultApiGrants,0);
+    assert.deepEqual(guardState,expectedGuard(sources.guard.functionBodyMd5),'Active hook definition or effective permissions changed.');
+    assert.equal(config?.data?.id,stagingRef);
+    const attrs=config.data.attributes;
+    assert.equal(attrs.auth.hook_send_email_enabled,true);assert.equal(attrs.auth.hook_send_email_uri,sources.guard.hookUri);
+    assert.equal(attrs.api.db_schema,'public,graphql_public');
+    assert.equal(activeProfile.functionBodyMd5,sources.guard.functionBodyMd5);
+    assert.equal(fingerprint(attrs.auth),activeProfile.authConfigurationFingerprint,'Active Auth configuration drift.');
+    assert.equal(fingerprint(attrs.api),activeProfile.apiConfigurationFingerprint,'Active API configuration drift.');
+    return {projectRef:stagingRef,installed:true,activated:true,exactGuardAndEffectivePermissionsVerified:true,emptyStateAnd93CandidateVerified:true,
+      historicalSyntheticEvidenceReplayed:false,readyForHosting:false,remoteWrites:0,deployed:false};
+}

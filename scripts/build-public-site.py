@@ -205,7 +205,7 @@ def apply_public_consent_controls() -> None:
         if not marker or not end or footer.count(privacy_link) != 1:
             raise RuntimeError(f"Expected one public footer Privacy link in {target}")
         source = before + marker + footer.replace(privacy_link, privacy_link + " " + trigger) + end + after
-        source = source.replace('</head>', '<link rel="stylesheet" href="/ats-consent.css?v=consent2"></head>')
+        source = source.replace('</head>', '<link rel="stylesheet" href="/ats-consent.css?v=consent3"></head>')
         source = source.replace('</body>', fragment + '</body>')
         target.write_text(source, encoding="utf-8")
 

@@ -57,7 +57,7 @@ test('other tabs withdrawal or storage removal stops collection in the active pa
   storage.delete(key); h.windowEvents.storage({key:null}); assert.equal(h.calls.at(-1),'denied'); assert.equal(h.ids['ats-consent'].hidden,false);
 });
 test('settings disclosure, Escape and close restore keyboard focus',()=>{
-  const h=harness({enabled:false}); h.trigger.click(); assert.equal(h.ids['ats-consent'].hidden,false); assert.equal(h.active(),h.ids['ats-consent-title']); assert.equal(h.trigger.attrs['aria-expanded'],'true');
+  const h=harness({enabled:false}); h.trigger.click(); assert.equal(h.ids['ats-consent'].hidden,false); assert.equal(h.active(),h.ids['ats-consent-reject']); assert.equal(h.trigger.attrs['aria-expanded'],'true');
   let prevented=false; h.ids['ats-consent'].listeners.keydown({key:'Escape',preventDefault(){prevented=true;}}); assert.equal(prevented,true); assert.equal(h.ids['ats-consent'].hidden,true); assert.equal(h.active(),h.trigger); assert.equal(h.trigger.attrs['aria-expanded'],'false');
   h.trigger.click(); h.ids['ats-consent-close'].click(); assert.equal(h.active(),h.trigger);
 });
@@ -100,5 +100,14 @@ test('page-only choices close the banner and visibly explain the unsaved prefere
     h.ids['ats-consent-feedback-dismiss'].click();
     assert.equal(h.ids['ats-consent-feedback'].attrs['data-warning'],undefined);
     assert.equal(h.active(),h.ids['main-content']);
+  }
+});
+
+test('reopening the compact notice focuses the current visible choice',()=>{
+  for(const value of ['granted','denied']) {
+    const h=harness({storage:new Map([[key,stored(value)]])});
+    h.trigger.click();
+    assert.equal(h.ids['ats-consent'].hidden,false);
+    assert.equal(h.active(),h.ids[value==='granted'?'ats-consent-allow':'ats-consent-reject']);
   }
 });

@@ -1,18 +1,17 @@
 <section id="ats-consent" class="ats-consent" aria-labelledby="ats-consent-title" hidden>
-  <div class="ats-consent__header">
-    <h2 id="ats-consent-title" tabindex="-1">Optional cookies</h2>
+  <h2 id="ats-consent-title" class="ats-consent__title" tabindex="-1">Optional cookies</h2>
+  <p class="ats-consent__summary"><span id="ats-consent-description">Optional Google Analytics cookies measure visits and clicks.</span> <a href="/privacy/#website-analytics" aria-label="Cookie details and privacy">Details</a></p>
+  <p id="ats-consent-status" role="status" aria-live="polite"></p>
+  <div class="ats-consent__controls">
+    <div class="ats-consent__actions">
+      <button id="ats-consent-allow" type="button" aria-label="Accept cookies">Accept</button>
+      <button id="ats-consent-reject" type="button" aria-label="Reject cookies">Reject</button>
+    </div>
     <button id="ats-consent-close" type="button" class="ats-consent__close" aria-label="Close settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
   </div>
-  <p id="ats-consent-description">We’d like to use Google Analytics cookies to understand visits and clicks.</p>
-  <p id="ats-consent-status" role="status" aria-live="polite"></p>
-  <div class="ats-consent__actions">
-    <button id="ats-consent-allow" type="button">Accept cookies</button>
-    <button id="ats-consent-reject" type="button">Reject cookies</button>
-  </div>
-  <p class="ats-consent__detail"><a href="/privacy/#website-analytics">Cookie details &amp; privacy</a></p>
 </section>
 <div id="ats-consent-feedback" class="ats-consent-feedback" role="status" aria-live="polite">
   <span id="ats-consent-feedback-text"></span>
   <button id="ats-consent-feedback-dismiss" type="button" hidden>Dismiss notice</button>
 </div>
-<script defer src="/ats-consent.js?v=consent2"></script>
+<script defer src="/ats-consent.js?v=consent3"></script>

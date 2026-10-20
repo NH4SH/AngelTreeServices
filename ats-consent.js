@@ -12,7 +12,6 @@
   var allow = document.getElementById("ats-consent-allow");
   var reject = document.getElementById("ats-consent-reject");
   var status = document.getElementById("ats-consent-status");
-  var title = document.getElementById("ats-consent-title");
   var description = document.getElementById("ats-consent-description");
   var feedback = document.getElementById("ats-consent-feedback");
   var feedbackText = document.getElementById("ats-consent-feedback-text");
@@ -43,7 +42,7 @@
   function render() {
     allow.disabled = !enabled;
     description.textContent = enabled ?
-      "We’d like to use Google Analytics cookies to understand visits and clicks." :
+      "Optional Google Analytics cookies measure visits and clicks." :
       "Google Analytics is currently disabled. We do not load it or send website analytics events. Calls and estimate requests work as usual.";
     status.hidden = enabled && !choice;
     status.textContent = !enabled ? "Analytics is off for everyone. Allowing analytics is unavailable." :
@@ -58,7 +57,7 @@
     feedbackDismiss.hidden = true;
     panel.hidden = false;
     triggers.forEach(function (button) { button.setAttribute("aria-expanded", "true"); });
-    if (focus) title.focus();
+    if (focus) (allow.disabled || (choice && choice.value === "denied") ? reject : allow).focus();
   }
   function restoreFocus(from) {
     if (!from.contains(document.activeElement)) return;

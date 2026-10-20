@@ -1,5 +1,36 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Quieter cookie notice — push approved, publication held
+
+Owner requested pushing the reviewed quieter banner. Commit and push only; use
+[skip ci] [skip netlify] so neither Netlify project automatically deploys. Preserve
+the two newer repository commits through 87193e3. Analytics property settings and
+CRM code/settings/deployment unchanged. Public-site publication remains a separate
+action; the currently live cookie banner is still the previous ba41899 release.
+
+## Quieter cookie notice — local, October 19, 2026
+
+Owner requested an even smaller, less noticeable banner after publication ba41899.
+No new commit, push or deployment. Analytics property and CRM settings unchanged.
+
+- Slim note and one control row: lighter border, no prominent visible heading,
+  14px copy, inline Details link and equally styled Accept/Reject. Full accessible
+  cookie labels and region heading retained. Close remains a 44px target.
+- Desktop 360×118.6px; mobile 296×118.6px at320×568. Mobile actions 105×44px each;
+  no overflow/wrapping, and clearance above existing mobile call/estimate bar.
+  About half the published notice's footprint. Full policy content unchanged.
+- Both choices still save and close immediately. Footer reopen focuses the current
+  visible choice; it no longer focuses the visually hidden heading. Escape and
+  focus restoration, saved rejection/reload and Details link pass with inert QA.
+- 155 tests /15 page validations pass. All217 artifacts checked:200 unchanged;
+  15 pages normalize exactly after consent-only markup/version updates, plus
+  consent CSS/JS. SEO, photos, copy, estimate links and analytics engine unchanged.
+- No real Google requests, leads or calls. Evidence: October16 chat
+  work/quieter-cookie-banner/ and outputs/quieter-cookie-banner/.
+  Physical-device and spoken-reader testing remain unperformed.
+
+Earlier publication sections below describe previous releases.
+
 ## Cookie-banner publication approved — October 19, 2026
 
 Owner approved committing, pushing and publishing the reviewed simple cookie

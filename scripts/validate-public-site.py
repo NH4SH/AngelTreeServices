@@ -1336,7 +1336,7 @@ class Validator:
         if 'consent !== "granted"' not in analytics or 'allow_google_signals: false' not in analytics or 'allow_ad_personalization_signals: false' not in analytics:
             self.error("Analytics requires opt-in and disabled advertising features")
         for route, source in self.page_sources.items():
-            if source.count('id="ats-consent"') != 1 or source.count('src="/ats-consent.js?v=consent2"') != 1:
+            if source.count('id="ats-consent"') != 1 or source.count('src="/ats-consent.js?v=consent3"') != 1:
                 self.error(f"{route}: public consent controls must load exactly once")
             if source.count('data-ats-privacy aria-controls="ats-consent"') != 1:
                 self.error(f"{route}: expose exactly one keyboard-accessible Privacy settings control")
@@ -1344,7 +1344,7 @@ class Validator:
             footer = source.partition(footer_marker)[2].partition("</footer>")[0]
             if 'data-ats-privacy aria-controls="ats-consent"' not in footer:
                 self.error(f"{route}: Privacy settings control must be in the public footer")
-            if 'href="/ats-consent.css?v=consent2"' not in source:
+            if 'href="/ats-consent.css?v=consent3"' not in source:
                 self.error(f"{route}: public consent styles missing")
         legacy_directory = self.site_dir / "angeltreeservices_backup_files"
         delivered_legacy_assets = (

@@ -24,7 +24,7 @@ function fixture(options = {}) {
     async rpc(name) {
       calls.push(name); events.push(name);
       if (name === "has_effective_platform_access") return { data: !options.inactive, error: options.accessError ?? null };
-      if (name === "begin_invoice_void") return { data: options.alreadyVoid ? { already_void: true } : { token: id }, error: options.beginError ?? null };
+      if (name === "begin_invoice_void") return { data: options.alreadyVoid ? { already_void: true } : { already_void: false, token: id }, error: options.beginError ?? null };
       if (name === "check_invoice_checkout_lease") return { data: true, error: null };
       if (name === "finalize_invoice_void") return { data: true, error: null };
       return { data: null, error: null };

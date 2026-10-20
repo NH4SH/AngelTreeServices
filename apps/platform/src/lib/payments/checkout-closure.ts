@@ -22,6 +22,29 @@ export type ClosableReservation = {
 };
 export const closableReservationColumns = "id, invoice_id, status, payment_channel, stripe_checkout_session_id, stripe_payment_intent_id, submitted_at, total_charge_cents, currency, customer_id, organization_id";
 
+// Required nullable fields must be present: a missing submission/provider field
+// cannot establish that an attempt has no payable remote object.
+export function isClosableReservation(value: unknown): value is ClosableReservation {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const present = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
+  const nullable = (v: unknown) => v === null || present(v);
+  return present(row.id) && present(row.invoice_id)
+    && typeof row.status === "string" && ["creating", "open", "processing", "completed", "expired", "failed", "cancelled"].includes(row.status)
+    && (row.payment_channel === "ach" || row.payment_channel === "card")
+    && nullable(row.stripe_checkout_session_id) && nullable(row.stripe_payment_intent_id) && nullable(row.submitted_at)
+    && typeof row.total_charge_cents === "number" && Number.isSafeInteger(row.total_charge_cents)
+    && row.total_charge_cents > 0 && row.total_charge_cents <= 2_147_483_647
+    && typeof row.currency === "string" && /^[a-z]{3}$/i.test(row.currency);
+}
+
+export function confirmsCheckoutRow(result: unknown, id: string): boolean {
+  if (!result || typeof result !== "object") return false;
+  const receipt = result as { data?: unknown; error?: unknown };
+  return receipt.error === null && !!receipt.data && typeof receipt.data === "object"
+    && !Array.isArray(receipt.data) && (receipt.data as { id?: unknown }).id === id;
+}
+
 export function closureFailure(code: CheckoutClosureCode, retryable = false): CheckoutClosureResult & { ok: false } {
   const message = code === "checkout_payment_in_progress"
     ? "Payment has been submitted or recorded. Review its status before voiding this invoice."
@@ -87,6 +110,7 @@ export async function closeCheckoutReservation({ reservation, stripe, supabase, 
     console.error("Invoice checkout reconciliation blocked", safeCheckoutLog({ code, correlationId, error, operation, retryable }));
     return closureFailure(code, retryable);
   };
+  if (!isClosableReservation(reservation)) return fail("checkout_lookup_failed", true);
   if (reservation.status === "completed" || (!reviewing && reservation.status === "processing")) return fail("checkout_payment_in_progress");
   // Elapsed time alone cannot prove a Stripe create request did not succeed.
   if (reservation.status === "creating" && !reviewing) return fail("checkout_creation_unresolved", true);
@@ -156,8 +180,8 @@ export async function closeCheckoutReservation({ reservation, stripe, supabase, 
       query = reservation[column] === null ? query.is(column, null) : query.eq(column, reservation[column]);
     }
     const updated = await budget.run(() => query.select("id").maybeSingle());
-    if (updated.error) return fail("checkout_local_write_failed", true);
-    if (!updated.data) return fail("checkout_reservation_changed", true);
+    if (updated?.error !== null) return fail("checkout_local_write_failed", true);
+    if (!confirmsCheckoutRow(updated, reservation.id)) return fail("checkout_reservation_changed", true);
     return { ok: true };
   } catch {
     return fail("checkout_local_write_failed", true);

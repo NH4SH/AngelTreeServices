@@ -115,7 +115,7 @@ function staff(options = {}) {
   const calls = [];
   return { calls, async rpc(name) { calls.push(name);
     if (name === "check_invoice_checkout_lease") return { data: !options.leaseError, error: options.leaseError ?? null };
-    if (name === "begin_invoice_void" || name === "begin_invoice_checkout_review") return { data: options.alreadyVoid ? { already_void: true } : { token: "lease-1" }, error: options.beginError ?? null };
+    if (name === "begin_invoice_void" || name === "begin_invoice_checkout_review") return { data: options.alreadyVoid ? { already_void: true } : { ...(name === "begin_invoice_void" ? { already_void: false } : {}), token: "00000000-0000-4000-8000-000000000003" }, error: options.beginError ?? null };
     if (name === "finalize_invoice_void") return { data: !options.finalError, error: options.finalError ?? null };
     return { data: null, error: null };
   } };
@@ -124,7 +124,7 @@ test("void flow authorizes/loads through begin before Stripe, finalizes after cl
   const client = staff(); const row = reservation(); const provider = stripe();
   const result = await voidInvoiceSafely({ invoiceId: row.invoice_id, staffSupabase: client, getPaymentContext: () => ({ stripe: provider, supabase: db([row]), livemode: false }), correlationId: "c" });
   assert.equal(result.ok, true); assert.deepEqual(client.calls.filter(n => n !== "check_invoice_checkout_lease"), ["begin_invoice_void", "finalize_invoice_void", "release_invoice_void"]);
-  assert.equal(row.void_reconciled_token, "lease-1");
+  assert.equal(row.void_reconciled_token, "00000000-0000-4000-8000-000000000003");
 });
 test("denied begin/repeated void never touch Stripe; denied finalizer never reports success", async () => {
   for (const options of [{ beginError: {} }, { alreadyVoid: true }]) {

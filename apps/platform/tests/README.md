@@ -1478,6 +1478,33 @@ SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
 
+### Invoice checkout closure confirmation
+
+The ordinary regression gate includes `checkout-closure-confirmation.test.mjs`.
+It injects incomplete/mismatched begin, lookup, binding, closure, lease and final
+receipts into the real helpers and verifies that unconfirmed results cannot
+authorize provider work, replacement success or invoice finalization.
+
+The separate installed-SQL suite requires the existing disposable local stack:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+CHECKOUT_CLOSURE_DISPOSABLE=1 \
+CHECKOUT_CLOSURE_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+CHECKOUT_CLOSURE_RESULTS_FILE="$LOCAL_CHECKOUT_CLOSURE_RESULTS_FILE" \
+node --experimental-strip-types --test tests/checkout-closure-confirmation.integration.test.mjs
+```
+
+`LOCAL_DOCKER_BIN` is the installed Docker executable;
+`LOCAL_CHECKOUT_CLOSURE_RESULTS_FILE` is a private output path. Nine scenarios
+interleave actual helpers with installed PostgreSQL functions and checkout
+updates, including acknowledgements lost after the SQL side effect, replay,
+review, live lease expiry and account denials. The connection uses one outer
+rollback and per-scenario savepoints. No real provider is called; no fixture or
+temporary helper persists. This does not prove independent commits, concurrent
+connections, hosted HTTP/Auth behavior or actual Stripe state. See
+`../CHECKOUT_CLOSURE_CONFIRMATION.md` for scope and verification limits.
+
 ### Stripe webhook checkpoint confirmation
 
 `webhook-checkpoint.test.mjs` runs in the regular gate. It exercises the actual

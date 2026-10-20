@@ -1300,10 +1300,35 @@ ALERT_RECIPIENTS_RESULTS_FILE=/private/local-test/alert-reads.private.json \
 node --test tests/customer-activity-recipients.integration.test.mjs
 ```
 
-The opt-in suite is excluded from unit checks. It refuses nonlocal HTTP/API and
-other Docker sockets, compares existing recipients with independent SQL, then
-scopes notification mutations to its own synthetic actor. Real notification
-INSERT/readback/status and RLS work against the local API; the activity boundary
-and sender are controlled doubles. No provider is contacted. Only that actor is
-signed out and disabled afterward; synthetic history is retained. Run shared-stack
-suites sequentially. See `ADMIN_ALERT_RECIPIENT_READS.md` for results and limits.
+The opt-in helper suite is excluded from unit checks and now runs read-only.
+It refuses nonlocal HTTP/API and other Docker sockets and compares existing
+recipients/preferences with independent SQL. Atomic write, opt-out, replay,
+RLS and fault coverage now lives in the following fresh-database suite.
+Historical fix evidence remains in `ADMIN_ALERT_RECIPIENT_READS.md`.
+
+### Atomic customer-activity preparation and recovery
+
+After replaying all95 migrations into a NEW empty database on the existing local
+container (bootstrap + all sorted migration files), use Node22:
+
+```sh
+ATOMIC_ACTIVITY_DISPOSABLE=1 \
+ATOMIC_ACTIVITY_DATABASE=ats_activity_fresh_<32_hex_characters> \
+ATOMIC_ACTIVITY_DOCKER_BIN=/path/to/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+ATOMIC_ACTIVITY_RESULTS_FILE=/private/local-test/atomic-activity.json \
+node --conditions=react-server --experimental-strip-types --test tests/atomic-customer-activity.integration.test.mjs
+```
+
+The suite refuses the shared `postgres` database and other database names/sockets.
+Use the existing guarded fresh replay workflow; do not reset or copy business rows
+or change the shared native migration ledger. It creates only synthetic
+example.invalid profiles/notices in that scratch database, retires its own
+profiles, and retains its synthetic history. Its PostgreSQL adapter executes
+actual service/authenticated/anonymous commands in independent sessions. The
+provider transport is replaced with a controlled callback; no email leaves the
+machine. A temporary trigger/constraint deliberately interrupts preparation and
+history writes, with cleanup in `finally`. Actual database lock waits verify
+contention, not just sequential replays. Regular unit tests separately exercise
+redaction, incomplete acknowledgements, disabled configuration and bounded fan-out.
+See `ATOMIC_CUSTOMER_ACTIVITY_NOTIFICATIONS.md` for the precise recovery boundary.

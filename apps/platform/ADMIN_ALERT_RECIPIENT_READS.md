@@ -91,3 +91,12 @@ Private reproduction, test and build evidence:
 `/Users/noelsierra/Documents/Codex/2026-10-20/admin-alert-recipients/`.
 SDK references: [bounded reads](https://supabase.com/docs/reference/javascript/limit),
 [cursor filters](https://supabase.com/docs/reference/javascript/gt).
+
+## Publication and follow-up
+
+October20: verified commit `170f55d` is now pushed to `main` and
+`codex/admin-alert-recipient-reads` with deployment skipped. The authorized next
+local PR14 package supersedes the multi-step emitter with atomic preparation,
+while retaining bounded helper coverage. See
+`ATOMIC_CUSTOMER_ACTIVITY_NOTIFICATIONS.md`; no historical backfill or deployment
+is implied by publishing this earlier fix.

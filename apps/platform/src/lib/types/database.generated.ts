@@ -15546,6 +15546,14 @@ export type Database = {
                 };
                 Returns: boolean;
             };
+            "prepare_customer_activity": {
+                Args: {
+                    "p_destination"?: string;
+                    "p_envelope": Json;
+                    "p_event": Json;
+                };
+                Returns: Json;
+            };
             "prepare_outbound_delivery": {
                 Args: {
                     "p_context": Json;

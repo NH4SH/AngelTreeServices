@@ -1,25 +1,16 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  readCustomerActivityRecipients,
-  readCustomerActivityPreferences,
-  readCustomerActivityNotifications,
-  type AdminRecipient,
-} from "@/lib/notifications/recipient-reads";
-import {
-  recordActivity,
-  type ActivityChanges,
-  type ActivityMetadata,
-} from "@/lib/activity-log";
+import type { ActivityChanges, ActivityMetadata } from "@/lib/activity-log";
+import type { NotificationCategory } from "@/lib/notifications/definitions";
+import { redactActivityData } from "@/lib/security/activity-redaction";
 import { mapBounded } from "@/lib/runtime/deadline";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { callDeliveryCommand } from "@/lib/email/delivery-commands";
+import { dispatchSavedEmail } from "@/lib/email/delivery";
+import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
+import { sendEmailTransport } from "@/lib/email/send";
+import { getEmailSetupState } from "@/lib/email/config";
 import { buildCanonicalAppUrl } from "@/lib/security/app-base-url";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
-import {
-  emailPreferenceFields,
-  type NotificationCategory,
-} from "@/lib/notifications/definitions";
 
 type CustomerActivityInput = {
   body?: string | null;
@@ -41,158 +32,50 @@ type CustomerActivityInput = {
   summary: string;
   title: string;
 };
+const uuid = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
+const clean = (value: string | null | undefined, max: number) => value?.trim().slice(0, max) || null;
 
-/** Emits customer-side activity without changing the primary workflow result. */
+/** One committed preparation precedes all I/O. Replays reuse the original saved
+ * requests; claims hold uncertain/accepted outcomes for existing PR14 recovery. */
 export async function emitCustomerActivity(input: CustomerActivityInput) {
-  const supabase = getServiceRoleClient();
-  if (!supabase) {
-    console.error("Customer activity notification skipped", {
-      eventType: input.eventType,
-      reason: "service_role_unavailable",
-      subjectId: input.subjectId,
-    });
-    return;
-  }
-
   try {
-    const activity = await recordActivity(supabase, {
-      actionCategory: input.category,
-      actorType: "portal",
-      changes: input.changes,
-      destinationPath: input.destinationPath,
-      eventType: input.eventType,
-      idempotencyKey: input.idempotencyKey,
-      metadata: input.metadata,
-      organizationId: input.organizationId,
-      recordLabel: input.recordLabel,
-      summary: input.summary,
-      subjectId: input.subjectId,
-      subjectType: input.subjectType,
+    const db = getServiceRoleClient();
+    if (!db) throw Error("Activity preparation unavailable");
+    const setup = getEmailSetupState();
+    const path = clean(input.destinationPath, 500);
+    const prepared = await callDeliveryCommand(db, "prepare_customer_activity", {
+      p_event: {
+        category: input.category, changes: redactActivityData(input.changes ?? {}),
+        metadata: redactActivityData(input.metadata ?? {}),
+        destination_path: path, event_type: input.eventType, idempotency_key: input.idempotencyKey,
+        organization_id: input.organizationId ?? null, record_label: clean(input.recordLabel, 180),
+        summary: clean(input.summary, 500), body: input.body ?? input.summary, title: input.title,
+        subject_id: input.subjectId, subject_type: input.subjectType,
+        customer_id: input.customerId ?? null, invoice_id: input.invoiceId ?? null,
+        change_order_id: input.changeOrderId ?? null, payment_id: input.paymentId ?? null, quote_id: input.quoteId ?? null,
+      },
+      p_envelope: { from: setup.from, reply_to: setup.replyTo },
+      p_destination: path ? buildCanonicalAppUrl(path) : null,
     });
-
-    if (!activity.created || !activity.id) return;
-
-    const recipients = await readCustomerActivityRecipients(supabase);
-    if (!recipients.length) return;
-
-    const { error } = await supabase
-      .from("admin_notifications")
-      .insert(recipients.map((recipient) => ({
-        activity_id: activity.id,
-        body: input.body ?? input.summary,
-        category: input.category,
-        destination_path: input.destinationPath,
-        organization_id: input.organizationId ?? null,
-        recipient_user_id: recipient.id,
-        title: input.title,
-      })));
-
-    if (error) {
-      console.error("Customer activity notification rows failed", {
-        eventType: input.eventType,
-        subjectId: input.subjectId,
-        reason: "notification_rows_unconfirmed",
-      });
-      return;
+    const saved = prepared.data;
+    if (prepared.error || !uuid(saved?.activity_id) || saved.legacy_hold !== false
+      || typeof saved.created !== "boolean" || !Number.isSafeInteger(saved.notification_count) || saved.notification_count < 0
+      || !Array.isArray(saved.delivery_ids) || !saved.delivery_ids.every(uuid) || saved.delivery_count !== saved.delivery_ids.length
+      || new Set(saved.delivery_ids).size !== saved.delivery_ids.length || saved.delivery_ids.length > saved.notification_count) {
+      throw Error("Activity preparation unconfirmed");
     }
-
-    const created = await readCustomerActivityNotifications(supabase, activity.id);
-    const expected = new Set(recipients.map((recipient) => recipient.id));
-    if (created.length !== expected.size || new Set(created.map((row) => row.recipient_user_id)).size !== expected.size
-      || new Set(created.map((row) => row.id)).size !== expected.size || created.some((row) => !expected.has(row.recipient_user_id))) {
-      throw Error("Notification recipient acknowledgement is incomplete.");
-    }
-    const preferences = await readCustomerActivityPreferences(supabase, [...expected]);
-    const recipientById = new Map(recipients.map((recipient) => [recipient.id, recipient]));
-
-    const outcomes = await mapBounded(created ?? [], 3, async (notification) => {
+    // Missing configuration leaves complete saved requests visible in Delivery
+    // review. A lost acknowledgement never authorizes speculative provider I/O.
+    if (!setup.configured) return;
+    const outcomes = await mapBounded(saved.delivery_ids as string[], 3, async id => {
       try {
-      const recipient = recipientById.get(notification.recipient_user_id);
-      const enabled = isEmailEnabled(preferences.get(notification.recipient_user_id), input.category);
-      if (!recipient?.email || !enabled) {
-        await updateEmailStatus(supabase, notification.id, "skipped");
-        return true;
-      }
-
-      const destination = buildCanonicalAppUrl(input.destinationPath);
-      const email = await sendTransactionalEmail({
-        emailType: "admin_customer_activity",
-        html: buildEmailHtml(input, recipient, destination),
-        idempotencyKey: `admin-activity:${notification.id}`,
-        relatedCustomerId: input.customerId,
-        relatedChangeOrderId: input.changeOrderId,
-        relatedInvoiceId: input.invoiceId,
-        relatedOrganizationId: input.organizationId,
-        relatedPaymentId: input.paymentId,
-        relatedQuoteId: input.quoteId,
-        subject: input.title,
-        supabase,
-        text: buildEmailText(input, recipient, destination),
-        to: recipient.email,
-      });
-      await updateEmailStatus(supabase, notification.id, email.ok ? "sent" : "failed");
-      return email.outcome !== "unknown" && email.historyRecorded;
+        const sent = await dispatchSavedEmail(id, db, sendEmailTransport);
+        const result = sent.ok ? await completeDeliveryFollowups(db, id, sent) : sent;
+        return result.ok && result.historyRecorded && result.sourceReconciled;
       } catch { return false; }
     });
-    if (outcomes.some(confirmed => !confirmed)) throw Error("Notification outcomes need review");
+    if (outcomes.some(confirmed => !confirmed)) throw Error("Activity delivery needs review");
   } catch {
     console.error("Customer activity notification pipeline needs review.", { eventType: input.eventType, subjectId: input.subjectId });
   }
-}
-
-function isEmailEnabled(
-  preference: Record<string, unknown> | undefined,
-  category: NotificationCategory,
-) {
-  if (category === "other") return false;
-  const field = emailPreferenceFields[category];
-  return preference?.[field] !== false;
-}
-
-async function updateEmailStatus(
-  supabase: SupabaseClient<any, "public", any>,
-  notificationId: string,
-  status: "sent" | "failed" | "skipped",
-) {
-  const { data, error } = await supabase
-    .from("admin_notifications")
-    .update({ email_attempted_at: new Date().toISOString(), email_status: status })
-    .eq("id", notificationId)
-    .select("id").maybeSingle();
-  if (error || !data?.id) throw Error("Notification delivery status could not be recorded.");
-}
-
-function buildEmailText(
-  input: CustomerActivityInput,
-  recipient: AdminRecipient,
-  destination: string | null,
-) {
-  return [
-    recipient.full_name ? `Hi ${recipient.full_name},` : "Hello,",
-    "",
-    input.summary,
-    input.recordLabel ? `Record: ${input.recordLabel}` : "",
-    `Time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} ET`,
-    destination ? `Open in admin: ${destination}` : "",
-  ].filter(Boolean).join("\n");
-}
-
-function buildEmailHtml(
-  input: CustomerActivityInput,
-  recipient: AdminRecipient,
-  destination: string | null,
-) {
-  const text = buildEmailText(input, recipient, destination);
-  return text.split("\n\n").map((paragraph) =>
-    `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`,
-  ).join("");
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

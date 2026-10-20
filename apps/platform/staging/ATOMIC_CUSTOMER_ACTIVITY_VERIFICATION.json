@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "previousFixPushedToMain": "170f55d",
+  "previousFixBranch": "codex/admin-alert-recipient-reads",
+  "branch": "codex/atomic-admin-notifications",
+  "newPackagePushed": false,
+  "migration": "20261020060328_atomic_customer_activity_notifications.sql",
+  "freshReplayMigrations": 95,
+  "stagingReviewedMigrations": 94,
+  "stagingMigrationApplied": false,
+  "regularTestsPassed": 829,
+  "postgresScenariosPassed": 15,
+  "postgresResultsIncludingParent": 16,
+  "readOnlyRecipientApiPassed": true,
+  "anonymousRpcDenied": true,
+  "localApiSmokePassed": true,
+  "isolatedNodeVersion": "22.23.3",
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "offlineSchemaContractPassed": true,
+  "sqlLintErrors": 0,
+  "localBaselineAdvisorWarnings": 42,
+  "localCurrentAdvisorWarnings": 42,
+  "newAdvisorFindings": 2,
+  "preservation": {
+    "publicTablesChecked": 110,
+    "allPreexistingRowFingerprintsPreserved": true,
+    "unchanged": {
+      "ledger": true,
+      "policies": true,
+      "settings": true,
+      "documentSetting": true,
+      "buckets": true
+    },
+    "allExistingConstraintsPreserved": true,
+    "existingFunctionChanges": [
+      "app_private.email_source_snapshot(c jsonb)",
+      "app_private.email_source_eligible(c jsonb, p jsonb)"
+    ],
+    "addedFunctions": 4,
+    "nativeLedgerEntries": 68,
+    "syntheticBusinessRowsWrittenToSharedStack": 0
+  },
+  "actualProviderCalls": 0,
+  "hostedWrites": 0,
+  "deployed": false,
+  "productionChanged": false,
+  "productionPublishedDeploy": "6ad6ecfc6c03786554247e4a",
+  "readyForHosting": false,
+  "remaining": [
+    "Separately reconcile migration95 on assigned staging",
+    "Source business transaction to activity-invocation handoff for older callers",
+    "Protected staging runtime/access/CDN acceptance",
+    "Parked scanner, restore and operator gates"
+  ],
+  "newAdvisorWarningsOrErrors": 0,
+  "localBaselineAdvisorInfo": 532,
+  "localCurrentAdvisorInfo": 532,
+  "newAdvisorInfo": [
+    {
+      "name": "rls_enabled_no_policy",
+      "table": "app_private.customer_activity_deliveries",
+      "intentional": true
+    },
+    {
+      "name": "rls_enabled_no_policy",
+      "table": "app_private.customer_activity_preparations",
+      "intentional": true
+    }
+  ]
+}

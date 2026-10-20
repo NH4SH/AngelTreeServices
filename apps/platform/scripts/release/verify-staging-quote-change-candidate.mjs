@@ -22,7 +22,9 @@ export function verifyQuoteChangeSources(read,inventory){
   assert.equal(candidate.additionalMigration.sha256,sha(read('supabase/migrations/'+candidate.additionalMigration.name)));
   assert.equal(candidate.productionWrites,false);assert.equal(candidate.deployed,false);assert.equal(candidate.readyForHosting,false);
   const files=[...historic,candidate.additionalMigration];
-  assert.deepEqual(inventory,files.map(f=>f.name).sort(),'Unreviewed migration inventory.');
+  const deferred=JSON.parse(read('supabase/staging/deferred-migrations.json')).migrations.filter(f=>!files.some(known=>known.name===f.name));
+  assert.ok(deferred.every(f=>f.name>candidate.additionalMigration.name),'Local-only changes must follow candidate94.');
+  assert.deepEqual(inventory,[...files,...deferred].map(f=>f.name).sort(),'Unreviewed migration inventory.');
   assert.equal(candidate.delta.changed.length,0);assert.equal(candidate.delta.removed.length,0);
   assert.deepEqual(candidate.allowedOwnedDefaultsSeals,previous.allowedOwnedDefaultsSeals);
   assert.deepEqual(candidate.allowedManagedDefaultsSeals,previous.allowedManagedDefaultsSeals);

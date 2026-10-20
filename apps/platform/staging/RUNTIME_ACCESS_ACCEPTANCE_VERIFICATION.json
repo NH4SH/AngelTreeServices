@@ -1,0 +1,142 @@
+{
+  "verifiedOn": "2026-10-20",
+  "implementationSourceCommit": "abe52d784eaed92997b0610c061625bbb5734e0b",
+  "priorReconciliationPushedToMain": true,
+  "scope": "verification only; no application runtime, dependency, migration, hosting setting or credential changes",
+  "regularRegressionResults": 862,
+  "newActualEdgeEntryCases": 6,
+  "compiledRuntimeScenarios": 8,
+  "compiledRuntimeTapResults": 9,
+  "runtime": {
+    "sourceCommit": "abe52d784eaed92997b0610c061625bbb5734e0b",
+    "syntheticOnly": true,
+    "scenarios": [
+      {
+        "name": "compiled browser artifacts contain no synthetic server or scanner credential canaries",
+        "pass": true
+      },
+      {
+        "name": "compiled startup rejects production site/database, inherited provider key and missing staging marker",
+        "pass": true
+      },
+      {
+        "name": "gate access admits compiled login/health while CRM routes still require their own login",
+        "pass": true
+      },
+      {
+        "name": "anonymous canonical/framework/function/worker routes never reach the compiled app, even after an authorized request",
+        "pass": true
+      },
+      {
+        "name": "real compiled static asset is private behind the gate and its bytes survive forwarding",
+        "pass": true
+      },
+      {
+        "name": "all five compiled workers remain unauthorized and production-origin lead intake stays denied",
+        "pass": true
+      },
+      {
+        "name": "wrong aliases and bypass headers cannot forward even an authorized perimeter session",
+        "pass": true
+      },
+      {
+        "name": "ending perimeter access clears its cookie and subsequent anonymous CRM navigation is denied",
+        "pass": true
+      }
+    ],
+    "publicBuildFilesScanned": 90,
+    "outboundAttempts": 0,
+    "testServerStopped": true,
+    "platformEnvAndContext": "synthetic Web API bindings; not Netlify Deno execution",
+    "hostedRuntimeVerified": false,
+    "cdnVerified": false,
+    "hostedKeyValuesVerified": false,
+    "hostedWrites": 0,
+    "deployed": false,
+    "readyForHosting": false
+  },
+  "stagingMetadata": {
+    "reviewVersion": 1,
+    "metadataInstalled": true,
+    "errors": [],
+    "privateVariableCount": 4,
+    "secretValuesVerified": false,
+    "keyBindingVerified": false,
+    "runtimeObserved": false,
+    "visitorProtectionVerified": false,
+    "readyForHosting": false,
+    "networkRequests": 0,
+    "changesApplied": false,
+    "siteVariableCount": 9,
+    "sharedTeamVariableCount": 0,
+    "publishableKeyFormatVerifiedInMemory": true,
+    "publishableKeyRedactedOnDisk": true,
+    "stagingPublishedDeploy": null,
+    "privateValueMaterialUsed": false,
+    "privateValueFieldsRedactedBeforeDisk": true
+  },
+  "staging96ReadOnly": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "installed": true,
+    "activated": true,
+    "exactGuardAndEffectivePermissionsVerified": true,
+    "emptyStateAndCandidateVerified": true,
+    "candidateMigrationCount": 96,
+    "emptyStateAnd93CandidateVerified": false,
+    "historicalSyntheticEvidenceReplayed": false,
+    "readyForHosting": false,
+    "remoteWrites": 0,
+    "deployed": false,
+    "privateChangeRequests": 0,
+    "notificationState": {
+      "preparations": 0,
+      "links": 0,
+      "activities": 0,
+      "notifications": 0,
+      "deliveries": 0,
+      "requests": 0,
+      "attempts": 0,
+      "providerEvents": 0,
+      "suppressions": 0,
+      "emailEvents": 0
+    },
+    "sourceEventState": {
+      "events": 0,
+      "responses": 0
+    }
+  },
+  "sharedLocalPreservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": true,
+    "changedTables": [],
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "node22OptimizedBuildPassed": true,
+  "node22IsolatedTypecheckPassed": true,
+  "offlineSchemaContractPassed": true,
+  "originalReviewAppHealthStatus": 200,
+  "productionPublishedDeploy": "6ad6ecfc6c03786554247e4a",
+  "productionDeployReadyReadOnlyVerified": true,
+  "hostedRuntimeVerified": false,
+  "hostedCdnVerified": false,
+  "hostedKeyBindingObserved": false,
+  "historicalImmutableDeployInventoryVerified": false,
+  "sharedReadinessFlagsChanged": false,
+  "realCredentialMaterialUsedForRuntimeTests": false,
+  "credentialValuesPrintedOrExported": false,
+  "keysCreatedOrRotated": false,
+  "providerCalls": 0,
+  "hostedWrites": 0,
+  "productionChanged": false,
+  "deployed": false,
+  "readyForHosting": false,
+  "verificationPackagePushed": false
+}

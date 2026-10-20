@@ -150,3 +150,11 @@ Safe results: `staging/SOURCE_EVENT_RECONCILIATION_VERIFICATION.json`.
 Private reproduction/read-only metadata:
 `/Users/noelsierra/Documents/Codex/2026-10-20/staging-96/`.
 Reference: [Supabase migrations](https://supabase.com/docs/guides/local-development/database-migrations).
+
+### Follow-up status
+
+Reconciliation `abe52d7` is pushed to main and its branch, deployment skipped.
+Scanner-independent local runtime/perimeter acceptance now passes; see
+`STAGING_RUNTIME_ACCESS_ACCEPTANCE.md`. The96 read-only database verdict was
+rechecked unchanged. The app remains undeployed, so actual hosted runtime/CDN/
+alias/key/log acceptance and existing hardware/restore/operator gates remain open.

@@ -1394,3 +1394,33 @@ Current assigned-target read-only maintenance is
 `../STAGING_SOURCE_EVENT_RECONCILIATION.md` for fresh private configuration input,
 exact96 seals and the two reviewed hosted privileged-RPC advisor warnings.
 The prior93/94/95 verifiers and profiles retain their historical meaning.
+
+## Staging runtime and perimeter acceptance
+
+`staging-edge-adapter.test.mjs` runs six cases in the regular unit gate. The helper
+executes the actual Edge entry source with synthetic Web API/platform bindings;
+it does not emulate Netlify's Deno runtime or CDN.
+
+The compiled acceptance suite requires Node22 and a NEW isolated source export
+created by `scripts/release/prepare-staging-copy.mjs`, built using only the exact
+`stagingFixture()` manifest/environment. Never assign the shared target manifest
+or copy app `.env`/Netlify/project credentials into that copy. Preserve `TMPDIR`
+from the export/build invocation, especially on macOS with canonical `/private`
+temporary paths. The harness rejects ordinary checkouts, missing/mismatched source
+receipts, linked env files, changed export configuration and non-fixture targets.
+
+```sh
+STAGING_RUNTIME_DISPOSABLE=1 \
+STAGING_RUNTIME_EXPORTED_APP="$STAGING_SYNTHETIC_EXPORTED_APP" \
+STAGING_RUNTIME_SOURCE_COMMIT="$STAGING_EXPORTED_SOURCE_COMMIT" \
+STAGING_RUNTIME_RESULTS_FILE="$STAGING_RUNTIME_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/staging-runtime-access.integration.test.mjs
+```
+
+It starts only owned loopback processes, rejects production/provider startup
+bindings, blocks/records child outbound networking, forwards permitted Web API
+requests to the actual compiled app, then stops its processes. All keys/code and
+recipients are synthetic. No deployment, live provider, actual hosted credential,
+database mutation or scanner activation runs. The results explicitly leave hosted
+runtime/CDN/key verification and hosting readiness false. See
+`../STAGING_RUNTIME_ACCESS_ACCEPTANCE.md` for scope and remaining hosted checks.

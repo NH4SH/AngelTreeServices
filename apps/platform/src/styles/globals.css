@@ -27,6 +27,8 @@
 .attention-queue > summary b { display: flex; align-items: center; gap: 6px; }
 .attention-queue[open] > summary b svg { transform: rotate(180deg); }
 .attention-queue > .workflow-list { padding-inline: 12px; }
+.attention-queue > .workflow-list > .workflow-row { grid-template-columns: minmax(0, 1fr); }
+.attention-queue .workflow-row > span:not(.workflow-row-icon) { min-width: 0; }
 .attention-queue > .secondary-action { margin: 8px 12px 16px; }
 .attention-queue :is(strong, small) { overflow-wrap: anywhere; }
 .next-actions-panel { margin-block: 16px; min-width: 0; }

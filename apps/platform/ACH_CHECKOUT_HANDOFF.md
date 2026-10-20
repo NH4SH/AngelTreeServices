@@ -2,6 +2,13 @@
 
 October 20, 2026 · existing PR03/PR07 follow-up · local verification only
 
+**Compatibility follow-up:** the initial caller guard required an individual
+customer and incorrectly rejected organization-only invoices supported by the
+existing schema. The historical checks below did not cover that case. The shared
+party correction and new organization-only bank/card SQL tests are documented in
+`CARD_REVIEW_PREPARATION.md`; that locally verified follow-up supersedes this
+package's party assumption without changing database constraints.
+
 ## Decision and reproduced issue
 
 Checkout closure package `02b0cb2` is pushed to main and its preserved feature

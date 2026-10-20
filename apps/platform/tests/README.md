@@ -1478,6 +1478,33 @@ SQL receipt compatibility and access checks through controlled caller adapters;
 it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
 network-response loss. No migration, ledger repair or activation runs.
 
+### Card review preparation and organization billing
+
+`card-review-preparation.test.mjs` runs in the ordinary gate. It checks confirmed
+review IDs/context/fees, complete active lists, safe reuse/replacement, lost
+receipts and containment, including the actual route refusing an incomplete
+saved review. Additional bank/card tests cover the installed customer-or-
+organization contracting-party rule; ambiguous parties remain rejected.
+
+Run the installed-SQL suite separately on the existing disposable stack:
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+CARD_REVIEW_DISPOSABLE=1 \
+CARD_REVIEW_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+CARD_REVIEW_RESULTS_FILE="$LOCAL_CARD_REVIEW_RESULTS_FILE" \
+node --experimental-strip-types --test tests/card-review-preparation.integration.test.mjs
+```
+
+Use the installed Docker executable and a private results-file path. Thirteen
+scenarios exercise actual helpers and installed SQL/triggers, including the
+prepared ID passed to confirmation and organization-only bank/card fixtures with
+no customer record. Provider responses are synthetic; no real charge/send occurs.
+All fixtures and the temporary SQL helper roll back. This is one connection and
+outer transaction, not simultaneous transactions, independent commits, live
+Stripe, browser 3DS or hosted Auth proof. See `../CARD_REVIEW_PREPARATION.md` for
+details and the compatibility correction to earlier caller guards.
+
 ### Stale card cleanup and explicit unpaid proof
 
 `card-cleanup-confirmation.test.mjs` runs with the ordinary gate. It exercises the

@@ -2,6 +2,13 @@
 
 October 20, 2026 · existing PR03/PR07 follow-up · local verification only
 
+**Compatibility follow-up:** the initial reservation guard required an individual
+customer and incorrectly rejected organization-only invoices supported by the
+existing schema. The historical checks below did not cover that case. The shared
+party correction and actual organization-only preparation/confirmation tests are
+documented in `CARD_REVIEW_PREPARATION.md`; that locally verified follow-up
+supersedes this package's party assumption. Production was not changed.
+
 ## Decision and reproduction
 
 Bank checkout package `3b43338` is pushed to main and its preserved feature branch.

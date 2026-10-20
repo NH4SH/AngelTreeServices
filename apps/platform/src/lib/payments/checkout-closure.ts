@@ -22,6 +22,15 @@ export type ClosableReservation = {
 };
 export const closableReservationColumns = "id, invoice_id, status, payment_channel, stripe_checkout_session_id, stripe_payment_intent_id, submitted_at, total_charge_cents, currency, customer_id, organization_id";
 
+export function isCheckoutContractingParty(value: unknown): value is { customer_id: string | null; organization_id: string | null } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const id = (v: unknown) => typeof v === "string" && v.trim().length > 0;
+  // Match the installed exactly-one-contracting-party constraint, including
+  // organization invoices that intentionally have no individual customer.
+  return (id(row.customer_id) && row.organization_id === null) || (row.customer_id === null && id(row.organization_id));
+}
+
 // Required nullable fields must be present: a missing submission/provider field
 // cannot establish that an attempt has no payable remote object.
 export function isClosableReservation(value: unknown): value is ClosableReservation {

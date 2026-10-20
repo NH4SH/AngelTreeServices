@@ -177,3 +177,12 @@ test('a provider binding that changes before claim prevents another submission',
   const f = fixture({ race: { stripe_payment_intent_id: 'pi_existing' } });
   assert.equal((await f.run()).ok, false); assert.equal(f.creates().length, 0);
 });
+test('organization-only card confirmation preserves organization metadata without inventing a customer',async()=>{
+  const f=fixture({row:{customer_id:null,organization_id:other}});assert.equal((await f.run()).ok,true);
+  assert.equal(f.creates()[0].params.metadata.organization_id,other);assert.equal(f.creates()[0].params.metadata.customer_id,undefined);
+});
+for(const party of [{customer_id:null,organization_id:null},{customer_id:customer,organization_id:other}]){
+  test(`card confirmation rejects an absent or ambiguous party: ${JSON.stringify(party)}`,async()=>{
+    const f=fixture({row:party});assert.equal((await f.run()).ok,false);assert.equal(f.provider.length,0);
+  });
+}

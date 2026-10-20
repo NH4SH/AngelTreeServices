@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
-import { closeCheckoutReservation, classifyCheckoutForClosure, closableReservationColumns, isClosableReservation, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
+import { closeCheckoutReservation, classifyCheckoutForClosure, closableReservationColumns, isClosableReservation, isCheckoutContractingParty, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { achCheckoutPaymentMethodTypes } from "@/lib/payments/ach-checkout";
 
 type CheckoutReservation = ClosableReservation & {
@@ -236,8 +236,7 @@ function isCheckoutReservation(value: unknown): value is CheckoutReservation {
   const row = value as CheckoutReservation;
   return Number.isSafeInteger(row.invoice_principal_cents) && row.invoice_principal_cents > 0
     && row.amount_cents === row.invoice_principal_cents && row.total_charge_cents >= row.invoice_principal_cents
-    && typeof row.customer_id === "string" && row.customer_id.length > 0
-    && (row.organization_id === null || (typeof row.organization_id === "string" && row.organization_id.length > 0));
+    && isCheckoutContractingParty(row);
 }
 
 function isCheckoutUrl(value: unknown): value is string {

@@ -156,12 +156,13 @@ test('a current open checkout is verified and reused without creating another', 
   assert.deepEqual(f.provider.map(p => p.operation), ['retrieve']);
 });
 for (const [name, changes] of Object.entries({ amount: { amount_cents: 900, invoice_principal_cents: 900, total_charge_cents: 900 },
-  customer: { customer_id: other }, organization: { organization_id: other }, currency: { currency: 'eur' } })) {
+  customer: { customer_id: other }, organization: { customer_id: null, organization_id: other }, currency: { currency: 'eur' } })) {
   test(`a stale open checkout is closed before a replacement uses current ${name}`, async () => {
     const active = row({ ...changes, id: other, status: 'open', stripe_checkout_session_id: 'cs_old' });
     const remote = session({ id: 'cs_old', metadata: { invoice_id: invoice, checkout_reservation_id: other, payment_channel: 'ach' },
       amount_total: active.total_charge_cents, currency: active.currency });
     const f = fixture({ active, session: remote, createdSession: session() });
+    if (name === 'organization') { f.input.customerId = null; f.input.organizationId = customer; }
     assert.equal((await f.run()).ok, true); assert.equal(f.rows[0].status, 'expired');
     assert.deepEqual(f.provider.map(p => p.operation), ['retrieve', 'expire', 'create']); assert.equal(f.rows.length, 2);
   });
@@ -186,3 +187,19 @@ test('a unique reservation race rereads the existing guard and never creates twi
   assert.equal((await f.run()).ok, false); assert.equal(f.rows.length, 1); assert.equal(f.provider.length, 0);
   assert.equal(f.calls.filter(c => c.operation === 'lookup').length, 2);
 });
+test('organization-only invoices receive a confirmed bank link without a fabricated customer',async()=>{
+  const f=fixture();f.input.customerId=null;f.input.organizationId=other;
+  assert.equal((await f.run()).ok,true);assert.equal(f.rows[0].customer_id,null);assert.equal(f.rows[0].organization_id,other);
+  assert.equal(f.provider[0].params.metadata.organization_id,other);assert.equal(f.provider[0].params.metadata.customer_id,undefined);
+});
+test('organization-only bank links can be verified and reused',async()=>{
+  const f=fixture({active:row({customer_id:null,organization_id:other,status:'open',stripe_checkout_session_id:'cs_fixture'})});
+  f.input.customerId=null;f.input.organizationId=other;assert.equal((await f.run()).reused,true);
+  assert.deepEqual(f.provider.map(p=>p.operation),['retrieve']);
+});
+for(const [customerId,organizationId]of [[null,null],[customer,other]]){
+  test(`bank preparation refuses an absent or ambiguous contracting party: ${customerId}/${organizationId}`,async()=>{
+    const f=fixture();f.input.customerId=customerId;f.input.organizationId=organizationId;
+    assert.equal((await f.run()).ok,false);assert.equal(f.provider.length,0);
+  });
+}

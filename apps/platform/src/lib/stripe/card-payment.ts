@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
-import { cardIntentMatches, closeCheckoutReservation, closableReservationColumns, isClosableReservation, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
+import { cardIntentMatches, closeCheckoutReservation, closableReservationColumns, isClosableReservation, isCheckoutContractingParty, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { createCheckoutBudget } from "@/lib/payments/checkout-budget";
 import {
   cardAuthenticationLifetimeMs,
@@ -19,18 +19,7 @@ export type CardReview = CardChargeBreakdown & {
   reviewId: string;
 };
 
-export async function createCardReview({
-  confirmationTokenId,
-  customerId,
-  invoiceId,
-  invoicePrincipalCents,
-  organizationId,
-  stripe,
-  livemode,
-  supabase,
-  surchargeBps,
-  surchargeEnabled,
-}: {
+type CardReviewInput = {
   confirmationTokenId: string;
   customerId: string | null;
   invoiceId: string;
@@ -41,7 +30,30 @@ export async function createCardReview({
   supabase: SupabaseClient<any, "public", any>;
   surchargeBps: number;
   surchargeEnabled: boolean;
-}): Promise<{ ok: true; review: CardReview } | { ok: false; message: string }> {
+};
+type CardReviewResult = { ok: true; review: CardReview } | { ok: false; message: string };
+const cardReviewColumns = `${closableReservationColumns}, stripe_confirmation_token_id, invoice_principal_cents, surcharge_cents, card_brand, card_country, card_funding_type, reviewed_at`;
+
+export async function createCardReview(input: CardReviewInput): Promise<CardReviewResult> {
+  try { return await createCardReviewCommand(input); }
+  catch (error) {
+    console.error("Stripe card review preparation was not confirmed", safeStripeError(error));
+    return { ok: false, message: "Your payment review could not be confirmed. Please refresh and review its saved status before trying again." };
+  }
+}
+
+async function createCardReviewCommand({
+  confirmationTokenId,
+  customerId,
+  invoiceId,
+  invoicePrincipalCents,
+  organizationId,
+  stripe,
+  livemode,
+  supabase,
+  surchargeBps,
+  surchargeEnabled,
+}: CardReviewInput): Promise<CardReviewResult> {
   const cleanup = await releaseStaleCardReservations({ invoiceId, stripe, supabase, livemode });
   if (!cleanup.ok) return { ok: false, message: "Your payment review could not be prepared. Please try again." };
 
@@ -52,10 +64,13 @@ export async function createCardReview({
     console.error("Stripe card review token retrieval failed", safeStripeError(error));
     return { ok: false, message: "Your card details could not be reviewed. Please check them and try again." };
   }
+  if (confirmationToken?.id !== confirmationTokenId || confirmationToken.livemode !== livemode) {
+    return { ok: false, message: "Your card details could not be reviewed. Please check them and try again." };
+  }
 
   const preview = confirmationToken.payment_method_preview;
   const card = preview?.type === "card" ? preview.card : null;
-  if (!card) {
+  if (!card || typeof card.brand !== "string" || !card.brand) {
     return { ok: false, message: "Choose a valid debit or credit card to continue." };
   }
 
@@ -68,29 +83,29 @@ export async function createCardReview({
     surchargeBps,
     surchargeEnabled,
   });
+  const matchesReview = (value: unknown): value is CardConfirmationReservation => isCardConfirmationReservation(value)
+    && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value.id)
+    && value.invoice_id === invoiceId && value.customer_id === customerId && value.organization_id === organizationId
+    && value.stripe_confirmation_token_id === confirmationTokenId && value.payment_channel === "card" && value.currency.toLowerCase() === "usd"
+    && value.status === "open" && value.submitted_at === null && value.stripe_checkout_session_id === null && value.stripe_payment_intent_id === null
+    && value.invoice_principal_cents === invoicePrincipalCents && value.surcharge_cents === breakdown.surchargeCents
+    && value.total_charge_cents === breakdown.grossChargeCents && value.card_brand === card.brand
+    && value.card_country === cardCountry && value.card_funding_type === funding
+    && Number.isFinite(Date.parse(value.reviewed_at)) && Date.now() - Date.parse(value.reviewed_at) <= cardReviewLifetimeMs;
 
   const existing = await supabase
     .from("invoice_checkout_sessions")
-    .select("id, status, invoice_principal_cents, surcharge_cents, total_charge_cents, card_brand, card_country, card_funding_type, reviewed_at")
+    .select(cardReviewColumns)
     .eq("stripe_confirmation_token_id", confirmationTokenId)
     .eq("invoice_id", invoiceId)
     .maybeSingle();
-  if (existing.error) {
+  if (existing?.error !== null) {
     console.error("Stripe card review failed", { applicationErrorCode: "card_review_lookup_failed", route: "invoice_portal_card_review" });
     return { ok: false, message: "Your payment review could not be prepared. Please try again." };
   }
-  if (existing.data) {
-    const remainsCurrent = existing.data.status === "open"
-      && Number(existing.data.invoice_principal_cents) === invoicePrincipalCents
-      && Number(existing.data.surcharge_cents) === breakdown.surchargeCents
-      && Number(existing.data.total_charge_cents) === breakdown.grossChargeCents
-      && existing.data.card_brand === card.brand
-      && existing.data.card_country === cardCountry
-      && existing.data.card_funding_type === funding
-      && Boolean(existing.data.reviewed_at)
-      && Date.now() - new Date(existing.data.reviewed_at as string).getTime() <= cardReviewLifetimeMs;
-    if (!remainsCurrent) {
-      return existing.data.status === "creating" || existing.data.status === "processing"
+  if (existing.data !== null) {
+    if (!matchesReview(existing.data)) {
+      return existing.data?.status === "creating" || existing.data?.status === "processing"
         ? { ok: false, message: "This payment is already being submitted. Please wait for its status to update." }
         : { ok: false, message: "This card review is no longer active. Please enter your card details again." };
     }
@@ -105,13 +120,15 @@ export async function createCardReview({
     .select(closableReservationColumns)
     .eq("invoice_id", invoiceId)
     .in("status", ["creating", "open", "processing"]);
-  if (active.error) {
+  if (active?.error !== null || !Array.isArray(active.data)
+    || !active.data.every(row => isClosableReservation(row) && row.invoice_id === invoiceId && ["creating", "open", "processing"].includes(row.status))
+    || new Set(active.data.map(row => row.id)).size !== active.data.length) {
     return { ok: false, message: "Your payment review could not be prepared. Please try again." };
   }
-  if (active.data?.some((session) => session.status === "creating" || session.status === "processing")) {
+  if (active.data.some((session) => session.status === "creating" || session.status === "processing")) {
     return { ok: false, message: "A payment is already being submitted. Please wait for its status to update." };
   }
-  for (const reservation of (active.data ?? []) as ClosableReservation[]) {
+  for (const reservation of active.data as ClosableReservation[]) {
     const closed = await closeCheckoutReservation({ reservation, stripe, supabase, livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
     if (!closed.ok) return { ok: false, message: "An earlier payment needs review before another payment can start." };
   }
@@ -138,10 +155,10 @@ export async function createCardReview({
       surcharge_cents: breakdown.surchargeCents,
       total_charge_cents: breakdown.grossChargeCents,
     })
-    .select("id")
+    .select(cardReviewColumns)
     .single();
 
-  if (inserted.error || !inserted.data) {
+  if (inserted?.error !== null || !matchesReview(inserted.data)) {
     console.error("Stripe card review failed", { applicationErrorCode: "card_review_reservation_failed", route: "invoice_portal_card_review" });
     return { ok: false, message: "Your payment review could not be prepared. Please try again." };
   }
@@ -167,7 +184,7 @@ type CardConfirmationInput = {
 };
 type CardConfirmationResult = { ok: true; clientSecret: string | null; status: Stripe.PaymentIntent.Status } | { ok: false; message: string };
 type CardConfirmationReservation = ClosableReservation & {
-  customer_id: string;
+  customer_id: string | null;
   organization_id: string | null;
   stripe_confirmation_token_id: string;
   invoice_principal_cents: number;
@@ -348,8 +365,7 @@ async function confirmCardReviewCommand({
 function isCardConfirmationReservation(value: unknown): value is CardConfirmationReservation {
   if (!isClosableReservation(value)) return false;
   const row = value as CardConfirmationReservation;
-  return typeof row.customer_id === "string" && row.customer_id.length > 0
-    && (row.organization_id === null || typeof row.organization_id === "string")
+  return isCheckoutContractingParty(row)
     && typeof row.stripe_confirmation_token_id === "string" && /^ctoken_[a-zA-Z0-9]+$/.test(row.stripe_confirmation_token_id)
     && Number.isSafeInteger(row.invoice_principal_cents) && row.invoice_principal_cents > 0
     && Number.isSafeInteger(row.surcharge_cents) && row.surcharge_cents >= 0

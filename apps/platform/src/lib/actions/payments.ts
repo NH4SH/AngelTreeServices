@@ -5,6 +5,7 @@ import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/rol
 import { reconcileInvoiceBalance, syncReconciledPaymentCommunications } from "@/lib/payments/reconciliation";
 import { createClient } from "@/lib/supabase/server";
 import { safeStaffMessage } from "@/lib/security/errors";
+import { isManualPaymentReceipt, isManualPaymentResolution } from "@/lib/payments/manual-payment-receipts";
 
 export type ManualPaymentActionState = {
   status: "idle" | "success" | "error";
@@ -14,6 +15,8 @@ export type ManualPaymentActionState = {
 };
 
 const manualMethods = ["check", "cash", "ach", "other"] as const;
+const paymentUnconfirmed = "Payment could not be confirmed. Retry this saved attempt, or check it before changing details.";
+const recoveryUnconfirmed = "The previous payment could not be checked. Keep this attempt and try again.";
 
 export async function recordManualPayment(
   _previousState: ManualPaymentActionState,
@@ -48,23 +51,35 @@ export async function recordManualPayment(
     return { status: "error", message: "Enter a valid payment amount, date, and method." };
   }
 
-  const { data: payment, error: paymentError } = await supabase.rpc("record_manual_invoice_payment_request", {
-    p_request_id: requestId,
-    p_invoice_id: invoiceId,
-    p_amount_cents: amountCents,
-    p_paid_at: paymentDate,
-    p_method: method,
-    p_reference: reference,
-    p_notes: notes,
-  });
+  let payment: unknown;
+  let paymentError: { message: string } | null;
+  try {
+    const result = await supabase.rpc("record_manual_invoice_payment_request", {
+      p_request_id: requestId,
+      p_invoice_id: invoiceId,
+      p_amount_cents: amountCents,
+      p_paid_at: paymentDate,
+      p_method: method,
+      p_reference: reference,
+      p_notes: notes,
+    });
+    payment = result.data;
+    paymentError = result.error;
+  } catch {
+    return { status: "error", message: paymentUnconfirmed };
+  }
 
-  if (paymentError || !uuid.test(String(payment?.payment_id ?? ""))) {
-    return { status: "error", message: safeStaffMessage(paymentError?.message, "Payment could not be confirmed. Retry this saved attempt, or check it before changing details.") };
+  if (paymentError || !isManualPaymentReceipt(payment)) {
+    return { status: "error", message: paymentError ? safeStaffMessage(paymentError.message, paymentUnconfirmed) : paymentUnconfirmed };
   }
 
   // The RPC already committed payment, balance, request identity and audit
   // atomically. Follow-up planning must never turn that fact into a failed save.
-  await syncReconciledPaymentCommunications(invoiceId);
+  try {
+    await syncReconciledPaymentCommunications(invoiceId);
+  } catch {
+    console.error("Payment saved; follow-up planning needs review.", { invoiceId });
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/invoices");
@@ -84,10 +99,16 @@ export async function resolveManualPaymentAttempt(_previous: ManualPaymentAction
   }
   const invoiceId = String(formData.get("invoice_id") ?? ""), requestId = String(formData.get("request_id") ?? "");
   if (!uuid.test(invoiceId) || !uuid.test(requestId)) return { status: "error", message: "The saved payment attempt is invalid." };
-  const { data, error } = await supabase.rpc("resolve_manual_invoice_payment_request", { p_request_id: requestId, p_invoice_id: invoiceId });
-  if (error || !data || !["recorded", "abandoned"].includes(data.state)
-    || (data.state === "recorded" && !uuid.test(String(data.payment_id ?? "")))) {
-    return { status: "error", message: "The previous payment could not be checked. Keep this attempt and try again." };
+  let data: unknown;
+  try {
+    const result = await supabase.rpc("resolve_manual_invoice_payment_request", { p_request_id: requestId, p_invoice_id: invoiceId });
+    if (result.error) return { status: "error", message: recoveryUnconfirmed };
+    data = result.data;
+  } catch {
+    return { status: "error", message: recoveryUnconfirmed };
+  }
+  if (!isManualPaymentResolution(data)) {
+    return { status: "error", message: recoveryUnconfirmed };
   }
   revalidatePath(`/admin/invoices/${invoiceId}`);
   return data.state === "recorded"

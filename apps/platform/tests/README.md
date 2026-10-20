@@ -1447,3 +1447,33 @@ node --conditions=react-server --experimental-strip-types --test tests/payment-r
 
 This proves receipt compatibility and retained denials on local PostgreSQL. It
 does not simulate an actual committed response loss or establish hosted acceptance.
+
+### Manual-payment recovery confirmations
+
+`manual-payment-attempt.test.mjs` and `mobile-manual-payment-recovery.test.mjs`
+run in the ordinary regression gate. They exercise actual action/route code with
+malformed, contradictory and lost acknowledgements, confirmed/corrected replays,
+role denial and follow-up planning failures. Web and mobile share the pure
+`manual-payment-receipts.ts` checks; successful API shapes/version stay unchanged.
+
+The opt-in companion is fixed to the existing disposable PostgreSQL container and
+Unix socket. It inserts synthetic Auth/profile/role/invoice/payment fixtures in
+transactions, calls installed commands, and rolls everything back. It uses no
+API keys, real sign-in, outbound email, payment provider or hosted connection.
+Eleven scenarios each exercise web and mobile callers, including live crew,
+disabled-profile and separated-employee denial despite stale application authority.
+The separated state is operator-seeded for this predicate test; it does not test
+the offboarding transaction itself, which retains its existing separate suite.
+
+```sh
+MANUAL_PAYMENT_RECOVERY_DISPOSABLE=1 \
+MANUAL_PAYMENT_RECOVERY_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+MANUAL_PAYMENT_RECOVERY_RESULTS_FILE="$LOCAL_MANUAL_PAYMENT_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/manual-payment-recovery.integration.test.mjs
+```
+
+Set `DOCKER_HOST` to the same existing disposable Unix socket used above. Every
+fixture and write rolls back, including failed connections. This verifies installed
+SQL receipt compatibility and access checks through controlled caller adapters;
+it does not prove hosted PostgREST HTTP/Auth behavior or an actual committed
+network-response loss. No migration, ledger repair or activation runs.

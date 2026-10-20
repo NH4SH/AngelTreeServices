@@ -3,6 +3,7 @@ import { canRecordMobilePayments, validateMobileManualPayment, isManualPaymentRe
 import { getCrewApiContext } from "@/lib/auth/apiContext";
 import { getMobileInvoice } from "@/lib/data/mobile-invoices";
 import { syncReconciledPaymentCommunications } from "@/lib/payments/reconciliation";
+import { isManualPaymentReceipt, isManualPaymentResolution } from "@/lib/payments/manual-payment-receipts";
 
 export async function POST(request: Request, context: { params: Promise<{ invoiceId: string }> }) {
   const auth = await getCrewApiContext(request);
@@ -12,17 +13,39 @@ export async function POST(request: Request, context: { params: Promise<{ invoic
   const invoiceId = (await context.params).invoiceId;
   if (body?.intent === "resolve") {
     if (!isManualPaymentRequestId(body.requestId)) return apiError("invalid_manual_payment", "Choose a valid saved payment attempt.", 400);
-    const { data, error } = await auth.context.supabase.rpc("resolve_manual_invoice_payment_request", { p_request_id: body.requestId, p_invoice_id: invoiceId });
-    if (error || !data || !["recorded", "abandoned"].includes(data.state)
-      || (data.state === "recorded" && !isManualPaymentRequestId(data.payment_id))) return apiError("manual_payment_unknown", "Keep the saved payment attempt and try checking again.", 503);
+    let data: unknown;
+    try {
+      const result = await auth.context.supabase.rpc("resolve_manual_invoice_payment_request", { p_request_id: body.requestId, p_invoice_id: invoiceId });
+      if (result.error) return apiError("manual_payment_unknown", "Keep the saved payment attempt and try checking again.", 503);
+      data = result.data;
+    } catch {
+      return apiError("manual_payment_unknown", "Keep the saved payment attempt and try checking again.", 503);
+    }
+    if (!isManualPaymentResolution(data)) return apiError("manual_payment_unknown", "Keep the saved payment attempt and try checking again.", 503);
     return apiSuccess({ invoice: await getMobileInvoice(auth.context.supabase, invoiceId), canRecordPayments: true, manualPaymentRequestVersion: 1,
       manualPayment: { requestId: body.requestId, paymentId: data.payment_id, state: data.state } });
   }
   const input = validateMobileManualPayment(body);
   if (!input.value) return apiError("invalid_manual_payment", input.error, 400);
-  const { data, error } = await auth.context.supabase.rpc("record_manual_invoice_payment_request", { p_request_id: input.value.requestId, p_invoice_id: invoiceId, p_amount_cents: input.value.amountCents, p_paid_at: input.value.receivedAt, p_method: input.value.method, p_reference: input.value.reference, p_notes: input.value.notes });
-  if (error || !isManualPaymentRequestId(data?.payment_id)) { console.error("Mobile manual payment unconfirmed", { code: error?.code, invoiceId }); return apiError("manual_payment_unknown", "Payment could not be confirmed. Retry the saved attempt or check it before changing details.", 503); }
-  await syncReconciledPaymentCommunications(invoiceId);
+  let data: unknown;
+  try {
+    const result = await auth.context.supabase.rpc("record_manual_invoice_payment_request", { p_request_id: input.value.requestId, p_invoice_id: invoiceId, p_amount_cents: input.value.amountCents, p_paid_at: input.value.receivedAt, p_method: input.value.method, p_reference: input.value.reference, p_notes: input.value.notes });
+    if (result.error) return unconfirmedPayment(invoiceId);
+    data = result.data;
+  } catch {
+    return unconfirmedPayment(invoiceId);
+  }
+  if (!isManualPaymentReceipt(data)) return unconfirmedPayment(invoiceId);
+  try {
+    await syncReconciledPaymentCommunications(invoiceId);
+  } catch {
+    console.error("Payment saved; follow-up planning needs review.", { invoiceId });
+  }
   return apiSuccess({ invoice: await getMobileInvoice(auth.context.supabase, invoiceId), canRecordPayments: true, manualPaymentRequestVersion: 1,
     manualPayment: { requestId: input.value.requestId, paymentId: data.payment_id, state: "recorded", replayed: data.replayed } });
+}
+
+function unconfirmedPayment(invoiceId: string) {
+  console.error("Mobile manual payment unconfirmed", { code: "manual_payment_unknown", invoiceId });
+  return apiError("manual_payment_unknown", "Payment could not be confirmed. Retry the saved attempt or check it before changing details.", 503);
 }

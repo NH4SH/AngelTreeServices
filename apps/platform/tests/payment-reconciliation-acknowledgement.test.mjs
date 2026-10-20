@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { load } from './pr10-test-helpers.mjs';
+import * as manualPaymentReceipts from '../src/lib/payments/manual-payment-receipts.ts';
 
 const invoiceId = '00000000-0000-4000-8000-000000000001';
 const paymentId = '00000000-0000-4000-8000-000000000002';
@@ -130,6 +131,7 @@ for (const action of ['cancelManualPayment', 'restoreCancelledManualPayment']) t
     f.calls.push({ name, args }); return { data: null, error: null }; // Existing void-returning write already acknowledged.
   };
   const actions = load('../src/lib/actions/payments.ts', {
+    '@/lib/payments/manual-payment-receipts': manualPaymentReceipts,
     'next/cache': { revalidatePath: path => paths.push(path) },
     '@/lib/auth/roles': { getUserRoles: async () => ['owner'], hasAllowedRole: () => true, platformRoleGroups: { accessApproval: ['owner'] } },
     '@/lib/payments/reconciliation': f.module,

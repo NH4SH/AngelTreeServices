@@ -1,0 +1,90 @@
+{
+  "verifiedOn": "2026-10-20",
+  "baseCommit": "a7a8543",
+  "branch": "codex/admin-alert-recipient-reads",
+  "stagingReconciliationPushedToMain": true,
+  "newAlertFixPushed": false,
+  "before": {
+    "memberships": 861,
+    "profileUrlLength": 33675,
+    "profileStatus": 414,
+    "writes": 0,
+    "providerCalls": 0
+  },
+  "after": {
+    "recipients": 114,
+    "matchingMemberships": 862,
+    "maxLookupUrlLength": 3996,
+    "lookupRequests": 16
+  },
+  "membershipPageSize": 200,
+  "profileAndPreferenceIdBatchSize": 100,
+  "notificationInsertRemainsAtomic": true,
+  "notificationReadbackPagedAndValidated": true,
+  "eligibilityAndPreferencesUnchanged": true,
+  "sendConcurrency": 3,
+  "providerIdempotencyKeysUnchanged": true,
+  "activityReplayDoesNotResend": true,
+  "automaticBackfillOrRetryEnabled": false,
+  "atomicActivityNotificationCrashBoundaryResolved": false,
+  "unitRegressionResults": 833,
+  "integrationResultsIncludingParent": 5,
+  "integrationScenarios": [
+    {
+      "name": "real retained directory returns the complete independent owner/admin set with bounded successful requests",
+      "pass": true
+    },
+    {
+      "name": "actual notification insert, complete readback and status update work for an owned synthetic recipient",
+      "pass": true
+    },
+    {
+      "name": "actual email preference opt-out retains in-app notice and skips provider dispatch",
+      "pass": true
+    },
+    {
+      "name": "lost readback after a real insert retains pending notice without authorizing email or leaking diagnostics",
+      "pass": true
+    }
+  ],
+  "unitRepresentationCap": 1000,
+  "unitEligibleRecipientsAndNotices": 1230,
+  "unitSimulatedSendsWithOptOut": 1229,
+  "typecheckPassed": true,
+  "isolatedBuildPassed": true,
+  "nodeForFinalUnitIntegrationBuild": "22.23.3",
+  "schemaContractPassed": true,
+  "schemaRlsGrantsOrLedgerChanged": false,
+  "preservation": {
+    "publicTablesChecked": 110,
+    "preexistingRowFingerprintsPreserved": true,
+    "changedTables": [],
+    "unchanged": {
+      "ledger": true,
+      "schema": true,
+      "buckets": true,
+      "policies": true,
+      "settings": true,
+      "constraints": true,
+      "documentSetting": true
+    }
+  },
+  "retirement": {
+    "actors": 2,
+    "disabled": 2,
+    "sessions": 0,
+    "separated": 2
+  },
+  "providerCalls": 0,
+  "localIntegrationSenderStubbed": true,
+  "hostedWrites": false,
+  "productionWrites": false,
+  "deployed": false,
+  "productionDeployObserved": "6ad6ecfc6c03786554247e4a",
+  "productionDeployState": "ready",
+  "stagingMigrationCountUnchanged": 94,
+  "readinessFlagsChanged": false,
+  "alignedMainCommit": "c247604",
+  "incomingMainUpdateWebsiteOnly": true,
+  "crmAndSupabaseTreesUnchangedByIncomingMain": true
+}

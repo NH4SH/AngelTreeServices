@@ -1284,3 +1284,26 @@ in `extensions`; verify both plan count and failures, not only the process exit.
 All fixtures/probes roll back. Do not grant protected Auth-role membership.
 See `STAGING_QUOTE_CHANGE_RECONCILIATION.md` for the read-only hosted verifier and
 actual201-assertion local result. Historical93 verifiers intentionally reject94.
+
+### Customer-activity alert recipient reads
+
+`customer-activity-recipient-reads.test.mjs` runs in the normal unit suite and
+models capped responses, large directories, role overlap, opt-outs and failures.
+For the existing disposable stack only:
+
+```sh
+ALERT_RECIPIENTS_DISPOSABLE=1 \
+ALERT_RECIPIENTS_LOCAL_STATUS_FILE=/private/local-test/local-status.private.json \
+ALERT_RECIPIENTS_DOCKER_BIN=/path/to/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+ALERT_RECIPIENTS_RESULTS_FILE=/private/local-test/alert-reads.private.json \
+node --test tests/customer-activity-recipients.integration.test.mjs
+```
+
+The opt-in suite is excluded from unit checks. It refuses nonlocal HTTP/API and
+other Docker sockets, compares existing recipients with independent SQL, then
+scopes notification mutations to its own synthetic actor. Real notification
+INSERT/readback/status and RLS work against the local API; the activity boundary
+and sender are controlled doubles. No provider is contacted. Only that actor is
+signed out and disabled afterward; synthetic history is retained. Run shared-stack
+suites sequentially. See `ADMIN_ALERT_RECIPIENT_READS.md` for results and limits.

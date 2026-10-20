@@ -2,6 +2,12 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  readCustomerActivityRecipients,
+  readCustomerActivityPreferences,
+  readCustomerActivityNotifications,
+  type AdminRecipient,
+} from "@/lib/notifications/recipient-reads";
+import {
   recordActivity,
   type ActivityChanges,
   type ActivityMetadata,
@@ -36,12 +42,6 @@ type CustomerActivityInput = {
   title: string;
 };
 
-type AdminRecipient = {
-  email: string | null;
-  full_name: string | null;
-  id: string;
-};
-
 /** Emits customer-side activity without changing the primary workflow result. */
 export async function emitCustomerActivity(input: CustomerActivityInput) {
   const supabase = getServiceRoleClient();
@@ -72,10 +72,10 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
 
     if (!activity.created || !activity.id) return;
 
-    const recipients = await getAdminRecipients(supabase);
+    const recipients = await readCustomerActivityRecipients(supabase);
     if (!recipients.length) return;
 
-    const { data: created, error } = await supabase
+    const { error } = await supabase
       .from("admin_notifications")
       .insert(recipients.map((recipient) => ({
         activity_id: activity.id,
@@ -85,8 +85,7 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
         organization_id: input.organizationId ?? null,
         recipient_user_id: recipient.id,
         title: input.title,
-      })))
-      .select("id, recipient_user_id");
+      })));
 
     if (error) {
       console.error("Customer activity notification rows failed", {
@@ -97,7 +96,13 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
       return;
     }
 
-    const preferences = await getEmailPreferences(supabase, recipients.map((recipient) => recipient.id));
+    const created = await readCustomerActivityNotifications(supabase, activity.id);
+    const expected = new Set(recipients.map((recipient) => recipient.id));
+    if (created.length !== expected.size || new Set(created.map((row) => row.recipient_user_id)).size !== expected.size
+      || new Set(created.map((row) => row.id)).size !== expected.size || created.some((row) => !expected.has(row.recipient_user_id))) {
+      throw Error("Notification recipient acknowledgement is incomplete.");
+    }
+    const preferences = await readCustomerActivityPreferences(supabase, [...expected]);
     const recipientById = new Map(recipients.map((recipient) => [recipient.id, recipient]));
 
     const outcomes = await mapBounded(created ?? [], 3, async (notification) => {
@@ -133,30 +138,6 @@ export async function emitCustomerActivity(input: CustomerActivityInput) {
   } catch {
     console.error("Customer activity notification pipeline needs review.", { eventType: input.eventType, subjectId: input.subjectId });
   }
-}
-
-async function getAdminRecipients(supabase: SupabaseClient<any, "public", any>) {
-  const roles = await supabase.from("roles").select("id").in("name", ["owner", "admin"]);
-  if (roles.error || !roles.data?.length) return [];
-  const memberships = await supabase.from("user_roles").select("user_id").in("role_id", roles.data.map((role) => role.id));
-  if (memberships.error || !memberships.data?.length) return [];
-  const userIds = [...new Set(memberships.data.map((membership) => membership.user_id))];
-  const profiles = await supabase
-    .from("profiles")
-    .select("id, email, full_name")
-    .in("id", userIds)
-    .eq("status", "active");
-  if (profiles.error) return [];
-  return (profiles.data ?? []) as AdminRecipient[];
-}
-
-async function getEmailPreferences(
-  supabase: SupabaseClient<any, "public", any>,
-  userIds: string[],
-) {
-  const result = await supabase.from("admin_notification_preferences").select("*").in("user_id", userIds);
-  if (result.error) throw Error("Notification preferences could not be checked.");
-  return new Map((result.data ?? []).map((preference) => [preference.user_id as string, preference]));
 }
 
 function isEmailEnabled(

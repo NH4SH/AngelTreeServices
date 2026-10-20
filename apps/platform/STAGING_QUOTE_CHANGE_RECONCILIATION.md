@@ -142,3 +142,8 @@ Private local/hosted metadata and test logs:
 References: [Supabase migrations](https://supabase.com/docs/guides/deployment/database-migrations),
 [current changelog](https://supabase.com/changelog). No provider/extension/CLI upgrade
 or managed-default normalization was part of this additive reconciliation.
+
+Publication update, October20: verified reconciliation commit `a7a8543` was pushed
+to main and `codex/staging-quote-change-reconciliation`, deployment skipped. The
+next local scanner-independent package is `ADMIN_ALERT_RECIPIENT_READS.md`; it
+changes no staging schema, configuration or readiness state.

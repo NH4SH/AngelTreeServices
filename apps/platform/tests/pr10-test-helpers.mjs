@@ -10,7 +10,7 @@ export function memoryDB(tables,options={}){
  const calls=[];let claims=0;
  const db={calls,from(table){
   let filters=[],operation='read',values,cap=Infinity,sort,single=false;
-  const q={select(){return q;},eq(k,v){filters.push(row=>row[k]===v);return q;},in(k,v){filters.push(row=>v.includes(row[k]));return q;},gte(k,v){filters.push(row=>row[k]>=v);return q;},order(k,o){sort={k,asc:o?.ascending!==false};return q;},limit(n){cap=n;return q;},abortSignal(){return q;},update(v){operation='update';values=v;return q;},insert(v){operation='insert';values=v;return q;},maybeSingle(){single=true;return execute();},then(resolve,reject){return execute().then(resolve,reject);}};
+  const q={select(){return q;},eq(k,v){filters.push(row=>row[k]===v);return q;},in(k,v){filters.push(row=>v.includes(row[k]));return q;},gte(k,v){filters.push(row=>row[k]>=v);return q;},gt(k,v){filters.push(row=>row[k]>v);return q;},order(k,o){sort={k,asc:o?.ascending!==false};return q;},limit(n){cap=n;return q;},abortSignal(){return q;},update(v){operation='update';values=v;return q;},insert(v){operation='insert';values=v;return q;},maybeSingle(){single=true;return execute();},then(resolve,reject){return execute().then(resolve,reject);}};
   async function execute(){
    calls.push({table,operation,values});
    const error=options.fail?.({table,operation,values});if(error==='throw')throw Error('Untrusted backend diagnostic');if(error)return{data:null,error:{message:'Untrusted backend diagnostic',code:'XX000'}};

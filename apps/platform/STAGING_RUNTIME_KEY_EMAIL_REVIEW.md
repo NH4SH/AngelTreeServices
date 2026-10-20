@@ -1,5 +1,11 @@
 # Staging runtime, key and email isolation review
 
+**Current state, October 19:** the no-send Auth guard is active and staging-only
+credentials are installed. See [credential preparation](STAGING_CREDENTIAL_PREPARATION.md)
+and [Auth activation](STAGING_AUTH_EMAIL_ACTIVATION.md). Hosted runtime, visitor
+protection and overall hosting readiness remain unverified. The review below is
+historical; its absent-key/default-mail findings are superseded by those records.
+
 **Follow-through, October 18:** this review is pushed to main and its preserved
 branch at `e6dbc02`. The recommended no-send Postgres Auth hook is now implemented
 and tested in a separate local rehearsal package. See

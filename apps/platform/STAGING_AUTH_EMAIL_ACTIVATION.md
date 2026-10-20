@@ -1,5 +1,10 @@
 # Staging Auth email guard activation — October 19, 2026
 
+**Follow-through:** this activation record is now pushed to main through `87193e3`.
+Staging-only application/gate credentials have subsequently been installed; see
+[credential preparation](STAGING_CREDENTIAL_PREPARATION.md). The remaining text
+records activation-time observations. The app is still undeployed.
+
 The reviewed no-send Auth hook is **installed and enabled only on CRM Staging**
 (`gbyhdsuiqeslgjdnbqng`, ATS). The original function bytes, private invoker model,
 exact grants and all93 application migrations are preserved. The app remains

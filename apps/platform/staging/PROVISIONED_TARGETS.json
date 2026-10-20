@@ -1,6 +1,6 @@
 {
   "verifiedOn": "2026-10-19",
-  "status": "93-migration-candidate-auth-guard-active-hosting-not-ready",
+  "status": "93-migration-candidate-staging-credentials-installed-hosting-not-ready",
   "sourceCommit": "fcd5b7336c0efa2c7c0f4abb9797c82d96daaf07",
   "supabase": {
     "projectRef": "gbyhdsuiqeslgjdnbqng",
@@ -15,7 +15,7 @@
     "authUserCount": 0,
     "storageObjectCount": 0,
     "publishableKeyBindingVerified": true,
-    "privilegedKeyBindingVerified": false,
+    "privilegedKeyBindingVerified": true,
     "authIsolationVerified": false,
     "originalMigrationHashesVerified": true,
     "exactMigrationLedgerVerified": true,
@@ -145,7 +145,8 @@
       "authRefreshTokensAfterCleanup": 0,
       "appDeployed": false,
       "productionChanges": false
-    }
+    },
+    "privilegedKeyBindingVerificationScope": "Existing staging secret accepted by the exact staging Auth admin and profiles read-only APIs before upload. Hosted application runtime value/binding remains unobserved."
   },
   "netlify": {
     "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
@@ -167,11 +168,12 @@
       "APP_ENV",
       "STAGING_MODE",
       "APP_BASE_URL",
-      "NEXT_PUBLIC_SUPABASE_URL"
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
     ],
     "publicConfigurationScopes": "all",
-    "publicConfigurationContexts": "all",
-    "credentialsInstalled": false,
+    "publicConfigurationContexts": "Original four settings: all; staging publishable key: production only",
+    "credentialsInstalled": true,
     "runtimeEnvironmentVerified": false,
     "localAccessGateImplemented": true,
     "localAccessGateVerified": true,
@@ -182,7 +184,18 @@
     "runtimeKeyEmailReviewEvidence": "staging/RUNTIME_KEY_EMAIL_REVIEW_VERIFICATION.json",
     "publicVariableScopeReviewCompleted": true,
     "sharedVariableCountReturnedAtReview": 0,
-    "runtimeObserved": false
+    "runtimeObserved": false,
+    "credentialInstallationContext": "production on the dedicated staging site only",
+    "credentialInstallationReport": "STAGING_CREDENTIAL_PREPARATION.md",
+    "credentialInstallationEvidence": "staging/CREDENTIAL_PREPARATION_VERIFICATION.json",
+    "credentialMetadataReadBackVerified": true,
+    "credentialValuesVerifiedInHostedRuntime": false,
+    "credentialSecretScopes": [
+      "builds",
+      "functions",
+      "runtime"
+    ],
+    "credentialDevValuesInstalled": false
   },
   "scanner": {
     "host": null,

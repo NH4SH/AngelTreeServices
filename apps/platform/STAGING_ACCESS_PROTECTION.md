@@ -1,5 +1,11 @@
 # Local staging access protection — October 17, 2026
 
+**October 19 follow-through:** independent hosted-staging gate credentials are now
+installed as write-only site variables and verified locally; see
+[credential preparation](STAGING_CREDENTIAL_PREPARATION.md). No app is deployed,
+and hosted route/CDN/alias protection is still unverified. The original local
+review gateway and the historical implementation observations below are preserved.
+
 **Published/follow-through:** staging access/preparation is pushed to main and `codex/pr18-local-staging-access` at `bd206a8`, deployment skipped. The [hosting review](FREE_SCANNER_HOSTING_REVIEW.md) is now historical: the owner selected a Netlify/Supabase-first commercial direction and stopped Oracle verification. Scanner deployment remains unresolved. No host is provisioned and all hosted readiness gates remain open.
 
 Status: **implemented and verified locally; hosted protection remains unverified**.

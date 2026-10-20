@@ -6,6 +6,48 @@ import { checkStaging } from '../../src/lib/security/staging-policy.mjs';
 const nonempty = v => typeof v === 'string' && Boolean(v.trim());
 const contexts = ['production','deploy-preview','branch-deploy','dev'];
 const scopes = ['builds','functions','runtime'];
+export const preparedCredentialTarget = Object.freeze({
+  siteId:'d81d923d-6ccf-4c1e-87cc-263f3d51555d',
+  projectRef:'gbyhdsuiqeslgjdnbqng',
+  origin:'https://angel-tree-admin-staging.netlify.app',
+});
+// Review installation metadata separately from secret values, which Netlify
+// deliberately masks. This cannot prove the values a hosted process receives.
+export function reviewPreparedCredentialMetadata(target, siteVariables, teamVariables) {
+  const errors=[];
+  const require=(ok,message)=>{if(!ok)errors.push(message);};
+  require(Object.entries(preparedCredentialTarget).every(([k,v])=>target?.[k]===v),'Use only the assigned staging site, project and origin.');
+  if(!Array.isArray(siteVariables)||!Array.isArray(teamVariables))throw Error('Complete site and team metadata is required.');
+  require(teamVariables.length===0,'Review inherited team variables before continuing.');
+  const publicSettings={APP_ENV:'staging',STAGING_MODE:'core-no-providers',APP_BASE_URL:preparedCredentialTarget.origin,
+    NEXT_PUBLIC_SUPABASE_URL:`https://${preparedCredentialTarget.projectRef}.supabase.co`};
+  const privateKeys=['SUPABASE_SERVICE_ROLE_KEY','PORTAL_TOKEN_ENCRYPTION_KEY','STAGING_GATE_KEY','STAGING_GATE_VERIFIER'];
+  const expected=[...Object.keys(publicSettings),'NEXT_PUBLIC_SUPABASE_ANON_KEY',...privateKeys];
+  const names=siteVariables.map(v=>v?.key);
+  require(names.length===expected.length&&new Set(names).size===names.length&&names.every(k=>expected.includes(k)),
+    'Require exactly the reviewed staging variables; reject missing, duplicate or additional keys.');
+  const scopesMatch=(v,wanted)=>Array.isArray(v?.scopes)&&v.scopes.length===wanted.length&&[...v.scopes].sort().join(',')===[...wanted].sort().join(',');
+  const contextMatch=(v,context)=>Array.isArray(v?.values)&&v.values.length===1&&v.values[0]?.context===context&&v.values[0].context_parameter==null;
+  for(const [key,value]of Object.entries(publicSettings)){
+    const v=siteVariables.find(v=>v?.key===key);
+    require(v?.is_secret===false&&scopesMatch(v,['builds','functions','runtime','post_processing'])&&contextMatch(v,'all')&&v.values[0].value===value,
+      'Preserve the reviewed public staging settings and scopes.');
+  }
+  const browserKey=siteVariables.find(v=>v?.key==='NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  require(browserKey?.is_secret===false&&scopesMatch(browserKey,['builds','functions','runtime','post_processing'])&&contextMatch(browserKey,'production')&&
+    /^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(browserKey.values[0].value??''),'Require a publishable browser key only in the dedicated staging production context.');
+  for(const key of privateKeys){
+    const v=siteVariables.find(v=>v?.key===key);
+    // Free-plan secret scopes exclude post processing but cannot be narrowed
+    // further. Do not fall back to readable variables or a dev-context value.
+    require(v?.is_secret===true&&scopesMatch(v,['builds','functions','runtime'])&&contextMatch(v,'production'),
+      'Require write-only staging secrets in the production context and the supported secret scopes.');
+  }
+  return {reviewVersion:1,metadataInstalled:errors.length===0,errors:[...new Set(errors)],
+    privateVariableCount:privateKeys.filter(k=>names.includes(k)).length,
+    secretValuesVerified:false,keyBindingVerified:false,runtimeObserved:false,visitorProtectionVerified:false,
+    readyForHosting:false,networkRequests:0,changesApplied:false};
+}
 export function reviewEnvironmentSources(manifest, siteVariables, teamVariables) {
   if (!Array.isArray(siteVariables) || !Array.isArray(teamVariables)) throw Error('Complete site and team variable lists are required.');
   const metadata = [], findings = [];

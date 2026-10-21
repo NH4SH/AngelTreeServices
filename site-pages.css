@@ -149,6 +149,7 @@ img {
 }
 
 .ats-page-header__inner {
+  position: relative;
   width: min(var(--ats-content), calc(100% - 40px));
   min-height: 82px;
   margin: 0 auto;
@@ -249,7 +250,8 @@ img {
 
 .ats-mobile-menu {
   display: none;
-  position: relative;
+  position: static;
+  flex-shrink: 0;
 }
 
 .ats-mobile-menu summary {
@@ -259,6 +261,7 @@ img {
   cursor: pointer;
   font-weight: 700;
   list-style: none;
+  white-space: nowrap;
 }
 
 .ats-mobile-menu summary::-webkit-details-marker {
@@ -271,7 +274,8 @@ img {
   right: 0;
   width: min(280px, calc(100vw - 40px));
   padding: 12px;
-  max-height: calc(100dvh - 120px);
+  max-height: 70vh;
+  max-height: min(70dvh, calc(100dvh - 120px));
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -293,6 +297,38 @@ img {
 .ats-mobile-menu nav a:focus-visible,
 .ats-mobile-menu nav a[aria-current="page"] {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.ats-mobile-menu nav .ats-mobile-nav__estimate {
+  min-height: 48px;
+  margin-top: 8px;
+  background: var(--ats-white);
+  color: var(--ats-green-deep);
+  text-align: center;
+  font-weight: 700;
+}
+
+.ats-mobile-menu nav .ats-mobile-nav__estimate:is(:hover, :focus-visible) {
+  background: var(--ats-cream);
+  color: var(--ats-green-deep);
+}
+
+.ats-mobile-menu .ats-mobile-nav__more {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ats-mobile-menu .ats-mobile-nav__more p {
+  margin: 0 14px 4px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ats-mobile-menu .ats-mobile-nav__more a {
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .ats-page-hero {

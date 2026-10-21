@@ -719,16 +719,8 @@ class Validator:
     def validate_shared_navigation(self) -> None:
         desktop_keys = ["about", "services", "landscaping", "firewood", "projects", "commercial"]
         mobile_keys = [
-            "about",
-            "services",
-            "landscaping",
-            "firewood",
-            "projects",
-            "commercial",
-            "credentials",
-            "recognition",
-            "service-areas",
-            "contact",
+            "services", "landscaping", "firewood", "projects", "service-areas",
+            "contact", "about", "commercial", "credentials", "recognition",
         ]
 
         def keys_in(block: str) -> list[str]:
@@ -754,7 +746,7 @@ class Validator:
                     re.IGNORECASE | re.DOTALL,
                 )
                 if not mobile_match or keys_in(mobile_match.group(1)) != mobile_keys:
-                    self.error("/: mobile navigation does not match the approved expanded order")
+                    self.error("/: mobile navigation does not match the approved task-first order")
             else:
                 desktop_match = re.search(
                     r'<nav\b[^>]*class="[^"]*ats-page-nav[^"]*"[^>]*>(.*?)</nav>',

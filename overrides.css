@@ -128,6 +128,7 @@
     line-height: 1.4;
     font-weight: 700;
     list-style: none;
+    white-space: nowrap;
   }
 
   .ats-home-mobile-menu summary::-webkit-details-marker {
@@ -136,11 +137,12 @@
 
   .ats-home-mobile-menu nav {
     position: absolute;
-    top: calc(100% + 9px);
-    right: 0;
+    top: calc(100% + 8px);
+    right: 12px;
     width: min(260px, calc(100vw - 24px));
     padding: 10px;
-    max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px));
+    max-height: 70vh;
+    max-height: min(70dvh, calc(100dvh - 120px));
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid rgba(255, 255, 255, 0.24);
@@ -166,6 +168,38 @@
   .ats-home-mobile-menu nav a:hover,
   .ats-home-mobile-menu nav a:focus-visible {
     background: rgba(255, 255, 255, 0.12);
+  }
+
+  .ats-home-mobile-menu nav .ats-mobile-nav__estimate {
+    justify-content: center;
+    min-height: 48px;
+    margin-top: 8px;
+    background: #fff;
+    color: var(--ats-green-deep);
+    font-weight: 700;
+  }
+
+  .ats-home-mobile-menu nav .ats-mobile-nav__estimate:is(:hover, :focus-visible) {
+    background: var(--ats-green-soft);
+    color: var(--ats-green-deep);
+  }
+
+  .ats-home-mobile-menu .ats-mobile-nav__more {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .ats-home-mobile-menu .ats-mobile-nav__more p {
+    margin: 0 13px 4px;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .ats-home-mobile-menu .ats-mobile-nav__more a {
+    font-size: 0.85rem;
+    font-weight: 500;
   }
 }
 
@@ -2701,7 +2735,7 @@ body.ats-form-submitted .ats-form-success {
   }
 
   body.homepage .ats-home-mobile-menu {
-    position: relative;
+    position: static;
     top: auto;
     right: auto;
   }

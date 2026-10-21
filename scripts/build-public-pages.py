@@ -121,22 +121,24 @@ def header(active: str) -> str:
         ("projects", "/projects/", "Projects"),
         ("commercial", "/services/commercial-hoa-tree-care/", "Commercial"),
     ]
-    mobile_links = [
-        ("about", "/about/", "About"),
+    mobile_primary_links = [
         ("services", "/services/", "Tree services"),
         ("landscaping", "/services/landscaping/", "Landscaping"),
         ("firewood", "/firewood/", "Firewood"),
         ("projects", "/projects/", "Projects"),
-        ("commercial", "/services/commercial-hoa-tree-care/", "Commercial & HOA"),
-        ("credentials", "/credentials-safety/", "Credentials & Safety"),
-        ("recognition", "/recognition/", "Reviews & Recognition"),
         ("service-areas", "/service-areas/", "Service areas"),
-        ("contact", "/#contact", "Contact"),
+        ("contact", "/#contact", "Request an estimate"),
+    ]
+    mobile_more_links = [
+        ("about", "/about/", "About"),
+        ("commercial", "/services/commercial-hoa-tree-care/", "Commercial & HOA"),
+        ("credentials", "/credentials-safety/", "Credentials & safety"),
+        ("recognition", "/recognition/", "Reviews & recognition"),
     ]
 
     def nav_links(links: list[tuple[str, str, str]]) -> str:
         return "\n".join(
-            f'<a href="{href}" data-ats-nav="{key}"{(" aria-current=\"page\"" if key == active else "")}>{label}</a>'
+            f'<a href="{href}"{(" class=\"ats-mobile-nav__estimate\"" if key == "contact" else "")} data-ats-nav="{key}"{(" aria-current=\"page\"" if key == active else "")}>{label}</a>'
             for key, href, label in links
         )
 
@@ -158,7 +160,11 @@ def header(active: str) -> str:
       <details class="ats-mobile-menu">
         <summary>Menu</summary>
         <nav aria-label="Mobile navigation">
-          {nav_links(mobile_links)}
+          <div class="ats-mobile-nav__primary">{nav_links(mobile_primary_links)}</div>
+          <div class="ats-mobile-nav__more" role="group" aria-label="More information">
+            <p aria-hidden="true">More information</p>
+            {nav_links(mobile_more_links)}
+          </div>
         </nav>
       </details>
     </div>

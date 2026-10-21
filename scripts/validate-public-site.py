@@ -1410,6 +1410,19 @@ class Validator:
         for entry in ("/projects/", "/services/tree-removal/"):
             if not any(link.get("href") == route for link in self.pages[entry].links):
                 self.error(f"{entry}: case study is not linked")
+        removal = self.page_sources["/services/tree-removal/"]
+        spotlights = re.findall(r'<section[^>]*data-tree-removal-spotlight[^>]*>.*?</section>', removal, re.DOTALL)
+        if len(spotlights) != 1:
+            self.error("Tree Removal must contain its project spotlight exactly once")
+        else:
+            spotlight = spotlights[0]
+            if removal.index(spotlight) > removal.index("Scope and expectations"):
+                self.error("Tree Removal spotlight must precede the scope section")
+            bucket = next(photo for photo in project["photos"] if photo["key"] == "bucket-access")
+            if f'src="{bucket["src"]}"' not in spotlight or escape(bucket["caption"]) not in spotlight:
+                self.error("Tree Removal spotlight must use the approved bucket-access photo and caption")
+            if f'href="{escape(project["estimate_href"], quote=True)}"' not in spotlight:
+                self.error("Tree Removal spotlight estimate must preserve its existing service/context destination")
         for link in page.links:
             if "ats-estimate-link" in link.get("class", "").split() and link.get("href") != project["estimate_href"]:
                 self.error(f"{route}: an estimate action lost the existing tree-removal context")

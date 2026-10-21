@@ -526,7 +526,7 @@ def service_body(data: dict) -> str:
         <p class="ats-section-intro">{data['fit_intro']}</p>
         <div class="ats-card-grid">{cards(data['situations'])}</div>
       </div>
-    </section>{service_project_example(data)}
+    </section>{service_project_example(data)}{project_feature() if data['path'] == '/services/tree-removal/' else ''}
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose">
@@ -551,7 +551,6 @@ def service_body(data: dict) -> str:
       </div>
     </section>
     {service_review}
-    {project_feature() if data['path'] == '/services/tree-removal/' else ''}
     {faq_section(data['faqs'])}
     {final_cta(data['cta_title'], data['cta_copy'], data['estimate_href'], data['estimate_label'], data.get('call_first', False))}"""
 
@@ -926,13 +925,16 @@ def project_figure(index: int, sizes: str = "(max-width: 760px) calc(100vw - 40p
 
 def project_feature() -> str:
     return f"""
-    <section class="ats-content-section ats-content-section--white">
+    <section class="ats-content-section ats-content-section--white" id="service-project-example" data-service-project-example data-tree-removal-spotlight aria-labelledby="service-project-title">
       <div class="ats-section-inner ats-project-feature">
-        {project_figure(0, '(max-width: 760px) calc(100vw - 40px), 46vw')}
+        {project_figure(1, '(max-width: 760px) calc(100vw - 40px), 46vw')}
         <div class="ats-prose">
-          <h2>{html_text(TREE_PROJECT['title'])}</h2>
+          <h2 id="service-project-title">{html_text(TREE_PROJECT['title'])}</h2>
           <p>Visible holes and rot prompted an arborist assessment during an ivy-removal visit. Follow the removal beside the home, wood handling and cleanup in six real project photos.</p>
-          <p><a class="ats-button ats-button--green" href="{html_attr(TREE_PROJECT['path'])}">View the tree removal project</a></p>
+          <div class="ats-actions">
+            <a class="ats-button ats-button--green" href="{html_attr(TREE_PROJECT['path'])}">View the tree removal project</a>
+            <a class="ats-estimate-link" href="{html_attr(TREE_PROJECT['estimate_href'])}">Request a tree-removal estimate</a>
+          </div>
         </div>
       </div>
     </section>"""

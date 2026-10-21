@@ -217,17 +217,28 @@
   function initMobileActions() {
     var actions = document.querySelector(".ats-mobile-actions");
     var contact = document.querySelector("#contact");
+    var hero = document.querySelector("#top");
 
     if (!actions || !contact || typeof window.IntersectionObserver !== "function") {
       return;
     }
 
-    new IntersectionObserver(
+    var heroVisible = Boolean(hero);
+    var contactVisible = false;
+    actions.classList.toggle("is-hidden", heroVisible);
+
+    var observer = new IntersectionObserver(
       function (entries) {
-        actions.classList.toggle("is-hidden", entries[0].isIntersecting);
+        entries.forEach(function (entry) {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === contact) contactVisible = entry.isIntersecting;
+        });
+        actions.classList.toggle("is-hidden", heroVisible || contactVisible);
       },
       { threshold: 0 }
-    ).observe(contact);
+    );
+    observer.observe(contact);
+    if (hero) observer.observe(hero);
   }
 
   function getFieldContainer(field) {

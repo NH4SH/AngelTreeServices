@@ -2174,6 +2174,46 @@ body.ats-form-submitted .ats-form-success {
     margin-right: 0 !important;
   }
 
+  /* Keep the introduction and one clear action ahead of repeated proof. */
+  #top .ats-mobile-hero-underline,
+  #top .ats-mobile-proof-detail,
+  #top .ats-mobile-badges {
+    display: none;
+  }
+
+  #top .ats-mobile-hero-subtitle {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  #top .ats-mobile-trust {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  #top .ats-mobile-trust-label {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 1.5;
+    text-transform: none;
+  }
+
+  #top .ats-mobile-trust-label a {
+    display: inline-block;
+    min-height: 44px;
+    padding-block: 4px;
+    box-sizing: border-box;
+    text-decoration: underline;
+  }
+
   .ats-home-guidance {
     padding: 52px 20px 36px;
   }

@@ -1774,3 +1774,22 @@ synthetic fixtures in that owned database; other cases roll back. No provider
 or email configuration is used. `STANDALONE_RESULTS` can name a private local JSON
 results file. Never point this suite at a business database. See
 [scope, verified behavior and rollout boundary](../STANDALONE_INVOICE_REQUESTS.md).
+
+
+## Mobile proposal request safety
+
+`tests/mobile-quote-request.test.mjs` is included in `npm run test:unit`.
+`tests/mobile-quote-request.integration.test.mjs` invokes the installed migration99
+command and actual ownership/detail reads under synthetic authenticated subjects.
+It requires `MOBILE_QUOTE_DISPOSABLE=1`, `MOBILE_QUOTE_DOCKER_BIN` set to the local
+Docker binary, and `DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock`.
+Run with Node22 and `--experimental-strip-types --test`. Optional
+`MOBILE_QUOTE_RESULTS` writes a credential-free result summary. All cases use
+savepoints inside one transaction and roll back; never point this suite at a
+hosted database or substitute an authenticated production client.
+
+iOS request identity, validation correction, acknowledgement, replay and old-server
+refusal checks are in `AngelTreeTests/MobileAPIClientTests.swift`. Full native
+XCTest/Simulator execution requires Xcode; portable Foundation checks are not an
+iOS screen acceptance run. See `MOBILE_QUOTE_REQUESTS.md` for current evidence and
+editor-lifetime limitations.

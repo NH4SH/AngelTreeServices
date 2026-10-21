@@ -236,6 +236,91 @@ final class MobileAPIClientTests: XCTestCase {
         catch let error as MobileAPIError { XCTAssertEqual(error, .requestRejected("File unavailable. Check the file and try again.")) }
     }
 
+    func testQuoteAttemptRetainsIdentityAcrossRetriesAndCorrections() {
+        var attempt = MobileQuoteCreationAttempt()
+        let first = attempt.prepare(quoteRequest())
+        XCTAssertNotNil(first.requestId.flatMap(UUID.init(uuidString:)))
+        XCTAssertEqual(attempt.prepare(quoteRequest()), first)
+        let corrected = attempt.prepare(quoteRequest(message: "Corrected after validation"))
+        XCTAssertEqual(corrected.requestId, first.requestId)
+        XCTAssertEqual(attempt.submitted, corrected)
+        var another = MobileQuoteCreationAttempt()
+        XCTAssertNotEqual(another.prepare(quoteRequest()).requestId, first.requestId)
+    }
+
+    func testKeyedQuoteCreateRequiresMatchingAcknowledgement() async throws {
+        let id = "a0000000-0000-4000-8000-000000000006"
+        var input = quoteRequest(); input.requestId = id
+        for replayed in [false, true] {
+            URLProtocolStub.handler = { request in
+                XCTAssertEqual(request.url?.path, "/api/mobile/quotes/draft")
+                XCTAssertEqual(request.httpMethod, "POST")
+                XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+                let body = try JSONSerialization.jsonObject(with: Self.fileBody(request)) as? [String: Any]
+                XCTAssertEqual(body?["requestId"] as? String, id)
+                return Self.response(request, status: 201, json: Self.quoteResponse(ack: ",\"creationRequestId\":\"\(id)\",\"creationReplayed\":\(replayed)"))
+            }
+            let result = try await makeClient().createQuote(input, accessToken: "token")
+            XCTAssertEqual(result.creationRequestId, id)
+            XCTAssertEqual(result.creationReplayed, replayed)
+        }
+        for ack in ["", ",\"creationRequestId\":\"foreign\",\"creationReplayed\":false", ",\"creationRequestId\":\"\(id)\""] {
+            URLProtocolStub.handler = { request in Self.response(request, status: 201, json: Self.quoteResponse(ack: ack)) }
+            do { _ = try await makeClient().createQuote(input, accessToken: "token"); XCTFail("Unconfirmed creation must fail") }
+            catch let error as MobileAPIError { guard case .requestRejected = error else { return XCTFail("Expected safe uncertainty") } }
+        }
+    }
+
+    func testKeyedQuoteNeverFallsBackWhenServerIsOldOrResponseIsLost() async throws {
+        var input = quoteRequest(); input.requestId = "a0000000-0000-4000-8000-000000000006"
+        for status in [404, 405, 503] {
+            var calls = 0
+            URLProtocolStub.handler = { request in
+                calls += 1
+                XCTAssertEqual(request.url?.path, "/api/mobile/quotes/draft")
+                return Self.response(request, status: status, json: "{}")
+            }
+            do { _ = try await makeClient().createQuote(input, accessToken: "token"); XCTFail("Expected refusal") } catch {}
+            XCTAssertEqual(calls, 1)
+        }
+        var calls = 0
+        URLProtocolStub.handler = { request in calls += 1; throw URLError(.networkConnectionLost) }
+        do { _ = try await makeClient().createQuote(input, accessToken: "token"); XCTFail("Expected uncertainty") }
+        catch { XCTAssertEqual(error as? MobileAPIError, .networkUnavailable) }
+        XCTAssertEqual(calls, 1)
+    }
+
+    func testLegacyQuoteCreateAndCacheRemainCompatible() async throws {
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.path, "/api/mobile/quotes")
+            let body = try JSONSerialization.jsonObject(with: Self.fileBody(request)) as? [String: Any]
+            XCTAssertNil(body?["requestId"])
+            return Self.response(request, status: 201, json: Self.quoteResponse())
+        }
+        let result = try await makeClient().createQuote(quoteRequest(), accessToken: "token")
+        XCTAssertNil(result.creationRequestId)
+        XCTAssertNil(result.creationReplayed)
+    }
+
+    func testMalformedQuoteRequestIdentityCannotSend() async throws {
+        URLProtocolStub.handler = { _ in XCTFail("Must not issue a request"); throw URLError(.badURL) }
+        var input = quoteRequest(); input.requestId = ""
+        do { _ = try await makeClient().createQuote(input, accessToken: "token"); XCTFail("Expected refusal") }
+        catch { XCTAssertEqual(error as? MobileAPIError, .invalidRequest) }
+    }
+
+    private func quoteRequest(message: String? = nil) -> MobileQuoteWriteRequest {
+        .init(customerId: "customer", organizationId: nil, serviceLocationId: "location", customerMessage: message,
+              expiresAt: nil, recipientContactId: nil, approvalContactId: nil,
+              lines: [.init(id: nil, name: "Pruning", description: "Keep scope", quantity: 1, unitPriceCents: 1000, totalCents: nil)])
+    }
+
+    private static func quoteResponse(ack: String = "") -> String {
+        """
+        {"data":{"quote":{"id":"a0000000-0000-4000-8000-000000000001","status":"draft","title":"Pruning","totalCents":1000,"createdAt":"2026-10-21","updatedAt":"2026-10-21","serviceLocation":{"id":"location","fullAddress":"Synthetic property"},"lines":[],"portalStatus":"none"\(ack)}}}
+        """
+    }
+
     private static func fileBody(_ request: URLRequest) -> Data {
         if let body = request.httpBody { return body }
         guard let stream = request.httpBodyStream else { return Data() }

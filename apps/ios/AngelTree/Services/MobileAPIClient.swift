@@ -165,7 +165,15 @@ actor MobileAPIClient: MobileAPIClientProtocol {
     }
 
     func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
-        let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes", method: "POST", body: input, accessToken: accessToken)
+        let keyed = input.requestId != nil
+        if let id = input.requestId, UUID(uuidString: id) == nil { throw MobileAPIError.invalidRequest }
+        let payload: MobileQuotePayload = try await sendJSON(path: keyed ? "api/mobile/quotes/draft" : "api/mobile/quotes", method: "POST", body: input, accessToken: accessToken)
+        if let id = input.requestId {
+            guard payload.quote.creationRequestId == id.lowercased(), payload.quote.creationReplayed != nil,
+                  UUID(uuidString: payload.quote.id) != nil else {
+                throw MobileAPIError.requestRejected("The proposal result could not be confirmed. Keep this form and retry with the same details to check safely.")
+            }
+        }
         return payload.quote
     }
 

@@ -19,6 +19,9 @@ struct ProposalEditorView: View {
     @State private var errorMessage: String?
     @State private var expectedRevision: Int?
     @State private var hasEditCapability = false
+    @State private var creationAttempt = MobileQuoteCreationAttempt()
+    @State private var recoveredQuote: MobileQuoteDetail?
+    @State private var showRecoveredQuote = false
 
     var body: some View {
         Form {
@@ -51,11 +54,21 @@ struct ProposalEditorView: View {
             }
             Section("Validity") { DatePicker("Valid through", selection: $expiration, displayedComponents: .date) }
             if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
+            if recoveredQuote != nil {
+                Section {
+                    Button("Review saved proposal") { showRecoveredQuote = true }
+                    Text("This proposal was already saved. Review it before making further changes. Your entered work is still here.").font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            if quote == nil && creationAttempt.submitted != nil {
+                Section { Text("Keep this editor open until the save is confirmed. If you close it, review proposals before starting another draft.").font(.footnote).foregroundStyle(.secondary) }
+            }
         }
         .disabled(saving)
         .navigationTitle(quote == nil ? "New Proposal" : "Edit Proposal").navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }; ToolbarItem(placement: .confirmationAction) { Button(saving ? "Saving…" : "Save") { Task { await save() } }.disabled(saving) } }
         .sheet(isPresented: $showPartyPicker) { NavigationStack { ProposalPartyPicker(fieldService: fieldService) { selected in party = selected; showPartyPicker = false; Task { await loadParty(selected) } } } }
+        .sheet(isPresented: $showRecoveredQuote) { if let recoveredQuote { NavigationStack { ProposalPreviewView(quote: recoveredQuote) } } }
         .task { configureExisting() }
     }
 
@@ -87,7 +100,22 @@ struct ProposalEditorView: View {
         guard validLines.count == lines.count, !validLines.isEmpty else { errorMessage = "Complete each line title, quantity, and price."; return }
         saving = true; defer { saving = false }
         let request = MobileQuoteWriteRequest(customerId: party.kind == .customer ? party.id : nil, organizationId: party.kind == .organization ? party.id : nil, serviceLocationId: serviceLocationID, customerMessage: customerMessage.isEmpty ? nil : customerMessage, expiresAt: ISO8601DateFormatter().string(from: expiration), recipientContactId: recipientID.isEmpty ? nil : recipientID, approvalContactId: approvalID.isEmpty ? nil : approvalID, lines: validLines, expectedRevision: expectedRevision)
-        do { onSaved(try await (quote == nil ? fieldService.createQuote(request) : fieldService.updateQuote(id: quote!.id, input: request))) }
+        do {
+            if let quote {
+                onSaved(try await fieldService.updateQuote(id: quote.id, input: request))
+            } else {
+                let prepared = creationAttempt.prepare(request)
+                let saved = try await fieldService.createQuote(prepared)
+                guard saved.creationRequestId == prepared.requestId, let replayed = saved.creationReplayed else {
+                    throw MobileAPIError.requestRejected("The save could not be confirmed. Keep this form and retry with the same details.")
+                }
+                if replayed {
+                    recoveredQuote = saved
+                    errorMessage = nil
+                    showRecoveredQuote = true
+                } else { onSaved(saved) }
+            }
+        }
         catch { errorMessage = (error as? LocalizedError)?.errorDescription ?? "Proposal could not be saved." }
     }
 

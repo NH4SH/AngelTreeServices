@@ -47,7 +47,7 @@ export function quoteEditFixture(options={}){
   '@/lib/quotes/draft-request':draftHelper,
  });
  const mobile=load(options.mobileFile??'../src/lib/data/mobile-quotes.ts',{'server-only':{},'@/lib/quotes/edit-result':editResult,
-  '@/lib/quotes/save-confirmation':receiptHelper,'@/lib/quotes/proposal-number':{formatProposalNumber:n=>n},'@/lib/api/mobile-quotes':{}});
+  '@/lib/quotes/save-confirmation':receiptHelper,'@/lib/quotes/draft-request':draftHelper,'@/lib/quotes/proposal-number':{formatProposalNumber:n=>n},'@/lib/api/mobile-quotes':{}});
  const form=new FormData();for(const[k,v]of Object.entries({quote_id:id,contracting_party:`${options.organization?'organization':'customer'}:${party}`,
   service_location_id:loc,expected_revision:'5',submit_intent:options.intent??'save',client_navigation:options.serverRedirect?'0':'1',returnTo:'/admin/quotes?q=local'}))form.set(k,v);
  form.set('request_id',options.requestId??requestId);
@@ -58,8 +58,9 @@ export function quoteEditFixture(options={}){
   for(const[k,v]of Object.entries({line_item_id:persisted,line_item_client_id:client,line_item_name:name,line_item_description:'Saved wording',
    line_item_quantity:'1',line_item_unit_price:price}))form.append(k,v);
  const input={customerId:options.organization?null:party,organizationId:options.organization?party:null,serviceLocationId:loc,expectedRevision:5,
+  ...(options.organization?{recipientContactId:other,approvalContactId:other}:{}),
   lines:[{id:lineId,name:'Pruning',description:'Saved wording',quantity:1,unitPriceCents:1000},
    {name:'Cleanup',description:'Saved wording',quantity:1,unitPriceCents:500}]};
  return{form,input,db,calls,reads,paths,redirects,archives,signals,
-  run:()=>action.updateQuote({status:'idle',message:''},form),runCreate:()=>action.createQuote({status:'idle',message:''},form),runMobile:()=>mobile.updateMobileQuote(db,actor,id,input)};
+  run:()=>action.updateQuote({status:'idle',message:''},form),runCreate:()=>action.createQuote({status:'idle',message:''},form),runMobileCreate:()=>mobile.createMobileQuote(db,actor,input),runMobile:()=>mobile.updateMobileQuote(db,actor,id,input)};
 }

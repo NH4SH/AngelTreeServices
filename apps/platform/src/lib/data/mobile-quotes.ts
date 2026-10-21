@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QuoteEditError, quoteSaveResult } from "@/lib/quotes/edit-result";
+import { createQuoteDraftRequest } from "@/lib/quotes/draft-request";
 import { saveQuoteEdit } from "@/lib/quotes/save-confirmation";
 import { formatProposalNumber } from "@/lib/quotes/proposal-number";
 import { quoteStatusesForScope, type MobileQuoteScope, type MobileQuoteWriteInput } from "@/lib/api/mobile-quotes";
@@ -37,6 +38,21 @@ export async function getMobileQuote(supabase: SupabaseClient, quoteId: string) 
 export async function createMobileQuote(supabase: SupabaseClient, userId: string, input: MobileQuoteWriteInput) {
   await validateOwnership(supabase, input);
   const lines = lineValues(input.lines);
+  if (input.requestId !== undefined) {
+    const confirmation = await createQuoteDraftRequest({ supabase, requestId: input.requestId, header: {
+      customer_id: input.customerId ?? null, organization_id: input.organizationId ?? null,
+      service_location_id: input.serviceLocationId, recipient_contact_id: input.recipientContactId ?? null,
+      approval_contact_id: input.approvalContactId ?? null, customer_message: input.customerMessage ?? null,
+      expires_at: normalizeDate(input.expiresAt),
+    }, lines });
+    if (!confirmation.ok) throw new QuoteEditError(confirmation.message, 409);
+    try {
+      const detail = await getMobileQuote(supabase, confirmation.quoteId);
+      return { ...detail, creationRequestId: input.requestId, creationReplayed: confirmation.replayed };
+    } catch {
+      throw new QuoteEditError("The saved proposal could not be loaded. Keep this form and retry with the same details to check safely.", 503);
+    }
+  }
   const { data: quote, error } = await supabase.rpc("create_quote_draft", {
     p_header: { customer_id: input.customerId, organization_id: input.organizationId, service_location_id: input.serviceLocationId,
       recipient_contact_id: input.recipientContactId, approval_contact_id: input.approvalContactId,

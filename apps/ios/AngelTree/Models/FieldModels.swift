@@ -97,6 +97,8 @@ struct MobileQuoteDetail: Codable, Equatable, Hashable, Identifiable, Sendable {
     let portalStatus: String
     var editRevision: Int? = nil
     var quoteEditVersion: Int? = nil
+    var creationRequestId: String? = nil
+    var creationReplayed: Bool? = nil
 }
 
 struct MobileQuoteWriteRequest: Codable, Equatable, Sendable {
@@ -109,6 +111,23 @@ struct MobileQuoteWriteRequest: Codable, Equatable, Sendable {
     let approvalContactId: String?
     let lines: [MobileQuoteLine]
     var expectedRevision: Int? = nil
+    var requestId: String? = nil
+}
+
+/// One editor keeps the same request identity across retries and validation corrections.
+/// This is intentionally in-memory; closing the editor requires reviewing proposals.
+struct MobileQuoteCreationAttempt {
+    private let id = UUID().uuidString.lowercased()
+    private(set) var submitted: MobileQuoteWriteRequest?
+
+    mutating func prepare(_ input: MobileQuoteWriteRequest) -> MobileQuoteWriteRequest {
+        var request = input
+        request.requestId = id
+        // The database rejects changed details if this identity already saved a
+        // proposal. Reuse it even after rejection: never mint a replacement here.
+        submitted = request
+        return request
+    }
 }
 
 struct MobileQuoteDirectoryPayload: Codable, Sendable { let results: [MobileQuoteDirectoryItem]; let nextCursor: String? }

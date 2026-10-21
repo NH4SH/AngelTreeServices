@@ -21,6 +21,7 @@ export type MobileQuoteWriteInput = {
   approvalContactId?: string | null;
   lines: MobileQuoteLineInput[];
   expectedRevision?: number;
+  requestId?: string;
 };
 
 export function canManageMobileQuotes(roles: readonly PlatformRoleName[]) {
@@ -42,8 +43,9 @@ export function quoteStatusesForScope(scope: MobileQuoteScope) {
 }
 
 export function validateMobileQuoteWriteInput(value: unknown): { value: MobileQuoteWriteInput | null; error: string } {
-  if (!value || typeof value !== "object") return invalid("Enter the proposal details.");
+  if (!value || typeof value !== "object" || Array.isArray(value)) return invalid("Enter the proposal details.");
   const input = value as Record<string, unknown>;
+  if ("requestId" in input && (typeof input.requestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.requestId))) return invalid("Refresh this editor before creating a proposal. Your work has been kept.");
   const customerId = optionalString(input.customerId);
   const organizationId = optionalString(input.organizationId);
   const serviceLocationId = optionalString(input.serviceLocationId);
@@ -74,6 +76,7 @@ export function validateMobileQuoteWriteInput(value: unknown): { value: MobileQu
       recipientContactId: optionalString(input.recipientContactId),
       approvalContactId: optionalString(input.approvalContactId),
       lines,
+      requestId: typeof input.requestId === "string" ? input.requestId.toLowerCase() : undefined,
       expectedRevision: Number.isSafeInteger(input.expectedRevision) && Number(input.expectedRevision) > 0 ? Number(input.expectedRevision) : undefined,
     },
     error: "",

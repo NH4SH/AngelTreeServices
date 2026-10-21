@@ -1,3 +1,70 @@
+## Tree Removal spotlight and mobile homepage — release approved
+
+Owner approved commit, push and publication on October 21, 2026. Preserve newer
+repository work through 4568081 (staging request-status reconciliation) as the
+parent of this website-only change. Do not edit or deploy CRM code/settings.
+
+Push with [skip ci] and [skip netlify] to avoid automatic builds of both projects,
+then explicitly trigger only public website 86c48a95-ead4-4b15-8e57-fa827558b2f0.
+Keep analytics and consent unchanged. Re-run the public suite on the integrated
+parent and perform GET-only production smoke checks after publication. No leads
+or calls. Record the release commit, deployment and proof in chat
+outputs/tree-removal-release/. CRM published baseline: 6ad6ecfc6c03786554247e4a.
+
+## Tree Removal final review and quieter mobile homepage — October 21, 2026
+
+- Reviewed the higher Tree Removal spotlight, approved bucket-access photo,
+  caption, case-study link and contextual estimate action. No release blocker
+  found in that patch. The spotlight-only patch remains separately reviewable
+  in chat outputs/tree-removal-review/tree-removal-spotlight-only.patch.
+- Confirmed first-visit mobile clutter from duplicate floating actions, the hero
+  credential card/badges and repeated proof. Mobile-only styles remove the
+  decorative rule and duplicate badge/proof display, retain all service wording
+  and offer a plain underlined credential link with a 46px tap target. Desktop
+  presentation remains intact. Badges remain available on the credentials page.
+- Homepage quick actions now hide while the opening hero or estimate section is
+  visible and appear between them. The estimate/form runtime is otherwise exactly
+  unchanged. Added behavioral coverage for first paint, partial observer updates,
+  restored scroll, returning to the top, the form and unsupported-observer fallback.
+- Final combined local suite: 173 Node + 9 Python tests pass; all 17 pages build
+  and validate; diff whitespace check passes. Browser checks at 320/390px mobile
+  and 1280px desktop confirm no horizontal overflow, visible main CTA, keyboard
+  menu Enter/Escape, floating-action visibility and reject closing the privacy
+  prompt. First-visit prompt used an inert local analytics mock with external
+  requests and lead submissions blocked. Shipping consent and analytics unchanged.
+- Rechecked the new spotlight estimate action with synthetic name, address and
+  multiline details: exact values survive navigation and Tree Care/tree-removal
+  is selected. Cleared the synthetic draft. No lead or phone call submitted.
+- All 17 SEO heads remain equal to baseline apart from the required homepage
+  stylesheet hash. Homepage HTML/form markup, photos, URLs, sitemap, robots,
+  analytics, consent, draft/address runtime and CRM code/settings stay unchanged.
+- Evidence and complete/separate diffs: October 16 chat outputs/tree-removal-review/.
+  Physical-phone and spoken screen-reader checks remain unperformed. Production
+  non-submitting smoke checks follow only a separately approved publication.
+  No commit, push or deployment performed.
+
+## Tree Removal spotlight — local review, October 21, 2026
+
+- Moved the existing project spotlight after the opening recommendation section,
+  before scope and expectations. Uses the approved bucket-access photo, alt text
+  and caption; retains the case-study link and adds the existing tree-removal
+  estimate destination. No new claims, assets, stylesheet or runtime changes.
+- Local suite: 171 Node tests and 9 Python tests passed; all 17 pages build and
+  validate. Regression checks cover spotlight placement, photo/caption and link.
+- Browser checks: 1280px desktop plus 390px and 320px mobile. Photo loads, layout
+  stacks on mobile, headings do not split/clip and there is no horizontal overflow.
+  The estimate action selects Tree Care/tree-removal and preserves synthetic name,
+  address and project details across navigation. Cleared the synthetic draft;
+  no lead submitted. Physical-device and spoken screen-reader checks not performed.
+- All 17 page heads are identical to the baseline; the other 16 pages are unchanged
+  apart from template whitespace. All 240 non-HTML build artifacts are identical,
+  including analytics, consent, estimate runtime, photos, sitemap and robots.
+  CRM code/settings unchanged. No commit, push or deployment authorized yet.
+- Evidence: October 16 chat outputs/tree-removal-spotlight/ contains the exact test
+  log, verification report, screenshot and complete patch. Local review:
+  http://127.0.0.1:55763/services/tree-removal/#service-project-example.
+  After a separately approved release, run non-submitting production smoke checks.
+
 ## Service Areas layout and Woodbridge coverage — release approved
 
 Owner approved committing, pushing and publishing the reviewed patch. Preserve

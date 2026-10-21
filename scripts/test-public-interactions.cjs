@@ -338,6 +338,40 @@ function loadScript(filename, names, overrides = {}) {
   return context.helpers;
 }
 
+test("mobile quick actions avoid the hero and form, including partial observer updates and restored scroll", () => {
+  const hero = {}, contact = {}, observed = [];
+  let hidden, notify;
+  const actions = { classList: { toggle(name, value) { assert.equal(name, "is-hidden"); hidden = value; } } };
+  function Observer(callback) { notify = callback; this.observe = target => observed.push(target); }
+  const helpers = loadScript("ats-form-enhancements.js", ["initMobileActions"], {
+    document: { addEventListener() {}, querySelector: selector => ({ ".ats-mobile-actions": actions, "#contact": contact, "#top": hero })[selector] },
+    window: { addEventListener() {}, IntersectionObserver: Observer }, IntersectionObserver: Observer,
+  });
+  helpers.initMobileActions();
+  assert.equal(hidden, true, "first paint keeps the main estimate action clear");
+  assert.ok(observed.includes(hero) && observed.includes(contact));
+  notify([{ target: contact, isIntersecting: false }]);
+  assert.equal(hidden, true, "contact-only update cannot reveal a duplicate hero action");
+  notify([{ target: hero, isIntersecting: false }]);
+  assert.equal(hidden, false, "actions are available after scrolling or restoring below the hero");
+  notify([{ target: contact, isIntersecting: true }]);
+  assert.equal(hidden, true, "actions cannot cover the form");
+  notify([{ target: hero, isIntersecting: true }]);
+  notify([{ target: contact, isIntersecting: false }]);
+  assert.equal(hidden, true, "returning to the top hides the duplicate actions again");
+});
+
+test("mobile quick actions retain their existing fallback when observation is unavailable", () => {
+  let touched = false;
+  const actions = { classList: { toggle() { touched = true; } } };
+  const helpers = loadScript("ats-form-enhancements.js", ["initMobileActions"], {
+    document: { addEventListener() {}, querySelector: selector => selector === ".ats-mobile-actions" ? actions : {} },
+    window: { addEventListener() {} },
+  });
+  assert.doesNotThrow(() => helpers.initMobileActions());
+  assert.equal(touched, false);
+});
+
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {
     const helpers = loadScript("ats-form-enhancements.js", ["submitLead"], {

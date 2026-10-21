@@ -644,26 +644,41 @@ class Validator:
             page = self.pages.get(route)
             if not page:
                 continue
-            primary_links = [
+            estimate_links = [
                 item.get("href", "")
                 for item in page.links
                 if "ats-button--primary" in item.get("class", "").split()
             ]
-            if not primary_links:
-                self.error(f"{route}: primary estimate CTA is missing")
-                continue
-            parsed = urlparse(primary_links[0])
-            if parsed.path != "/" or parsed.fragment != "contact":
-                self.error(f"{route}: primary estimate CTA must route to the homepage form")
+            if route == "/services/emergency-tree-service/":
+                buttons = [item for item in page.links if "ats-button" in item.get("class", "").split()]
+                if len(buttons) != 4 or any(
+                    ("ats-button--primary" if index % 2 == 0 else "ats-button--secondary")
+                    not in button.get("class", "").split()
+                    or (index % 2 == 0 and button.get("href") != f"tel:{PHONE_LINK}")
+                    or (index % 2 == 1 and "ats-estimate-link" not in button.get("class", "").split())
+                    for index, button in enumerate(buttons)
+                ):
+                    self.error(f"{route}: hero and final actions must put the primary phone link before the secondary estimate")
+                estimate_links = [item.get("href", "") for item in buttons
+                                 if "ats-estimate-link" in item.get("class", "").split()]
+                if len(estimate_links) != 2:
+                    self.error(f"{route}: preserve both storm estimate buttons")
+            if not estimate_links:
+                self.error(f"{route}: estimate CTA is missing")
                 continue
             from urllib.parse import parse_qs
 
-            actual_parameters = {key: values[-1] for key, values in parse_qs(parsed.query).items()}
-            for name, expected_value in expected_parameters.items():
-                if actual_parameters.get(name) != expected_value:
-                    self.error(
-                        f"{route}: expected {name}={expected_value!r}, found {actual_parameters.get(name)!r}"
-                    )
+            for href in estimate_links:
+                parsed = urlparse(href)
+                if parsed.path != "/" or parsed.fragment != "contact":
+                    self.error(f"{route}: estimate CTA must route to the homepage form")
+                    continue
+                actual_parameters = {key: values[-1] for key, values in parse_qs(parsed.query).items()}
+                for name, expected_value in expected_parameters.items():
+                    if actual_parameters.get(name) != expected_value:
+                        self.error(
+                            f"{route}: expected {name}={expected_value!r}, found {actual_parameters.get(name)!r}"
+                        )
 
     def validate_navigation_graph(self) -> None:
         graph: dict[str, set[str]] = {route: set() for route in self.pages}

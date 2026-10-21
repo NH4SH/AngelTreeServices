@@ -1,3 +1,88 @@
+## Emergency call-first page — release approved
+
+Owner explicitly approved commit, push and publication of the reviewed call-first
+emergency-page patch with non-submitting production smoke checks. All three
+reviewed source hashes matched final-review.json before adding this record.
+Fetch and preserve newer repository work, run all 180 public-site tests and the
+17-page build/validation, then commit only the builder, validator and checklist.
+
+Use [skip ci] [skip netlify] to skip automatic builds for both shared-repository
+projects. Push without force and request a Git build only for public Netlify
+project 86c48a95-ead4-4b15-8e57-fa827558b2f0. Confirm its published commit equals
+the pushed commit. Keep analytics, consent, CRM source and both project settings
+unchanged. CRM must retain its current published deploy. Do not submit leads,
+place calls or send emails. Record GET and browser smoke checks under the task
+workspace's outputs/emergency-call-first/. Earlier local publication holds below
+are superseded only for this explicitly approved release. Physical-device and
+spoken screen-reader checks remain outside the completed verification.
+
+## Emergency page call-first actions — final local review
+
+**Verdict: ready for release approval.** No blocking regression found and no
+website code fix was needed. Do not commit, push or deploy until separately
+approved. Earlier release approvals below do not authorize this new patch.
+
+- All 180 tests pass again (171 Node, zero failures; nine Python); all 17 pages
+  build and validate. Four negative validator checks again reject a wrong phone,
+  estimate-first styling, lost estimate context and a missing estimate button.
+- Fresh browser checks confirm both call-first button pairs, native phone-then-
+  estimate keyboard order and the unchanged Storm Cleanup / emergency-tree-service
+  estimate selection with an empty details field. Nine widths from 320 to 1280px
+  have no horizontal overflow, heading clipping or word splits; buttons remain at
+  least 54px high. Existing lower-action reachability checks remain applicable
+  because both builder and validator hashes match the implementation reviewed.
+- Reversing only the two button-pair order/style changes reconstructs the complete
+  emergency HTML exactly. All safety/availability wording, metadata, canonical,
+  structured data, estimate destinations and mobile quick actions are preserved.
+  All 256 other built artifacts and protected runtime/style/configuration sources
+  remain identical to the published-source baseline. Analytics, consent, CRM and
+  hosting settings unchanged. No phone calls, messages or leads submitted.
+- Evidence in the task workspace's outputs/emergency-call-first/: final-review.json,
+  final-review-tests.txt, final-review-browser-checks.json, final-review-desktop.jpg
+  and final-reviewed.patch. Local preview remains at
+  http://127.0.0.1:55741/services/emergency-tree-service/.
+- Remaining limits: physical-device and spoken screen-reader checks were not run;
+  local Google address suggestions lack an API key. Actual phone calls and form
+  delivery were not exercised. Non-submitting production smoke checks must follow
+  a separately authorized release. These are verification limits, not findings
+  of a defect in this patch. Only the builder, validator and checklist are changed;
+  pre-existing untracked .impeccable/review/ is untouched.
+
+## Emergency page call-first actions — local implementation
+
+Owner approved local implementation and testing only. **Do not commit, push or
+publish this patch without subsequent approval.** Earlier release approvals below
+apply to already published work, not this new emergency-page change.
+
+- On /services/emergency-tree-service/ only, the hero and final action groups now
+  put Call (540) 388-8715 first with the filled primary style. Send storm-damage
+  details remains second with the outlined secondary style. The exact tel target,
+  button labels, estimate URLs and estimate-link class are preserved.
+- Shared action rendering defaults preserve all other pages byte-for-byte. The
+  release validator now explicitly requires primary phone / secondary estimate
+  pairs on the emergency page, while still validating both exact storm-prefill
+  destinations. Four negative checks reject a wrong phone, estimate-first styling,
+  lost estimate context and a missing estimate button.
+- All 180 existing tests pass (171 Node and nine Python); all 17 pages build and
+  validate. Nine browser widths from 320 to 1280px have no overflow, heading
+  clipping or split words; all four action buttons are at least 54px high. Desktop
+  keyboard order follows phone then estimate. The lower estimate button selects
+  Storm Cleanup / emergency-tree-service with no entered details or submission.
+- Artifact comparison confirms only the emergency HTML changes. Reversing the two
+  button-pair order/style changes reconstructs it exactly; safety guidance, 24/7
+  wording, SEO head/schema, FAQs and mobile quick actions are unchanged. All other
+  256 artifacts, including 16 HTML pages, photos, styles, analytics, consent and
+  estimate/draft runtime, are byte-identical. CRM and hosting settings untouched.
+- Evidence in the task workspace: outputs/emergency-call-first/local-tests.txt,
+  preservation-checks.json, browser-checks.json, implementation.json,
+  emergency-desktop.jpg, emergency-mobile-final.jpg and emergency-call-first.patch.
+  Local review: http://127.0.0.1:55741/services/emergency-tree-service/.
+- Scope: public-page builder, release validator and this checklist. Pre-existing
+  untracked .impeccable/review/ is untouched. No commits, pushes, deployments,
+  phone calls, emails or lead submissions. Physical-device/spoken screen-reader
+  checks and Google address suggestions are outside this local preview; production
+  smoke checks must wait for a separately approved release.
+
 ## Pruning and stump-grinding examples — release approved
 
 Owner explicitly approved commit, push and publication of the reviewed website

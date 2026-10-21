@@ -320,6 +320,15 @@ def responsive_image_attributes(src: str, sizes: str) -> str:
     return f' srcset="{html_attr(", ".join(candidates))}" sizes="{html_attr(sizes)}"'
 
 
+def action_buttons(href: str, label: str, call_first: bool = False, indent: int = 0) -> str:
+    estimate_style = "secondary" if call_first else "primary"
+    phone_style = "primary" if call_first else "secondary"
+    estimate = f'<a class="ats-button ats-button--{estimate_style} ats-estimate-link" href="{href}">{label}</a>'
+    phone = f'<a class="ats-button ats-button--{phone_style}" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>'
+    buttons = [phone, estimate] if call_first else [estimate, phone]
+    return ("\n" + " " * indent).join(buttons)
+
+
 def page_document(page: dict) -> str:
     canonical = f"{SITE}{page['path']}"
     image = page.get("social_image", SOCIAL_IMAGE)
@@ -383,8 +392,7 @@ def page_document(page: dict) -> str:
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust')}
           <div class="ats-actions">
-            <a class="ats-button ats-button--primary ats-estimate-link" href="{html_attr(page['estimate_href'])}">{html_text(page['estimate_label'])}</a>
-            <a class="ats-button ats-button--secondary" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>
+            {action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)}
           </div>
         </div>
         {hero_media}
@@ -436,7 +444,7 @@ def faq_section(faqs: list[tuple[str, str]]) -> str:
     </section>"""
 
 
-def final_cta(title: str, copy: str, href: str, label: str) -> str:
+def final_cta(title: str, copy: str, href: str, label: str, call_first: bool = False) -> str:
     return f"""
     <section class="ats-final-cta">
       <div class="ats-final-cta__inner">
@@ -444,8 +452,7 @@ def final_cta(title: str, copy: str, href: str, label: str) -> str:
         <p>{copy}</p>
         {trust_line('ats-final-cta__trust')}
         <div class="ats-actions">
-          <a class="ats-button ats-button--primary ats-estimate-link" href="{href}">{label}</a>
-          <a class="ats-button ats-button--secondary" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a>
+          {action_buttons(href, label, call_first, 10)}
         </div>
       </div>
     </section>"""
@@ -546,7 +553,7 @@ def service_body(data: dict) -> str:
     {service_review}
     {project_feature() if data['path'] == '/services/tree-removal/' else ''}
     {faq_section(data['faqs'])}
-    {final_cta(data['cta_title'], data['cta_copy'], data['estimate_href'], data['estimate_label'])}"""
+    {final_cta(data['cta_title'], data['cta_copy'], data['estimate_href'], data['estimate_label'], data.get('call_first', False))}"""
 
 
 SERVICE_PAGES = [
@@ -694,6 +701,7 @@ SERVICE_PAGES = [
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Storm and Emergency Guidance", "/services/emergency-tree-service/")],
         "estimate_href": "/?service=Storm%20Cleanup&estimate_context=emergency-tree-service#contact",
         "estimate_label": "Send storm-damage details",
+        "call_first": True,
         "fit_heading": "Separate immediate danger from an urgent estimate.",
         "fit_intro": "The safest first action depends on whether people, roads, structures, vehicles, or electrical lines are involved.",
         "situations": [

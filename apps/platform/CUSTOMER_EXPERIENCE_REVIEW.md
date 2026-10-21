@@ -1,0 +1,139 @@
+Method: dual-agent (A: /root/customer_design_review · B: /root/customer_evidence_review)
+
+# Customer experience review — October 21, 2026
+
+## Decision
+
+Preserve the readable green-and-neutral document identity. Fix the task hierarchy and state/recovery gaps before considering a wholesale customer visual redesign. The dashboard's new dark palette is an internal operations decision, not a reason to darken proposals and invoices for homeowners.
+
+The next customer implementation should lead with **invoice payment/status clarity and accurate closed-proposal states**, followed by link recovery and actionable reminders. Keep contractual terms unchanged until their authoritative source is confirmed. These are follow-ups within the existing portal/payment/quote and communications work, not a competing PR roadmap.
+
+This package reviews customer surfaces; it does not implement these fixes, create a new customer account system, change financial rules, weaken token/authorization checks, or change production.
+
+## Design specificity and overall impression
+
+Shared proposal/invoice paperwork feels appropriate for Angel Tree Services: scope and amounts are readable, pricing is familiar, and additional work compares the original and revised commitment. The customer account home is less useful: it describes capabilities without offering a task. The largest opportunity is to tell customers what happened and what they should do next, especially after payment or when a document is closed/unavailable.
+
+Independent design assessment: **23/40 — acceptable foundation with significant journey gaps**. No P0 was demonstrated. Three deterministic font warnings in 19 markup-bearing files were all email-safe Arial fallbacks and are not useful redesign priorities. No browser detector overlay was injected: only read-only DOM inspection was available. The actual rendered screenshots and source locations provided the fallback evidence.
+
+## Coverage and evidence strength
+
+| Touchpoint | Review performed | Acceptance still needed |
+|---|---|---|
+| Public enquiry/contact/estimate request, commercial fields, service prefill, call/email/urgent CTAs, interrupted draft, validation and thank-you | Source inventory including client/server acknowledgement contracts | Desktop/mobile rendered acceptance and a guarded local submission test; no hosted intake submitted |
+| Customer entry and organization destination | Actual local desktop/mobile views | A deliberate secure-link versus account-hub product decision |
+| Quotes | Local sent/approved/declined/change-requested/cancelled, invalid/expired/revoked states; source action/error review | Actual customer-response submissions and screen-reader acceptance |
+| Invoices/payment choices | Local unpaid, paid, bank-processing and unavailable states; payment preference source and safe no-submit inspection | Live Stripe/card/ACH return, failure, partial and void acceptance; no real payment/provider calls |
+| Change orders | Local sent/approved/cancelled views; approval/change/decline source | End-to-end responses and accessible error announcements |
+| Transactional emails | Eight actual-generator HTML previews: proposal, invoice, receipt, invoice reminder, overdue reminder, quote follow-up, appointment reminder and multiple proposals | Real mailbox rendering/delivery, not inferred from a browser |
+| Appointments, changes/cancellation, SMS | Source inventory; appointment-reminder HTML preview | Actual customer contact after changed/cancelled appointments and manual SMS handoff |
+| Post-job review/feedback/photos/privacy | Source inventory of active copy-only review drafts, public project gallery, staff-only photo routes, manual privacy request | Real review destination, customer feedback decision, private completion-photo delivery if desired |
+| Print/save/download | Visible invoice control and source/print CSS | Actual PDF pagination, native viewer/printing, real private download acceptance |
+
+The main visual review used fresh **synthetic loopback fixtures**, not production records. Report A was completed before root read B's findings. Review B used verified 390px mobile and desktop widths; reviewed customer pages had no horizontal overflow at 390px. No business approval, decline, change request, payment, preference submission, SMS, email or public contact submission was performed. Synthetic view telemetry was permitted. A no-submit payment-radio check did not reliably update dependent React text in the harness; that interaction remains unverified and is not classified as a confirmed application defect.
+
+Public first/last-touchpoint supplement remained source-only because the supplemental agent's browser binding was unavailable. A temporary loopback static preview did not prove submission or rendering acceptance. Generated service-page source may be transformed by the public build; source wording is not claimed to be deployed wording.
+
+## What works
+
+- Proposals give services, full scope, exclusions, quantities and amounts a familiar document structure. Preserve that clarity while changing the reading order.
+- Additional work distinguishes the original agreement, added amount and combined total. The authorizing-person field helps commercial buyers.
+- Payment logic distinguishes a method preference from received money. Bank processing and the card-review source contain useful safeguards; make the visible journey equally clear without replacing those commands.
+
+## Five priorities
+
+### P1 — Payment action and settlement reassurance belong beside the balance
+
+A bank-pending invoice initially showed “Sent” and a balance due. Its processing explanation began around **y2140 desktop / y3416 mobile**, after the document and 13 terms sections. The ordinary chooser began around **y2173 desktop / y3449 mobile**. There was no pay/status jump near the top.
+
+A customer returning after payment can reasonably wonder whether anything happened. Put the current state, safe next step and contact option next to the balance; unpaid invoices should lead to the chooser, processing invoices should clearly explain that a second payment is unnecessary while clearing. Keep the full invoice and print surface below. Do not represent the retained invoice balance as proof a new payment is needed.
+
+Related source-only concerns: any pending Stripe payment is called a bank payment without checking its method; a processing return can precede the pending row; no automatic refresh was found despite update wording. These need controlled acceptance tests, not assumptions about live Stripe behavior.
+
+Evidence: `src/app/portal/invoice/[token]/page.tsx:42,80,106,124`; `src/components/invoice-portal-payment-button.tsx`. Suggested work: Impeccable shape/clarify within the existing payment-portal follow-up.
+
+### P1 — Closed proposals must show an outcome, not an enabled response form
+
+Declined/cancelled local fixtures showed enabled Approve proposal and Request a change actions. Approved records correctly replaced buttons but retained introductory instructions to approve/request changes. The page supplies an approved boolean; other statuses enter the interactive branch. This finding does **not** mean the server accepts a closed quote.
+
+Use explicit awaiting-decision, changes-under-review, approved, declined, expired and cancelled presentation states. Explain the result and contact/reopen route; retain all server revision, token and approval safeguards. Returning to a change-requested quote should also explain what is under review.
+
+Evidence: `src/app/portal/quote/[token]/page.tsx:34,58`; `src/components/portal-quote-actions.tsx:98`; existing command rejection in `src/lib/actions/portal-tokens.ts`. Suggested work: Impeccable harden/clarify within the existing atomic quote/approval follow-up.
+
+### P1 — Unavailable links and customer entry need useful next steps
+
+Invalid, expired and revoked links had no usable call/email/new-link action; the invalid quote had **zero interactive controls**. The signed-in `/portal` home presents feature cards without document/task controls, including “later” billing wording although invoice links work. The organization destination explains a future implementation rather than helping the customer.
+
+For the existing emailed-link workflow, provide clear instructions and company contact/replacement-link help, without revealing whether an unauthorized record exists. A real account hub is a separate authorized feature requiring record scoping and acceptance tests. Remove promises of customer uploads/feedback from primary guidance until such paths actually exist.
+
+Evidence: `src/app/portal/page.tsx`; `src/app/portal/organization/[token]/page.tsx`; quote/invoice/change-order unavailable components. Suggested work: Impeccable onboard/harden/clarify.
+
+### P1 — Reminder HTML needs real linked actions
+
+Invoice reminders, overdue notices and proposal follow-ups rendered secure URLs as escaped text within paragraphs. Browser previews contained **zero anchors** for these messages. Email clients may auto-link text, but that client-specific behavior was not tested and should not carry the workflow.
+
+Reuse the stronger customer-document email action/contact block. Provide a real secure CTA, copyable backup link, clear amount/due context and reply/call route. Preserve deduplication, delivery reconciliation, no-send guards and the distinction between receipts and requests to pay.
+
+Evidence: `src/lib/communications/templates.ts:63,94,136,144`; contrast with `src/lib/email/customer-document-layout.ts`. Suggested work: Impeccable clarify/layout within the existing communications phase.
+
+### P1 — Reconcile the facts across email, approval and printable document
+
+Source inference: quote emails can include quote-specific payment/debris fields that the fixed approval document does not render. Invoice terms hard-code “15 days” and “3%” while due dates/payment configuration are variable. The reviewed synthetic due date happened to match the fixed term, so no conflicting live invoice or incorrect charge is claimed.
+
+Confirm the authoritative business terms, then render the same approved facts across email, document, decision and payment review. Do not rewrite contract language or change fees during cosmetic work. On mobile, approval was at **y875**, full scope at **y1982**, and terms at **y2599**; keep the relevant scope/exclusions/commitment near the decision or introduce a clear review step.
+
+Evidence: `src/lib/documents/email-drafts.ts:153`; `src/components/documents/quote-document.tsx:69`; `src/lib/documents/terms.ts:31`; `src/components/documents/invoice-document.tsx:55`; `src/lib/payments/payment-options.ts`. Suggested work: Impeccable clarify after the owner confirms the business facts.
+
+## Nielsen heuristic scores
+
+| # | Heuristic | Score /4 | Main issue |
+|---|---|---:|---|
+| 1 | Visibility of system status | 2 | Important processing state is buried |
+| 2 | Match with the real world | 3 | Internal terms reach customer destinations |
+| 3 | User control and freedom | 2 | Missing recovery/exit routes |
+| 4 | Consistency and standards | 2 | Entry promises, documents and emails diverge |
+| 5 | Error prevention | 3 | Closed actions and decision context need work |
+| 6 | Recognition rather than recall | 3 | Direct documents clear; retrieval weak |
+| 7 | Flexibility and efficiency | 2 | Scroll cost and inconsistent save controls |
+| 8 | Aesthetic and minimalist design | 3 | Good paperwork, weak task hierarchy |
+| 9 | Error recovery | 1 | Unavailable pages are dead ends |
+| 10 | Help and documentation | 2 | Useful copy lacks usable next steps |
+| **Total** | | **23/40** | **Acceptable foundation** |
+
+## Persona red flags
+
+- A first-time homeowner opens an invoice and must scroll through several screens of terms before discovering how to pay. Keep the action and assistance close to the current amount/state.
+- A returning payer sees Sent and balance due while waiting for a bank payment, and has to find the distant reassurance. Make “what happened” the first read.
+- A property manager looking for a misplaced document reaches a feature overview or technical organization placeholder. Provide a current recovery path before promising a hub.
+
+## Additional findings
+
+- **P1, conditional/source:** cancelling an appointment stops pending reminders, but no corresponding customer cancellation notice was found. Staff may already call separately; verify that operational responsibility before claiming cancellation is customer-complete. Keep any future notices within existing durable source-event/deduplication work.
+- **P2:** change-order amount renders at about13px because a more-specific shared rule wins; mobile Decline is about27px high. Cancelled additional work incorrectly says the customer's response is on file. Change-order errors lack the quote form's alert/live announcements.
+- **P2:** invoice print control is only38px high; quote lacks an equally discoverable save action. Change-order print output may be blank under the shared print selector; this is source inference pending PDF acceptance.
+- **P2:** customer document/reminder footers still advertise lawn care, contrary to current product context. Verify and update customer-facing positioning without inventing services.
+- **P2, source:** review-request drafts remain copyable with `[Add Google review link]` when unconfigured. Preserve copy-only behavior; prevent unfinished drafts being mistaken for ready messages.
+- **P2, source:** the public form's optional seasonal/update consent and its “only follow up about the request” reassurance disagree. Clarify ordinary enquiry use versus optional updates; no legal-policy conclusion is made here.
+- **P2, source:** thank-you copy says soon/shortly without an owner-approved expectation or retained request summary. Do not invent a turnaround guarantee. A receipt is not a scheduled appointment; urgency already has a call fallback.
+- **P2/source:** online receipt traceability lacks some method/reference/context fields; disabled-online mode defaults to an unavailable bank option in this local environment. Neither demonstrates a production payment configuration defect.
+- **P3:** small metadata and print terms deserve a real older-reader/paper check. Reviewed pages wrap at390px, but this is not contrast or screen-reader certification.
+
+## Existing-roadmap integration and acceptance order
+
+1. Extend the existing payment portal and quote state follow-ups: lead with payment status/action, show accurate closed states and preserve immutable quote/payment commands. Test every state and race-return variant with synthetic fixtures.
+2. Extend communications/recovery work: real reminder CTA/contact blocks, unavailable-link help, explicit cancelled-appointment contact responsibility. Retain source-event receipts, delivery reconciliation and duplicate-prevention guarantees.
+3. Confirm business facts once; reconcile payment/debris/due/surcharge wording across all customer artifacts. No fee/contract change without the owner decision.
+4. Choose secure-link entry versus a scoped account-hub project. Do not ship an unscoped document lookup or silently broaden account access.
+5. Apply smaller accessibility/print/brand/form-copy fixes, then accept PDFs, real mailbox clients, screen readers, devices and controlled payment-return flows. Re-review the journey after those changes.
+
+The next implementation is a recommendation, not authorization to send communications, change business terms, deploy, or modify production. Two targeted preference questions were presented after the customer report; until answered, payment/closed-state fixes and secure links with recovery help are recommended defaults only.
+
+## Evidence location
+
+Private local evidence: `/Users/noelsierra/Documents/Codex/2026-10-21/dashboard-remake/` contains independent `customer-assessment-a.md`, `customer-assessment-b.md`, `customer-touchpoint-supplement.md`,23 B screenshots, actual-source email HTML previews, and detector JSON. Token-bearing fixture indexes/private logs stay outside Git and are not reproduced here. Representative images: `b-invoice-choice-mobile.png`, `b-invoice_bank_pending-mobile.png`, `b-quote_declined-desktop.png`, `b-quote_sent-mobile.png`, `b-email-reminder-mobile.png`.
+
+## Supplemental visual check by the coordinating reviewer
+
+After the independent supplement's browser binding failed, root's existing browser remained accessible. A separate temporary local public preview was inspected at1365px desktop and390px mobile without a submission. No horizontal overflow was measured at those widths. Commercial-request fields revealed correctly; choosing Email made email required; a grounded service-link query selected Tree Care; keyboard Tab focused the phone field and blur validation announced the empty required name. Draft restoration was visible. These checks strengthen the public-form evidence, but do not prove accepted lead delivery, success acknowledgement, real phone/email handoff, generated service-page layout or hosted configuration.
+
+Evidence: `public-contact-desktop.png`, `public-contact-mobile.png`, `public-contact-mobile-fields.png`, `public-contact-mobile-details.png`. Root closed its temporary public tab, reset viewport overrides and stopped its static preview. Earlier A/B findings and the independent23/40 score are unchanged.

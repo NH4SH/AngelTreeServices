@@ -1,19 +1,17 @@
 import { formatBusinessDateTime, getBusinessDateKey } from "@/lib/business-time";
 import {
   AlertTriangle,
+  ArrowRight,
+  ArrowUpRight,
   CalendarDays,
   ChevronDown,
   CircleDollarSign,
   ClipboardCheck,
-  Building2,
   Boxes,
   Clock3,
-  Leaf,
   MessageSquareMore,
   PhoneCall,
   Truck,
-  Workflow,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -34,19 +32,22 @@ import { getScheduleDashboardSummary } from "@/lib/data/schedule";
 import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
-import { getDashboardReportingSummary } from "@/lib/data/reports";
+import { DashboardMoney, DashboardMoneyLoading } from "@/components/dashboard/DashboardMoney";
+import { dashboardPeriod } from "@/lib/dashboard/cash-series";
+import "./dashboard.css";
 import { getMaterialsDashboardSummary } from "@/lib/data/materials";
 import { getWorkflowPipelineStages } from "@/lib/data/workflow-pipeline";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ range?: string | string[] }> }) {
+  const period = dashboardPeriod((await searchParams).range);
   const context = await getAuthenticatedPlatformContext("/admin");
 
   if (!context.configured) {
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
-  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, reportingSummary, materialsSummary, workflowPipeline] = await Promise.all([
+  const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, materialsSummary, workflowPipeline] = await Promise.all([
     loadOptionalDashboardModule("Jobs", getDashboardJobSummaries(), {
       lanes: {
         newLeads: [],
@@ -74,7 +75,6 @@ export default async function AdminPage() {
     loadOptionalDashboardModule("Communications", getCommunicationDashboardSummary(), { data: { dueToday: [], failed: [], overdueInvoiceCount: 0, quotesAwaitingResponseCount: 0, scheduled: [] }, error: "Communications are temporarily unavailable." }),
     loadOptionalDashboardModule("Equipment", getEquipmentDashboardSummary(), { data: { dueMaintenance: [], failedInspections: [], openProblems: [], expiringDocuments: [], outOfService: [] }, error: "Equipment is temporarily unavailable." }),
     loadOptionalDashboardModule("Employees", getEmployeeDashboardSummary(), { data: { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] }, error: "Employee readiness is temporarily unavailable." }),
-    loadOptionalDashboardModule("Reporting", getDashboardReportingSummary(hasAllowedRole(context.roles, platformRoleGroups.financialReporting)), { data: { approvedQuoteCents: 0, quoteApprovalRate: null, invoicedCents: 0, collectedCents: 0, outstandingCents: 0, overdueCents: 0 }, error: "Reporting is temporarily unavailable." }),
     loadOptionalDashboardModule("Materials", getMaterialsDashboardSummary(), { data: { items: [] }, error: "Materials are temporarily unavailable." }),
     loadOptionalDashboardModule("Workflow", getWorkflowPipelineStages(), {
       stages: [],
@@ -159,7 +159,7 @@ export default async function AdminPage() {
       title: "Completed work to invoice",
       description: "Finished work orders ready for one linked customer invoice.",
       Icon: CircleDollarSign,
-      href: "/admin/jobs",
+      href: "/admin/jobs?view=billing&invoice=none",
       items: jobSummaries.lanes.completedWorkToInvoice.map((job) => ({
         href: `/admin/jobs/${job.id}`,
         title: job.organizations?.name ?? job.customers?.display_name ?? "Unknown contracting party",
@@ -204,78 +204,61 @@ export default async function AdminPage() {
   const today = getBusinessDateKey(new Date());
   const tomorrow = shiftScheduleDateKey(today, 1);
 
+  const stageCountsAvailable = workflowPipeline.errors.length === 0;
+  const priorities = [
+    { id: "new-leads", label: "Contact new leads", detail: "Turn an enquiry into a conversation", lane: lanes[2] },
+    { id: "awaiting-invoice", label: "Invoice finished work", detail: "Send the next customer invoice", lane: lanes[6] },
+    { id: "awaiting-schedule", label: "Schedule approved work", detail: "Put accepted work on the calendar", lane: lanes[5] },
+    { id: "quotes-prepare", label: "Finish draft quotes", detail: "Review scope, pricing and send", lane: lanes[1] },
+  ].map(item => ({ ...item, count: stageCountsAvailable ? workflowPipeline.stages.find(stage => stage.id === item.id)?.count : undefined }));
+  const warnings = Array.from(new Set([jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, materialsSummary.error].filter((message): message is string => Boolean(message))));
+
   return (
-    <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email}>
-      <div className="shell app-content dashboard-page">
-        <section className="page-heading dashboard-heading">
-          <div>
-            <p className="surface-label">
-              <Leaf aria-hidden="true" size={15} />
-              Internal CRM
-            </p>
-            <h1>Dashboard</h1>
-            <p>Today's operational overview.</p>
-          </div>
-          <p className="dashboard-date">{formatDashboardDate()}</p>
-        </section>
-
-        {Array.from(new Set([jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, reportingSummary.error, materialsSummary.error]
-          .filter((message): message is string => Boolean(message))))
-          .map((message) => (
-          <DataWarning key={message} message={message} />
-        ))}
-
-        <section className="dashboard-grid" aria-label="Morning operations">
-          <section className="panel dashboard-panel">
-            <PanelHeader title="Needs attention" detail="Open a record to take its next step. Queues are bounded previews, not full totals." />
-            <div className="workflow-list">{attentionLanes.map(lane => <WorkflowLane lane={lane} key={lane.title} />)}</div>
-          </section>
-          <Suspense fallback={<p role="status">Loading due handoffs...</p>}><NextActionsPanel dueOnly assignedTo={context.user.id} /></Suspense>
-          <Suspense fallback={<p role="status">Loading estimate follow-through...</p>}><CompletedEstimatesPanel /></Suspense>
-          {[today, tomorrow].map(day => <section className="panel dashboard-panel" key={day}>
-            <PanelHeader title={day === today ? "Today" : "Tomorrow"} detail="Estimates and field work" />
-            <div className="workflow-list">{(scheduleSummary.data.nextTwoDays ?? []).filter(entry => getBusinessDateKey(entry.starts_at) === day && ["estimate", "job", "emergency", "maintenance"].includes(entry.event_type)).map(entry => <Link className="workflow-row" href={`/admin/schedule?date=${day}&${entry.source === "appointment" ? "appointment" : "event"}=${entry.id}`} key={`${entry.source}-${entry.id}`}>
-              <span><strong>{entry.title}</strong><small>{entry.customer_label || entry.subtitle} · {formatBusinessDateTime(entry.starts_at)} · {entry.event_type.replaceAll("_", " ")}</small><small>{entry.location_label || "Location needs review"}{entry.assignees.length ? "" : " · Assignment needs review"} · {entry.status.replaceAll("_", " ")}</small></span>
+    <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email} appearance="dashboard-dark">
+      <div className="shell app-content business-dashboard">
+        <header className="business-dashboard-heading">
+          <div><h1>Dashboard</h1><p>{formatDashboardDate()}</p></div>
+          <Link className="dashboard-primary-action" href="/admin/quotes?new=1">New quote <ArrowUpRight size={17} aria-hidden="true" /></Link>
+        </header>
+        <nav className="dashboard-jump-links" aria-label="Dashboard sections"><a href="#dashboard-money-title">Money</a><a href="#dashboard-next-title">Next up</a><a href="#dashboard-daybook-title">Today’s work</a></nav>
+        {warnings.length ? <details className="dashboard-data-notices"><summary><AlertTriangle size={16} aria-hidden="true" /> Some dashboard information is unavailable</summary>{warnings.map(message => <p key={message}>{message}</p>)}</details> : null}
+        <div className="dashboard-focus-grid">
+          <Suspense key={period} fallback={<DashboardMoneyLoading />}><DashboardMoney period={period} /></Suspense>
+          <aside className="dashboard-next-up" aria-labelledby="dashboard-next-title">
+            <div className="dashboard-section-heading"><h2 id="dashboard-next-title">Next up</h2><span>Keep work moving</span></div>
+            {scheduleSummary.data.conflicts.length ? <Link href="/admin/schedule" className="dashboard-schedule-alert"><AlertTriangle size={17} aria-hidden="true" /><span>Review schedule conflicts<span>{scheduleSummary.data.conflicts.length} in the loaded window</span></span><ArrowRight size={16} aria-hidden="true" /></Link> : null}
+            <div className="dashboard-priority-list">{priorities.map((item, index) => <Link className="dashboard-priority" href={item.id === "quotes-prepare" ? "/admin/quotes?status=draft" : item.lane.href} key={item.id}>
+              <span className="dashboard-priority-order">0{index + 1}</span><span className="dashboard-priority-copy"><strong>{item.label}</strong><small>{item.detail}</small></span><span className="dashboard-priority-count">{item.count?.toLocaleString() ?? "—"}</span><ArrowUpRight size={16} aria-hidden="true" />
             </Link>)}</div>
-            <Link href={`/admin/schedule?date=${day}`}>Open full day</Link>
-          </section>)}
+            {!stageCountsAvailable ? <p className="dashboard-muted" role="status">Counts unavailable. Open a queue to review its records.</p> : null}
+            <div className="dashboard-next-footer"><Link href="/admin/follow-ups?view=due">Review due follow-ups <ArrowRight size={16} aria-hidden="true" /></Link><Link href="/admin/communications/delivery-review">Delivery review</Link></div>
+          </aside>
+        </div>
+
+        <section className="dashboard-daybook" aria-labelledby="dashboard-daybook-title">
+          <div className="dashboard-section-heading"><div><h2 id="dashboard-daybook-title">The next two days</h2></div><Link href="/admin/schedule">Full schedule <ArrowUpRight size={16} aria-hidden="true" /></Link></div>
+          <div className="dashboard-days">{[today, tomorrow].map(day => {
+            const entries = (scheduleSummary.data.nextTwoDays ?? []).filter(entry => getBusinessDateKey(entry.starts_at) === day && ["estimate", "job", "emergency", "maintenance"].includes(entry.event_type));
+            return <section className="dashboard-day" key={day} aria-label={day === today ? "Today's work" : "Tomorrow's work"}>
+              <header><h3>{day === today ? "Today" : "Tomorrow"}</h3><span>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</span></header>
+              {scheduleSummary.error ? <p className="dashboard-muted" role="status">This schedule preview is unavailable.</p> : !entries.length ? <div className="dashboard-day-empty"><CalendarDays size={24} aria-hidden="true" /><p>No work in this preview.</p><Link href={`/admin/schedule?date=${day}`}>Review the day <ArrowRight size={14} aria-hidden="true" /></Link></div> : <ol className="dashboard-agenda">{entries.slice(0, 4).map(entry => <li key={`${entry.source}-${entry.id}`}><Link href={`/admin/schedule?date=${day}&${entry.source === "appointment" ? "appointment" : "event"}=${entry.id}`}>
+                <time dateTime={entry.starts_at}>{formatBusinessDateTime(entry.starts_at, { hour: "numeric", minute: "2-digit" })}</time><span><strong>{entry.customer_label || entry.title}</strong><small>{entry.event_type.replaceAll("_", " ")} · {entry.status.replaceAll("_", " ")}</small><small>{entry.location_label || "Location needs review"}{entry.assignees.length ? "" : " · Crew needed"}</small></span><ArrowUpRight size={15} aria-hidden="true" />
+              </Link></li>)}</ol>}
+              <Link className="dashboard-day-link" href={`/admin/schedule?date=${day}`}>Open full day <ArrowRight size={15} aria-hidden="true" /></Link>
+            </section>;
+          })}</div>
         </section>
 
-        <section className="dashboard-workflow-pipeline" aria-labelledby="workflow-pipeline-title">
-          <header>
-            <div>
-              <p className="surface-label"><Workflow aria-hidden="true" size={16} />Daily workflow</p>
-              <h2 id="workflow-pipeline-title">Work moving through Angel Tree</h2>
-            </div>
-            <Link href="/admin/follow-ups">Open follow-ups</Link>
-          </header>
-          <div className="dashboard-workflow-stages">
-            {workflowPipeline.stages.map((stage, index) => (
-              <Link href={stage.href} key={stage.id}>
-                <span>{index + 1}</span>
-                <strong>{stage.count}</strong>
-                <small>{stage.label}</small>
-              </Link>
-            ))}
-          </div>
-          {workflowPipeline.errors.length ? <p className="pipeline-count-notice">Some optional workflow counts are temporarily unavailable. Other dashboard areas remain usable.</p> : null}
-        </section>
+        <div className="dashboard-work-grid">
+          <section className="dashboard-workflow" aria-labelledby="dashboard-workflow-title"><div className="dashboard-section-heading"><h2 id="dashboard-workflow-title">Work in progress</h2><span>Current queues</span></div><dl>{workflowPipeline.stages.map(stage => <div key={stage.id}><dt><Link href={dashboardQueueHref(stage.id, stage.href)}>{stage.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></dt><dd>{stageCountsAvailable ? stage.count.toLocaleString() : "—"}</dd></div>)}</dl>{!stageCountsAvailable ? <p className="dashboard-muted">Some counts could not be confirmed. Open the full queues for details.</p> : null}</section>
+          <div className="dashboard-handoffs"><Suspense fallback={<p role="status">Loading your due handoffs…</p>}><NextActionsPanel dueOnly assignedTo={context.user.id} limit={3} /></Suspense></div>
+        </div>
 
-        <details className="dashboard-more-overview" open={hasAllowedRole(context.roles, platformRoleGroups.accessApproval)}><summary>Operations &amp; business overview</summary>
-        <section className="dashboard-grid" aria-label="CRM operational overview">
-          <section className="panel dashboard-panel dashboard-reporting-panel">
-            <PanelHeader title="This month" detail="Sales, cash, and accounts receivable" />
-            <div className="pipeline-list">
-              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Approved quote value</span><strong>{reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.approvedQuoteCents)}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=quotes"><span>Quote approval rate</span><strong>{reportingSummary.error ? "Unavailable" : reportingSummary.data.quoteApprovalRate == null ? "N/A" : `${reportingSummary.data.quoteApprovalRate.toFixed(1)}%`}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Invoiced</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.invoicedCents) : "Restricted"}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Collected</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : formatCurrency(reportingSummary.data.collectedCents) : "Restricted"}</strong></Link>
-              <Link className="pipeline-row" href="/admin/reports?view=revenue"><span>Outstanding / overdue</span><strong>{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? reportingSummary.error ? "Unavailable" : `${formatCurrency(reportingSummary.data.outstandingCents)} / ${formatCurrency(reportingSummary.data.overdueCents)}` : "Restricted"}</strong></Link>
-            </div>
-            {reportingSummary.error ? <p className="pipeline-count-notice">{reportingSummary.error}</p> : null}
-          </section>
+        <details className="dashboard-secondary-section"><summary><span>Browse attention queues<small>Leads, quotes, invoices, follow-ups and materials</small></span><ChevronDown size={20} aria-hidden="true" /></summary><div className="dashboard-queue-grid">{attentionLanes.map(lane => <WorkflowLane lane={lane} key={lane.title} />)}</div></details>
+        <details className="dashboard-secondary-section"><summary><span>Estimate follow-through<small>Review completed visits without a linked proposal</small></span><ChevronDown size={20} aria-hidden="true" /></summary><Suspense fallback={<p role="status">Loading estimate follow-through…</p>}><CompletedEstimatesPanel /></Suspense></details>
+        <details className="dashboard-secondary-section" id="schedule-checks"><summary><span>Business checks<small>Crew, communications, equipment, employee readiness and accounts</small></span><ChevronDown size={20} aria-hidden="true" /></summary><p className="dashboard-preview-note">These are bounded previews. Open a full area to review every record.</p><div className="dashboard-checks-grid">
           <section className="panel dashboard-panel">
-            <PanelHeader title="Today's crew schedule" detail="Who is scheduled where today" />
+            <PanelHeader title="Today's crew schedule" detail="Loaded schedule preview" />
             <div className="workflow-list schedule-dashboard-list">
               {scheduleSummary.data.todaysCrewSchedules.length ? (
                 scheduleSummary.data.todaysCrewSchedules.map((group) => (
@@ -301,7 +284,7 @@ export default async function AdminPage() {
           </section>
 
           <section className="panel dashboard-panel">
-            <PanelHeader title="Customer communications" detail="Reminder queue and delivery attention" />
+            <PanelHeader title="Customer communications" detail="Loaded reminder and delivery preview" />
             <div className="pipeline-list">
               <Link className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></Link>
               <Link className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></Link>
@@ -416,7 +399,7 @@ export default async function AdminPage() {
           </section>
 
           <section className="panel dashboard-panel">
-            <PanelHeader title="Property managers and HOAs" detail="Repeat-account overview" />
+            <PanelHeader title="Property managers and HOAs" detail="Loaded repeat-account preview" />
             <div className="pipeline-list">
               <div className="pipeline-row"><span>Accounts</span><strong>{organizationSummary.data.length}</strong></div>
               <div className="pipeline-row"><span>Open jobs</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.jobs.filter((job) => !["completed", "paid", "lost", "cancelled"].includes(job.status)).length, 0)}</strong></div>
@@ -425,27 +408,8 @@ export default async function AdminPage() {
             </div>
             <div className="record-actions"><Link href="/admin/organizations">Open organizations</Link></div>
           </section>
-        </section>
-
-        </details>
-        <section className="notice-panel">
-          <strong>
-            <Zap aria-hidden="true" size={18} />
-            Storm or urgent call
-          </strong>
-          <p>
-            Confirm the callback number and service address, record the hazard and access details,
-            then arrange a response with the crew. Do not promise an arrival time before confirming availability.
-          </p>
-          <div className="record-actions"><Link href="/admin/customers">Find or add customer</Link><Link href="/admin/schedule?new=1&event_type=emergency">Schedule response</Link>{hasAllowedRole(context.roles, platformRoleGroups.accessApproval) ? <Link href="/admin/settings/system-health">System health</Link> : null}</div>
-        </section>
-
-        <section className="workflow-strip" aria-label="First workflow">
-          <span>
-            <ClipboardCheck aria-hidden="true" size={18} />
-            Operational workflow: estimate to quote to scheduled work to invoice
-          </span>
-        </section>
+        </div></details>
+        <footer className="dashboard-footer"><div><strong>Storm or urgent call?</strong><p>Confirm the callback number, service address, hazard and crew availability before promising an arrival time.</p></div><Link href="/admin/schedule?new=1&event_type=emergency">Arrange a response <ArrowUpRight size={16} aria-hidden="true" /></Link>{hasAllowedRole(context.roles, platformRoleGroups.accessApproval) ? <Link href="/admin/settings/system-health">System health</Link> : null}</footer>
       </div>
     </PlatformFrame>
   );
@@ -482,7 +446,7 @@ function WorkflowLane({
         <strong>{lane.title}</strong>
         {preview ? <small>{preview.title}: {preview.meta}</small> : <small>No items in this preview</small>}
       </span>
-      <b>{lane.items.length} <ChevronDown aria-hidden="true" size={15} /></b>
+      <b>{lane.items.length} in preview <ChevronDown aria-hidden="true" size={15} /></b>
     </summary>
     <div className="workflow-list">{lane.items.map(item => <Link className="workflow-row" key={item.href} href={item.href}><span><strong>{item.title}</strong><small>{item.meta}</small></span></Link>)}</div>
     <Link className="secondary-action" href={lane.href}>View all {lane.title.toLowerCase()}</Link>
@@ -537,11 +501,8 @@ function formatFollowUpMeta(appointment: AppointmentWithRelations) {
   return `${timing}: ${detail}`;
 }
 
-function DataWarning({ message }: { message: string }) {
-  return (
-    <section className="data-warning" role="status">
-      <strong>Database notice</strong>
-      <p>{message}</p>
-    </section>
-  );
+function dashboardQueueHref(id: string, fallback: string) {
+  if (id === "awaiting-schedule") return "/admin/jobs?view=to_be_scheduled";
+  if (id === "awaiting-invoice") return "/admin/jobs?view=billing&invoice=none";
+  return fallback;
 }

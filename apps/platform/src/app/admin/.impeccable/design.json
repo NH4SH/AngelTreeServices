@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-21T07:25:54Z",
+  "title": "Design System: Angel Tree Services — Admin Dashboard",
+  "extensions": {
+    "scope": {
+      "route": "/admin",
+      "primaryTarget": "apps/platform/src/app/admin/page.tsx",
+      "namespace": ".dashboard-dark",
+      "optIn": "PlatformFrame appearance=\"dashboard-dark\"",
+      "appliesToDescendantRoutes": false,
+      "excludes": [
+        "other /admin/* routes",
+        "public website",
+        "customer portals",
+        "crew tools",
+        "employee surfaces",
+        "document surfaces",
+        "files"
+      ],
+      "description": "Surface-specific exception to PRODUCT.md public-website light-mode preference. Do not inherit this system solely because a file is under app/admin. Existing narrower design documents remain unchanged."
+    },
+    "sources": [
+      "apps/platform/src/app/admin/dashboard.css",
+      "apps/platform/src/app/admin/page.tsx",
+      "apps/platform/src/components/dashboard/DashboardMoney.tsx",
+      "apps/platform/src/components/dashboard/DashboardCashChart.tsx",
+      "apps/platform/src/components/PlatformFrame.tsx",
+      "apps/platform/src/styles/globals.css",
+      "apps/platform/src/lib/dashboard/cash-series.ts",
+      "apps/platform/src/lib/data/dashboard-money.ts"
+    ],
+    "colorMeta": {
+      "dashboard-accent": {
+        "role": "primary",
+        "displayName": "Dashboard lime"
+      },
+      "dashboard-action-hover": {
+        "role": "primary",
+        "displayName": "Action hover lime"
+      },
+      "dashboard-action-ink": {
+        "role": "neutral",
+        "displayName": "Action ink"
+      },
+      "dashboard-warning": {
+        "role": "semantic",
+        "displayName": "Peach attention"
+      },
+      "dashboard-bg": {
+        "role": "neutral",
+        "displayName": "Graphite page"
+      },
+      "dashboard-surface": {
+        "role": "neutral",
+        "displayName": "Graphite surface"
+      },
+      "dashboard-raised": {
+        "role": "neutral",
+        "displayName": "Raised graphite"
+      },
+      "dashboard-line": {
+        "role": "neutral",
+        "displayName": "Hairline graphite"
+      },
+      "dashboard-text": {
+        "role": "neutral",
+        "displayName": "Warm white"
+      },
+      "dashboard-muted": {
+        "role": "neutral",
+        "displayName": "Quiet gray-green"
+      }
+    },
+    "colorRampPolicy": "No synthesized ramps: this scoped contract records only implemented colors under the user instruction not to invent colors.",
+    "typographyMeta": {
+      "display": {
+        "displayName": "Cash or approved quote figure",
+        "purpose": "Largest authorized selected-period amount; tabular numerals."
+      },
+      "headline": {
+        "displayName": "Dashboard heading",
+        "purpose": "Page title; no eyebrow."
+      },
+      "title": {
+        "displayName": "Section heading",
+        "purpose": "Standard dashboard section titles."
+      },
+      "body": {
+        "displayName": "Inherited system body",
+        "purpose": "Existing CRM system stack and body baseline."
+      },
+      "label": {
+        "displayName": "Reporting label",
+        "purpose": "Period-link labels."
+      },
+      "ledger": {
+        "displayName": "Ledger amount",
+        "purpose": "Invoiced, outstanding, and overdue figures; tabular numerals."
+      },
+      "queue-count": {
+        "displayName": "Priority count",
+        "purpose": "Verified queue counts or unavailable dash; tabular numerals."
+      }
+    },
+    "shadows": [
+      {
+        "name": "inherited-mobile-drawer",
+        "value": "-12px 0 32px oklch(0.2 0.01 154 / 0.16)",
+        "purpose": "Existing mobile navigation drawer edge only; dashboard content panels have no shadow."
+      }
+    ],
+    "motion": [
+      {
+        "name": "inherited-navigation-chevron",
+        "value": "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Existing shell navigation expansion chevron."
+      },
+      {
+        "name": "inherited-action-press",
+        "value": "filter: brightness(0.96); transform: translateY(1px)",
+        "purpose": "Immediate shared-shell pressed response; no duration invented."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "scroll-behavior: auto; animation: none; transition: none",
+        "purpose": "Scoped reduced-motion media rule on dark wrapper and descendants/pseudo-elements."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "dashboard-tight-desktop",
+        "value": "1200px",
+        "purpose": "Reduce padding, opening grid minimum, gap, and Next up inset."
+      },
+      {
+        "name": "inherited-shell-mobile",
+        "value": "980px",
+        "purpose": "Existing platform sidebar switches to mobile bar/drawer; distinct from content reflow."
+      },
+      {
+        "name": "dashboard-stacked-opening",
+        "value": "800px",
+        "purpose": "Stack money and Next up; two-column priorities; show section jump links."
+      },
+      {
+        "name": "dashboard-phone",
+        "value": "640px",
+        "purpose": "Single-column agenda/priority/work/preview grids, smaller chart and compact padding."
+      }
+    ],
+    "componentPreviewPolicy": "Snippets are self-contained static/native HTML/CSS extractions, with ds-prefixed classes, inline SVG, actual dashboard variables with exact source fallbacks, and working native link/disclosure/focus states. Any sample data is explicitly illustrative and never live business data. Production chart interactivity and server authorization remain in the named source components.",
+    "evidence": {
+      "direction": ".impeccable/surfaces/apps-platform-src-app-admin-page-tsx.md",
+      "captures": [
+        "dashboard-desktop.png (1440 × 2972)",
+        "dashboard-mobile.png (390 × 4500)",
+        "dashboard-user-908.png (908 × 3057)"
+      ],
+      "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-21/dashboard-remake",
+      "verdict": "dashboard-finish-verdict.md: ship",
+      "shippingRasters": []
+    }
+  },
+  "components": [
+    {
+      "name": "Quote action",
+      "kind": "button",
+      "refersTo": "action-primary",
+      "description": "Dashboard-only primary link. The destination and states match New quote.",
+      "html": "<div class=\"ds-primary-stage\"><a class=\"ds-primary-action\" href=\"/admin/quotes?new=1\">New quote<svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></a></div>",
+      "css": ".ds-primary-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-primary-action{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:16px;background:var(--dashboard-accent,#c2f57a);color:#1b2913;border-radius:6px;padding:0 18px;font-size:.85rem;font-weight:750;text-decoration:none}.ds-primary-action:hover{background:#d2ff9b}.ds-primary-action:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-primary-action:active{filter:brightness(.96);transform:translateY(1px);}@media(max-width:640px){.ds-primary-action{padding-inline:12px;gap:8px;font-size:.75rem}}"
+    },
+    {
+      "name": "Secondary scheduling action",
+      "kind": "button",
+      "refersTo": "action-secondary",
+      "description": "Existing CRM secondary action recolored within the dashboard; no new global button style.",
+      "html": "<div class=\"ds-secondary-stage\"><a class=\"ds-secondary-action\" href=\"/admin/schedule\">Open scheduling</a></div>",
+      "css": ".ds-secondary-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-secondary-action{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--dashboard-line,#354139);border-radius:10px;background:var(--dashboard-raised,#222b24);color:var(--dashboard-text,#f2f5ef);padding:0 12px;font-size:.86rem;font-weight:700;text-decoration:none}.ds-secondary-action:hover{border-color:var(--dashboard-muted,#acb8ae)}.ds-secondary-action:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-secondary-action:active{filter:brightness(.96);transform:translateY(1px);}@media(pointer:coarse){.ds-secondary-action{min-height:44px}}"
+    },
+    {
+      "name": "Reporting period navigation",
+      "kind": "nav",
+      "refersTo": "period-navigation",
+      "description": "Real reporting-window links with an aria-current selected state.",
+      "html": "<div class=\"ds-period-stage\"><nav class=\"ds-periods\" aria-label=\"Reporting period\"><a href=\"/admin?range=month\" aria-current=\"page\" aria-label=\"Month to date\">MTD</a><a href=\"/admin?range=last_7\" aria-label=\"Last 7 days\">7D</a><a href=\"/admin?range=last_30\" aria-label=\"Last 30 days\">30D</a><a href=\"/admin?range=last_90\" aria-label=\"Last 90 days\">90D</a><a href=\"/admin?range=year\" aria-label=\"Year to date\">YTD</a></nav></div>",
+      "css": ".ds-period-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-periods{display:flex;gap:8px}.ds-periods a{display:inline-flex;min-width:44px;min-height:40px;justify-content:center;align-items:center;border-radius:4px;border:1px solid transparent;color:var(--dashboard-muted,#acb8ae);font-size:.75rem;font-weight:650;text-decoration:none}.ds-periods a[aria-current]{color:var(--dashboard-accent,#c2f57a);border-color:var(--dashboard-line,#354139);background:var(--dashboard-surface,#19201b)}.ds-periods a:hover{background:var(--dashboard-raised,#222b24);color:var(--dashboard-text,#f2f5ef)}.ds-periods a:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-periods a:active{filter:brightness(.96);transform:translateY(1px);}@media(max-width:640px){.ds-periods{gap:6px}.ds-periods a{min-height:44px}}"
+    },
+    {
+      "name": "Cash figure",
+      "kind": "custom",
+      "refersTo": "cash-total",
+      "description": "Illustrative verified-zero component state, not live business data. Financial/sales/unavailable variants remain server-controlled in production.",
+      "html": "<div class=\"ds-cash-stage\"><p class=\"ds-cash-label\">Cash collected <span>Selected period</span></p><p class=\"ds-cash-amount\">$0.00</p><p class=\"ds-cash-basis\">Retained payments · after refunds and lost disputes</p><p class=\"ds-cash-example\">Verified-zero component example · not live data</p></div>",
+      "css": ".ds-cash-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-cash-label{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 14px;margin:0;font-size:.88rem}.ds-cash-label span{color:var(--dashboard-muted,#acb8ae);font-size:.75rem}.ds-cash-amount{margin:8px 0;font-size:clamp(2.4rem,4.8vw,4.5rem);line-height:1.08;letter-spacing:-.04em;font-weight:550;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.ds-cash-basis{margin:0;color:var(--dashboard-muted,#acb8ae);font-size:.75rem;line-height:1.6}.ds-cash-example{color:var(--dashboard-muted,#acb8ae);font-size:.72rem}@media(max-width:800px){.ds-cash-amount{font-size:clamp(2.5rem,6vw,4rem)}}@media(max-width:640px){.ds-cash-amount{font-size:clamp(2.1rem,10vw,3.4rem)}}"
+    },
+    {
+      "name": "Cumulative chart and exact-amount disclosure",
+      "kind": "custom",
+      "refersTo": "cash-chart",
+      "description": "Illustrative verified-zero state, not live data. Native table disclosure works in isolation. Production chart additionally implements pointer/focus captions, arrow-key focus, Enter/Space selection, and Escape clearing in DashboardCashChart.",
+      "html": "<div class=\"ds-chart-stage\"><p class=\"ds-chart-caption\">Cumulative cash collected <span>No retained payments in this period</span></p><svg class=\"ds-chart-svg\" viewBox=\"0 0 720 230\" preserveAspectRatio=\"none\" role=\"group\" aria-label=\"Verified-zero component example, not live data\"><path class=\"ds-chart-grid\" d=\"M24 30H696M24 114H696M24 198H696\"/><path class=\"ds-chart-line\" d=\"M24 198H696\"/><circle class=\"ds-chart-dot\" cx=\"696\" cy=\"198\" r=\"3\"/></svg><details class=\"ds-chart-table\"><summary>Exact amounts</summary><div class=\"ds-chart-scroll\"><table><caption>Illustrative verified-zero state · not live data</caption><thead><tr><th scope=\"col\">Dates</th><th scope=\"col\">Received</th><th scope=\"col\">Cumulative</th></tr></thead><tbody><tr><th scope=\"row\">Selected period</th><td>$0.00</td><td>$0.00</td></tr></tbody></table></div></details></div>",
+      "css": ".ds-chart-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-chart-caption{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:5px 12px;min-height:42px;margin:0;color:var(--dashboard-muted,#acb8ae);font-size:.72rem}.ds-chart-svg{display:block;width:100%;height:200px;overflow:visible}.ds-chart-grid{fill:none;stroke:var(--dashboard-line,#354139);stroke-width:1;stroke-dasharray:2 6}.ds-chart-line{fill:none;stroke:var(--dashboard-accent,#c2f57a);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.ds-chart-dot{fill:var(--dashboard-accent,#c2f57a)}.ds-chart-table{margin-top:9px;color:var(--dashboard-muted,#acb8ae);font-size:.72rem}.ds-chart-table summary{display:flex;align-items:center;min-height:36px;cursor:pointer;text-decoration:underline;text-underline-offset:4px}.ds-chart-table summary:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-chart-table summary:active{filter:brightness(.96);transform:translateY(1px);}.ds-chart-scroll{max-width:100%;overflow-x:auto}.ds-chart-table table{border-collapse:collapse;width:100%;text-align:right;font-variant-numeric:tabular-nums}.ds-chart-table caption{text-align:left;padding:8px 0}.ds-chart-table th,.ds-chart-table td{padding:9px;border-bottom:1px solid var(--dashboard-line,#354139);color:var(--dashboard-text,#f2f5ef)}.ds-chart-table th:first-child{text-align:left}@media(max-width:640px){.ds-chart-svg{height:150px}.ds-chart-caption{min-height:50px}.ds-chart-table summary{min-height:44px}}"
+    },
+    {
+      "name": "Next up priority row",
+      "kind": "custom",
+      "refersTo": "priority-row",
+      "description": "Ordered action row. The dash illustrates an unavailable count and must not be converted to zero.",
+      "html": "<div class=\"ds-priority-stage\"><a class=\"ds-priority\" href=\"/admin/jobs?view=billing&amp;invoice=none\"><span class=\"ds-priority-order\">02</span><span class=\"ds-priority-copy\"><strong>Invoice finished work</strong><small>Send the next customer invoice</small></span><span class=\"ds-priority-count\" aria-label=\"Count unavailable\">—</span><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></a></div>",
+      "css": ".ds-priority-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-priority{display:grid;grid-template-columns:20px minmax(0,1fr) auto 16px;gap:10px;align-items:center;border-bottom:1px solid var(--dashboard-line,#354139);padding:23px 0;min-height:96px;color:inherit;text-decoration:none}.ds-priority-order{align-self:start;padding-top:3px;color:var(--dashboard-muted,#acb8ae);font-size:.65rem;font-variant-numeric:tabular-nums}.ds-priority-copy{display:grid;gap:8px}.ds-priority-copy strong{font-size:.88rem;line-height:1.4;font-weight:600}.ds-priority-copy small{color:var(--dashboard-muted,#acb8ae);font-size:.73rem;line-height:1.5}.ds-priority-count{font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.ds-priority>svg{color:var(--dashboard-muted,#acb8ae)}.ds-priority:hover strong,.ds-priority:hover>svg{color:var(--dashboard-accent,#c2f57a)}.ds-priority:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-priority:active{filter:brightness(.96);transform:translateY(1px);}@media(max-width:800px){.ds-priority{min-height:84px}}@media(max-width:640px){.ds-priority{padding-block:19px}.ds-priority-copy strong{font-size:.9rem}}"
+    },
+    {
+      "name": "Daybook agenda row",
+      "kind": "custom",
+      "refersTo": "agenda-row",
+      "description": "Time, customer/work details, and destination stay aligned; example copy is explicitly a component placeholder.",
+      "html": "<div class=\"ds-agenda-stage\"><a class=\"ds-agenda\" href=\"/admin/schedule\"><time>9:00 AM</time><span><strong>Customer name · component example</strong><small>estimate · scheduled</small><small>Location needs review · Crew needed</small></span><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></a></div>",
+      "css": ".ds-agenda-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-agenda{display:grid;grid-template-columns:65px minmax(0,1fr) 15px;gap:16px;align-items:start;padding:20px 0;border-bottom:1px solid var(--dashboard-line,#354139);color:inherit;text-decoration:none}.ds-agenda time{color:var(--dashboard-accent,#c2f57a);font-size:.75rem;line-height:1.5;font-variant-numeric:tabular-nums}.ds-agenda>span{display:grid;min-width:0;gap:5px}.ds-agenda strong{font-size:.85rem;line-height:1.5;font-weight:550;overflow-wrap:anywhere}.ds-agenda small{font-size:.72rem;color:var(--dashboard-muted,#acb8ae);line-height:1.5;overflow-wrap:anywhere}.ds-agenda>svg{margin-top:2px;color:var(--dashboard-muted,#acb8ae)}.ds-agenda:hover strong{color:var(--dashboard-accent,#c2f57a)}.ds-agenda:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-agenda:active{filter:brightness(.96);transform:translateY(1px);}@media(max-width:640px){.ds-agenda{grid-template-columns:58px minmax(0,1fr) 15px;gap:12px}}"
+    },
+    {
+      "name": "Progressive section disclosure",
+      "kind": "custom",
+      "refersTo": "disclosure",
+      "description": "Native collapsed section keeps deeper operations below the opening work.",
+      "html": "<div class=\"ds-disclosure-stage\"><details class=\"ds-disclosure\"><summary><span>Business checks<small>Crew, communications, equipment, employee readiness and accounts</small></span><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></summary><p>These are bounded previews. Open a full area to review every record.</p></details></div>",
+      "css": ".ds-disclosure-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-disclosure{border-top:1px solid var(--dashboard-line,#354139)}.ds-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:88px;padding:18px 0;list-style:none;cursor:pointer;font-size:1rem}.ds-disclosure>summary::-webkit-details-marker{display:none}.ds-disclosure small{display:block;margin-top:6px;color:var(--dashboard-muted,#acb8ae);font-size:.75rem;line-height:1.5}.ds-disclosure[open]>summary>svg{transform:rotate(180deg)}.ds-disclosure>summary:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-disclosure>summary:active{filter:brightness(.96);transform:translateY(1px);}.ds-disclosure p{margin:0 0 18px;color:var(--dashboard-muted,#acb8ae);font-size:.75rem}@media(max-width:640px){.ds-disclosure>summary{font-size:.9rem}}"
+    },
+    {
+      "name": "Bounded preview panel",
+      "kind": "card",
+      "refersTo": "preview-panel",
+      "description": "Inherited panel geometry with dashboard colors; explicitly labels preview boundaries and a full destination.",
+      "html": "<div class=\"ds-panel-stage\"><section class=\"ds-preview-panel\"><h2>Estimate follow-through</h2><p>Completed estimates with no linked proposal in the latest 100 records.</p><p>No unlinked completed estimates in this preview.</p><a href=\"/admin/schedule?event_type=estimate&amp;status=completed\">Review completed estimates</a></section></div>",
+      "css": ".ds-panel-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-preview-panel{background:var(--dashboard-surface,#19201b);color:var(--dashboard-text,#f2f5ef);border:1px solid var(--dashboard-line,#354139);border-radius:14px;padding:14px;box-shadow:none}.ds-preview-panel h2{margin:0;font-size:1.1rem;line-height:1.35;font-weight:650;letter-spacing:-.015em}.ds-preview-panel p{color:var(--dashboard-muted,#acb8ae);font-size:.86rem;line-height:1.45}.ds-preview-panel a{display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:none}.ds-preview-panel a:focus-visible{outline:2px solid var(--dashboard-accent,#c2f57a);outline-offset:4px;}.ds-preview-panel a:active{filter:brightness(.96);transform:translateY(1px);}@media(max-width:640px){.ds-preview-panel h2{font-size:1rem}}"
+    },
+    {
+      "name": "Opt-in sidebar navigation",
+      "kind": "nav",
+      "refersTo": "sidebar-navigation",
+      "description": "Existing workflow navigation recolored only inside the dashboard-dark frame.",
+      "html": "<div class=\"ds-nav-stage\"><nav class=\"ds-navigation\" aria-label=\"Platform navigation\"><a href=\"/admin\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg><span>Dashboard</span></a><a href=\"/admin/schedule\"><span>Schedule</span></a></nav></div>",
+      "css": ".ds-nav-stage{background:var(--dashboard-bg,#111713);padding:16px;font-family:-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif;color:var(--dashboard-text,#f2f5ef);}.ds-navigation{display:grid;gap:2px}.ds-navigation a{display:flex;min-width:0;min-height:38px;align-items:center;gap:10px;border:1px solid transparent;border-radius:8px;padding:0 9px;color:var(--dashboard-muted,#acb8ae);font-size:.86rem;font-weight:620;line-height:1.2;text-decoration:none}.ds-navigation a span{min-width:0;overflow-wrap:anywhere}.ds-navigation a svg{flex:0 0 auto;color:var(--dashboard-muted,#acb8ae)}.ds-navigation a:hover{border-color:var(--dashboard-line,#354139);background:var(--dashboard-surface,#19201b);color:var(--dashboard-text,#f2f5ef)}.ds-navigation a[aria-current=\"page\"]{border-color:var(--dashboard-line,#354139);background:var(--dashboard-raised,#222b24);color:var(--dashboard-text,#f2f5ef);font-weight:740}.ds-navigation a[aria-current=\"page\"] svg{color:var(--dashboard-accent,#c2f57a)}.ds-navigation a:focus-visible{outline:3px solid var(--dashboard-accent,#c2f57a);outline-offset:1px}.ds-navigation a:active{filter:brightness(.96);transform:translateY(1px);}@media(pointer:coarse){.ds-navigation a{min-height:44px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Robinhood portfolio/day board",
+    "overview": "The user-pinned Robinhood portfolio/day board brings retained cash and the next work to handle into one operating surface. Graphite, warm white, a single lime accent, open chart space, tabular figures, hairline divisions, and compact task rows carry the implemented direction. The dashboard prioritizes both daily work and money.\n\nThis is a dashboard-specific design system. Its dark appearance is an explicit exception to PRODUCT.md’s public-website light-mode preference. It preserves the existing CRM navigation, role boundaries, record destinations, and shared components. There are no shipping raster assets; the PNG captures are review evidence only.",
+    "keyCharacteristics": [
+      "Dark graphite surfaces with warm white text and one lime action/chart accent.",
+      "Large tabular money figures, with financial basis and date window visible.",
+      "Flat chart and queue sections; bounded operational previews behind native disclosures.",
+      "Responsive dashboard content inside the existing opt-in CRM shell."
+    ],
+    "rules": [
+      {
+        "name": "The Dashboard Boundary Rule",
+        "body": "Apply this document only to /admin’s dashboard implementation and its explicitly opted-in .dashboard-dark frame. This file’s directory placement does not extend its guidance to descendant admin routes, employee or document surfaces, the public website, customer portals, crew tools, or files.",
+        "section": "overview"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "Lime identifies the primary action, selected reporting period, chart, selected navigation icon, and active links. Peach communicates overdue balances or attention; it is not a second promotional accent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Numeric Basis Rule",
+        "body": "Keep money and counts tabular. Pair the largest figure with its actual reporting window and basis; do not add invented growth percentages, trend deltas, or profit claims.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Content Rule",
+        "body": "The dashboard’s chart, priorities, agenda, and workflow use space and hairline dividers for hierarchy. Do not turn the opening surface into a decorative card grid.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Verified Data Rule",
+        "body": "A verified zero is valid data. Unavailable totals, incomplete chart reads, and unconfirmed workflow counts remain explicit unavailable states; never substitute a plausible curve or a false zero.",
+        "section": "components"
+      },
+      {
+        "name": "The Preview Boundary Rule",
+        "body": "Preserve the visible preview/window labels and full-area links. A loaded list length is not a company-wide total.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do keep this dark system confined to the /admin dashboard and the explicitly opted-in .dashboard-dark shell.",
+      "Do preserve the user’s dark, bold-number, high-contrast chart direction and the CRM’s existing navigation identity.",
+      "Do show the actual date window, business timezone, financial basis, and refresh time where the implemented components provide them.",
+      "Do preserve the chart’s keyboard interaction and exact-amount table alongside pointer access.",
+      "Do retain unavailable, loading, empty-preview, and role-sensitive variants with their honest labels.",
+      "Do link each priority and workflow row to the queue that implements its stated action."
+    ],
+    "donts": [
+      "Don't apply this file to all admin routes, the website, customer portals, crew tools, employee/document screens, or files.",
+      "Don't serialize or reveal company cash and invoice fields to sales-only reporting roles.",
+      "Don't label cash collected as profit, use invoice totals as cash, or compare date-scoped values with all-date balances without their labels.",
+      "Don't invent growth metrics, replace unavailable data with zero, or draw an unreconciled cash timeline.",
+      "Don't present bounded preview lengths as complete business totals or remove the paths to full queues.",
+      "Don't add shipping raster assets, decorative card grids, extra eyebrow labels, or display tracking tighter than the implemented -.04em."
+    ]
+  }
+}

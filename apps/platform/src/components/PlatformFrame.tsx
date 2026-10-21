@@ -37,6 +37,7 @@ export type PlatformNavigationId =
 
 type PlatformFrameProps = {
   active: PlatformNavigationId;
+  appearance?: "dashboard-dark";
   children: ReactNode;
   roles?: PlatformRoleName[];
   userEmail?: string | null;
@@ -50,11 +51,11 @@ const crewNavigationIds = new Set<PlatformNavigationId>([
   "employee-self",
 ]);
 
-export function PlatformFrame({ active, children, roles = [], userEmail }: PlatformFrameProps) {
+export function PlatformFrame({ active, children, roles = [], userEmail, appearance }: PlatformFrameProps) {
   const audience = crewNavigationIds.has(active) ? "crew" : "admin";
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${appearance ? ` ${appearance}` : ""}`}>
       <a className="skip-to-content" href="#platform-main-content">
         Skip to main content
       </a>

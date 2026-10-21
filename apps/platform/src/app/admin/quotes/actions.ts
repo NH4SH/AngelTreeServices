@@ -10,7 +10,8 @@ import { belongsToContractingParty, parseContractingParty } from "@/lib/contract
 import { archiveWebsiteLead } from "@/lib/leads/archive";
 import { isMatchingQuoteLeadSource } from "@/lib/quotes/lead-prefill";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { quoteEditConflict, quoteSaveResult, type QuoteEditConflict } from "@/lib/quotes/edit-result";
+import { quoteSaveResult, type QuoteEditConflict } from "@/lib/quotes/edit-result";
+import { saveQuoteEdit } from "@/lib/quotes/save-confirmation";
 import type { QuoteStatus } from "@/lib/types/database";
 
 export type QuoteActionState = {
@@ -389,19 +390,16 @@ export async function updateQuote(
 
   const expectedRevision = Number(formData.get("expected_revision"));
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) return { status: "error", message: "Reload the saved quote before editing so its version can be checked." };
-  const response = await supabase.rpc("save_quote_details", {
+  const confirmation = await saveQuoteEdit({ supabase, clientIds: lineItems.map(line => line.clientId), args: {
     p_quote_id: quoteId, p_expected_revision: expectedRevision, p_confirm_party_change: formData.get("confirm_contracting_party_change") === "on",
     p_header: { job_id: jobId, customer_id: party.customerId, organization_id: party.organizationId, service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId, recipient_contact_id: recipientContactId, approval_contact_id: approvalContactId,
       onsite_contact_id: onsiteContactId, billing_contact_id: billingContactId, purchase_order_reference: purchaseOrderReference,
       payment_terms: paymentTerms, customer_message: customerMessage, debris_handling: debrisHandling, debris_handling_notes: debrisHandlingNotes, expires_at: expiresAt },
     p_lines: lineItems.map(quoteLineCommand),
-  });
-  if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
-  const conflict = quoteEditConflict(response.data);
-  if (conflict) return { status: "error", message: "This quote changed while you were editing. Your changes are still here and have not overwritten the saved quote.", conflict };
-  const saved = quoteSaveResult(response.data, lineItems.length);
-  if (!saved) return { status: "error", message: "The save result could not be confirmed. Keep your changes and compare the saved quote before retrying." };
+  } });
+  if (!confirmation.ok) return { status: "error", message: confirmation.message, conflict: confirmation.conflict };
+  const { saved } = confirmation;
 
   const leadArchiveResult = sourceLeadJobId
     ? await archiveWebsiteLead(supabase, {

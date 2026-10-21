@@ -9,6 +9,8 @@ import * as parties from '../src/lib/contracting-parties.ts';
 import * as businessTime from '../src/lib/business-time.ts';
 import * as editResult from '../src/lib/quotes/edit-result.ts';
 import * as returnContext from '../src/lib/drafts/return-context.ts';
+import {withDeadline} from '../src/lib/runtime/deadline.ts';
+const saveConfirmation=load('../src/lib/quotes/save-confirmation.ts',{'server-only':{},'./edit-result':editResult,'../runtime/deadline.ts':{withDeadline}});
 const enabled=process.env.PR12_DISPOSABLE_STACK==='1'&&!!process.env.PR12_LOCAL_STATUS_FILE;
 test('PR12 recovery identity uses a verified, live, private local session',{skip:!enabled,timeout:30000},async t=>{
  const c=JSON.parse(readFileSync(process.env.PR12_LOCAL_STATUS_FILE,'utf8'));
@@ -36,6 +38,7 @@ test('PR12 recovery identity uses a verified, live, private local session',{skip
   '@/lib/supabase/server':{createClient:async()=>client},'@/lib/drafts/return-context':returnContext,
   '@/lib/business-time':businessTime,'@/lib/auth/roles':roleCode,'@/lib/contracting-parties':parties,
   '@/lib/quotes/edit-result':editResult,'@/lib/security/errors':{safeStaffMessage:()=> 'The operation could not finish.'},
+  '@/lib/quotes/save-confirmation':saveConfirmation,
   '@/lib/leads/archive':{archiveWebsiteLead:()=>assert.fail('No lead in this fixture')},
   '@/lib/quotes/lead-prefill':{isMatchingQuoteLeadSource:()=>assert.fail('No lead in this fixture')},
  });

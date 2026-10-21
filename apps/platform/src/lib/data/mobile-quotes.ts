@@ -1,7 +1,8 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { QuoteEditError, quoteEditConflict, quoteSaveResult } from "@/lib/quotes/edit-result";
+import { QuoteEditError, quoteSaveResult } from "@/lib/quotes/edit-result";
+import { saveQuoteEdit } from "@/lib/quotes/save-confirmation";
 import { formatProposalNumber } from "@/lib/quotes/proposal-number";
 import { quoteStatusesForScope, type MobileQuoteScope, type MobileQuoteWriteInput } from "@/lib/api/mobile-quotes";
 
@@ -54,16 +55,13 @@ export async function updateMobileQuote(supabase: SupabaseClient, userId: string
   await validateOwnership(supabase, input);
   const lines = lineValues(input.lines);
   if (!Number.isSafeInteger(input.expectedRevision) || Number(input.expectedRevision) < 1) throw new QuoteEditError("Refresh proposals and update the app before saving edits.", 409);
-  const response = await supabase.rpc("save_quote_details", {
-    p_quote_id: quoteId, p_expected_revision: input.expectedRevision,
+  const confirmation = await saveQuoteEdit({ supabase, args: {
+    p_quote_id: quoteId, p_expected_revision: input.expectedRevision!,
     p_header: { customer_id: input.customerId, organization_id: input.organizationId, service_location_id: input.serviceLocationId,
       recipient_contact_id: input.recipientContactId, approval_contact_id: input.approvalContactId,
       customer_message: input.customerMessage, expires_at: normalizeDate(input.expiresAt) }, p_lines: lines,
-  });
-  if (response.error) throw response.error;
-  const conflict = quoteEditConflict(response.data);
-  if (conflict) throw new QuoteEditError("This proposal changed while you were editing. Keep your changes and review the latest saved proposal before retrying.", 409, conflict);
-  if (!quoteSaveResult(response.data, lines.length)) throw new QuoteEditError("The save could not be confirmed. Keep your changes and review the saved proposal.", 503);
+  } });
+  if (!confirmation.ok) throw new QuoteEditError(confirmation.message, confirmation.status, confirmation.conflict ?? null);
   return getMobileQuote(supabase, quoteId);
 }
 

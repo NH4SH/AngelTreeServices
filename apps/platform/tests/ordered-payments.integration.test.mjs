@@ -1,3 +1,4 @@
+import {localPaymentTarget,guardPaymentFetch} from './local-payment-target.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -14,11 +15,12 @@ const enabled = process.env.PR07_DISPOSABLE_STACK === "1" && Boolean(process.env
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 test("PR07 ordered money: real Auth, refund observations and manual attempts", { skip: !enabled, timeout: 240000 }, async t => {
   const c = JSON.parse(readFileSync(process.env.PR07_LOCAL_STATUS_FILE, "utf8"));
-  assert.equal(c.API_URL, "http://127.0.0.1:54321");
+  const target=localPaymentTarget(c),networkGuard=guardPaymentFetch(target);
+  t.after(()=>{networkGuard.restore();assert.equal(networkGuard.state.blocked,0);});
   assert.match(process.env.DOCKER_HOST ?? "", /^unix:\/\//);
   const docker = process.env.PR07_DOCKER_BIN;
   assert.ok(docker);
-  const base = ["exec", "-i", "supabase_db_ats_pr02_disposable", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
+  const base = ["exec", "-i", target.container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
   function sql(source) {
     return new Promise((resolve, reject) => {
       const p = spawn(docker, base, { env: process.env }); let out = "", err = "";
@@ -274,7 +276,7 @@ test("PR07 ordered money: real Auth, refund observations and manual attempts", {
     await runEvent(f.event);await runEvent(early);assert.equal((await rows(f.inv)).length,1);assert.equal((await financial(f.inv)).balance_due_cents,500);
   });
   await run('actual local mobile endpoint advertises safe requests and returns one payment reference on replay',async()=>{
-    const origin=process.env.PR07_WEB_URL;assert.equal(origin,'http://127.0.0.1:3102');const inv=await invoice(),key=randomUUID();
+    const origin=process.env.PR07_WEB_URL;assert.equal(origin,target.web);const inv=await invoice(),key=randomUUID();
     const body={requestId:key,amountCents:100,method:'cash',receivedAt:'2026-10-15T12:00:00Z'};
     const url=`${origin}/api/mobile/invoices/${inv.id}/manual-payment/attempt`;
     const post=async input=>{const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${owner.jwt}`,'Content-Type':'application/json'},body:JSON.stringify(input)});return {status:response.status,body:await response.json()};};
@@ -295,6 +297,35 @@ test("PR07 ordered money: real Auth, refund observations and manual attempts", {
     check(await service.from('invoice_checkout_sessions').update({stripe_payment_intent_id:null}).eq('id',f.row.id));f.intent.metadata.payment_channel='ach';
     const unbound=event('payment_intent.succeeded',f.intent.id);await assert.rejects(runEvent(unbound),/intent_binding_invalid/);
     assert.equal((await receipt(unbound)).processed_at,null);assert.equal((await rows(f.inv)).length,0);
+  });
+  if(target.fresh)await run('more than 100 office notifications resume without repeating money or accepted emails',async()=>{
+    const ids=Array.from({length:101},()=>randomUUID()),accepted=new Set();let mailCalls=0;
+    try{
+      // Synthetic recipients exist only in the independently guarded fresh stack.
+      await sql(`insert into auth.users(id,email,raw_user_meta_data)values ${ids.map(id=>`('${id}','batch-${id}@example.invalid','{}')`).join(',')};
+        update public.profiles set status='active'where id in (${ids.map(id=>`'${id}'`).join(',')});
+        insert into public.employee_records(auth_user_id,legal_name,employment_status,is_active)
+          select id,'PR07 isolated batch recipient','active',true from public.profiles where id in (${ids.map(id=>`'${id}'`).join(',')});
+        insert into public.user_roles(user_id,role_id)select p.id,r.id from public.profiles p cross join public.roles r
+          where p.id in (${ids.map(id=>`'${id}'`).join(',')})and r.name='admin';`);
+      const f=await fixture();
+      const extra={sendEmail:async input=>{assert.ok(!accepted.has(input.notificationId),'An accepted notification must never be sent twice');
+        accepted.add(input.notificationId);mailCalls++;return{ok:true,configured:true,providerMessageId:'local_batch_'+mailCalls,retryable:false};}};
+      await assert.rejects(runEvent(f.event,extra),/complete_receipt_failed/);
+      const pending=await receipt(f.event);assert.equal(pending.processed_at,null);assert.equal(pending.phase,'effects_ready');assert.equal(pending.state,'failed');
+      assert.equal((await rows(f.inv)).length,1);assert.equal((await financial(f.inv)).balance_due_cents,0);
+      const first=check(await service.from('admin_notifications').select('id,stripe_email_state').eq('stripe_event_id',f.event.id));
+      assert.ok(first.length>100);assert.equal(first.filter(n=>n.stripe_email_state==='accepted').length,100);assert.ok(first.some(n=>n.stripe_email_state==='queued'));
+      assert.equal((await runEvent(f.event,extra)).status,'completed');
+      const done=await receipt(f.event),notifications=check(await service.from('admin_notifications').select('id,stripe_email_state').eq('stripe_event_id',f.event.id));
+      assert.ok(done.processed_at);assert.equal(notifications.length,first.length);assert.ok(notifications.every(n=>n.stripe_email_state==='accepted'));
+      assert.equal(mailCalls,notifications.length);assert.equal(accepted.size,mailCalls);assert.equal((await rows(f.inv)).length,1);
+      assert.equal(await countAudit(f.inv,'customer_payment_succeeded'),1);
+      assert.equal((await runEvent(f.event,extra)).status,'completed');assert.equal(mailCalls,notifications.length);
+    }finally{
+      check(await service.from('profiles').update({status:'disabled'}).in('id',ids));
+      check(await service.from('employee_records').update({employment_status:'separated',is_active:false}).in('auth_user_id',ids));
+    }
   });
   if(process.env.PR07_RESULTS_FILE)writeFileSync(process.env.PR07_RESULTS_FILE,JSON.stringify({marker,results,provider_reads:network.length},null,2));
 });

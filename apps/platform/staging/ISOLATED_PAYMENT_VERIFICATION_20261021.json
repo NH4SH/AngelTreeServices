@@ -1,0 +1,161 @@
+{
+  "checkedAt": "2026-10-21T22:31:22.686Z",
+  "sourceCommit": "1aafe8a212a56cdea29e6250fed740cf8ba04354",
+  "projectId": "ats_payment_4b0eceb5daaa",
+  "migrations": 101,
+  "freshInitiallyEmpty": true,
+  "seedImported": false,
+  "importedBusinessRows": false,
+  "hostedWrites": false,
+  "realProviderRequests": 0,
+  "suites": [
+    {
+      "suite": "ordered-payments",
+      "passed": true,
+      "summary": [
+        "# tests 25",
+        "# pass 25",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "suite": "webhook-recovery",
+      "passed": true,
+      "summary": [
+        "# tests 29",
+        "# pass 29",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "suite": "manual-payment-recovery",
+      "passed": true,
+      "summary": [
+        "# tests 12",
+        "# pass 12",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "suite": "payment-reconciliation-acknowledgement",
+      "passed": true,
+      "summary": [
+        "# tests 9",
+        "# pass 9",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "suite": "payment-preference-confirmation",
+      "passed": true,
+      "summary": [
+        "# tests 17",
+        "# pass 17",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "suite": "portal-payment-context",
+      "passed": true,
+      "summary": [
+        "# tests 19",
+        "# pass 19",
+        "# fail 0",
+        "# skipped 0"
+      ]
+    }
+  ],
+  "passingChecks": 111,
+  "batchRecovery": {
+    "accepted": 110,
+    "attempts": 2,
+    "payments": 1,
+    "completed": true,
+    "recipients": 110
+  },
+  "bindings": [
+    {
+      "service": "supabase_db_",
+      "host": "127.0.0.1",
+      "port": "57422"
+    },
+    {
+      "service": "supabase_kong_",
+      "host": "127.0.0.1",
+      "port": "57421"
+    }
+  ],
+  "sharedLocalFinancialRowsUnchanged": true,
+  "unitChecks": 2186,
+  "unitPassed": true,
+  "applicationSourceChanged": false,
+  "syntheticAccountsRetired": 230,
+  "authSessions": 0,
+  "temporaryAppStopped": true,
+  "temporaryStackStopped": true,
+  "dataRetained": true,
+  "hostingUnchanged": {
+    "checkedAt": "2026-10-21T22:32:24.351Z",
+    "allUnchanged": true,
+    "sites": [
+      {
+        "siteId": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad6ecfc6c03786554247e4a",
+        "url": "https://admin.angeltreeservices.org"
+      },
+      {
+        "siteId": "86c48a95-ead4-4b15-8e57-fa827558b2f0",
+        "deployId": "6ad92594891ea2c8494350c3",
+        "url": "https://angeltreeservices.org"
+      },
+      {
+        "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "url": "https://angel-tree-admin-staging.netlify.app"
+      }
+    ]
+  },
+  "fixesPushedToMain": "1aafe8a212a56cdea29e6250fed740cf8ba04354",
+  "pushSkippedDeployment": true,
+  "testChangesPushed": false,
+  "testSources": [
+    {
+      "path": "tests/local-payment-target.mjs",
+      "sha256": "10a44b0d2d6624d179142ff5ddcd9f97d899b262b5af6264a004526ae06cf40e"
+    },
+    {
+      "path": "tests/local-payment-target.test.mjs",
+      "sha256": "07fea9179fc5cf82a10d42ee4cb6dfc0e51e9e077d57c4483291cb1e8de070ce"
+    },
+    {
+      "path": "tests/ordered-payments.integration.test.mjs",
+      "sha256": "bfd8cc9de344e52bf625782647fafe9691fefdb61e3307e5158c354ffa14eb61"
+    },
+    {
+      "path": "tests/webhook-recovery.integration.test.mjs",
+      "sha256": "4159a8c0c43ed962ad6a6ecbdb5d5e1087f9550c442e84160d4a66607175a040"
+    },
+    {
+      "path": "tests/manual-payment-recovery.integration.test.mjs",
+      "sha256": "d6bdebd4d730f8f86ba95c96af9f16ea4f10bb17fdafedcaf8a7c21c86cf5d5b"
+    },
+    {
+      "path": "tests/payment-reconciliation-acknowledgement.integration.test.mjs",
+      "sha256": "b7c967e274e646877af4833fa1e8e4e6ebf922ab6fd0d9bd23bfb08c5a295240"
+    },
+    {
+      "path": "tests/payment-preference-confirmation.integration.test.mjs",
+      "sha256": "79e9a6c2812ea100fb96403c1f6906c91f6b0fcb05f4c3482283361a943704a9"
+    },
+    {
+      "path": "tests/portal-payment-context.integration.test.mjs",
+      "sha256": "248489578f1cc0fe8ce9f3720e1ef7d1bbc3961e2599bbc314b3693c6cc6b5e1"
+    }
+  ],
+  "productionReady": false
+}

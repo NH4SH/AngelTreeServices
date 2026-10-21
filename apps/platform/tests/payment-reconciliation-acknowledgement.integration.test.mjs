@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
@@ -13,10 +14,11 @@ test('payment acknowledgements accept actual local PostgreSQL receipts and retai
   assert.equal(process.env.DOCKER_HOST, 'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
   const docker = process.env.RECONCILIATION_ACK_DOCKER_BIN;
   assert.ok(docker);
-  // Fixed existing disposable container/database only. No API credentials, Auth
+  // Guarded existing or explicitly isolated local container/database only. No API credentials, Auth
   // user creation, provider request or hosted connection is involved. Every
   // fixture and financial write rolls back before its receipt is returned to JS.
-  const base = ['exec', '-i', 'supabase_db_ats_pr02_disposable', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];
+  const target=localPaymentTarget();
+  const base = ['exec', '-i', target.container, 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];
   async function sql(query) {
     return (await exec(docker, [...base, '-c', query], { encoding: 'utf8', timeout: 20000, maxBuffer: 1024 * 1024 })).stdout.trim();
   }

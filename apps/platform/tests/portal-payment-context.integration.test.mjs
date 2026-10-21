@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID,createHash} from 'node:crypto';
@@ -18,7 +19,8 @@ test('portal payment context with installed reads and cleanup in one rollback; n
  assert.equal(process.env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
  assert.ok(process.env.CONTEXT_DOCKER_BIN);
  const database=process.env.CONTEXT_DATABASE??'postgres';assert.match(database,/^(postgres|ats_principal_fresh_[a-f0-9]{32})$/);
-  const child = spawn(process.env.CONTEXT_DOCKER_BIN, ['exec', '-i', 'supabase_db_ats_pr02_disposable',
+  const target=localPaymentTarget();
+  const child = spawn(process.env.CONTEXT_DOCKER_BIN, ['exec', '-i', target.container,
     'psql', '-X', '-qAt', '-U', 'postgres', '-d', database, '-v', 'ON_ERROR_STOP=1'], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
   const lines = createInterface({ input: child.stdout });
   let pending, diagnostic = '', exited = false;

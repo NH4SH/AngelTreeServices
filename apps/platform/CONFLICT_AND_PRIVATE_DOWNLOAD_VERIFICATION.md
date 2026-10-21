@@ -1,6 +1,6 @@
 # Conflict responses and private downloads — October 21, 2026
 
-Both requested fixes pass locally and on the protected CRM staging application. Production is unchanged. The working branch remains based on the current main commit, `616ad8209b43956c55a31667818d1672d01c88ee`. No commit or push was performed for this batch.
+Both requested fixes pass locally and on the protected CRM staging application. Production is unchanged. The working branch remains based on the current main commit, `616ad8209b43956c55a31667818d1672d01c88ee`. This records verification before publication; the verified batch was subsequently pushed as `1aafe8a212a56cdea29e6250fed740cf8ba04354`, with deployment skipped.
 
 ## Changes and security guarantees
 
@@ -44,7 +44,9 @@ The first staging build omitted source overlays because of a directory-relative 
 
 The local test scanner initially rejected scans because its loaded definitions were stale. Its signed definitions were refreshed and reloaded, after which all 17 local permission/private-file checks pass. No scanner security threshold was relaxed.
 
-### Remaining broader regression limitation
+### Broader regression limitation at original verification (resolved)
+
+The follow-through in [ISOLATED_PAYMENT_VERIFICATION.md](ISOLATED_PAYMENT_VERIFICATION.md) passes all 111 isolated checks, including recovery across two notification batches. The original observations below are retained for context.
 
 The older ordered-payments live integration suite is not green in the accumulated local fixture database: 10 checks pass and 14 fail including the parent. Test events fan out to 123 accumulated test recipients, while the existing webhook processor reads at most 100 queued/submitting notifications per invocation. Its unchanged completion guard correctly refuses to mark a receipt complete while recipients remain queued. This batch does not change that processor or completion function, or weaken that guard. Re-run that suite in a fresh isolated fixture environment and explicitly cover bounded multi-invocation notification recovery before production acceptance. Do not represent the entire financial integration suite as passing.
 
@@ -54,7 +56,7 @@ No real Stripe charge/refund, Resend email, calendar write or customer communica
 
 Three new synthetic staging accounts were signed out globally, disabled, and separated. Final totals are zero Auth sessions, active profiles, active test employees, provider delivery attempts or first dispatches. Communication/recurring automation remains OFF. Only the existing document-library scan switch is ON. Existing synthetic workflow/file records and audit history remain; the new quote and invoice are drafts and no new payment was created. Production remains deploy `6ad6ecfc6c03786554247e4a`; no production schema/configuration write or application deployment occurred.
 
-The two software blockers from STAGING_CRM_WORKFLOW_ACCEPTANCE.md are resolved. Production acceptance still requires the coordinated 65→101 migration/application review, paired production recovery and maintenance cutover, scanner capacity/availability/monitoring evidence, and the fresh financial regression noted above. The smaller already-observed “Invoice finished work” count issue is separate and unchanged.
+The two software blockers from STAGING_CRM_WORKFLOW_ACCEPTANCE.md are resolved. Production acceptance still requires the coordinated 65→101 migration/application review, paired production recovery and maintenance cutover, scanner capacity/availability/monitoring evidence, and the other operational release requirements. The fresh financial regression is now verified in ISOLATED_PAYMENT_VERIFICATION.md. The smaller already-observed “Invoice finished work” count issue is separate and unchanged.
 
 Maintenance check: `SUPABASE_BIN=/path/to/supabase node scripts/release/verify-staging-business-conflicts.mjs --project-ref gbyhdsuiqeslgjdnbqng`. This only reads the exact 101 ledger, reviewed function bodies, security catalog, Auth guard and OFF switches. The historical93–100 profiles remain historical, not a 101 acceptance verdict.
 

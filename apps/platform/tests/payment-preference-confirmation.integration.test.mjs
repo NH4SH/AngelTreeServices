@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID,createHash} from 'node:crypto';
@@ -10,7 +11,8 @@ test('payment preference routes use installed SQL in one rollback; no provider o
  skip:process.env.PREFERENCE_DISPOSABLE!=='1',timeout:120000},async t=>{
  assert.equal(process.env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
  assert.ok(process.env.PREFERENCE_DOCKER_BIN);
-  const child = spawn(process.env.PREFERENCE_DOCKER_BIN, ['exec', '-i', 'supabase_db_ats_pr02_disposable',
+  const target=localPaymentTarget();
+  const child = spawn(process.env.PREFERENCE_DOCKER_BIN, ['exec', '-i', target.container,
     'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
   const lines = createInterface({ input: child.stdout });
   let pending, diagnostic = '', exited = false;

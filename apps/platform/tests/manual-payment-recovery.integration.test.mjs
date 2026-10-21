@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
@@ -14,7 +15,8 @@ test('manual payment actions accept installed SQL receipts without releasing rec
   assert.equal(process.env.DOCKER_HOST, 'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
   const docker = process.env.MANUAL_PAYMENT_RECOVERY_DOCKER_BIN;
   assert.ok(docker);
-  const base = ['exec', '-i', 'supabase_db_ats_pr02_disposable', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];
+  const target=localPaymentTarget();
+  const base = ['exec', '-i', target.container, 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];
   const literal = value => value == null ? 'null' : "'" + String(value).replaceAll("'", "''") + "'";
   const sql = async query => (await exec(docker, [...base, '-c', query], { encoding: 'utf8', timeout: 20000, maxBuffer: 1024 * 1024 })).stdout.trim();
   const proof = [];

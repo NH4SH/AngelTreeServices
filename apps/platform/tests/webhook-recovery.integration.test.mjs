@@ -1,3 +1,4 @@
+import {localPaymentTarget,guardPaymentFetch} from './local-payment-target.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomBytes } from "node:crypto";
@@ -13,11 +14,12 @@ const enabled = process.env.PR06_DISPOSABLE_STACK === "1" && Boolean(process.env
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 test("PR06 webhook recovery: actual receipts, money, ownership and downstream effects", { skip: !enabled, timeout: 240000 }, async t => {
   const c = JSON.parse(readFileSync(process.env.PR06_LOCAL_STATUS_FILE, "utf8"));
-  assert.equal(c.API_URL, "http://127.0.0.1:54321");
+  const target=localPaymentTarget(c),networkGuard=guardPaymentFetch(target);
+  t.after(()=>{networkGuard.restore();assert.equal(networkGuard.state.blocked,0);});
   assert.match(process.env.DOCKER_HOST ?? "", /^unix:\/\//);
   const docker = process.env.PR06_DOCKER_BIN;
   assert.ok(docker);
-  const base = ["exec", "-i", "supabase_db_ats_pr02_disposable", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
+  const base = ["exec", "-i", target.container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
   function sql(source) {
     return new Promise((resolve, reject) => {
       const p = spawn(docker, base, { env: process.env }); let out = "", err = "";

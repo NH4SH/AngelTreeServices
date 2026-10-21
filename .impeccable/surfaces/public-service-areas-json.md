@@ -32,3 +32,32 @@ Not canonized or repaired: the incumbent guide lists primary green as `#2f8e2f`,
 ## Release-review follow-up — 2026-10-20
 
 The final review refined only the new page's metadata and one introductory paragraph: the title names Fredericksburg, tree and landscaping service areas, and the prose links to existing removal, pruning, grinding and the documented William Street project. The incumbent system, layout, scope list, photos, estimate targets and protected runtime are unchanged. Refreshed 1280/768/390/320 evidence remains readable without overflow; native menu Enter/current-page/Escape behavior was verified through the browser. Existing design-guide drift and legacy footer behavior remain recorded without repair. The earlier independent verdict remains a scored hero-alignment review; the follow-up technical/SEO review is recorded separately in release-review.txt.
+
+## Directory refinement — 2026-10-21
+
+The owner confirmed all 41 researched additions and requested a clearer design
+while preserving SEO. The local directory now retains 84 normal entries across
+the same eight regions, with Woodbridge explicitly marked tree-services-only
+and four Richmond tree-only locations separate. Native
+city/county jump links precede semantic place lists. Headings now identify
+Fredericksburg/Spotsylvania, Stafford, Woodbridge/Prince William, Culpeper/Orange,
+Warrenton/Fauquier, Caroline/Ashland, Lake Anna/Louisa and King George/Westmoreland.
+Falmouth, southern Spotsylvania communities and Port Royal were moved beneath
+the matching county group; every entry and existing anchor remains.
+Fredericksburg/Spotsylvania and Stafford come first in both navigation and
+sections, followed by the other groups alphabetically; Richmond remains last
+with its tree-only qualification. Two list columns become one on
+very narrow phones; existing regional section columns still stack below 760px.
+Poppins, green/white surfaces, page-level headings, service copy, metadata and
+estimate destinations remain the incumbent truth. No new imagery, JavaScript,
+location pages, analytics, consent or CRM changes. Evidence and local tests are
+in the task workspace's outputs/coverage-place-navigation/ (earlier layout
+evidence remains in outputs/coverage-layout/). Not committed or published.
+
+Woodbridge coverage clarification — 2026-10-21: the owner confirmed tree services
+only in Woodbridge. Its directory entry carries that label and a no-landscaping
+note. Homepage coverage, About, shared interior footers, the page lead/description
+and llms summary reflect the same exception. Other listed Prince William
+communities retain their confirmed scope. Existing region ordering, anchors,
+photos, estimate links and protected runtime remain. Tests and screenshot:
+task workspace outputs/woodbridge-coverage/. Local only, unpublished.

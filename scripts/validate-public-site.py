@@ -850,15 +850,38 @@ class Validator:
             "Bowling Green", "Lake Caroline", "Lake Land’Or", "Ashland", "Lake Anna",
             "Bumpass", "Mineral", "Louisa", "King George", "Port Royal", "Dahlgren", "Colonial Beach",
             "Westmoreland County",
+            "Belmont", "Burr Hill", "Carmel Church", "Chatham", "Corbin", "Dale City", "Doswell",
+            "Ferry Farm", "Four Mile Fork", "Goldvein", "Gordonsville", "Hague", "Kinsale",
+            "Lake Ridge", "Leavells", "Lignum", "Mine Run", "Montross", "Morrisville", "New Post",
+            "Ninde", "Oak Grove", "Occoquan", "Partlow", "Passapatanzy", "Post Oak", "Ramoth",
+            "Rhoadesville", "Richardsville", "Rock Hill", "Ruby", "Sealston", "Shiloh", "Snell",
+            "Stevensburg", "Sumerduck", "Todds Tavern", "Unionville", "Verdiersville", "Widewater",
+            "Zion Crossroads",
         }
         places = [place for group in coverage["groups"] for place in group["places"]]
         if set(places) != expected or len(places) != len(expected):
             self.error("Service-area data must contain every confirmed non-Richmond location once")
         if coverage["richmond_tree_only"] != ["Richmond", "Glen Allen", "Short Pump", "Mechanicsville"]:
             self.error("Richmond-area tree-only locations must match the owner-confirmed list")
+        tree_only = [place for group in coverage["groups"] for place in group.get("tree_only_places", [])]
+        if tree_only != ["Woodbridge"]:
+            self.error("Grouped tree-only exceptions must identify Woodbridge")
+        if "Woodbridge (tree services only)" not in source or "landscaping is not offered there" not in source:
+            self.error("Woodbridge must clearly exclude landscaping in the coverage directory")
         for group in coverage["groups"]:
-            if f'id="area-{group["id"]}"' not in source or ", ".join(group["places"]) not in source:
+            section = re.search(
+                rf'<section class="ats-area-group" aria-labelledby="area-{re.escape(group["id"])}">(.*?)</section>',
+                source, re.DOTALL,
+            )
+            actual = re.findall(r'<li>(.*?)</li>', section.group(1)) if section else []
+            expected_labels = [
+                place + (" (tree services only)" if place in group.get("tree_only_places", []) else "")
+                for place in group["places"]
+            ]
+            if actual != expected_labels:
                 self.error(f"Service-area group missing or incomplete: {group['id']}")
+            if f'href="#area-{group["id"]}"' not in source:
+                self.error(f"Service-area jump link missing: {group['id']}")
         for term in ("farther reaches of Lake Anna", "within about an hour of Fredericksburg",
                      "named places are included even when they are farther away",
                      "Landscaping is not offered in these Richmond-area communities.",
@@ -872,8 +895,8 @@ class Validator:
         if not homepage.find('id="faq"') < position < homepage.find('id="contact"'):
             self.error("Homepage coverage must appear between FAQ and the estimate invitation")
         block = re.search(r'<section class="ats-home-coverage".*?</section>', homepage, re.DOTALL)
-        if not block or 'href="/service-areas/"' not in block.group() or "tree services only" not in block.group():
-            self.error("Homepage coverage needs the directory link and Richmond tree-only qualifier")
+        if not block or 'href="/service-areas/"' not in block.group() or "tree services only" not in block.group() or "Woodbridge" not in block.group():
+            self.error("Homepage coverage needs the directory link and Woodbridge/Richmond tree-only qualifiers")
         for path, html in self.page_sources.items():
             if 'data-ats-nav="service-areas"' not in html or 'href="/service-areas/"' not in html:
                 self.error(f"{path}: Service areas must be discoverable in navigation")
@@ -882,7 +905,7 @@ class Validator:
         if 'href="/service-areas/"' not in self.page_sources.get("/about/", ""):
             self.error("About must link to full service coverage")
         llms = (self.site_dir / "llms.txt").read_text(encoding="utf-8")
-        if "served for tree services only, not landscaping" not in llms or "Louisa County, Culpeper County" in llms:
+        if "Woodbridge, Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only, not landscaping" not in llms or "Louisa County, Culpeper County" in llms:
             self.error("Machine-readable summary must reflect named coverage and Richmond tree-only scope")
 
     def validate_homepage_form(self) -> None:

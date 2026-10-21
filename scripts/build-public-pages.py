@@ -199,7 +199,7 @@ def footer() -> str:
         </ul>
       </div>
     </div>
-    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Richmond-area service is tree work only. <a href="/service-areas/">View service areas</a>. <a href="/privacy/">Privacy</a></p>
+    <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Service in Woodbridge and the Richmond area is tree work only. <a href="/service-areas/">View service areas</a>. <a href="/privacy/">Privacy</a></p>
   </footer>
   <nav class="ats-mobile-actions" aria-label="Quick actions">
     <a class="ats-mobile-actions__call" href="tel:{PHONE_LINK}">Call now</a>
@@ -1167,7 +1167,7 @@ def about_body() -> str:
           <p class="ats-eyebrow">Family operated and locally grounded</p>
           <h2 id="family-business-title">Field knowledge carried into a connected customer experience</h2>
           <p>As Angel Tree Services grew, it developed as a family-operated business. Customers may interact with different people during estimates, scheduling, field work, and follow-up, but the goal is a coordinated experience from the first conversation through cleanup.</p>
-          <p>The company serves homeowners and property professionals in Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only; landscaping is not offered in those Richmond-area communities. <a href="/service-areas/">View our full service areas</a>.</p>
+          <p>The company serves homeowners and property professionals in Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Woodbridge, Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only; landscaping is not offered in those communities. <a href="/service-areas/">View our full service areas</a>.</p>
         </div>
         <nav class="ats-about-links" aria-label="Learn more about Angel Tree Services">
           <a href="/services/">Explore services</a>
@@ -1457,10 +1457,20 @@ def privacy_request_body() -> str:
 
 
 def service_areas_body() -> str:
+    jump_labels = {
+        "fredericksburg": "Fredericksburg & Spotsylvania", "stafford": "Stafford",
+        "north": "Woodbridge & Prince William", "west": "Culpeper & Orange",
+        "northwest": "Warrenton & Fauquier", "south": "Caroline & Ashland",
+        "lake-anna": "Lake Anna & Louisa", "east": "King George & Westmoreland",
+    }
+    jumps = "".join(
+        f'<li><a href="#area-{html_attr(group["id"])}">{html_text(jump_labels[group["id"]])}</a></li>'
+        for group in COVERAGE["groups"]
+    )
     groups = "\n".join(
         f'''<section class="ats-area-group" aria-labelledby="area-{html_attr(group['id'])}">
-          <h3 id="area-{html_attr(group['id'])}">{html_text(group['heading'])}</h3>
-          <p>{html_text(', '.join(group['places']))}.</p>
+          <h3 id="area-{html_attr(group['id'])}" tabindex="-1">{html_text(group['heading'])}</h3>
+          <ul class="ats-area-places" role="list">{"".join('<li>' + html_text(place + (' (tree services only)' if place in group.get('tree_only_places', []) else '')) + '</li>' for place in group['places'])}</ul>
           {('<p>' + html_text(group['note']) + '</p>') if group.get('note') else ''}
         </section>'''
         for group in COVERAGE["groups"]
@@ -1471,15 +1481,19 @@ def service_areas_body() -> str:
       <div class="ats-section-inner">
         <div class="ats-area-intro">
           <h2 class="ats-section-heading" id="coverage-directory-title">Tree care and landscaping coverage.</h2>
-          <p>We serve the communities below for <a href="/services/">tree care</a> and <a href="/services/landscaping/">landscaping</a>. Landscaping includes bush and hedge trimming, weeding, edging and mulch for existing planting beds.</p>
+          <p>We serve the communities below for <a href="/services/">tree care</a> and <a href="/services/landscaping/">landscaping</a>, except locations marked tree services only. Landscaping includes bush and hedge trimming, weeding, edging and mulch for existing planting beds.</p>
           <p>Tree care includes <a href="/services/tree-removal/">tree removal</a>, <a href="/services/tree-pruning/">pruning</a> and <a href="/services/stump-grinding/">stump grinding</a>. See our <a href="/projects/hollow-tree-removal/">William Street tree removal in Fredericksburg</a> for an example of our work.</p>
         </div>
+        <nav class="ats-area-jumps" aria-label="Browse coverage by region">
+          <p>Jump to your area</p>
+          <ul role="list">{jumps}<li><a href="#richmond-coverage-title">Richmond: tree services only</a></li></ul>
+        </nav>
         <div class="ats-area-directory">{groups}</div>
       </div>
     </section>
     <section class="ats-content-section ats-area-richmond" aria-labelledby="richmond-coverage-title">
       <div class="ats-section-inner ats-two-column">
-        <h2 class="ats-section-heading" id="richmond-coverage-title">Richmond-area tree services.</h2>
+        <h2 class="ats-section-heading" id="richmond-coverage-title" tabindex="-1">Richmond-area tree services.</h2>
         <div class="ats-prose">
           <p>We offer tree services in {richmond}, including removal, pruning, stump grinding and storm-related tree work.</p>
           <p><strong>Landscaping is not offered in these Richmond-area communities.</strong></p>
@@ -1491,7 +1505,7 @@ def service_areas_body() -> str:
       <div class="ats-section-inner ats-section-inner--narrow ats-prose">
         <h2 id="coverage-question-title">Not sure where your property fits?</h2>
         <p>We generally work within about an hour of Fredericksburg and also serve all the named communities above, including farther areas around Lake Anna. Travel time is a guide, and the named places are included even when they are farther away.</p>
-        <p>The list highlights key areas rather than every community we serve. We also serve communities along the way between Fredericksburg and the areas listed here. Richmond-area coverage remains tree services only.</p>
+        <p>The list highlights key areas rather than every community we serve. We also serve communities along the way between Fredericksburg and the areas listed here. Woodbridge and Richmond-area coverage remain tree services only.</p>
         <p>If your location is not listed, share the property address and the work you have in mind. We’ll confirm the services available for your property.</p>
         <a class="ats-button ats-button--green ats-estimate-link" href="/#contact">Request a free estimate</a>
       </div>
@@ -1506,9 +1520,9 @@ PAGES = [
         "schema_type": "WebPage",
         "coverage_styles": True,
         "title": "Fredericksburg Tree & Landscaping Service Areas | Angel Tree Services",
-        "description": "Tree removal, pruning, stump grinding and landscaping service areas around Fredericksburg, VA. Richmond-area locations receive tree services only.",
+        "description": "Tree removal, pruning, stump grinding and landscaping near Fredericksburg, VA. Woodbridge and Richmond-area locations: tree services only.",
         "h1": "Service areas around Fredericksburg.",
-        "lead": "Find your community and plan the work your property needs. We offer tree care and landscaping across our confirmed service areas, with tree services only in the Richmond area.",
+        "lead": "Find your community and plan the work your property needs. We offer tree care and landscaping across our confirmed service areas, with tree services only in Woodbridge and the Richmond area.",
         "breadcrumbs": [("Home", "/"), ("Service areas", "/service-areas/")],
         "estimate_href": "/#contact",
         "estimate_label": "Request a free estimate",
@@ -1742,7 +1756,7 @@ Additional capabilities include tree preservation, brush removal, lot clearing, 
 
 ## Service Area
 
-Tree care and landscaping serve Fredericksburg, Spotsylvania, Stafford, King George, Caroline and the other [confirmed service areas]({SITE}/service-areas/), including the farther reaches of Lake Anna. Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only, not landscaping. The approximate one-hour range is a guide; farther named places remain included. Coverage does not imply every surrounding county or separate offices.
+Tree care and landscaping serve Fredericksburg, Spotsylvania, Stafford, King George, Caroline and the other [confirmed service areas]({SITE}/service-areas/), including the farther reaches of Lake Anna. Woodbridge, Richmond, Glen Allen, Short Pump and Mechanicsville are served for tree services only, not landscaping. The approximate one-hour range is a guide; farther named places remain included. Coverage does not imply every surrounding county or separate offices.
 
 ## Credentials, Arboriculture, and Safety
 

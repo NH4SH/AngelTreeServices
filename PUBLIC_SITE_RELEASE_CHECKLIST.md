@@ -1,3 +1,75 @@
+## Service Areas layout and Woodbridge coverage — release approved
+
+Owner approved committing, pushing and publishing the reviewed patch. Preserve
+newer repository changes; keep analytics, consent and CRM code/settings unchanged.
+Do not submit leads. Publish only the public website, then run non-submitting
+production smoke checks.
+
+- Newer upstream commit 15362f6 (encrypted mobile quote restart recovery) will be
+  preserved as the parent of this website-only release. No mobile/CRM edits.
+- Use skip markers for the shared repository push, then explicitly trigger the
+  public website Git build. No changes to either project's settings.
+- Approved scope: all confirmed coverage additions, city/county jump menu and
+  readable lists, core areas first and other groups alphabetically, Woodbridge
+  tree-only exception and consistent coverage wording. Existing SEO/estimate
+  destinations and protected runtime remain intact.
+- Preflight: rerun all public tests after incorporating upstream. After publication,
+  verify the exact commit, all 17 pages, versioned styles, unchanged analytics and
+  consent assets, CRM deployment/history/settings, live jump behavior and estimate
+  preselection without submitting a lead. Evidence: outputs/coverage-layout-release/.
+
+## Final Service Areas layout and Woodbridge review — local only
+
+Review found no actionable regressions or release blockers. All 180 tests pass;
+all 17 pages build and validate. Nine normal directory widths plus homepage/About
+checks pass; all native jump targets focus correctly. Synthetic doubled headings
+retain content without clipping, with emergency word wrapping for long words.
+Woodbridge is clearly tree-only; other listed Prince William services are unchanged.
+SEO/estimate links and protected analytics, consent, CRM and form runtime remain.
+No website source fixes were required by the review. No commit, push or deployment.
+
+Evidence and remaining release checks: task outputs/coverage-final-review/review.txt,
+local-tests.txt, preservation-checks.json, browser-checks.json, detector.json,
+complete.patch and woodbridge-desktop.jpg. Physical-device, spoken screen-reader
+and full-page zoom checks remain unperformed. Refresh remote state before an
+approved release and run non-submitting production checks after publication.
+
+## Expanded coverage directory — local implementation
+
+Owner confirmed all 41 researched communities and requested a clearer coverage
+page with recognizable city/county navigation. Woodbridge is confirmed as tree
+services only. This batch remains local: do not commit, push or deploy without
+subsequent release approval.
+
+- All 88 entries remain visible: 84 grouped entries, including Woodbridge marked
+  tree-services-only, plus four separate Richmond-area tree-only locations.
+  Landscaping remains available in the other confirmed grouped communities.
+- Native jump links use city/county names. Fredericksburg/Spotsylvania and Stafford
+  lead both the menu and sections, followed by the remaining groups alphabetically.
+  Richmond stays last with its distinct tree-only qualification. Smaller places
+  sit under their matching geographic group. Existing anchor targets are retained.
+- Semantic place lists use two columns where space permits, one on narrow phones.
+  Existing Poppins, green/white styling and minimum 44px jump targets are retained.
+  Earlier nine-width layout checks passed; the new Woodbridge label and note were
+  visually checked at 1280px and 320px, including native keyboard heading focus.
+- Homepage, About, shared interior footers, page lead/description and llms summary
+  now consistently exclude landscaping in Woodbridge. The restriction applies to
+  Woodbridge specifically, not all other listed Prince William communities.
+- All existing URLs, titles, H1s, canonical destinations, sitemap, photos, controls
+  and estimate links are preserved. Only the Service Areas head changes in this
+  correction, to reflect Woodbridge in its description. All 17 pages retain their
+  prior links; 239 other artifacts are unchanged from the preceding local draft.
+- All 180 tests pass (171 Node, nine Python); all 17 pages build and validate.
+  Coverage validation checks the Woodbridge exception and homepage wording.
+  No new JavaScript or runtime changes. Analytics, consent, CRM, form and draft
+  behavior are unchanged. No calls or leads. Physical-device and spoken
+  screen-reader checks are not performed; production smoke checks await release.
+- Latest evidence: outputs/woodbridge-coverage/local-tests.txt,
+  preservation-checks.json, complete.patch and woodbridge-desktop.jpg.
+  Earlier layout, labeling and ordering evidence remains in outputs/coverage-layout/,
+  outputs/coverage-place-navigation/ and outputs/coverage-order/.
+  Preview: http://127.0.0.1:55761/service-areas/.
+
 ## Residential veterans discount and coverage additions — release approved
 
 Owner requested residential-only veterans terms plus Westmoreland and Louisa

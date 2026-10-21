@@ -734,6 +734,51 @@ img {
   color: var(--ats-white);
 }
 
+.ats-project-spotlights {
+  display: grid;
+  gap: 56px;
+}
+
+.ats-project-spotlight {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+}
+
+.ats-project-spotlight .ats-case-photo img {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
+.ats-project-spotlight .ats-actions {
+  margin-top: 24px;
+  align-items: center;
+}
+
+.ats-project-spotlight--secondary {
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 32px;
+  padding-top: 40px;
+  border-top: 1px solid var(--ats-border);
+}
+
+.ats-project-spotlight--secondary h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+@media (max-width: 760px) {
+  .ats-project-spotlight {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .ats-project-spotlight--secondary .ats-case-photo {
+    width: min(100%, 220px);
+  }
+}
+
 .ats-project-grid {
   margin-top: 42px;
   display: grid;

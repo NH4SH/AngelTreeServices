@@ -1005,6 +1005,43 @@ def landscaping_project_body() -> str:
     {final_cta('Bring out the best in your planting beds.', 'Share the areas you want us to care for. We’ll define the work, materials and cleanup in your written estimate.', LANDSCAPING_PROJECT['estimate_href'], 'Request a landscaping estimate')}"""
 
 
+def project_spotlights() -> str:
+    examples = [
+        (TREE_PROJECT, TREE_PROJECT["photos"][1], "primary",
+         "Visible holes and rot prompted an arborist assessment during an ivy-removal visit. Follow the removal beside the home, wood handling and cleanup in six real project photos.",
+         "View tree removal project", "Request a tree-removal estimate"),
+        (LANDSCAPING_PROJECT, LANDSCAPING_PROJECT_PHOTOS[0], "secondary",
+         "Bush trimming, weeding, edging and mulch work around a brick commercial building. See the existing bushes and finished planting beds in this landscaping project.",
+         "View landscaping project", "Request a landscaping estimate"),
+    ]
+    articles = []
+    for project, photo, priority, copy, project_label, estimate_label in examples:
+        sizes = ("(max-width: 700px) calc(100vw - 40px), (max-width: 760px) calc(100vw - 48px), 46vw"
+                 if priority == "primary" else "(max-width: 760px) 220px, 300px")
+        articles.append(f'''
+        <article class="ats-project-spotlight ats-project-spotlight--{priority}">
+          <figure class="ats-case-photo">
+            <a href="{html_attr(project['path'])}" aria-label="{html_attr(project_label)}">
+              <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], sizes)} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
+            </a>
+            <figcaption>{html_text(photo['caption'])}</figcaption>
+          </figure>
+          <div class="ats-prose">
+            <h2>{html_text(project['title'])}</h2>
+            <p>{html_text(copy)}</p>
+            <div class="ats-actions">
+              <a class="ats-button ats-button--green" href="{html_attr(project['path'])}">{html_text(project_label)}</a>
+              <a class="ats-estimate-link" href="{html_attr(project['estimate_href'])}">{html_text(estimate_label)}</a>
+            </div>
+          </div>
+        </article>''')
+    return f'''
+    <section class="ats-content-section ats-content-section--white" aria-label="Featured tree-removal project and more of our work" data-project-spotlights>
+      <div class="ats-section-inner ats-project-spotlights">{"".join(articles)}
+      </div>
+    </section>'''
+
+
 def projects_body() -> str:
     landscaping_project_link = f'<p><a href="{html_attr(LANDSCAPING_PROJECT["path"])}">View the bush trimming and mulch project</a></p>'
     estimate_options = {
@@ -1036,7 +1073,7 @@ def projects_body() -> str:
         </article>''')
     cards_html = "".join(cards)
     return f"""
-    {project_feature()}
+    {project_spotlights()}
     <section class="ats-content-section" data-project-gallery aria-labelledby="field-gallery-title">
       <div class="ats-section-inner">
         <h2 class="ats-section-heading" id="field-gallery-title">More from our field gallery</h2>

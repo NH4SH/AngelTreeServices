@@ -1,3 +1,43 @@
+## Tree-first Projects features — release approved
+
+Owner approved committing, pushing and publishing the reviewed tree-first Projects
+patch, preserving newer repository changes. Publish the public website only; keep
+analytics, consent and CRM unchanged. Do not submit leads. Run non-submitting
+production smoke checks after release.
+
+- On Projects only, the main feature uses the approved bucket-access photo and
+  existing tree-removal title, caption and case description. A compact landscaping
+  row follows, with the approved commercial-overview photo, caption and confirmed
+  trimming, weeding, edging and mulch details. Existing case-study and estimate
+  destinations are retained. No planting or new customer/job claims.
+- Tree removal has a larger photo and heading at every tested width. Desktop
+  photo widths are 558px for tree removal and 300px for landscaping; headings are
+  51.2px / 30.72px at 1280px. On phones the main photo fills the content column;
+  the landscaping photo is capped at 220px with a smaller heading. Both features
+  precede the unchanged gallery. No added JavaScript or new image files.
+- All 180 tests pass (171 Node, zero failures; nine Python); all 17 pages build
+  and validate. Nine widths (320/360/375/390/430/700/701/768/1280px) confirm the
+  intended hierarchy and order without heading clipping, word splits or horizontal
+  overflow. Photos retain complete framing, approved alt/dimensions, responsive
+  variants and lazy loading. Project buttons and both estimate handoffs pass;
+  fields remain empty. Gallery filters retain 6 tree / 4 landscaping / 8 total,
+  and enlargement, next photo, Escape and focus restoration pass.
+- Reconstructing the original feature and stylesheet reference restores all 17
+  existing HTML pages exactly. Metadata/schema, gallery markup, existing estimates
+  and other page content are preserved. Removing only scoped spotlight CSS restores
+  the shared stylesheet exactly; 238 other built assets remain byte-identical.
+  Analytics, consent, CRM, estimate/draft runtime and hosting configuration unchanged.
+- Evidence in the task workspace's outputs/projects-tree-first/: local-tests.txt,
+  browser-checks.json, preservation-checks.json, implementation.json,
+  tree-main-desktop.jpg, landscaping-secondary-desktop.jpg,
+  landscaping-secondary-mobile.jpg and projects-tree-first.patch.
+  Preview: http://127.0.0.1:55761/projects/.
+- Scope: builder, shared page CSS and this checklist only. Pre-existing untracked
+  .impeccable/review/ is untouched. No commits, pushes, deployments, calls, emails
+  or lead submissions. Physical-device/spoken screen-reader checks and Google
+  address suggestions remain outside local verification. Production smoke checks
+  follow the approved release.
+
 ## Emergency call-first page — release approved
 
 Owner explicitly approved commit, push and publication of the reviewed call-first

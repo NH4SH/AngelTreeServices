@@ -75,16 +75,20 @@
       showPhoto(visible[(visible.indexOf(currentCard) + step + visible.length) % visible.length]);
     }
 
+    function openPhoto(card, link) {
+      showPhoto(card);
+      try { dialog.showModal(); } catch (_) { return false; }
+      opener = link;
+      document.body.classList.add("ats-gallery-open");
+      return true;
+    }
+
     cards.forEach(function (card) {
       var link = card.querySelector("[data-gallery-photo]");
       link.setAttribute("aria-haspopup", "dialog");
       link.addEventListener("click", function (event) {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        showPhoto(card);
-        try { dialog.showModal(); } catch (_) { return; }
-        opener = link;
-        document.body.classList.add("ats-gallery-open");
-        event.preventDefault();
+        if (openPhoto(card, link)) event.preventDefault();
       });
     });
     dialog.querySelector("[data-gallery-close]").addEventListener("click", function () { dialog.close(); });
@@ -110,6 +114,23 @@
       media.replaceChildren();
       if (opener && opener.isConnected) opener.focus({ preventScroll: true });
     });
+
+    // A service-page link may open only an existing, approved photo. Unknown
+    // fragments retain normal anchor behavior and never become displayed copy.
+    var linkedCard = cards.find(function (card) {
+      return card.id && "#" + card.id === window.location.hash;
+    });
+    if (linkedCard) {
+      // Let the browser finish its initial fragment navigation before the native
+      // modal takes focus, so it cannot move focus back to the page underneath.
+      var openLinkedPhoto = function () {
+        window.requestAnimationFrame(function () {
+          openPhoto(linkedCard, linkedCard.querySelector("[data-gallery-photo]"));
+        });
+      };
+      if (document.readyState === "complete") openLinkedPhoto();
+      else window.addEventListener("load", openLinkedPhoto, { once: true });
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initGallery);

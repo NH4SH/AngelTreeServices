@@ -858,6 +858,11 @@ img {
   gap: clamp(32px, 5vw, 64px);
 }
 
+[data-service-project-example],
+[data-gallery-card][id] {
+  scroll-margin-top: 120px;
+}
+
 .ats-case-pair,
 .ats-case-finish {
   margin-top: 36px;

@@ -25,7 +25,7 @@ function harness(options = {}) {
     const img = element({ alt: `Approved alt ${i}`, width: 1280, height: 720 });
     const link = element({ href: `/assets/versioned/approved-${i}-1600.webp`, selectors: { img } });
     const estimate = element({ href: i < 4 ? '/?service=Landscaping#contact' : '/?service=Tree%20Care&estimate_context=tree-pruning#contact', textContent: `Estimate ${i}` });
-    return element({ dataset: { galleryServices: services }, selectors: { '[data-gallery-photo]': link, h2: element({ textContent: `Title ${i}` }), '[data-gallery-caption]': element({ textContent: `Approved caption ${i} <literal>` }), '[data-gallery-estimate]': estimate } });
+    return element({ id: `photo-${i}`, dataset: { galleryServices: services }, selectors: { '[data-gallery-photo]': link, h2: element({ textContent: `Title ${i}` }), '[data-gallery-caption]': element({ textContent: `Approved caption ${i} <literal>` }), '[data-gallery-estimate]': estimate } });
   });
   const filters = ['all', 'tree', 'landscaping'].map(name => element({ dataset: { galleryFilter: name } }));
   const toolbar = element({ hidden: true });
@@ -39,9 +39,10 @@ function harness(options = {}) {
   });
   if (options.noDialog) dialog.showModal = undefined;
   const gallery = element({ selectors: { '[data-gallery-count]': count, '[data-gallery-filters]': toolbar, '[data-gallery-viewer]': dialog }, lists: { '[data-gallery-card]': cards, '[data-gallery-filter]': filters } });
-  const document = element({ readyState: options.loading ? 'loading' : 'interactive', body, createElement: () => element(), querySelector: () => options.noGallery ? null : gallery });
-  vm.runInNewContext(source, { document });
-  return { cards, filters, toolbar, count, dialog, parts, bodyClasses, document, focus: () => focused,
+  const document = element({ readyState: options.loading ? 'loading' : 'complete', body, createElement: () => element(), querySelector: () => options.noGallery ? null : gallery });
+  const window = element({ location: { hash: options.hash || '' }, requestAnimationFrame: fn => fn() });
+  vm.runInNewContext(source, { document, window });
+  return { cards, filters, toolbar, count, dialog, parts, bodyClasses, document, window, focus: () => focused,
     link: i => cards[i].querySelector('[data-gallery-photo]'), open: i => cards[i].querySelector('[data-gallery-photo]').fire('click') };
 }
 
@@ -137,4 +138,42 @@ test('only an actual backdrop click dismisses the enlarged photo', () => {
   h.dialog.fire('click', { target: h.parts.media, clientX: 0, clientY: 0 }); assert.equal(h.dialog.open, true);
   h.dialog.fire('click', { clientX: 0, clientY: 0 }); assert.equal(h.dialog.open, false);
   assert.equal(h.focus(), h.link(0));
+});
+
+test('a known service-page fragment opens its photo and restores focus on close', () => {
+  const h = harness({ hash: '#photo-7' });
+  assert.equal(h.dialog.open, true);
+  assert.equal(h.parts.title.textContent, 'Title 7');
+  assert.equal(h.parts.position.textContent, 'Photo 8 of 8: Title 7');
+  assert.equal(h.parts.description.textContent, 'Approved caption 7 <literal>');
+  h.parts.next.fire('click'); assert.equal(h.parts.title.textContent, 'Title 0');
+  h.dialog.close(); assert.equal(h.focus(), h.link(7));
+  assert.equal(h.bodyClasses.has('ats-gallery-open'), false);
+});
+
+test('a service fragment waits for page loading before taking modal focus', () => {
+  const h = harness({ hash: '#photo-7', loading: true });
+  h.document.fire('DOMContentLoaded');
+  assert.equal(h.dialog.open, false);
+  h.window.fire('load');
+  assert.equal(h.dialog.open, true);
+  assert.equal(h.focus(), h.parts.close);
+});
+
+test('unknown, malformed and other page fragments never open or alter gallery content', () => {
+  for (const hash of ['', '#field-gallery-title', '#photo-99', '#%E0%A4%A', '#photo-<script>', '#__proto__']) {
+    const h = harness({ hash });
+    assert.equal(h.dialog.open, false);
+    assert.equal(h.bodyClasses.has('ats-gallery-open'), false);
+    assert.equal(h.cards.filter(c => !c.hidden).length, 8);
+  }
+});
+
+test('service fragments preserve native anchor fallback when modal support is absent or fails', () => {
+  for (const extra of [{ noDialog: true }, { throwOnOpen: true }]) {
+    const h = harness({ hash: '#photo-7', ...extra });
+    assert.equal(h.dialog.open, false);
+    assert.equal(h.bodyClasses.has('ats-gallery-open'), false);
+    assert.match(h.link(7).href, /approved-7-1600.webp$/);
+  }
 });

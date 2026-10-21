@@ -1,3 +1,92 @@
+## Pruning and stump-grinding examples — release approved
+
+Owner explicitly approved commit, push and publication of the reviewed website
+patch with non-submitting production smoke checks. All five reviewed source
+hashes matched final-review.json before adding this release record. Preserve newer
+main commits 9018a78, 301b8bf and b996850 (CRM-only changes) when integrating
+this patch.
+Run the 180 website tests and 17-page build/validation on the integrated checkout.
+
+Commit only the five reviewed public files with [skip ci] [skip netlify], then
+push without force and trigger a Git build only for public Netlify project
+86c48a95-ead4-4b15-8e57-fa827558b2f0. Verify its published commit equals the pushed
+commit. Keep analytics, consent, CRM source and both projects' settings unchanged;
+CRM must retain published deploy 6ad6ecfc6c03786554247e4a. Do not submit leads,
+place calls or send emails. Record production page/photo/stylesheet GET checks and
+browser photo/estimate smoke checks in outputs/service-project-examples/ in the
+task workspace. Earlier local commit/deployment holds below are superseded only
+for this explicitly approved release. Physical-device and spoken screen-reader
+checks remain outside the completed local verification.
+
+## Pruning and stump-grinding examples — final local review
+
+**Verdict: ready for release approval.** No blocking regression found; no website
+code changes were required during this review. Do not commit, push or deploy yet.
+
+- Fresh run: all 180 tests pass (171 Node, zero failures; nine Python), with all
+  17 pages built and validated. Diff whitespace check passes.
+- Reviewed approved photo/title/caption reuse, responsive images, lazy loading,
+  unique gallery anchors and versioning, modal fallback and initial-load focus.
+  Actual browser checks select both correct photos, confirm Close focus, Tab
+  containment, Escape and focus restoration. Service-page estimate buttons select
+  Tree Care with the exact tree-pruning / stump-grinding context; details stay empty
+  and no submissions are made. The cleanup gallery card retains its existing
+  general tree-care estimate link; the stump service page retains its specific link.
+- Eight fresh responsive checks cover both pages at 320, 390, 768 and 1280px with
+  no heading clipping, split words or horizontal overflow. Shared CSS reconstructs
+  exactly after removing only the new scroll-margin rule. All 17 existing HTML
+  pages and SEO heads reconstruct after reversing only approved additions and
+  asset references; 237 other built assets are identical to the published baseline.
+  Analytics, consent, estimate/draft runtime, CRM and hosting configuration unchanged.
+- Final evidence: outputs/service-project-examples/final-review.json,
+  final-review-tests.txt, final-review-browser-checks.json,
+  final-review-stump-desktop.jpg and final-reviewed.patch in the task workspace.
+- Remaining verification: physical-phone and spoken screen-reader spot checks are
+  outside this local review. Local address autocomplete has no API key and cannot
+  exercise Google suggestions; its existing loader is unchanged. After a separate
+  release approval, retain newer repository work and perform non-submitting
+  production smoke checks. No commits, pushes, deployments or production leads.
+
+## Pruning and stump-grinding project examples — local implementation
+
+Owner approved local implementation and tests only. **Do not commit, push or
+publish this patch without subsequent approval.** Existing prior-release approval
+below applies only to the already published gallery/reviews release.
+
+- Added one approved real-work example to each service page: trimming beside the
+  Fredericksburg tower on pruning; crew cleanup beside the stump grinder on
+  stump grinding. Existing approved titles and captions are shared with Projects
+  to prevent drift. Photos, original service heroes and captions are unchanged.
+  Cleanup is described as in progress, with no invented finished result or scope.
+- Each example links to its matching gallery photo and retains the service's exact
+  estimate context. Projects now has stable photo anchors and gallery2 script
+  versioning. Known entry fragments open that photo after initial page navigation;
+  unknown fragments retain native behavior. No-JavaScript/full-size fallback stays
+  available. Fixed an initial fragment/modal focus race during browser testing;
+  desktop and 320px checks confirm Close focus, Escape and focus restoration.
+- All 180 local tests pass (171 Node + nine Python), including four new gallery
+  entry/fallback tests. All 17 public pages build and validate. Eight responsive
+  checks cover both pages at 320, 390, 768 and 1280px. Four additional 200% heading
+  text fixture checks have no clipping or horizontal overflow; long words wrap at
+  doubled size, as with existing headings. This fixture is not native browser zoom.
+- Preservation comparisons reconstruct all 17 existing HTML pages after removing
+  only the two example sections, eight gallery IDs, script version and shared CSS
+  fingerprint. SEO metadata/schema, existing wording and estimate links match.
+  Shared CSS reconstructs exactly after removing the five scroll-margin lines;
+  237 other built assets and 11 protected sources remain byte-identical. Analytics,
+  consent, estimate/draft runtime, CRM and hosting settings are unchanged. No leads,
+  calls or emails were submitted.
+- Evidence lives in the task workspace's outputs/service-project-examples/:
+  local-tests.txt, browser-checks.json, preservation-checks.json,
+  pruning-example-desktop.jpg, stump-example-desktop.jpg and
+  service-project-examples.patch. Local previews use port 54641 at
+  /services/tree-pruning/#service-project-example and
+  /services/stump-grinding/#service-project-example.
+- Review scope: builder, gallery JavaScript, gallery tests, shared page CSS and
+  this checklist only. Pre-existing untracked .impeccable/review/ is untouched.
+  Physical-device and spoken screen-reader checks remain unperformed; production
+  smoke checks must wait until a separately approved release.
+
 ## Gallery, mobile headings and Google reviews — release approved
 
 Owner explicitly approved commit, push and publication of the reviewed combined

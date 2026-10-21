@@ -34,6 +34,7 @@ export function invoiceEditFixture(options={}){
   '@/lib/auth/roles':{getUserRoles:async()=>options.denied?[]:['owner'],hasAllowedRole:r=>r.includes('owner'),platformRoleGroups:{internalStaff:['owner']}},
   '@/lib/supabase/server':{createClient:async()=>options.unconfigured?null:db},'@/lib/contracting-parties':{},
   '@/lib/invoices/due-date':{getInvoiceDueAt},'@/lib/invoices/save-confirmation':helper,'@/lib/invoices/generation-request':{},
+  '@/lib/invoices/standalone-request':{},
   '@/lib/security/errors':{safeStaffMessage},
  });
  const form=new FormData();

@@ -27,6 +27,13 @@ newer hosted ledger. `deferred-migrations.json` remains the source-inventory pin
 for additions deferred from historical93, not a live installation/status file.
 No old repair, Auth installation or historical migration should be replayed.
 
+**Local source follow-through:** the repository now has 98 migrations. The new
+`20261021022314_standalone_invoice_requests.sql` is pinned in the deferred source
+inventory and installed only on disposable local targets. It has not been
+reconciled or installed on staging; current maintenance still requires exactly
+97 hosted entries. No historical candidate/seal or hosting-readiness flag changed.
+See `apps/platform/STANDALONE_INVOICE_REQUESTS.md` before separately reviewing 98.
+
 ## Previous 94-migration candidate (historical)
 
 **Historical 94 candidate (October20):** ATS staging now has94 migrations, including

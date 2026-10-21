@@ -1753,3 +1753,24 @@ results file. The suite uses actual installed role/access, revision and financia
 locks, with controlled action/transport adapters. It does not establish real
 network loss, independently committed concurrency or browser/Auth acceptance.
 See [the scope and results](../INVOICE_EDIT_CONFIRMATION.md).
+
+## Standalone invoice requests
+
+The regular gate includes `standalone-invoice.test.mjs`. Additional SQL/race tests
+require an **owned fresh replay**, not the shared app database. Replay all 98
+migrations into a newly created database named `ats_standalone_fresh_<32 hex>`
+using the documented local bootstrap/replay process. Then run from this app:
+
+```sh
+STANDALONE_DISPOSABLE=1 \
+STANDALONE_DATABASE=ats_standalone_fresh_REPLACE_WITH_32_HEX \
+STANDALONE_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+node --conditions=react-server --experimental-strip-types --test tests/standalone-invoice.integration.test.mjs
+```
+
+The suite refuses `postgres` and hosted targets. Its two-session cases commit
+synthetic fixtures in that owned database; other cases roll back. No provider
+or email configuration is used. `STANDALONE_RESULTS` can name a private local JSON
+results file. Never point this suite at a business database. See
+[scope, verified behavior and rollout boundary](../STANDALONE_INVOICE_REQUESTS.md).

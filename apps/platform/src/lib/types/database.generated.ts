@@ -15266,6 +15266,16 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "create_standalone_invoice": {
+                Args: {
+                    "p_header": Json;
+                    "p_lines": Json;
+                    "p_new_customer"?: Json;
+                    "p_notes"?: string;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
             "document_scan_mode": {
                 Args: Record<PropertyKey, never>;
                 Returns: boolean;

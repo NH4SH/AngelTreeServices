@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "f7b6b79f6473b7cce5b75319f91bae1b7d00db2ccf494644b1b3818a89bf8745",
+  "typesSha256": "2952262234626d244877423a75c1e2076e9173adeb61f10cd7b04dbd90468a3d",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -389,6 +389,10 @@
     {
       "name": "20261021012859_invoice_payment_principal_snapshot.sql",
       "sha256": "f9d3e431e8fcdd7126489b2826a8fff5fd1c0b5c3138e19937c46ba70e7d1ac4"
+    },
+    {
+      "name": "20261021022314_standalone_invoice_requests.sql",
+      "sha256": "2a4ab5a6a913e0c861ca8ca05b2e674cde1dc544ffdcf982c770c5cf7e6a4c54"
     }
   ]
 }

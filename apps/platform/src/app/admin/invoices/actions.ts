@@ -4,12 +4,12 @@ import type { RpcArgs } from "@/lib/types/rpc-contracts";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { withReturnTo } from "@/lib/drafts/return-context";
-import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import { saveInvoiceEdit } from "@/lib/invoices/save-confirmation";
+import { createStandaloneInvoice } from "@/lib/invoices/standalone-request";
 import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -68,6 +68,33 @@ export async function createInvoice(
 
   if (lineItems.length === 0) {
     return { status: "error", message: "Add at least one invoice line before saving." };
+  }
+
+  if (!jobId) {
+    const result = await createStandaloneInvoice({
+      supabase, requestId: String(formData.get("request_id") ?? ""),
+      header: { customer_id: party?.customerId ?? null, organization_id: party?.organizationId ?? null,
+        service_location_id: newCustomerRequested ? null : serviceLocationId, due_at: getInvoiceDueAt(dueDate) },
+      lines: lineItems.map(invoiceLineCommand), notes,
+      newCustomer: newCustomerRequested ? {
+        name: String(formData.get("new_customer_name") ?? "").trim(),
+        phone: String(formData.get("new_customer_phone") ?? "").trim() || null,
+        email: String(formData.get("new_customer_email") ?? "").trim().toLowerCase() || null,
+        street: String(formData.get("new_customer_street") ?? "").trim(),
+        city: String(formData.get("new_customer_city") ?? "").trim(),
+        state: String(formData.get("new_customer_state") ?? "VA").trim().toUpperCase(),
+        postal_code: String(formData.get("new_customer_postal_code") ?? "").trim() || null,
+      } : null,
+    });
+    if (!result.ok) return { status: "error", message: result.message };
+    for (const path of ["/admin", "/admin/jobs", "/admin/schedule", "/crew/jobs", "/admin/invoices"]) revalidatePath(path);
+    if (result.customerId) revalidatePath(`/admin/customers/${result.customerId}`);
+    if (result.organizationId) revalidatePath(`/admin/organizations/${result.organizationId}`);
+    if (result.replayed) return { status: "success", existingInvoice: true, invoiceId: result.invoiceId,
+      message: "This saved request already created an invoice. Open it to review; no duplicate was created." };
+    const destination = withReturnTo(`/admin/invoices/${result.invoiceId}?created=1${result.noteWarning ? "&note_warning=1" : ""}`, formData.get("returnTo"), "/admin/invoices");
+    if (formData.get("client_navigation") === "1") return { status: "success", message: "Invoice created.", navigateTo: destination };
+    redirect(destination);
   }
 
   if (newCustomerRequested) {
@@ -192,78 +219,7 @@ export async function createInvoice(
     redirect(destination);
   }
 
-  const { data: invoice, error: invoiceError } = await supabase.rpc("create_invoice_draft", {
-    p_header: {
-      job_id: null, quote_id: null,
-      customer_id: party.customerId, organization_id: party.organizationId,
-      billing_contact_id: null,
-      accounts_payable_contact_id: null,
-      service_location_id: serviceLocationId,
-      recurring_service_plan_id: null,
-      recurring_occurrence_id: null,
-      tax_cents: 0, due_at: dueAt,
-    },
-    p_lines: lineItems.map(invoiceLineCommand),
-  });
-  if (invoiceError || !invoice) {
-    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
-    return { status: "error", message: safeStaffMessage(invoiceError?.message ?? "Could not create invoice.") };
-  }
-
-  const { error: changeOrderError } = await supabase
-    .rpc("attach_approved_change_orders_to_invoice", { p_invoice_id: invoice.id });
-  if (changeOrderError) {
-    console.error("Draft invoice created, but approved additions could not be attached", {
-      invoiceId: invoice.id,
-      jobId,
-      error: changeOrderError,
-    });
-  }
-
-  let noteWarning = "";
-  if (notes) {
-    if (party.customerId || job || serviceLocationId) {
-      const { error: noteError } = await supabase.from("notes").insert({
-        customer_id: party.customerId,
-        job_id: null,
-        service_location_id: serviceLocationId,
-        author_user_id: user.id,
-        visibility: "internal",
-        body: `Invoice note: ${notes}`,
-      });
-
-      if (noteError) {
-        console.error("Invoice note write failed", noteError);
-        noteWarning = " The internal note could not be added.";
-      }
-    } else {
-      noteWarning = " The note could not be attached without a customer, property, or work order.";
-    }
-  }
-
-
-  await recordActivity(supabase, {
-    actionCategory: "invoices",
-    actorUserId: user.id,
-    destinationPath: `/admin/invoices/${invoice.id}`,
-    eventType: "invoice_draft_created",
-    metadata: { source_quote_id: null, standalone: !job },
-    organizationId: party.organizationId,
-    recordLabel: "Draft invoice",
-    summary: "A draft invoice was created.",
-    subjectId: invoice.id,
-    subjectType: "invoice",
-  });
-  revalidatePath("/admin");
-  revalidatePath("/admin/jobs");
-  revalidatePath("/admin/schedule");
-  revalidatePath("/crew/jobs");
-  revalidatePath("/admin/invoices");
-  if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);
-  if (party.organizationId) revalidatePath(`/admin/organizations/${party.organizationId}`);
-  const destination = withReturnTo(`/admin/invoices/${invoice.id}?created=1${noteWarning ? "&note_warning=1" : ""}`, formData.get("returnTo"), "/admin/invoices");
-  if (formData.get("client_navigation") === "1") return { status: "success", message: "Invoice created.", navigateTo: destination };
-  redirect(destination);
+  return { status: "error", message: "The selected work order is unavailable for invoicing." };
 }
 
 type InvoiceLineItemInput = {

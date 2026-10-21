@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "1333f0d741a002a40c0b044039a40a16c056d4892eb6a88aee3faf077bd3782e",
+  "typesSha256": "285d34c904dba324f613c426980a149a59c68395a99aae4ae18a1aac51634c8e",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",

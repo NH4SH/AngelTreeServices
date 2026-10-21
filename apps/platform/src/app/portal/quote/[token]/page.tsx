@@ -1,5 +1,8 @@
 import { FileSignature, Leaf, ShieldCheck } from "lucide-react";
 import { QuoteDocument } from "@/components/documents/quote-document";
+import { PortalContact } from "@/components/portal-contact";
+import { customerQuoteState } from "@/lib/portal/customer-states";
+import "../../customer-clarity.css";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
@@ -25,7 +28,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
     return <PortalUnavailable message={lookup.message} />;
   }
 
-  const isApproved = lookup.quote.status === "approved";
+  const response = customerQuoteState(lookup.quote.status);
   const statusLabel = formatCustomerQuoteStatus(lookup.quote.status);
   const totalLabel = formatCurrency(lookup.quote.total_cents);
   const expirationLabel = lookup.quote.expires_at
@@ -55,8 +58,8 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
           <FileSignature aria-hidden="true" size={18} />
           Proposal
         </p>
-        <h1>{isApproved ? "Proposal approved" : "Review your proposal"}</h1>
-        <p>Review the work and pricing below, then approve the proposal or request a change.</p>
+        <h1>{response.title}</h1>
+        <p>{response.message}</p>
       </section>
 
       <dl className="customer-quote-metadata" aria-label="Proposal details">
@@ -85,7 +88,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
       <section className="customer-quote-workspace">
         <aside className="customer-quote-action-column">
           <PortalQuoteActions
-            approved={isApproved}
+            quoteStatus={lookup.quote.status}
             expirationLabel={expirationLabel}
             expectedRevision={lookup.quote.edit_revision}
             rawToken={token}
@@ -98,9 +101,9 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
         <div className="customer-quote-document-column">
           <QuoteDocument
             approvalMessage={
-              isApproved
-                ? "Approved. Angel Tree Services will follow up with scheduling details."
-                : "Approve this quote or request changes using your secure quote portal link."
+              response.kind === "open"
+                ? "Approve this quote or request changes using your secure quote portal link."
+                : response.message
             }
             quote={lookup.quote}
             showApprovalSection={false}
@@ -110,7 +113,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
 
       <footer className="customer-portal-footer">
         <strong>Angel Tree Services</strong>
-        <span>Questions? Reply to your quote email or call our office.</span>
+        <PortalContact />
       </footer>
     </main>
   );
@@ -130,6 +133,7 @@ function PortalUnavailable({ message }: { message: string }) {
         <ShieldCheck aria-hidden="true" size={28} />
         <h1>Quote link unavailable</h1>
         <p>{message}</p>
+        <PortalContact />
       </section>
     </main>
   );

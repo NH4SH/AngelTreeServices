@@ -1,5 +1,7 @@
 "use client";
 
+import { customerQuoteState } from "@/lib/portal/customer-states";
+import { PortalContact } from "@/components/portal-contact";
 import { useRef } from "react";
 import { prepareQuoteChangeAttempt, forgetQuoteChangeAttempt, type QuoteChangeAttempt } from "@/lib/portal/quote-change-attempt";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
@@ -18,7 +20,7 @@ const initialState: PortalTokenActionState = {
 };
 
 export function PortalQuoteActions({
-  approved,
+  quoteStatus,
   expirationLabel,
   expectedRevision,
   rawToken,
@@ -26,7 +28,7 @@ export function PortalQuoteActions({
   totalLabel,
   workSummary,
 }: {
-  approved: boolean;
+  quoteStatus: string;
   expirationLabel: string;
   expectedRevision: number;
   rawToken: string;
@@ -34,6 +36,7 @@ export function PortalQuoteActions({
   totalLabel: string;
   workSummary: PortalWorkSummary | null;
 }) {
+  const response = customerQuoteState(quoteStatus);
   const [approvalState, approvalAction, approvalPending] = useReliableActionState(approveQuoteByPortalToken, initialState);
   const attemptRef = useRef<QuoteChangeAttempt | undefined>(undefined);
   const [changeState, changeAction, changePending] = useReliableActionState(async (previous: PortalTokenActionState, form: FormData) => {
@@ -86,14 +89,19 @@ export function PortalQuoteActions({
         workSummary={workSummary}
       />
 
-      {approved ? (
+      {response.kind === "approved" ? (
         <PortalConfirmation
           message="Thank you. Angel Tree Services will contact you to confirm scheduling and any final details."
           title="Proposal approved"
           variant="approved"
         />
+      ) : !response.canRespond ? (
+        <section className="customer-quote-closed" role="status"><h2>{quoteStatus === "expired" ? "Need an updated proposal?" : "Questions about this proposal?"}</h2><PortalContact /></section>
       ) : (
         <>
+          {response.kind === "changes" ? <section className="customer-quote-waiting" role="status"><h2>We have your change request</h2><p>The team will review it and follow up. You can still review and accept the current proposal below.</p></section> : null}
+          <details className="customer-quote-response-options" open={response.kind === "open"}>
+          <summary>{response.kind === "changes" ? "Review current proposal options" : "Respond to this proposal"}</summary>
           <div className="customer-quote-actions-intro">
             <p className="surface-label">
               <CheckCircle2 aria-hidden="true" size={18} />
@@ -151,6 +159,7 @@ export function PortalQuoteActions({
 
           {approvalState.message ? <ActionMessage state={approvalState} /> : null}
           {changeState.message ? <ActionMessage state={changeState} /> : null}
+          </details>
         </>
       )}
     </section>

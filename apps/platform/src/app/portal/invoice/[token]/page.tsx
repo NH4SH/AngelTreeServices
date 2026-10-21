@@ -2,13 +2,17 @@ import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { InvoicePortalPaymentChooser } from "@/components/invoice-portal-payment-button";
+import { PortalContact } from "@/components/portal-contact";
+import { customerInvoiceState } from "@/lib/portal/customer-states";
+import "../../customer-clarity.css";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatBusinessDateTime } from "@/lib/business-time";
-import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
+import { getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
-import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
 
 type CustomerInvoicePortalPageProps = {
@@ -32,17 +36,17 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
 
   const invoice = lookup.invoice;
   const scopeSummary = getInvoiceScopeSummary(invoice);
-  const paymentTotalCents = (invoice.payments ?? [])
-    .filter((paymentRecord) => paymentRecord.status === "succeeded")
-    .reduce((sum, paymentRecord) => sum + netSuccessfulPaymentPrincipal(paymentRecord), 0);
+  // Token lookup above authorizes this invoice; reuse checkout's complete, read-only principal receipt.
+  const paymentClient = getServiceRoleClient();
+  const principal = paymentClient ? await getSuccessfulPaymentTotal(paymentClient, invoice.id) : null;
+  if (!principal || principal.error) return <PortalUnavailable message="The current invoice balance could not be confirmed. Please refresh this secure link or call our office before making a payment." />;
+  const paymentTotalCents = principal.totalCents;
   const amountDueCents = Math.max(0, invoice.total_cents - paymentTotalCents);
   const stripeConfigured = getStripeServerConfig().configured;
   const paymentConfig = getInvoicePaymentConfiguration();
-  const canChoosePayment = amountDueCents > 0 && ["sent", "partially_paid", "overdue"].includes(invoice.status);
-  const hasProcessingPayment = (invoice.payments ?? []).some((paymentRecord) => paymentRecord.status === "pending" && paymentRecord.provider === "stripe");
-  const failedStripePayment = [...(invoice.payments ?? [])]
-    .filter((paymentRecord) => paymentRecord.status === "failed" && paymentRecord.provider === "stripe")
-    .sort((left, right) => new Date(right.failed_at ?? right.updated_at).getTime() - new Date(left.failed_at ?? left.updated_at).getTime())[0] ?? null;
+  const paymentState = customerInvoiceState({ status: invoice.status, amountDueCents, payments: invoice.payments ?? [], returnedPayment: payment });
+  const refreshHref = `/portal/invoice/${encodeURIComponent(token)}${paymentState.kind === "confirming" ? "?payment=processing" : ""}#invoice-payment-status`;
+
 
   return (
     <main className="customer-portal-page customer-quote-page customer-invoice-page">
@@ -65,19 +69,20 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
             Customer invoice
           </p>
           <h1>{getInvoiceDisplayNumber(invoice.invoice_number)}</h1>
-          <p>Review the services, balance, and due date below. You can print or save a copy for your records.</p>
+          <p>Check your balance and payment status here. The full invoice is below for your records.</p>
+          <nav className="customer-invoice-shortcuts" aria-label="Invoice sections">{paymentState.canChoose ? <a className="customer-invoice-pay-link" href="#invoice-payment">Choose payment method</a> : <a href="#invoice-payment-status">View payment status</a>}<a href="#invoice-details">View full invoice</a></nav>
           <PrintButton label="Print or save invoice" />
         </div>
 
         <aside className="customer-portal-summary-card customer-invoice-summary">
           <div className="customer-quote-summary-total">
-            <span>Balance due</span>
+            <span>{paymentState.kind === "processing" || paymentState.kind === "confirming" ? "Balance awaiting payment confirmation" : paymentState.kind === "void" ? "Invoice amount — not payable" : "Balance due"}</span>
             <strong>{formatCurrency(amountDueCents)}</strong>
           </div>
           <dl className="customer-quote-summary-list">
             <div>
               <dt>Status</dt>
-              <dd>{formatInvoiceStatus(invoice.status, "customer")}</dd>
+              <dd>{paymentState.label}</dd>
             </div>
             <div>
               <dt>Service location</dt>
@@ -88,6 +93,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
               <dd><CalendarDays aria-hidden="true" size={16} /> {formatDate(invoice.due_at)}</dd>
             </div>
           </dl>
+          <div id="invoice-payment-status" className={`customer-invoice-current-state ${paymentState.kind}`} role="status"><h2>{paymentState.title}</h2><p>{paymentState.message}</p>{paymentState.kind === "settled" && invoice.paid_at ? <p>Payment recorded {formatDate(invoice.paid_at)}. Thank you.</p> : null}{paymentState.refresh ? <a href={refreshHref}>Refresh payment status</a> : null}</div>
         </aside>
       </section>
 
@@ -103,60 +109,30 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
         </section>
       ) : null}
 
-      <section className="customer-invoice-document">
-        <InvoiceDocument invoice={invoice} />
+      <section className="customer-invoice-payment-panel print-hidden" id="invoice-payment" aria-labelledby="invoice-payment-title">
+        <h2 id="invoice-payment-title">{paymentState.canChoose ? "Choose how to pay" : "Questions about this invoice?"}</h2>
+        {paymentState.canChoose ? <InvoicePortalPaymentChooser
+          amountDueCents={amountDueCents}
+          cardEnabled={paymentConfig.cardEnabled}
+          invoiceNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
+          mailingAddress={paymentConfig.businessCheckMailingAddress}
+          onlinePaymentEnabled={stripeConfigured}
+          selectedPreference={invoice.payment_preference}
+          stripePublishableKey={paymentConfig.stripePublishableKey}
+          surchargeBps={paymentConfig.surchargeBps}
+          surchargeEnabled={paymentConfig.surchargeEnabled}
+          token={token}
+        /> : null}
+        <PortalContact />
       </section>
 
-      <section className="customer-invoice-payment-note print-hidden">
-        <CircleDollarSign aria-hidden="true" size={22} />
-        <div>
-          {invoice.status === "paid" || amountDueCents === 0 ? (
-            <>
-              <strong>Payment received</strong>
-              <p>
-                {invoice.paid_at
-                  ? `${formatCurrency(paymentTotalCents)} paid ${formatDate(invoice.paid_at)}. Thank you.`
-                  : `Thank you. ${formatCurrency(paymentTotalCents)} has been paid in full.`}
-              </p>
-            </>
-          ) : canChoosePayment ? (
-            <>
-              {hasProcessingPayment || failedStripePayment || payment === "processing" ? (
-                <strong>{hasProcessingPayment ? "Bank payment submitted" : failedStripePayment ? "Payment needs attention" : "Payment processing"}</strong>
-              ) : null}
-              {payment === "success" ? <p>Payment submitted. This invoice will update as soon as Stripe confirms it.</p> : null}
-              {payment === "processing" && !hasProcessingPayment && !failedStripePayment ? <p>Your payment was submitted. The invoice will update after Stripe securely confirms the result.</p> : null}
-              {hasProcessingPayment ? <p>Your bank payment is processing. The invoice will remain open until Stripe confirms that the payment cleared. Settlement may take several business days.</p> : null}
-              {!hasProcessingPayment && failedStripePayment?.payment_method === "ach" ? <p>Your bank payment could not be completed. Please try again or contact Angel Tree Services.</p> : null}
-              {!hasProcessingPayment && failedStripePayment?.payment_method === "card" ? <p>Your card payment could not be completed. Please try again or contact Angel Tree Services.</p> : null}
-              {payment === "cancelled" ? <p>Checkout was cancelled. No payment was made.</p> : null}
-              {!hasProcessingPayment ? (
-                <InvoicePortalPaymentChooser
-                  amountDueCents={amountDueCents}
-                  cardEnabled={paymentConfig.cardEnabled}
-                  invoiceNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
-                  mailingAddress={paymentConfig.businessCheckMailingAddress}
-                  onlinePaymentEnabled={stripeConfigured}
-                  selectedPreference={invoice.payment_preference}
-                  stripePublishableKey={paymentConfig.stripePublishableKey}
-                  surchargeBps={paymentConfig.surchargeBps}
-                  surchargeEnabled={paymentConfig.surchargeEnabled}
-                  token={token}
-                />
-              ) : null}
-            </>
-          ) : (
-            <>
-              <strong>Payment options</strong>
-              <p>Please contact Angel Tree Services for payment options.</p>
-            </>
-          )}
-        </div>
+      <section className="customer-invoice-document" id="invoice-details" aria-label="Full invoice and terms">
+        <InvoiceDocument invoice={invoice} />
       </section>
 
       <footer className="customer-portal-footer print-hidden">
         <strong>Angel Tree Services</strong>
-        <span>Questions? Reply to your invoice email or call (540) 388-8715.</span>
+        <span>Keep your secure invoice email to return to this document.</span>
       </footer>
     </main>
   );
@@ -176,6 +152,7 @@ function PortalUnavailable({ message }: { message: string }) {
         <ShieldCheck aria-hidden="true" size={28} />
         <h1>Invoice link unavailable</h1>
         <p>{message}</p>
+        <PortalContact />
       </section>
     </main>
   );

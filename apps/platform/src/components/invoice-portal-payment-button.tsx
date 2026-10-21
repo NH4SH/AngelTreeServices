@@ -1,5 +1,6 @@
 "use client";
 
+import { initialCustomerPaymentPreference } from "@/lib/portal/customer-states";
 import { useMemo, useState, type ReactNode } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -38,12 +39,12 @@ export function InvoicePortalPaymentChooser({
   surchargeEnabled: boolean;
   token: string;
 }) {
-  const [preference, setPreference] = useState<Preference>(selectedPreference ?? "ach");
+  const [preference, setPreference] = useState<Preference>(() => initialCustomerPaymentPreference(selectedPreference, onlinePaymentEnabled, cardEnabled));
   const [message, setMessage] = useState("");
   const [messageStatus, setMessageStatus] = useState<"error" | "success">("success");
   const [pending, setPending] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
-  const stripePromise = useMemo(() => stripePublishableKey ? loadStripe(stripePublishableKey) : null, [stripePublishableKey]);
+  const stripePromise = useMemo(() => showCardForm && onlinePaymentEnabled && cardEnabled && stripePublishableKey ? loadStripe(stripePublishableKey) : null, [showCardForm, onlinePaymentEnabled, cardEnabled, stripePublishableKey]);
   const onlineUnavailable = preference === "ach" ? !onlinePaymentEnabled : preference === "card" ? !onlinePaymentEnabled || !cardEnabled : false;
 
   async function submitChoice() {
@@ -104,11 +105,12 @@ export function InvoicePortalPaymentChooser({
       <fieldset disabled={pending}>
         <legend>Payment options</legend>
         <p className="invoice-payment-intro">Choose the payment method that works best for you.</p>
+        {!onlinePaymentEnabled ? <p className="invoice-payment-availability" role="status">Online payment is currently unavailable. You can request pickup or mail a check.</p> : null}
         <div className="invoice-payment-options">
           <PaymentOption
             checked={preference === "card"}
-            description={`A ${formatRate(surchargeBps)} surcharge applies to eligible credit-card payments. Debit and prepaid cards are not surcharged.`}
-            disabled={!cardEnabled}
+            description={surchargeEnabled ? `A ${formatRate(surchargeBps)} surcharge applies to eligible credit-card payments. Debit and prepaid cards are not surcharged.` : "Pay with a debit or credit card. Review the exact amount before authorizing payment."}
+            disabled={!onlinePaymentEnabled || !cardEnabled}
             icon={<CreditCard aria-hidden="true" size={24} />}
             label="Pay by card"
             name="payment-preference"
@@ -118,6 +120,7 @@ export function InvoicePortalPaymentChooser({
           <PaymentOption
             checked={preference === "ach"}
             description="Securely pay this invoice from your bank account through Stripe. Bank payments may take several business days to settle."
+            disabled={!onlinePaymentEnabled}
             icon={<Building2 aria-hidden="true" size={24} />}
             label="Pay by bank account"
             name="payment-preference"
@@ -148,7 +151,7 @@ export function InvoicePortalPaymentChooser({
 
       {preference === "card" ? (
         <p className="invoice-payment-disclosure">
-          A {formatRate(surchargeBps)} credit-card surcharge applies only to eligible US credit cards. Debit, prepaid, unknown-funding, and non-US cards are not surcharged. You will review the exact total before authorizing payment.
+          {surchargeEnabled ? `A ${formatRate(surchargeBps)} credit-card surcharge applies only to eligible US credit cards. Debit, prepaid, unknown-funding, and non-US cards are not surcharged. You will review the exact total before authorizing payment.` : "You will review the exact total before authorizing payment."}
         </p>
       ) : null}
       {preference === "check_mail" ? (
@@ -166,7 +169,7 @@ export function InvoicePortalPaymentChooser({
         </div>
       ) : null}
       {(preference === "ach" || preference === "card") && !onlinePaymentEnabled ? (
-        <p className="form-message error">Online payment is not configured. Please mail a check or contact our office.</p>
+        <p className="form-message error">Online payment is currently unavailable. Choose pickup or mail a check, or call our office for help.</p>
       ) : null}
 
       {preference === "card" && showCardForm && cardEnabled && stripePromise ? (

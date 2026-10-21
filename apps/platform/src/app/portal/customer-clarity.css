@@ -1,0 +1,27 @@
+.customer-invoice-shortcuts { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; margin: 18px 0 12px; }
+.customer-invoice-shortcuts a,.customer-portal-contact a,.customer-invoice-current-state > a { display: inline-flex; min-height: 44px; align-items: center; padding-block: 6px; text-decoration: underline; text-underline-offset: 4px; color: var(--color-forest); font-weight: 650; }
+.customer-invoice-shortcuts .customer-invoice-pay-link { border-radius: 8px; padding: 10px 18px; background: var(--color-forest); color: white; text-decoration: none; }
+.customer-invoice-shortcuts .customer-invoice-pay-link:hover { background: var(--color-green); }
+.customer-invoice-current-state { border-top: 1px solid var(--color-border); padding-top: 18px; scroll-margin-top: 24px; }
+.customer-invoice-current-state h2 { margin: 0; font-size: 1.12rem; line-height: 1.4; }
+.customer-invoice-current-state p { margin: 9px 0 0; color: var(--color-charcoal); font-size: 1rem; line-height: 1.6; }
+.customer-invoice-payment-panel { margin-block: 24px 32px; border-top: 1px solid var(--color-border); padding-top: 24px; scroll-margin-top: 24px; }
+.customer-invoice-payment-panel > h2 { margin: 0; font-size: 1.45rem; line-height: 1.35; }
+.customer-invoice-payment-panel > p { max-width: 70ch; line-height: 1.65; }
+.customer-invoice-payment-panel .invoice-payment-chooser { width: 100%; }
+.customer-invoice-document { scroll-margin-top: 24px; }
+.customer-portal-contact { margin-top: 16px; font-size: 1rem; line-height: 1.6; }
+.customer-portal-contact p { margin: 0; max-width: 65ch; color: var(--color-muted); }
+.customer-portal-contact a { gap: 6px; }
+.customer-quote-closed,.customer-quote-waiting { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.customer-quote-closed h2,.customer-quote-waiting h2 { margin: 0; font-size: 1.25rem; line-height: 1.4; }
+.customer-quote-closed p,.customer-quote-waiting p { font-size: 1rem; line-height: 1.65; }
+.customer-quote-response-options { margin-top: 20px; }
+.customer-quote-response-options > summary { min-height: 44px; padding: 10px 0; color: var(--color-forest); font-weight: 650; cursor: pointer; }
+.customer-quote-response-options .customer-quote-actions-intro { margin-top: 14px; }
+.customer-invoice-page :is(a,button):focus-visible,.customer-quote-page :is(a,button,summary):focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 3px; }
+.customer-invoice-summary .customer-quote-summary-total > span { text-transform: none; letter-spacing: normal; font-size: .9rem; }
+@media (max-width: 640px) { .customer-invoice-shortcuts { gap: 8px 16px; } .customer-invoice-payment-panel { margin-top: 20px; } .customer-invoice-current-state h2 { font-size: 1.12rem; } }
+
+.customer-invoice-page .document-print-button { min-height: 44px; }
+.invoice-payment-availability { color: var(--color-muted); font-size: 1rem; line-height: 1.6; margin: 12px 0; }

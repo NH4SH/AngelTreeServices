@@ -11,7 +11,19 @@ export async function POST(request: Request) {
   let authorized = false;
   try { authorized = monitoringSecretMatches(process.env.CUSTOMER_EMAIL_WORKER_SECRET, bearerToken(request.headers)); } catch { /* Fail closed. */ }
   if (!authorized) return Response.json({ ok: false }, { status: 401, headers });
-  if (request.body) return Response.json({ ok: false }, { status: 400, headers });
+  // Netlify supplies a stream even for an empty POST. Reject actual bytes,
+  // without buffering a caller document or mistaking an empty stream for one.
+  if (request.body) {
+    const reader = request.body.getReader();
+    try {
+      const first = await reader.read();
+      if (!first.done) {
+        await reader.cancel();
+        return Response.json({ ok: false }, { status: 400, headers });
+      }
+    } catch { return Response.json({ ok: false }, { status: 400, headers }); }
+    finally { reader.releaseLock(); }
+  }
   try {
     const readiness = await checkPrivateScanner();
     if (readiness.status !== "operational") return Response.json({ ok: false, readiness }, { status: 503, headers });

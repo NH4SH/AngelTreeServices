@@ -2111,16 +2111,21 @@ body.ats-gallery-open {
   display: none;
 }
 
-.ats-removal-topics {
+.ats-removal-topics,
+.ats-pruning-topics {
   display: none;
 }
 
-.ats-tree-removal-page .ats-mobile-actions[hidden] {
+:is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
 .ats-tree-removal-page :is(#service-project-example, #removal-scope, #removal-process, #removal-access, #removal-faq) {
   scroll-margin-top: var(--ats-removal-anchor-offset, 120px);
+}
+
+.ats-tree-pruning-page :is(#service-project-example, #pruning-scope, #pruning-process, #pruning-access, #pruning-faq) {
+  scroll-margin-top: var(--ats-pruning-anchor-offset, 120px);
 }
 
 :focus-visible {
@@ -2411,25 +2416,34 @@ body.ats-gallery-open {
   }
 }
 
-/* Tree Removal is the first mobile service-page refinement; retain other pages. */
+/* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
-  .ats-tree-removal-page .ats-page-hero {
+  body.ats-tree-pruning-page {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .ats-tree-pruning-page .ats-mobile-actions a {
+    padding: 8px 12px;
+    text-align: center;
+  }
+
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-page-hero {
     padding-block: 36px 80px;
   }
 
-  .ats-tree-removal-page .ats-removal-topics {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) :is(.ats-removal-topics, .ats-pruning-topics) {
     display: block;
     margin-top: 24px;
     text-align: left;
   }
 
-  .ats-removal-topics p {
+  :is(.ats-removal-topics, .ats-pruning-topics) p {
     margin: 0 0 4px;
     font-size: 16px;
     font-weight: 600;
   }
 
-  .ats-removal-topics ul {
+  :is(.ats-removal-topics, .ats-pruning-topics) ul {
     display: flex;
     flex-wrap: wrap;
     gap: 0 16px;
@@ -2438,7 +2452,7 @@ body.ats-gallery-open {
     list-style: none;
   }
 
-  .ats-removal-topics a {
+  :is(.ats-removal-topics, .ats-pruning-topics) a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -2450,29 +2464,29 @@ body.ats-gallery-open {
     text-underline-offset: 4px;
   }
 
-  .ats-removal-topics a:focus-visible {
+  :is(.ats-removal-topics, .ats-pruning-topics) a:focus-visible {
     outline-color: var(--ats-white);
     box-shadow: none;
   }
 
-  .ats-tree-removal-page .ats-content-section {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-content-section {
     padding-block: 48px;
   }
 
-  .ats-tree-removal-page :is(.ats-card-grid, .ats-process-list) {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) :is(.ats-card-grid, .ats-process-list) {
     margin-top: 28px;
   }
 
-  .ats-tree-removal-page .ats-card {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-card {
     padding: 24px;
   }
 
-  .ats-tree-removal-page .ats-process-list {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-process-list {
     border-left: 0;
     border-top: 1px solid var(--ats-border);
   }
 
-  .ats-tree-removal-page .ats-process-list li {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-process-list li {
     display: grid;
     grid-template-columns: minmax(32px, max-content) minmax(0, 1fr);
     gap: 4px 12px;
@@ -2480,19 +2494,19 @@ body.ats-gallery-open {
     border-right: 0;
   }
 
-  .ats-tree-removal-page .ats-process-list .ats-card__number {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-process-list .ats-card__number {
     grid-row: 1 / span 2;
     margin: 0;
     padding-top: 4px;
     color: var(--ats-green-dark);
   }
 
-  .ats-tree-removal-page .ats-process-list strong {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-process-list strong {
     margin: 0;
     line-height: 1.5;
   }
 
-  .ats-tree-removal-page .ats-process-list li > span:last-child {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page) .ats-process-list li > span:last-child {
     grid-column: 2;
     line-height: 1.65;
   }

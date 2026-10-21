@@ -372,47 +372,52 @@ test("mobile quick actions retain their existing fallback when observation is un
   assert.equal(touched, false);
 });
 
-test("Tree Removal actions yield only to the complete hero pair below the header and recover on return", () => {
-  const actions = { hidden: false }, hero = {}, observers = [];
-  let headerHeight = 70, resize, anchorOffset;
-  const header = { getBoundingClientRect: () => ({ height: headerHeight }) };
-  function Observer(callback, options) {
-    Object.assign(this, { callback, options, observe: target => { this.target = target; }, disconnect: () => { this.disconnected = true; } });
-    observers.push(this);
-  }
-  function ResizeObserver(callback) { resize = callback; this.observe = target => assert.equal(target, header); }
-  const helpers = loadScript("tree-removal-mobile.js", ["initRemovalActions"], {
-    document: { body: { style: { setProperty(name, value) { assert.equal(name, "--ats-removal-anchor-offset"); anchorOffset = value; } } }, addEventListener() {}, querySelector: s => s.endsWith(".ats-mobile-actions") ? actions : s.endsWith(".ats-actions") ? hero : header },
-    window: { IntersectionObserver: Observer, ResizeObserver },
-  });
-  helpers.initRemovalActions();
-  assert.equal(observers[0].target, hero);
-  assert.equal(observers[0].options.rootMargin, "-70px 0px 0px 0px");
-  assert.equal(anchorOffset, "90px");
-  const notify = (ratio, visible = true) => observers.at(-1).callback([{ target: hero, intersectionRatio: ratio, isIntersecting: visible }]);
-  notify(0.98); assert.equal(actions.hidden, false, "partly clipped hero links cannot replace the floating pair");
-  notify(1); assert.equal(actions.hidden, true);
-  notify(0, false); assert.equal(actions.hidden, false, "bar returns after scrolling or restored navigation");
-  notify(1); assert.equal(actions.hidden, true, "scrolling back yields to the hero again");
-  resize(); assert.equal(observers.length, 1, "same header height does not recreate observation");
-  headerHeight = 140; resize();
-  assert.equal(observers[0].disconnected, true);
-  assert.equal(observers[1].options.rootMargin, "-140px 0px 0px 0px", "larger text reserves actual header space");
-  assert.equal(anchorOffset, "160px", "anchor clearance grows with the header");
-  notify(0.5); assert.equal(actions.hidden, false);
-});
-
-test("Tree Removal bar remains available on unsupported browsers and unrelated pages", () => {
-  for (const available of [false, true]) {
-    const actions = { hidden: false };
-    const helpers = loadScript("tree-removal-mobile.js", ["initRemovalActions"], {
-      document: { body: { style: { setProperty() {} } }, addEventListener() {}, querySelector: s => !available ? null : s === ".ats-page-header" ? { getBoundingClientRect: () => ({ height: 70 }) } : actions },
-      window: { addEventListener() {} },
+for (const service of [
+  { name: "Tree Removal", file: "tree-removal-mobile.js", init: "initRemovalActions", offset: "--ats-removal-anchor-offset" },
+  { name: "Tree Pruning", file: "tree-pruning-mobile.js", init: "initPruningActions", offset: "--ats-pruning-anchor-offset" },
+]) {
+  test(`${service.name} actions yield only to the complete hero pair below the header and recover on return`, () => {
+    const actions = { hidden: false }, hero = {}, observers = [];
+    let headerHeight = 70, resize, anchorOffset;
+    const header = { getBoundingClientRect: () => ({ height: headerHeight }) };
+    function Observer(callback, options) {
+      Object.assign(this, { callback, options, observe: target => { this.target = target; }, disconnect: () => { this.disconnected = true; } });
+      observers.push(this);
+    }
+    function ResizeObserver(callback) { resize = callback; this.observe = target => assert.equal(target, header); }
+    const helpers = loadScript(service.file, [service.init], {
+      document: { body: { style: { setProperty(name, value) { assert.equal(name, service.offset); anchorOffset = value; } } }, addEventListener() {}, querySelector: s => s.endsWith(".ats-mobile-actions") ? actions : s.endsWith(".ats-actions") ? hero : header },
+      window: { IntersectionObserver: Observer, ResizeObserver },
     });
-    assert.doesNotThrow(() => helpers.initRemovalActions());
-    assert.equal(actions.hidden, false);
-  }
-});
+    helpers[service.init]();
+    assert.equal(observers[0].target, hero);
+    assert.equal(observers[0].options.rootMargin, "-70px 0px 0px 0px");
+    assert.equal(anchorOffset, "90px");
+    const notify = (ratio, visible = true) => observers.at(-1).callback([{ target: hero, intersectionRatio: ratio, isIntersecting: visible }]);
+    notify(0.98); assert.equal(actions.hidden, false, "partly clipped hero links cannot replace the floating pair");
+    notify(1); assert.equal(actions.hidden, true);
+    notify(0, false); assert.equal(actions.hidden, false, "bar returns after scrolling or restored navigation");
+    notify(1); assert.equal(actions.hidden, true, "scrolling back yields to the hero again");
+    resize(); assert.equal(observers.length, 1, "same header height does not recreate observation");
+    headerHeight = 140; resize();
+    assert.equal(observers[0].disconnected, true);
+    assert.equal(observers[1].options.rootMargin, "-140px 0px 0px 0px", "larger text reserves actual header space");
+    assert.equal(anchorOffset, "160px", "anchor clearance grows with the header");
+    notify(0.5); assert.equal(actions.hidden, false);
+  });
+
+  test(`${service.name} bar remains available on unsupported browsers and unrelated pages`, () => {
+    for (const available of [false, true]) {
+      const actions = { hidden: false };
+      const helpers = loadScript(service.file, [service.init], {
+        document: { body: { style: { setProperty() {} } }, addEventListener() {}, querySelector: s => !available ? null : s === ".ats-page-header" ? { getBoundingClientRect: () => ({ height: 70 }) } : actions },
+        window: { addEventListener() {} },
+      });
+      assert.doesNotThrow(() => helpers[service.init]());
+      assert.equal(actions.hidden, false);
+    }
+  });
+}
 
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {

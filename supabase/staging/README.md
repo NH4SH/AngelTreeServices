@@ -1,13 +1,40 @@
 # Staging permission reconciliation
 
-**Current candidate (October20):** ATS staging is verified at97 migrations,
+**Current candidate (October 20):** ATS staging is verified at 98 migrations,
+including unchanged `20261021022314_standalone_invoice_requests.sql`. The full
+catalog matches the normal-owner rehearsal: 12 additive entries, no changed or
+removed existing objects. Exact history/defaults, principal, active no-send Auth
+guard, empty business/request/delivery/source state and OFF switches are preserved.
+The staging app is undeployed and hosting readiness remains false.
+
+Run the current read-only verifier from `apps/platform` using Node 22:
+
+```sh
+node scripts/release/verify-staging-standalone-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json
+```
+
+Set `STAGING_SUPABASE_BIN` to the pinned CLI if needed. The config must be a fresh
+mode0600 effective Management API GET for this exact project. The tool checks the
+physical identity, exact 98 ledger/catalog/defaults, principal, command privileges,
+restrictive private policy, empty history and active guard/config. It has no
+apply/deploy, key retrieval or config-patch mode. See
+`apps/platform/STAGING_STANDALONE_RECONCILIATION.md`, including the one intentional
+hosted authenticated-definer warning and actual probe limitations.
+
+`standalone-candidate-98.json` pins the unchanged 97 parent and original 98 SQL.
+Historical candidates/tools remain unchanged and require their own exact ledger;
+do not replay their repair/install procedures against this newer target.
+
+## Previous 97-migration candidate (historical)
+
+**Historical candidate:** ATS staging was verified at97 migrations,
 including `20261021012859_invoice_payment_principal_snapshot.sql`. The full
 catalog matches the normal-owner local rehearsal: exactly one new server-only
 invoker routine, no changed/removed existing objects. Exact ledger, defaults,
 active no-send Auth guard, empty business/delivery/source state and OFF switches
 are preserved. The staging app remains undeployed and hosting readiness remainsfalse.
 
-Run the current read-only verifier from `apps/platform` using Node22:
+Historical read-only command (requires exactly 97 and rejects current 98):
 
 ```sh
 node scripts/release/verify-staging-principal-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json
@@ -27,12 +54,12 @@ newer hosted ledger. `deferred-migrations.json` remains the source-inventory pin
 for additions deferred from historical93, not a live installation/status file.
 No old repair, Auth installation or historical migration should be replayed.
 
-**Local source follow-through:** the repository now has 98 migrations. The new
-`20261021022314_standalone_invoice_requests.sql` is pinned in the deferred source
-inventory and installed only on disposable local targets. It has not been
-reconciled or installed on staging; current maintenance still requires exactly
-97 hosted entries. No historical candidate/seal or hosting-readiness flag changed.
-See `apps/platform/STANDALONE_INVOICE_REQUESTS.md` before separately reviewing 98.
+**Standalone source follow-through:** migration 98 was initially pinned in the
+deferred source inventory and installed only on disposable local targets. Its
+staging reconciliation is now complete as documented above. Historical deferred
+hashes, candidates and readiness flags remain unchanged; that inventory is not
+a live hosted-status file. The original implementation evidence remains in
+`apps/platform/STANDALONE_INVOICE_REQUESTS.md`.
 
 ## Previous 94-migration candidate (historical)
 

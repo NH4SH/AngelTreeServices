@@ -526,9 +526,9 @@ class Validator:
         if testimonial_sizes != 2:
             self.error("/: testimonial AVIF and WebP sources must share accurate responsive sizes")
 
-        service_sizes = "(max-width: 575px) 70vw, (max-width: 1500px) calc(35vw - 37px), 488px"
+        service_sizes = "(max-width: 800px) 112px, (max-width: 1500px) calc(35vw - 37px), 488px"
         if sum(image.get("sizes") == service_sizes for image in homepage.images) != 2:
-            self.error("/: service-card images must use the measured desktop width hint")
+            self.error("/: service images must retain the compact mobile and measured desktop width hints")
 
     def validate_homepage_footer_visibility(self) -> None:
         homepage_path = self.site_dir / "index.html"

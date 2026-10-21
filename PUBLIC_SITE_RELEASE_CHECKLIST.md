@@ -1,3 +1,56 @@
+## Mobile homepage refinement — release approved, October 21, 2026
+
+Owner approved commit, push and publication of the reviewed mobile homepage and
+enlarged-text patch. Fetched origin/main at 41461e9 before release; retain it as
+the parent and preserve any subsequent repository work. Skip automatic builds
+with [skip ci] and [skip netlify], then explicitly trigger only public website
+86c48a95-ead4-4b15-8e57-fa827558b2f0. No SEO, estimate runtime, analytics, consent
+or CRM change is needed for this patch. Check both Netlify projects before/after
+and run non-submitting production checks. Release evidence: this chat's
+outputs/mobile-homepage-release/. Earlier draft/review records below document
+the hold that applied before this approval.
+
+- Final release review: no blocking regression found and no implementation fix
+  required. Fresh 173 Node + 9 Python tests, build and 18-page validation pass.
+  Rechecked homepage widths 320/390/430/768/800/801/1100/1101/1280px and doubled
+  text at 320/390px: no horizontal/control overflow or actual heading clipping.
+  Header brand/Menu keep a 12px gap with doubled text; the short-screen menu
+  scrolls and its final Contact link works. Keyboard Enter/Escape, discount
+  disclosure, exact draft retention through a pruning link and Clear draft pass.
+  Fresh SEO/form/link/protected-file comparisons pass. Evidence: chat outputs/
+  mobile-homepage-refinement/release-review-*. No commit, push or deployment;
+  physical-device and spoken screen-reader checks below remain unperformed.
+- Owner approved the audit's first mobile refinement: compact motto/service rows,
+  a shorter estimate introduction, and enlarged-text wrapping. No commit, push
+  or deployment is authorized for this draft.
+- The mobile service band uses the existing cream/green palette, two compact
+  photo/text rows, unchanged descriptions and direct Explore links. Tree work
+  stays first. The redundant all-services action is hidden on mobile only.
+- The complete, unchanged residential veterans terms remain in the initial
+  HTML under a native disclosure; this disclosure is also used on desktop.
+  The urgent-call route remains visible. Repeated pre-form credentials yield
+  mobile space; the hero, trust/footer links and full credentials page remain.
+- Shared grid children can shrink and long text can wrap. The styles remain
+  homepage-scoped; no interior-page, CRM, analytics or consent settings change.
+- Finish review found two material issues: enlarged branding overlapping Menu,
+  and a missing visible discount expansion cue. The corrected homepage header
+  uses separate brand/Menu tracks and intrinsic sticky height; the disclosure
+  restores native closed/open markers. The reviewer scored both fixes resolved
+  and returned `ship` at local-draft scope. Final 108-case matrix has no flagged
+  heading/control overflow, and explicit 320/390px header bounds do not overlap.
+- Existing 182 tests, public build and 18-page validation pass. The refreshed
+  responsive matrix covers 72 ordinary checks and 36 synthetic 200% text checks.
+  Final visual review must also check overlap, since box bounds alone do not.
+- Regression guards confirm the form itself is byte-identical, all links and
+  photo/alt selections remain, and the SEO head differs only by its stylesheet
+  cache key. Eight protected runtime/consent assets are unchanged. Local browser
+  testing confirms exact draft details survive a pruning context link and that
+  Clear draft removes the synthetic values. No production leads or calls.
+- Review evidence and final disposition: this chat's
+  outputs/mobile-homepage-refinement/. Physical iOS/Android keyboards,
+  native accessibility text enlargement and spoken screen readers still require
+  device verification. Synthetic text enlargement is not a WCAG certification.
+
 ## Firewood page — release approved, October 21, 2026
 
 Owner approved commit, push and publication of the reviewed patch. Preserve newer

@@ -425,6 +425,39 @@ body.ats-form-submitted .ats-form-success {
   font-weight: 700;
 }
 
+#contact .ats-form-discount-details {
+  margin-top: 12px;
+  color: #fff;
+  text-align: left;
+}
+
+#contact .ats-form-discount-details summary {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding-block: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#contact .ats-form-discount-details[open] summary {
+  list-style-type: disclosure-open;
+}
+
+#contact .ats-form-discount-details summary:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+#contact .ats-form-discount-details .ats-form-discount {
+  margin: 4px 0 12px;
+  max-width: 100%;
+}
+
 #contact .ats-form-meta span {
   display: inline-flex;
   align-items: center;
@@ -2597,4 +2630,221 @@ body.ats-form-submitted .ats-form-success {
   outline: 3px solid var(--ats-green-deep);
   outline-offset: 3px;
   box-shadow: 0 0 0 6px #fff;
+}
+
+/* Let enlarged text set the height without forcing grid tracks wider. */
+.ats-home-guidance__inner > *,
+.ats-home-project > *,
+.ats-home-recognition > *,
+.ats-home-recognition__heading > *,
+.ats-home-recognition__metrics > *,
+.ats-home-coverage__inner > *,
+.ats-home-footer__inner > * {
+  min-width: 0;
+}
+
+#contact .fe-block-577c25637a863c64b65c .sqs-html-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#contact .fe-block-577c25637a863c64b65c h3,
+#contact .fe-block-577c25637a863c64b65c h3 a {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#top .ats-mobile-hero-content,
+#about,
+.ats-home-guidance,
+.ats-home-faq,
+.ats-home-coverage,
+#contact,
+.ats-home-footer-trust {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  /* Keep enlarged branding and Menu in separate tracks, in document flow. */
+  body.homepage {
+    padding-top: 0 !important;
+  }
+
+  body.homepage .ats-mobile-header {
+    position: sticky !important;
+    top: 0;
+    height: auto !important;
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+    box-sizing: border-box;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .ats-mobile-header__brand {
+    min-width: 0;
+  }
+
+  body.homepage .ats-mobile-header img {
+    flex: 0 0 28px;
+    width: 28px;
+  }
+
+  body.homepage .ats-mobile-header span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+
+  body.homepage .ats-home-mobile-menu {
+    position: relative;
+    top: auto;
+    right: auto;
+  }
+}
+
+@media (max-width: 800px) {
+  /* Use the quieter incumbent surface and real photos instead of a tall band. */
+  #about .section-background {
+    background: var(--ats-green-soft);
+  }
+
+  #about .content-wrapper {
+    padding: 0 20px !important;
+  }
+
+  #about .user-items-list {
+    padding-block: 28px 36px !important;
+  }
+
+  #about .list-section-title {
+    padding-bottom: 24px !important;
+  }
+
+  #about .list-section-title p {
+    margin: 0;
+    color: var(--ats-green-deep);
+    font-size: 18px;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  #about .list-section-title p + p {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+
+  #about .user-items-list-item-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px !important;
+    padding: 0;
+  }
+
+  #about .list-item {
+    display: grid;
+    grid-template-columns: clamp(80px, 25vw, 112px) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+    padding: 24px 0 0 !important;
+    border-top: 1px solid var(--ats-green-border);
+    background: transparent !important;
+    min-width: 0;
+  }
+
+  #about .list-item-media {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  #about .list-item-media-inner {
+    width: 100% !important;
+    height: auto !important;
+    padding-bottom: 0 !important;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  #about .list-image {
+    position: static;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #about .list-item-content,
+  #about .list-item-content__text-wrapper {
+    min-width: 0;
+    text-align: left;
+  }
+
+  #about .user-items-list-item-container .list-item-content__title {
+    margin: 0;
+    color: var(--ats-green-deep);
+    font-size: 24px !important;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  #about .list-item-content__description {
+    margin-top: 10px !important;
+    text-align: left;
+  }
+
+  #about .list-item-content__description p {
+    margin: 0;
+    color: #3f6542;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  #about .list-item-content__button-wrapper {
+    margin-top: 16px !important;
+  }
+
+  #about .list-item-content__button-container {
+    margin-top: 0 !important;
+  }
+
+  #about .user-items-list-item-container .ats-service-explore {
+    width: 100%;
+    padding-inline: 12px;
+  }
+
+  #about .ats-service-explore:focus-visible {
+    outline-color: var(--ats-green-deep);
+  }
+
+  /* Both service rows already carry direct Explore links. */
+  #about .list-section-button-container,
+  #about > .section-divider-display {
+    display: none;
+  }
+
+  #contact .ats-form-intro {
+    margin: 0 12px 16px;
+    text-align: left;
+  }
+
+  #contact .ats-form-lede,
+  #contact .ats-form-urgent {
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  #contact .ats-form-trust {
+    display: none;
+  }
+
+  #contact .ats-form-discount-details {
+    margin-top: 4px;
+  }
 }

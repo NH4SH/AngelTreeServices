@@ -28,6 +28,7 @@ STATIC_FILES = (
     "site-pages.js",
     "tree-removal-mobile.js",
     "tree-pruning-mobile.js",
+    "stump-grinding-mobile.js",
     "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",

@@ -375,6 +375,7 @@ test("mobile quick actions retain their existing fallback when observation is un
 for (const service of [
   { name: "Tree Removal", file: "tree-removal-mobile.js", init: "initRemovalActions", offset: "--ats-removal-anchor-offset" },
   { name: "Tree Pruning", file: "tree-pruning-mobile.js", init: "initPruningActions", offset: "--ats-pruning-anchor-offset" },
+  { name: "Stump Grinding", file: "stump-grinding-mobile.js", init: "initStumpActions", offset: "--ats-stump-anchor-offset" },
 ]) {
   test(`${service.name} actions yield only to the complete hero pair below the header and recover on return`, () => {
     const actions = { hidden: false }, hero = {}, observers = [];

@@ -848,7 +848,8 @@ class Validator:
             "Lake of the Woods", "Culpeper", "Orange", "Bealeton", "Remington", "Opal",
             "Warrenton", "Thornburg", "Woodford", "Ladysmith", "Ruther Glen",
             "Bowling Green", "Lake Caroline", "Lake Land’Or", "Ashland", "Lake Anna",
-            "Bumpass", "Mineral", "King George", "Port Royal", "Dahlgren", "Colonial Beach",
+            "Bumpass", "Mineral", "Louisa", "King George", "Port Royal", "Dahlgren", "Colonial Beach",
+            "Westmoreland County",
         }
         places = [place for group in coverage["groups"] for place in group["places"]]
         if set(places) != expected or len(places) != len(expected):

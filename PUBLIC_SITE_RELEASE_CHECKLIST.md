@@ -1,3 +1,34 @@
+## Residential veterans discount and coverage additions — release approved
+
+Owner requested residential-only veterans terms plus Westmoreland and Louisa
+coverage, including communities between Fredericksburg and the listed areas.
+Owner approved committing, pushing and publishing this reviewed batch. Preserve
+newer repository changes; publish only the public website. Keep analytics, consent
+and CRM unchanged. No lead submissions; run non-submitting production smoke checks.
+
+- Discount patch is limited to two homepage text passages: residential properties
+  only, still 5% of the full service/material subtotal before taxes and fees,
+  with no combining discounts. Estimate markup/runtime and CRM are untouched;
+  this is website wording, not a change to automated discount calculation.
+- Separate coverage patch adds Westmoreland County and Louisa to the existing
+  directory. The list is explicitly a selection of key areas, with communities
+  along the way included and property-specific service confirmation available.
+  No new named places beyond the owner confirmations, strict travel boundary,
+  fees, job minimums or blanket surrounding-county claims. Richmond remains tree
+  services only. Established coverage, URLs and estimate links are preserved.
+- Review found no actionable regressions. All 180 tests pass (171 Node, nine
+  Python); all 17 pages build and validate. All 17 metadata/schema head sections
+  match the published baseline; the other 15 pages are byte-identical. Only the
+  homepage and Service Areas copy change. No CSS, photos or runtime edits.
+- Local desktop and 320px browser checks confirm the added places, both discount
+  notices, FAQ expansion, readable wrapping and no horizontal overflow. SEO,
+  analytics, consent, CRM, form and draft behavior are unchanged. Physical-device
+  and spoken screen-reader checks were not performed; production non-submitting
+  smoke checks follow this approved release. No leads or calls.
+- Task evidence: outputs/veterans-coverage-review/local-tests.txt,
+  preservation-review.json, veterans-discount.patch, service-coverage.patch and
+  coverage-desktop.jpg. Preview: http://127.0.0.1:55761/service-areas/.
+
 ## Tree-first Projects features — release approved
 
 Owner approved committing, pushing and publishing the reviewed tree-first Projects

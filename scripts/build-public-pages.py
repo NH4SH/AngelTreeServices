@@ -1491,7 +1491,8 @@ def service_areas_body() -> str:
       <div class="ats-section-inner ats-section-inner--narrow ats-prose">
         <h2 id="coverage-question-title">Not sure where your property fits?</h2>
         <p>We generally work within about an hour of Fredericksburg and also serve all the named communities above, including farther areas around Lake Anna. Travel time is a guide, and the named places are included even when they are farther away.</p>
-        <p>If your location is not listed, share the property address and the work you have in mind. We’ll confirm whether we can help.</p>
+        <p>The list highlights key areas rather than every community we serve. We also serve communities along the way between Fredericksburg and the areas listed here. Richmond-area coverage remains tree services only.</p>
+        <p>If your location is not listed, share the property address and the work you have in mind. We’ll confirm the services available for your property.</p>
         <a class="ats-button ats-button--green ats-estimate-link" href="/#contact">Request a free estimate</a>
       </div>
     </section>'''

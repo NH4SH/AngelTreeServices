@@ -145,3 +145,18 @@ release contract. No production server/app rollout was performed for this change
 5. Push notifications, offline mutation queue, background uploads, and Face ID convenience unlock
 
 Legacy appointments remain governed by their existing RLS. Crew visibility is strongest for normalized `schedule_events`; any remaining crew-assigned legacy appointment gap should be handled with a narrowly scoped reviewed policy or migration, not a client bypass.
+
+
+### Proposal recovery on this device
+
+New Proposal restores the current local draft; existing records expose Edit or
+Recover local edit. The source proposal retains an unfinished copy request.
+Recovery is encrypted, account/environment-scoped and separate from disposable
+caches. Opening a screen never sends its pending request automatically. Close
+flushes drafts; pending requests retain their original body and edit revision.
+
+Use the existing AngelTreeTests target in Xcode for model/API/recovery checks.
+Before an iOS release, verify kill/relaunch, lock/unlock failures, account changes,
+rapid typing/close and replay/conflict review on a device. Command Line Tools
+checks do not replace a full iOS build or real Keychain validation. See
+`../platform/MOBILE_QUOTE_RESTART_RECOVERY.md` for evidence and limitations.

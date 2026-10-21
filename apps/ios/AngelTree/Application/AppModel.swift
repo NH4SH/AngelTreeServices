@@ -56,7 +56,7 @@ final class AppModel: ObservableObject {
                 widgetSync: widgetSync
             )
             photoService = LiveJobPhotoService(authentication: authentication, api: api)
-            fieldService = LiveFieldDataService(authentication: authentication, api: api, cache: fieldCache)
+            fieldService = LiveFieldDataService(authentication: authentication, api: api, cache: fieldCache, recoveryEnvironment: configuration.recoveryEnvironment)
         } catch {
             authentication = nil
             api = nil

@@ -5,6 +5,8 @@ struct AppConfiguration: Equatable, Sendable {
     let supabasePublishableKey: String
     let apiBaseURL: URL
 
+    var recoveryEnvironment: String { supabaseURL.absoluteString + "\n" + apiBaseURL.absoluteString }
+
     static func load(bundle: Bundle = .main) throws -> AppConfiguration {
         try AppConfiguration(values: bundle.infoDictionary ?? [:])
     }

@@ -407,6 +407,10 @@ actor MobileAPIClient: MobileAPIClientProtocol {
         guard (200..<300).contains(http.statusCode), let payload = envelope?.data else {
             if http.statusCode == 401 { throw MobileAPIError.authenticationRequired }
             if http.statusCode == 403 { throw MobileAPIError.accessDenied(envelope?.error?.message) }
+            if http.statusCode == 400, envelope?.error?.code == "invalid_quote",
+               path.hasPrefix("api/mobile/quotes/"), ["draft", "copy", "edit"].contains(path.components(separatedBy: "/").last ?? "") {
+                throw MobileAPIError.quoteNotSubmitted(envelope?.error?.message)
+            }
             if (400..<500).contains(http.statusCode) { throw MobileAPIError.requestRejected(envelope?.error?.message) }
             throw MobileAPIError.serverUnavailable(envelope?.error?.message)
         }
@@ -431,6 +435,7 @@ enum MobileAPIError: LocalizedError, Equatable {
     case authenticationRequired
     case accessDenied(String?)
     case requestRejected(String?)
+    case quoteNotSubmitted(String?)
     case serverUnavailable(String?)
 
     var errorDescription: String? {
@@ -445,7 +450,7 @@ enum MobileAPIError: LocalizedError, Equatable {
             return "Your session expired. Sign in again."
         case .accessDenied(let message):
             return message ?? "Your account does not have access to this information."
-        case .requestRejected(let message):
+        case .requestRejected(let message), .quoteNotSubmitted(let message):
             return message ?? "That request could not be completed. Check the information and try again."
         }
     }

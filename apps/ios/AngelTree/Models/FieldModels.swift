@@ -406,3 +406,88 @@ struct JobDetailPayload: Codable, Sendable {
     let job: MobileJobDetail
     let warning: String?
 }
+
+// Recovery keeps raw editor text independently from the immutable submitted request.
+struct MobileQuoteEditorLine: Codable, Equatable, Identifiable, Sendable {
+    var id = UUID()
+    var persistedID: String?
+    var name = ""
+    var description = ""
+    var quantity = "1"
+    var unitPrice = ""
+    static func empty() -> Self { .init() }
+    var unitPriceCents: Int? {
+        guard let decimal = Decimal(string: unitPrice), decimal >= 0 else { return nil }
+        let number = NSDecimalNumber(decimal: decimal * 100)
+        guard number != .notANumber, number.compare(NSDecimalNumber(value: Int32.max)) != .orderedDescending else { return nil }
+        return number.rounding(accordingToBehavior: NSDecimalNumberHandler(roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false, raiseOnUnderflow: false, raiseOnDivideByZero: false)).intValue
+    }
+    var totalCents: Int {
+        guard let quantity = Double(quantity), quantity.isFinite, let price = unitPriceCents else { return 0 }
+        let amount = (quantity * Double(price)).rounded()
+        return amount >= 0 && amount <= Double(Int32.max) ? Int(amount) : 0
+    }
+    var requestLine: MobileQuoteLine? {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let value = Double(quantity), value.isFinite, value > 0, let price = unitPriceCents else { return nil }
+        return .init(id: persistedID, name: name, description: description.isEmpty ? nil : description, quantity: value, unitPriceCents: price, totalCents: nil)
+    }
+}
+
+struct MobileQuoteEditorDraft: Codable, Equatable, Sendable {
+    var party: MobilePartySearchResult?
+    var customerMessage = ""
+    var serviceLocationID = ""
+    var recipientID = ""
+    var approvalID = ""
+    var expiration = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+    var lines: [MobileQuoteEditorLine] = [.empty()]
+    var expectedRevision: Int?
+    var hasEditCapability = false
+    var requestID = UUID().uuidString.lowercased()
+}
+
+enum MobileQuoteRecoveryContext: Codable, Equatable, Sendable {
+    case newProposal, edit(String), copy(String)
+    var key: String {
+        switch self { case .newProposal: return "new"; case .edit(let id): return "edit:" + id.lowercased(); case .copy(let id): return "copy:" + id.lowercased() }
+    }
+    var quoteID: String? { switch self { case .newProposal: nil; case .edit(let id), .copy(let id): id } }
+}
+
+struct MobileQuotePendingRequest: Codable, Equatable, Sendable {
+    enum Kind: String, Codable, Sendable { case create, edit, copy, emptyCopy }
+    let kind: Kind
+    let request: MobileQuoteWriteRequest
+    var confirmedQuoteID: String?
+    var dispatchCount = 0
+}
+
+struct MobileQuoteRecoveryDocument: Codable, Equatable, Sendable {
+    var version = 1
+    var draft: MobileQuoteEditorDraft?
+    var pending: MobileQuotePendingRequest?
+    var rejected: MobileQuotePendingRequest?
+    var completedQuoteID: String?
+}
+
+struct MobileQuoteRecoverySession: Sendable {
+    let scope: String
+    let userID: String
+    let context: MobileQuoteRecoveryContext
+    let lease: UUID
+    let document: MobileQuoteRecoveryDocument
+}
+
+enum QuoteRecoveryError: LocalizedError {
+    case unavailable, openedElsewhere, pendingReview, noRequest, accountChanged
+    var errorDescription: String? {
+        switch self {
+        case .unavailable: "Saved proposal recovery could not be read or written. Unlock the device and try again. Keep this draft and review previous requests before starting another."
+        case .openedElsewhere: "This draft was opened in another editor. Reopen it to continue safely."
+        case .pendingReview: "A previous request needs review. Retry or review it before starting another."
+        case .noRequest: "There is no saved request to retry."
+        case .accountChanged: "Sign in to the account that owns this draft before continuing."
+        }
+    }
+}

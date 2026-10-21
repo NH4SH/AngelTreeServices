@@ -29,17 +29,31 @@ protocol FieldDataService: Sendable {
     func invoiceDetail(id: String, userID: String, allowCached: Bool) async throws -> (payload: MobileInvoicePayload, cached: Bool)
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest) async throws -> MobileInvoicePayload
     func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload
+    func recoveryPartyDetail(kind: MobilePartyKind, id: String, session: MobileQuoteRecoverySession) async throws -> MobilePartyDetail
+    func inspectQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoveryDocument
+    func openQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoverySession
+    func saveQuoteDraft(_ draft: MobileQuoteEditorDraft, session: MobileQuoteRecoverySession) async throws
+    func quoteRecoveryDocument(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRecoveryDocument
+    func submitQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
+    func retryQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
+    func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
+    func acknowledgeQuoteRecovery(quoteID: String, session: MobileQuoteRecoverySession) async throws
+    func resetQuoteRecovery(_ session: MobileQuoteRecoverySession, reviewedRequest: Bool) async throws -> MobileQuoteRecoverySession
 }
 
 actor LiveFieldDataService: FieldDataService {
     private let authentication: any AuthenticationService
     private let api: any MobileAPIClientProtocol
     private let cache: FieldCache
+    private let recoveryEnvironment: String?
+    private let recovery: QuoteRecoveryStore
 
-    init(authentication: any AuthenticationService, api: any MobileAPIClientProtocol, cache: FieldCache) {
+    init(authentication: any AuthenticationService, api: any MobileAPIClientProtocol, cache: FieldCache, recoveryEnvironment: String? = nil, recovery: QuoteRecoveryStore = .shared) {
         self.authentication = authentication
         self.api = api
         self.cache = cache
+        self.recoveryEnvironment = recoveryEnvironment
+        self.recovery = recovery
     }
 
     func searchParties(query: String) async throws -> [MobilePartySearchResult] {
@@ -169,5 +183,150 @@ actor LiveFieldDataService: FieldDataService {
     }
     func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload {
         let token = try await authentication.validAccessToken(); return try await api.resolveManualPayment(invoiceID: invoiceID, requestID: requestID, accessToken: token)
+    }
+}
+
+
+extension LiveFieldDataService {
+    func recoveryPartyDetail(kind: MobilePartyKind, id: String, session: MobileQuoteRecoverySession) async throws -> MobilePartyDetail {
+        try await assertRecoverySession(session)
+        let token = try await recoveryToken(session.userID)
+        let detail = try await api.partyDetail(kind: kind, id: id, accessToken: token)
+        try await assertRecoverySession(session)
+        guard detail.kind == kind && detail.id.lowercased() == id.lowercased() else { throw MobileAPIError.invalidResponse }
+        await cache.writeParty(detail, userID: session.userID)
+        try await assertRecoverySession(session)
+        return detail
+    }
+    func inspectQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoveryDocument {
+        guard let recoveryEnvironment else { throw QuoteRecoveryError.unavailable }
+        try await assertRecoveryAccount(userID)
+        let doc = try await recovery.inspect(environment: recoveryEnvironment, userID: userID, context: context)
+        try await assertRecoveryAccount(userID)
+        return doc
+    }
+    func openQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoverySession {
+        guard let recoveryEnvironment else { throw QuoteRecoveryError.unavailable }
+        try await assertRecoveryAccount(userID)
+        let session = try await recovery.open(environment: recoveryEnvironment, userID: userID, context: context)
+        try await assertRecoveryAccount(userID)
+        return session
+    }
+    func saveQuoteDraft(_ draft: MobileQuoteEditorDraft, session: MobileQuoteRecoverySession) async throws {
+        try await assertRecoverySession(session)
+        try await recovery.saveDraft(draft, session: session)
+    }
+    func quoteRecoveryDocument(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRecoveryDocument {
+        try await assertRecoverySession(session)
+        let doc = try await recovery.document(session)
+        try await assertRecoverySession(session)
+        return doc
+    }
+    func submitQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail {
+        try await assertRecoverySession(session)
+        try validateRecoveryKind(pending.kind, context: session.context)
+        let stored = try await recovery.prepare(pending, session: session)
+        return try await performQuoteRecovery(stored, session: session)
+    }
+    func retryQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail {
+        try await assertRecoverySession(session)
+        let doc = try await recovery.document(session)
+        guard let pending = doc.pending ?? doc.rejected else { throw QuoteRecoveryError.noRequest }
+        guard pending.kind != .emptyCopy else { throw QuoteRecoveryError.pendingReview }
+        let stored = doc.pending != nil ? pending : try await recovery.prepare(pending, session: session)
+        return try await performQuoteRecovery(stored, session: session)
+    }
+    func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail {
+        let doc = try await quoteRecoveryDocument(session)
+        let id = doc.pending?.confirmedQuoteID ?? doc.completedQuoteID ?? (doc.pending?.kind == .edit ? session.context.quoteID : nil)
+        guard let id else { throw QuoteRecoveryError.pendingReview }
+        try await assertRecoverySession(session)
+        let token = try await recoveryToken(session.userID)
+        let detail = try await api.quoteDetail(id: id, accessToken: token)
+        try await assertRecoverySession(session)
+        guard detail.id.lowercased() == id.lowercased() else { throw MobileAPIError.invalidResponse }
+        return detail
+    }
+    func acknowledgeQuoteRecovery(quoteID: String, session: MobileQuoteRecoverySession) async throws {
+        try await assertRecoverySession(session)
+        try await recovery.acknowledge(quoteID: quoteID, session: session)
+        try await assertRecoverySession(session)
+    }
+    func resetQuoteRecovery(_ session: MobileQuoteRecoverySession, reviewedRequest: Bool = false) async throws -> MobileQuoteRecoverySession {
+        try await assertRecoverySession(session)
+        let fresh = try await recovery.startAnother(session, reviewedRequest: reviewedRequest)
+        try await assertRecoverySession(fresh)
+        return fresh
+    }
+    private func performQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail {
+        try validateRecoveryKind(pending.kind, context: session.context)
+        try await assertRecoverySession(session)
+        let token = try await recoveryToken(session.userID)
+        try await recovery.beginSend(session)
+        do {
+        let saved: MobileQuoteDetail
+        switch pending.kind {
+        case .create: saved = try await api.createQuote(pending.request, accessToken: token)
+        case .copy: saved = try await api.createQuoteCopy(pending.request, accessToken: token)
+        case .edit:
+            guard let id = session.context.quoteID else { throw QuoteRecoveryError.unavailable }
+            saved = try await api.updateQuote(id: id, input: pending.request, accessToken: token)
+        case .emptyCopy:
+            guard let id = session.context.quoteID else { throw QuoteRecoveryError.unavailable }
+            saved = try await api.duplicateQuote(id: id, accessToken: token)
+        }
+        try await assertRecoverySession(session)
+        guard UUID(uuidString: saved.id) != nil, let requestID = pending.request.requestId else { throw MobileAPIError.invalidResponse }
+        switch pending.kind {
+        case .create, .copy:
+            guard saved.creationRequestId == requestID, saved.creationReplayed != nil else { throw MobileAPIError.invalidResponse }
+            if pending.kind == .copy, UUID(uuidString: saved.id) == session.context.quoteID.flatMap(UUID.init(uuidString:)) { throw MobileAPIError.invalidResponse }
+        case .edit:
+            guard saved.id.lowercased() == session.context.quoteID?.lowercased(), saved.quoteEditVersion == 1,
+                  let before = pending.request.expectedRevision, before > 0, before < Int.max,
+                  let after = saved.editRevision, after > before else { throw MobileAPIError.invalidResponse }
+        case .emptyCopy:
+            guard UUID(uuidString: saved.id) != session.context.quoteID.flatMap(UUID.init(uuidString:)) else { throw MobileAPIError.invalidResponse }
+        }
+        try await recovery.confirm(quoteID: saved.id, requestID: requestID, session: session)
+        try await assertRecoverySession(session)
+        await recovery.endSend(session)
+        return saved
+        } catch {
+            await recovery.endSend(session)
+            if case MobileAPIError.quoteNotSubmitted = error, let id = pending.request.requestId {
+                try? await recovery.releaseRejectedFirstAttempt(requestID: id, session: session)
+            }
+            throw error
+        }
+    }
+    private func validateRecoveryKind(_ kind: MobileQuotePendingRequest.Kind, context: MobileQuoteRecoveryContext) throws {
+        switch (context, kind) { case (.newProposal, .create), (.edit, .edit), (.copy, .copy), (.copy, .emptyCopy): return; default: throw QuoteRecoveryError.pendingReview }
+    }
+    private func assertRecoverySession(_ session: MobileQuoteRecoverySession) async throws {
+        guard let recoveryEnvironment, session.scope == QuoteRecoveryStore.scope(environment: recoveryEnvironment, userID: session.userID) else { throw QuoteRecoveryError.accountChanged }
+        try await assertRecoveryAccount(session.userID)
+    }
+    private func assertRecoveryAccount(_ userID: String) async throws {
+        let identity: AuthIdentity?
+        do { identity = try await authentication.restoreSession() }
+        catch { throw QuoteRecoveryError.accountChanged }
+        guard let expected = UUID(uuidString: userID), let identity,
+              UUID(uuidString: identity.userID) == expected else { throw QuoteRecoveryError.accountChanged }
+    }
+    private func recoveryToken(_ userID: String) async throws -> String {
+        try await assertRecoveryAccount(userID)
+        let token: String
+        do { token = try await authentication.validAccessToken() }
+        catch { throw MobileAPIError.authenticationRequired }
+        // Scope binding only; the server still verifies the signature and live access.
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3 else { throw QuoteRecoveryError.accountChanged }
+        var encoded = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        encoded += String(repeating: "=", count: (4 - encoded.count % 4) % 4)
+        guard let data = Data(base64Encoded: encoded), let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sub = object["sub"] as? String, let subject = UUID(uuidString: sub), subject == UUID(uuidString: userID) else { throw QuoteRecoveryError.accountChanged }
+        try await assertRecoveryAccount(userID)
+        return token
     }
 }

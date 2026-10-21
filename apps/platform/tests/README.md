@@ -1803,3 +1803,14 @@ Its socket/opt-in guards and full rollback behavior are unchanged. Swift copy
 model/API/service checks remain in `MobileAPIClientTests.swift`. See
 `MOBILE_QUOTE_DUPLICATE_SAFETY.md` for the empty-copy exception, editor-lifetime
 limit and pending native iOS verification.
+
+
+## Mobile restart recovery
+
+The iOS restart-recovery checks live in the existing MobileAPIClientTests target.
+They use synthetic temporary encrypted vaults, injected test keys and transport/
+Auth adapters; they never touch production or the developer's Keychain. Current
+evidence includes independent native OS-process persistence probes, not an iOS
+Simulator/device run. See MOBILE_QUOTE_RESTART_RECOVERY.md for native acceptance
+gates, partial-unsent-input limits and the empty-copy/manual-review distinction.
+The regular platform suite and installed draft/copy/edit suites remain unchanged.

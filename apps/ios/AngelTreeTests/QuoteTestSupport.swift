@@ -17,3 +17,16 @@ extension FieldDataService {
     func recordManualPayment(invoiceID: String, input: MobileManualPaymentRequest) async throws -> MobileInvoicePayload { throw MobileAPIError.requestRejected("Manual payment is not configured for this test.") }
     func resolveManualPayment(invoiceID: String, requestID: String) async throws -> MobileInvoicePayload { throw MobileAPIError.requestRejected("Manual payment recovery is not configured for this test.") }
 }
+
+extension FieldDataService {
+    func recoveryPartyDetail(kind: MobilePartyKind, id: String, session: MobileQuoteRecoverySession) async throws -> MobilePartyDetail { throw QuoteRecoveryError.unavailable }
+    func inspectQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoveryDocument { throw QuoteRecoveryError.unavailable }
+    func openQuoteRecovery(context: MobileQuoteRecoveryContext, userID: String) async throws -> MobileQuoteRecoverySession { throw QuoteRecoveryError.unavailable }
+    func saveQuoteDraft(_ draft: MobileQuoteEditorDraft, session: MobileQuoteRecoverySession) async throws { throw QuoteRecoveryError.unavailable }
+    func quoteRecoveryDocument(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRecoveryDocument { throw QuoteRecoveryError.unavailable }
+    func submitQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
+    func retryQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
+    func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
+    func acknowledgeQuoteRecovery(quoteID: String, session: MobileQuoteRecoverySession) async throws { throw QuoteRecoveryError.unavailable }
+    func resetQuoteRecovery(_ session: MobileQuoteRecoverySession, reviewedRequest: Bool) async throws -> MobileQuoteRecoverySession { throw QuoteRecoveryError.unavailable }
+}

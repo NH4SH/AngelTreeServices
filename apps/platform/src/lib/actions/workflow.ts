@@ -11,7 +11,8 @@ import { getStripeServerConfig } from "@/lib/stripe/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { cancelPendingCommunications } from "@/lib/communications/queue";
 import { reconcileInvoiceBalance } from "@/lib/payments/reconciliation";
-import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
+import { existingInvoiceMessage, isGenerationRequestId } from "@/lib/invoices/generation-request";
+import { generateInvoiceConfirmed } from "@/lib/invoices/generation-confirmation";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type { InvoiceStatus, JobStatus, QuoteStatus } from "@/lib/types/database";
 
@@ -450,13 +451,12 @@ async function generateInvoice(
   if (!isGenerationRequestId(requestId) || !isGenerationRequestId(sourceId)) {
     return { status: "error", message: "Refresh this page to prepare the saved invoice request." };
   }
-  const response = await supabase.rpc("generate_job_invoice", {
+  const confirmation = await generateInvoiceConfirmed(supabase, {
     p_request_id: requestId, p_job_id: source === "job" ? sourceId : null,
     p_quote_id: source === "quote" ? sourceId : null,
   });
-  if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
-  const result = parseGeneratedInvoice(response.data);
-  if (!result) return { status: "error", message: "The invoice result could not be confirmed. Retry this saved request to check it safely." };
+  if (!confirmation.ok) return { status: "error", message: confirmation.message };
+  const result = confirmation.value;
   for (const path of ["/admin", "/admin/jobs", `/admin/jobs/${result.job_id}`, "/admin/quotes", "/admin/invoices",
     `/admin/invoices/${result.invoice_id}`, "/admin/schedule", "/crew/jobs", `/crew/jobs/${result.job_id}`]) revalidatePath(path);
   if (source === "quote") revalidatePath(`/admin/quotes/${sourceId}`);

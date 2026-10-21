@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { completionInputs, parseCompletionContext, type JobCompletionContext } from "@/lib/jobs/completion-request";
-import { isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
-import { safeStaffMessage } from "@/lib/security/errors";
+import { isGenerationRequestId } from "@/lib/invoices/generation-request";
+import { completeWorkConfirmed } from "@/lib/invoices/generation-confirmation";
 type WorkflowActionState = { status: string; message: string; context?: JobCompletionContext };
 function getString(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 
@@ -20,15 +20,13 @@ export async function completeJobWork(_previousState: WorkflowActionState, formD
   const inputs = completionInputs(formData), mode = getString(formData, "mode");
   if (!isGenerationRequestId(jobId) || !isGenerationRequestId(requestId) || !inputs || !["complete", "complete_and_invoice"].includes(mode))
     return { status: "error", message: "Open the work completion review and reload before continuing." };
-  const { data, error } = await supabase.rpc("complete_job_work", { p_job_id: jobId, p_request_id: requestId,
+  const confirmation = await completeWorkConfirmed(supabase, { p_job_id: jobId, p_request_id: requestId,
     ...inputs, p_mode: mode, p_reason: getString(formData, "reason") || null });
-  if (error) return { status: "error", message: safeStaffMessage(error.message) };
-  const context = parseCompletionContext(data?.context);
-  if (!context || data?.job_completed !== true) return { status: "error", message: "Completion could not be confirmed. Retry the saved request safely." };
+  if (!confirmation.ok) return { status: "error", message: confirmation.message };
+  const { context, invoice } = confirmation.value;
   for (const path of ["/admin", "/admin/jobs", `/admin/jobs/${jobId}`, `/admin/jobs/${jobId}/closeout`, "/admin/jobs/closeouts",
     "/admin/schedule", "/admin/invoices", "/crew/jobs", `/crew/jobs/${jobId}`]) revalidatePath(path);
   if (mode === "complete_and_invoice") {
-    const invoice = parseGeneratedInvoice(data);
     if (!invoice) return { status: "error", message: "Review the invoice on this work order before continuing." };
     revalidatePath(`/admin/invoices/${invoice.invoice_id}`);
     redirect(`/admin/invoices/${invoice.invoice_id}?created=1&job_completed=1`);

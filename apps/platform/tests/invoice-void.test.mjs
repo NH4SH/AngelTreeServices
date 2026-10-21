@@ -54,6 +54,7 @@ function fixture(options = {}) {
     "@/lib/communications/queue": noop, "@/lib/payments/reconciliation": noop,
     "@/lib/security/errors": noop,
     "@/lib/invoices/generation-request": generationRequest,
+    "@/lib/invoices/generation-confirmation": noop,
   });
   const form = new FormData(); form.set("invoice_id", id); form.set("next_status", "void");
   form.set("reservation_id", id);

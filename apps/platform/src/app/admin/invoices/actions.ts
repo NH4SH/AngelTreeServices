@@ -10,7 +10,8 @@ import { belongsToContractingParty, parseContractingParty } from "@/lib/contract
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
 import { saveInvoiceEdit } from "@/lib/invoices/save-confirmation";
 import { createStandaloneInvoice } from "@/lib/invoices/standalone-request";
-import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
+import { existingInvoiceMessage, isGenerationRequestId } from "@/lib/invoices/generation-request";
+import { generateInvoiceConfirmed } from "@/lib/invoices/generation-confirmation";
 import { safeStaffMessage } from "@/lib/security/errors";
 
 export type InvoiceActionState = {
@@ -199,14 +200,13 @@ export async function createInvoice(
   if (job) {
     const requestId = String(formData.get("request_id") ?? "");
     if (!isGenerationRequestId(requestId)) return { status: "error", message: "Refresh the page to prepare the invoice request." };
-    const response = await supabase.rpc("generate_job_invoice", {
+    const confirmation = await generateInvoiceConfirmed(supabase, {
       p_request_id: requestId, p_job_id: job.id,
       p_manual: { customer_id: party.customerId, organization_id: party.organizationId, due_at: dueAt,
         lines: lineItems.map(invoiceLineCommand), notes },
     } satisfies RpcArgs<"generate_job_invoice">);
-    if (response.error) return { status: "error", message: safeStaffMessage(response.error.message) };
-    const result = parseGeneratedInvoice(response.data);
-    if (!result) return { status: "error", message: "The invoice result could not be confirmed. Retry the saved details to check it safely." };
+    if (!confirmation.ok) return { status: "error", message: confirmation.message };
+    const result = confirmation.value;
     for (const path of ["/admin", "/admin/jobs", `/admin/jobs/${job.id}`, "/admin/schedule", "/crew/jobs",
       `/crew/jobs/${job.id}`, "/admin/invoices", `/admin/invoices/${result.invoice_id}`]) revalidatePath(path);
     if (party.customerId) revalidatePath(`/admin/customers/${party.customerId}`);

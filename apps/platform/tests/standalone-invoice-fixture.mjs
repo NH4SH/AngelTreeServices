@@ -32,6 +32,7 @@ export function standaloneFixture(options={}){
   '@/lib/supabase/server':{createClient:async()=>options.unconfigured?null:db},'@/lib/contracting-parties':party,
   '@/lib/invoices/due-date':{getInvoiceDueAt},'@/lib/invoices/generation-request':generation,'@/lib/invoices/save-confirmation':{},
   '@/lib/invoices/standalone-request':helper,'@/lib/security/errors':{safeStaffMessage:()=>assert.fail('No arbitrary backend detail exposed')},
+  '@/lib/invoices/generation-confirmation':{},
  });
  const form=new FormData();
  for(const [k,v]of Object.entries({request_id:options.requestId??requestId,contracting_party:options.newCustomer?'new_customer':`${options.organization?'organization':'customer'}:${options.partyId??partyId}`,

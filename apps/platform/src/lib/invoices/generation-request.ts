@@ -18,11 +18,11 @@ export function isGenerationRequestId(value: unknown): value is string {
 
 export type GeneratedInvoice = { invoice_id: string; job_id: string; existing: boolean; replayed: boolean; invoice_status: string; job_completed: boolean; added_change_order_count: number };
 export function parseGeneratedInvoice(value: unknown): GeneratedInvoice | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
   return isGenerationRequestId(row.invoice_id) && isGenerationRequestId(row.job_id)
     && typeof row.existing === "boolean" && typeof row.replayed === "boolean" && typeof row.job_completed === "boolean"
-    && ["draft", "sent", "partially_paid", "paid", "void", "overdue"].includes(String(row.invoice_status))
+    && typeof row.invoice_status === "string" && ["draft", "sent", "partially_paid", "paid", "void", "overdue"].includes(row.invoice_status)
     && Number.isSafeInteger(row.added_change_order_count) && Number(row.added_change_order_count) >= 0 ? row as GeneratedInvoice : null;
 }
 

@@ -1,0 +1,24 @@
+{
+  "path": "/firewood/",
+  "delivery_fee": 150,
+  "stacking_included": true,
+  "quantities": [
+    {
+      "label": "Full cord",
+      "wood_price": 450,
+      "delivered_stacked_price": 600
+    },
+    {
+      "label": "Half cord",
+      "wood_price": 300,
+      "delivered_stacked_price": 450
+    }
+  ],
+  "delivery_areas": [
+    "Fredericksburg",
+    "Spotsylvania",
+    "Stafford",
+    "Caroline",
+    "King George"
+  ]
+}

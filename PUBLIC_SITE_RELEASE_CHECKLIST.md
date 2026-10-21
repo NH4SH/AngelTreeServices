@@ -1,3 +1,55 @@
+## Firewood page — release approved, October 21, 2026
+
+Owner approved commit, push and publication of the reviewed patch. Preserve newer
+repository changes through 08c2d9f (reminder payment snapshots) as this release's
+parent. Use [skip ci] and [skip netlify] on the shared-repository push, then
+explicitly trigger only public site 86c48a95-ead4-4b15-8e57-fa827558b2f0.
+Keep analytics, consent and CRM code/settings unchanged. Re-run local checks on
+the integrated parent; after publication, check the route, exact pricing,
+coverage, links, sitemap, protected runtime and both Netlify projects with no
+lead submissions or calls. Final evidence: chat outputs/firewood-release/.
+
+### Earlier local draft and final review
+
+- Final release review: no blocking regression found; no implementation fix was
+  needed. Fresh suite passes 173 Node + 9 Python tests and validates 18 pages.
+  Rechecked Firewood at 320/390/768px, desktop at 1280px, and homepage desktop
+  navigation at 1101/1280px without overflow or wrapped navigation. Synthetic
+  name, address and multiline details survive a Firewood visit and return to the
+  estimate form; cleared the synthetic draft afterward. All 17 existing SEO
+  heads remain equal except required stylesheet hashes, and all eight protected
+  runtime/style files remain identical. Review evidence: chat
+  outputs/firewood/final-review.json and final-review-tests.txt. Publication is
+  still on hold; no commit, push, deployment, production lead or call.
+- Owner confirmed full cord: $450 firewood + $150 delivery = $600 delivered and
+  stacked; half cord: $300 firewood + $150 delivery = $450 delivered and stacked.
+  Delivery throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King
+  George, including communities within those areas. Source: public-firewood.json.
+- New /firewood/ page uses the existing static-page system, clear price rows,
+  phone contact and a delivery-area anchor. No order form, checkout or unsupported
+  CRM category. No species, seasoning, moisture, log length, stock, pickup,
+  scheduling, tax or wider delivery claims. No new raster/photo assets.
+- Firewood links added to desktop/mobile menus and footers. Existing URLs,
+  SEO metadata, customer form/hero markup, photos and estimate destinations stay
+  intact. New page has its own title, description, canonical and breadcrumbs,
+  sitemap entry and llms.txt resource link. Removed one redundant introductory
+  sentence from llms.txt to retain its existing length limit.
+- Local suite: 173 Node + 9 Python tests pass; 18 pages build and validate.
+  Validation includes totals, fee breakdown, stacking, confirmed coverage,
+  navigation/current-page state and no unsupported form or inventory claims.
+  Browser checks: 320/390/768/1280px Firewood, 1100px homepage navigation,
+  keyboard Enter/Escape and delivery anchor; no horizontal overflow. Firewood
+  prices appear before the phone action on mobile, with no floating action bar.
+- Analytics, consent and CRM code/settings remain unchanged. All eight existing
+  public runtime/style assets compare byte-for-byte with the published baseline.
+  No analytics allowlist expansion; the new path retains existing /other/
+  sanitization. Do not treat it as separately verified GA page reporting.
+- Evidence: October 16 chat outputs/firewood/ contains tests, responsive captures,
+  protected-state checks, complete diff and the independent finish review.
+  Physical-phone and spoken screen-reader checks remain unperformed. Confirm
+  facts and approve publication separately; then run non-submitting live checks.
+  No commit, push, deployment, production lead or call in this draft task.
+
 ## Tree Removal spotlight and mobile homepage — release approved
 
 Owner approved commit, push and publication on October 21, 2026. Preserve newer

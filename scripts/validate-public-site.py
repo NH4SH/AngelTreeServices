@@ -22,6 +22,7 @@ PHONE_LINK = "+15403888715"
 
 EXPECTED_PATHS = (
     "/",
+    "/firewood/",
     "/service-areas/",
     "/services/",
     "/services/tree-removal/",
@@ -716,11 +717,12 @@ class Validator:
                     self.error(f"/services/: service page is not linked from the hub: {route}")
 
     def validate_shared_navigation(self) -> None:
-        desktop_keys = ["about", "services", "landscaping", "projects", "commercial"]
+        desktop_keys = ["about", "services", "landscaping", "firewood", "projects", "commercial"]
         mobile_keys = [
             "about",
             "services",
             "landscaping",
+            "firewood",
             "projects",
             "commercial",
             "credentials",
@@ -743,7 +745,7 @@ class Validator:
                     self.error("/: desktop navigation is missing")
                 for block in desktop_blocks:
                     if keys_in(block) != desktop_keys:
-                        self.error("/: desktop navigation must be About, Tree services, Landscaping, Projects, Commercial")
+                        self.error("/: desktop navigation must be About, Tree services, Landscaping, Firewood, Projects, Commercial")
 
                 mobile_match = re.search(
                     r'<details\b[^>]*class="[^"]*ats-home-mobile-menu[^"]*"[^>]*>.*?'
@@ -774,6 +776,7 @@ class Validator:
             for key, href, label in [
                 ("services", "/services/", "Tree services"),
                 ("landscaping", "/services/landscaping/", "Landscaping"),
+                ("firewood", "/firewood/", "Firewood"),
             ]:
                 matches = re.findall(r'<a\b([^>]*data-ats-nav="' + key + r'"[^>]*)>(.*?)</a>', source, re.DOTALL)
                 for attrs, content in matches:
@@ -786,6 +789,9 @@ class Validator:
                 if route == "/services/landscaping/" and key == "services":
                     if any('aria-current=' in attrs for attrs, _ in matches):
                         self.error(f"{route}: Tree services must not be marked current on Landscaping")
+                if route == "/firewood/" and key == "firewood":
+                    if len(matches) != 2 or any('aria-current="page"' not in attrs for attrs, _ in matches):
+                        self.error(f"{route}: Firewood must be current in both navigation menus")
 
             if re.search(r'data-ats-nav="home"', source, re.IGNORECASE):
                 self.error(f"{route}: Home must remain the brand link rather than a navigation label")
@@ -1764,6 +1770,32 @@ class Validator:
             if header not in source:
                 self.error(f"netlify.toml is missing the public security header: {header}")
 
+    def validate_firewood(self) -> None:
+        source = self.page_sources.get('/firewood/', '')
+        data = json.loads((ROOT / 'public-firewood.json').read_text())
+        rows = re.findall(r'<article class="ats-firewood-price">.*?</article>', source, re.DOTALL)
+        if len(rows) != 2:
+            self.error('Firewood must show two clearly separated quantity/price rows')
+        for row, item in zip(rows, data['quantities']):
+            total = item['wood_price'] + data['delivery_fee']
+            if total != item['delivered_stacked_price']:
+                self.error('Firewood total must include the delivery fee exactly once')
+            for text in (item['label'], f'${total}', f"${item['wood_price']} firewood + ${data['delivery_fee']} delivery"):
+                if text not in row:
+                    self.error(f'Firewood pricing row is missing {text}')
+        if not data['stacking_included'] or 'Delivered and stacked' not in source:
+            self.error('Firewood prices must clearly include stacking')
+        coverage = re.search(r'<ul class="ats-firewood-areas">(.*?)</ul>', source, re.DOTALL)
+        if not coverage or re.findall(r'<li>(.*?)</li>', coverage[1]) != data['delivery_areas']:
+            self.error('Firewood delivery must list only its confirmed areas')
+        if any(term in source.lower() for term in ('kiln-dried', 'seasoned firewood', 'ready to burn', 'free delivery', 'in stock')):
+            self.error('Firewood must not invent drying, stock or delivery claims')
+        if '<form' in source or 'estimate_context=firewood' in source:
+            self.error('Firewood must not introduce a form or unsupported CRM estimate category')
+        for anchor in ('firewood-prices', 'firewood-delivery'):
+            if f'id="{anchor}"' not in source:
+                self.error(f'Firewood page is missing its {anchor} anchor')
+
     def run(self) -> None:
         if not self.site_dir.is_dir():
             self.error(f"Public artifact does not exist: {self.site_dir}")
@@ -1778,6 +1810,7 @@ class Validator:
             self.validate_prefill_links()
             self.validate_navigation_graph()
             self.validate_shared_navigation()
+            self.validate_firewood()
             self.validate_service_areas()
             self.validate_homepage_form()
             self.validate_privacy_layer()

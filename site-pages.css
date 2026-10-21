@@ -1,4 +1,71 @@
 /* Shared static-page system for Angel Tree Services. */
+
+/* Firewood extends the service hero with readable, complete price rows. */
+.ats-firewood-prices {
+  padding: clamp(24px, 3vw, 40px);
+  border-radius: 16px;
+  background: var(--ats-white);
+  color: var(--ats-ink);
+}
+.ats-firewood-prices h2 {
+  margin: 0 0 28px;
+  color: var(--ats-green-deep);
+  font-size: clamp(24px, 2.5vw, 30px);
+  line-height: 1.25;
+}
+.ats-firewood-price + .ats-firewood-price {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ats-border);
+}
+.ats-firewood-price > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ats-firewood-price h3 {
+  margin: 0;
+  color: var(--ats-green-deep);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ats-firewood-price p { margin: 6px 0 0; font-size: 16px; }
+.ats-firewood-price > div > p {
+  margin: 0;
+  color: var(--ats-green-deep);
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.ats-firewood-areas { padding-left: 22px; }
+.ats-firewood-areas li + li { margin-top: 8px; }
+#firewood-prices, #firewood-delivery { scroll-margin-top: 120px; }
+.ats-firewood-page .ats-page-hero {
+  min-height: 0;
+  padding: 64px 24px 96px;
+}
+.ats-firewood-page .ats-page-hero h1 {
+  font-size: clamp(2.25rem, 4.6vw, 4rem);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.ats-firewood-page .ats-page-hero h1::after { display: none; }
+.ats-firewood-page .ats-page-hero__lead { font-size: 18px; }
+.ats-firewood-delivery-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  text-underline-offset: 4px;
+}
+@media (max-width: 700px) {
+  body.ats-firewood-page { padding-bottom: 0; }
+  .ats-firewood-page .ats-page-hero { padding: 36px 20px 80px; }
+  .ats-firewood-page .ats-page-hero__inner { gap: 28px; }
+  .ats-firewood-page .ats-page-hero__lead { margin-top: 18px; }
+}
 :root {
   --ats-green: #287228;
   --ats-green-aa: #287228;

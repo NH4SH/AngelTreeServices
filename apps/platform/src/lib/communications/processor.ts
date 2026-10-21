@@ -3,7 +3,7 @@ import {callDeliveryCommand} from "@/lib/email/delivery-commands";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatProposalNumber } from "../quotes/proposal-number.ts";
-import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
+import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
 import { getExistingCommunicationPortalUrl } from "@/lib/communications/portal-links";
 import { syncAutomatedCommunications, getCommunicationSettingsFromClient } from "@/lib/communications/queue";
 import {
@@ -514,17 +514,10 @@ async function preparePaymentConfirmation(
 }
 
 async function getCurrentInvoiceBalance(supabase: SupabaseClient, invoiceId: string, totalCents: number) {
-  const { data, error } = await supabase
-    .from("payments")
-    .select("amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status")
-    .eq("invoice_id", invoiceId)
-    .eq("status", "succeeded");
-  if (error) throw Error("Payment lookup unavailable");
-  const paidCents = (data ?? []).reduce(
-    (sum, payment) => sum + netSuccessfulPaymentPrincipal(payment),
-    0,
-  );
-  return Math.max(0, totalCents - paidCents);
+  if (!Number.isSafeInteger(totalCents) || totalCents < 0 || totalCents > 2147483647) throw Error("Invoice total unavailable");
+  const principal = await getSuccessfulPaymentTotal(supabase, invoiceId);
+  if (principal.error) throw Error("Payment lookup unavailable");
+  return Math.max(0, totalCents - principal.totalCents);
 }
 
 async function getRecentMatchingDelivery(supabase: SupabaseClient, communication: CustomerCommunication, intervalHours: number) {

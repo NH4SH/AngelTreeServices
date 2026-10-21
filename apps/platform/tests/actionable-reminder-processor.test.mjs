@@ -1,3 +1,4 @@
+import {memoryPaymentPrincipal} from './reminder-payment-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {load,memoryDB} from './pr10-test-helpers.mjs';
@@ -5,7 +6,6 @@ import {formatBusinessDate} from '../src/lib/business-time.ts';
 import {renderCustomerReminderEmailHtml} from '../src/lib/email/customer-reminder-layout.ts';
 import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';
 import {emailDeliveryContext} from '../src/lib/email/delivery-context.ts';
-import {netSuccessfulPaymentPrincipal} from '../src/lib/payments/payment-accounting.ts';
 import {mapBounded,withDeadline} from '../src/lib/runtime/deadline.ts';
 
 const templates=load('../src/lib/communications/templates.ts',{'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml}});
@@ -15,7 +15,7 @@ function fixture(type='invoice_payment_reminder',options={}) {
  const tables={customer_communications:[row],customers:[{id:row.customer_id,display_name:'Synthetic Customer',email:row.recipient_email,status:'active'}],invoices:[{id:row.invoice_id,status:options.status??'sent',total_cents:12500,due_at:'2026-11-05',automatic_reminders_enabled:true,invoice_number:'SYNTHETIC',jobs:null}],quotes:[{id:row.quote_id,status:options.status??'sent',quote_number:'SYNTHETIC',automatic_follow_ups_enabled:true,quote_line_items:[]}],payments:[],email_events:[]};
  const db=memoryDB(tables),settings={automated_sending_enabled:options.enabled??true,minimum_send_interval_hours:24,business_timezone:'America/New_York'};
  const processor=load('../src/lib/communications/processor.ts',{
-  'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{formatProposalNumber:x=>x},'@/lib/payments/payment-accounting':{netSuccessfulPaymentPrincipal},
+  'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{formatProposalNumber:x=>x},'@/lib/payments/reconciliation':{getSuccessfulPaymentTotal:memoryPaymentPrincipal},
   '@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async()=>({url:options.portalUrl??`http://127.0.0.1:3102/portal/${quote?'quote':'invoice'}/synthetic-review`})},
   '@/lib/communications/queue':{syncAutomatedCommunications:async()=>({error:null}),getCommunicationSettingsFromClient:async()=>({data:settings,error:null})},
   '@/lib/communications/templates':templates,'@/lib/email/delivery-context':{emailDeliveryContext},

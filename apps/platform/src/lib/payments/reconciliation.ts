@@ -5,7 +5,6 @@ import { withDeadline } from "../runtime/deadline.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InvoiceStatus } from "@/lib/types/database";
 import { cancelPendingCommunications, syncAutomatedCommunications, syncInvoicePaymentCommunications } from "@/lib/communications/queue";
-import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 
 type ReconcileResult =
@@ -42,13 +41,6 @@ export async function syncReconciledPaymentCommunications(invoiceId: string) {
   }
 }
 
-const supportedDisputeStatuses = new Set([
-  "warning_needs_response", "warning_under_review", "warning_closed", "needs_response", "under_review", "won", "lost",
-]);
-function isPrincipalAmount(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
-}
-
 export async function getSuccessfulPaymentTotal(
   supabase: SupabaseClient<any, "public", any>,
   invoiceId: string,
@@ -57,30 +49,17 @@ export async function getSuccessfulPaymentTotal(
   if (!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(invoiceId)) return unavailable;
   try {
     const receipt = await withDeadline(signal => supabase
-      .from("payments")
-      .select("id, invoice_id, status, amount_cents, refunded_principal_cents, disputed_principal_cents, dispute_status", { count: "exact" })
-      .eq("invoice_id", invoiceId)
-      .eq("status", "succeeded")
+      .rpc("get_invoice_payment_principal", { p_invoice_id: invoiceId } satisfies RpcArgs<"get_invoice_payment_principal">)
       .abortSignal(signal), 5000);
-    // A capped/absent history must not become an overstated amount to collect.
-    // Count and rows come from one response, not independently paged snapshots.
-    if (!receipt || receipt.error !== null || !Array.isArray(receipt.data)
-      || !Number.isSafeInteger(receipt.count) || receipt.count !== receipt.data.length) return unavailable;
-    const ids = new Set<string>();
-    let totalCents = 0;
-    for (const payment of receipt.data) {
-      if (!payment || typeof payment !== "object" || Array.isArray(payment)
-        || typeof payment.id !== "string" || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(payment.id)
-        || ids.has(payment.id) || payment.invoice_id !== invoiceId || payment.status !== "succeeded"
-        || !isPrincipalAmount(payment.amount_cents) || payment.amount_cents <= 0
-        || !isPrincipalAmount(payment.refunded_principal_cents) || payment.refunded_principal_cents > payment.amount_cents
-        || !isPrincipalAmount(payment.disputed_principal_cents) || payment.disputed_principal_cents > payment.amount_cents
-        || !(payment.dispute_status === null || supportedDisputeStatuses.has(payment.dispute_status))) return unavailable;
-      ids.add(payment.id);
-      totalCents += netSuccessfulPaymentPrincipal(payment);
-      if (!Number.isSafeInteger(totalCents)) return unavailable;
-    }
-    return { error: null, totalCents };
+    const row = receipt?.data;
+    if (receipt?.error !== null || !row || typeof row !== "object" || Array.isArray(row)
+      || row.invoice_id !== invoiceId
+      || typeof row.successful_payment_count !== "number" || !Number.isSafeInteger(row.successful_payment_count) || row.successful_payment_count < 0
+      || typeof row.paid_principal_cents !== "number" || !Number.isSafeInteger(row.paid_principal_cents) || row.paid_principal_cents < 0
+      || (BigInt(row.paid_principal_cents) > BigInt(row.successful_payment_count) * BigInt(2147483647))) return unavailable;
+    // The database aggregates all matching rows in one statement snapshot.
+    // No client paging, row-cap bypass, balance write or fallback to guessed zero.
+    return { error: null, totalCents: row.paid_principal_cents };
   } catch {
     return unavailable;
   }

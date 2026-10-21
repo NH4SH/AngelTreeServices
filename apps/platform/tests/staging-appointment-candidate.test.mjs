@@ -59,7 +59,7 @@ test('production targets and write flags fail before starting any tool or networ
 
 test('deferred source migrations do not enter the historic staging ledger or bypass source review',()=>{
  const deferred=JSON.parse(read('supabase/staging/deferred-migrations.json'));
- assert.equal(inventory.length,96);assert.equal(files.length,93);assert.equal(deferred.migrations.length,3);
+ assert.equal(inventory.length,97);assert.equal(files.length,93);assert.equal(deferred.migrations.length,4);
  assert.throws(()=>verifySources(candidate,p=>p==='supabase/staging/deferred-migrations.json'?Buffer.from(JSON.stringify({...deferred,readyForHosting:true})):read(p),inventory));
  assert.throws(()=>verifySources(candidate,p=>p==='supabase/staging/deferred-migrations.json'?Buffer.from(JSON.stringify({...deferred,migrations:[]})):read(p),inventory));
  assert.throws(()=>verifyCandidate(candidate,{...snapshot(),migrationCount:94},[...ledger,migrationIdentity(deferred.migrations[0].name)],files));

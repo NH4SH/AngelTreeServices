@@ -17,8 +17,9 @@ test('portal payment context with installed reads and cleanup in one rollback; n
  skip:process.env.CONTEXT_DISPOSABLE!=='1',timeout:120000},async t=>{
  assert.equal(process.env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
  assert.ok(process.env.CONTEXT_DOCKER_BIN);
+ const database=process.env.CONTEXT_DATABASE??'postgres';assert.match(database,/^(postgres|ats_principal_fresh_[a-f0-9]{32})$/);
   const child = spawn(process.env.CONTEXT_DOCKER_BIN, ['exec', '-i', 'supabase_db_ats_pr02_disposable',
-    'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
+    'psql', '-X', '-qAt', '-U', 'postgres', '-d', database, '-v', 'ON_ERROR_STOP=1'], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
   const lines = createInterface({ input: child.stdout });
   let pending, diagnostic = '', exited = false;
   child.stderr.on('data', data => { diagnostic += data; });
@@ -61,7 +62,8 @@ test('portal payment context with installed reads and cleanup in one rollback; n
       {name:'overlapping refund and lost dispute remain clamped',payments:[{amount:400,refund:300,dispute:300,state:'lost'}],expected:1000},
       {name:'multiple successful rows match installed SQL net principal',payments:[{amount:200},{amount:300,refund:100}],expected:600},
       {name:'fully paid invoice cannot start another collection',payments:[{amount:1000}],status:409},
-      {name:'capped history cannot overstate amount to collect',payments:[{amount:200},{amount:200},{amount:200}],cap:1,status:503},
+      {name:'aggregate sums all principal despite a capped row adapter',payments:[{amount:200},{amount:200},{amount:200}],cap:1,expected:400},
+      {name:'more than one thousand successful payments remain payable',many:1005,expected:3995},
       {name:'revoked token fails before cleanup',revoked:true,status:404},
       {name:'expired token fails before cleanup',expired:true,status:404},
       {name:'existing creating reservation remains held',processing:'creating',status:409,afterCleanup:true},
@@ -69,21 +71,31 @@ test('portal payment context with installed reads and cleanup in one rollback; n
       {name:'draft invoice remains unavailable',draft:true,status:409},
     ];
     for(const c of scenarios)await t.test(c.name,async()=>{
-      const invoice=randomUUID(),party=randomUUID(),token=randomUUID();const hash=createHash('sha256').update(randomUUID()).digest('hex');
+      const invoice=randomUUID(),party=randomUUID(),token=randomUUID();const total=c.many?5000:1000;const hash=createHash('sha256').update(randomUUID()).digest('hex');
       await query(`savepoint fixture;
         ${c.organization?`insert into public.organizations(id,name,billing_email)values('${party}','CONTEXT_ACK_${invoice}','org@example.invalid')`:
           `insert into public.customers(id,display_name,email)values('${party}','CONTEXT_ACK_${invoice}','individual@example.invalid')`};
         insert into public.invoices(id,invoice_number,customer_id,organization_id,status,subtotal_cents,total_cents,balance_due_cents,sent_at)
-          values('${invoice}','CONTEXT_ACK_${invoice}',${c.organization?'null':literal(party)},${c.organization?literal(party):'null'},'${c.draft?'draft':'sent'}',1000,1000,1000,${c.draft?'null':'clock_timestamp()'});
+          values('${invoice}','CONTEXT_ACK_${invoice}',${c.organization?'null':literal(party)},${c.organization?literal(party):'null'},'${c.draft?'draft':'sent'}',${total},${total},${total},${c.draft?'null':'clock_timestamp()'});
         insert into public.invoice_portal_tokens(id,invoice_id,customer_id,organization_id,token_hash,expires_at,revoked_at)
           values('${token}','${invoice}',${c.organization?'null':literal(party)},${c.organization?literal(party):'null'},'${hash}',clock_timestamp()+interval '${c.expired?'-1':'1'} day',${c.revoked?'clock_timestamp()':'null'})`);
       for(const p of c.payments??[])await query(`insert into public.payments(id,invoice_id,customer_id,organization_id,amount_cents,total_collected_cents,surcharge_cents,currency,payment_method,provider,status,
         refunded_principal_cents,disputed_principal_cents,disputed_gross_cents,dispute_status)
         values('${randomUUID()}','${invoice}',${c.organization?'null':literal(party)},${c.organization?literal(party):'null'},${p.amount},${p.amount},0,'usd','cash','manual','succeeded',${p.refund??0},${p.dispute??0},${p.dispute??0},${literal(p.state??null)})`);
+      if(c.many)await query(`insert into public.payments(invoice_id,customer_id,amount_cents,total_collected_cents,surcharge_cents,currency,payment_method,provider,status)
+        select '${invoice}','${party}',1,1,0,'usd','cash','manual','succeeded' from generate_series(1,${c.many})`);
       if(c.processing)await query(`insert into public.invoice_checkout_sessions(id,invoice_id,customer_id,amount_cents,invoice_principal_cents,surcharge_cents,total_charge_cents,currency,payment_channel,status,processing_expires_at)
         values('${randomUUID()}','${invoice}','${party}',1000,1000,0,1000,'usd','card','${c.processing}',clock_timestamp()+interval '10 minutes')`);
       const codes=[],calls=[];
-      const db={from(table){
+      const db={rpc(name,args){
+        assert.equal(name,'get_invoice_payment_principal');assert.deepEqual(args,{p_invoice_id:invoice});calls.push('principal_snapshot');
+        const q={abortSignal(){return q;},then(resolve,reject){return run().then(resolve,reject);}};
+        async function run(){
+          const lines=await query(`set local role service_role;set local request.jwt.claims='{"role":"service_role"}';
+            select 'RESULT:'||pg_temp.capture_json(${literal(`select public.get_invoice_payment_principal('${invoice}')`)})::text;reset role`);
+          const result=JSON.parse(lines.find(line=>line.startsWith('RESULT:')).slice(7));if(result.error)codes.push(result.error.code);return result;
+        }return q;
+      },from(table){
         assert.ok(['invoices','invoice_portal_tokens','payments','invoice_checkout_sessions'].includes(table));let fields,selectOptions,limit,single=false;const filters=[];
         const q={select(v,o){fields=v;selectOptions=o;return q;},eq(k,v){filters.push([k,'=',v]);return q;},is(k,v){assert.equal(v,null);filters.push([k,'is',v]);return q;},
           in(k,v){filters.push([k,'in',v]);return q;},lte(k,v){filters.push([k,'<=',v]);return q;},limit(v){limit=v;return q;},abortSignal(){return q;},
@@ -118,11 +130,31 @@ test('portal payment context with installed reads and cleanup in one rollback; n
       const lines=await query(`select 'STATE:'||jsonb_build_object('paid',app_private.invoice_paid_principal('${invoice}'),'total',(select total_cents from invoices where id='${invoice}'),
         'paymentCount',(select count(*) from payments where invoice_id='${invoice}'),'preference',(select payment_preference from invoices where id='${invoice}'),
         'sources',(select count(*) from app_private.customer_source_events where event->>'subject_id'='${invoice}'))::text`);
-      const state=JSON.parse(lines.find(s=>s.startsWith('STATE:')).slice(6));assert.equal(state.total,1000);assert.equal(state.paymentCount,(c.payments??[]).length);assert.equal(state.preference,null);assert.equal(state.sources,0);
-      if(result.ok)assert.equal(result.invoicePrincipalCents,1000-state.paid);
-      proof.push({name:c.name,pass:true,sqlErrors:codes,reads:calls.length,installedNetPrincipal:state.paid});
+      const state=JSON.parse(lines.find(s=>s.startsWith('STATE:')).slice(6));assert.equal(state.total,total);assert.equal(state.paymentCount,(c.payments??[]).length+(c.many??0));assert.equal(state.preference,null);assert.equal(state.sources,0);
+      if(result.ok)assert.equal(result.invoicePrincipalCents,total-state.paid);
+      assert.equal(calls.includes('payments'),false,'new context must not download a paged payment list');
+      proof.push({name:c.name,pass:true,sqlErrors:codes,reads:calls.length,installedNetPrincipal:state.paid,paymentCount:state.paymentCount});
       await query('rollback to savepoint fixture;release savepoint fixture');
       assert.ok((await query(`select 'ABSENT:'||count(*) from invoices where id='${invoice}'`)).includes('ABSENT:0'));
+    });
+    await t.test('snapshot execute grants, invoker/stable properties and subject guard remain server-only',async()=>{
+      for(const [role,sub,code]of [['anon',null,'42501'],['authenticated',null,'42501'],['service_role',randomUUID(),'42501'],['service_role',null,'22023']]){
+        const arg=code==='22023'?'null':literal(randomUUID());
+        const lines=await query(`set local role ${role};set local request.jwt.claims=${literal(JSON.stringify({role,...(sub?{sub}:{})}))};
+          select 'DENIED:'||pg_temp.capture_json(${literal('select public.get_invoice_payment_principal('+arg+')')})::text;reset role`);
+        assert.equal(JSON.parse(lines.find(s=>s.startsWith('DENIED:')).slice(7)).error.code,code);
+      }
+      const meta=await query(`select 'META:'||jsonb_build_object('definer',p.prosecdef,'volatility',p.provolatile,'config',p.proconfig,
+        'anon',has_function_privilege('anon',p.oid,'execute'),'authenticated',has_function_privilege('authenticated',p.oid,'execute'),
+        'service',has_function_privilege('service_role',p.oid,'execute'),'privateHelper',has_function_privilege('service_role','app_private.invoice_paid_principal(uuid)','execute'))::text
+        from pg_proc p where p.oid='public.get_invoice_payment_principal(uuid)'::regprocedure`);
+      const m=JSON.parse(meta.find(s=>s.startsWith('META:')).slice(5));assert.equal(m.definer,false);assert.equal(m.volatility,'s');assert.equal(m.anon,false);assert.equal(m.authenticated,false);assert.equal(m.service,true);assert.equal(m.privateHelper,false);assert.deepEqual(m.config,['search_path=""']);
+      proof.push({name:'server-only invoker/stable properties and subject guard',pass:true});
+    });
+    await t.test('unknown invoice does not become a fabricated zero balance and query works in a read-only transaction',async()=>{
+      await query(`rollback;begin read only;set local role service_role;set local request.jwt.claims='{"role":"service_role"}'`);
+      const r=await query(`select 'READONLY:'||coalesce(public.get_invoice_payment_principal('${randomUUID()}')::text,'null')`);assert.ok(r.includes('READONLY:null'));
+      await query('rollback;begin');proof.push({name:'read-only invocation and absent invoice',pass:true});
     });
   } finally {
     if(!exited){await query('rollback');child.stdin.end();}await closed;lines.close();

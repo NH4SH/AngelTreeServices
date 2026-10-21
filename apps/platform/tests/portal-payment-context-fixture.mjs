@@ -29,6 +29,17 @@ export function contextFixture(options={}){
    assert.equal(table,'invoice_checkout_sessions');return{data:null,error:null};
   }return q;
  }};
+ if(!options.db)db.rpc=(name,args)=>{
+  const key='principal_snapshot';calls.push({table:key,rpc:name,args});
+  const q={abortSignal(signal){signal.addEventListener('abort',()=>aborted.push(key));return q;},then(resolve,reject){return run().then(resolve,reject);}};
+  async function run(){
+   assert.equal(name,'get_invoice_payment_principal');assert.deepEqual(args,{p_invoice_id:options.expectedId??invoiceId});
+   if(options.throwAt===key)throw Error('private snapshot diagnostic');if(options.hangAt===key)return new Promise(()=>{});
+   if(Object.hasOwn(options.receipts??{},key))return options.receipts[key];
+   const rows=options.payments??[];
+   return{data:{invoice_id:options.expectedId??invoiceId,successful_payment_count:rows.length,paid_principal_cents:rows.reduce((sum,r)=>sum+netSuccessfulPaymentPrincipal(r),0)},error:null};
+  }return q;
+ };
  const reconciliation=load('../src/lib/payments/reconciliation.ts',{'server-only':{},'../runtime/deadline.ts':{withDeadline:deadline},
   '@/lib/payments/payment-accounting':{netSuccessfulPaymentPrincipal},'@/lib/communications/queue':{},'@/lib/supabase/admin':{}});
  const context=load('../src/lib/payments/portal-card-context.ts',{'server-only':{},'../runtime/deadline.ts':{withDeadline:deadline},

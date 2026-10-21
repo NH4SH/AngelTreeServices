@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "8835e85c6b3ef3a1a6b4a197dd2d6bb5fc6d216c219eb7cef9b5b23bffe9cfe0",
+  "typesSha256": "f7b6b79f6473b7cce5b75319f91bae1b7d00db2ccf494644b1b3818a89bf8745",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -385,6 +385,10 @@
     {
       "name": "20261020064543_durable_customer_source_events.sql",
       "sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006"
+    },
+    {
+      "name": "20261021012859_invoice_payment_principal_snapshot.sql",
+      "sha256": "f9d3e431e8fcdd7126489b2826a8fff5fd1c0b5c3138e19937c46ba70e7d1ac4"
     }
   ]
 }

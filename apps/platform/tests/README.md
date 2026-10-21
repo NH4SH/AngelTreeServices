@@ -1709,3 +1709,29 @@ this is not a test of actual PostgREST truncation or hosted HTTP/Auth. Every
 fixture/temp helper rolls back with scenario savepoints and one outer transaction.
 No provider request, new collection or customer communication occurs. See
 `../PORTAL_PAYMENT_CONTEXT.md` for scope and remaining limits.
+
+### Complete invoice principal snapshot (migration97)
+
+`getSuccessfulPaymentTotal` now uses the server-only
+`get_invoice_payment_principal` RPC instead of downloading individual payments.
+The shared portal suite has 116 current checks: its seven net-obsolete transport
+cases were replaced with aggregate receipt guards; invoice/token/account,
+processing, deadline, route and existing principal-math coverage remain.
+`payment-principal-snapshot.test.mjs` adds 23 checks for one-query large histories,
+read-only behavior, missing/unsafe/foreign/impossible responses, no row fallback,
+transport containment, deadlines, invalid identities and deferred staging status.
+
+The existing opt-in command above now requires migration97 installed on the
+**disposable local stack only**. It runs 18 cases / 19 TAP results, including
+1,005 successful payment rows, exact equality with the existing SQL principal
+formula, organization-only billing, partial/refunded/disputed payments, active
+reservation holds, real anonymous/authenticated and privileged-subject denials,
+invoker/stable/search-path/grant checks and a read-only absent-invoice query.
+The context does not download a payments table page, even when the response
+adapter caps such pages. Every fixture still rolls back. The same suite passed
+on a fresh97 replay and on the upgraded shared disposable stack. A separate
+loopback Data API smoke check used a synthetic absent UUID only; it made no
+fixture writes or customer reads. It verifies RPC exposure/anonymous denial,
+not actual HTTP acceptance with a committed populated invoice, concurrent
+transactions, provider behavior or hosted readiness. There is no raw-row fallback
+when a target lacks the migration; do not release the app without reconciliation.

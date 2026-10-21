@@ -128,3 +128,14 @@ implicit PUBLIC versus direct named grants, and actual TRUNCATE despite RLS.
 Everything rolls back. The full local run passes 185 database assertions, and a
 real provider-created object is rejected by the frozen-catalog runner. See
 `apps/platform/SUPABASE_MANAGED_DEFAULTS_REVIEW.md` for the disposition and scope.
+
+Migration97 (`20261021012859_invoice_payment_principal_snapshot.sql`) is pinned in
+`deferred-migrations.json` for separate staging review. It adds one server-only,
+invoker read of complete successful invoice principal; it changes no money,
+existing grants or rows. It has been tested only in fresh/local disposable
+PostgreSQL. Historical candidates93–96 remain byte-pinned and do not include it;
+no hosted readiness flag or staging target is advanced by this implementation.
+A later reconciliation must verify its exact SQL, service-only execution, current
+Auth guard, owned/managed defaults and unchanged empty/off state before any
+staging-only installation. The portal reader requires this function before an
+application release; absence fails closed, without falling back to row downloads.

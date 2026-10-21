@@ -15435,6 +15435,12 @@ export type Database = {
                     "status": string;
                 }[];
             };
+            "get_invoice_payment_principal": {
+                Args: {
+                    "p_invoice_id": string;
+                };
+                Returns: Json;
+            };
             "get_job_completion_context": {
                 Args: {
                     "p_job_id": string;

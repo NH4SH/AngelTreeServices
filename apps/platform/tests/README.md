@@ -1793,3 +1793,13 @@ refusal checks are in `AngelTreeTests/MobileAPIClientTests.swift`. Full native
 XCTest/Simulator execution requires Xcode; portable Foundation checks are not an
 iOS screen acceptance run. See `MOBILE_QUOTE_REQUESTS.md` for current evidence and
 editor-lifetime limitations.
+
+
+`tests/mobile-quote-copy.test.mjs` adds copy endpoint/validation coverage to the
+regular suite. The existing installed mobile request suite now also covers a
+frozen copy across lost acknowledgement and source edits/expiration, an explicit
+second identity, long stored wording/51 lines, and legacy empty draft creation.
+Its socket/opt-in guards and full rollback behavior are unchanged. Swift copy
+model/API/service checks remain in `MobileAPIClientTests.swift`. See
+`MOBILE_QUOTE_DUPLICATE_SAFETY.md` for the empty-copy exception, editor-lifetime
+limit and pending native iOS verification.

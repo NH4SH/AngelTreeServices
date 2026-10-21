@@ -93,3 +93,27 @@ function optionalString(value: unknown) {
 }
 
 function invalid(error: string) { return { value: null, error }; }
+
+// Copies preserve existing stored text and the installed SQL command's 1,000-line
+// limit. Do not route them through the smaller, text-normalizing mobile editor.
+export function validateMobileQuoteCopyInput(value: unknown): { value: MobileQuoteWriteInput | null; error: string } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return invalid("Review the proposal to copy.");
+  const input = value as Record<string, unknown>;
+  if (typeof input.requestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.requestId)) return invalid("Refresh this proposal before making a copy.");
+  const customerId = optionalString(input.customerId), organizationId = optionalString(input.organizationId), serviceLocationId = optionalString(input.serviceLocationId);
+  if (Boolean(customerId) === Boolean(organizationId) || !serviceLocationId) return invalid("Choose one contracting party and service location.");
+  if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 1000) return invalid("Review the proposal line items.");
+  if (input.customerMessage != null && typeof input.customerMessage !== "string") return invalid("Review the proposal notes.");
+  const lines: MobileQuoteLineInput[] = [];
+  for (const raw of input.lines) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return invalid("Review the proposal line items.");
+    const line = raw as Record<string, unknown>;
+    if (typeof line.name !== "string" || !line.name.trim() || (line.description != null && typeof line.description !== "string")
+      || typeof line.quantity !== "number" || !Number.isFinite(line.quantity) || line.quantity <= 0 || line.quantity > 99_999_999.99
+      || !Number.isSafeInteger(line.unitPriceCents) || Number(line.unitPriceCents) < 0 || Number(line.unitPriceCents) > 2_147_483_647) return invalid("Review the proposal line quantities and prices.");
+    lines.push({ name: line.name, description: line.description as string | null | undefined, quantity: line.quantity, unitPriceCents: Number(line.unitPriceCents) });
+  }
+  return { value: { customerId, organizationId, serviceLocationId, requestId: input.requestId.toLowerCase(),
+    customerMessage: input.customerMessage as string | null | undefined, expiresAt: optionalString(input.expiresAt),
+    recipientContactId: optionalString(input.recipientContactId), approvalContactId: optionalString(input.approvalContactId), lines }, error: "" };
+}

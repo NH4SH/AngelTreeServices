@@ -22,6 +22,7 @@ protocol FieldDataService: Sendable {
     func quoteDirectory(scope: MobileQuoteScope, cursor: String?, query: String?, userID: String, allowCached: Bool) async throws -> (page: MobileQuotePage, cached: Bool)
     func quoteDetail(id: String, userID: String, allowCached: Bool) async throws -> (detail: MobileQuoteDetail, cached: Bool)
     func createQuote(_ input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail
+    func createQuoteCopy(_ input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail
     func updateQuote(id: String, input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail
     func duplicateQuote(id: String) async throws -> MobileQuoteDetail
     func invoiceDirectory(scope: MobileInvoiceScope, cursor: String?, query: String?, userID: String, allowCached: Bool) async throws -> (page: MobileInvoicePage, cached: Bool)
@@ -135,6 +136,11 @@ actor LiveFieldDataService: FieldDataService {
     func createQuote(_ input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail {
         let token = try await authentication.validAccessToken()
         return try await api.createQuote(input, accessToken: token)
+    }
+
+    func createQuoteCopy(_ input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail {
+        let token = try await authentication.validAccessToken()
+        return try await api.createQuoteCopy(input, accessToken: token)
     }
 
     func updateQuote(id: String, input: MobileQuoteWriteRequest) async throws -> MobileQuoteDetail {

@@ -5,6 +5,9 @@ import {spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {writeFileSync} from 'node:fs';
 import {quoteEditFixture} from './quote-edit-confirmation-fixture.mjs';
+import {load} from './pr10-test-helpers.mjs';
+import * as editResult from '../src/lib/quotes/edit-result.ts';
+const copyValidation=load('../src/lib/api/mobile-quotes.ts');
 const literal=value=>value===null?'null':"'"+String(value).replaceAll("'","''")+"'";
 
 test('mobile durable creation against installed staff commands; synthetic rollback only',{
@@ -34,6 +37,11 @@ test('mobile durable creation against installed staff commands; synthetic rollba
   for (const c of [
    ...['owner','admin','estimator','payroll_admin'].map(staff=>({name:staff+' creates one mobile proposal',staff})),
    {name:'organization proposal retains active contacts and property',organization:true},
+   {name:'historical empty draft retains legacy creation and history',emptyLegacy:true},
+   {name:'copied snapshot survives loss and later source edits',copy:true,lost:true},
+   {name:'organization copy survives loss and source expiry',copy:true,organization:true,throwAfter:true},
+   {name:'another deliberate copy requires a fresh identity',copy:true,anotherCopy:true},
+   {name:'copy retains 51 long stored scope lines without editor truncation',copy:true,copyLong:true},
    {name:'lost acknowledgement recovers once',lost:true}, {name:'exception after SQL recovers once',throwAfter:true},
    {name:'replay returns current approved record without reopening',closed:true},
    {name:'replay returns later edits for review',edited:true},
@@ -65,14 +73,25 @@ test('mobile durable creation against installed staff commands; synthetic rollba
      select 'RESULT:'||pg_temp.capture_json(${literal(statement)})::text;reset role`);
     return JSON.parse(rows.find(r=>r.startsWith('RESULT:')).slice(7));
    }
-   const f=quoteEditFixture({create:true,actor,party,location,organization:c.organization,requestId:request,rpc:async(name,args)=>{
-    assert.equal(name,'create_quote_draft_request');
-    const response=await asActor(`select public.create_quote_draft_request(${literal(args.p_request_id)},${literal(JSON.stringify(args.p_header))}::jsonb,${literal(JSON.stringify(args.p_lines))}::jsonb)`);
+   const f=quoteEditFixture({create:true,legacyCreate:c.emptyLegacy,actor,party,location,organization:c.organization,requestId:request,rpc:async(name,args)=>{
+    assert.equal(name,c.emptyLegacy?'create_quote_draft':'create_quote_draft_request');
+    const response=await asActor(c.emptyLegacy?`select public.create_quote_draft(${literal(JSON.stringify(args.p_header))}::jsonb,${literal(JSON.stringify(args.p_lines))}::jsonb)`:
+     `select public.create_quote_draft_request(${literal(args.p_request_id)},${literal(JSON.stringify(args.p_header))}::jsonb,${literal(JSON.stringify(args.p_lines))}::jsonb)`);
     responses.push(response);
     if(lost){lost=false;return{data:null,error:null};}if(throws){throws=false;throw Error('Synthetic acknowledgement loss');}return response;
    }});
-   f.input.requestId=request;
+   if(c.emptyLegacy)f.input.lines=[];else f.input.requestId=request;
    if(c.organization){f.input.recipientContactId=contact;f.input.approvalContactId=contact;}
+   let sourceId;
+   if(c.copy){
+    f.input.lines=f.input.lines.map(({id,...line})=>line);
+    f.input.customerMessage='Original copied note';f.input.expiresAt='2030-01-01T00:00:00Z';
+    if(c.copyLong)f.input.lines=Array.from({length:51},()=>({name:'  '+'N'.repeat(140)+'  ',description:'Scope\r\n'+'x'.repeat(13000)+'  ',quantity:1,unitPriceCents:1}));
+    const created=await asActor(`select public.create_quote_draft(${literal(JSON.stringify({customer_id:c.organization?null:party,organization_id:c.organization?party:null,service_location_id:location,recipient_contact_id:c.organization?contact:null,approval_contact_id:c.organization?contact:null,customer_message:f.input.customerMessage,expires_at:f.input.expiresAt}))}::jsonb,
+      ${literal(JSON.stringify(f.input.lines.map((line,sort_order)=>({name:line.name,description:line.description,quantity:line.quantity,unit_price_cents:line.unitPriceCents,total_cents:line.quantity*line.unitPriceCents,sort_order}))))}::jsonb)`);
+    assert.equal(created.error,null);sourceId=created.data.id;
+    assert.equal(await json(`select count(*)from app_private.quote_draft_requests where actor_user_id='${actor}'`),0);
+   }
    // Execute mobile ownership/detail reads under the same actual RLS principal.
    f.db.from=table=>{
     assert.ok(['service_locations','quotes','quote_portal_tokens','organization_contacts'].includes(table));let id;
@@ -82,8 +101,21 @@ test('mobile durable creation against installed staff commands; synthetic rollba
       asActor(`select to_jsonb(q)||jsonb_build_object('customers',(select to_jsonb(c)from customers c where c.id=q.customer_id),'organizations',(select to_jsonb(o)from organizations o where o.id=q.organization_id),'service_locations',(select to_jsonb(l)from service_locations l where l.id=q.service_location_id),'quote_line_items',(select jsonb_agg(to_jsonb(l)order by sort_order)from quote_line_items l where l.quote_id=q.id))from quotes q where id=${literal(id)}`),
      maybeSingle:async()=>({data:null,error:null})};return q;
    };
-   const run=()=>f.runMobileCreate();let first;
-   if(c.initialReject){
+   const copyRoute=load('../src/app/api/mobile/quotes/copy/route.ts',{
+    '@/lib/api/mobile-quotes':copyValidation,'@/lib/quotes/edit-result':editResult,
+    '@/lib/api/responses':{apiSuccess:(data,status)=>({data,status}),apiError:(code,message,status)=>({error:{code,message},status})},
+    '@/lib/auth/apiContext':{getCrewApiContext:async()=>({context:{roles:['owner'],user:{id:actor},supabase:f.db}})},
+    '@/lib/data/mobile-quotes':{createMobileQuote:async(db,user,input)=>{Object.assign(f.input,input);return f.runMobileCreate();}},
+   });
+   const run=async()=>{
+    if(!c.copy)return f.runMobileCreate();
+    const response=await copyRoute.POST(new Request('http://localhost/api/mobile/quotes/copy',{method:'POST',body:JSON.stringify(f.input)}));
+    if(response.status!==201)throw new editResult.QuoteEditError(response.error.message,response.status);return response.data.quote;
+   };let first;
+   if(c.emptyLegacy){
+    const empty=await run();assert.deepEqual(empty.lines,[]);assert.equal(empty.creationRequestId,undefined);
+    assert.equal(responses[0].error,null);assert.equal(f.calls.length,1);
+   }else if(c.initialReject){
     await assert.rejects(run());
     if(responses.length)assert.equal(responses[0].error.code,c.code);
     else{
@@ -97,6 +129,11 @@ test('mobile durable creation against installed staff commands; synthetic rollba
     const id=responses[0].data.id;
     if(c.closed)await query(`update quotes set status='approved' where id='${id}'`);
     if(c.edited)await query(`update quotes set customer_message='Later saved edit' where id='${id}'`);
+    if(c.copy){
+     assert.notEqual(id,sourceId);
+     await query(`update quotes set customer_message='Source edited after request',expires_at='2020-01-01T00:00:00Z'where id='${sourceId}';
+      update quote_line_items set description='Source scope edited after request'where quote_id='${sourceId}'`);
+    }
     if(c.changed)f.input.customerMessage='Changed scope';
     if(c.otherActor)subject=otherActor;
     if(c.inactive)await query(`update employee_records set employment_status='inactive',is_active=false where auth_user_id='${actor}'`);
@@ -112,13 +149,24 @@ test('mobile durable creation against installed staff commands; synthetic rollba
     }
     else{const replay=await run();assert.equal(replay.id,id);
      if(c.organization){assert.equal(replay.party.kind,'organization');assert.equal(replay.party.id,party);assert.equal(replay.recipientContactId,contact);assert.equal(replay.approvalContactId,contact);}assert.equal(replay.creationReplayed,true);assert.equal(replay.creationRequestId,request);
-     if(c.closed)assert.equal(replay.status,'approved');if(c.edited)assert.equal(replay.customerMessage,'Later saved edit');}
+     if(c.closed)assert.equal(replay.status,'approved');if(c.edited)assert.equal(replay.customerMessage,'Later saved edit');
+     if(c.copy){
+      assert.equal(replay.customerMessage,'Original copied note');assert.equal(replay.lines[0].description,f.input.lines[0].description);assert.equal(replay.lines[0].name,f.input.lines[0].name);
+      assert.equal(Date.parse(replay.expiresAt),Date.parse('2030-01-01T00:00:00Z'));
+      assert.deepEqual(f.calls[1].args,f.calls[0].args);assert.equal(f.calls.length,2);
+     }
+     if(c.anotherCopy){
+      f.input.requestId=randomUUID();const second=await run();assert.equal(second.creationReplayed,false);
+      assert.notEqual(second.id,id);assert.notEqual(second.id,sourceId);assert.equal(f.calls.length,3);
+     }
+    }
    }
    const state=await json(`select jsonb_build_object('quotes',(select count(*)from quotes where customer_id='${party}'or organization_id='${party}'),
     'lines',(select count(*)from quote_line_items l join quotes q on q.id=l.quote_id where q.customer_id='${party}'or q.organization_id='${party}'),
     'audits',(select count(*)from activity_log a join quotes q on q.id=a.subject_id where a.event_type='quote_created'and(q.customer_id='${party}'or q.organization_id='${party}')),
-    'requests',(select count(*)from app_private.quote_draft_requests where request_id='${request}'))`);
-   assert.deepEqual(state,c.initialReject?{quotes:0,lines:0,audits:0,requests:0}:{quotes:1,lines:2,audits:1,requests:1});
+    'requests',(select count(*)from app_private.quote_draft_requests where actor_user_id='${actor}'))`);
+   const saved=c.initialReject?0:1, copies=saved+(c.copy?1:0)+(c.anotherCopy?1:0);
+   assert.deepEqual(state,{quotes:copies,lines:copies*(c.emptyLegacy?0:c.copyLong?51:2),audits:copies,requests:c.emptyLegacy?0:saved+(c.anotherCopy?1:0)});
    proof.push({name:c.name,pass:true,...state});await query('rollback to savepoint fixture;release savepoint fixture');
   });
   await query('rollback');

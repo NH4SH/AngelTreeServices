@@ -309,6 +309,175 @@ final class MobileAPIClientTests: XCTestCase {
         catch { XCTAssertEqual(error as? MobileAPIError, .invalidRequest) }
     }
 
+    func testDuplicateFreezesOrderedScopeAndClearsOriginalLineIdentities() throws {
+        let source = duplicateSource()
+        let attempt = try MobileQuoteDuplicateAttempt(source: source, now: Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(attempt.sourceQuoteID, source.id)
+        XCTAssertNotNil(attempt.request.requestId.flatMap(UUID.init(uuidString:)))
+        XCTAssertEqual(attempt.request.customerId, source.party?.id)
+        XCTAssertNil(attempt.request.organizationId)
+        XCTAssertEqual(attempt.request.serviceLocationId, source.serviceLocation.id)
+        XCTAssertEqual(attempt.request.customerMessage, source.customerMessage)
+        XCTAssertEqual(attempt.request.lines.map(\.name), ["Pruning", "Cleanup"])
+        XCTAssertEqual(attempt.request.lines[0].description, "Keep lower branches\nHaul brush")
+        XCTAssertEqual(attempt.request.lines[0].quantity, 1.25)
+        XCTAssertEqual(attempt.request.lines[0].unitPriceCents, 12345)
+        XCTAssertTrue(attempt.request.lines.allSatisfy { $0.id == nil && $0.totalCents == nil })
+        XCTAssertNil(attempt.request.expectedRevision)
+        XCTAssertEqual(attempt.request.expiresAt, source.expiresAt)
+        let changedSource = duplicateSource(note: "Edited after first request")
+        XCTAssertNotEqual(changedSource.customerMessage, attempt.request.customerMessage)
+    }
+
+    func testDuplicateOrganizationKeepsBothContactsAndExpiresOnlyOnce() throws {
+        let source = duplicateSource(kind: .organization)
+        let expired = try MobileQuoteDuplicateAttempt(source: source, now: Date.distantFuture)
+        XCTAssertNil(expired.request.customerId)
+        XCTAssertEqual(expired.request.organizationId, source.party?.id)
+        XCTAssertEqual(expired.request.recipientContactId, source.recipientContactId)
+        XCTAssertEqual(expired.request.approvalContactId, source.approvalContactId)
+        XCTAssertNil(expired.request.expiresAt)
+        let future = try MobileQuoteDuplicateAttempt(source: source, now: Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(future.request.expiresAt, source.expiresAt)
+        XCTAssertNotEqual(future.request.requestId, expired.request.requestId)
+    }
+
+    func testDuplicateConfirmationRejectsForeignMissingAndSourceReceipts() throws {
+        var attempt = try MobileQuoteDuplicateAttempt(source: duplicateSource())
+        var result = duplicateSource(id: "b0000000-0000-4000-8000-000000000001")
+        XCTAssertThrowsError(try attempt.confirm(result))
+        XCTAssertNil(attempt.confirmed)
+        result.creationRequestId = "foreign"; result.creationReplayed = false
+        XCTAssertThrowsError(try attempt.confirm(result))
+        result.creationRequestId = attempt.request.requestId; result.creationReplayed = nil
+        XCTAssertThrowsError(try attempt.confirm(result))
+        var original = duplicateSource(); original.creationRequestId = attempt.request.requestId; original.creationReplayed = false
+        XCTAssertThrowsError(try attempt.confirm(original))
+        XCTAssertNil(attempt.confirmed)
+        result.creationReplayed = false
+        XCTAssertFalse(try attempt.confirm(result))
+        XCTAssertEqual(attempt.confirmed?.id, result.id)
+        var foreign = duplicateSource(id: "c0000000-0000-4000-8000-000000000001")
+        foreign.creationRequestId = attempt.request.requestId; foreign.creationReplayed = true
+        XCTAssertThrowsError(try attempt.confirm(foreign))
+        XCTAssertEqual(attempt.confirmed?.id, result.id)
+    }
+
+    func testDuplicateReplayCanReviewACopyThatWasLaterApproved() throws {
+        var attempt = try MobileQuoteDuplicateAttempt(source: duplicateSource())
+        var result = duplicateSource(id: "b0000000-0000-4000-8000-000000000001", status: "approved", note: "Later office edit")
+        result.creationRequestId = attempt.request.requestId; result.creationReplayed = true
+        XCTAssertTrue(try attempt.confirm(result))
+        XCTAssertEqual(attempt.confirmed?.status, "approved")
+        XCTAssertEqual(attempt.confirmed?.customerMessage, "Later office edit")
+        XCTAssertNotEqual(attempt.request.customerMessage, result.customerMessage)
+    }
+
+    func testDuplicateLostResponseRetriesExactBodyAndNeverCallsLegacyEndpoint() async throws {
+        var attempt = try MobileQuoteDuplicateAttempt(source: duplicateSource())
+        let expected = attempt.request
+        var calls = 0; var firstBody: Data?
+        URLProtocolStub.handler = { request in
+            calls += 1
+            XCTAssertEqual(request.url?.path, "/api/mobile/quotes/copy")
+            let data = Self.fileBody(request)
+            let decoded = try JSONDecoder().decode(MobileQuoteWriteRequest.self, from: data)
+            XCTAssertEqual(decoded, expected)
+            if calls == 1 { firstBody = data; throw URLError(.networkConnectionLost) }
+            XCTAssertEqual(try JSONDecoder().decode(MobileQuoteWriteRequest.self, from: firstBody!), decoded)
+            var saved = Self.duplicateSource(id: "b0000000-0000-4000-8000-000000000001")
+            saved.creationRequestId = expected.requestId; saved.creationReplayed = true
+            let payload = try JSONEncoder().encode(MobileQuotePayload(quote: saved))
+            return Self.response(request, status: 201, json: "{\"data\":" + String(decoding: payload, as: UTF8.self) + "}")
+        }
+        do { _ = try await makeClient().createQuoteCopy(attempt.request, accessToken: "token"); XCTFail("Expected loss") } catch {}
+        XCTAssertNil(attempt.confirmed)
+        let recovered = try await makeClient().createQuoteCopy(attempt.request, accessToken: "token")
+        XCTAssertTrue(try attempt.confirm(recovered))
+        XCTAssertEqual(calls, 2)
+        XCTAssertEqual(attempt.request, expected)
+    }
+
+    func testDuplicateRejectsAnUnavailableSourceBeforeCreatingAnAttempt() {
+        XCTAssertThrowsError(try MobileQuoteDuplicateAttempt(source: duplicateSource(id: "bad-id")))
+    }
+
+    func testCopyEndpointRefusesOldServerOrMissingAcknowledgementWithoutFallback() async throws {
+        let attempt = try MobileQuoteDuplicateAttempt(source: duplicateSource())
+        for status in [404, 405, 503, 201] {
+            var calls = 0
+            URLProtocolStub.handler = { request in
+                calls += 1
+                XCTAssertEqual(request.url?.path, "/api/mobile/quotes/copy")
+                return Self.response(request, status: status, json: status == 201 ? Self.quoteResponse() : "{}")
+            }
+            do { _ = try await makeClient().createQuoteCopy(attempt.request, accessToken: "token"); XCTFail("Expected refusal") } catch {}
+            XCTAssertEqual(calls, 1)
+        }
+        URLProtocolStub.handler = { _ in XCTFail("An unkeyed copy must not be sent"); throw URLError(.badURL) }
+        do { _ = try await makeClient().createQuoteCopy(quoteRequest(), accessToken: "token"); XCTFail("Expected refusal") }
+        catch { XCTAssertEqual(error as? MobileAPIError, .invalidRequest) }
+    }
+
+    func testCopySupportsExistingLongScopeAndMoreThanFiftyLines() throws {
+        var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(duplicateSource())) as! [String: Any]
+        let name = "  " + String(repeating: "N", count: 140)
+        let scope = "Scope\r\n" + String(repeating: "x", count: 13000) + "  "
+        object["lines"] = Array(repeating: ["name": name, "description": scope, "quantity": 1, "unitPriceCents": 0] as [String: Any], count: 51)
+        let source = try JSONDecoder().decode(MobileQuoteDetail.self, from: JSONSerialization.data(withJSONObject: object))
+        let attempt = try MobileQuoteDuplicateAttempt(source: source)
+        XCTAssertEqual(attempt.request.lines.count, 51)
+        XCTAssertEqual(attempt.request.lines[0].name, name)
+        XCTAssertEqual(attempt.request.lines[0].description, scope)
+    }
+
+    func testLiveServiceUsesCopyEndpointWithTheCurrentSession() async throws {
+        let attempt = try MobileQuoteDuplicateAttempt(source: duplicateSource())
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.path, "/api/mobile/quotes/copy")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer copy-session")
+            var saved = Self.duplicateSource(id: "b0000000-0000-4000-8000-000000000001")
+            saved.creationRequestId = attempt.request.requestId; saved.creationReplayed = false
+            let payload = try JSONEncoder().encode(MobileQuotePayload(quote: saved))
+            return Self.response(request, status: 201, json: "{\"data\":" + String(decoding: payload, as: UTF8.self) + "}")
+        }
+        let service = LiveFieldDataService(authentication: QuoteCopyAuthStub(), api: makeClient(), cache: FieldCache())
+        let result = try await service.createQuoteCopy(attempt.request)
+        XCTAssertEqual(result.creationRequestId, attempt.request.requestId)
+    }
+
+    func testLegacyEmptyDraftCopyKeepsItsExistingEndpoint() async throws {
+        let source = duplicateSource()
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.path, "/api/mobile/quotes/\(source.id)/duplicate")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+            let saved = Self.duplicateSource(id: "b0000000-0000-4000-8000-000000000001")
+            let payload = try JSONEncoder().encode(MobileQuotePayload(quote: saved))
+            return Self.response(request, status: 201, json: "{\"data\":" + String(decoding: payload, as: UTF8.self) + "}")
+        }
+        let result = try await makeClient().duplicateQuote(id: source.id, accessToken: "token")
+        XCTAssertNotEqual(result.id, source.id)
+    }
+
+    private func duplicateSource(id: String = "a0000000-0000-4000-8000-000000000001", kind: MobilePartyKind = .customer, status: String = "draft", note: String = "Original note") -> MobileQuoteDetail {
+        Self.duplicateSource(id: id, kind: kind, status: status, note: note)
+    }
+
+    private static func duplicateSource(id: String = "a0000000-0000-4000-8000-000000000001", kind: MobilePartyKind = .customer, status: String = "draft", note: String = "Original note") -> MobileQuoteDetail {
+        .init(id: id, proposalNumber: "LOCAL", status: status, title: "Pruning", totalCents: 18000,
+            createdAt: "2026-10-21", sentAt: nil, approvedAt: nil, expiresAt: "2027-01-01T00:00:00Z", updatedAt: "2026-10-21",
+            party: .init(id: "a0000000-0000-4000-8000-000000000002", kind: kind, name: "Synthetic customer"),
+            serviceLocation: .init(id: "a0000000-0000-4000-8000-000000000003", label: nil, fullAddress: "Synthetic property"),
+            linkedJobId: "original-job", linkedInvoiceId: "original-invoice",
+            recipientContactId: kind == .organization ? "a0000000-0000-4000-8000-000000000004" : nil,
+            approvalContactId: kind == .organization ? "a0000000-0000-4000-8000-000000000005" : nil,
+            customerMessage: note,
+            lines: [.init(id: "original-line-one", name: "Pruning", description: "Keep lower branches\nHaul brush", quantity: 1.25, unitPriceCents: 12345, totalCents: 15431),
+                    .init(id: "original-line-two", name: "Cleanup", description: nil, quantity: 1, unitPriceCents: 2569, totalCents: 2569)],
+            portalStatus: "active", editRevision: 7, quoteEditVersion: 1)
+    }
+
     private func quoteRequest(message: String? = nil) -> MobileQuoteWriteRequest {
         .init(customerId: "customer", organizationId: nil, serviceLocationId: "location", customerMessage: message,
               expiresAt: nil, recipientContactId: nil, approvalContactId: nil,
@@ -373,4 +542,11 @@ private final class URLProtocolStub: URLProtocol {
     }
 
     override func stopLoading() {}
+}
+
+private actor QuoteCopyAuthStub: AuthenticationService {
+    func restoreSession() async throws -> AuthIdentity? { nil }
+    func signIn(email: String, password: String) async throws -> AuthIdentity { throw MobileAPIError.invalidRequest }
+    func validAccessToken() async throws -> String { "copy-session" }
+    func signOut() async throws {}
 }

@@ -130,6 +130,48 @@ struct MobileQuoteCreationAttempt {
     }
 }
 
+/// A deliberate copy freezes the displayed proposal once. Retrying must not
+/// rebuild it from a source that may have changed since the first request.
+struct MobileQuoteDuplicateAttempt {
+    let sourceQuoteID: String
+    let request: MobileQuoteWriteRequest
+    private(set) var confirmed: MobileQuoteDetail?
+
+    init(source: MobileQuoteDetail, now: Date = Date()) throws {
+        guard UUID(uuidString: source.id) != nil, let party = source.party,
+              UUID(uuidString: party.id) != nil, UUID(uuidString: source.serviceLocation.id) != nil,
+              !source.lines.isEmpty, source.lines.count <= 1000 else {
+            throw MobileAPIError.requestRejected("Refresh this proposal before making a copy.")
+        }
+        sourceQuoteID = source.id
+        let expiration = source.expiresAt.flatMap(CRMDateParser.date(from:))
+        request = .init(
+            customerId: party.kind == .customer ? party.id : nil,
+            organizationId: party.kind == .organization ? party.id : nil,
+            serviceLocationId: source.serviceLocation.id,
+            customerMessage: source.customerMessage,
+            expiresAt: expiration.map { $0 > now } == true ? source.expiresAt : nil,
+            recipientContactId: source.recipientContactId,
+            approvalContactId: source.approvalContactId,
+            lines: source.lines.map { .init(id: nil, name: $0.name, description: $0.description,
+                quantity: $0.quantity, unitPriceCents: $0.unitPriceCents, totalCents: nil) },
+            requestId: UUID().uuidString.lowercased()
+        )
+    }
+
+    mutating func confirm(_ quote: MobileQuoteDetail) throws -> Bool {
+        guard quote.creationRequestId == request.requestId, let replayed = quote.creationReplayed,
+              let savedID = UUID(uuidString: quote.id), savedID != UUID(uuidString: sourceQuoteID) else {
+            throw MobileAPIError.requestRejected("The copy could not be confirmed. Keep this proposal open and retry the same copy request.")
+        }
+        if let confirmed, confirmed.id != quote.id {
+            throw MobileAPIError.requestRejected("The saved copy could not be confirmed. Review proposals before making another copy.")
+        }
+        confirmed = quote
+        return replayed
+    }
+}
+
 struct MobileQuoteDirectoryPayload: Codable, Sendable { let results: [MobileQuoteDirectoryItem]; let nextCursor: String? }
 struct MobileQuotePage: Equatable, Sendable { let results: [MobileQuoteDirectoryItem]; let nextCursor: String? }
 struct MobileQuotePayload: Codable, Sendable { let quote: MobileQuoteDetail }

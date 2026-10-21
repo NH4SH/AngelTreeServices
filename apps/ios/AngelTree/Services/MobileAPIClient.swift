@@ -23,6 +23,7 @@ protocol MobileAPIClientProtocol: Sendable {
     func quotes(scope: MobileQuoteScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileQuotePage
     func quoteDetail(id: String, accessToken: String) async throws -> MobileQuoteDetail
     func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
+    func createQuoteCopy(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
     func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
     func duplicateQuote(id: String, accessToken: String) async throws -> MobileQuoteDetail
     func invoices(scope: MobileInvoiceScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileInvoicePage
@@ -165,9 +166,17 @@ actor MobileAPIClient: MobileAPIClientProtocol {
     }
 
     func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
-        let keyed = input.requestId != nil
+        try await createConfirmedQuote(input, path: input.requestId != nil ? "api/mobile/quotes/draft" : "api/mobile/quotes", accessToken: accessToken)
+    }
+
+    func createQuoteCopy(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
+        guard input.requestId != nil else { throw MobileAPIError.invalidRequest }
+        return try await createConfirmedQuote(input, path: "api/mobile/quotes/copy", accessToken: accessToken)
+    }
+
+    private func createConfirmedQuote(_ input: MobileQuoteWriteRequest, path: String, accessToken: String) async throws -> MobileQuoteDetail {
         if let id = input.requestId, UUID(uuidString: id) == nil { throw MobileAPIError.invalidRequest }
-        let payload: MobileQuotePayload = try await sendJSON(path: keyed ? "api/mobile/quotes/draft" : "api/mobile/quotes", method: "POST", body: input, accessToken: accessToken)
+        let payload: MobileQuotePayload = try await sendJSON(path: path, method: "POST", body: input, accessToken: accessToken)
         if let id = input.requestId {
             guard payload.quote.creationRequestId == id.lowercased(), payload.quote.creationReplayed != nil,
                   UUID(uuidString: payload.quote.id) != nil else {
@@ -501,5 +510,6 @@ private struct PrivateFileManifest: Decodable {
     let chunkBytes: Int
 }
 extension MobileAPIClientProtocol {
+    func createQuoteCopy(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail { throw MobileAPIError.invalidRequest }
     func privateJobPhoto(id: String, accessToken: String) async throws -> Data { throw MobileAPIError.invalidResponse }
 }

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { renderCustomerReminderEmailHtml } from "../email/customer-reminder-layout.ts";
+
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
 import { formatBusinessDate } from "@/lib/business-time";
 
@@ -47,28 +49,21 @@ export function quoteFollowUpTemplate(input: {
   lineItems: { description: string | null; name: string }[];
   portalUrl: string;
   proposalNumber: string | null;
-}) {
+}): TransactionalEmailTemplate {
   const proposalLabel = input.proposalNumber ? `Proposal #${input.proposalNumber}` : "your proposal";
   const subject = `Following up on ${proposalLabel} from ${companyName}`;
-  const scope = input.lineItems
-    .slice(0, 4)
-    .map((item) => `- ${item.name}${item.description ? `: ${compactDescription(item.description)}` : ""}`);
-  const text = [
-    `Hi ${input.customerName},`,
-    "",
-    `We are following up on ${proposalLabel} and wanted to see if you have any questions.`,
-    scope.length ? "Current scope:" : "",
-    ...scope,
-    "",
-    `Review the latest proposal securely: ${input.portalUrl}`,
-    "",
-    "Reply to this email or call our office if you would like to talk through the work or request an adjustment.",
-    "",
-    "Thank you,",
-    companyName,
-  ].filter(Boolean).join("\n");
-
-  return brandedTemplate(subject, text, "Proposal follow-up");
+  const greeting = `Hi ${input.customerName},`;
+  const intro = `We are following up on ${proposalLabel}. Review the latest version or contact us with any questions about the work.`;
+  const scope = input.lineItems.slice(0, 4).map(item => `${item.name}${item.description ? `: ${compactDescription(item.description)}` : ""}`);
+  const guidance = "You can respond from the secure proposal. If you would like to talk through the work or request an adjustment, reply to this email or call our office.";
+  const text = [greeting, intro, `Review proposal: ${input.portalUrl}`, guidance,
+    ...(scope.length ? ["Proposed work:\n" + scope.map(item => `- ${item}`).join("\n")] : []),
+    "Need help or a new link? Reply to this email or call (540) 388-8715.", `Thank you,\n${companyName}`,
+  ].join("\n\n");
+  return { subject, text, html: renderCustomerReminderEmailHtml({
+    subject, title: "Questions about your proposal?", greeting, intro,
+    details: [], scope, portalUrl: input.portalUrl, ctaLabel: "Review proposal", guidance,
+  }) };
 }
 
 export function invoiceReminderTemplate(input: {
@@ -79,27 +74,27 @@ export function invoiceReminderTemplate(input: {
   isOverdue: boolean;
   portalUrl: string;
   serviceLocation: string;
-}) {
+}): TransactionalEmailTemplate {
   const subject = `${companyName}: Invoice #${input.invoiceNumber} reminder`;
-  const opening = input.isOverdue
-    ? `Our records show that Invoice #${input.invoiceNumber} has an outstanding balance of ${money(input.balanceDueCents)}.`
-    : `This is a friendly reminder that Invoice #${input.invoiceNumber} has a remaining balance of ${money(input.balanceDueCents)}.`;
-  const text = [
-    `Hi ${input.customerName},`,
-    "",
-    opening,
-    input.dueAt ? `Due date: ${formatDate(input.dueAt)}` : "",
-    `Service location: ${input.serviceLocation}`,
-    "",
-    `Review and pay the current invoice securely: ${input.portalUrl}`,
-    "",
-    "If payment is already on the way or you have a billing question, please reply to this email or call our office.",
-    "",
-    "Thank you,",
-    companyName,
-  ].filter(Boolean).join("\n");
-
-  return brandedTemplate(subject, text, input.isOverdue ? "Outstanding invoice" : "Invoice reminder");
+  const greeting = `Hi ${input.customerName},`;
+  const intro = input.isOverdue
+    ? `Our records show a remaining balance for Invoice #${input.invoiceNumber}.`
+    : `This is a friendly reminder about Invoice #${input.invoiceNumber}.`;
+  const guidance = "The secure invoice shows the latest balance and payment status. If you have already paid or started a payment, check there before paying again. Reply to this email or call our office with any billing questions.";
+  const dueDate = input.dueAt ? formatDate(input.dueAt) : "See the invoice for payment terms";
+  const details = [
+    { label: "Remaining balance", value: money(input.balanceDueCents), emphasis: true },
+    { label: "Due date", value: dueDate === "Invalid date" ? "See the invoice for payment terms" : dueDate },
+    ...(input.serviceLocation.trim() ? [{ label: "Service location", value: input.serviceLocation }] : []),
+  ];
+  const text = [greeting, intro, details.map(item => `${item.label}: ${item.value}`).join("\n"),
+    `View invoice: ${input.portalUrl}`, guidance,
+    "Need help or a new link? Reply to this email or call (540) 388-8715.", `Thank you,\n${companyName}`,
+  ].join("\n\n");
+  return { subject, text, html: renderCustomerReminderEmailHtml({
+    subject, title: input.isOverdue ? "Invoice balance reminder" : "Your invoice reminder", greeting, intro,
+    details, scope: [], portalUrl: input.portalUrl, ctaLabel: "View invoice", guidance,
+  }) };
 }
 
 export function paymentConfirmationTemplate(input: {

@@ -26,3 +26,11 @@ test('scheduled worker credentials cannot be sent to a path outside the intended
   finally {f.restore();}
  }
 });
+
+test('customer email key activates only its worker and never unlocks scheduling',async()=>{
+ const f=fixture(undefined,undefined,{CUSTOMER_EMAIL_WORKER_SECRET:secret});f.mock(async(_url,options)=>{assert.equal(options.headers.Authorization,'Bearer '+secret);return{ok:true,json:async()=>({ok:true})};});
+ try{await f.runScheduledWorker('/api/internal/communications/process','CUSTOMER_EMAIL_WORKER_SECRET','Email');assert.equal(f.calls(),1);await assert.rejects(f.runScheduledWorker('/api/internal/jobs/advance','COMMUNICATION_WORKER_SECRET','Jobs'),/credential/);assert.equal(f.calls(),1);}finally{f.restore();}
+});
+test('customer email retains legacy credential compatibility and prefers its dedicated key',async()=>{
+ for(const env of[{COMMUNICATION_WORKER_SECRET:secret},{COMMUNICATION_WORKER_SECRET:'old-credential-000000000000000000000',CUSTOMER_EMAIL_WORKER_SECRET:secret}]){const f=fixture(undefined,undefined,env);f.mock(async(_url,options)=>{assert.equal(options.headers.Authorization,'Bearer '+secret);return{ok:true,json:async()=>({ok:true})};});try{await f.runScheduledWorker('/api/internal/communications/process','CUSTOMER_EMAIL_WORKER_SECRET','Email');}finally{f.restore();}}
+});

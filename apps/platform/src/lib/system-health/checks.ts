@@ -13,6 +13,7 @@ import {
   type HealthCheckResult,
 } from "./core";
 import { healthComponentByKey, healthComponents } from "./registry";
+import { checkPrivateScanner } from "./scanner-readiness";
 
 const checkTimeoutMs = 8_000;
 const publicSiteUrl = "https://angeltreeservices.org";
@@ -46,6 +47,8 @@ export async function runHealthCheck(componentKey: string): Promise<HealthCheckR
         return checkAuth();
       case "supabase_storage":
         return checkStorage();
+      case "private_file_scanner":
+        return checkPrivateScanner();
       case "resend_email":
         return checkResend();
       case "communication_queue":

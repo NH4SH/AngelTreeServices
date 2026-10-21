@@ -26,3 +26,10 @@ test('an old worker cannot overwrite a newer claim after provider acceptance',as
 test('batch fan-out stays at three and processes independent partial results honestly',async()=>{let active=0,peak=0;const f=fixture({count:8,onSend:async()=>{active++;peak=Math.max(peak,active);await new Promise(r=>setTimeout(r,3));active--;}});const r=await f.run();assert.equal(peak,3);assert.equal(r.sent,8);assert.equal(r.claimed,8);assert.equal(r.error,null);});
 test('small remaining runtime does not preclaim the entire due queue',async()=>{const originalNow=Date.now;let clock=originalNow();Date.now=()=>clock;try{const f=fixture({count:20,onSend:()=>{clock+=2000;}});const r=await f.run({budgetMs:1001});assert.equal(r.claimed,3);assert.equal(f.rows.filter(r=>r.status==='pending').length,17);}finally{Date.now=originalNow;}});
 test('sync or claim database failures stop safely and do not expose diagnostics',async()=>{for(const flag of['syncError','claimError']){const f=fixture({[flag]:true});const r=await f.run();assert.ok(r.error);assert.equal(r.error.includes('diagnostics'),false);assert.equal(f.sends.length,0);}});
+
+test('a recent invoice document or either reminder stage suppresses another reminder family without sending',async()=>{
+ for(const kind of['invoice','invoice_payment_reminder','overdue_invoice_reminder']){
+  const f=fixture();f.tables.email_events.push({id:'recent-other-delivery',related_invoice_id:'invoice-0',email_type:kind,status:'sent',sent_at:new Date().toISOString(),created_at:new Date().toISOString()});
+  const r=await f.one();assert.equal(f.sends.length,0);assert.equal(r.status,'skipped');
+ }
+});

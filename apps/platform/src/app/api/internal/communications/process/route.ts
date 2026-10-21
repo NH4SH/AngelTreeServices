@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const configuredSecret = process.env.COMMUNICATION_WORKER_SECRET?.trim();
+  const configuredSecret = (process.env.CUSTOMER_EMAIL_WORKER_SECRET ?? process.env.COMMUNICATION_WORKER_SECRET)?.trim();
   const submittedSecret = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
 
   if (!configuredSecret || configuredSecret.length < 32 || !submittedSecret || !secretsMatch(configuredSecret, submittedSecret)) {

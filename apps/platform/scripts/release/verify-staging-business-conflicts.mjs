@@ -15,7 +15,10 @@ export function currentConflictSources(){
  assert.equal(candidate.additionalMigration.name,'20261021215535_business_conflict_responses.sql');
  assert.equal(sha(read('supabase/migrations/'+candidate.additionalMigration.name)),candidate.additionalMigration.sha256);
  const files=[...previous.files,candidate.additionalMigration];
- assert.deepEqual(readdirSync(new URL('supabase/migrations',root)).filter(f=>f.endsWith('.sql')).sort(),files.map(f=>f.name));
+ // Later migrations remain separately pinned; this verifier still accepts only ledger101.
+ const deferred=JSON.parse(read('supabase/staging/deferred-migrations.json')).migrations.filter(f=>f.name>candidate.additionalMigration.name);
+ for(const f of deferred)assert.equal(sha(read('supabase/migrations/'+f.name)),f.sha256);
+ assert.deepEqual(readdirSync(new URL('supabase/migrations',root)).filter(f=>f.endsWith('.sql')).sort(),[...files,...deferred].map(f=>f.name));
  assert.equal(candidate.functions.length,23);assert.equal(new Set(candidate.functions.map(f=>f.signature)).size,23);
  return{candidate,files,catalog:previous.catalog};
 }

@@ -8,7 +8,10 @@ export async function runScheduledWorker(path: string, secretName: string, label
     throw Error("Scheduled workers are disabled outside the production CRM site.");
   }
   const base = Netlify.env.get("APP_BASE_URL")?.trim();
-  const secret = Netlify.env.get(secretName)?.trim();
+  // Customer email can be activated without also enabling job/calendar workers.
+  // Preserve existing installations that already use the shared credential.
+  const secret = (Netlify.env.get(secretName) ?? (secretName === "CUSTOMER_EMAIL_WORKER_SECRET"
+    ? Netlify.env.get("COMMUNICATION_WORKER_SECRET") : undefined))?.trim();
   let app: URL;
   try { app = new URL(base ?? ""); } catch { throw Error("The canonical admin URL is required."); }
   if (app.origin !== production.appOrigin || app.username || app.password || app.pathname !== "/" || app.search || app.hash || !secret || secret.length < 32)

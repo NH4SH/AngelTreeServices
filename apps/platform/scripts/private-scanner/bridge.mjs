@@ -49,7 +49,7 @@ export async function scanWithClamAV(bytes, connection) {
   if (/^stream: [^\r\n]+ FOUND$/.test(reply)) return 'quarantined';
   throw new Error('scan_not_confirmed');
 }
-export function createScannerBridge({ token, scan }) {
+export function createScannerBridge({ token, scan, readiness }) {
   if (!token || token.length < 32) throw new Error('A private scanner token of at least 32 characters is required.');
   const expected = createHash('sha256').update(`Bearer ${token}`).digest();
   let inFlight = 0;
@@ -70,7 +70,10 @@ export function createScannerBridge({ token, scan }) {
       if (!size) { res.writeHead(400).end('{}'); return; }
       const bytes = Buffer.concat(chunks); const status = await scan(bytes);
       if (!['clean', 'quarantined'].includes(status)) throw new Error('scan_not_confirmed');
-      res.end(JSON.stringify({ status, sha256: createHash('sha256').update(bytes).digest('hex'), engine: 'clamav' }));
+      const state = readiness ? await readiness() : null;
+      res.end(JSON.stringify({ status, sha256: createHash('sha256').update(bytes).digest('hex'), engine: 'clamav',
+        ...(state ? { engineVersion: state.engineVersion, signatureVersion: state.signatureVersion,
+          signatureAgeSeconds: state.signatureAgeSeconds, freshness: state.freshness } : {}) }));
     } catch { if (!res.headersSent) res.writeHead(503); res.end('{}'); }
     finally { inFlight--; }
   });
@@ -80,6 +83,7 @@ export function createScannerBridge({ token, scan }) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const server = createScannerBridge({ token: readScannerToken(),
     scan: bytes => scanWithClamAV(bytes, { host: process.env.CLAMD_HOST ?? '127.0.0.1', port: Number(process.env.CLAMD_PORT ?? 3310) }),
+    readiness: () => getClamAVState({ host: process.env.CLAMD_HOST ?? '127.0.0.1', port: Number(process.env.CLAMD_PORT ?? 3310) }),
   });
   server.listen(Number(process.env.SCANNER_PORT ?? 3311), process.env.SCANNER_BIND ?? '127.0.0.1', () => console.log('Private file scanner bridge is listening.'));
 }

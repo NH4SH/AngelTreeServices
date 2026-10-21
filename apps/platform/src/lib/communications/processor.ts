@@ -526,7 +526,10 @@ async function getRecentMatchingDelivery(supabase: SupabaseClient, communication
   if (own.error) return { kind: "error" as const };
   if (own.data) return { kind: "current" as const, providerMessageId: own.data.provider_message_id, sentAt: own.data.sent_at };
   const since = new Date(Date.now() - intervalHours * 60 * 60_000).toISOString();
-  let query = supabase.from("email_events").select("id").eq("email_type", communication.communication_type).eq("status", "sent").gte("sent_at", since);
+  const matchingTypes = communication.communication_type === "invoice_payment_reminder" || communication.communication_type === "overdue_invoice_reminder"
+    ? ["invoice", "invoice_payment_reminder", "overdue_invoice_reminder"]
+    : communication.communication_type === "quote_follow_up" ? ["quote", "quote_follow_up"] : [communication.communication_type];
+  let query = supabase.from("email_events").select("id").in("email_type", matchingTypes).eq("status", "sent").gte("sent_at", since);
   if (communication.quote_id) query = query.eq("related_quote_id", communication.quote_id);
   else if (communication.invoice_id) query = query.eq("related_invoice_id", communication.invoice_id);
   else if (communication.schedule_event_id) query = query.eq("related_schedule_event_id", communication.schedule_event_id);

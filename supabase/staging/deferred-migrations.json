@@ -34,6 +34,10 @@
     {
       "name": "20261021215535_business_conflict_responses.sql",
       "sha256": "1cfe71caaf7ee6776a90b14b38111a913492ea411c8ee662b114af5ecc1eece8"
+    },
+    {
+      "name": "20261021233829_reminder_family_delivery_guard.sql",
+      "sha256": "6c1caeb2234043c0062f8f0de3880f4802e5d1e20d2983e3633ae51a7a47ba81"
     }
   ]
 }

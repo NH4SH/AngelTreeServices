@@ -22,6 +22,7 @@ export const healthComponents: HealthComponentDefinition[] = [
   { key: "supabase_database", label: "Database", category: "data", critical: true, description: "Read-only Supabase database connectivity." },
   { key: "supabase_auth", label: "Authentication", category: "data", critical: true, description: "Supabase Auth service availability." },
   { key: "supabase_storage", label: "Private file storage", category: "data", critical: false, description: "Read-only bucket metadata access." },
+  { key: "private_file_scanner", label: "Private file scanner", category: "data", critical: true, description: "Authenticated synthetic scan, loaded definition freshness and TLS certificate expiry." },
   { key: "resend_email", label: "Transactional email", category: "communications", critical: true, description: "Resend API connectivity without sending an email." },
   { key: "communication_queue", label: "Communication queue", category: "communications", critical: true, description: "Queued reminders, recent failures, and delivery activity." },
   { key: "stripe_api", label: "Stripe API", category: "payments", critical: true, description: "Non-destructive Stripe account connectivity." },

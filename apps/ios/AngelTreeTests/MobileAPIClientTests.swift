@@ -873,6 +873,144 @@ final class MobileAPIClientTests: XCTestCase {
 
     private var recoveryUser: String { "a0000000-0000-4000-8000-000000000010" }
     private var recoveryOtherUser: String { "a0000000-0000-4000-8000-000000000011" }
+    private static func statusEnvelope(requestID: String, state: String = "recorded", quoteID: String? = "b0000000-0000-4000-8000-000000000001") -> String {
+        let id = quoteID.map { "\"" + $0 + "\"" } ?? "null"
+        return "{\"data\":{\"requestStatus\":{\"requestId\":\"" + requestID + "\",\"state\":\"" + state + "\",\"quoteId\":" + id + "}}}"
+    }
+
+    func testReadOnlyStatusUsesSavedBodyWithoutResendingTheQuote() async throws {
+        let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser))
+        let session = try await service.openQuoteRecovery(context: .newProposal, userID: recoveryUser)
+        let request = recoveryRequest(), pending = MobileQuotePendingRequest(kind: .create, request: request)
+        try await f.store.saveDraft(recoveryDraft(), session: session)
+        _ = try await f.store.prepare(pending, session: session)
+        try await f.store.beginSend(session); await f.store.endSend(session)
+        var calls = 0
+        URLProtocolStub.handler = { http in
+            calls += 1; XCTAssertEqual(http.url?.path, "/api/mobile/quotes/request-status"); XCTAssertEqual(http.httpMethod, "POST")
+            let body = try JSONSerialization.jsonObject(with: Self.fileBody(http)) as! [String: Any]
+            XCTAssertEqual(body["kind"] as? String, "create")
+            XCTAssertEqual(try JSONDecoder().decode(MobileQuoteWriteRequest.self, from: JSONSerialization.data(withJSONObject: body["request"]!)), request)
+            return Self.response(http, status: 200, json: Self.statusEnvelope(requestID: request.requestId!))
+        }
+        let status = try await service.checkQuoteRecovery(session)
+        let doc = try await service.quoteRecoveryDocument(session)
+        XCTAssertEqual(status.state, .recorded); XCTAssertEqual(calls, 1)
+        XCTAssertEqual(doc.pending?.confirmedQuoteID, status.quoteId); XCTAssertEqual(doc.pending?.dispatchCount, 1)
+        XCTAssertEqual(doc.draft, recoveryDraft()); XCTAssertNil(doc.completedQuoteID)
+        // A read stores a receipt but does not acknowledge or discard the draft.
+        let restored = try await QuoteRecoveryStore(directory: f.root, keyProvider: { _, _ in Data(repeating: 7, count: 32) }).open(environment: "staging", userID: recoveryUser, context: .newProposal)
+        XCTAssertEqual(restored.document, doc)
+    }
+
+    func testNegativeOrUnavailableStatusPreservesTheEntireSavedRequest() async throws {
+        for state in ["not_recorded", "unavailable"] {
+            let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+            let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser))
+            let session = try await service.openQuoteRecovery(context: .newProposal, userID: recoveryUser)
+            _ = try await f.store.prepare(.init(kind: .create, request: recoveryRequest()), session: session)
+            let before = try await f.store.document(session), file = Self.recoveryFiles(f.root)[0], ciphertext = try Data(contentsOf: file)
+            var calls = 0
+            URLProtocolStub.handler = { http in calls += 1; XCTAssertEqual(http.url?.path, "/api/mobile/quotes/request-status"); return Self.response(http, status: 200, json: Self.statusEnvelope(requestID: before.pending!.request.requestId!, state: state, quoteID: nil)) }
+            _ = try await service.checkQuoteRecovery(session)
+            let after = try await f.store.document(session)
+            XCTAssertEqual(before, after); XCTAssertEqual(try Data(contentsOf: file), ciphertext); XCTAssertEqual(calls, 1)
+            do { _ = try await f.store.startAnother(session); XCTFail("A negative read cannot authorize replacement") } catch {}
+        }
+    }
+
+    func testStatusFailuresNeverClearRecoveryOrFallBackToSending() async throws {
+        for status in [400, 401, 403, 404, 405, 429, 500, 503] {
+            let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+            let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser))
+            let session = try await service.openQuoteRecovery(context: .newProposal, userID: recoveryUser)
+            _ = try await f.store.prepare(.init(kind: .create, request: recoveryRequest()), session: session)
+            let before = try await f.store.document(session); var calls = 0
+            URLProtocolStub.handler = { http in calls += 1; XCTAssertEqual(http.url?.path, "/api/mobile/quotes/request-status"); return Self.response(http, status: status, json: "{\"error\":{\"code\":\"unconfirmed\",\"message\":\"Try again.\"}}") }
+            do { _ = try await service.checkQuoteRecovery(session); XCTFail("Expected failure") } catch {}
+            let after = try await f.store.document(session); XCTAssertEqual(before, after); XCTAssertEqual(calls, 1)
+        }
+    }
+
+    func testOfflineStatusCheckLeavesTheEncryptedRequestUntouched() async throws {
+        let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser))
+        let session = try await service.openQuoteRecovery(context: .newProposal, userID: recoveryUser)
+        _ = try await f.store.prepare(.init(kind: .create, request: recoveryRequest()), session: session)
+        let file = Self.recoveryFiles(f.root)[0], before = try Data(contentsOf: file)
+        var calls = 0
+        URLProtocolStub.handler = { http in calls += 1; XCTAssertEqual(http.url?.path, "/api/mobile/quotes/request-status"); throw URLError(.notConnectedToInternet) }
+        do { _ = try await service.checkQuoteRecovery(session); XCTFail("Offline status must stay unconfirmed") } catch {}
+        XCTAssertEqual(try Data(contentsOf: file), before); XCTAssertEqual(calls, 1)
+    }
+
+    func testStatusRejectsMalformedReceiptsAndUnknownStates() async throws {
+        let request = recoveryRequest()
+        for body in [Self.statusEnvelope(requestID: UUID().uuidString.lowercased()), Self.statusEnvelope(requestID: request.requestId!, quoteID: "bad"), Self.statusEnvelope(requestID: request.requestId!, state: "unknown"), Self.statusEnvelope(requestID: request.requestId!, state: "not_recorded"), Self.statusEnvelope(requestID: request.requestId!, quoteID: nil), "{}"] {
+            URLProtocolStub.handler = { http in Self.response(http, status: 200, json: body) }
+            do { _ = try await makeClient().quoteRequestStatus(kind: .create, input: request, accessToken: "synthetic"); XCTFail("Malformed status cannot confirm a request") } catch {}
+        }
+    }
+
+    func testStatusReadsRejectAccountChangesAndWrongTokens() async throws {
+        for duringHTTP in [false, true] {
+            let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+            let auth = RecoveryAuthStub(userID: recoveryUser), service = recoveryService(store: f.store, auth: auth)
+            let session = try await service.openQuoteRecovery(context: .newProposal, userID: recoveryUser)
+            let request = recoveryRequest(); _ = try await f.store.prepare(.init(kind: .create, request: request), session: session)
+            let before = try await f.store.document(session); var calls = 0
+            if !duringHTTP { auth.setTokenSubject("c0000000-0000-4000-8000-000000000001") }
+            URLProtocolStub.handler = { http in calls += 1; auth.setUser("c0000000-0000-4000-8000-000000000001"); return Self.response(http, status: 200, json: Self.statusEnvelope(requestID: request.requestId!)) }
+            do { _ = try await service.checkQuoteRecovery(session); XCTFail("Wrong account cannot receive or store a receipt") } catch {}
+            let after = try await f.store.document(session); XCTAssertEqual(before, after); XCTAssertEqual(calls, duringHTTP ? 1 : 0)
+        }
+    }
+
+    func testStatusCannotPretendAnEditOrUnkeyedCopyWasRecorded() async throws {
+        for kind in [MobileQuotePendingRequest.Kind.edit, .emptyCopy] {
+            let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+            let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser))
+            let context: MobileQuoteRecoveryContext = kind == .edit ? .edit(duplicateSource().id) : .copy(duplicateSource().id)
+            let session = try await service.openQuoteRecovery(context: context, userID: recoveryUser)
+            _ = try await f.store.prepare(.init(kind: kind, request: recoveryRequest()), session: session)
+            URLProtocolStub.handler = { _ in XCTFail("No status HTTP for operations without a creation receipt"); throw URLError(.badServerResponse) }
+            do { _ = try await service.checkQuoteRecovery(session); XCTFail("Must retain manual review") } catch {}
+        }
+    }
+
+    func testStatusCopyRejectsSourceIdentityAndKeepsOriginalSnapshot() async throws {
+        let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let service = recoveryService(store: f.store, auth: RecoveryAuthStub(userID: recoveryUser)), source = duplicateSource()
+        let session = try await service.openQuoteRecovery(context: .copy(source.id), userID: recoveryUser)
+        let request = try MobileQuoteDuplicateAttempt(source: source).request
+        _ = try await f.store.prepare(.init(kind: .copy, request: request), session: session)
+        URLProtocolStub.handler = { http in
+            let body = try JSONSerialization.jsonObject(with: Self.fileBody(http)) as! [String: Any]
+            XCTAssertEqual(body["kind"] as? String, "copy")
+            return Self.response(http, status: 200, json: Self.statusEnvelope(requestID: request.requestId!, quoteID: source.id))
+        }
+        do { _ = try await service.checkQuoteRecovery(session); XCTFail("Source is not the copy") } catch {}
+        let doc = try await f.store.document(session); XCTAssertNil(doc.pending?.confirmedQuoteID); XCTAssertEqual(doc.pending?.request, request)
+    }
+
+    func testReconciliationBindsTheExactCorrectedBodyAndLease() async throws {
+        let f = recoveryFixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let session = try await f.store.open(environment: "staging", userID: recoveryUser, context: .newProposal)
+        let original = MobileQuotePendingRequest(kind: .create, request: recoveryRequest())
+        _ = try await f.store.prepare(original, session: session); try await f.store.beginSend(session); await f.store.endSend(session)
+        try await f.store.releaseRejectedFirstAttempt(requestID: original.request.requestId!, session: session)
+        var changed = quoteRequest(message: "Corrected body"); changed.requestId = original.request.requestId
+        let corrected = MobileQuotePendingRequest(kind: .create, request: changed)
+        _ = try await f.store.prepare(corrected, session: session)
+        do { try await f.store.reconcile(original, quoteID: duplicateSource().id, session: session); XCTFail("Old body cannot confirm a corrected candidate with the same ID") } catch {}
+        try await f.store.reconcile(corrected, quoteID: duplicateSource().id, session: session)
+        let doc = try await f.store.document(session); XCTAssertEqual(doc.pending?.confirmedQuoteID, duplicateSource().id); XCTAssertEqual(doc.rejected, originalWithDispatch(original))
+        _ = try await f.store.open(environment: "staging", userID: recoveryUser, context: .newProposal)
+        do { try await f.store.reconcile(corrected, quoteID: duplicateSource().id, session: session); XCTFail("Stale lease cannot reconcile") } catch {}
+    }
+    private func originalWithDispatch(_ input: MobileQuotePendingRequest) -> MobileQuotePendingRequest { var value = input; value.dispatchCount = 1; return value }
+
     private func recoveryFixture() -> (store: QuoteRecoveryStore, root: URL) {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("ATS-QuoteRecovery-" + UUID().uuidString)
         return (QuoteRecoveryStore(directory: root, keyProvider: { _, _ in Data(repeating: 7, count: 32) }), root)

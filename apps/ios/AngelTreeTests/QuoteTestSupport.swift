@@ -26,6 +26,7 @@ extension FieldDataService {
     func quoteRecoveryDocument(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRecoveryDocument { throw QuoteRecoveryError.unavailable }
     func submitQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
     func retryQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
+    func checkQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRequestStatus { throw QuoteRecoveryError.unavailable }
     func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail { throw QuoteRecoveryError.unavailable }
     func acknowledgeQuoteRecovery(quoteID: String, session: MobileQuoteRecoverySession) async throws { throw QuoteRecoveryError.unavailable }
     func resetQuoteRecovery(_ session: MobileQuoteRecoverySession, reviewedRequest: Bool) async throws -> MobileQuoteRecoverySession { throw QuoteRecoveryError.unavailable }

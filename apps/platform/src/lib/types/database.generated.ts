@@ -15819,6 +15819,14 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "resolve_quote_draft_request": {
+                Args: {
+                    "p_header": Json;
+                    "p_lines": Json;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
             "respond_to_change_order_by_portal": {
                 Args: {
                     "p_expected_updated_at": string;

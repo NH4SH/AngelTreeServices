@@ -32,6 +32,7 @@ struct ProposalEditorView: View {
     @State private var confirmStartAnother = false
     @State private var recoveredQuote: MobileQuoteDetail?
     @State private var showRecoveredQuote = false
+    @State private var requestStatusMessage: String?
 
     var body: some View {
         Form {
@@ -68,9 +69,13 @@ struct ProposalEditorView: View {
             }.disabled(!ready || recoveryDocument.pending != nil)
             }
             if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
+            if let requestStatusMessage { Section { Text(requestStatusMessage).accessibilityIdentifier("quote-request-status") } }
             if recoveryDocument.pending != nil {
                 Section("Previous save") {
                     Text("Your last save is kept on this device. Check its result before starting another proposal.")
+                    if recoveryDocument.pending?.kind == .create && recoveryDocument.pending?.confirmedQuoteID == nil {
+                        Button("Retry save using original details") { Task { await save(retryPending: true) } }
+                    }
                     if recoveryDocument.pending?.confirmedQuoteID != nil || quote != nil {
                         Button("Review saved proposal") { Task { await reviewRecovery() } }
                     }
@@ -91,6 +96,9 @@ struct ProposalEditorView: View {
                     Button(editingQuoteID == nil ? "Start another proposal" : "Open a fresh editor") { confirmStartAnother = true }
                 }
             } else if ready {
+                if recoveryDocument.rejected?.kind == .create {
+                    Section("Previous request") { Button("Check saved request") { Task { await checkRecovery() } } }
+                }
                 Section { Text("Draft recovery stays on this device. Close to save your latest changes.").font(.footnote).foregroundStyle(.secondary)
                     Button("Discard local draft", role: .destructive) { confirmDiscardRecovery = true }
                 }
@@ -100,7 +108,7 @@ struct ProposalEditorView: View {
         }
         .disabled(saving)
         .navigationTitle(editingQuoteID == nil ? "New Proposal" : "Edit Proposal").navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { Task { await closeEditor() } }.disabled(saving) }; ToolbarItem(placement: .confirmationAction) { Button(saving ? "Saving…" : recoveryDocument.pending != nil ? "Check previous save" : "Save") { Task { await save() } }.disabled(saving || !ready || recoveryDocument.completedQuoteID != nil) } }
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { Task { await closeEditor() } }.disabled(saving) }; ToolbarItem(placement: .confirmationAction) { Button(saving ? "Working…" : recoveryDocument.pending?.kind == .create ? "Check saved request" : recoveryDocument.pending != nil ? "Retry save" : "Save") { Task { await save() } }.disabled(saving || !ready || recoveryDocument.completedQuoteID != nil) } }
         .sheet(isPresented: $showPartyPicker) { NavigationStack { ProposalPartyPicker(fieldService: fieldService) { selected in party = selected; showPartyPicker = false; Task { await loadParty(selected) } } } }
         .sheet(isPresented: $showRecoveredQuote) { if let recoveredQuote { NavigationStack { ProposalPreviewView(quote: recoveredQuote) } } }
         .confirmationDialog("Discard local recovery?", isPresented: $confirmDiscardRecovery, titleVisibility: .visible) {
@@ -200,9 +208,11 @@ struct ProposalEditorView: View {
             }
         } catch { errorMessage = "Customer details could not be loaded. Recovered selections have been kept." }
     }
-    private func save() async {
+    private func save(retryPending: Bool = false) async {
+        if recoveryDocument.pending?.kind == .create && !retryPending { await checkRecovery(); return }
         guard !saving, ready, let session = recoverySession else { return }
         saving = true; defer { saving = false }
+        requestStatusMessage = nil
         await persistenceTask?.value
         do {
             let saved: MobileQuoteDetail
@@ -228,8 +238,24 @@ struct ProposalEditorView: View {
             if let doc = try? await fieldService.quoteRecoveryDocument(session) { recoveryDocument = doc }
         }
     }
+    private func checkRecovery() async {
+        guard !saving, ready, let session = recoverySession else { return }
+        saving = true; defer { saving = false }
+        requestStatusMessage = nil; errorMessage = nil; recoveredQuote = nil
+        await persistenceTask?.value
+        do {
+            let result = try await fieldService.checkQuoteRecovery(session)
+            recoveryDocument = try await fieldService.quoteRecoveryDocument(session)
+            requestStatusMessage = result.message
+            if result.state == .recorded {
+                recoveredQuote = try await fieldService.reviewQuoteRecovery(session); showRecoveredQuote = true
+            }
+        } catch { errorMessage = "The saved request could not be checked or loaded. Your draft and original request have been kept. Check again or review proposals in the CRM." }
+    }
     private func reviewRecovery() async {
-        guard let session = recoverySession else { return }
+        guard !saving, let session = recoverySession else { return }
+        saving = true; defer { saving = false }
+        recoveredQuote = nil
         do { recoveredQuote = try await fieldService.reviewQuoteRecovery(session); showRecoveredQuote = true }
         catch { errorMessage = error.localizedDescription }
     }
@@ -247,7 +273,7 @@ struct ProposalEditorView: View {
         await persistenceTask?.value
         do {
             let fresh = try await fieldService.resetQuoteRecovery(session, reviewedRequest: reviewedRequest)
-            apply(.init()); partyDetail = nil; recoveredQuote = nil; configureExisting()
+            apply(.init()); partyDetail = nil; recoveredQuote = nil; requestStatusMessage = nil; configureExisting()
             recoverySession = fresh; recoveryDocument = fresh.document
             try await fieldService.saveQuoteDraft(draftSnapshot, session: fresh)
             ready = true; errorMessage = nil

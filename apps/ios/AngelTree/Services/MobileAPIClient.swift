@@ -24,6 +24,7 @@ protocol MobileAPIClientProtocol: Sendable {
     func quoteDetail(id: String, accessToken: String) async throws -> MobileQuoteDetail
     func createQuote(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
     func createQuoteCopy(_ input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
+    func quoteRequestStatus(kind: MobileQuotePendingRequest.Kind, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteRequestStatus
     func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail
     func duplicateQuote(id: String, accessToken: String) async throws -> MobileQuoteDetail
     func invoices(scope: MobileInvoiceScope, cursor: String?, limit: Int, query: String?, accessToken: String) async throws -> MobileInvoicePage
@@ -189,6 +190,17 @@ actor MobileAPIClient: MobileAPIClientProtocol {
     func updateQuote(id: String, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteDetail {
         let payload: MobileQuotePayload = try await sendJSON(path: "api/mobile/quotes/\(id)/edit", method: "PATCH", body: input, accessToken: accessToken)
         return payload.quote
+    }
+
+    func quoteRequestStatus(kind: MobileQuotePendingRequest.Kind, input: MobileQuoteWriteRequest, accessToken: String) async throws -> MobileQuoteRequestStatus {
+        guard kind == .create || kind == .copy, let id = input.requestId, UUID(uuidString: id) != nil else { throw MobileAPIError.invalidRequest }
+        struct Body: Encodable { let kind: MobileQuotePendingRequest.Kind; let request: MobileQuoteWriteRequest }
+        struct Payload: Decodable { let requestStatus: MobileQuoteRequestStatus }
+        let payload: Payload = try await sendJSON(path: "api/mobile/quotes/request-status", method: "POST", body: Body(kind: kind, request: input), accessToken: accessToken)
+        let result = payload.requestStatus
+        guard result.requestId == id.lowercased(),
+              result.state == .recorded ? result.quoteId.flatMap(UUID.init(uuidString:)) != nil : result.quoteId == nil else { throw MobileAPIError.invalidResponse }
+        return result
     }
 
     func duplicateQuote(id: String, accessToken: String) async throws -> MobileQuoteDetail {

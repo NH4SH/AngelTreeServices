@@ -176,6 +176,17 @@ actor QuoteRecoveryStore {
         pending.confirmedQuoteID = quoteID; doc.pending = pending
         try write(doc, session: session)
     }
+    func reconcile(_ expected: MobileQuotePendingRequest, quoteID: String, session: MobileQuoteRecoverySession) throws {
+        var doc = try document(session)
+        guard expected.kind == .create || expected.kind == .copy, UUID(uuidString: quoteID) != nil,
+              var pending = doc.pending ?? doc.rejected,
+              pending.kind == expected.kind, pending.request == expected.request,
+              pending.confirmedQuoteID == nil || pending.confirmedQuoteID == quoteID else { throw QuoteRecoveryError.pendingReview }
+        // Bind the read to the exact saved body, including a corrected request
+        // that reused its ID. Do not mark another candidate as confirmed.
+        pending.confirmedQuoteID = quoteID; doc.pending = pending
+        try write(doc, session: session)
+    }
     func acknowledge(quoteID: String, session: MobileQuoteRecoverySession) throws {
         var doc = try document(session)
         guard doc.pending?.confirmedQuoteID == quoteID else { throw QuoteRecoveryError.pendingReview }

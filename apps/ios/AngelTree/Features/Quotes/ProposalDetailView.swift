@@ -25,6 +25,7 @@ struct ProposalDetailView: View {
     @State private var showSavedCopy = false
     @State private var confirmAnotherCopy = false
     @State private var confirmDiscardCopy = false
+    @State private var copyStatusMessage: String?
 
     var body: some View {
         Group {
@@ -121,6 +122,7 @@ struct ProposalDetailView: View {
 
     private func load(allowCached: Bool) async { loading = true; do { let result = try await fieldService.quoteDetail(id: quoteID, userID: access.userID, allowCached: allowCached); quote = result.detail; stale = result.cached; errorMessage = nil; if result.cached { await load(allowCached: false) } } catch { errorMessage = (error as? LocalizedError)?.errorDescription ?? "Try again." }; loading = false }
     @ViewBuilder private var copyRecoveryControls: some View {
+        if let copyStatusMessage { Text(copyStatusMessage).font(.footnote).accessibilityIdentifier("copy-request-status") }
         if !copyReady {
             if copyPreparing { ProgressView("Restoring copy…") }
             else {
@@ -137,6 +139,9 @@ struct ProposalDetailView: View {
                 Button("Create another copy") { confirmAnotherCopy = true }.disabled(duplicating || acknowledgingCopy || stale || quote == nil)
             } else if copyDocument.pending != nil || copyDocument.rejected != nil {
                 Text("The saved copy request will use its original details. It is kept on this device until reviewed.").font(.footnote).foregroundStyle(.secondary)
+                if copyDocument.pending?.confirmedQuoteID == nil {
+                    Button("Retry copy using original details") { Task { await duplicateQuote(retryPending: true) } }.disabled(duplicating || acknowledgingCopy)
+                }
                 if copyDocument.pending?.confirmedQuoteID != nil, let savedCopy {
                     Button("Use saved copy") { Task { await acknowledgeCopy(savedCopy) } }.disabled(duplicating || acknowledgingCopy)
                 }
@@ -147,7 +152,7 @@ struct ProposalDetailView: View {
     private var copyActionTitle: String {
         if duplicating { return "Checking copy…" }
         if copyDocument.completedQuoteID != nil || copyDocument.pending?.confirmedQuoteID != nil { return "Review saved copy" }
-        return copyDocument.pending != nil || copyDocument.rejected != nil ? "Retry saved copy" : "Duplicate proposal"
+        return copyDocument.pending != nil || copyDocument.rejected != nil ? "Check saved request" : "Duplicate proposal"
     }
     private func prepareCopyRecovery() async {
         guard !duplicating, !acknowledgingCopy, !copyPreparing else { return }
@@ -161,11 +166,14 @@ struct ProposalDetailView: View {
             } catch { editRecoveryError = "Local edit recovery is unavailable. Your saved work has been kept." }
         } catch { copyRecoveryError = error.localizedDescription; copyReady = false }
     }
-    private func duplicateQuote() async {
+    private func duplicateQuote(retryPending: Bool = false) async {
+        if (copyDocument.pending?.kind == .copy || copyDocument.rejected?.kind == .copy) && copyDocument.pending?.confirmedQuoteID == nil && !retryPending { await checkCopyRecovery(); return }
         guard !duplicating, copyReady, let session = copySession else { return }
         duplicating = true; defer { duplicating = false }
+        copyStatusMessage = nil
         do {
             if copyDocument.completedQuoteID != nil || copyDocument.pending?.confirmedQuoteID != nil {
+                savedCopy = nil
                 savedCopy = try await fieldService.reviewQuoteRecovery(session); showSavedCopy = true; return
             }
             let saved: MobileQuoteDetail
@@ -190,6 +198,19 @@ struct ProposalDetailView: View {
             if let doc = try? await fieldService.quoteRecoveryDocument(session) { copyDocument = doc }
         }
     }
+    private func checkCopyRecovery() async {
+        guard !duplicating, !acknowledgingCopy, copyReady, let session = copySession else { return }
+        duplicating = true; defer { duplicating = false }
+        copyStatusMessage = nil; errorMessage = nil; savedCopy = nil
+        do {
+            let result = try await fieldService.checkQuoteRecovery(session)
+            copyDocument = try await fieldService.quoteRecoveryDocument(session)
+            copyStatusMessage = result.message
+            if result.state == .recorded {
+                savedCopy = try await fieldService.reviewQuoteRecovery(session); showSavedCopy = true
+            }
+        } catch { errorMessage = "The saved copy request could not be checked or loaded. Your original request has been kept. Check again or review proposals in the CRM." }
+    }
     private func acknowledgeCopy(_ saved: MobileQuoteDetail) async {
         guard !acknowledgingCopy, let session = copySession else { return }
         acknowledgingCopy = true; defer { acknowledgingCopy = false }
@@ -205,7 +226,7 @@ struct ProposalDetailView: View {
         guard !duplicating, let session = copySession else { return }
         do {
             let next = try await fieldService.resetQuoteRecovery(session, reviewedRequest: reviewedRequest)
-            copySession = next; copyDocument = next.document; savedCopy = nil; errorMessage = nil; copyReady = true
+            copySession = next; copyDocument = next.document; savedCopy = nil; copyStatusMessage = nil; errorMessage = nil; copyReady = true
             if createNow { await duplicateQuote() }
         } catch { errorMessage = error.localizedDescription }
     }

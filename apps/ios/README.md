@@ -160,3 +160,11 @@ Before an iOS release, verify kill/relaunch, lock/unlock failures, account chang
 rapid typing/close and replay/conflict review on a device. Command Line Tools
 checks do not replace a full iOS build or real Keychain validation. See
 `../platform/MOBILE_QUOTE_RESTART_RECOVERY.md` for evidence and limitations.
+
+Recovered nonempty creation/copy requests now offer **Check saved request**,
+which reads the original receipt without resending. Retrying the original save is
+separate. A missing receipt is point-in-time only and never clears recovery or
+rotates its ID. Recorded proposals require fresh review and explicit acceptance.
+Edits and legacy empty copies retain their existing conflict/manual-review paths.
+The server needs migration100 before this lookup is available; an old server
+fails closed. See `../platform/MOBILE_QUOTE_REQUEST_RECONCILIATION.md`.

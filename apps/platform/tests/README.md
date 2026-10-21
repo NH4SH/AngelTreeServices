@@ -1814,3 +1814,17 @@ evidence includes independent native OS-process persistence probes, not an iOS
 Simulator/device run. See MOBILE_QUOTE_RESTART_RECOVERY.md for native acceptance
 gates, partial-unsent-input limits and the empty-copy/manual-review distinction.
 The regular platform suite and installed draft/copy/edit suites remain unchanged.
+
+## Read-only mobile request reconciliation
+
+`tests/quote-request-status.test.mjs` runs with the regular unit suite.
+`tests/quote-request-status.integration.test.mjs` requires an empty local schema100
+replay as its template: set `QUOTE_STATUS_DISPOSABLE=1`, `QUOTE_STATUS_DATABASE`
+to that `ats_quote_fresh_<32 hex>` database, `QUOTE_STATUS_DOCKER_BIN` to the local
+Docker binary, and the existing disposable `DOCKER_HOST` socket. Run with Node22
+`--experimental-strip-types --test`. Optional `QUOTE_STATUS_RESULTS` records a
+credential-free result summary. The suite creates/drops its own synthetic clone;
+it refuses arbitrary/hosted databases and leaves the shared local database alone.
+It tests actual READ ONLY transactions and separate-session commit/rollback,
+revocation/offboarding and lock timeout. See MOBILE_QUOTE_REQUEST_RECONCILIATION.md
+for exact gates and the native Foundation-versus-device acceptance distinction.

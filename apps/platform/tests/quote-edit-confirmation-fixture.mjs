@@ -47,6 +47,7 @@ export function quoteEditFixture(options={}){
   '@/lib/quotes/draft-request':draftHelper,
  });
  const mobile=load(options.mobileFile??'../src/lib/data/mobile-quotes.ts',{'server-only':{},'@/lib/quotes/edit-result':editResult,
+  '@/lib/quotes/request-status':load('../src/lib/quotes/request-status.ts',{'server-only':{},'./edit-result':editResult,'../runtime/deadline.ts':{withDeadline}}),
   '@/lib/quotes/save-confirmation':receiptHelper,'@/lib/quotes/draft-request':draftHelper,'@/lib/quotes/proposal-number':{formatProposalNumber:n=>n},'@/lib/api/mobile-quotes':{}});
  const form=new FormData();for(const[k,v]of Object.entries({quote_id:id,contracting_party:`${options.organization?'organization':'customer'}:${party}`,
   service_location_id:loc,expected_revision:'5',submit_intent:options.intent??'save',client_navigation:options.serverRedirect?'0':'1',returnTo:'/admin/quotes?q=local'}))form.set(k,v);

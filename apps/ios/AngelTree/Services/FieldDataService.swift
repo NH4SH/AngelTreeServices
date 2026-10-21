@@ -36,6 +36,7 @@ protocol FieldDataService: Sendable {
     func quoteRecoveryDocument(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRecoveryDocument
     func submitQuoteRecovery(_ pending: MobileQuotePendingRequest, session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
     func retryQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
+    func checkQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRequestStatus
     func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail
     func acknowledgeQuoteRecovery(quoteID: String, session: MobileQuoteRecoverySession) async throws
     func resetQuoteRecovery(_ session: MobileQuoteRecoverySession, reviewedRequest: Bool) async throws -> MobileQuoteRecoverySession
@@ -235,6 +236,25 @@ extension LiveFieldDataService {
         guard pending.kind != .emptyCopy else { throw QuoteRecoveryError.pendingReview }
         let stored = doc.pending != nil ? pending : try await recovery.prepare(pending, session: session)
         return try await performQuoteRecovery(stored, session: session)
+    }
+    func checkQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteRequestStatus {
+        let doc = try await quoteRecoveryDocument(session)
+        guard let pending = doc.pending ?? doc.rejected, pending.kind == .create || pending.kind == .copy else { throw QuoteRecoveryError.pendingReview }
+        try validateRecoveryKind(pending.kind, context: session.context)
+        let token = try await recoveryToken(session.userID)
+        let result = try await api.quoteRequestStatus(kind: pending.kind, input: pending.request, accessToken: token)
+        try await assertRecoverySession(session)
+        let latest = try await recovery.document(session)
+        guard let current = latest.pending ?? latest.rejected, current.kind == pending.kind, current.request == pending.request else { throw QuoteRecoveryError.pendingReview }
+        if result.state == .recorded {
+            guard let id = result.quoteId, pending.kind != .copy || UUID(uuidString: id) != session.context.quoteID.flatMap(UUID.init(uuidString:)) else { throw MobileAPIError.invalidResponse }
+            try await recovery.reconcile(pending, quoteID: id, session: session)
+        } else {
+            // Validate the lease even when no local receipt is written.
+            _ = try await recovery.document(session)
+        }
+        try await assertRecoverySession(session)
+        return result
     }
     func reviewQuoteRecovery(_ session: MobileQuoteRecoverySession) async throws -> MobileQuoteDetail {
         let doc = try await quoteRecoveryDocument(session)

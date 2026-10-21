@@ -463,6 +463,20 @@ struct MobileQuotePendingRequest: Codable, Equatable, Sendable {
     var dispatchCount = 0
 }
 
+struct MobileQuoteRequestStatus: Codable, Equatable, Sendable {
+    enum State: String, Codable, Sendable { case recorded, notRecorded = "not_recorded", unavailable }
+    let requestId: String
+    let state: State
+    let quoteId: String?
+    var message: String {
+        switch state {
+        case .recorded: "Your previous request saved a proposal. Review it before continuing."
+        case .notRecorded: "No saved result was found at this check. A delayed save could still finish. Your original request is kept; check again or explicitly retry the same save."
+        case .unavailable: "This request saved a proposal, but that proposal is no longer available. Review its history in the CRM before starting another."
+        }
+    }
+}
+
 struct MobileQuoteRecoveryDocument: Codable, Equatable, Sendable {
     var version = 1
     var draft: MobileQuoteEditorDraft?

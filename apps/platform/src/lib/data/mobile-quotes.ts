@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QuoteEditError, quoteSaveResult } from "@/lib/quotes/edit-result";
 import { createQuoteDraftRequest } from "@/lib/quotes/draft-request";
+import { resolveQuoteDraftRequest, requestStatusUncertain } from "@/lib/quotes/request-status";
 import { saveQuoteEdit } from "@/lib/quotes/save-confirmation";
 import { formatProposalNumber } from "@/lib/quotes/proposal-number";
 import { quoteStatusesForScope, type MobileQuoteScope, type MobileQuoteWriteInput } from "@/lib/api/mobile-quotes";
@@ -39,12 +40,7 @@ export async function createMobileQuote(supabase: SupabaseClient, userId: string
   await validateOwnership(supabase, input);
   const lines = lineValues(input.lines);
   if (input.requestId !== undefined) {
-    const confirmation = await createQuoteDraftRequest({ supabase, requestId: input.requestId, header: {
-      customer_id: input.customerId ?? null, organization_id: input.organizationId ?? null,
-      service_location_id: input.serviceLocationId, recipient_contact_id: input.recipientContactId ?? null,
-      approval_contact_id: input.approvalContactId ?? null, customer_message: input.customerMessage ?? null,
-      expires_at: normalizeDate(input.expiresAt),
-    }, lines });
+    const confirmation = await createQuoteDraftRequest({ supabase, requestId: input.requestId, ...draftRequestValues(input) });
     if (!confirmation.ok) throw new QuoteEditError(confirmation.message, 409);
     try {
       const detail = await getMobileQuote(supabase, confirmation.quoteId);
@@ -61,6 +57,22 @@ export async function createMobileQuote(supabase: SupabaseClient, userId: string
   if (error) throw error;
   if (!quoteSaveResult(quote, lines.length)) throw new QuoteEditError("The created proposal could not be confirmed. Check proposals before starting another draft.");
   return getMobileQuote(supabase, quote.id);
+}
+
+export async function resolveMobileQuoteRequest(supabase: SupabaseClient, input: MobileQuoteWriteInput) {
+  if (!input.requestId) throw new QuoteEditError(requestStatusUncertain, 400);
+  // An old request can outlive active contacts, its source, or later edits.
+  // The resolver checks live office access, original actor and exact payload.
+  const result = await resolveQuoteDraftRequest({ supabase, requestId: input.requestId, ...draftRequestValues(input) });
+  if (!result) throw new QuoteEditError(requestStatusUncertain, 503);
+  return result;
+}
+
+function draftRequestValues(input: MobileQuoteWriteInput) {
+  return { header: { customer_id: input.customerId ?? null, organization_id: input.organizationId ?? null,
+    service_location_id: input.serviceLocationId, recipient_contact_id: input.recipientContactId ?? null,
+    approval_contact_id: input.approvalContactId ?? null, customer_message: input.customerMessage ?? null,
+    expires_at: normalizeDate(input.expiresAt) }, lines: lineValues(input.lines) };
 }
 
 export async function updateMobileQuote(supabase: SupabaseClient, userId: string, quoteId: string, input: MobileQuoteWriteInput) {

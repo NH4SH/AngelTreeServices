@@ -26,6 +26,7 @@ STATIC_FILES = (
     "ats-service-areas.css",
     "site-pages.css",
     "site-pages.js",
+    "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",
     "ats-consent.css",

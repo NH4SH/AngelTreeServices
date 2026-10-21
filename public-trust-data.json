@@ -9,10 +9,12 @@
     "google": {
       "name": "Google",
       "rating": "4.9",
-      "reviewCount": 123,
-      "publicCountWording": "120+ reviews",
+      "reviewCount": 139,
+      "publicCountWording": "140+ reviews",
       "publicProfileUrl": "https://www.google.com/maps/search/?api=1&query=Angel%20Tree%20Services&query_place_id=ChIJkTtDRfXAtokRlO24zHOF67o",
-      "verificationNote": "The live Maps listing confirmed the business and 4.9 rating. The count is from the owner-supplied July 17, 2026 snapshot because Google's limited signed-out view did not expose it."
+      "verificationNote": "Live Google Maps showed 139 published reviews and a 4.9 rating on October 20, 2026. The owner reported an additional review awaiting publication and explicitly approved publishing the 140+ wording during the final patch review. The observed exact count remains 139; approval is recorded separately from independent verification.",
+      "lastVerifiedAt": "2026-10-20",
+      "publicCountPublicationStatus": "Owner approved 140+ wording during final review on October 20, 2026. No content-approval hold; commit, push and deployment remain unapproved."
     },
     "angi": {
       "name": "Angi",

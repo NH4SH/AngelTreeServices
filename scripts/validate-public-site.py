@@ -1120,7 +1120,7 @@ class Validator:
             "angeltreeservices_backup_files/isamember1_004.jpg",
             'alt="ISA Certified Arborist"',
             "Insured &middot; 30+ years of tree-industry experience",
-            "120+",
+            "140+",
             "4.9 average",
             "Voted a 2026 Best of the Burg Finalist",
             "Featured by NBC4",
@@ -1176,7 +1176,7 @@ class Validator:
             self.error("/: hero, credential card, immediate recognition, services, and testimonial must retain the approved order")
 
         required_recognition_terms = (
-            "120+",
+            "140+",
             "4.9 average",
             "5.0 out of 5 stars",
             "44 customer reviews",
@@ -1305,7 +1305,7 @@ class Validator:
             "family-operated business",
             "Member of the Fredericksburg Regional Chamber of Commerce",
             "Member of the Fredericksburg Area Builders Association",
-            "4.9 stars from 120+ Google reviews",
+            "4.9 stars from 140+ Google reviews",
             "View Reviews, Recognition &amp; Media",
             "/recognition/",
         )

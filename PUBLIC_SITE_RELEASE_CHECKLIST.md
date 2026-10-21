@@ -1,3 +1,216 @@
+## Gallery, mobile headings and Google reviews — release approved
+
+Owner explicitly approved commit, push and publication of the reviewed combined
+website patch, with non-submitting production smoke checks. Reviewed source hashes
+match final-review.json before adding this approval record. The checkout is based
+on latest main 277945b, preserving all six newer CRM commits byte-for-byte.
+
+Run all 176 website tests and the 17-page build/validation on the integrated
+checkout. Commit only the ten reviewed public files with [skip ci] [skip netlify]
+to skip automatic builds for both shared-repository projects. Push without force,
+then request a Git build only for public project
+86c48a95-ead4-4b15-8e57-fa827558b2f0. Confirm its published commit matches this
+release and CRM remains at published deploy 6ad6ecfc6c03786554247e4a. Keep analytics,
+consent, CRM source and both projects' settings unchanged. Do not submit leads,
+place calls or send emails. Record production GET and browser smoke checks in
+outputs/project-gallery/. Earlier local-stage commit/deployment holds below are
+superseded by this explicit release approval; physical-device and spoken
+screen-reader checks remain outside the completed local verification.
+
+## Combined gallery, mobile heading and Google review patch — final local review
+
+**Verdict: ready for release approval after one regression fix.** No remaining
+release-blocking issue found in the local review. The owner approved the 140+
+Google wording and said it is fine to publish; this supersedes the historical
+Google-count holds below. This is content approval only: no commit, push, merge
+or deployment is authorized or performed during this review.
+
+- Fixed a P2 shared-style regression: inserting gallery styles had split the
+  existing .ats-recognition-intro / .ats-customer-experiences__heading selector
+  group. Restored the original group. Removing only the gallery additions now
+  reconstructs the pre-gallery stylesheet exactly, preserving the separately
+  approved mobile h1 change. Recognition's grid columns and section dimensions
+  match the original in the browser.
+- All 176 tests pass (167 Node + nine Python); all 17 pages build/validate. The
+  patch also applies cleanly to newly fetched main a341d4f (five newer CRM commits)
+  in an isolated local archive. Its 176 tests pass and all 257 public artifacts
+  are byte-identical to this checkout. Every newer CRM file matches main exactly.
+  The active checkout stays at 746c8f3; retain newer main during a later approved
+  release. No CRM tests, migrations, settings or deployments were run or changed.
+- Fresh before/after browser checks cover 176 combinations per build: all 16
+  interior pages at 320/360/375/390/430/700/701/768/1280px, plus 200% heading-text
+  enlargement at 320/390px. No heading clipping, real phone-width word splits or
+  horizontal overflow. All 165 non-Projects combinations retain identical heading
+  and button geometry; two whole-document heights differ by one rounding pixel.
+  Enlargement is a local heading-size fixture, not native zoom or a physical phone.
+- Rechecked all eight 1600px photos and exact approved captions/estimate contexts,
+  8/6/4 filter counts, wraparound, Escape, backdrop close, focus restoration and
+  scroll unlocking. Privacy settings still open/close and return focus after the
+  gallery closes. Earlier actual local estimate/draft-preservation checks remain
+  applicable because the gallery and estimate JavaScript are unchanged by review.
+- Homepage desktop shows three equal Google/Angi/BBB columns; 320px retains the
+  large 140+ count and 4.9 average with no overflow. Owner approval is recorded
+  separately from the last independently observed exact count of 139 in the
+  provenance JSON; no new independent Google count is claimed or GBP changed.
+- All 17 SEO heads match the published baseline after reversing only the shared
+  CSS fingerprint. HTML reconstruction permits only the approved review wording,
+  homepage Google panel, gallery and stylesheet reference changes. All preexisting
+  JS and photo assets match byte-for-byte. Analytics, consent, estimate runtime,
+  CRM and hosting settings remain unchanged. No lead submissions, calls or emails.
+- Current evidence: outputs/project-gallery/final-review.json,
+  final-review-browser-checks.json, matrix-before.json, matrix-after.json,
+  final-review-tests.txt, final-review-latest-main.json, latest-main-tests.txt,
+  final-reviewed.patch and final-review-recognition.jpg. Earlier implementation
+  records below are historical stages; this review is the current handoff.
+- Remaining verification: physical-phone and spoken screen-reader spot checks
+  have not been performed. After a separately approved release, run non-submitting
+  production HTTP/gallery/estimate/privacy smoke checks. Verify latest main again
+  and publish only the public website, preserving newer CRM work and settings.
+
+## Projects gallery — local implementation, October 20, 2026
+
+Owner approved tap-to-enlarge photos, service filters, relevant estimate links and
+local checks only. No commit, push, merge, deployment or production lead submission.
+The previous mobile heading and Google-count patches remain separately preserved.
+
+- Kept all eight approved photos, original thumbnail variants/alt text, titles and
+  captions. Added All photos / Tree services / Landscaping filters: 8 / 6 / 4
+  photos respectively. The two garden/tree photos belong to both service groups;
+  counts are not combined. Filtering applies only to the field gallery, leaving
+  the existing featured case study available above it.
+- Added native modal photo viewing with on-demand existing 1600px images, captions,
+  full-size image fallback, contextual estimate links, previous/next within the
+  selected filter (wrapping at the ends), arrow keys, Escape, close button and
+  backdrop dismissal. Native modal behavior contains focus; every close path
+  restores the original photo link. Body scrolling is restored on close.
+- No gallery interaction depends on hover. Filter and viewer buttons meet 44px
+  touch targets. Mobile images use the available width; the viewer can scroll on
+  short screens. Load errors explain the full-size fallback and leave navigation
+  usable. If gallery JavaScript/dialog support is unavailable, all photos and
+  static estimate links remain usable and full-size links work normally.
+- All 176 tests pass: 167 Node (nine new gallery behavior checks) + nine Python;
+  all 17 pages build/validate. Browser checks at 320/390/768/1280px show no horizontal
+  overflow. Desktop and 320px modal checks confirm loaded 1600px photos, visible
+  navigation, captions, keyboard containment, wrapping, Escape and focus return.
+  The existing 158 Node checks continue covering estimate, draft and consent.
+- Real local estimate navigation selects stump grinding correctly, and a second
+  gallery estimate selects pruning while preserving the customer-entered details
+  from the tab draft. Only a clearly labeled local test note was used and cleared;
+  no submits, phone calls, emails or production leads were sent.
+- Artifact comparison: all eight original photos/alt text/titles/captions match.
+  Projects metadata and all content outside this gallery match the pre-gallery
+  local baseline. All 16 other HTML documents match after reversing only the new
+  shared CSS fingerprint; the homepage matches byte-for-byte. Photos, SEO URLs,
+  structured data, existing estimate links/runtime, analytics, consent and CRM
+  source/settings are unchanged. Existing immutable shared-CSS caching is retained.
+- Changes are limited to the Projects builder, scoped shared-CSS selectors, a
+  Projects-only deferred script, its public-build copy entry, the website test
+  command, nine new tests and this release record. No added libraries or external
+  gallery requests. Current artifact contains 257 files versus 256 before: new JS
+  plus a new CSS fingerprint replacing the previous one.
+- Evidence: outputs/project-gallery/local-tests.txt, browser-checks.json,
+  verification.json, gallery-only.patch, combined-local.patch, gallery-desktop.jpg,
+  photo-viewer-desktop.jpg and photo-viewer-mobile.jpg. Preview:
+  http://127.0.0.1:54621/projects/#field-gallery-title.
+- Separate release review/approval remains pending. Physical-device and spoken
+  screen-reader testing are not claimed. Production smoke checks require a later
+  approved release. The separate 140+ Google-count publication hold below remains
+  in effect for the combined batch until the pending review is published.
+
+## Homepage Google review panel — local addition, October 20, 2026
+
+Owner requested Google beside the existing homepage Angi ratings. Added a Google
+panel before Angi and BBB using their existing markup/styles. Per the owner’s
+follow-up, the large value is 140+, with “reviews · 4.9 average” underneath,
+matching the earlier Recognition treatment. The established Maps link remains. Restored the existing
+three-column desktop layout by removing the two-column modifier; existing mobile
+rules stack all three panels. No stylesheet or JavaScript edit was needed.
+
+- All 167 existing tests pass; all 17 pages build/validate. Browser inspection
+  confirms three equal 384px columns at 1280px and a clean stacked layout at 320px.
+  The Google count is accessible as text; Angi’s star-rating label and all
+  external-link protections remain unchanged. The count-prominent follow-up
+  rebuild/validation and fresh desktop/mobile visual checks also pass.
+- Angi/BBB data, photos, buttons, SEO metadata, estimate behavior, analytics,
+  consent and CRM remain unchanged. No leads, calls or emails were submitted.
+- The review-count publication hold below still applies: last verified Google
+  count is 139. Confirm at least 140 published reviews before releasing this
+  local 140+ draft. No commit, push or deployment performed or authorized.
+- Evidence: outputs/mobile-headings/homepage-google-local-tests.txt,
+  homepage-google-verification.json, homepage-google-desktop.jpg,
+  homepage-google-mobile.jpg and mobile-headings-homepage-google.patch.
+  Preview: http://127.0.0.1:54621/#ats-home-recognition-title.
+
+## Google review count — local draft, October 20, 2026
+
+**Historical count hold — superseded by owner approval in the final review above.**
+The owner requested 140+ in place of 120+ and reported an additional review waiting
+to register. A read-only check of the existing Google Maps profile currently shows
+139 published reviews and 4.9 stars. No GBP changes were made. The pending review
+is not counted as verified: public-trust-data.json records 139, the actual check
+date and the explicit publication hold separately from the requested draft wording.
+
+- Prepared 140+ consistently in the homepage, Recognition metric and shared
+  review proof used on About. Kept the 4.9 rating and all
+  review excerpts/profile links unchanged. Updated existing content invariants.
+- This count-only addition sits alongside the separately approved mobile heading
+  patch below. The heading-only artifact comparisons recorded there describe the
+  earlier stage, before this new copy request; they are not a claim that the
+  combined patch preserves every word. No analytics, consent, CRM, estimate
+  behavior, photos, buttons, URLs or SEO metadata changes are authorized here.
+- All 167 tests pass (158 Node + 9 Python); all 17 pages build and validate.
+  Fresh 320px browser checks show 140+ on all three affected pages with no
+  horizontal overflow; the desktop Recognition preview also shows the update.
+  Reversing only 140+ to 120+ and the heading CSS fingerprint reconstructs every
+  baseline HTML document exactly. Analytics, consent, CRM and all other runtime,
+  metadata, photos, buttons and estimate markup remain unchanged. Evidence:
+  outputs/mobile-headings/review-count-local-tests.txt, review-count-verification.json,
+  review-count-preview.jpg and mobile-headings-review-count.patch. No commit,
+  push or deployment is authorized for either local patch. Recheck the public
+  Google count during release review; if it is still below 140, retain the hold
+  or use an accurate lower count instead.
+
+## Mobile heading sizing — local implementation, October 20, 2026
+
+Owner approved mobile heading sizing/wrapping and local checks only. Based on
+published cache-preserving release 746c8f3. No commit, push or deployment.
+
+- Changed only the existing max-width:700px .ats-page-hero h1 rule: a smaller
+  fluid size with rem minimum/maximum and balanced wrapping. Font family, weight,
+  color, letter spacing and underline remain unchanged. Existing anywhere-wrap
+  fallback still permits reflow when enlarged text cannot fit whole words.
+  Desktop/tablet rules above 700px are unchanged; homepage CSS is untouched.
+- At 320px, Service Areas now reads “Service areas” / “around” /
+  “Fredericksburg.” in three lines instead of splitting the place name across a
+  fourth line. Measured heading/underline block shrinks from 204.5px to 135.2px.
+  The place name also stays whole at 360/375/390/430px.
+- All 167 existing tests pass; all 17 pages build/validate. Browser fixture checks
+  cover all 16 interior pages at 320/360/375/390/430/700/701/768/1280px, plus 200%
+  heading-text enlargement at 320/390px: 176 combinations each before and after.
+  No genuine word splitting remains at normal phone widths, no heading clipping
+  or horizontal overflow occurs, and button appearance/dimensions/links match.
+  Natural breaks at existing dashes are allowed. At 701/768/1280px the complete
+  measured heading/button/body geometry matches the baseline.
+- Enlargement is a local h1/h2/h3 text-size fixture, not native browser zoom,
+  whole-page text zoom or physical-device testing. Those are not claimed here.
+  Native browser checks also pass for mobile menu/escape, privacy open/close/
+  returned focus and the Landscaping estimate selection/guidance. No submissions.
+- Of 256 generated files, 238 original artifacts are identical. Only the shared
+  source CSS and 16 interior stylesheet references change, with one new hashed
+  CSS asset replacing its old version. Replacing that one href restores each
+  original HTML document exactly. All wording, metadata, schema, photos, button
+  markup, estimate links/runtime, homepage and draft behavior are preserved.
+  Existing shared immutable CSS caching and automatic invalidation still apply.
+- Analytics, consent, CRM, hosting settings and all JS/build/test source remain
+  unchanged. Protected loopback QA blocks external requests and all lead sends;
+  collection is disabled only in its in-memory responses. Production is unchanged.
+- Evidence: outputs/mobile-headings/local-tests.txt, matrix-before.json,
+  matrix-after.json, browser-checks.json, verification.json, mobile-headings.patch
+  and mobile-heading-comparison.jpg. Preview: http://127.0.0.1:54621/__qa__/compare.
+  Only site-pages.css and this checklist are changed; pre-existing untracked work
+  remains untouched. Release needs separate review/approval. To reverse locally,
+  remove this scoped mobile h1 adjustment and rebuild; preserve unrelated work.
+
 ## Mobile speed — release approved, October 20, 2026
 
 Owner approved commit, push and publication of the reviewed cache-preserving

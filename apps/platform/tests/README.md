@@ -1828,3 +1828,11 @@ it refuses arbitrary/hosted databases and leaves the shared local database alone
 It tests actual READ ONLY transactions and separate-session commit/rollback,
 revocation/offboarding and lock timeout. See MOBILE_QUOTE_REQUEST_RECONCILIATION.md
 for exact gates and the native Foundation-versus-device acceptance distinction.
+
+`tests/staging-request-status-candidate.test.mjs` adds ten regular verifier tests
+for the exact100 target, source/ledger/identity drift, inherited private/guard/OFF
+requirements, resolver metadata and effective grants, and write-flag/production
+ref refusal. It makes no hosted calls. The actual migration100 reconciliation
+also reruns the existing295 pgTAP assertions and47 request/creation SQL scenarios
+in separate disposable local databases. See STAGING_REQUEST_STATUS_RECONCILIATION.md
+for evidence and hosted-versus-local acceptance limits.

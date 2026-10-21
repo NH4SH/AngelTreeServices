@@ -225,3 +225,19 @@ Migration97 was initially deferred for separate review in the principal-snapshot
 implementation. That staging-only reconciliation is now complete as described
 above. Its historical deferred hash remains unchanged; no production deployment,
 hosted application acceptance, scanner activation or release readiness is implied.
+
+## Migration100 maintenance target
+
+The authorized staging-only migration100 reconciliation is complete. Use
+`apps/platform/scripts/release/verify-staging-request-status-candidate.mjs`
+with the assigned staging ref and a fresh private managed-configuration file for
+read-only maintenance. It pins `request-status-candidate-100.json`, the exact100
+ledger/catalog and resolver permissions, plus all prior private-policy, identity,
+Auth guard/default, empty-state and OFF-switch checks. Older candidates and their
+deferred migration fingerprints remain historical; do not rerun older installers
+or change their seals to accept100.
+
+See `apps/platform/STAGING_REQUEST_STATUS_RECONCILIATION.md` for the one-routine
+delta, local rollback/idempotency proof, actual hosted denials and intentional
+narrow authenticated-definer advisor warning. This is not an app deployment,
+scanner activation, production change or grant of hosting readiness.

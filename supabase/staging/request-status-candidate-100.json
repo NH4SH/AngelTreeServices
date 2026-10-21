@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "8d9b5c77d9f81f4549f3febf18a36800722961ab",
+  "previousCandidateCount": 99,
+  "expectedMigrationCount": 100,
+  "previousCandidateSha256": "17838e316a59a4b6e4977f59e88f81db00dbd854f0987acbc4beea09584c688d",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261021060037_quote_request_status.sql",
+    "sha256": "b6f2491ce96ba44a8902bea1587978be5e2c1415594624a37a4ec31dbc0d1420"
+  },
+  "shapeSeal": "92227591866e2cad69f9847d894853a3",
+  "ledgerSeal": "71ade721312f2e737308c2739508abf1",
+  "initialApiAclSeal": "dcfe1fe6bc4c0d9ebfbb59cd2f8cd452",
+  "expectedApiAclSeal": "dcfe1fe6bc4c0d9ebfbb59cd2f8cd452",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4869,
+  "delta": {
+    "added": [
+      {
+        "key": "routine|public.resolve_quote_draft_request(p_request_id uuid, p_header jsonb, p_lines jsonb)",
+        "hash": "f8a9f2352ac23d4db66327f4b3022e74ef9c8349f086f0d4824eec584cc262f7"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

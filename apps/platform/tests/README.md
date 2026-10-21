@@ -1735,3 +1735,21 @@ fixture writes or customer reads. It verifies RPC exposure/anonymous denial,
 not actual HTTP acceptance with a committed populated invoice, concurrent
 transactions, provider behavior or hosted readiness. There is no raw-row fallback
 when a target lacks the migration; do not release the app without reconciliation.
+# Invoice edit save confirmation
+
+The regular gate includes `invoice-edit-confirmation.test.mjs`. The additional
+installed-command test runs only against the existing disposable local stack:
+
+```sh
+INVOICE_EDIT_DISPOSABLE=1 \
+INVOICE_EDIT_DOCKER_BIN=/absolute/path/to/docker \
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+node --conditions=react-server --experimental-strip-types --test tests/invoice-edit-confirmation.integration.test.mjs
+```
+
+It creates synthetic fixtures in one rollback transaction and never reads hosted
+credentials or changes schema. `INVOICE_EDIT_RESULTS` can name a private local JSON
+results file. The suite uses actual installed role/access, revision and financial
+locks, with controlled action/transport adapters. It does not establish real
+network loss, independently committed concurrency or browser/Auth acceptance.
+See [the scope and results](../INVOICE_EDIT_CONFIRMATION.md).

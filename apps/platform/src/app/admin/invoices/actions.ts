@@ -9,6 +9,7 @@ import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/rol
 import { createClient } from "@/lib/supabase/server";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
+import { saveInvoiceEdit } from "@/lib/invoices/save-confirmation";
 import { existingInvoiceMessage, isGenerationRequestId, parseGeneratedInvoice } from "@/lib/invoices/generation-request";
 import { safeStaffMessage } from "@/lib/security/errors";
 
@@ -323,14 +324,14 @@ export async function updateInvoice(
     return { status: "error", message: lookupError?.message ?? "Invoice not found or no access." };
   }
 
-  const { data: saved, error: saveError } = await supabase.rpc("save_invoice_details", {
-    p_invoice_id: invoiceId,
-    p_expected_updated_at: String(formData.get("expected_updated_at") ?? "") || null,
-    p_due_at: getInvoiceDueAt(dueDate),
-    p_lines: lineItems.map((item) => ({ id: item.id, ...invoiceLineCommand(item) })),
+  const saved = await saveInvoiceEdit({
+    supabase, invoiceId,
+    expectedUpdatedAt: String(formData.get("expected_updated_at") ?? ""),
+    dueAt: getInvoiceDueAt(dueDate),
+    lines: lineItems.map((item) => ({ clientId: item.clientId, id: item.id, ...invoiceLineCommand(item) })),
   });
-  if (saveError || !saved) {
-    return { status: "error", message: safeStaffMessage(saveError?.message ?? "Invoice changes could not be saved.") };
+  if (!saved.ok) {
+    return { status: "error", message: saved.message };
   }
 
   revalidatePath("/admin");
@@ -348,8 +349,8 @@ export async function updateInvoice(
 
   return {
     status: "success", message: "Invoice changes saved. Existing customer link remains active.",
-    savedUpdatedAt: saved.updated_at,
-    savedLineIds: Object.fromEntries(lineItems.map((item, index) => [item.clientId, saved.line_ids[index]])),
+    savedUpdatedAt: saved.updatedAt,
+    savedLineIds: saved.lineIds,
   };
 }
 

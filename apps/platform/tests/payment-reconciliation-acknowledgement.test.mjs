@@ -17,7 +17,7 @@ function fixture({ data = valid, error = null, throws = false, configured = true
     return { data, error };
   } };
   const module = load('../src/lib/payments/reconciliation.ts', {
-    'server-only': {},
+    '../runtime/deadline.ts': {}, 'server-only': {},
     '@/lib/supabase/admin': { getServiceRoleClient() { calls.push({ service: true }); return configured ? service : null; } },
     '@/lib/payments/payment-accounting': {},
     '@/lib/communications/queue': {

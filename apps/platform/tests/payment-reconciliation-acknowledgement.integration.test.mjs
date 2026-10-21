@@ -34,7 +34,7 @@ test('payment acknowledgements accept actual local PostgreSQL receipts and retai
     const customer = randomUUID(), invoice = randomUUID();
     const queue = [];
     const reconciliation = load('../src/lib/payments/reconciliation.ts', {
-      'server-only': {}, '@/lib/payments/payment-accounting': {},
+      '../runtime/deadline.ts': {}, 'server-only': {}, '@/lib/payments/payment-accounting': {},
       '@/lib/supabase/admin': { getServiceRoleClient: () => null },
       '@/lib/communications/queue': {
         cancelPendingCommunications: async () => { queue.push('cancel'); },

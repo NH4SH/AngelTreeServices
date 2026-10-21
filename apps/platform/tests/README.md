@@ -1676,3 +1676,36 @@ SQL helper roll back with per-case savepoints and one outer rollback. This does
 not establish independent commits, simultaneous connections, hosted HTTP/Auth,
 actual network loss, provider/3DS behavior or notification transport acceptance.
 See `../PAYMENT_PREFERENCE_CONFIRMATION.md` for the decision and limits.
+
+### Portal payment context confirmation
+
+`portal-payment-context.test.mjs` adds 123 regular checks around the real context
+helper, successful-principal reader, and bank/card-review/card-confirm routes.
+Missing or capped payment histories must not become zero paid principal. One
+read requests an exact count; all rows must be present, distinct, invoice-bound,
+successful and consistent with installed amount/refund/dispute constraints.
+No independently paged balance snapshots or automatic writes are introduced.
+Invoice/account relationships, expiry/revocation and processing absence require
+explicit confirmations before payment can proceed. Read deadlines abort at five
+seconds; cleanup keeps its existing budget. Organization-only billing, contact
+priority, refund/dispute math, processing holds and collection limits remain.
+
+```sh
+DOCKER_HOST=unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock \
+CONTEXT_DISPOSABLE=1 \
+CONTEXT_DOCKER_BIN="$LOCAL_DOCKER_BIN" \
+CONTEXT_RESULTS_FILE="$LOCAL_CONTEXT_RESULTS_FILE" \
+node --conditions=react-server --experimental-strip-types --test tests/portal-payment-context.integration.test.mjs
+```
+
+Use the installed Docker executable and a private results path. Fifteen scenarios
+use actual service-role SQL reads and the existing cleanup helper, comparing
+collectible principal against `app_private.invoice_paid_principal` as a local
+verification oracle. Fixtures cover individuals/organizations, successful/refunded/
+disputed/overlapping payments, paid invoices, a controlled capped response,
+revoked/expired tokens, creating/processing reservations and draft invoices.
+The initial portal lookup and selected-query response adapter are controlled;
+this is not a test of actual PostgREST truncation or hosted HTTP/Auth. Every
+fixture/temp helper rolls back with scenario savepoints and one outer transaction.
+No provider request, new collection or customer communication occurs. See
+`../PORTAL_PAYMENT_CONTEXT.md` for scope and remaining limits.

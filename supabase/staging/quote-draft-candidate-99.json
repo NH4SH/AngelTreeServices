@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "301b8bfdb3086fde87f844b764f95c5f19b1d249",
+  "previousCandidateCount": 98,
+  "expectedMigrationCount": 99,
+  "previousCandidateSha256": "0aaa9fe50f121a44868db7c0d4cd2e7599b2f58f5afe3f0674ded06ccbc30463",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261021032121_quote_draft_requests.sql",
+    "sha256": "214054af2b942ffce39c773929eac572f9bcdedf6639369a33e30bc264c47b9c"
+  },
+  "shapeSeal": "deb2abb3832f8249902de6b8e142ab3b",
+  "ledgerSeal": "05ae38edded0cb652c2f878774a80ecb",
+  "initialApiAclSeal": "d10788d41bb14c73cb644de8c7dd1903",
+  "expectedApiAclSeal": "d10788d41bb14c73cb644de8c7dd1903",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4868,
+  "delta": {
+    "added": [
+      {
+        "key": "column|app_private.quote_draft_requests.actor_user_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_draft_requests.created_at",
+        "hash": "3d04c32817863295bfa15057f8293976861812c72fb56d1b3ec57f13c8c62a6f"
+      },
+      {
+        "key": "column|app_private.quote_draft_requests.input_hash",
+        "hash": "42c84330a6bf2c4e7513f67b90330679bd6123586eeb4769dc7bd309e918b62a"
+      },
+      {
+        "key": "column|app_private.quote_draft_requests.quote_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_draft_requests.request_id",
+        "hash": "6dd51141f06f4e060e77ca30ff0ba0ba79236bb90ab421319a26c91b93605982"
+      },
+      {
+        "key": "column|app_private.quote_draft_requests.result_json",
+        "hash": "6fc33c29951350e49b616344c92c670fc70387c137376c9c4d408846f4efe8ce"
+      },
+      {
+        "key": "constraint|app_private.quote_draft_requests.quote_draft_requests_input_hash_check",
+        "hash": "72c49379a16839c4a3e370ee546bbb7b3738ef3f6d1faccbc7b90ee9b47fdbec"
+      },
+      {
+        "key": "constraint|app_private.quote_draft_requests.quote_draft_requests_pkey",
+        "hash": "e32359ad096807fae4130b9ce17cf5e48da4f0bc537fbcd4b64826ddcfd69eb4"
+      },
+      {
+        "key": "index|app_private.quote_draft_requests_pkey",
+        "hash": "6cc30712bc435fe147ac6be1e2e1b8b09e16edf233ce54de711bf70e4a68d46c"
+      },
+      {
+        "key": "policy|app_private.quote_draft_requests.No direct quote request access",
+        "hash": "4829d61bc57a5576f33e3f717ad87929ce581e489cce74f534d0e5885726f38e"
+      },
+      {
+        "key": "relation|app_private.quote_draft_requests",
+        "hash": "7826e45a26f4541d45556116ef31b416b1a52958fb43df3a4ac0c2686d8e2fe3"
+      },
+      {
+        "key": "routine|public.create_quote_draft_request(p_request_id uuid, p_header jsonb, p_lines jsonb)",
+        "hash": "42001200d20799d0049d6974269ed5d201bdd97956785b2b54ea299edfad4ea8"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

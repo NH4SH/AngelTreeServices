@@ -1,13 +1,42 @@
 # Staging permission reconciliation
 
-**Current candidate (October 20):** ATS staging is verified at 98 migrations,
+**Current candidate (October 20):** ATS staging is verified at 99 migrations,
+including unchanged `20261021032121_quote_draft_requests.sql`. The complete catalog
+matches the normal-owner rehearsal: 12 additions from 98, zero existing changes or
+removals. Exact history/defaults, principal and standalone commands, active
+no-send Auth guard, empty business/private queues and OFF switches are preserved.
+The staging app is undeployed and hosting readiness remains false.
+
+Run the current read-only verifier from `apps/platform` with Node 22:
+
+```sh
+node scripts/release/verify-staging-quote-draft-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json
+```
+
+Set `STAGING_SUPABASE_BIN` to the pinned CLI if needed. Configuration must be a
+fresh mode0600 effective Management API GET for this exact project. The verifier
+checks physical identity, exact99 ledger/catalog/defaults, existing and new
+command permissions/private policies, empty receipts, active guard and OFF
+state. It has no apply/deploy, key retrieval or configuration-patch mode.
+`quote-draft-candidate-99.json` pins untouched98 and original99 SQL. See
+`apps/platform/STAGING_QUOTE_DRAFT_RECONCILIATION.md` for verification, the one new
+intentional authenticated-definer advisory and remaining rollout gates.
+
+Historical candidates/verifiers keep their own exact ledger and reject newer
+staging. `deferred-migrations.json` is the historical93 source-inventory pin,
+not the live installation status. Do not replay earlier repair/installation
+procedures or alter their seals to make them accept a newer target.
+
+## Previous 98-migration candidate (historical)
+
+**Historical candidate:** ATS staging was verified at 98 migrations,
 including unchanged `20261021022314_standalone_invoice_requests.sql`. The full
 catalog matches the normal-owner rehearsal: 12 additive entries, no changed or
 removed existing objects. Exact history/defaults, principal, active no-send Auth
 guard, empty business/request/delivery/source state and OFF switches are preserved.
 The staging app is undeployed and hosting readiness remains false.
 
-Run the current read-only verifier from `apps/platform` using Node 22:
+Historical read-only verifier (requires exactly98 and rejects current99):
 
 ```sh
 node scripts/release/verify-staging-standalone-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json

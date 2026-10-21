@@ -1,3 +1,53 @@
+## Tree Removal mobile navigation — release approved, October 21, 2026
+
+Owner approved commit, push and publication of the reviewed Tree Removal mobile
+patch. Fetched origin/main at 7089c62; preserve it as parent and retain subsequent
+repository work. Push with [skip ci] and [skip netlify], then explicitly build
+only public website 86c48a95-ead4-4b15-8e57-fa827558b2f0. Preserve estimate behavior;
+no analytics, consent or CRM change is needed. Compare both Netlify projects and
+run non-submitting production smoke checks. Release evidence: this chat's
+outputs/tree-removal-mobile-release/. Earlier hold notes below preceded approval.
+
+- Final release-readiness review: no blocking regression found; no application
+  correction required. Fresh 175 Node + 9 Python tests, build and 18-page
+  validation pass. All five topic links receive keyboard focus at the correct
+  targets; FAQ expansion, clipped/full hero-action availability and return of
+  the bar after a jump pass in the browser. Fresh 320px doubled-text check has
+  no heading/link overflow and retains header clearance. Fresh baseline checks
+  preserve metadata/schema, copy, photos, prior destinations, all 17 other pages
+  (except shared CSS hash), and protected runtime. Address autocomplete's local
+  empty-key build substitution was verified separately from unchanged source.
+  Evidence: outputs/tree-removal-mobile/final-review-*. Publication remains held.
+- Owner approved Tree Removal-only topic links, mobile spacing/process refinement
+  and less duplication between hero actions and the floating bar. No commit,
+  push or deployment. Source: scripts/build-public-pages.py and site-pages.css;
+  a small isolated tree-removal-mobile.js is included only on this page.
+- Mobile topic links target the existing project and new scope, process, site
+  access and FAQ anchors. Keyboard focus reaches each target; clearance follows
+  the sticky header's measured height plus 20px, including text enlargement.
+  All original copy, six process descriptions, photos and estimate URLs remain.
+- Only this page receives compact mobile section spacing and numbered process
+  rows. Desktop presentation stays intact. Other 17 HTML pages match the prior
+  build except the shared stylesheet's content hash; shared caching is retained.
+- Floating actions yield only when the complete hero action pair fits below the
+  sticky header. They return when the pair leaves view. Header resizing rebuilds
+  observation; unsupported browsers keep the floating actions available.
+- Fresh suite: 175 Node + 9 Python tests (184 total), 18-page build/validation
+  pass. Tests cover partial/full hero visibility, return, changed header height,
+  anchor clearance and unsupported observation. Existing SEO head/schema,
+  photo markup, copy and destinations pass baseline comparisons. Homepage,
+  analytics, consent, estimate runtime, shared page script and CRM are unchanged.
+- Browser evidence: 320/390/430/700/701/1280px and 844x390 landscape; synthetic
+  doubled text at 320/390px has no flagged heading/link overflow. At enlarged
+  320px, target top is 182.875px beneath a 162.344px header. A synthetic local
+  name/address/multiline note survives a Tree Removal visit and contextual
+  estimate return; Clear draft empties it. No lead submissions, calls or emails.
+- Evidence: this chat's outputs/tree-removal-mobile/. Physical-device text
+  enlargement and spoken screen-reader verification remain unperformed.
+- Independent finish review disposition: ship at local-draft scope; no material
+  fixes required. The inherited interior Menu word wrapping under synthetic
+  doubled text is recorded as cosmetic, not repaired globally in this patch.
+
 ## Mobile homepage refinement — release approved, October 21, 2026
 
 Owner approved commit, push and publication of the reviewed mobile homepage and

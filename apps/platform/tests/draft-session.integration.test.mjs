@@ -11,6 +11,7 @@ import * as editResult from '../src/lib/quotes/edit-result.ts';
 import * as returnContext from '../src/lib/drafts/return-context.ts';
 import {withDeadline} from '../src/lib/runtime/deadline.ts';
 const saveConfirmation=load('../src/lib/quotes/save-confirmation.ts',{'server-only':{},'./edit-result':editResult,'../runtime/deadline.ts':{withDeadline}});
+const draftRequest=load('../src/lib/quotes/draft-request.ts',{'server-only':{},'./edit-result':editResult,'../runtime/deadline.ts':{withDeadline}});
 const enabled=process.env.PR12_DISPOSABLE_STACK==='1'&&!!process.env.PR12_LOCAL_STATUS_FILE;
 test('PR12 recovery identity uses a verified, live, private local session',{skip:!enabled,timeout:30000},async t=>{
  const c=JSON.parse(readFileSync(process.env.PR12_LOCAL_STATUS_FILE,'utf8'));
@@ -39,11 +40,12 @@ test('PR12 recovery identity uses a verified, live, private local session',{skip
   '@/lib/business-time':businessTime,'@/lib/auth/roles':roleCode,'@/lib/contracting-parties':parties,
   '@/lib/quotes/edit-result':editResult,'@/lib/security/errors':{safeStaffMessage:()=> 'The operation could not finish.'},
   '@/lib/quotes/save-confirmation':saveConfirmation,
+  '@/lib/quotes/draft-request':draftRequest,
   '@/lib/leads/archive':{archiveWebsiteLead:()=>assert.fail('No lead in this fixture')},
   '@/lib/quotes/lead-prefill':{isMatchingQuoteLeadSource:()=>assert.fail('No lead in this fixture')},
  });
  function quoteForm(intent='save_close'){
-  const f=new FormData();for(const[k,v]of Object.entries({contracting_party:`customer:${customer.id}`,service_location_id:location.id,line_item_name:'PR12 acknowledged quote',line_item_quantity:'1',line_item_unit_price:'200',submit_intent:intent,client_navigation:'1',returnTo:'/admin/quotes?q=PR12&page=2&token=DO_NOT_PROPAGATE'}))f.set(k,v);return f;
+  const f=new FormData();for(const[k,v]of Object.entries({request_id:crypto.randomUUID(),contracting_party:`customer:${customer.id}`,service_location_id:location.id,line_item_name:'PR12 acknowledged quote',line_item_quantity:'1',line_item_unit_price:'200',submit_intent:intent,client_navigation:'1',returnTo:'/admin/quotes?q=PR12&page=2&token=DO_NOT_PROPAGATE'}))f.set(k,v);return f;
  }
  await run('new quote save-and-close acknowledges the real atomic write with safe return context',async()=>{
   const result=await actions.createQuote({status:'idle',message:''},quoteForm());assert.equal(result.status,'success');

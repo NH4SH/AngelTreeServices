@@ -15266,6 +15266,14 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "create_quote_draft_request": {
+                Args: {
+                    "p_header": Json;
+                    "p_lines": Json;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
             "create_standalone_invoice": {
                 Args: {
                     "p_header": Json;

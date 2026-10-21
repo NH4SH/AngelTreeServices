@@ -80,9 +80,14 @@ export function AddQuoteForm({
   const action = isEditing ? updateQuote : createQuote;
   const router = useRouter();
   const listHref = safeReturnTo(returnTo, "/admin/quotes");
+  const requestId = useRef<string | null>(null);
   const [state, formAction, pending] = useReliableActionState(async (previous: QuoteActionState, form: FormData) => {
     if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
-    recovery.beforeSubmit("", form);
+    if (!isEditing) {
+      requestId.current ??= recovery.requestId.current || crypto.randomUUID();
+      form.set("request_id", requestId.current);
+    }
+    recovery.beforeSubmit(isEditing ? "" : requestId.current!, form);
     form.set("client_navigation", "1");
     const result = await action(previous, form);
     if (result.status === "success") {
@@ -139,6 +144,7 @@ export function AddQuoteForm({
     revision: String(expectedRevision ?? "new"), persistedIds: lineItems.flatMap(line => line.persistedId ? [line.persistedId] : []),
     dirty, pending, changeToken: lineItems,
     restore: copy => {
+      if (!isEditing) requestId.current = copy.requestId || null;
       setSelectedPartyValue(copy.fields.contracting_party ?? "");
       setLineItems(copy.lines.map(line => ({ ...line, id: crypto.randomUUID(), persistedId: line.persistedId || undefined })));
       markDirty();
@@ -187,6 +193,7 @@ export function AddQuoteForm({
           {state.message}
         </p>
       ) : null}
+      {state.existingQuoteId ? <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${state.existingQuoteId}`, listHref)}>Open saved quote</Link> : null}
 
       {state.conflict && quote ? (
         <section className="quote-edit-conflict" aria-label="Saved quote changed">

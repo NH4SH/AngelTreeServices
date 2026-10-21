@@ -10,8 +10,9 @@ import { belongsToContractingParty, parseContractingParty } from "@/lib/contract
 import { archiveWebsiteLead } from "@/lib/leads/archive";
 import { isMatchingQuoteLeadSource } from "@/lib/quotes/lead-prefill";
 import { safeStaffMessage } from "@/lib/security/errors";
-import { quoteSaveResult, type QuoteEditConflict } from "@/lib/quotes/edit-result";
+import { type QuoteEditConflict } from "@/lib/quotes/edit-result";
 import { saveQuoteEdit } from "@/lib/quotes/save-confirmation";
+import { createQuoteDraftRequest } from "@/lib/quotes/draft-request";
 import type { QuoteStatus } from "@/lib/types/database";
 
 export type QuoteActionState = {
@@ -21,6 +22,7 @@ export type QuoteActionState = {
   savedRevision?: number;
   savedLineIds?: Record<string, string>;
   conflict?: QuoteEditConflict;
+  existingQuoteId?: string;
 };
 
 function toCents(value: FormDataEntryValue | null) {
@@ -183,14 +185,17 @@ export async function createQuote(
     return { status: "error", message: "Keep the originating website lead linked before creating this quote." };
   }
 
-  const { data: quote, error: quoteError } = await supabase.rpc("create_quote_draft", {
-    p_header: { job_id: jobId, customer_id: party.customerId, organization_id: party.organizationId, service_location_id: serviceLocationId,
+  const confirmation = await createQuoteDraftRequest({ supabase, requestId: String(formData.get("request_id") ?? ""),
+    header: { job_id: jobId, customer_id: party.customerId, organization_id: party.organizationId, service_location_id: serviceLocationId,
       estimate_schedule_event_id: estimateScheduleEventId, source_lead_job_id: sourceLeadJobId, recipient_contact_id: recipientContactId, approval_contact_id: approvalContactId,
       onsite_contact_id: onsiteContactId, billing_contact_id: billingContactId, purchase_order_reference: purchaseOrderReference,
       payment_terms: paymentTerms, customer_message: customerMessage, debris_handling: debrisHandling, debris_handling_notes: debrisHandlingNotes, expires_at: expiresAt },
-    p_lines: lineItems.map(quoteLineCommand),
+    lines: lineItems.map(quoteLineCommand),
   });
-  if (quoteError || !quoteSaveResult(quote, lineItems.length)) return { status: "error", message: safeStaffMessage(quoteError?.message ?? "The saved quote could not be confirmed. Review the quote directory before starting another draft.") };
+  if (!confirmation.ok) return { status: "error", message: confirmation.message };
+  if (confirmation.replayed) return { status: "error", existingQuoteId: confirmation.quoteId,
+    message: "This request already created a quote. Open the saved quote and compare it with your recovery copy before making further changes." };
+  const quote = { id: confirmation.quoteId };
 
   const leadArchiveResult = sourceLeadJobId
     ? await archiveWebsiteLead(supabase, {

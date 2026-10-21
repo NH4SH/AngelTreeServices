@@ -3,95 +3,140 @@
   "groups": [
     {
       "id": "fredericksburg",
-      "heading": "Fredericksburg and nearby",
+      "heading": "Fredericksburg and Spotsylvania",
       "places": [
         "Fredericksburg",
-        "Falmouth",
         "Spotsylvania Courthouse",
         "Chancellorsville",
         "Massaponax",
         "Lee’s Hill",
         "Salem Fields",
-        "Five Mile Fork"
+        "Five Mile Fork",
+        "Four Mile Fork",
+        "New Post",
+        "Leavells",
+        "Todds Tavern",
+        "Thornburg",
+        "Partlow",
+        "Snell",
+        "Post Oak",
+        "Belmont"
       ]
     },
     {
       "id": "stafford",
-      "heading": "Stafford area",
+      "heading": "Stafford County",
       "places": [
         "Stafford",
+        "Falmouth",
         "Hartwood",
         "Aquia Harbour",
         "Garrisonville",
         "Brooke",
-        "White Oak"
-      ]
-    },
-    {
-      "id": "north",
-      "heading": "North of Fredericksburg",
-      "places": [
-        "Triangle",
-        "Dumfries",
-        "Montclair",
-        "Woodbridge"
-      ]
-    },
-    {
-      "id": "west",
-      "heading": "West of Fredericksburg",
-      "places": [
-        "Locust Grove",
-        "Lake of the Woods",
-        "Culpeper",
-        "Orange"
-      ]
-    },
-    {
-      "id": "northwest",
-      "heading": "Northwest of Fredericksburg",
-      "places": [
-        "Bealeton",
-        "Remington",
-        "Opal",
-        "Warrenton"
+        "White Oak",
+        "Ferry Farm",
+        "Chatham",
+        "Ramoth",
+        "Ruby",
+        "Widewater",
+        "Rock Hill"
       ]
     },
     {
       "id": "south",
-      "heading": "South of Fredericksburg",
+      "heading": "Caroline County and Ashland",
       "places": [
-        "Thornburg",
         "Woodford",
         "Ladysmith",
         "Ruther Glen",
         "Bowling Green",
         "Lake Caroline",
         "Lake Land’Or",
-        "Ashland"
+        "Ashland",
+        "Corbin",
+        "Carmel Church",
+        "Doswell",
+        "Port Royal"
+      ]
+    },
+    {
+      "id": "west",
+      "heading": "Culpeper and Orange",
+      "places": [
+        "Locust Grove",
+        "Lake of the Woods",
+        "Culpeper",
+        "Orange",
+        "Lignum",
+        "Stevensburg",
+        "Richardsville",
+        "Verdiersville",
+        "Rhoadesville",
+        "Unionville",
+        "Burr Hill",
+        "Mine Run",
+        "Gordonsville"
+      ]
+    },
+    {
+      "id": "east",
+      "heading": "King George and Westmoreland",
+      "places": [
+        "King George",
+        "Dahlgren",
+        "Colonial Beach",
+        "Westmoreland County",
+        "Sealston",
+        "Passapatanzy",
+        "Shiloh",
+        "Ninde",
+        "Montross",
+        "Oak Grove",
+        "Hague",
+        "Kinsale"
       ]
     },
     {
       "id": "lake-anna",
-      "heading": "Lake Anna area",
+      "heading": "Lake Anna and Louisa",
       "places": [
         "Lake Anna",
         "Bumpass",
         "Mineral",
-        "Louisa"
+        "Louisa",
+        "Zion Crossroads"
       ],
       "note": "Coverage includes the farther reaches of Lake Anna."
     },
     {
-      "id": "east",
-      "heading": "East of Fredericksburg",
+      "id": "northwest",
+      "heading": "Warrenton and Fauquier County",
       "places": [
-        "King George",
-        "Port Royal",
-        "Dahlgren",
-        "Colonial Beach",
-        "Westmoreland County"
+        "Bealeton",
+        "Remington",
+        "Opal",
+        "Warrenton",
+        "Goldvein",
+        "Sumerduck",
+        "Morrisville"
       ]
+    },
+    {
+      "id": "north",
+      "heading": "Woodbridge and Prince William County",
+      "places": [
+        "Triangle",
+        "Dumfries",
+        "Montclair",
+        "Woodbridge",
+        "Dale City",
+        "Lake Ridge",
+        "Occoquan"
+      ],
+      "tree_only_places": [
+        "Woodbridge"
+      ],
+      "note": "Woodbridge is served for tree services only; landscaping is not offered there."
     }
   ],
   "richmond_tree_only": [

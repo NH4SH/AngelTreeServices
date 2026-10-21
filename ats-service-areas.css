@@ -38,21 +38,62 @@
 .ats-home-coverage a:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
 .ats-area-intro { max-width: 74ch; }
 .ats-area-intro > p { margin: 24px 0 0; }
+.ats-area-jumps {
+  margin-top: 32px;
+  padding-block: 24px;
+  border-block: 1px solid var(--ats-border);
+}
+.ats-area-jumps p { margin: 0 0 8px; font-weight: 600; }
+.ats-area-jumps ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ats-area-jumps li { margin: 0; }
+.ats-area-jumps a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  color: var(--ats-green-dark);
+  font-size: 1rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.ats-area-jumps a:hover { text-decoration-thickness: 2px; }
 .ats-area-directory {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: clamp(36px, 7vw, 100px);
-  row-gap: 36px;
+  row-gap: 48px;
   margin-top: 44px;
 }
 .ats-area-group { min-width: 0; }
-.ats-area-group h3 { margin: 0 0 12px; color: var(--ats-green-deep); font-size: 1.25rem; line-height: 1.3; }
+.ats-area-group h3 { margin: 0 0 20px; color: var(--ats-green-deep); font-size: 1.25rem; line-height: 1.3; }
+.ats-area-group h3,
+#richmond-coverage-title { scroll-margin-top: 112px; }
+.ats-area-places {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ats-area-places li { margin: 0; min-width: 0; overflow-wrap: break-word; }
 .ats-area-group p { margin: 0; max-width: 65ch; }
+.ats-area-places + p { margin-top: 16px; }
 .ats-area-group p + p { margin-top: 8px; }
 .ats-area-richmond .ats-prose > :first-child { margin-top: 0; }
 @media (max-width: 760px) {
   .ats-home-coverage__inner,
   .ats-area-directory { grid-template-columns: 1fr; }
   .ats-home-coverage { padding-inline: 20px; }
-  .ats-area-directory { row-gap: 30px; margin-top: 34px; }
+  .ats-area-directory { row-gap: 40px; margin-top: 32px; }
+}
+@media (max-width: 360px) {
+  .ats-area-places { grid-template-columns: minmax(0, 1fr); }
 }

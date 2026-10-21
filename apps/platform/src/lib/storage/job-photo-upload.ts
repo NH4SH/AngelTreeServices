@@ -107,18 +107,22 @@ export async function uploadJobPhotoForUser({
     if (!/^(22|23|42)[0-9A-Z]{3}$/.test(String(photoError.code ?? ""))) return {
       status: "error", message: "The photo uploaded, but its attachment could not be confirmed. Check the job photos before uploading again.", jobId,
     };
-    const { error: cleanupError } = await supabase.storage.from(JOB_PHOTO_BUCKET).remove([storagePath]);
-    const cleanupMessage = cleanupError ? ` Cleanup also failed: ${cleanupError.message}` : "";
+    // Storage may return success with no removed objects when SELECT/DELETE
+    // policies hide a held file. Only a receipt for this exact new path confirms
+    // cleanup; do not bypass those policies or discard an uncertain outcome.
+    let cleanupConfirmed = false;
+    try {
+      const cleanup = await supabase.storage.from(JOB_PHOTO_BUCKET).remove([storagePath]);
+      cleanupConfirmed = !cleanup.error && cleanup.data?.length === 1 && cleanup.data[0].name === storagePath;
+    } catch { /* Preserve the attachment failure and report cleanup as unconfirmed. */ }
 
-    return cleanupError
-      ? {
-          status: "error",
-          message: `Photo metadata failed and cleanup also failed. Contact an administrator. ${cleanupMessage} ${photoError.message}`,
-        }
-      : {
-          status: "error",
-          message: `Photo metadata failed. The uploaded file was removed. ${photoError.message}`,
-        };
+    return {
+      status: "error",
+      message: cleanupConfirmed
+        ? "Photo could not be attached. The uploaded file was removed. Please try again."
+        : "Photo could not be attached. File cleanup could not be confirmed. Contact an administrator before uploading again.",
+      jobId,
+    };
   }
 
   return { status: "success", message: "Photo uploaded and attached to the job.", jobId };

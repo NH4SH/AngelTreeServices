@@ -172,8 +172,8 @@ function clientFor(db, userId) {
           } catch (error) { return { error }; }
         },
         async remove(names) {
-          await db.query("delete from storage.objects where bucket_id=$1 and name=any($2::text[])", [bucket, names]);
-          return { error: null };
+          const { rows } = await db.query("delete from storage.objects where bucket_id=$1 and name=any($2::text[]) returning id,name", [bucket, names]);
+          return { data: rows, error: null };
         },
         async createSignedUrls(names, lifetime) {
           assert.equal(lifetime, 900, "existing signed URL lifetime must remain 15 minutes");

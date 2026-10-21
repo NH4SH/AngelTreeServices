@@ -12,10 +12,10 @@ The latest snapshot read and email changes preserve source/runtime history and c
 
 ## Remaining release blockers
 
-1. The home Mac is not yet a configured/reachable scanner. The owner requested the first-session guide and packet. Existing staging preflight requires a verified separate HTTPS scanner and explicit environment/key/Auth/access/backup/operator evidence. Do not mark these true to bypass the gate.
+1. The home Mac now passes independent local smoke, maintenance, VM/login-agent startup and native security/capacity tests (HOME_SCANNER_ACCEPTANCE_20261021.md). Trusted external HTTPS, network denial, monitoring and staging integration remain unverified. Existing staging preflight still requires the real environment/key/Auth/access/backup/operator evidence; do not mark these true to bypass the gate.
 2. Hosted staging application/edge/CDN/key binding and synthetic workflow acceptance remain unverified. Local checks and staging database reconciliation do not substitute for a hosted runtime.
 3. Production-compatible paired database/Storage/source recovery and the maintenance cutover have not been executed/verified. Preserve the two open checkout records and pending customer message; do not cancel payments, resend mail or clear queues merely to obtain an empty result.
-4. Broader local PR10 verification found one private-photo cleanup discrepancy: a rejected metadata/audit transaction left one private object while the test expected zero. Payment/delivery cases passed. Resolve the actual cleanup/retention and error-message contract under current Storage policies, without weakening access or deleting evidence, before declaring a full release ready.
+4. The private-photo cleanup discrepancy is resolved locally (PRIVATE_PHOTO_CLEANUP_VERIFICATION.md). A held file remains private when authenticated deletion returns no receipt; the application now reports cleanup as unconfirmed. Confirmed clean-file deletion preserves existing attachments. Real local Storage/Auth/audit tests and the full CRM suite pass without RLS or privileged-cleanup changes. Review held-orphan retention/recovery deliberately; no purge service or policy was introduced. Hosted private-file acceptance remains outstanding under item 2.
 
 ## Execution sequence once prerequisites are available
 
@@ -64,4 +64,4 @@ The latest snapshot read and email changes preserve source/runtime history and c
 - `20261021032121_quote_draft_requests.sql`
 - `20261021060037_quote_request_status.sql`
 
-Existing detail: MIGRATION_RECONCILIATION_REPORT.md, STAGING_REQUEST_STATUS_RECONCILIATION.md, STAGING_RUNTIME_ACCESS_ACCEPTANCE.md, MACBOOK_SCANNER_SETUP.md and SCANNER_HOSTING_AND_RESTORE.md. New focused result: REMINDER_PAYMENT_SNAPSHOTS.md. Private release notes/evidence: /Users/noelsierra/Documents/Codex/2026-10-21/crm-production-release/.
+Existing detail: MIGRATION_RECONCILIATION_REPORT.md, STAGING_REQUEST_STATUS_RECONCILIATION.md, STAGING_RUNTIME_ACCESS_ACCEPTANCE.md, MACBOOK_SCANNER_SETUP.md and SCANNER_HOSTING_AND_RESTORE.md. New focused results: REMINDER_PAYMENT_SNAPSHOTS.md, PRIVATE_PHOTO_CLEANUP_VERIFICATION.md and HOME_SCANNER_ACCEPTANCE_20261021.md. Private release notes/evidence: /Users/noelsierra/Documents/Codex/2026-10-21/crm-production-release/.

@@ -95,7 +95,8 @@ test("PR10 provider outcomes and mandatory photo audit with real local Auth, RLS
   const cryptoModule=await import('node:crypto');
   const scannerModule=await import('../src/lib/security/document-scanner.ts');
   const attachmentModule=load('../src/lib/security/attachment-scan-service.ts',{'server-only':{},'node:crypto':cryptoModule,'./document-scan-service':{getDocumentScanClient:()=>service},'./document-scanner':scannerModule});
-  const uploadModule=load('../src/lib/storage/job-photo-upload.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'next/cache':{revalidatePath(){}},'@/lib/storage/job-photo-paths':{buildJobPhotoPath,JOB_PHOTO_BUCKET:'job-photos'},'@/lib/security/upload-validation':{prepareSafeUpload},'@/lib/security/attachment-scan-service':attachmentModule});
+  const loadPhotoUploader=attachment=>load('../src/lib/storage/job-photo-upload.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'next/cache':{revalidatePath(){}},'@/lib/storage/job-photo-paths':{buildJobPhotoPath,JOB_PHOTO_BUCKET:'job-photos'},'@/lib/security/upload-validation':{prepareSafeUpload},'@/lib/security/attachment-scan-service':attachment});
+  const uploadModule=loadPhotoUploader(attachmentModule);
   const upload=(j,actor=owner,category='completion')=>uploadModule.uploadJobPhotoForUser({caption:'PR10 disposable photo',category,file:new File([bytes],'local.png',{type:'image/png'}),jobId:j.id,supabase:actor.client,userId:actor.id});
   const photos=async j=>check(await service.from('job_photos').select('*').eq('job_id',j.id));
   const photoAudits=async j=>check(await service.from('activity_log').select('*').eq('subject_id',j.id).eq('event_type','job_photo_uploaded'));
@@ -108,11 +109,53 @@ test("PR10 provider outcomes and mandatory photo audit with real local Auth, RLS
     for(const photo of records){const matches=audits.filter(a=>a.metadata_json.photo_id===photo.id);assert.equal(matches.length,1);assert.equal(matches[0].actor_user_id,photo.uploaded_by_user_id);assert.equal(matches[0].metadata_json.photo_type,photo.photo_type);}
     assert.equal((await jobRead(j)).completed_at,null);
   });
-  await run('a mandatory photo audit failure rolls metadata back and removes only the newly uploaded private object',async()=>{
-    const j=await job(),constraint=`pr10_photo_${marker}`;await sql(`alter table public.activity_log add constraint ${constraint} check(subject_id<>'${j.id}'::uuid or event_type<>'job_photo_uploaded') not valid`);
-    try{const r=await upload(j);assert.equal(r.status,'error');assert.equal((await photos(j)).length,0);assert.equal((await photoAudits(j)).length,0);assert.equal(await sql(`select count(*) from storage.objects where bucket_id='job-photos' and name like '${j.id}/%'`),'0');}
-    finally{await sql(`alter table public.activity_log drop constraint ${constraint}`);}
-    assert.equal((await upload(j)).status,'success');assert.equal((await photoAudits(j)).length,1);
+  await run('audit rollback preserves a held private object and never misreports an empty delete receipt as cleanup', async () => {
+    assert.equal(check(await owner.client.rpc('attachment_scan_enabled', { p_bucket: 'job-photos' })), true,
+      'This guarded local fixture requires attachment scanning enabled');
+    const j = await job(), constraint = `pr10_photo_${marker}`;
+    await sql(`alter table public.activity_log add constraint ${constraint} check(subject_id<>'${j.id}'::uuid or event_type<>'job_photo_uploaded') not valid`);
+    try {
+      const r = await upload(j);
+      assert.equal(r.status, 'error'); assert.equal(r.jobId, j.id);
+      assert.match(r.message, /cleanup could not be confirmed/);
+      assert.doesNotMatch(r.message, /was removed/);
+      assert.equal((await photos(j)).length, 0); assert.equal((await photoAudits(j)).length, 0);
+      const objects = JSON.parse(await sql(`select coalesce(json_agg(json_build_object('name',o.name,'status',s.status,'deleted',s.deleted)),'[]') from storage.objects o join app_private.attachment_scans s on s.bucket_id=o.bucket_id and s.storage_path=o.name where o.bucket_id='job-photos' and o.name like '${j.id}/%'`));
+      assert.equal(objects.length, 1); assert.equal(objects[0].status, 'unavailable'); assert.equal(objects[0].deleted, false);
+      // The real Storage API returns success with zero deletions: held bytes
+      // remain inaccessible under SELECT RLS, even to their uploader.
+      const receipt = await owner.client.storage.from('job-photos').remove([objects[0].name]);
+      assert.ifError(receipt.error); assert.deepEqual(receipt.data, []);
+      assert.ok((await owner.client.storage.from('job-photos').download(objects[0].name)).error);
+      assert.ok((await owner.client.storage.from('job-photos').createSignedUrl(objects[0].name, 60)).error);
+      assert.equal(await sql(`select count(*) from storage.objects where bucket_id='job-photos' and name like '${j.id}/%'`), '1');
+    } finally { await sql(`alter table public.activity_log drop constraint ${constraint}`); }
+    assert.equal((await upload(j)).status, 'success'); assert.equal((await photoAudits(j)).length, 1);
+  });
+  await run('audit rollback confirms authorized cleanup of only the new clean photo and preserves an existing attachment', async () => {
+    // Only the verdict is synthetic. Real Auth, object download, hash binding,
+    // scan claim/finish, audit rollback and authenticated DELETE stay in use.
+    const cleanAttachment = load('../src/lib/security/attachment-scan-service.ts', {
+      'server-only': {}, 'node:crypto': cryptoModule,
+      './document-scan-service': { getDocumentScanClient: () => service },
+      './document-scanner': { scanDocumentBytes: async bytes => ({ status: 'clean', sha256: cryptoModule.createHash('sha256').update(bytes).digest('hex') }) },
+    });
+    const cleanUploader = loadPhotoUploader(cleanAttachment);
+    const j = await job();
+    const uploadClean = () => cleanUploader.uploadJobPhotoForUser({ caption: 'PR10 synthetic clean photo', category: 'completion',
+      file: new File([bytes], 'local.png', { type: 'image/png' }), jobId: j.id, supabase: owner.client, userId: owner.id });
+    assert.equal((await uploadClean()).status, 'success');
+    const existing = (await photos(j))[0];
+    const constraint = `pr10_clean_photo_${marker}`;
+    await sql(`alter table public.activity_log add constraint ${constraint} check(subject_id<>'${j.id}'::uuid or event_type<>'job_photo_uploaded') not valid`);
+    try {
+      const r = await uploadClean();
+      assert.equal(r.status, 'error'); assert.equal(r.jobId, j.id); assert.match(r.message, /The uploaded file was removed/);
+      assert.deepEqual((await photos(j)).map(p => p.id), [existing.id]); assert.equal((await photoAudits(j)).length, 1);
+      assert.equal(await sql(`select count(*) from storage.objects where bucket_id='job-photos' and name like '${j.id}/%'`), '1');
+      assert.ok(check(await owner.client.storage.from('job-photos').download(existing.storage_path)));
+      assert.equal(await sql(`select count(*) from app_private.attachment_scans where bucket_id='job-photos' and storage_path like '${j.id}/%' and deleted`), '1');
+    } finally { await sql(`alter table public.activity_log drop constraint ${constraint}`); }
   });
   await run('direct metadata inserts also receive the audit and cannot forge another uploader',async()=>{
     const j=await job();check(await owner.client.from('job_photos').insert({job_id:j.id,uploaded_by_user_id:owner.id,photo_type:'before',storage_path:`${j.id}/before/imported-local.png`}));assert.equal((await photoAudits(j)).length,1);

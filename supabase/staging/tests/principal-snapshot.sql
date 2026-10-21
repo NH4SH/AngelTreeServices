@@ -1,0 +1,62 @@
+-- New empty LOCAL staging rehearsal only; synthetic records and probes roll back.
+begin;
+select plan(24);
+select has_function('public','get_invoice_payment_principal',array['uuid'],'principal snapshot exists');
+select ok(not (select prosecdef from pg_proc where oid='public.get_invoice_payment_principal(uuid)'::regprocedure),'invoker security retained');
+select is((select provolatile::text from pg_proc where oid='public.get_invoice_payment_principal(uuid)'::regprocedure),'s','stable snapshot');
+select ok((select 'search_path=""'=any(proconfig) from pg_proc where oid='public.get_invoice_payment_principal(uuid)'::regprocedure),'empty search path');
+select ok(not has_function_privilege('anon','public.get_invoice_payment_principal(uuid)','execute'),'anonymous has no execution');
+select ok(not has_function_privilege('authenticated','public.get_invoice_payment_principal(uuid)','execute'),'browser has no execution');
+select ok(has_function_privilege('service_role','public.get_invoice_payment_principal(uuid)','execute'),'service retains execution');
+select ok(not has_function_privilege('supabase_auth_admin','public.get_invoice_payment_principal(uuid)','execute'),'Auth hook role has no execution');
+select ok(not has_function_privilege('service_role','app_private.invoice_paid_principal(uuid)','execute'),'private helper grant is not widened');
+set local role anon;
+select set_config('request.jwt.claims','{"role":"anon"}',true);
+select throws_ok($$select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001')$$,'42501',null,'actual anonymous call denied');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"role":"authenticated"}',true);
+select throws_ok($$select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001')$$,'42501',null,'actual browser call denied');
+reset role;
+set local role service_role;
+select set_config('request.jwt.claims','{"role":"service_role","sub":"f9700000-0000-0000-0000-000000000099"}',true);
+select throws_ok($$select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001')$$,'42501',null,'privileged client with user subject denied');
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select throws_ok($$select public.get_invoice_payment_principal(null)$$,'22023',null,'missing identity denied');
+select is(public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001'),null::jsonb,'absent invoice is not fabricated zero');
+reset role;
+insert into customers(id,display_name)values('f9700000-0000-0000-0000-000000000002','LOCAL snapshot rehearsal');
+insert into invoices(id,invoice_number,customer_id,status,subtotal_cents,total_cents,balance_due_cents,sent_at)
+ values('f9700000-0000-0000-0000-000000000001','LOCAL-SNAPSHOT97','f9700000-0000-0000-0000-000000000002','sent',5000,5000,5000,clock_timestamp());
+create temporary table principal_probe(receipt jsonb);
+grant select,insert,delete on principal_probe to service_role;
+set local role service_role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+insert into principal_probe select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001');
+select is((select (receipt->>'successful_payment_count')::bigint from principal_probe),0::bigint,'existing unpaid invoice has zero count');
+select is((select (receipt->>'paid_principal_cents')::bigint from principal_probe),0::bigint,'existing unpaid invoice has confirmed zero principal');
+reset role;
+insert into payments(invoice_id,customer_id,amount_cents,total_collected_cents,currency,payment_method,provider,status)
+ select 'f9700000-0000-0000-0000-000000000001','f9700000-0000-0000-0000-000000000002',1,1,'usd','cash','manual','succeeded' from generate_series(1,1005);
+insert into payments(invoice_id,customer_id,amount_cents,total_collected_cents,currency,payment_method,provider,status)
+ select 'f9700000-0000-0000-0000-000000000001','f9700000-0000-0000-0000-000000000002',500,500,'usd','cash','manual',s from unnest(array['pending','failed','refunded'])s;
+set local role service_role;
+delete from principal_probe;
+insert into principal_probe select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001');
+select is((select receipt->>'invoice_id' from principal_probe),'f9700000-0000-0000-0000-000000000001','exact requested identity');
+select is((select (receipt->>'successful_payment_count')::bigint from principal_probe),1005::bigint,'successful count is not capped and excludes other states');
+select is((select (receipt->>'paid_principal_cents')::bigint from principal_probe),1005::bigint,'complete successful principal excludes other states');
+select is((select 5000-(receipt->>'paid_principal_cents')::integer from principal_probe),3995,'collectible amount uses all successful payments');
+reset role;
+select is((select (receipt->>'paid_principal_cents')::bigint from principal_probe),app_private.invoice_paid_principal('f9700000-0000-0000-0000-000000000001'),'aggregate matches existing private formula');
+update payments set refunded_principal_cents=1,disputed_principal_cents=1,disputed_gross_cents=1,dispute_status='lost'
+ where id=(select id from payments where invoice_id='f9700000-0000-0000-0000-000000000001' and status='succeeded' order by id limit 1);
+set local role service_role;
+delete from principal_probe;
+insert into principal_probe select public.get_invoice_payment_principal('f9700000-0000-0000-0000-000000000001');
+select is((select (receipt->>'paid_principal_cents')::bigint from principal_probe),1004::bigint,'overlapping refund and lost dispute clamp once');
+reset role;
+select is((select count(*)::integer from payments where invoice_id='f9700000-0000-0000-0000-000000000001'),1008,'snapshot does not add or remove payments');
+select is((select total_cents from invoices where id='f9700000-0000-0000-0000-000000000001'),5000,'snapshot never rewrites invoice total');
+select * from finish();
+rollback;

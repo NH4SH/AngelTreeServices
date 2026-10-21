@@ -1,6 +1,35 @@
 # Staging permission reconciliation
 
-**Current candidate (October20):** ATS staging now has94 migrations, including
+**Current candidate (October20):** ATS staging is verified at97 migrations,
+including `20261021012859_invoice_payment_principal_snapshot.sql`. The full
+catalog matches the normal-owner local rehearsal: exactly one new server-only
+invoker routine, no changed/removed existing objects. Exact ledger, defaults,
+active no-send Auth guard, empty business/delivery/source state and OFF switches
+are preserved. The staging app remains undeployed and hosting readiness remainsfalse.
+
+Run the current read-only verifier from `apps/platform` using Node22:
+
+```sh
+node scripts/release/verify-staging-principal-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng --auth-config-file /private/fresh-managed-config.json
+```
+
+Set `STAGING_SUPABASE_BIN` to the installed pinned CLI if needed. Configuration
+must be a fresh mode0600 effective Management API GET for this exact staging
+project. The verifier checks physical database identity, exact97 version/name
+ledger, complete catalog/ACL/default seals, principal invoker/search-path/role
+properties, active email guard/config fingerprints and empty/OFF state. It has
+no apply, repair, deploy, key retrieval or configuration-patch mode. See
+`apps/platform/STAGING_PRINCIPAL_RECONCILIATION.md` for evidence and limitations.
+
+`principal-candidate-97.json` pins the original96 candidate and exact unchanged
+migration97. Earlier92–96 candidates/verifiers remain historical and reject a
+newer hosted ledger. `deferred-migrations.json` remains the source-inventory pin
+for additions deferred from historical93, not a live installation/status file.
+No old repair, Auth installation or historical migration should be replayed.
+
+## Previous 94-migration candidate (historical)
+
+**Historical 94 candidate (October20):** ATS staging now has94 migrations, including
 `20261020051222_atomic_customer_quote_changes.sql`. Its exact metadata, ledger,
 permissions and active no-send Auth guard match the separately reviewed local
 rehearsal. Run the current read-only verifier from `apps/platform`:
@@ -129,13 +158,7 @@ Everything rolls back. The full local run passes 185 database assertions, and a
 real provider-created object is rejected by the frozen-catalog runner. See
 `apps/platform/SUPABASE_MANAGED_DEFAULTS_REVIEW.md` for the disposition and scope.
 
-Migration97 (`20261021012859_invoice_payment_principal_snapshot.sql`) is pinned in
-`deferred-migrations.json` for separate staging review. It adds one server-only,
-invoker read of complete successful invoice principal; it changes no money,
-existing grants or rows. It has been tested only in fresh/local disposable
-PostgreSQL. Historical candidates93–96 remain byte-pinned and do not include it;
-no hosted readiness flag or staging target is advanced by this implementation.
-A later reconciliation must verify its exact SQL, service-only execution, current
-Auth guard, owned/managed defaults and unchanged empty/off state before any
-staging-only installation. The portal reader requires this function before an
-application release; absence fails closed, without falling back to row downloads.
+Migration97 was initially deferred for separate review in the principal-snapshot
+implementation. That staging-only reconciliation is now complete as described
+above. Its historical deferred hash remains unchanged; no production deployment,
+hosted application acceptance, scanner activation or release readiness is implied.

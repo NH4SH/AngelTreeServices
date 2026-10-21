@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceCommit": "4fa90214f4bdd3f4cd8af028c45670ac8c410d85",
+  "previousCandidateCount": 96,
+  "expectedMigrationCount": 97,
+  "previousCandidateSha256": "b9011f2f368aed34ecfdd858d85de99001c77993593c1be240810c04e5f1aec0",
+  "migrationManifestSha256": "3c6fa36fc46138de997c399c54b94382dd0d9289713ddbc0d2b89f75594740e4",
+  "catalogQuerySha256": "f67f9b7dbaed569663eeefdbac2ba4c9a9a9493c3cc870b931d9f5d9857a42c6",
+  "additionalMigration": {
+    "name": "20261021012859_invoice_payment_principal_snapshot.sql",
+    "sha256": "f9d3e431e8fcdd7126489b2826a8fff5fd1c0b5c3138e19937c46ba70e7d1ac4"
+  },
+  "shapeSeal": "bb38eaf4ae23dde0c006c1f2109c6427",
+  "ledgerSeal": "34d3115ad95490db4d4abe59582b9517",
+  "initialApiAclSeal": "ff2d16f1ff97777cb17a1035a62306cb",
+  "expectedApiAclSeal": "ff2d16f1ff97777cb17a1035a62306cb",
+  "allowedOwnedDefaultsSeals": [
+    "7847b3f907bfe39c5cbd1c7696f2e003"
+  ],
+  "allowedManagedDefaultsSeals": [
+    "08e1e381da30d8e4fba99db479f16a82"
+  ],
+  "catalogObjectCount": 4844,
+  "delta": {
+    "added": [
+      {
+        "key": "routine|public.get_invoice_payment_principal(p_invoice_id uuid)",
+        "hash": "84395cb65505ec42af5c80eb1450bc915f622bc5f9cf8d73cc30fee90efa7349"
+      }
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "productionWrites": false,
+  "deployed": false,
+  "readyForHosting": false
+}

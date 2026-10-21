@@ -22,7 +22,7 @@ export async function updateHandoff(_state:HandoffActionState,form:FormData):Pro
  try{const auth=await staff();if(!auth)return{status:'error',message:'Office access is required.'};
   const id=String(form.get('task_id')??''),version=String(form.get('updated_at')??'');if(!uuid(id)||!Number.isFinite(Date.parse(version)))throw Error('Invalid handoff');const c=changes(form);
   const saved=await withDeadline(signal=>auth.db.rpc('update_office_handoff',{p_task_id:id,p_expected_updated_at:version,p_assignee_id:c.assignee,p_snoozed_until:c.snooze}).abortSignal(signal),5000);
-  if(saved.error||saved.data?.id!==id||!saved.data.updated_at)return{status:'error',message:saved.error?.code==='40001'?'This handoff changed. Refresh before saving your changes.':'Changes could not be confirmed. Refresh and check the owner and return time before trying again.'};
+  if(saved.error||saved.data?.id!==id||!saved.data.updated_at)return{status:'error',message:(saved.error?.code === "PT409" || saved.error?.code === "40001")?'This handoff changed. Refresh before saving your changes.':'Changes could not be confirmed. Refresh and check the owner and return time before trying again.'};
   refresh();return{status:'success',message:'Owner and return time saved. No customer message was sent.',updatedAt:saved.data.updated_at};
  }catch{return{status:'error',message:'Choose an active office owner and a future return time, or clear the return time. Refresh if a save was interrupted.'};}
 }

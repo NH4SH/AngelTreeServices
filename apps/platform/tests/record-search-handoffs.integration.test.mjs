@@ -57,7 +57,7 @@ test('PR15 real authorized search and owned scheduling handoffs',{skip:!enabled,
  await run('owner changes use current versions, reject inactive/field owners, and retain a mandatory audit',async()=>{
   for(const who of [owner,admin,estimator,payroll]){primary=await task(jobId);check(await update(who,primary,who.id));}
   primary=await task(jobId);denied(await update(owner,primary,crew.id),'23514');check(await service.from('profiles').update({status:'disabled'}).eq('id',admin.id));denied(await update(owner,primary,admin.id),'23514');check(await service.from('profiles').update({status:'active'}).eq('id',admin.id));
-  const old=primary;check(await update(owner,primary,estimator.id));denied(await update(owner,old,owner.id),'40001');primary=await task(jobId);assert.equal(primary.assigned_to_user_id,estimator.id);
+  const old=primary;check(await update(owner,primary,estimator.id));denied(await update(owner,old,owner.id),'PT409');primary=await task(jobId);assert.equal(primary.assigned_to_user_id,estimator.id);
   assert.ok(check(await service.from('activity_log').select('id').eq('subject_id',primary.id).eq('event_type','office_handoff_changed')).length>=5);
  });
  await run('snoozing changes actual return order and stale updates cannot erase it',async()=>{

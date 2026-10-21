@@ -33,7 +33,15 @@ export async function privateFileResponse(request: Request, sourceType: string, 
   if (!match || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start
     || end >= row.size_bytes || end - start + 1 > privateFileChunkBytes) return new Response("Choose a smaller file range.",
       { status: 416, headers: fileResponseHeaders });
-  if (request.headers.get("if-match") !== tag) return new Response("The file changed. Open it again.", { status: 412, headers: fileResponseHeaders });
+  // Conditional HTTP headers may be consumed by an intermediary. Keep the
+  // application chunk-version precondition explicit; older origin clients may
+  // still use If-Match. Conflicting preconditions never select a version.
+  const requestedVersion = request.headers.get("x-ats-file-version");
+  const legacyVersion = request.headers.get("if-match");
+  if ((requestedVersion ?? legacyVersion) !== tag ||
+      (requestedVersion !== null && legacyVersion !== null && requestedVersion !== legacyVersion)) {
+    return new Response("The file changed. Open it again.", { status: 412, headers: fileResponseHeaders });
+  }
   const config = getSupabasePublicConfig(); if (!config) return unavailable();
   const storageUrl = new URL(`${config.url}/storage/v1/object/authenticated/${encodeURIComponent(row.bucket_id)}/${row.storage_path.split("/").map(encodeURIComponent).join("/")}`);
   storageUrl.searchParams.set("cacheNonce", randomUUID());
@@ -53,6 +61,6 @@ export async function privateFileResponse(request: Request, sourceType: string, 
     if (after.error || !after.data?.[0] || version(after.data[0]) !== tag) return unavailable();
     return new Response(Buffer.concat(parts), { status: 206, headers: { ...fileResponseHeaders,
       "content-type": "application/octet-stream", "content-range": expected, "content-length": String(length),
-      "accept-ranges": "bytes", etag: tag, "content-disposition": "attachment" } });
+      "accept-ranges": "bytes", "x-ats-file-version": tag, etag: tag, "content-disposition": "attachment" } });
   } catch { return unavailable(); }
 }

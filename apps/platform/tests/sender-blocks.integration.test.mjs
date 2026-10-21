@@ -57,7 +57,7 @@ test('Reversible sender blocking with real disposable Auth, PostgreSQL and intak
  });
  await run('block requires spam classification, exact reviewed contacts, a reason and a selection',async()=>{
   const l=await lead({},false);denied(await block(l),'23514');check(await owner.client.from('jobs').update({lead_disposition:'spam'}).eq('id',l.id));
-  denied(await block(l,{contacts:{email:'other@example.invalid',phone:l.s.phone}}),'40001');denied(await block(l,{email:false}),'22023');denied(await block(l,{reason:'no'}),'22023');
+  denied(await block(l,{contacts:{email:'other@example.invalid',phone:l.s.phone}}),'PT409');denied(await block(l,{email:false}),'22023');denied(await block(l,{reason:'no'}),'22023');
   const missing=await lead({email:null});denied(await block(missing),'22023');
  });
  await run('email case variants are blocked before any party/work/audit/notice creation',async()=>{
@@ -159,7 +159,7 @@ test('Reversible sender blocking with real disposable Auth, PostgreSQL and intak
   const batch=check(await db.rpc('prepare_website_notice_batch',{p_job_id:l.id,p_attempt_id:attempt,p_messages:[payload]}));
   const other=await lead({email:l.s.email});check(await block(other));
   assert.equal(check(await db.rpc('claim_outbound_delivery',{p_delivery_id:batch[0]})),null);
-  denied(await owner.client.rpc('review_outbound_delivery',{p_delivery_id:batch[0],p_action:'retry',p_reason:'Try blocked repair locally',p_request_id:crypto.randomUUID()}),'40001');
+  denied(await owner.client.rpc('review_outbound_delivery',{p_delivery_id:batch[0],p_action:'retry',p_reason:'Try blocked repair locally',p_request_id:crypto.randomUUID()}),'PT409');
   const d=check(await db.rpc('get_outbound_delivery',{p_delivery_id:batch[0]}));assert.equal(d.attempt_count,0);assert.equal(d.state,'cancelled');
   denied(await db.rpc('prepare_outbound_delivery',{p_request_key:crypto.randomUUID(),p_payload:payload,p_context:{kind:'office',email_type:'lead_internal_notice',job_id:l.id}}),'23514');
  });

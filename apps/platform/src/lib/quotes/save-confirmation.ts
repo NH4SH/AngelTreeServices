@@ -36,11 +36,11 @@ export async function saveQuoteEdit(input: {
     if (!record(response)) return { ok: false, status: 503, message: uncertain };
     if (record(response.error)) {
       const code = response.error.code;
-      const message = code === "40001" ? "This quote changed while you were editing. Keep your changes and reload the saved quote before retrying."
+      const message = (code === "PT409" || code === "40001") ? "This quote changed while you were editing. Keep your changes and reload the saved quote before retrying."
         : code === "42501" ? "Only active office staff can edit quotes."
           : code === "23514" ? "This quote or one of its linked records cannot be edited this way. Keep your changes and review the saved quote."
             : uncertain;
-      return { ok: false, status: code === "42501" ? 403 : code === "40001" || code === "23514" ? 409 : 503, message };
+      return { ok: false, status: code === "42501" ? 403 : (code === "PT409" || code === "40001") || code === "23514" ? 409 : 503, message };
     }
     if (response.error !== null) return { ok: false, status: 503, message: uncertain };
     const conflict = quoteEditConflict(response.data);

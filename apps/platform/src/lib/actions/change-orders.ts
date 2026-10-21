@@ -356,7 +356,7 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   const {data,error}=await supabase.rpc("respond_to_change_order_by_portal",{
     p_request_id:requestId,p_token_hash:tokenHash,p_expected_updated_at:expectedUpdatedAt,p_intent:intent,p_message:message,
   } satisfies RpcCommandArgs<"respond_to_change_order_by_portal">);
-  if(error)return {...failure(safeStaffMessage(error.message,"The response could not be confirmed. Review its saved status before trying again.")),responseRejected:["22023","40001","42501","23514"].includes(error.code??"")};
+  if(error)return {...failure(safeStaffMessage(error.message,"The response could not be confirmed. Review its saved status before trying again.")),responseRejected:["22023","PT409","40001","42501","23514"].includes(error.code??"")};
   if(!data||!isUuid(data.source_event_id)||data.change_order_id!==lookup.changeOrder.id||typeof data.replayed!=="boolean")return failure("The response could not be confirmed. Review its saved status before trying again.");
   await deliverCustomerSourceEvent({id:data.source_event_id});
   revalidatePath(`/portal/change-order/${rawToken}`);

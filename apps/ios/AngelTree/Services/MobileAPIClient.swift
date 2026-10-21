@@ -302,11 +302,11 @@ actor MobileAPIClient: MobileAPIClientProtocol {
             let end = min(start + manifest.chunkBytes, manifest.size) - 1
             var request = fileRequest(path: path, accessToken: accessToken)
             request.setValue("bytes=\(start)-\(end)", forHTTPHeaderField: "Range")
-            request.setValue(manifest.version, forHTTPHeaderField: "If-Match")
+            request.setValue(manifest.version, forHTTPHeaderField: "X-ATS-File-Version")
             let (part, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 206,
                   http.value(forHTTPHeaderField: "Content-Range") == "bytes \(start)-\(end)/\(manifest.size)",
-                  http.value(forHTTPHeaderField: "ETag") == manifest.version,
+                  http.value(forHTTPHeaderField: "X-ATS-File-Version") == manifest.version,
                   part.count == end - start + 1 else { throw MobileAPIError.requestRejected("Photo changed or access is unavailable. Try again.") }
             result.append(part)
         }

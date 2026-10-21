@@ -682,7 +682,7 @@ test(
           await raw("quotes", {
             p_versions: { quotes: a.datasets.quotes.version },
           }),
-          "40001",
+          "PT409",
         );
       },
     );

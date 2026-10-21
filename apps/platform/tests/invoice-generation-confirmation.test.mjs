@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {generationFixture,jobId,invoiceId,other,generated,completed,context} from './invoice-generation-confirmation-fixture.mjs';
+for(const mode of ['job','quote','manual','completion','complete'])test(`${mode}: business conflict keeps the review open without a second write`,async()=>{
+ const f=generationFixture({mode,receipt:{data:null,error:{code:'PT409',message:'PRIVATE_DETAIL'}}});
+ const r=await f.run();assert.equal(r.status,'error');assert.match(r.message,/changed/i);
+ assert.equal(r.message.includes('PRIVATE'),false);assert.equal(f.calls.length,1);
+ assert.deepEqual(f.paths,[]);assert.deepEqual(f.redirects,[]);assert.equal(r.navigateTo,undefined);
+});
 const invalid={absent:null,missingError:{data:generated()},falseError:{data:generated(),error:false},empty:{data:{},error:null},array:{data:[generated()],error:null},
  missingData:{error:null},foreignJob:{data:generated({job_id:other}),error:null},missingInvoice:{data:generated({invoice_id:undefined}),error:null},
  invalidInvoice:{data:generated({invoice_id:'invalid'}),error:null},nonDraftNew:{data:generated({invoice_status:'paid'}),error:null},

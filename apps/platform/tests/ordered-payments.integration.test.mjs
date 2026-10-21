@@ -229,7 +229,7 @@ test("PR07 ordered money: real Auth, refund observations and manual attempts", {
     let evidence=await normalizeStripeWebhook(a,deps,createCheckoutBudget());
     evidence.snapshot_token=check(await service.rpc('prepare_stripe_webhook_snapshot',{p_event_id:a.id,p_token:owned.token,p_evidence:evidence}));
     const second=addRefund(f,400);await runEvent(refundEvent(second));
-    const rejected=await service.rpc('apply_stripe_webhook',{p_event_id:a.id,p_token:owned.token,p_evidence:evidence});denied(rejected,'40001');
+    const rejected=await service.rpc('apply_stripe_webhook',{p_event_id:a.id,p_token:owned.token,p_evidence:evidence});denied(rejected,'PT409');
     assert.equal((await financial(f.inv)).balance_due_cents,800);await expire(a);await runEvent(a);assert.equal((await financial(f.inv)).balance_due_cents,800);
   });
   await run('a provider response delayed until after a newer event commits cannot overwrite that event',async()=>{

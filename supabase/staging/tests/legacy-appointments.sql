@@ -23,7 +23,7 @@ select is((select count(*)::integer from public.activity_log where subject_id='f
 select throws_ok($$update public.appointments set status='cancelled' where id='f1500000-0000-0000-0000-000000000001'$$,'42501',null,'raw authenticated updates cannot bypass the command');
 select lives_ok($$select public.save_legacy_appointment('f1500000-0000-0000-0000-000000000001','f1400000-0000-0000-0000-000000000001',1,'{"status":"cancelled"}','status',null)$$,'versioned cancellation succeeds');
 select is((select edit_revision from public.appointments where id='f1500000-0000-0000-0000-000000000001'),2,'successful status change advances revision');
-select throws_ok($$select public.save_legacy_appointment('f1500000-0000-0000-0000-000000000001','f1400000-0000-0000-0000-000000000001',1,'{"status":"confirmed"}','status',null)$$,'40001',null,'stale status cannot overwrite the saved cancellation');
+select throws_ok($$select public.save_legacy_appointment('f1500000-0000-0000-0000-000000000001','f1400000-0000-0000-0000-000000000001',1,'{"status":"confirmed"}','status',null)$$,'PT409',null,'stale status cannot overwrite the saved cancellation');
 reset role;
 select is((select status from public.appointments where id='f1500000-0000-0000-0000-000000000001'),'cancelled','stale save preserved the current status');
 select * from finish();

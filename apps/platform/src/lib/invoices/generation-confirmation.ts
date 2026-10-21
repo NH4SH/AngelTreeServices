@@ -19,7 +19,7 @@ function rejection(response: unknown): { ok: false; message: string } | null {
   if (!record(response) || response.error !== null) {
     const code = record(response) && record(response.error) ? response.error.code : null;
     return { ok: false, message: code === "42501" ? "Only active office staff can complete work or generate invoices."
-      : code === "40001" ? "This work order changed. Keep your entries and review the latest work before retrying."
+      : (code === "PT409" || code === "40001") ? "This work order changed. Keep your entries and review the latest work before retrying."
         : code === "23514" || code === "22023" ? "Review this work order, its saved request and billing history before continuing. Your entries have been kept."
           : uncertain };
   }

@@ -98,9 +98,9 @@ test("Atomic scheduling with real local Auth, RLS and concurrent transactions", 
     denied(await save(e,{starts_at:'2027-03-03T13:00:00Z'},[inactive.id],owner,{p_override_reason:'Cannot override offboarding',p_allow_conflicts:true}),'23514');assert.deepEqual(await read(e.id),e);
   });
   await run('two editors cannot overwrite the same event or silently refresh its revision',async()=>{
-    const e=await event();const r=await Promise.all([save(e,{title:'PR08 winner A'}),save(e,{title:'PR08 winner B'},[],admin)]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='40001').length,1);
-    const after=await read(e.id);denied(await move(e,'2027-03-05T13:00:00Z'),'40001');assert.deepEqual(await read(e.id),after);
-    denied(await owner.client.rpc('save_schedule_event',{p_event_id:e.id,p_expected_revision:null,p_event:{status:'cancelled'},p_mode:'status'}),'40001');
+    const e=await event();const r=await Promise.all([save(e,{title:'PR08 winner A'}),save(e,{title:'PR08 winner B'},[],admin)]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='PT409').length,1);
+    const after=await read(e.id);denied(await move(e,'2027-03-05T13:00:00Z'),'PT409');assert.deepEqual(await read(e.id),after);
+    denied(await owner.client.rpc('save_schedule_event',{p_event_id:e.id,p_expected_revision:null,p_event:{status:'cancelled'},p_mode:'status'}),'PT409');
   });
   await run('direct authenticated writes and old unchecked work-session RPCs cannot bypass the command',async()=>{
     const e=await event({},[crew.employeeId]),j=await job();
@@ -154,7 +154,7 @@ test("Atomic scheduling with real local Auth, RLS and concurrent transactions", 
   await run('revoked actor access during the event lock wait is rejected with its issued JWT',async()=>{
     const actor=await account('admin','wait-admin'),e=await event();const release=await hold(`update public.schedule_events set title='PR08 locked edit' where id='${e.id}'`),pending=save(e,{title:'Revoked attempt'},[],actor).then(r=>r);
     try{await waitBlocked(release.pid);check(await service.from('profiles').update({status:'disabled'}).eq('id',actor.id));}finally{await release();}
-    const r=await pending;assert.ok(r.error);assert.ok(['40001','42501'].includes(r.error.code));assert.equal((await read(e.id)).title,'PR08 locked edit');
+    const r=await pending;assert.ok(r.error);assert.ok(['PT409','42501'].includes(r.error.code));assert.equal((await read(e.id)).title,'PR08 locked edit');
   });
   await run('multi-day saves retain event and assignment identities for time-only edits and keep other days intact',async()=>{
     const j=await job();const r=check(await work(j,[session('2027-07-01',[crew.employeeId]),session('2027-07-02',[crew.employeeId])],[]));assert.equal(r.session_count,2);assert.equal(r.sessions.length,2);assert.ok(r.sessions.every(s=>s.id));
@@ -164,12 +164,12 @@ test("Atomic scheduling with real local Auth, RLS and concurrent transactions", 
   await run('whole-schedule snapshots detect added days, changes and cancellation',async()=>{
     const j=await job(),r=check(await work(j,[session('2027-07-03')],[])),stale=r.snapshot;
     check(await create(header({job_id:j.id,starts_at:'2027-07-04T12:00:00Z'})));
-    denied(await work(j,r.sessions,stale),'40001');
-    const before=await snapshot(j);check(await status(await read(r.sessions[0].id),'cancelled'));denied(await work(j,r.sessions,before),'40001');
-    const current=await snapshot(j);denied(await work(j,r.sessions,current),'40001');assert.equal((await read(r.sessions[0].id)).status,'cancelled');
+    denied(await work(j,r.sessions,stale),'PT409');
+    const before=await snapshot(j);check(await status(await read(r.sessions[0].id),'cancelled'));denied(await work(j,r.sessions,before),'PT409');
+    const current=await snapshot(j);denied(await work(j,r.sessions,current),'PT409');assert.equal((await read(r.sessions[0].id)).status,'cancelled');
   });
   await run('two whole-schedule editors have one winner, and late second-day failures roll back every day',async()=>{
-    const j=await job(),s=[session('2027-07-05')],r=await Promise.all([work(j,s,[]),work(j,[session('2027-07-06')],[],admin)]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='40001').length,1);
+    const j=await job(),s=[session('2027-07-05')],r=await Promise.all([work(j,s,[]),work(j,[session('2027-07-06')],[],admin)]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='PT409').length,1);
     const current=await snapshot(j),before=await read(current[0].id),beforeJob=check(await service.from('jobs').select('*').eq('id',j.id).single()),cname=`pr08_second_${marker}`;
     await sql(`alter table public.schedule_events add constraint ${cname} check(job_id<>'${j.id}'::uuid or starts_at<>'2027-07-08T12:00:00Z'::timestamptz) not valid`);
     try{denied(await work(j,[session('2027-07-07',[],{id:before.id}),session('2027-07-08')],current),'23514');assert.deepEqual(await snapshot(j),current);assert.deepEqual(await read(before.id),before);assert.deepEqual(check(await service.from('jobs').select('*').eq('id',j.id).single()),beforeJob);}
@@ -214,21 +214,21 @@ test("Atomic scheduling with real local Auth, RLS and concurrent transactions", 
     const employee=check(await service.from('employee_records').insert({legal_name:`PR08 source no login ${marker}`,is_active:true,employment_status:'active'}).select('id').single());
     const j=await job({status:'new_lead',website_submission_id:`pr08-${marker}`});const args={...sourceArgs(employee.id),p_lead_job_id:j.id,p_organization_name:null,p_internal_notes:null,p_preferred_contact_method:null,p_preferred_appointment_timing:null};
     const r=check(await owner.client.rpc('schedule_lead_estimate',args))[0],e=await read(r.event_id);assert.equal(e.schedule_event_assignments[0].employee_id,employee.id);assert.equal(e.schedule_event_assignments[0].user_id,null);assert.equal(e.lead_intake_job_id,j.id);
-    denied(await owner.client.rpc('schedule_lead_estimate',{...args,p_starts_at:'2027-10-02T12:00:00Z'}),'40001');assert.deepEqual(await read(e.id),e);
+    denied(await owner.client.rpc('schedule_lead_estimate',{...args,p_starts_at:'2027-10-02T12:00:00Z'}),'PT409');assert.deepEqual(await read(e.id),e);
     check(await owner.client.rpc('schedule_lead_estimate',{...args,p_expected_revision:e.edit_revision,p_starts_at:'2027-10-02T12:00:00Z'}));assert.match((await read(e.id)).starts_at,/2027-10-02/);
     denied(await estimator.client.rpc('schedule_lead_estimate',{...args,p_override_reason:'Not authorized'}),'42501');
   });
   await run('customer estimate creation keeps durable crew and repeated request keys cannot overwrite a saved visit',async()=>{
     const args={...sourceArgs(),p_source_request_key:randomUUID(),p_customer_id:customer.id,p_organization_id:null,p_contact_id:null,p_service_location_id:location.id,p_starts_at:'2027-10-03T12:00:00Z'};
     const r=check(await owner.client.rpc('schedule_party_estimate',args))[0],e=await read(r.event_id);assert.equal(e.source_customer_id,customer.id);assert.equal(e.job_id,null);assert.equal(e.schedule_event_assignments[0].employee_id,crew.employeeId);
-    denied(await owner.client.rpc('schedule_party_estimate',{...args,p_starts_at:'2027-10-04T12:00:00Z'}),'40001');assert.deepEqual(await read(e.id),e);
+    denied(await owner.client.rpc('schedule_party_estimate',{...args,p_starts_at:'2027-10-04T12:00:00Z'}),'PT409');assert.deepEqual(await read(e.id),e);
     const bad=await job(),beforeCustomer=check(await service.from('customers').select('*').eq('id',customer.id).single());
     denied(await owner.client.rpc('schedule_party_estimate',{...args,p_source_request_key:randomUUID(),p_assigned_user_id:randomUUID(),p_contact_name:'Must roll back contact',p_starts_at:'2027-10-05T12:00:00Z'}),'23503');assert.deepEqual(check(await service.from('customers').select('*').eq('id',customer.id).single()),beforeCustomer);
   });
   await run('assignment-only changes invalidate an editor and crew RLS still follows durable assignments',async()=>{
     const e=await event({},[crew.employeeId]);assert.equal(check(await crew.client.from('schedule_events').select('id').eq('id',e.id)).length,1);
     const a=e.schedule_event_assignments[0];check(await service.from('schedule_event_assignments').update({assignment_role:'crew_leader'}).eq('id',a.id));
-    denied(await save(e,{title:'Stale crew edit'}),'40001');const current=await read(e.id);assert.ok(current.edit_revision>e.edit_revision);assert.equal(current.schedule_event_assignments[0].assignment_role,'crew_leader');
+    denied(await save(e,{title:'Stale crew edit'}),'PT409');const current=await read(e.id);assert.ok(current.edit_revision>e.edit_revision);assert.equal(current.schedule_event_assignments[0].assignment_role,'crew_leader');
     assert.equal(check(await other.client.from('schedule_events').select('id').eq('id',e.id)).length,0);
   });
   await run('an authorization change while waiting for an employee lock is rechecked after that wait',async()=>{

@@ -104,8 +104,8 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
   });
   await run('future work requires explicit confirmation and displayed revision is mandatory',async()=>{
     const j=await job();await session(j);const c=await context(j),before=await state(j);
-    denied(await finish(args(j,c,{p_confirm_future:false})),'23514');denied(await finish(args(j,c,{p_expected_revision:null})),'40001');
-    denied(await finish(args(j,c,{p_expected_snapshot:{visits:[],closeout:null}})),'40001');assert.deepEqual(await state(j),before);
+    denied(await finish(args(j,c,{p_confirm_future:false})),'23514');denied(await finish(args(j,c,{p_expected_revision:null})),'PT409');
+    denied(await finish(args(j,c,{p_expected_snapshot:{visits:[],closeout:null}})),'PT409');assert.deepEqual(await state(j),before);
   });
   await run('combined completion and invoice generation share the reviewed financial transaction',async()=>{
     const j=await job();await quote(j);await session(j);const r=check(await complete(j,{p_mode:'complete_and_invoice'}));
@@ -137,7 +137,7 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
   });
   await run('two independent completion requests have one winner and one stale review',async()=>{
     const j=await job();await session(j);const c=await context(j),r=await Promise.all([finish(args(j,c)),finish(args(j,c),admin)]);
-    assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='40001').length,1);
+    assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='PT409').length,1);
     assert.equal((await state(j)).history.filter(h=>h.event_type==='job_work_completed').length,1);
   });
   await run('two identical combined requests create one invoice and one completion',async()=>{
@@ -165,7 +165,7 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
       if(mutation==='move')check(await service.from('schedule_events').update({starts_at:'2029-01-01T12:00:00Z',ends_at:null}).eq('id',e.id));
       if(mutation==='crew')check(await service.from('jobs').update({assigned_crew_user_id:crew.id}).eq('id',j.id));
       if(mutation==='job')check(await service.from('jobs').update({requested_scope:'Changed after review'}).eq('id',j.id));
-      const before=await state(j);denied(await finish(args(j,c)),'40001');assert.deepEqual(await state(j),before);
+      const before=await state(j);denied(await finish(args(j,c)),'PT409');assert.deepEqual(await state(j),before);
     }
   });
   await run('only job work visits close; estimate, follow-up and cancelled history stay intact',async()=>{
@@ -260,11 +260,11 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
     const j=await crewJob(),c=await context(j,crew),payload=await crewPayload(j);
     const r=check(await crew.client.rpc('save_job_closeout_draft',{p_job_id:j.id,p_payload:payload,p_expected_revision:c.revision,p_expected_snapshot:c.snapshot}));assert.notDeepEqual(r.context.snapshot,c.snapshot);
     assert.equal(r.context.status,'in_progress');assert.equal(r.context.visits.length,1);assert.equal((await jobRead(j)).completed_at,null);
-    denied(await crewSubmit(crewArgs(j,c,payload)),'40001');check(await crewSubmit(crewArgs(j,r.context,payload)));
+    denied(await crewSubmit(crewArgs(j,c,payload)),'PT409');check(await crewSubmit(crewArgs(j,r.context,payload)));
   });
   await run('crew submission also requires future-visit confirmation and rejects reassignment or stale closeout',async()=>{
     const j=await crewJob(),c=await context(j,crew),payload=await crewPayload(j);denied(await crewSubmit(crewArgs(j,c,payload,{p_confirm_future:false})),'23514');
-    check(await service.from('job_closeouts').update({crew_internal_notes:'Another editor'}).eq('job_id',j.id));denied(await crewSubmit(crewArgs(j,c,payload)),'40001');
+    check(await service.from('job_closeouts').update({crew_internal_notes:'Another editor'}).eq('job_id',j.id));denied(await crewSubmit(crewArgs(j,c,payload)),'PT409');
     check(await service.from('jobs').update({assigned_crew_user_id:admin.id,assigned_crew_employee_id:admin.employeeId}).eq('id',j.id));denied(await crewSubmit(crewArgs(j,c,payload)),'42501');
   });
   await run('crew late audit and receipt failures roll back the entire saved submission',async()=>{
@@ -293,7 +293,7 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
     // Migration creates normalized events via triggers; make this fixture explicitly represent a historical unmigrated source.
     await sql(`delete from public.schedule_events where source_appointment_id='${appt.id}'`);
     const c=await context(j);assert.ok(c.visits.some(v=>v.kind==='appointment'&&v.id===appt.id));
-    check(await service.from('appointments').update({ends_at:'2029-05-01T15:00:00Z'}).eq('id',appt.id));denied(await finish(args(j,c)),'40001');
+    check(await service.from('appointments').update({ends_at:'2029-05-01T15:00:00Z'}).eq('id',appt.id));denied(await finish(args(j,c)),'PT409');
     check(await complete(j));assert.equal(check(await service.from('appointments').select('status').eq('id',appt.id).single()).status,'completed');
   });
   await run('mandatory Calendar outbox failure rolls back work, visits, reminders and history',async()=>{
@@ -308,12 +308,12 @@ test("PR09 explicit job completion with real local Auth, RLS and concurrent tran
     for(const table of ['job_closeout_checklist_items','job_closeout_scope_items']) {
       const j=await crewJob(),c=await context(j,crew),payload=await crewPayload(j);
       check(await service.from(table).update(table==='job_closeout_checklist_items'?{explanation:'Office changed this'}:{exception_note:'Office changed scope'}).eq('job_id',j.id));
-      const before=await state(j);denied(await crewSubmit(crewArgs(j,c,payload)),'40001');assert.deepEqual(await state(j),before);
+      const before=await state(j);denied(await crewSubmit(crewArgs(j,c,payload)),'PT409');assert.deepEqual(await state(j),before);
     }
   });
   await run('concurrent crew submissions create one immutable closeout revision',async()=>{
     const j=await crewJob(),c=await context(j,crew),payload=await crewPayload(j);
-    const r=await Promise.all([crewSubmit(crewArgs(j,c,payload)),crewSubmit(crewArgs(j,c,payload))]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='40001').length,1);
+    const r=await Promise.all([crewSubmit(crewArgs(j,c,payload)),crewSubmit(crewArgs(j,c,payload))]);assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='PT409').length,1);
     assert.equal(check(await service.from('job_closeout_submissions').select('id').eq('closeout_id',(await state(j)).closeout[0].id)).length,1);
   });
   await run('crew receipt replay rechecks reassignment after its request lock wait',async()=>{

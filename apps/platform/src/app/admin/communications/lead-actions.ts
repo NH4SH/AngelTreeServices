@@ -128,7 +128,7 @@ export async function changeWebsiteSenderBlock(
     });
   }
   if (result.error) {
-    if (result.error.code === "40001") return failure("Contact details changed. Close this dialog, refresh, and review the sender again.");
+    if ((result.error.code === "PT409" || result.error.code === "40001")) return failure("Contact details changed. Close this dialog, refresh, and review the sender again.");
     return failure("The sender change could not be confirmed. Try again; your earlier click may already be saved.");
   }
   if (!result.data || result.data.unblocked !== unblock || !Array.isArray(result.data.blockIds) || !result.data.blockIds.length) {

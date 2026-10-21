@@ -59,7 +59,7 @@ select throws_ok(
     'Estimate - two trees', 'Updated',
     '2026-08-04 14:00:00+00', null, null, null, null
   )$$,
-  '40001', 'This estimate is already scheduled. Open the current calendar visit to make changes.',
+  'PT409', 'This estimate is already scheduled. Open the current calendar visit to make changes.',
   'a duplicate creation request cannot overwrite the existing visit'
 );
 select is((select count(*)::integer from public.schedule_events where source_request_key = '94000000-0000-0000-0000-000000000001'), 1, 'retry cannot create a duplicate event');

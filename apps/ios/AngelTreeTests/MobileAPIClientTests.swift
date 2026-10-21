@@ -226,9 +226,10 @@ final class MobileAPIClientTests: XCTestCase {
                 """)
             }
             XCTAssertEqual(request.value(forHTTPHeaderField: "Range"), "bytes=0-2")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "If-Match"), "version-one")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-ATS-File-Version"), "version-one")
+            XCTAssertNil(request.value(forHTTPHeaderField: "If-Match"))
             return (HTTPURLResponse(url: request.url!, statusCode: 206, httpVersion: nil,
-                headerFields: ["Content-Range":"bytes 0-2/3", "ETag":"version-one"])!, Data([1, 2, 3]))
+                headerFields: ["Content-Range":"bytes 0-2/3", "X-ATS-File-Version":"version-one"])!, Data([1, 2, 3]))
         }
         let data = try await makeClient().privateJobPhoto(id: id, accessToken: "access-token")
         XCTAssertEqual(data, Data([1, 2, 3]))

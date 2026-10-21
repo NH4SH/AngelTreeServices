@@ -9,9 +9,9 @@ export async function loadPrivateFile(path: string, signal: AbortSignal): Promis
   for (let start = 0; start < info.size; start += info.chunkBytes) {
     const end = Math.min(start + info.chunkBytes, info.size) - 1;
     const response = await fetch(path, { cache: "no-store", credentials: "same-origin", signal,
-      headers: { Range: `bytes=${start}-${end}`, "if-match": info.version } });
+      headers: { Range: `bytes=${start}-${end}`, "x-ats-file-version": info.version } });
     if (response.status !== 206 || response.headers.get("content-range") !== `bytes ${start}-${end}/${info.size}`
-      || response.headers.get("etag") !== info.version) throw new Error("The file changed or access is no longer available. Open it again.");
+      || response.headers.get("x-ats-file-version") !== info.version) throw new Error("The file changed or access is no longer available. Open it again.");
     const part = await response.blob(); if (part.size !== end - start + 1) throw new Error("The download was interrupted. Try again.");
     parts.push(part);
   }

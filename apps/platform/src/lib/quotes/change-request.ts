@@ -29,6 +29,7 @@ export async function requestQuoteChanges(supabase: SupabaseClient<any, "public"
       // back. Only known transaction rejections retire the retry identity.
       const messages: Record<string, string> = {
         "42501": "This quote link is unavailable or expired. Contact Angel Tree Services.",
+        "PT409": "This proposal changed. Refresh and review it before requesting changes.",
         "40001": "This proposal changed. Refresh and review it before requesting changes.",
         "23514": "This request could not be saved. Refresh the proposal or contact the office.",
         "22023": "This request needs a fresh review. Refresh the proposal before trying again.",

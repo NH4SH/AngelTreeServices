@@ -404,7 +404,7 @@ export async function getReportData(
     throw Error(
       result.error.code === "54000" && options.export
         ? "Export is limited to 10,000 detail rows. Choose a focused report or narrower work filters."
-        : result.error.code === "40001"
+        : (result.error.code === "PT409" || result.error.code === "40001")
           ? "Report records changed. Refresh the report before continuing."
           : "The complete report could not load. Refresh before using its totals.",
     );

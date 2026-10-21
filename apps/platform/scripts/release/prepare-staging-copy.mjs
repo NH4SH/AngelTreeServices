@@ -17,7 +17,7 @@ const directory = mkdtempSync(join(tmpdir(), 'ats-staging-export-'));
 const archive = git('archive', '--format=tar', commit, 'apps/platform');
 execFileSync('tar', ['-xf', '-', '-C', directory], { input: archive });
 const app = join(directory, 'apps/platform');
-const config = `[build]\n  command = "node scripts/release/staging-preflight.mjs --manifest staging/targets.json && node staging/access/check.mjs && npm run build"\n  publish = ".next"\n  edge_functions = "staging/access/edge"\n[build.environment]\n  NODE_VERSION = "22.23.3"\n  NETLIFY_NEXT_SKEW_PROTECTION = "true"\n[functions]\n  directory = "staging/no-schedules"\n  node_bundler = "esbuild"\n[[edge_functions]]\n  path = "/*"\n  function = "staging-access"\n`;
+const config = `[build]\n  command = "node scripts/release/staging-preflight.mjs --manifest staging/targets.json && node staging/access/check.mjs && npm run build"\n  publish = ".next"\n[build.environment]\n  NODE_VERSION = "22.23.3"\n  NETLIFY_NEXT_SKEW_PROTECTION = "true"\n[functions]\n  directory = "staging/no-schedules"\n  node_bundler = "esbuild"\n[[plugins]]\n  package = "@netlify/plugin-nextjs"\n[[plugins]]\n  package = "./staging/access/netlify-plugin"\n`;
 // Only the NEW export's configuration is replaced. Production source stays intact.
 writeFileSync(join(app, 'netlify.toml'), config);
 mkdirSync(join(app, 'staging/no-schedules'), { recursive: true });

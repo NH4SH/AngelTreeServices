@@ -36,12 +36,12 @@ test('PR16 supervised recurring generation and Calendar repair',{skip:!enabled,t
   const p=await plan(),same=await preview([p]);const many=await Promise.all([generate(same),generate(same)]);assert.deepEqual(many.map(check).map(x=>x.created_count).sort(),[0,1]);
   assert.equal(await sql(`select count(*) from public.recurring_service_occurrences where recurring_plan_id='${p.planId}'`),'1');assert.equal(await sql(`select count(*) from public.follow_up_tasks where recurring_plan_id='${p.planId}'`),'1');
   assert.equal(await sql(`select bool_and(status='review_needed' and pricing_review_status='required' and renewal_quote_id is null and work_order_id is null) from public.recurring_service_occurrences where recurring_plan_id='${p.planId}'`),'t');
-  denied(await generate(same,admin.client,id),'40001');
+  denied(await generate(same,admin.client,id),'PT409');
  });
  await run('stale scope, pricing, due date, pause or archived customer cannot be approved',async()=>{
-  for(const patch of[{service_description:'Changed'},{approved_price_cents:99999},{state:'paused'}]){const p=await plan(),rows=await preview([p]);check(await service.from('recurring_service_plans').update(patch).eq('id',p.planId));denied(await generate(rows),'40001');}
-  const p=await plan(),rows=await preview([p]);check(await service.from('customers').update({archived_at:new Date().toISOString()}).eq('id',customer.id));denied(await generate(rows),'40001');check(await service.from('customers').update({archived_at:null}).eq('id',customer.id));
-  const fresh=await preview([p]);check(await service.from('recurring_plan_locations').update({next_service_due_date:'2035-01-01'}).eq('id',p.id));denied(await generate(fresh),'40001');
+  for(const patch of[{service_description:'Changed'},{approved_price_cents:99999},{state:'paused'}]){const p=await plan(),rows=await preview([p]);check(await service.from('recurring_service_plans').update(patch).eq('id',p.planId));denied(await generate(rows),'PT409');}
+  const p=await plan(),rows=await preview([p]);check(await service.from('customers').update({archived_at:new Date().toISOString()}).eq('id',customer.id));denied(await generate(rows),'PT409');check(await service.from('customers').update({archived_at:null}).eq('id',customer.id));
+  const fresh=await preview([p]);check(await service.from('recurring_plan_locations').update({next_service_due_date:'2035-01-01'}).eq('id',p.id));denied(await generate(fresh),'PT409');
  });
  await run('required audit failure rolls the complete selected batch and receipt back',async()=>{
   const p=await plan(),rows=await preview([p]),guard='pr16_audit_'+marker;await sql(`alter table public.activity_log add constraint ${guard} check(event_type<>'recurring_review_approved' or actor_user_id<>'${owner.id}'::uuid) not valid`);
@@ -49,7 +49,7 @@ test('PR16 supervised recurring generation and Calendar repair',{skip:!enabled,t
  });
  await run('selection bounds and request-content collisions reject without bulk side effects',async()=>{
   for(const selection of[null,[],Array.from({length:26},()=>({id:randomUUID(),version:'a'.repeat(32)}))])denied(await owner.client.rpc('approve_recurring_generation',{p_request_id:randomUUID(),p_selection:selection}),'22023');
-  const p=await plan(),rows=await preview([p]),id=randomUUID();check(await generate(rows,owner.client,id));denied(await generate([{...rows[0],version:'b'.repeat(32)}],owner.client,id),'40001');denied(await generate([rows[0],rows[0]]),'22023');
+  const p=await plan(),rows=await preview([p]),id=randomUUID();check(await generate(rows,owner.client,id));denied(await generate([{...rows[0],version:'b'.repeat(32)}],owner.client,id),'PT409');denied(await generate([rows[0],rows[0]]),'22023');
  });
  await run('the real server approval action requires confirmation and checks its receipt',async()=>{
   const p=await plan(),row=(await preview([p]))[0],f=new FormData();f.set('request_id',randomUUID());f.append('selection',JSON.stringify({id:row.id,version:row.version}));assert.equal((await actionsFor(owner.client).approveRenewals({},f)).status,'error');f.set('confirm','yes');const a=await actionsFor(owner.client).approveRenewals({},f);assert.equal(a.status,'success');assert.match(a.message,/No quote, work order or email/);assert.equal((await actionsFor(crew.client).approveRenewals({},f)).status,'error');
@@ -75,10 +75,10 @@ test('PR16 supervised recurring generation and Calendar repair',{skip:!enabled,t
  const retry=(a=owner,row=queued)=>a.client.rpc('retry_calendar_operation',{p_key:row.dedupe_key,p_revision:row.revision,p_updated_at:row.updated_at,p_reason:'Reviewed current local account and schedule'});
  await run('one explicit retry preserves attempts and source, increments its revision and audits atomically',async()=>{
   const old=queued;const results=await Promise.all([retry(),retry()]);assert.equal(results.filter(r=>!r.error).length,1);const now=check(await service.from('google_calendar_sync_outbox').select('*').eq('dedupe_key',old.dedupe_key).single());assert.equal(now.status,'pending');assert.equal(now.revision,old.revision+1);assert.equal(now.attempt_count,6);assert.equal(now.connection_id,old.connection_id);assert.equal(now.reason,old.reason);queued=now;
-  denied(await retry(owner,old),'40001');const repository=load('../src/lib/integrations/google-calendar/repository.ts',{'server-only':{},'@/lib/auth/roles':{platformRoleNames:['owner','admin','estimator','payroll_admin','crew']}});await repository.completeGoogleCalendarSyncTask(service,old);await repository.failGoogleCalendarSyncTask(service,old,'late_old_result',true);assert.equal(check(await service.from('google_calendar_sync_outbox').select('status').eq('dedupe_key',old.dedupe_key).single()).status,'pending');
+  denied(await retry(owner,old),'PT409');const repository=load('../src/lib/integrations/google-calendar/repository.ts',{'server-only':{},'@/lib/auth/roles':{platformRoleNames:['owner','admin','estimator','payroll_admin','crew']}});await repository.completeGoogleCalendarSyncTask(service,old);await repository.failGoogleCalendarSyncTask(service,old,'late_old_result',true);assert.equal(check(await service.from('google_calendar_sync_outbox').select('status').eq('dedupe_key',old.dedupe_key).single()).status,'pending');
  });
  await run('retry rejects processing, reconnect-required and stale rows; ordinary staff cannot request it',async()=>{
-  for(const a of[estimator,crew])denied(await retry(a),'42501');check(await service.from('google_calendar_sync_outbox').update({status:'processing'}).eq('dedupe_key',queued.dedupe_key));queued=check(await service.from('google_calendar_sync_outbox').select('*').eq('dedupe_key',queued.dedupe_key).single());denied(await retry(),'40001');
+  for(const a of[estimator,crew])denied(await retry(a),'42501');check(await service.from('google_calendar_sync_outbox').update({status:'processing'}).eq('dedupe_key',queued.dedupe_key));queued=check(await service.from('google_calendar_sync_outbox').select('*').eq('dedupe_key',queued.dedupe_key).single());denied(await retry(),'PT409');
   check(await service.from('google_calendar_sync_outbox').update({status:'exhausted'}).eq('dedupe_key',queued.dedupe_key));check(await service.from('google_calendar_connections').update({status:'revoked',sync_enabled:false}).eq('id',connection.id));queued=check(await service.from('google_calendar_sync_outbox').select('*').eq('dedupe_key',queued.dedupe_key).single());denied(await retry(),'23514');check(await service.from('google_calendar_connections').update({status:'active',sync_enabled:true}).eq('id',connection.id));
  });
  await run('a required Calendar recovery audit failure leaves the exhausted row unchanged',async()=>{

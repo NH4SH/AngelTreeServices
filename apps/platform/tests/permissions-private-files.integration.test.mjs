@@ -87,7 +87,7 @@ test('local live roles, private files and issued-session revocation',{skip:!enab
     assert.match(r.headers.get('vary'),/Cookie, Authorization/);
   }
   async function info(d,a,cookie=false){const r=await localFetch(d.route+'?info=1',{headers:headers(a,cookie)});cacheHeaders(r);return r;}
-  async function chunk(d,a,version){const r=await localFetch(d.route,{headers:{...headers(a),range:'bytes=0-'+(bytes.length-1),'if-match':version}});cacheHeaders(r);return r;}
+  async function chunk(d,a,version){const r=await localFetch(d.route,{headers:{...headers(a),range:'bytes=0-'+(bytes.length-1),'x-ats-file-version':version}});cacheHeaders(r);return r;}
   await run('assigned crew can upload and read a private photo; removing the assignment revokes the next chunk',async()=>{
     const crew=targets.find(a=>a.role==='crew');
     const customer=ok(await db.from('customers').insert({display_name:marker}).select('id').single());
@@ -98,7 +98,7 @@ test('local live roles, private files and issued-session revocation',{skip:!enab
     const uploaded=await localFetch(web+'/api/crew/jobs/'+job.id+'/photos',{method:'POST',headers:headers(crew),body:form});assert.equal(uploaded.status,201,await uploaded.clone().text());
     const p=ok(await db.from('job_photos').select('id').eq('caption',marker).single());crewPhoto={route:web+'/files/job_photo/'+p.id};
     const manifest=await(await info(crewPhoto,crew)).json();
-    const photoChunk=()=>localFetch(crewPhoto.route,{headers:{...headers(crew),range:'bytes=0-2','if-match':manifest.version}});
+    const photoChunk=()=>localFetch(crewPhoto.route,{headers:{...headers(crew),range:'bytes=0-2','x-ats-file-version':manifest.version}});
     const part=await photoChunk();assert.equal(part.status,206);cacheHeaders(part);assert.equal((await part.arrayBuffer()).byteLength,3);
     ok(await db.from('jobs').update({assigned_crew_user_id:null,assigned_crew_employee_id:null}).eq('id',job.id));
     assert.equal((await photoChunk()).status,404);
@@ -125,7 +125,7 @@ test('local live roles, private files and issued-session revocation',{skip:!enab
     }
     const bad=await localFetch(staff.route+'?info=1',{headers:{authorization:'Bearer invalid'}});assert.equal(bad.status,404);cacheHeaders(bad);
     const stale=await chunk(staff,controller,'"stale"');assert.equal(stale.status,412);
-    const range=await localFetch(staff.route,{headers:{...headers(controller),range:'bytes=0-999999999','if-match':'"stale"'}});assert.equal(range.status,416);cacheHeaders(range);
+    const range=await localFetch(staff.route,{headers:{...headers(controller),range:'bytes=0-999999999','x-ats-file-version':'"stale"'}});assert.equal(range.status,416);cacheHeaders(range);
   });
   await run('real Storage link expires; previously issued bearer links remain a separate time-limited boundary',async()=>{
     const signed=ok(await controller.client.storage.from('platform-documents').createSignedUrl(staff.path,1)).signedUrl;

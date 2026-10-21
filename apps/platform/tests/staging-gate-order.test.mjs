@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+const {installFirstGate}=createRequire(import.meta.url)('../staging/access/netlify-plugin/transform.cjs');
+const site='d81d923d-6ccf-4c1e-87cc-263f3d51555d',origin='https://stage.example.invalid';
+function fixture(){const dir=mkdtempSync(join(tmpdir(),'ats-gate-order-'));mkdirSync(dir+'/staging');mkdirSync(dir+'/.netlify/edge-functions',{recursive:true});writeFileSync(dir+'/staging/targets.json',JSON.stringify({staging:{netlifySiteId:site,appOrigin:origin}}));const handler={function:'___netlify-edge-handler-node-middleware',pattern:'^/admin$',generator:'@netlify/plugin-nextjs@5.16.3'};writeFileSync(dir+'/.netlify/edge-functions/manifest.json',JSON.stringify({version:1,functions:[handler]}));return {dir,handler,env:{APP_ENV:'staging',STAGING_MODE:'core-no-providers',SITE_ID:site,APP_BASE_URL:origin}};}
+test('staging gate runs before the unchanged framework middleware and covers every path',()=>{const {dir,env,handler}=fixture();const m=installFirstGate(dir,env);assert.equal(m.functions[0].function,'ats-staging-access-first');assert.deepEqual(m.functions[1],handler);for(const p of ['/','/admin','/_next/static/x.js','/api/internal/notifications/process'])assert.ok(new RegExp(m.functions[0].pattern).test(p));assert.match(readFileSync(dir+'/.netlify/edge-functions/ats-staging-access-first.js','utf8'),/onError:'fail'/);assert.throws(()=>installFirstGate(dir,env));});
+test('wrong target, production markers and unexpected adapter layout stop the staging build',()=>{for(const patch of [{APP_ENV:'production'},{SITE_ID:'6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0'},{APP_BASE_URL:'https://other.example.invalid'}]){const {dir,env}=fixture();assert.throws(()=>installFirstGate(dir,{...env,...patch}));}const {dir,env}=fixture();writeFileSync(dir+'/.netlify/edge-functions/manifest.json',JSON.stringify({version:2,functions:[]}));assert.throws(()=>installFirstGate(dir,env));});

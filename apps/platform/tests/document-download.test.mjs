@@ -15,3 +15,30 @@ test('fresh authenticated bounded bytes are no-store and version checked after r
  const revoked=fixture({after:[]});assert.equal((await revoked.run(req('',{range:'bytes=0-2','if-match':info.version}))).status,404);
 }finally{globalThis.fetch=original;}});
 test('ignored ranges and oversized or truncated upstream chunks fail closed',async()=>{const original=globalThis.fetch;try{const info=await(await fixture().run(req('?info=1'))).json();for(const [status,body] of [[200,'abc'],[206,'abcd'],[206,'ab']]){globalThis.fetch=async()=>new Response(body,{status,headers:{'content-range':'bytes 0-2/3'}});assert.equal((await fixture().run(req('',{range:'bytes=0-2','if-match':info.version}))).status,404);}}finally{globalThis.fetch=original;}});
+test('application version preconditions survive intermediaries without dropping object or access rechecks',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ try{
+  globalThis.fetch=async()=>{calls++;return new Response('abc',{status:206,headers:{'content-range':'bytes 0-2/3'}});};
+  const info=await(await fixture().run(req('?info=1'))).json();
+  const request=()=>req('',{range:'bytes=0-2','x-ats-file-version':info.version});
+  const r=await fixture().run(request());assert.equal(r.status,206);assert.equal(r.headers.get('x-ats-file-version'),info.version);assert.equal(await r.text(),'abc');
+  for(const extra of [{},{'x-ats-file-version':'stale'},{'x-ats-file-version':info.version,'if-match':'different'}])assert.equal((await fixture().run(req('',{range:'bytes=0-2',...extra}))).status,412);
+  const before=calls;assert.equal((await fixture({actor:false}).run(request())).status,404);assert.equal((await fixture({rows:[]}).run(request())).status,404);assert.equal(calls,before);
+  assert.equal((await fixture({after:[]}).run(request())).status,404);
+  assert.equal((await fixture({after:[{...descriptor,object_version:'replacement'}]}).run(request())).status,404);
+ }finally{globalThis.fetch=original;}
+});
+test('browser chunks use the application version and reject missing or changed response versions even if ETag matches',async()=>{
+ const original=globalThis.fetch,mod=load('../src/lib/files/private-file-client.ts');
+ try{
+  let version='"version-one"',calls=0;
+  globalThis.fetch=async(url,init)=>{
+   if(String(url).endsWith('?info=1'))return Response.json({name:'test.txt',label:'Test',size:3,mimeType:'text/plain',version:'"version-one"',chunkBytes:1048576});
+   calls++;assert.equal(init.headers['x-ats-file-version'],'"version-one"');assert.equal(init.headers['if-match'],undefined);assert.equal(init.cache,'no-store');
+   return new Response('abc',{status:206,headers:{'content-range':'bytes 0-2/3',...(version?{'x-ats-file-version':version}:{}),etag:'"version-one"'}});
+  };
+  assert.equal(await(await mod.loadPrivateFile('/files/'+source+'/'+id,new AbortController().signal)).blob.text(),'abc');
+  for(const changed of ['', '"changed"']){version=changed;await assert.rejects(mod.loadPrivateFile('/files/'+source+'/'+id,new AbortController().signal),/file changed or access/);}
+  assert.equal(calls,3);
+ }finally{globalThis.fetch=original;}
+});

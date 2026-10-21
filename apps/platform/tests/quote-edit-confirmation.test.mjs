@@ -45,7 +45,7 @@ test('conflict metadata survives on both clients',async()=>{
 test('mobile confirms then rereads only the requested record',async()=>{
  const f=quoteEditFixture(),r=await f.runMobile();assert.equal(r.id,quoteId);assert.equal(f.calls.length,1);assert.equal(f.reads.filter(t=>t==='quotes').length,2);
 });
-for(const code of ['40001','42501','23514'])test(`${code} remains a safe rejection for web and mobile`,async()=>{
+for(const code of ['PT409','40001','42501','23514'])test(`${code} remains a safe rejection for web and mobile`,async()=>{
  const receipt={data:null,error:{code,message:'PRIVATE_TRANSPORT_DETAIL'}};
  const f=quoteEditFixture({receipt});assert.equal((await f.run()).status,'error');assert.deepEqual(f.paths,[]);
  const m=quoteEditFixture({receipt});await assert.rejects(m.runMobile(),e=>e.status===(code==='42501'?403:409)&&!e.message.includes('PRIVATE'));

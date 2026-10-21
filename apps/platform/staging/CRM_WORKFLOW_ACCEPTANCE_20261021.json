@@ -1,0 +1,156 @@
+{
+  "checkedAt": "2026-10-21T21:47:57.621Z",
+  "stagingDeployId": "6ad932724d4a26dd3415fc7a",
+  "productionDeployUnchanged": "6ad6ecfc6c03786554247e4a",
+  "schemaPoliciesAndRoutinesUnchanged": true,
+  "automationOff": true,
+  "outboundAttempts": 0,
+  "syntheticActorsRetired": 3,
+  "testSessionsGloballyRevoked": true,
+  "historyAndSyntheticFixturesRetained": true,
+  "onlyDocumentLibraryScanEnabled": true,
+  "otherAttachmentSwitchesOff": true,
+  "fullProductionReadiness": false,
+  "hashes": {
+    "scripts/release/prepare-staging-copy.mjs": "4aece0031bb11524da692ab2fc460bc9ea15e4a49f7097ece2ae3ef3b9e9f847",
+    "staging/access/gate.mjs": "93c72e1200b020488d3a01cb48acfdc2f84aef9b86098868c3518ddbf9accc6f",
+    "staging/access/edge/staging-access.js": "d6095224fa60dd3353f134754748be00393ab306ec5004d7c74aba8afacacff9",
+    "staging/access/netlify-plugin/index.cjs": "bdd6b4b6dca749cd65b2726d6fa63aaaa23f453cb09d852cd3e90d17eeeb8c06",
+    "staging/access/netlify-plugin/transform.cjs": "662d91a5726519c26e71b7709281b283127fee74334f5b56be467c62903b9643",
+    "staging/access/netlify-plugin/manifest.yml": "aa354d2b722081685281613a81b3302f2c2f951a59ce0af8fdb25cf7db143cdc",
+    "staging/access/netlify-plugin/package.json": "8a1a0b8346aba069ec9a5b087bd538ee5f77e18e5d2d973ac0074af3f8b09bd8",
+    "tests/staging-gate-order.test.mjs": "0da52f7c207006282c895c5d8f23829bc50f6b5157bebbe90062ab539b307912",
+    "tests/staging-access.test.mjs": "8e3ae0528fa3fe00a82ff9b93a041703a0785388ccb0ce000633e532b2e9c76d"
+  },
+  "sourceCommit": "616ad8209b43956c55a31667818d1672d01c88ee",
+  "sourceTree": "9ec8e8fa2ed6f255c7ef0dc962e3bbff36fa108c",
+  "stagingOnly": true,
+  "productionAppDeployed": false,
+  "productionDatabaseChanged": false,
+  "fullHostedAcceptancePassed": false,
+  "regressionChecksPassed": 2173,
+  "typecheckPassed": true,
+  "netlifyBuildPassed": true,
+  "hostedPerimeter": [
+    {
+      "name": "anonymous requests cannot reach the actual CRM, generated functions or assets",
+      "pass": true
+    },
+    {
+      "name": "gate session is secure and separate from employee login",
+      "pass": true
+    },
+    {
+      "name": "real Next.js login and its static assets remain private after cache warming",
+      "pass": true
+    },
+    {
+      "name": "worker endpoints reject requests even after preview access",
+      "pass": true
+    },
+    {
+      "name": "immutable deployment hostname denies access",
+      "pass": true
+    },
+    {
+      "name": "wrong-origin preview login and tampered session fail closed",
+      "pass": true
+    },
+    {
+      "name": "ending preview access clears its cookie",
+      "pass": true
+    }
+  ],
+  "artifact": {
+    "publicAndEdgeFilesChecked": 96,
+    "noEmbeddedPrivateValues": true,
+    "scheduledFunctions": 0,
+    "nextAdapter": "@netlify/plugin-nextjs@5.16.3",
+    "runtime": "nodejs22.x",
+    "gatePresent": true,
+    "postCacheRoutes": 0,
+    "cliSkewProtectionUnavailable": true
+  },
+  "connectedSyntheticJourney": {
+    "passed": true,
+    "stages": 5,
+    "totalCents": 24000,
+    "balanceDueCents": 0,
+    "oneInvoiceAndOneManualPayment": true,
+    "staleConflictHTTPPassed": false
+  },
+  "pairedSyntheticRecoveryPassed": true,
+  "browser": {
+    "syntheticOnly": true,
+    "ownerLogin": true,
+    "dashboardCashCollectedCents": 24000,
+    "dashboardOutstandingCents": 0,
+    "employeeRecordRendered": true,
+    "smallBrowserUploadScannedClean": true,
+    "twentyFiveMiBBrowserUploadScannedClean": true,
+    "eicarBrowserUploadQuarantined": true,
+    "approvedProposalHasNoApprovalControl": true,
+    "paidInvoiceShowsZeroBalanceAndNoPayControl": true,
+    "customerChangeRequestConfirmation": true
+  },
+  "privateFileChecks": [
+    {
+      "name": "authorized staff receive private metadata and exact bounded file bytes",
+      "pass": false,
+      "error": "Expected values to be strictly equal:\n\n412 !== 206\n"
+    },
+    {
+      "name": "missing session, crew access, stale version and invalid range are denied",
+      "pass": true
+    },
+    {
+      "name": "the same staff JWT loses file access on deactivation and regains reviewed CRM access after reactivation",
+      "pass": true
+    },
+    {
+      "name": "a separately anonymous request stays denied after staff cache warming",
+      "pass": true
+    }
+  ],
+  "releaseBlockers": [
+    {
+      "id": "STAGE-CONFLICT-HTTP",
+      "observed": "Stale approval API timeout; direct authenticated SQL denies with 40001",
+      "postgrestVersion": "14.18",
+      "affectedExplicit40001Functions": 23,
+      "boundedTimeoutMs": 30005,
+      "matchingPostgresLogRowsInTestWindow": 27191,
+      "matchingApprovalBackendsAtCleanup": 0
+    },
+    {
+      "id": "STAGE-PRIVATE-RANGE",
+      "observed": "Valid unchanged private-file range returns HTTP412",
+      "authorizationBypassObserved": false,
+      "conditionalForwardingExperiment": "did not resolve; reverted"
+    }
+  ],
+  "smallerFindings": [
+    "Dashboard invoice-finished-work count includes already invoiced completed job"
+  ],
+  "syntheticCounts": {
+    "customers": 1,
+    "jobs": 1,
+    "quotes": 2,
+    "invoices": 1,
+    "payments": 1,
+    "documents": 5
+  },
+  "cleanup": {
+    "authUsersRetained": 3,
+    "authSessions": 0,
+    "disabledProfiles": 3,
+    "activeProfiles": 0,
+    "separatedEmployees": 3,
+    "firstDispatches": 0,
+    "auditAndSyntheticHistoryRetained": true
+  },
+  "sharedTargetManifestAssigned": false,
+  "homeMacRebooted": false,
+  "changesCommitted": false,
+  "changesPushed": false
+}

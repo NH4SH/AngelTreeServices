@@ -69,7 +69,7 @@ test('local customer quote/invoice capabilities, tracking and approval retain th
   await run('stale customer approval fails; concurrent current/repeated approval creates one work order and audit event',async()=>{
     const before=await quote(),lines=before.quote_line_items.map(l=>({id:l.id,name:l.name,description:l.description,quantity:Number(l.quantity),unit_price_cents:l.unit_price_cents,total_cents:l.total_cents}));
     ok(await client.rpc('save_quote_details',{p_quote_id:draft.id,p_expected_revision:before.edit_revision,p_header:{customer_message:'Reviewed synthetic customer-facing scope'},p_lines:lines}));
-    assert.equal((await db.rpc('approve_quote_by_portal',{p_token_hash:active.hash,p_expected_revision:before.edit_revision})).error?.code,'40001');
+    assert.equal((await db.rpc('approve_quote_by_portal',{p_token_hash:active.hash,p_expected_revision:before.edit_revision})).error?.code,'PT409');
     assert.equal(ok(await db.from('jobs').select('id').eq('source_quote_id',draft.id)).length,0);
     const current=await quote(),args={p_token_hash:active.hash,p_expected_revision:current.edit_revision};
     const approvals=await Promise.all([db.rpc('approve_quote_by_portal',args),db.rpc('approve_quote_by_portal',args)]);approvals.forEach(ok);

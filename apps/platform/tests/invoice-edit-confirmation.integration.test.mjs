@@ -37,7 +37,7 @@ test('invoice edit confirmation against installed staff commands; synthetic roll
    {name:'partial successful payment preserves the installed balance calculation',partial:true},
    {name:'lost acknowledgement retains draft; explicit old-version retry is rejected',lost:true},
    {name:'transport exception after SQL save retains draft without replay',throwAfter:true},
-   {name:'stale revision is denied',stale:true,code:'40001'},
+   {name:'stale revision is denied',stale:true,code:'PT409'},
    {name:'paid invoice remains locked',status:'paid',code:'23514'},
    {name:'void invoice remains locked',status:'void',code:'23514'},
    {name:'pending payment remains locked',pending:true,code:'23514'},
@@ -88,7 +88,7 @@ test('invoice edit confirmation against installed staff commands; synthetic roll
    if(c.code){assert.equal(result.status,'error');assert.deepEqual(codes,[c.code]);assert.deepEqual(f.paths,[]);}
    else if(c.lost||c.throwAfter){
     assert.equal(result.status,'error');assert.deepEqual(f.paths,[]);assert.equal(f.calls.length,1);
-    result=await f.run();assert.equal(result.status,'error');assert.deepEqual(codes,['40001']);assert.equal(f.calls.length,2);
+    result=await f.run();assert.equal(result.status,'error');assert.deepEqual(codes,['PT409']);assert.equal(f.calls.length,2);
    }else{
     assert.equal(result.status,'success');assert.equal(result.savedLineIds['retained-client'],retained);assert.ok(result.savedLineIds['new-client']);assert.equal(f.calls.length,1);assert.deepEqual(codes,[]);
     const revision=await json(`select to_jsonb(updated_at)from invoices where id='${invoice}'`);assert.equal(result.savedUpdatedAt,revision);

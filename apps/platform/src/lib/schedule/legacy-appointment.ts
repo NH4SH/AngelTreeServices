@@ -19,7 +19,7 @@ export async function saveLegacyAppointment(db: SupabaseClient, input: LegacyApp
       p_values: input.values, p_mode: input.mode, p_override_reason: input.overrideReason ?? null,
     } satisfies LegacyAppointmentCommandArgs;
     const { data, error } = await withDeadline(signal => db.rpc('save_legacy_appointment', args).abortSignal(signal), 15000);
-    if (error) return { status: 'error' as const, message: error.code === '40001'
+    if (error) return { status: 'error' as const, message: (error.code === "PT409" || error.code === "40001")
       ? 'This appointment changed. Refresh the calendar and review it before saving again. Your changes have not been applied.'
       : error.code === '42501' ? 'You no longer have permission to change this appointment.'
       : safeStaffMessage(error.message) };

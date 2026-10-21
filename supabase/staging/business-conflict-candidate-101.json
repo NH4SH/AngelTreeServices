@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "expectedMigrationCount": 101,
+  "previousCandidateCount": 100,
+  "additionalMigration": {
+    "name": "20261021215535_business_conflict_responses.sql",
+    "sha256": "1cfe71caaf7ee6776a90b14b38111a913492ea411c8ee662b114af5ecc1eece8"
+  },
+  "functions": [
+    {
+      "signature": "app_private.approve_quote_locked(uuid, integer, text)",
+      "md5": "923768656a13ec09daca992aae5c2633"
+    },
+    {
+      "signature": "app_private.assert_stripe_snapshot(uuid, text, uuid, uuid)",
+      "md5": "c5359e1daf19ae9ac24bc0abc8d24ff9"
+    },
+    {
+      "signature": "app_private.change_website_sender_block(uuid, jsonb, boolean, boolean, uuid, text, uuid)",
+      "md5": "517a54377cbf427aefa2139b324072ad"
+    },
+    {
+      "signature": "app_private.claim_attachment_scan(text, text, uuid, text)",
+      "md5": "4d3c44afaffe27674332196b62822425"
+    },
+    {
+      "signature": "app_private.lock_job_completion(uuid, integer, jsonb, boolean, boolean)",
+      "md5": "a0941f5d72cfcd1c6a46139543bfdff9"
+    },
+    {
+      "signature": "app_private.read_report_dataset(text, timestamp with time zone, timestamp with time zone, jsonb, integer, integer, text, boolean)",
+      "md5": "3bea6685f89c7873714c0e87d353760d"
+    },
+    {
+      "signature": "app_private.request_quote_changes_locked(uuid, text, integer, text)",
+      "md5": "073950fd9f6ec7eacf407cb2038f152f"
+    },
+    {
+      "signature": "app_private.save_schedule_event_locked(uuid, integer, jsonb, uuid[], text, boolean, uuid[], text)",
+      "md5": "0e8b5d48c947ca1ac94c86de064b6691"
+    },
+    {
+      "signature": "public.approve_change_order(uuid, text, uuid, text, uuid, text)",
+      "md5": "6516ed32302eed8a2e0d47ceec644d1a"
+    },
+    {
+      "signature": "public.approve_recurring_generation(uuid, jsonb)",
+      "md5": "118e0e19fe5df2abc36c3ab3151a02d2"
+    },
+    {
+      "signature": "public.finish_outbound_delivery(uuid, uuid, text, text)",
+      "md5": "aef215ac8c91811aefba30a8c1798583"
+    },
+    {
+      "signature": "public.prepare_outbound_delivery(text, jsonb, jsonb, jsonb)",
+      "md5": "7098d668df59e1b9caeafaeb684ab73e"
+    },
+    {
+      "signature": "public.prepare_website_notice_batch(uuid, uuid, jsonb)",
+      "md5": "344a314a860ab295d2c40b53e05a4153"
+    },
+    {
+      "signature": "public.respond_to_change_order_by_portal(uuid, text, timestamp with time zone, text, text)",
+      "md5": "ecd5cca2f64ef87e57eaa79f238e3809"
+    },
+    {
+      "signature": "public.retry_calendar_operation(text, bigint, timestamp with time zone, text)",
+      "md5": "f2409d5680ceea2c2204115414c4918e"
+    },
+    {
+      "signature": "public.review_outbound_delivery(uuid, text, text, uuid)",
+      "md5": "682c2d4b6eb14e529f65749a35c29f5b"
+    },
+    {
+      "signature": "public.save_invoice_details(uuid, timestamp with time zone, timestamp with time zone, jsonb)",
+      "md5": "daf61172054df582526801a1baf33632"
+    },
+    {
+      "signature": "public.save_job_employee_work_sessions(uuid, jsonb, text, jsonb, text, boolean)",
+      "md5": "f9aae90c9648876f72137671b64da87f"
+    },
+    {
+      "signature": "public.save_legacy_appointment(uuid, uuid, integer, jsonb, text, text)",
+      "md5": "4f535a4bb66d11f3ec1244203226b79e"
+    },
+    {
+      "signature": "public.save_quote_details(uuid, integer, jsonb, jsonb, boolean)",
+      "md5": "d755a4c162a1ba5b1fb54ea4dfe97cf0"
+    },
+    {
+      "signature": "public.schedule_lead_estimate(uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, uuid, text, integer)",
+      "md5": "559f29f10d6137a9f5d1716b09bd161d"
+    },
+    {
+      "signature": "public.schedule_party_estimate(uuid, uuid, uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, uuid, text, integer)",
+      "md5": "ef34fd710dd59df4674a7640c1e73f40"
+    },
+    {
+      "signature": "public.update_office_handoff(uuid, timestamp with time zone, uuid, timestamp with time zone)",
+      "md5": "09ef75da9b60d60a3058d04ffb8ca6bd"
+    }
+  ],
+  "expectedCatalog": {
+    "apiAclSeal": "dcfe1fe6bc4c0d9ebfbb59cd2f8cd452",
+    "shapeSeal": "0efba95f021f4454e796322571b157d0",
+    "ownedDefaultsSeal": "7847b3f907bfe39c5cbd1c7696f2e003",
+    "managedDefaultsSeal": "08e1e381da30d8e4fba99db479f16a82",
+    "ownedDefaultApiGrants": 0
+  },
+  "requiresAutomationOff": true,
+  "productionReady": false
+}

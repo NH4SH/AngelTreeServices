@@ -91,23 +91,23 @@ test("Atomic quote approval with real local Auth, RLS and concurrent transaction
   });
   await run('a stale or absent page version never creates work or approves a newer proposal',async()=>{
     const q=await draft();check(await save(q,lines(1800),{customer_message:'Newly edited scope'}));
-    denied(await approve(q),'40001');denied(await approve(q,owner,null),'40001');assert.equal((await jobsFor(q)).length,0);assert.equal((await fresh(q)).status,'draft');
+    denied(await approve(q),'PT409');denied(await approve(q,owner,null),'PT409');assert.equal((await jobsFor(q)).length,0);assert.equal((await fresh(q)).status,'draft');
     const current=await fresh(q),r=check(await approve(current));assert.match((await jobsFor(q))[0].requested_scope,/Newly edited scope/);assert.equal(r.replayed,false);
   });
   await run('editing and approving concurrently choose one consistent version without orphaned work',async()=>{
     for(let i=0;i<4;i++) {
       const q=await draft(),[a,s]=await Promise.all([approve(q),save(q,lines(1900),{customer_message:'Concurrent new scope'},admin)]),after=await fresh(q);
-      if(a.error){assert.equal(a.error.code,'40001');assert.equal(check(s).conflict,undefined);assert.equal(after.status,'draft');assert.equal(after.total_cents,1900);assert.equal((await jobsFor(q)).length,0);}
-      else{check(a);if(s.error)assert.equal(s.error.code,'40001');else assert.equal(check(s).conflict,true);assert.equal(after.status,'approved');assert.equal(after.total_cents,1000);assert.equal((await jobsFor(q)).length,1);}
+      if(a.error){assert.equal(a.error.code,'PT409');assert.equal(check(s).conflict,undefined);assert.equal(after.status,'draft');assert.equal(after.total_cents,1900);assert.equal((await jobsFor(q)).length,0);}
+      else{check(a);if(s.error)assert.equal(s.error.code,'PT409');else assert.equal(check(s).conflict,true);assert.equal(after.status,'approved');assert.equal(after.total_cents,1000);assert.equal((await jobsFor(q)).length,1);}
     }
   });
   await run('a real editor lock waits before the version check and leaves no partially accepted job',async()=>{
     const q=await draft(),release=await hold(`update public.quotes set customer_message='Locked editor changed scope' where id='${q.id}'`),pending=approve(q).then(r=>r);
-    try{await waitBlocked(release.pid);}finally{await release();}denied(await pending,'40001');assert.equal((await jobsFor(q)).length,0);assert.equal((await events(q)).length,0);
+    try{await waitBlocked(release.pid);}finally{await release();}denied(await pending,'PT409');assert.equal((await jobsFor(q)).length,0);assert.equal((await events(q)).length,0);
   });
   await run('an uncommitted approval blocks a real save; after commit the unsaved editor gets a conflict',async()=>{
     const q=await draft(),release=await hold(`set local role authenticated; select set_config('request.jwt.claim.sub','${owner.id}',true);select set_config('request.jwt.claims','{"sub":"${owner.id}","role":"authenticated"}',true);select public.approve_quote('${q.id}',${q.edit_revision})`),pending=save(q,lines(2200)).then(r=>r);
-    try{await waitBlocked(release.pid);}finally{await release();}const response=await pending;if(response.error)assert.equal(response.error.code,'40001');else assert.equal(check(response).conflict,true);assert.equal((await fresh(q)).status,'approved');assert.equal((await fresh(q)).total_cents,1000);assert.equal((await jobsFor(q)).length,1);
+    try{await waitBlocked(release.pid);}finally{await release();}const response=await pending;if(response.error)assert.equal(response.error.code,'PT409');else assert.equal(check(response).conflict,true);assert.equal((await fresh(q)).status,'approved');assert.equal((await fresh(q)).total_cents,1000);assert.equal((await jobsFor(q)).length,1);
   });
   await run('two quotes cannot both claim the same linked lead and later work statuses never regress',async()=>{
     const j=await job(),q1=await draft(owner,{job_id:j.id}),q2=await draft(owner,{job_id:j.id}),r=await Promise.all([approve(q1),approve(q2,admin)]);
@@ -173,7 +173,7 @@ test("Atomic quote approval with real local Auth, RLS and concurrent transaction
   });
   await run('expired, revoked, missing, malformed and stale customer tokens cannot create work',async()=>{
     for(const patch of [{revoked_at:new Date().toISOString()},{expires_at:'2020-01-01T00:00:00Z'}]){const q=await draft(),t=await token(q,patch);denied(await portal(q,t),'42501');assert.equal((await jobsFor(q)).length,0);}
-    const q=await draft(),t=await token(q);check(await save(q,lines(2100)));denied(await portal(q,t),'40001');assert.equal((await jobsFor(q)).length,0);denied(await portal(q,{token_hash:'bad'}),'42501');denied(await portal(q,{token_hash:randomBytes(32).toString('hex')}),'42501');
+    const q=await draft(),t=await token(q);check(await save(q,lines(2100)));denied(await portal(q,t),'PT409');assert.equal((await jobsFor(q)).length,0);denied(await portal(q,{token_hash:'bad'}),'42501');denied(await portal(q,{token_hash:randomBytes(32).toString('hex')}),'42501');
   });
   await run('token revocation committed while approval waits is rechecked under lock',async()=>{
     const q=await draft(),t=await token(q),release=await hold(`update public.quote_portal_tokens set revoked_at=clock_timestamp() where id='${t.id}'`),pending=portal(q,t).then(r=>r);
@@ -188,7 +188,7 @@ test("Atomic quote approval with real local Auth, RLS and concurrent transaction
     const r=check(await approve(q));assert.equal((await fresh(q)).approved_at,'2026-10-15T12:00:00+00:00');assert.equal((await events(q,'quote_approval_repaired')).length,1);assert.equal((await events(q)).length,0);assert.equal(check(await approve(q)).job_id,r.job_id);
   });
   await run('approval and PR04 generation share parent order and never create separate work orders',async()=>{
-    const q=await draft(),[a,g]=await Promise.all([approve(q),owner.client.rpc('generate_job_invoice',{p_request_id:randomUUID(),p_quote_id:q.id})]);check(a);if(g.error)assert.ok(['23514','40001'].includes(g.error.code),g.error.message);else check(g);
+    const q=await draft(),[a,g]=await Promise.all([approve(q),owner.client.rpc('generate_job_invoice',{p_request_id:randomUUID(),p_quote_id:q.id})]);check(a);if(g.error)assert.ok(['23514','PT409'].includes(g.error.code),g.error.message);else check(g);
     const jobs=await jobsFor(q);assert.equal(jobs.length,1);const after=await fresh(q);assert.equal(after.job_id,jobs[0].id);assert.equal(after.status,'approved');
   });
   if(process.env.QUOTE_APPROVAL_RESULTS_FILE) writeFileSync(process.env.QUOTE_APPROVAL_RESULTS_FILE,JSON.stringify({marker,scenarios:results},null,2));

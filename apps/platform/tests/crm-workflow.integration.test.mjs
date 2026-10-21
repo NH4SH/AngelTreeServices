@@ -74,7 +74,7 @@ test('connected local lead-to-payment workflow retains authorization and history
   const reviewed=await quote();assert.ok(reviewed.edit_revision>before.edit_revision);assert.equal(reviewed.total_cents,24000);
   const detail=await localFetch(web+'/api/mobile/quotes/'+reviewed.id,{headers:{authorization:'Bearer '+office.jwt}});assert.equal(detail.status,200);
   assert.equal((await detail.json()).data.quote.totalCents,24000);
-  const stale=await office.client.rpc('approve_quote',{p_quote_id:reviewed.id,p_expected_revision:before.edit_revision});assert.equal(stale.error?.code,'40001');
+  const stale=await office.client.rpc('approve_quote',{p_quote_id:reviewed.id,p_expected_revision:before.edit_revision});assert.equal(stale.error?.code,'PT409');
   const approval=check(await office.client.rpc('approve_quote',{p_quote_id:reviewed.id,p_expected_revision:reviewed.edit_revision}));
   assert.equal(approval.job_id,lead.id);assert.equal((await job()).status,'accepted');
   assert.equal(check(await office.client.rpc('approve_quote',{p_quote_id:reviewed.id,p_expected_revision:reviewed.edit_revision})).job_id,lead.id);

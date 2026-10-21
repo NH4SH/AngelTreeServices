@@ -111,6 +111,6 @@ test('production has no gate selection; only a new staging export selects uncach
   const config=readFileSync(new URL('apps/platform/netlify.toml',root),'utf8');assert.doesNotMatch(config,/staging-access|edge_functions/);
   assert.equal(existsSync(new URL('apps/platform/netlify/edge-functions/staging-access.js',root)),false);
   const exporter=readFileSync(new URL('apps/platform/scripts/release/prepare-staging-copy.mjs',root),'utf8');
-  assert.match(exporter,/staging\/access\/edge/);assert.match(exporter,/staging\/access\/check.mjs/);assert.ok(exporter.includes('path = "/*"'));
+  assert.match(exporter,/staging\/access\/edge/);assert.match(exporter,/staging\/access\/check.mjs/);assert.match(exporter,/staging\/access\/netlify-plugin/);assert.ok(exporter.indexOf('@netlify/plugin-nextjs') < exporter.indexOf('./staging/access/netlify-plugin'));
   const entry=readFileSync(new URL('apps/platform/staging/access/edge/staging-access.js',root),'utf8');assert.match(entry,/onError:'fail'/);assert.doesNotMatch(entry,/cache:|bypass/);
 });

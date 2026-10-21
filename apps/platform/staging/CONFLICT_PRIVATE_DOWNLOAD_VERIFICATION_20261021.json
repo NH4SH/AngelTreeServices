@@ -1,0 +1,349 @@
+{
+  "checkedAt": "2026-10-21T22:17:25.008Z",
+  "sourceCommit": "616ad8209b43956c55a31667818d1672d01c88ee",
+  "sourceOverlays": [
+    {
+      "path": "apps/platform/src/app/admin/communications/lead-actions.ts",
+      "sha256": "74304be073e7224e3e0906953053f0ca76ad1eb5a19e1960296d57e44918e962"
+    },
+    {
+      "path": "apps/platform/src/app/admin/follow-ups/actions.ts",
+      "sha256": "6484788162fa5ea96ce189841b511382f5828a28479c80a3d97f1f786c583b69"
+    },
+    {
+      "path": "apps/platform/src/app/admin/recurring/operations/actions.ts",
+      "sha256": "b467c01299935f8e6ceb1753fc7158ccf29f6f978d6be9e5ab2abe9e96499da3"
+    },
+    {
+      "path": "apps/platform/src/lib/actions/change-orders.ts",
+      "sha256": "4cb772821498967cc87a04aa7f6783bbbbcded6f0c6486a62c1943af9b30a069"
+    },
+    {
+      "path": "apps/platform/src/lib/data/reports.ts",
+      "sha256": "5c6b208c4333e2250ec953743d3245c68c6ddbf04edb20ddbb44924b335aebef"
+    },
+    {
+      "path": "apps/platform/src/lib/files/private-file-client.ts",
+      "sha256": "ac05257260a1566b38d6feecc58ec1c3e3645e8a6bc811a0a8d21ac6b4ea6a74"
+    },
+    {
+      "path": "apps/platform/src/lib/files/private-file-response.ts",
+      "sha256": "87e237665e24324a7fc36c6a7522475ac5de50a84dc9a3f870d80a66fb89d116"
+    },
+    {
+      "path": "apps/platform/src/lib/invoices/generation-confirmation.ts",
+      "sha256": "ac52a9ef532fe3476d4fa6a8afc7b8498bb26c8c3df9c2ec0f2dd0ea7e4c1555"
+    },
+    {
+      "path": "apps/platform/src/lib/invoices/save-confirmation.ts",
+      "sha256": "0e94011d7dd985a1b621febf3ecef9170cb008fdcad7aa92b4aaccbc9bf5bf6b"
+    },
+    {
+      "path": "apps/platform/src/lib/quotes/change-request.ts",
+      "sha256": "2e2ec78f467bf1435f8f63f1ce08ba5f27a08417f15822211324b4509089e68b"
+    },
+    {
+      "path": "apps/platform/src/lib/quotes/save-confirmation.ts",
+      "sha256": "abfead7c5dc291822cb04d47d25b78a0fd1a44e30149a6f66d0794623319e17b"
+    },
+    {
+      "path": "apps/platform/src/lib/schedule/legacy-appointment.ts",
+      "sha256": "9a4c64e15159560d8718d6739946466e201e6395e2a593f98e95c7bc5d542ce1"
+    }
+  ],
+  "stagingOnly": true,
+  "stagingDeployId": "6ad93840ccebc7a5679b1b28",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migration": {
+    "migration": "20261021215535_business_conflict_responses.sql",
+    "sha256": "1cfe71caaf7ee6776a90b14b38111a913492ea411c8ee662b114af5ecc1eece8",
+    "functions": [
+      {
+        "signature": "app_private.approve_quote_locked(uuid, integer, text)",
+        "before": "dbf9c687f0fb1764572383fa8d6ee121",
+        "after": "923768656a13ec09daca992aae5c2633"
+      },
+      {
+        "signature": "app_private.assert_stripe_snapshot(uuid, text, uuid, uuid)",
+        "before": "cf20e9928f15ce484cf879451603acb7",
+        "after": "c5359e1daf19ae9ac24bc0abc8d24ff9"
+      },
+      {
+        "signature": "app_private.change_website_sender_block(uuid, jsonb, boolean, boolean, uuid, text, uuid)",
+        "before": "22f23c2ddd9469084da690897b4efb85",
+        "after": "517a54377cbf427aefa2139b324072ad"
+      },
+      {
+        "signature": "app_private.claim_attachment_scan(text, text, uuid, text)",
+        "before": "c7c2ec26d637213d9be6357b3ecbdb9e",
+        "after": "4d3c44afaffe27674332196b62822425"
+      },
+      {
+        "signature": "app_private.lock_job_completion(uuid, integer, jsonb, boolean, boolean)",
+        "before": "9304617726e6fa1fbb2aa9cd39df7859",
+        "after": "a0941f5d72cfcd1c6a46139543bfdff9"
+      },
+      {
+        "signature": "app_private.read_report_dataset(text, timestamp with time zone, timestamp with time zone, jsonb, integer, integer, text, boolean)",
+        "before": "b789a65c2cc59514acecb4c01bee5717",
+        "after": "3bea6685f89c7873714c0e87d353760d"
+      },
+      {
+        "signature": "app_private.request_quote_changes_locked(uuid, text, integer, text)",
+        "before": "23ad556f510ab5762448170bb30b539b",
+        "after": "073950fd9f6ec7eacf407cb2038f152f"
+      },
+      {
+        "signature": "app_private.save_schedule_event_locked(uuid, integer, jsonb, uuid[], text, boolean, uuid[], text)",
+        "before": "1aa9b2b1e49ad27ab62064028a9e8e03",
+        "after": "0e8b5d48c947ca1ac94c86de064b6691"
+      },
+      {
+        "signature": "public.approve_change_order(uuid, text, uuid, text, uuid, text)",
+        "before": "488b3f0820965efc634dd818a2247417",
+        "after": "6516ed32302eed8a2e0d47ceec644d1a"
+      },
+      {
+        "signature": "public.approve_recurring_generation(uuid, jsonb)",
+        "before": "e599fc16ffe8102ee198ec4ce9dc516d",
+        "after": "118e0e19fe5df2abc36c3ab3151a02d2"
+      },
+      {
+        "signature": "public.finish_outbound_delivery(uuid, uuid, text, text)",
+        "before": "83341e4b633d589fc9a4c4e61242c1aa",
+        "after": "aef215ac8c91811aefba30a8c1798583"
+      },
+      {
+        "signature": "public.prepare_outbound_delivery(text, jsonb, jsonb, jsonb)",
+        "before": "df7918962ad7a505b1d03808e34b146d",
+        "after": "7098d668df59e1b9caeafaeb684ab73e"
+      },
+      {
+        "signature": "public.prepare_website_notice_batch(uuid, uuid, jsonb)",
+        "before": "46b507ef0b46d8ae64bd98c4945cbf12",
+        "after": "344a314a860ab295d2c40b53e05a4153"
+      },
+      {
+        "signature": "public.respond_to_change_order_by_portal(uuid, text, timestamp with time zone, text, text)",
+        "before": "de88468ed7a3a883c0cb5d7e891624b8",
+        "after": "ecd5cca2f64ef87e57eaa79f238e3809"
+      },
+      {
+        "signature": "public.retry_calendar_operation(text, bigint, timestamp with time zone, text)",
+        "before": "e2f8a7c450a391aec9652b322769a819",
+        "after": "f2409d5680ceea2c2204115414c4918e"
+      },
+      {
+        "signature": "public.review_outbound_delivery(uuid, text, text, uuid)",
+        "before": "4563ae9140c898f0cfc6f418d4f78909",
+        "after": "682c2d4b6eb14e529f65749a35c29f5b"
+      },
+      {
+        "signature": "public.save_invoice_details(uuid, timestamp with time zone, timestamp with time zone, jsonb)",
+        "before": "95706a1b768849a4a758c2a2cb31f930",
+        "after": "daf61172054df582526801a1baf33632"
+      },
+      {
+        "signature": "public.save_job_employee_work_sessions(uuid, jsonb, text, jsonb, text, boolean)",
+        "before": "f1f1326d098f9bebecdacb4ec47806fa",
+        "after": "f9aae90c9648876f72137671b64da87f"
+      },
+      {
+        "signature": "public.save_legacy_appointment(uuid, uuid, integer, jsonb, text, text)",
+        "before": "d06dd5a3ea1c667f022421d2b195253b",
+        "after": "4f535a4bb66d11f3ec1244203226b79e"
+      },
+      {
+        "signature": "public.save_quote_details(uuid, integer, jsonb, jsonb, boolean)",
+        "before": "44d0953ae0bb307dbeab500c38bee367",
+        "after": "d755a4c162a1ba5b1fb54ea4dfe97cf0"
+      },
+      {
+        "signature": "public.schedule_lead_estimate(uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, uuid, text, integer)",
+        "before": "f8c6c177811b8ab2eea6f7b02aeef357",
+        "after": "559f29f10d6137a9f5d1716b09bd161d"
+      },
+      {
+        "signature": "public.schedule_party_estimate(uuid, uuid, uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, uuid, text, integer)",
+        "before": "ed5741d70d068432cf2ddb4f555b122d",
+        "after": "ef34fd710dd59df4674a7640c1e73f40"
+      },
+      {
+        "signature": "public.update_office_handoff(uuid, timestamp with time zone, uuid, timestamp with time zone)",
+        "before": "d87ae2a27e848f6702848bf9709a754d",
+        "after": "09ef75da9b60d60a3058d04ffb8ca6bd"
+      }
+    ]
+  },
+  "migrationVerification": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerBefore": 100,
+    "ledgerAfter": 101,
+    "changedFunctions": 23,
+    "onlyErrorCodesChanged": true,
+    "metadataOidsGrantsOwnersPreserved": true,
+    "rlsDefaultsPoliciesPreserved": true,
+    "allApplicationAuthStorageRowsPreserved": true,
+    "exactLedgerPrefixPreserved": true,
+    "repeatDryRunUpToDate": true,
+    "productionWrites": false
+  },
+  "localMigration": {
+    "database": "ats_conflict101_20261021",
+    "functionsChanged": 23,
+    "metadataOidsGrantsOwnersPreserved": true,
+    "rollbackPassed": true,
+    "idempotent": true,
+    "localOnly": true
+  },
+  "unitChecks": 2184,
+  "unitPassed": true,
+  "databaseAssertions": 295,
+  "databaseSuites": 15,
+  "databasePassed": true,
+  "typecheckPassed": true,
+  "netlifyAdapterBuildPassed": true,
+  "publicTypesUnchanged": true,
+  "localPermissionChecks": 17,
+  "localTargetedPassingChecks": 126,
+  "swiftFoundationChecks": 59,
+  "iosBuildAvailable": false,
+  "hostedFunctional": [
+    {
+      "name": "stale quote approval returns HTTP409 promptly without creating a job or changing money",
+      "pass": true,
+      "elapsedMs": 1351
+    },
+    {
+      "name": "stale invoice save returns HTTP409 and preserves header, totals and lines",
+      "pass": true,
+      "elapsedMs": 436
+    },
+    {
+      "name": "concurrent schedule edits keep exactly one winner and reject the stale writer",
+      "pass": true,
+      "elapsedMs": 1007
+    },
+    {
+      "name": "current-version authorized file bytes cross the staging gate without relying on ETag",
+      "pass": true,
+      "elapsedMs": 1496,
+      "size": 69,
+      "etagNotRequired": true
+    },
+    {
+      "name": "missing or stale versions, conflicting preconditions, unassigned crew and anonymous reads fail closed",
+      "pass": true,
+      "elapsedMs": 1491
+    },
+    {
+      "name": "25MiB private file downloads in bounded chunks with the original digest",
+      "pass": true,
+      "elapsedMs": 14153,
+      "chunks": 25,
+      "size": 26214400
+    },
+    {
+      "name": "issued JWT loses the next file chunk on deactivation; reactivation still leaves clock permission off",
+      "pass": true,
+      "elapsedMs": 2113
+    },
+    {
+      "name": "worker automation and customer deliveries remain off; no retrying conflict backend remains",
+      "pass": true,
+      "elapsedMs": 2115
+    }
+  ],
+  "hostedPerimeter": [
+    {
+      "name": "anonymous requests cannot reach the actual CRM, generated functions or assets",
+      "pass": true
+    },
+    {
+      "name": "gate session is secure and separate from employee login",
+      "pass": true
+    },
+    {
+      "name": "real Next.js login and its static assets remain private after cache warming",
+      "pass": true
+    },
+    {
+      "name": "worker endpoints reject requests even after preview access",
+      "pass": true
+    },
+    {
+      "name": "immutable deployment hostname denies access",
+      "pass": true
+    },
+    {
+      "name": "wrong-origin preview login and tampered session fail closed",
+      "pass": true
+    },
+    {
+      "name": "ending preview access clears its cookie",
+      "pass": true
+    }
+  ],
+  "browserDownload": {
+    "stagingOnly": true,
+    "synthetic": true,
+    "readyStateVisible": true,
+    "downloadVerified": true,
+    "bytes": 69,
+    "sha256": "5f05902f5e4e5f92729240c613fd1b3200f41c744fd496d7d346875a03adb1af"
+  },
+  "actualReplacement": {
+    "stagingOnly": true,
+    "synthetic": true,
+    "actualObjectReplacement": true,
+    "oldChunkSucceeded": true,
+    "replacedObjectDenied": true,
+    "status": 412,
+    "noReplacementBytesReturned": true
+  },
+  "advisors": {
+    "securityBefore": 3,
+    "securityAfter": 3,
+    "securityNew": [],
+    "performance": 3
+  },
+  "effectiveConfig": {
+    "authUnchanged": true,
+    "apiUnchanged": true,
+    "signupDisabled": true,
+    "authEmailGuardEnabled": true
+  },
+  "cleanup": {
+    "checkedAt": "2026-10-21T22:17:25.008Z",
+    "activeProfiles": 0,
+    "activeTestEmployees": 0,
+    "communicationAutomation": false,
+    "customers": 2,
+    "deliveryAttempts": 0,
+    "documents": 6,
+    "firstDispatches": 0,
+    "invoices": 2,
+    "libraryScan": true,
+    "migrations": 101,
+    "payments": 1,
+    "pendingConflictBackends": 0,
+    "recurringAutomation": false,
+    "sessions": 0,
+    "syntheticActorsRetired": 3,
+    "productionDeployUnchanged": "6ad6ecfc6c03786554247e4a",
+    "stagingDeployId": "6ad93840ccebc7a5679b1b28",
+    "noProductionDatabaseWrites": true,
+    "priorRecordsAndHistoryRetained": true
+  },
+  "productionReady": false,
+  "remainingTestLimitation": {
+    "suite": "ordered-payments.integration.test.mjs",
+    "passed": 10,
+    "failedIncludingParent": 14,
+    "observedNotificationFanout": 123,
+    "processorBatchLimit": 100,
+    "financialFunctionChanged": false,
+    "requiresFreshDisposableRetest": true
+  },
+  "noCommitOrPush": true
+}

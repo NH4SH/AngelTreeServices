@@ -58,7 +58,7 @@ test('legacy appointments: actual atomic saves, history, reminders, permissions 
  await run('lost create acknowledgement reuses one appointment and never repeats history or accepts a changed payload/actor',async()=>{
   const j=await job(),id=randomUUID(),v=values();const first=check(await create(j,v,owner,id));const before=await history(id);
   const again=check(await create(j,v,owner,id));assert.equal(again.replayed,true);assert.equal(again.id,first.id);assert.deepEqual(await history(id),before);
-  denied(await create(j,{...v,calendar_notes:'Changed request'},owner,id),'40001');denied(await create(j,v,admin,id),'40001');
+  denied(await create(j,{...v,calendar_notes:'Changed request'},owner,id),'PT409');denied(await create(j,v,admin,id),'PT409');
  });
  await run('simultaneous create retries acknowledge one record and one creation audit',async()=>{
   const j=await job(),id=randomUUID(),v=values();const responses=await Promise.all([create(j,v,owner,id),create(j,v,owner,id)]);
@@ -72,8 +72,8 @@ test('legacy appointments: actual atomic saves, history, reminders, permissions 
  });
  await run('concurrent editors produce one winner, and stale or mismatched parent requests preserve the saved record',async()=>{
   const j=await job(),a=await read(check(await create(j)).id);const r=await Promise.all([edit(a,details(a,{calendar_notes:'Editor A'})),edit(a,details(a,{calendar_notes:'Editor B'}),admin)]);
-  assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='40001').length,1);const after=await read(a.id);
-  denied(await status(a,'cancelled'),'40001');denied(await status(after,'cancelled',owner,{p_job_id:(await job()).id}),'40001');assert.deepEqual(await read(a.id),after);
+  assert.equal(r.filter(x=>!x.error).length,1);assert.equal(r.filter(x=>x.error?.code==='PT409').length,1);const after=await read(a.id);
+  denied(await status(a,'cancelled'),'PT409');denied(await status(after,'cancelled',owner,{p_job_id:(await job()).id}),'PT409');assert.deepEqual(await read(a.id),after);
  });
  await run('a handoff audit failure rolls back booking, job transition and all appointment history',async()=>{
   const j=await job(),task=await handoff(j),id=randomUUID(),constraint='legacy_handoff_'+marker;

@@ -29,7 +29,7 @@ select ok((select used_at is not null from public.quote_portal_tokens where id='
 select is((select message_sha256 from app_private.quote_change_requests where request_id='f2500000-0000-0000-0000-000000000001'),encode(sha256(convert_to('Please adjust synthetic scope','UTF8')),'hex'),'receipt stores a digest');
 set local role service_role;
 select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000001',repeat('b',64),2,'A changed payload')$$,'22023',null,'same identity cannot carry a different message');
-select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000002',repeat('b',64),2,'Another request')$$,'40001',null,'new request cannot use stale review');
+select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000002',repeat('b',64),2,'Another request')$$,'PT409',null,'new request cannot use stale review');
 select set_config('request.jwt.claims','{"role":"service_role","sub":"f2600000-0000-0000-0000-000000000001"}',true);
 select throws_ok($$select public.request_quote_changes_by_portal('f2500000-0000-0000-0000-000000000003',repeat('b',64),3,'Subject cannot act as portal')$$,'42501',null,'service invocation with end-user subject is refused');
 reset role;

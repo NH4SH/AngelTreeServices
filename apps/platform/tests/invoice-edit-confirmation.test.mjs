@@ -39,7 +39,7 @@ test('confirmed server redirect is still the final action',async()=>{
 test('organization invoice preserves its existing cache paths',async()=>{
  const f=invoiceEditFixture({organization:true});assert.equal((await f.run()).status,'success');assert.ok(f.paths.includes('/admin/organizations/'+other));assert.equal(f.paths.some(p=>p.includes('/customers/')),false);
 });
-for(const code of ['40001','42501','23514'])test(`installed ${code} rejection stays safe and never reports success`,async()=>{
+for(const code of ['PT409','40001','42501','23514'])test(`installed ${code} rejection stays safe and never reports success`,async()=>{
  const f=invoiceEditFixture({receipt:{data:null,error:{code,message:'PRIVATE_TRANSPORT_DETAIL'}}}),r=await f.run();assert.equal(r.status,'error');assert.equal(r.message.includes('PRIVATE'),false);assert.equal(f.calls.length,1);assert.deepEqual(f.paths,[]);
 });
 test('transport exception retains the draft without leaking backend detail',async()=>{

@@ -79,24 +79,24 @@ test('quote change requests: real local authorization, atomicity, concurrency an
   });
   await run('second intentional note advances revision while already change_requested and invalidates old approval',async()=>{
     const q=await newDraft(),k=await token('quote',q.id);ok(await change(args(q,k)));const next=await read(q);ok(await change(args(next,k,{p_message:'Another considered adjustment'})));
-    assert.equal((await read(q)).edit_revision,next.edit_revision+1);denied(await db.rpc('approve_quote_by_portal',{p_token_hash:k.hash,p_expected_revision:next.edit_revision}),'40001');
+    assert.equal((await read(q)).edit_revision,next.edit_revision+1);denied(await db.rpc('approve_quote_by_portal',{p_token_hash:k.hash,p_expected_revision:next.edit_revision}),'PT409');
   });
   await run('stale review and closed or archived proposals create no notes or receipts',async()=>{
     const q=await newDraft(),k=await token('quote',q.id),a=args(q,k);ok(await db.from('quotes').update({customer_message:'New scope'}).eq('id',q.id));
-    const before=await state(q,k,a.p_request_id);denied(await change(a),'40001');assert.deepEqual(await state(q,k,a.p_request_id),before);
+    const before=await state(q,k,a.p_request_id);denied(await change(a),'PT409');assert.deepEqual(await state(q,k,a.p_request_id),before);
     ok(await db.from('quotes').update({status:'declined'}).eq('id',q.id));denied(await change(args(await read(q),k)),'23514');
     const archived=await newDraft(),ka=await token('quote',archived.id);ok(await db.from('quotes').update({archived_at:new Date().toISOString()}).eq('id',archived.id));denied(await change(args(archived,ka)),'42501');assert.equal((await events(archived)).length,0);
   });
   await run('approval versus change request chooses one transaction without reopening or orphan notes',async()=>{
     for(let n=0;n<3;n++){const q=await newDraft(n===0),k=await token('quote',q.id),a=args(q,k),before=(await notes()).length;
       const [changed,approval]=await Promise.all([change(a),db.rpc('approve_quote_by_portal',{p_token_hash:k.hash,p_expected_revision:q.edit_revision})]);
-      const after=await read(q);if(changed.error){denied(changed,'40001');ok(approval);assert.equal(after.status,'approved');assert.equal((await notes()).length,before);assert.equal((await events(q)).length,0);}
-      else{ok(changed);denied(approval,'40001');assert.equal(after.status,'change_requested');assert.equal((await notes()).length,before+1);assert.equal(ok(await db.from('jobs').select('id').eq('source_quote_id',q.id)).length,0);}
+      const after=await read(q);if(changed.error){denied(changed,'PT409');ok(approval);assert.equal(after.status,'approved');assert.equal((await notes()).length,before);assert.equal((await events(q)).length,0);}
+      else{ok(changed);denied(approval,'PT409');assert.equal(after.status,'change_requested');assert.equal((await notes()).length,before+1);assert.equal(ok(await db.from('jobs').select('id').eq('source_quote_id',q.id)).length,0);}
     }
   });
   await run('real editor lock rechecks revision after waiting',async()=>{
     const q=await newDraft(),k=await token('quote',q.id),a=args(q,k),release=await hold(`update public.quotes set customer_message='Editor won' where id='${q.id}'`),pending=change(a).then(r=>r);
-    try{await waitBlocked(release.pid);}finally{await release();}denied(await pending,'40001');assert.equal((await receipt(a.p_request_id)).length,0);assert.equal((await events(q)).length,0);
+    try{await waitBlocked(release.pid);}finally{await release();}denied(await pending,'PT409');assert.equal((await receipt(a.p_request_id)).length,0);assert.equal((await events(q)).length,0);
   });
   await run('revocation and expiry committed during parent lock are rechecked after waiting',async()=>{
     for(const kind of ['revoked','expired']){const q=await newDraft(true),k=await token('quote',q.id),a=args(q,k),release=await hold(`select id from public.jobs where id='${q.job_id}' for update;update public.quote_portal_tokens set ${kind==='revoked'?'revoked_at=clock_timestamp()':"expires_at=clock_timestamp()-interval '1 second'"} where id='${k.id}'`),pending=change(a).then(r=>r);

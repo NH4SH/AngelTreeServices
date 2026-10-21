@@ -151,14 +151,14 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
     assert.equal((await read(inv.id)).total_cents,1000); assert.equal(await auditCount(inv.id),0);
   });
   await run("a missing/stale form version cannot overwrite newer invoice changes", async () => {
-    const inv = await draft(); denied(await save(inv,lines(),owner,{p_expected_updated_at:null}),"40001");
-    check(await save(inv,lines(1500))); denied(await save(inv,lines(2000)),"40001");
+    const inv = await draft(); denied(await save(inv,lines(),owner,{p_expected_updated_at:null}),"PT409");
+    check(await save(inv,lines(1500))); denied(await save(inv,lines(2000)),"PT409");
     assert.equal((await read(inv.id)).total_cents,1500); assert.equal(await auditCount(inv.id),1);
   });
   await run("concurrent saves with one version produce one success and one conflict", async () => {
     const inv = await draft();
     const responses = await Promise.all([save(inv,lines(1500)),save(inv,lines(2000))]);
-    assert.equal(responses.filter(r=>!r.error).length,1); assert.equal(responses.filter(r=>r.error?.code === "40001").length,1);
+    assert.equal(responses.filter(r=>!r.error).length,1); assert.equal(responses.filter(r=>r.error?.code === "PT409").length,1);
     assert.equal(await auditCount(inv.id),1);
   });
   await run("a second save can use newly returned line IDs and version", async () => {
@@ -217,7 +217,7 @@ test("PR03 invoice financial boundary with real local Auth, RLS and concurrent t
     const release = await hold(`select public.record_manual_invoice_payment_request('${randomUUID()}','${inv.id}',400,now(),'cash',null,null) from (select set_config('request.jwt.claim.sub','${owner.id}',true)) claims`);
     let done = false; const saving = save(inv,lines(1500)).then(r=>{done=true;return r;});
     try { await new Promise(r=>setTimeout(r,150)); assert.equal(done,false); } finally { await release(); }
-    denied(await saving,"40001"); assert.equal((await read(inv.id)).balance_due_cents,600);
+    denied(await saving,"PT409"); assert.equal((await read(inv.id)).balance_due_cents,600);
   });
   await run("an invoice save holds the same parent lock as new collection", async () => {
     const inv = await draft(); await deliver(inv); const current = await read(inv.id);

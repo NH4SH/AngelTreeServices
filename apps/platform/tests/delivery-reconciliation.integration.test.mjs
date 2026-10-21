@@ -44,7 +44,7 @@ test('PR14 frozen deliveries, provider evidence and repair with real disposable 
  });
  await run('source version and source/recipient changes before dispatch fail closed',async()=>{
   const q=await quote(),context=qctx(q),r=check(await prepare(crypto.randomUUID(),payload(),context));check(await db.from('quotes').update({customer_message:'Edited after prepare'}).eq('id',q.id));assert.equal(check(await claim(r.id)),null);assert.equal((await read(r.id)).repair_state,'source_changed');
-  denied(await prepare(crypto.randomUUID(),payload(),context),'40001');
+  denied(await prepare(crypto.randomUUID(),payload(),context),'PT409');
  });
  await run('acceptance is durable even when mandatory source/history audit fails; repair sends nothing',async()=>{
   const q=await quote(),r=check(await prepare(crypto.randomUUID(),payload(),qctx(q))),a=check(await claim(r.id)),constraint='pr14_audit_'+marker;

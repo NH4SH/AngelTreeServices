@@ -401,6 +401,10 @@
     {
       "name": "20261021060037_quote_request_status.sql",
       "sha256": "b6f2491ce96ba44a8902bea1587978be5e2c1415594624a37a4ec31dbc0d1420"
+    },
+    {
+      "name": "20261021215535_business_conflict_responses.sql",
+      "sha256": "1cfe71caaf7ee6776a90b14b38111a913492ea411c8ee662b114af5ecc1eece8"
     }
   ]
 }

@@ -59,7 +59,7 @@ export async function saveInvoiceEdit(input: EditInput): Promise<EditResult> {
     }, 5000);
     if (!record(response)) return { ok: false, message: uncertain };
     if (record(response.error)) {
-      const message = response.error.code === "40001" ? "This invoice changed since you opened it. Reload before saving."
+      const message = (response.error.code === "PT409" || response.error.code === "40001") ? "This invoice changed since you opened it. Reload before saving."
         : response.error.code === "42501" ? "Only active office staff can edit invoices."
           : response.error.code === "23514" ? "This invoice cannot be edited with its current payment status or line items. Reload and review it before saving."
             : uncertain;

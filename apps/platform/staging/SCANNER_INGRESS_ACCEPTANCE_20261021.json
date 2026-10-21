@@ -1,0 +1,291 @@
+{
+  "date": "2026-10-21",
+  "status": "Staging-only external scanner route verified; production activation pending",
+  "authorization": "Owner explicitly approved address reservation, TCP 443 forwarding and Netlify DNS publication, verification and no production changes.",
+  "router": {
+    "model": "G3100",
+    "staticReservationSaved": true,
+    "forwarding": {
+      "wanPort": 443,
+      "protocol": "TCP",
+      "homeScannerPort": 9443,
+      "enabled": true
+    },
+    "existingRulesPreserved": true,
+    "ipv6PinholesEmpty": true,
+    "dmzOrBroadFirewallChangesMade": false
+  },
+  "dns": {
+    "scannerRecordId": "6ad926dc5276d5e0b548360f",
+    "hostname": "scanner-staging.angeltreeservices.org",
+    "type": "A",
+    "ttl": 300,
+    "priorRecordCount": 13,
+    "allPriorRecordsUnchanged": true
+  },
+  "credential": {
+    "separateStagingTokenActive": true,
+    "oldLocalTokenDenied": true,
+    "originalLocalCredentialsPreserved": true,
+    "stagingOnlyNetlifySiteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "serverVariables": [
+      "DOCUMENT_SCANNER_URL",
+      "DOCUMENT_SCANNER_TOKEN"
+    ],
+    "secretControllerEnabled": true,
+    "context": "production context of the dedicated staging site; not the production CRM site"
+  },
+  "external": {
+    "checkedAt": "2026-10-21T21:09:36.568Z",
+    "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "deployId": "6ad929e85562bdd5ce151f6a",
+    "origin": "https://angel-tree-admin-staging.netlify.app",
+    "anonymousDenied": true,
+    "getDoesNotRunSyntheticChecks": true,
+    "immutableAliasDenied": true,
+    "httpStatus": 200,
+    "scope": "Actual Netlify-to-home-scanner synthetic verification; no CRM or production activation",
+    "region": "us-east-2",
+    "productionChanged": false,
+    "syntheticOnly": true,
+    "results": [
+      {
+        "name": "public DNS has one approved IPv4 target and no IPv6 record",
+        "pass": true,
+        "ipv4RecordMatches": true,
+        "ipv6RecordAbsent": true
+      },
+      {
+        "name": "public TLS chain and hostname validate without a custom CA",
+        "pass": true,
+        "authorized": true,
+        "issuer": "YE1",
+        "expiresAt": "2027-01-19T20:01:43.000Z",
+        "protocol": "TLSv1.3"
+      },
+      {
+        "name": "unauthenticated scan denied",
+        "pass": true
+      },
+      {
+        "name": "incorrect token denied",
+        "pass": true
+      },
+      {
+        "name": "real application scanner client confirms clean content and digest",
+        "pass": true
+      },
+      {
+        "name": "real application scanner client quarantines EICAR",
+        "pass": true
+      },
+      {
+        "name": "invalid method, MIME and path denied",
+        "pass": true
+      },
+      {
+        "name": "mismatched Host with valid SNI denied",
+        "pass": true,
+        "status": 421
+      },
+      {
+        "name": "two simultaneous 25 MiB scans complete within the existing application deadline",
+        "pass": true,
+        "pair": [
+          {
+            "status": "clean",
+            "milliseconds": 3469
+          },
+          {
+            "status": "clean",
+            "milliseconds": 10357
+          }
+        ]
+      },
+      {
+        "name": "oversize streaming request denied",
+        "pass": true
+      },
+      {
+        "name": "scanner bypass and administration ports are unreachable from this external runtime",
+        "pass": true,
+        "ports": [
+          {
+            "port": 22,
+            "reachable": false
+          },
+          {
+            "port": 80,
+            "reachable": false
+          },
+          {
+            "port": 2019,
+            "reachable": false
+          },
+          {
+            "port": 3310,
+            "reachable": false
+          },
+          {
+            "port": 3311,
+            "reachable": false
+          },
+          {
+            "port": 8443,
+            "reachable": false
+          },
+          {
+            "port": 9443,
+            "reachable": false
+          }
+        ]
+      }
+    ]
+  },
+  "perimeter": {
+    "checkedAt": "2026-10-21T21:09:44.955Z",
+    "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "deployId": "6ad929e85562bdd5ce151f6a",
+    "origin": "https://angel-tree-admin-staging.netlify.app",
+    "scope": "Actual hosted data-free perimeter probe; no CRM or database acceptance claim",
+    "productionChanged": false,
+    "crmApplicationDeployed": false,
+    "results": [
+      {
+        "name": "anonymous static, function, portal and framework routes deny all tested methods",
+        "pass": true,
+        "requests": 56
+      },
+      {
+        "name": "wrong password and cross-origin login deny access",
+        "pass": true
+      },
+      {
+        "name": "existing private staging code works and issues a secure scoped cookie",
+        "pass": true
+      },
+      {
+        "name": "authorized static bytes remain exact and private after CDN warming",
+        "pass": true
+      },
+      {
+        "name": "real Edge to Function forwarding strips gate cookie and preserves other auth and binary body",
+        "pass": true,
+        "downstreamGateCookiePresent": false,
+        "siteBound": true,
+        "environmentBound": true,
+        "gateRuntimeKeysPresent": true
+      },
+      {
+        "name": "hosted browser and server keys bind to only the empty staging project through read-only requests",
+        "pass": true,
+        "readOnly": true,
+        "stagingProjectBound": true,
+        "browserKeyAccepted": true,
+        "serverAdminKeyAccepted": true,
+        "databaseWrites": 0,
+        "authWrites": 0
+      },
+      {
+        "name": "unrouted default function address stays unavailable behind the gate",
+        "pass": true
+      },
+      {
+        "name": "malformed, duplicate and bypass-marker requests never reach probe content",
+        "pass": true
+      },
+      {
+        "name": "immutable deploy alias denies even a manually supplied valid canonical cookie",
+        "pass": true
+      },
+      {
+        "name": "same-origin logout clears gate cookie and an independent anonymous client stays denied",
+        "pass": true
+      }
+    ]
+  },
+  "postExternalPrivacyAndResources": {
+    "scope": "After real external synthetic acceptance",
+    "productionChanged": false,
+    "results": [
+      {
+        "service": "bridge",
+        "peakBytes": 235999232,
+        "limitBytes": 536870912,
+        "swapLimitBytes": 0,
+        "oomKilled": false,
+        "requestBodyAndTokenAbsentFromCapturedLogs": true
+      },
+      {
+        "service": "proxy",
+        "peakBytes": 15187968,
+        "limitBytes": 134217728,
+        "swapLimitBytes": 0,
+        "oomKilled": false,
+        "requestBodyAndTokenAbsentFromCapturedLogs": true
+      },
+      {
+        "service": "engine",
+        "peakBytes": 1233551360,
+        "limitBytes": 4294967296,
+        "swapLimitBytes": 0,
+        "oomKilled": false,
+        "requestBodyAndTokenAbsentFromCapturedLogs": true
+      },
+      {
+        "service": "signature-updater",
+        "peakBytes": 18567168,
+        "limitBytes": 2147483648,
+        "swapLimitBytes": 0,
+        "oomKilled": false,
+        "requestBodyAndTokenAbsentFromCapturedLogs": true
+      },
+      {
+        "service": "https",
+        "peakBytes": 16117760,
+        "limitBytes": 268435456,
+        "swapLimitBytes": 0,
+        "oomKilled": false,
+        "requestBodyAndTokenAbsentFromCapturedLogs": true
+      }
+    ]
+  },
+  "production": {
+    "siteId": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+    "publishedDeployId": "6ad6ecfc6c03786554247e4a",
+    "unchanged": true,
+    "dashboardRemakePublished": false
+  },
+  "applicationSourceChanged": false,
+  "migrationsApplied": false,
+  "databaseOrStorageWrites": false,
+  "realCustomerFilesScanned": false,
+  "fullCRMDeployedToStaging": false,
+  "remaining": [
+    "Actual Next.js CRM staging upload/role/financial/customer workflow verification",
+    "More external capacity headroom under concurrent scans and update/reload; observed maximum 10.357 seconds against unchanged 12-second timeout",
+    "Renewal and operational monitoring/response evidence; automatic renewal configured but future renewal not yet observed",
+    "Home Mac physical power/lid/network availability and FileVault operator recovery; retain existing host paging review",
+    "WAN DHCP address change detection/recovery; only one static A record was authorized",
+    "Coordinated paired production backup, migration and application cutover review before production changes"
+  ],
+  "runtimeCorrection": {
+    "upstream": "https://github.com/opencontainers/cgroups/issues/74",
+    "scope": "Only rootless Docker scopes in the dedicated Ubuntu scanner guest",
+    "policy": "~/.config/systemd/user/docker-.scope.d/50-ats-no-swap.conf: MemorySwapMax=0",
+    "verifiedAcross": [
+      "two systemd daemon reloads",
+      "VM restart",
+      "HTTPS container restart",
+      "real external scans"
+    ]
+  },
+  "artifactPrivacy": {
+    "scannerTokenAbsentFromSourcesStaticFilesAndCheckedBundles": true,
+    "filesAndZipEntriesChecked": 17
+  },
+  "sourceSHA256": {
+    "scannerClient": "ce55394e7a277c98b94f2d34e1e656f63f62fbc5185378361e162a4045ce8787",
+    "hostedVerifier": "7127875368f20b72cb24f3ba9bbd8178d66aeb93df06e0b0b51ada0a07ac15d5"
+  }
+}

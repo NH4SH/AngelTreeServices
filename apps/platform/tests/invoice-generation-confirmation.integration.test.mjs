@@ -45,7 +45,7 @@ test('invoice generation confirmations against installed commands and staff-scop
    {name:'complete-only never creates billing',mode:'complete'},
    {name:'future visits require the existing confirmation',mode:'completion',future:true,code:'23514'},
    {name:'confirmed future visits close atomically with the invoice',mode:'completion',future:true,confirm:true},
-   {name:'stale completion review cannot close work or invoice it',mode:'completion',stale:true,code:'40001'},
+   {name:'stale completion review cannot close work or invoice it',mode:'completion',stale:true,code:'PT409'},
    {name:'inactive account cannot generate despite stale action roles',inactive:true,code:'42501'},
    {name:'revoked role cannot recover a generated invoice',revoked:true,code:'42501'},
    {name:'anonymous cannot generate',role:'anon',code:'42501'},

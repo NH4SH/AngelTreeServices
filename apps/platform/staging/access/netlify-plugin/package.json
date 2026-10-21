@@ -1,0 +1,6 @@
+{
+  "name": "ats-staging-access-order",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.cjs"
+}

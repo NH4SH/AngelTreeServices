@@ -1,3 +1,197 @@
+## Mobile speed — release approved, October 20, 2026
+
+Owner approved commit, push and publication of the reviewed cache-preserving
+stylesheet patch. Reviewed fingerprints matched before this release record was
+added. Latest main 9d2d3f1 is included, preserving its newer CRM-only commits.
+This release changes only the six reviewed public build/test/checklist files.
+
+Run all 167 tests and the 17-page build/validation on this integrated checkout.
+Commit with [skip ci] [skip netlify] to prevent shared-repository automatic builds,
+then request a Git build only for public project
+86c48a95-ead4-4b15-8e57-fa827558b2f0. Confirm the published commit matches the
+approved release. Keep analytics, consent, CRM source and all project settings
+unchanged; do not submit leads or trigger calls/emails. CRM published baseline is
+6ad6ecfc6c03786554247e4a. Production CSS/header, content/SEO, estimate/privacy and
+PageSpeed smoke evidence belongs in outputs/mobile-speed/. Previous release
+holds below describe earlier local stages and are superseded by this approval.
+
+## Mobile speed — final cache-preserving release review, October 20, 2026
+
+**Verdict: ready for release approval.** No new regression or release-blocking
+issue found in the revised patch. This review changes documentation only; no
+runtime edit, commit, push, merge or deployment was performed.
+
+- Re-ran all 167 tests and the 17-page build/validation successfully. Also applied
+  the complete patch to clean archived copies of reviewed HEAD 3b43338 and freshly
+  fetched main 87f007f: all tests/build/validation pass in both. The three newer
+  commits affect CRM only; the website build on latest main is byte-identical.
+  The working checkout remains at 3b43338 and CRM code/settings are untouched.
+  Preserve latest main when a release is separately approved.
+- Independent comparison confirms all four new CSS assets are byte-identical to
+  their original files and their names match SHA-256 content hashes. Only 16
+  existing interior heads change stylesheet hrefs; the other 236 existing public
+  files remain identical. Reversing only those hrefs reconstructs every original
+  HTML document exactly, preserving metadata, schema, content, links, style order,
+  homepage and estimate behavior. All styles remain available without JavaScript.
+- Guards reject modified CSS under its old immutable filename and a regression
+  to unversioned interior CSS. No dependencies, production cache configuration,
+  analytics, consent runtime/settings or CRM were changed. The earlier measured
+  cache regression is resolved; runtime source hashes match the completed cold/
+  warm and mobile/desktop evidence, so those results remain applicable. No new
+  public PageSpeed score or field-data claim is made.
+- Fresh Service Areas comparison at 320px also matches the baseline in geometry,
+  fonts and colors, with no horizontal overflow and all four stylesheet assets.
+  Existing minor follow-up: the long heading breaks “Fredericksburg” onto an
+  extra line at this narrow width. This occurs in both builds (site-pages.css
+  shared overflow-wrap and mobile h1 sizing); it is not caused by this patch.
+  Design is intentionally preserved. Screenshot: cache-review-existing-heading-320.jpg.
+- Current evidence: outputs/mobile-speed/cache-final-review.json, clean and
+  checkout test logs, cache-final-review-latest-main.json/test log, and
+  mobile-speed-cache-reviewed.patch. The only review-stage tracked edit is this
+  checklist entry; runtime source fingerprints still match revision-result.json.
+- Pending approved-release checks: verify new CSS returns 200 with immutable
+  headers, run non-submitting desktop/mobile/estimate/privacy production smoke
+  checks, and compare fresh public PageSpeed results. Physical-device, spoken
+  screen-reader, field performance and production autocomplete integration remain
+  unverified by the local work. No production leads, calls or emails were sent.
+
+## Mobile speed — cache-preserving revision, October 20, 2026
+
+The owner approved revising the caching regression and rerunning cold/warm
+checks. The earlier HOLD below describes the rejected inline implementation and
+is superseded by this revision. The known P2 caching regression is resolved;
+ready for release review, with no commit, push or deploy authorized or performed.
+Current base is main 3b43338; newer CRM changes remain preserved verbatim.
+
+- Removed blanket inline styles. Interior pages now use external, content-hashed
+  copies of the same font, page, optional coverage and consent CSS at their exact
+  original positions. Existing /assets/versioned/* immutable caching applies;
+  Netlify configuration is unchanged. Consent's CSS delivery URL changes only
+  on interior pages; its rules, UI, runtime, decisions and settings do not change.
+  Homepage and estimate HTML retain their original stylesheet links and bytes.
+- Every CSS change generates a new content hash automatically. Shared URLs are
+  identical between interior pages, without JavaScript loaders, async style swaps
+  or duplicated inline CSS. Original CSS files remain available. No font, image,
+  visual rule, content, SEO or estimate-runtime source changes were made.
+- Three paired cold Landscaping runs at 390px: median FCP/LCP 592 -> 600ms,
+  full load 1162.4 -> 1157.6ms, CLS unchanged at 0.04964. Cold first paint is
+  essentially unchanged amid lab variance; the previous inline cold gain is not
+  claimed for this revision. Cold stylesheet body bytes/request count remain the
+  same. Do not claim a new Google score or general first-visit speed improvement.
+- Three paired warm Services -> Landscaping runs: median FCP/LCP 368 -> 216ms
+  (about 41% lower), load 503.4 -> 348.7ms, CLS 0 for both. Original CSS requires
+  two 304 network revalidations; the revised three stylesheets have transferSize
+  zero and are reused from browser cache. Encoded HTML is 4,888 -> 4,908 bytes
+  in the identical QA wrapper/probe, instead of the rejected inline version's
+  12,959 bytes. These are lab results, not field data: 1.6Mbps shared body
+  throughput, 150ms/request, CPU unthrottled. Cold mode uses no-store; warm mode
+  mirrors observed public cache policies, supports ETag/304 and caches exact
+  mirrored fonts. An existing production versioned CSS asset also returns the
+  configured one-year immutable Cache-Control header; new files need post-release
+  verification after an approved deployment.
+- All 158 Node tests plus 9 cache/cascade/path/hash tests pass (167 total), and
+  all 17 pages build/validate. The artifact contains 256 files: 16 existing
+  interior heads have only stylesheet href changes, 236 original files remain
+  identical, and 4 shared hashed CSS copies are added. Replacing the new links
+  with original links reconstructs every previous document byte for byte;
+  metadata, schema, page bodies, style order and effective CSS are preserved.
+- Layout/font/color comparisons match at 320/390/768/1280px without horizontal
+  overflow. Fresh local checks pass for menu/escape, privacy open/reject/close/
+  returned focus, Landscaping prefill/guidance, Unicode/whitespace draft recovery
+  through service navigation, and Clear draft. No production leads, calls or
+  emails were sent. Local QA alone disables collection in memory and blocks
+  outbound requests. Source analytics, consent and CRM settings remain unchanged.
+- Review evidence: outputs/mobile-speed/revision-tests.txt, revision-timing.json,
+  revision-artifacts.json, revision-visual.json, revision-browser.json,
+  existing-versioned-cache-policy.json, revision-result.json and
+  mobile-speed-cache-revised.patch. Preview: http://127.0.0.1:54561/services/landscaping/.
+- Remaining release checks: separate owner approval, immutable headers/200s for
+  new CSS on the published deployment, non-submitting desktop/mobile smoke checks
+  and a fresh public PageSpeed comparison. Physical-device, spoken-screen-reader,
+  field performance and production address-autocomplete integration are not
+  established by these local tests. Roll back by restoring the prior public
+  deploy, or reverting only this public stylesheet-delivery patch and rebuilding;
+  do not reset newer CRM work. Never overwrite existing content-hashed assets.
+
+## Mobile speed — final regression review, October 20, 2026
+
+**Release verdict: HOLD.** The local optimization is not ready to publish. The
+review retains the complete uncommitted patch for revision; no commit, push or
+production deployment was performed. Published baseline remains 377c935. Current
+checkout includes newer main 3b43338; its two CRM-only commits are preserved, with
+no local CRM edits or settings changes.
+
+- Confirmed P2 regression at scripts/public_styles.py:51: embedding all shared
+  interior CSS removes cross-page cache reuse and adds approximately 8KB of gzip
+  HTML to every new interior document. Three paired warm Services -> Landscaping
+  runs measured first paint 364/376/380ms before and 412/408/408ms after (median
+  376 -> 408ms, about 9% slower). Warm HTML transfer was 4,888 -> 12,959 encoded
+  bytes; median full load was 510.2 -> 542.6ms. These are controlled local lab
+  results, not field measurements or proof of universal regression.
+- Review harness mirrors the observed public cache policies: /assets/* one week,
+  root CSS/HTML max-age=0,must-revalidate, ETag/304 support, and locally mirrored
+  fonts cached. At 390px, 1.6Mbps aggregate response throughput and 150ms/request,
+  with no CPU throttle, the original page reuses fonts and font CSS and receives
+  304 responses for site and consent CSS. The larger inline HTML delays consent
+  style discovery; fewer requests alone does not establish a faster visit.
+- Prior three-run cold median improvement (592 -> 508ms) remains recorded but is
+  insufficient to justify this repeat-navigation cost. Do not claim an overall
+  or warm-cache speedup. Revise delivery to retain reusable shared styles, then
+  recheck both first and subsequent page visits before requesting release.
+- Re-ran 158 Node tests plus 8 Python tests: all 166 pass, zero failures. Build
+  and validation pass for all 17 pages. Fresh artifact comparison confirms 16
+  interior HTML files differ among 252 files; homepage, assets, sitemap, robots
+  and all page bodies are unchanged. Metadata/schema and effective CSS/cascade
+  match. The previous 320/390/768/1280 visual and draft-recovery evidence still
+  applies because runtime source hashes are unchanged. A fresh mobile estimate
+  link check selects Landscaping and its guidance without submitting.
+- Analytics, consent and CRM source/settings remain unchanged. No leads, calls
+  or emails were sent. Address-autocomplete production integration, physical
+  devices and spoken screen readers remain outside this local verification.
+- Evidence is in the chat outputs/mobile-speed/: review-tests.txt,
+  warm-cache-review.json, artifact-verification.json, release-review.json and
+  mobile-speed-reviewed.patch. The current live website is unchanged.
+
+## Mobile speed — local stylesheet-delivery patch, October 20, 2026
+
+Owner approved measurements, the largest confirmed bottleneck fix and local
+tests only. Base is published footer commit 377c935. No commit, push or deploy.
+
+- Fresh PageSpeed mobile baselines: homepage 96, FCP 1.6s/LCP 2.0s; Landscaping
+  96, FCP 1.7s/LCP 2.1s. Both report TBT 0ms, CLS 0, accessibility/best-practices/
+  SEO 100. These are lab results, not field data; PageSpeed reports no CrUX data.
+  The direct service-prefilled #contact URL returns NO_LCP and no usable
+  performance score. Its functional path passes locally; do not report a score.
+- Largest estimated opportunity was blocking CSS: 860ms on Landscaping, 540ms
+  on the homepage. The final patch embeds the smaller interior font/page/coverage
+  styles at their original positions, rebasing relative assets. Consent remains
+  its original external stylesheet. No CSS rule, font, photo or copy changes.
+  Homepage CSS and estimate HTML remain byte-identical, preserving their caching.
+- Paired cold local runs (three per version, 390px, 1.6Mbps shared body throughput,
+  150ms per-request latency, CPU unthrottled): Landscaping median first paint/LCP
+  592ms -> 508ms (about 14%); median full load 1142ms -> 1151ms (no overall load
+  improvement claimed). CLS stays 0.04964. Blocking style requests fall 3 -> 1.
+  These measurements are not comparable to Google's throttled scores.
+- Tradeoff: interior documents contain about 8KB more gzip HTML per navigation;
+  those style bytes can no longer be reused separately on repeat navigation.
+  Cold style payload is moved into HTML, not eliminated. No new public score or
+  general warm-cache speed improvement is claimed. Full-homepage CSS embedding
+  and simple file bundling were rejected; neither is in the final patch.
+- All 158 existing tests plus 8 new delivery/cascade/path tests pass, and all 17
+  pages build/validate. Only 16 interior HTML artifacts differ among 252 files;
+  the other 236, including homepage and every JS/CSS/image asset, are identical.
+  Metadata/schema and body markup match; restoring style links reproduces each
+  original head exactly. Computed layout/colors/fonts match at 320/390/768/1280px.
+- Mobile menu/escape, privacy open/close/focus, Landscaping estimate selection,
+  guidance, exact Unicode/whitespace draft recovery and Clear draft pass. Local
+  QA blocks external requests and lead sends, mirrors original public fonts and
+  disables collection only in memory. No production leads, calls or email sends.
+  Analytics, consent, CRM, Netlify settings and intake/draft runtime are unchanged.
+- Evidence: October 16 chat outputs/mobile-speed/ (baseline report URLs, raw local
+  runs, artifact/visual comparison, full patch and test output). Preview is
+  http://127.0.0.1:54561/services/landscaping/ (server session 74115). Physical
+  devices/spoken screen readers remain untested; release requires separate approval.
+
 ## Homepage footer — release approved, October 20, 2026
 
 Owner approved commit, push and publication of the reviewed homepage footer.

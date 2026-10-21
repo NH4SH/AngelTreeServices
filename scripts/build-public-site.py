@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from public_styles import cache_public_styles
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "dist-public"
@@ -191,6 +193,7 @@ def build() -> None:
     generate_pages()
     apply_emergency_availability_copy()
     apply_public_consent_controls()
+    cache_public_styles(OUTPUT)
     # Configure the final homepage artifact so future page-generation changes
     # cannot overwrite the injected progressive-enhancement script.
     configure_public_address_autocomplete()

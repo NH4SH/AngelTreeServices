@@ -13,6 +13,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlparse
 from xml.etree import ElementTree
+from public_styles import stylesheet_asset
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -611,15 +612,28 @@ class Validator:
 
             if route != "/":
                 script_sources = {item.get("src", "").split("?", 1)[0] for item in page.scripts}
-                stylesheet_sources = {
-                    item.get("href", "").split("?", 1)[0]
-                    for item in page.links
-                    if "stylesheet" in item.get("rel", "").lower().split()
-                }
+                stylesheet_sources = [item.get("href", "") for item in page.links
+                                      if "stylesheet" in item.get("rel", "").lower().split()]
+                originals = ["/assets/css2.css", "/site-pages.css"]
+                if route == "/service-areas/":
+                    originals.append("/ats-service-areas.css")
+                originals.append("/ats-consent.css")
+                expected = []
+                for original in originals:
+                    href, css = stylesheet_asset(self.site_dir, original)
+                    expected.append(href)
+                    asset = self.site_dir / href.lstrip("/")
+                    if not asset.is_file() or asset.read_text(encoding="utf-8") != css:
+                        self.error(f"{route}: cached stylesheet is missing or stale: {href}")
+                    for match in CSS_URL_PATTERN.finditer(css):
+                        reference = match.group(2).strip()
+                        target = self.resolve_local_reference(href, reference)
+                        if target is not None and not target.is_file():
+                            self.error(f"{route}: broken cached CSS asset {reference!r}")
+                if stylesheet_sources != expected or 'data-ats-stylesheet=' in self.page_sources[route]:
+                    self.error(f"{route}: preserve external shared stylesheet caching and cascade order")
                 if "/site-pages.js" not in script_sources:
                     self.error(f"{route}: site-pages.js is not loaded")
-                if "/site-pages.css" not in stylesheet_sources:
-                    self.error(f"{route}: site-pages.css is not loaded")
                 if not any(item.get("href") == "#main-content" for item in page.links):
                     self.error(f"{route}: skip link to #main-content is missing")
                 if not any("ats-estimate-link" in item.get("class", "").split() for item in page.links):
@@ -1467,7 +1481,8 @@ class Validator:
             footer = source.partition(footer_marker)[2].partition("</footer>")[0]
             if 'data-ats-privacy aria-controls="ats-consent"' not in footer:
                 self.error(f"{route}: Privacy settings control must be in the public footer")
-            if 'href="/ats-consent.css?v=consent3"' not in source:
+            consent_href = "/ats-consent.css?v=consent3" if route == "/" else stylesheet_asset(self.site_dir, "/ats-consent.css")[0]
+            if f'href="{consent_href}"' not in source:
                 self.error(f"{route}: public consent styles missing")
         legacy_directory = self.site_dir / "angeltreeservices_backup_files"
         delivered_legacy_assets = (

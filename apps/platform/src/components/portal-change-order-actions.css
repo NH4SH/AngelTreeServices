@@ -1,0 +1,23 @@
+.customer-change-order-actions :is(input, textarea, button, a),
+.customer-change-order-outcome a { font-size: 1rem; }
+.customer-change-order-actions h3 { margin: 0; font-size: 1rem; line-height: 1.5; }
+.customer-change-order-actions .crm-form { gap: 10px; }
+.customer-change-order-actions .customer-change-form { margin-top: 24px; padding-top: 24px; gap: 10px; }
+.customer-change-order-actions .customer-response-help { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.6; }
+.customer-change-order-actions :is(input, textarea) { width: 100%; min-width: 0; caret-color: var(--color-forest); }
+.customer-change-order-actions button { min-height: 48px; height: auto; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; line-height: 1.4; white-space: normal; }
+.customer-change-order-actions button svg { flex-shrink: 0; }
+.customer-change-order-actions .customer-response-buttons { grid-template-columns: 1fr; }
+.customer-change-order-actions .customer-decline-button { border-radius: 8px; font-weight: 650; }
+.customer-change-order-actions .customer-decline-button:hover { background: #fff3f3; }
+.customer-change-order-actions button:disabled { cursor: wait; opacity: .65; }
+.customer-change-order-actions :is(a, button, input, textarea):focus-visible,
+.customer-change-order-outcome a:focus-visible,
+.customer-change-order-actions .customer-response-feedback:focus,
+.customer-change-order-outcome:focus { outline: 3px solid var(--color-focus-ring); outline-offset: 4px; }
+.customer-change-order-actions .customer-response-progress { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.6; }
+.customer-change-order-actions .customer-response-progress:empty { display: none; }
+.customer-response-feedback { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.customer-response-feedback p, .customer-change-order-outcome p { font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; }
+.customer-response-feedback a, .customer-change-order-outcome a { display: inline-flex; align-items: center; min-height: 44px; padding-block: 8px; color: var(--color-forest); font-weight: 650; text-decoration: underline; text-underline-offset: 4px; }
+.customer-change-order-outcome > svg { flex-shrink: 0; }

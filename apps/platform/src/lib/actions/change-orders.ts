@@ -286,7 +286,7 @@ export async function approveChangeOrderByPortal(_state: ChangeOrderActionState,
   await deliverCustomerSourceEvent({ id: data.source_event_id });
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(data.change_order_id, data.job_id, null);
-  return success(data.replayed ? "Your saved approval is confirmed. No additional scope was added again." : "Additional work approved. Angel Tree Services will confirm any schedule impact.");
+  return { ...success(data.replayed ? "Your saved approval is confirmed. No additional scope was added again." : "Your approval is saved for this additional work."), responseOutcome: "approved" };
 }
 
 export async function respondToChangeOrderByPortal(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
@@ -305,12 +305,15 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   const {data,error}=await supabase.rpc("respond_to_change_order_by_portal",{
     p_request_id:requestId,p_token_hash:tokenHash,p_expected_updated_at:expectedUpdatedAt,p_intent:intent,p_message:message,
   } satisfies RpcCommandArgs<"respond_to_change_order_by_portal">);
-  if(error)return {...failure(safeStaffMessage(error.message,"The response could not be confirmed. Review its saved status before trying again.")),responseRejected:["22023","PT409","40001","42501","23514"].includes(error.code??"")};
+  if (error) {
+    const rejected = ["22023", "PT409", "40001", "42501", "23514"].includes(error.code ?? "");
+    return { ...failure(rejected ? safeStaffMessage(error.message) : "The response could not be confirmed. Check its saved status or retry the same response."), responseRejected: rejected };
+  }
   if(!data||!isUuid(data.source_event_id)||data.change_order_id!==lookup.changeOrder.id||typeof data.replayed!=="boolean")return failure("The response could not be confirmed. Review its saved status before trying again.");
   await deliverCustomerSourceEvent({id:data.source_event_id});
   revalidatePath(`/portal/change-order/${rawToken}`);
   revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
-  return success(intent === "decline" ? "The additional work was declined. Angel Tree Services will follow up if needed." : "Your requested changes were sent to Angel Tree Services.");
+  return { ...success(intent === "decline" ? "Your decision to decline this additional work is saved." : "Your requested changes are saved for our office to review. This does not authorize the additional work."), responseOutcome: intent === "decline" ? "declined" : "change_requested" };
 }
 
 export async function attachApprovedChangeOrdersToInvoice(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

@@ -145,3 +145,10 @@ The findings above remain the historical review, not a list of wholly open defec
 Customer entry and lost-link recovery are now verified locally and with rollback-only synthetic staging inputs, pending push/release; see `CUSTOMER_ENTRY_RECOVERY.md`. The existing sign-in gates and document capability rules are preserved. This adds office recovery guidance, not an account hub or automatic replacement-link email sender.
 
 The next customer follow-up is response acceptance, starting with additional-work request/decline outcomes and accessibility. Contractual consistency still needs the owner's authoritative business wording. This does not replace the original roadmap or change the historical review score.
+
+
+## Response acceptance follow-through — October 22, 2026
+
+Customer entry recovery is now pushed to main through `d3d30da` (includes `72b2c21` and preserves the concurrent website work). Additional-work response outcomes and accessibility are verified locally and against rollback-only synthetic staging commands, pending push/release; see `CHANGE_ORDER_RESPONSE_OUTCOMES.md`. Approval/change/decline confirmations, stale and uncertain recovery, immediate saving controls and keyboard focus preserve the existing capability, transaction, receipt and email deduplication guarantees.
+
+Continue the original customer follow-up with proposal response outcomes/accessibility, then the outstanding contractual wording and real-device/screen-reader/mailbox acceptance. Historical findings and scores above remain historical; no competing roadmap or production release is introduced.

@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-22",
+  "status": "verified_local_and_staging_synthetic",
+  "previousBatchPushed": "72b2c21",
+  "mainPushMerge": "d3d30da",
+  "preservedConcurrentMain": "f99530e",
+  "branch": "codex/change-order-customer-responses",
+  "includesOriginMain": "d3d30da",
+  "newBatchPushed": false,
+  "schemaChanges": false,
+  "migrationsRequired": false,
+  "checks": {
+    "crmPassed": 2342,
+    "crmFailed": 0,
+    "crmSkipped": 0,
+    "newOutcomeUnitChecks": 14,
+    "finalTypecheckPassed": true,
+    "finalIsolatedBuildPassed": true,
+    "source": {
+      "fileCount": 626,
+      "sha256": "c85d17bbde064933c6d519ec567ac07822ef41448549f296d24c37dcfc465dd5",
+      "previewMatches": true,
+      "buildMatches": true
+    },
+    "mechanicalDesignFindings": 0
+  },
+  "databaseVerification": {
+    "local": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 9,
+      "renderedCases": 9,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "staging": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 9,
+      "renderedCases": 9,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "productionChanged": false,
+    "sqlSha256": "8455e0dc232bc6b607181ae552a91bcdc2f67417a096f2dbfaec3daf084817cc"
+  },
+  "actualLocalBrowser": {
+    "actualLocalBrowser": true,
+    "syntheticRecords": 9,
+    "allDecisionRecordsHaveOneAuditAndSourceEvent": true,
+    "onlyApprovedRecordsAddedScope": true,
+    "onlyChangeRequestsAddedNotes": true,
+    "lostResponseRetryPreservedIdentityAndPayload": true,
+    "temporaryFailureRetryPreservedIdentityAndPayload": true,
+    "viewports": [
+      320,
+      390,
+      768,
+      1280
+    ],
+    "horizontalOverflow": false,
+    "visibleControlMinimumHeightPx": 44.39,
+    "bodyAndControlFontPx": 16,
+    "keyboardApprovalAndChangeRequestPassed": true,
+    "outcomeAndErrorFocusPassed": true,
+    "freshClosedArrivalDoesNotStealFocus": true,
+    "pendingButtonsDisabled": true,
+    "browserErrors": 0,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "stagingAppDeployed": false,
+  "stagingAcceptanceMethod": "Installed service-only RPCs and exact retries in rollback-only synthetic transaction; actual action mapping and React renderer with controlled receipt adapters",
+  "hostingBefore": [
+    {
+      "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+      "deployId": "6ad95318d4baa154ecf3456a",
+      "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+      "stopBuilds": false,
+      "repoLinked": true
+    },
+    {
+      "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "deployId": "6ad93840ccebc7a5679b1b28",
+      "commit": null,
+      "repoLinked": false
+    }
+  ],
+  "hostingAfter": [
+    {
+      "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+      "deployId": "6ad95318d4baa154ecf3456a",
+      "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+      "stopBuilds": false,
+      "repoLinked": true
+    },
+    {
+      "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "deployId": "6ad93840ccebc7a5679b1b28",
+      "commit": null,
+      "repoLinked": false
+    }
+  ],
+  "productionChanged": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/change-order-customer-responses",
+  "advisors": {
+    "unchanged": true,
+    "groups": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 33,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 79,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ]
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true,
+    "testProxyStopped": true
+  }
+}

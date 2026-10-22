@@ -1,5 +1,6 @@
 export type ChangeOrderActionState = {
   responseRejected?: boolean;
+  responseOutcome?: "approved" | "change_requested" | "declined";
   saveRejected?: boolean;
   reviewRequired?: boolean;
   savedRevision?: number;

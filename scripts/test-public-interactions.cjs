@@ -664,6 +664,7 @@ function emailPreferenceHarness(preference = "email", value = "", describedBy = 
   const windowListeners = {};
   const indicator = { textContent: "(optional)" };
   const summary = { hidden: true };
+  const disclosure = { open: false };
   const choice = { value: preference };
   const container = {
     querySelector: () => error,
@@ -683,11 +684,12 @@ function emailPreferenceHarness(preference = "email", value = "", describedBy = 
       'input[name="preferred_contact_method"]:checked': choice,
       "[data-email-requirement]": indicator,
       ".ats-form-error-summary": summary,
+      "[data-contact-preferences]": disclosure,
       '[aria-invalid="true"]': attributes["aria-invalid"] === "true" ? email : null,
     })[selector] || null,
     querySelectorAll: selector => selector === "input, select, textarea" ? [email] : [],
   };
-  const helpers = loadScript("ats-form-enhancements.js", ["syncEmailRequirement", "validateForm"], {
+  const helpers = loadScript("ats-form-enhancements.js", ["syncEmailRequirement", "validateForm", "showRecoveredPreferences", "collapseOptionalPreferences"], {
     window: { addEventListener: (name, callback) => { windowListeners[name] = callback; } },
     document: {
       addEventListener() {},
@@ -696,7 +698,7 @@ function emailPreferenceHarness(preference = "email", value = "", describedBy = 
       createElement: () => ({ setAttribute() {}, remove() { error = null; } }),
     },
   });
-  return { email, choice, indicator, summary, attributes, helpers,
+  return { email, choice, indicator, summary, disclosure, attributes, helpers,
     sync: () => helpers.syncEmailRequirement(form),
     validate: () => helpers.validateForm(form),
     pageShow: () => windowListeners.pageshow({ persisted: true }),
@@ -788,8 +790,43 @@ test("pageshow resynchronizes a restored contact preference and label", () => {
   h.pageShow();
   assert.equal(h.email.required, true);
   assert.equal(h.attributes["aria-required"], "true");
+  assert.equal(h.disclosure.open, true, "the recovered Email preference must be discoverable");
   assert.equal(h.indicator.textContent, "(required)");
   assert.equal(h.error(), null);
+});
+
+for (const preference of ["phone", "text", "email"]) {
+  test(`recovered ${preference} preference is visible without changing or focusing customer fields`, () => {
+    const h = emailPreferenceHarness(preference, "saved@example.test");
+    h.pageShow();
+    assert.equal(h.disclosure.open, true);
+    assert.equal(h.choice.value, preference);
+    assert.equal(h.email.value, "saved@example.test");
+    assert.equal(h.email.required, preference === "email");
+    assert.equal(h.focused(), false);
+    assert.equal(h.error(), null);
+  });
+}
+
+test("default preferences stay collapsed and old markup remains usable", () => {
+  const h = emailPreferenceHarness("");
+  h.pageShow();
+  assert.equal(h.disclosure.open, false);
+  assert.equal(h.email.required, false);
+  const oldForm = { querySelector: () => null };
+  assert.doesNotThrow(() => h.helpers.showRecoveredPreferences(oldForm));
+  assert.doesNotThrow(() => h.helpers.collapseOptionalPreferences(oldForm));
+});
+
+test("collapsing optional preferences does not clear a selected contact method or email", () => {
+  const h = emailPreferenceHarness("email", "saved@example.test");
+  h.pageShow();
+  h.helpers.collapseOptionalPreferences({ querySelector: () => h.disclosure });
+  assert.equal(h.disclosure.open, false);
+  assert.equal(h.choice.value, "email");
+  assert.equal(h.email.value, "saved@example.test");
+  assert.equal(h.email.required, true);
+  assert.equal(h.focused(), false);
 });
 
 for (const [name, shared] of [

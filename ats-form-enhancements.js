@@ -742,15 +742,28 @@
     syncEstimateContext(form);
   }
 
+  function showRecoveredPreferences(form) {
+    var panel = form.querySelector("[data-contact-preferences]");
+    var preference = form.querySelector('input[name="preferred_contact_method"]:checked');
+    if (panel && preference && preference.value) panel.open = true;
+  }
+
+  function collapseOptionalPreferences(form) {
+    var panel = form.querySelector("[data-contact-preferences]");
+    if (panel) panel.open = false;
+  }
+
   function syncRecoveredForm(form) {
     syncCommercialFields(form);
     syncEmailRequirement(form);
+    showRecoveredPreferences(form);
     syncEstimateContext(form);
     setSubmissionMetadata(form, false);
   }
 
   function clearRecoveredForm(form) {
     form.reset();
+    collapseOptionalPreferences(form);
     clearEstimateContext(form);
     syncCommercialFields(form);
     syncEmailRequirement(form);
@@ -882,6 +895,7 @@
         .then(function (response) {
           if (form.atsEstimateDraft) form.atsEstimateDraft.forget();
           form.reset();
+          collapseOptionalPreferences(form);
           form.dataset.formStartedAt = String(Date.now());
           setSubmissionMetadata(form, true);
           syncCommercialFields(form);
@@ -943,6 +957,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".ats-contact-form"), function (form) {
       setSubmitting(form, false);
       syncEmailRequirement(form);
+      showRecoveredPreferences(form);
       syncEstimateContext(form);
     });
   });

@@ -1272,6 +1272,10 @@ body.ats-gallery-open {
     margin-inline: -16px;
   }
 
+  .ats-gallery-viewer__navigation {
+    align-items: stretch;
+  }
+
   .ats-gallery-viewer__navigation button {
     flex: 1 1 100px;
   }

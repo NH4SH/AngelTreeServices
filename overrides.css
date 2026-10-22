@@ -558,6 +558,11 @@ body.ats-form-submitted .ats-form-success {
   font-size: 1rem;
 }
 
+#contact .fe-block-577c25637a863c64b65c a[href^="mailto:"] > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 #contact .fe-block-577c25637a863c64b65c p:last-child {
   max-width: 32rem;
   font-size: 0.98rem;
@@ -2150,6 +2155,41 @@ body.ats-form-submitted .ats-form-success {
 }
 
 /* Optional contact preferences stay lightweight inside the estimate form. */
+#contact .ats-optional-preferences {
+  min-width: 0;
+  margin: 0;
+  color: var(--ats-green-deep);
+}
+
+#contact .ats-optional-preferences > summary {
+  display: list-item;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding-block: 10px;
+  list-style: disclosure-closed inside;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#contact .ats-optional-preferences[open] > summary {
+  margin-bottom: 12px;
+  list-style-type: disclosure-open;
+}
+
+#contact .ats-optional-preferences > summary:focus-visible {
+  outline: 3px solid var(--ats-green-deep);
+  outline-offset: 3px;
+}
+
+#contact .ats-optional-preferences__fields {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+
 #contact .ats-contact-preference {
   min-width: 0;
   margin: 0;

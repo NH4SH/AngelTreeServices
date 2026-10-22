@@ -47,7 +47,7 @@ STATIC_DIRECTORIES = (
 )
 
 GOOGLE_MAPS_API_KEY_PLACEHOLDER = "__ATS_GOOGLE_MAPS_API_KEY__"
-FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=guidance1"></script>'
+FORM_ENHANCEMENT_SCRIPT = '<script defer src="ats-form-enhancements.js?v=preferences1"></script>'
 ADDRESS_AUTOCOMPLETE_SCRIPT = '<script defer src="ats-address-autocomplete.js?v=release3"></script>'
 
 EMERGENCY_AVAILABILITY_REPLACEMENTS = (

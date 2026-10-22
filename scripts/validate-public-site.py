@@ -1565,6 +1565,7 @@ class Validator:
             self.site_dir / "tree-removal-mobile.js",
             self.site_dir / "tree-pruning-mobile.js",
             self.site_dir / "stump-grinding-mobile.js",
+            self.site_dir / "emergency-tree-mobile.js",
             self.site_dir / "ats-website.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",

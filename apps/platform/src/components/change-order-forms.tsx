@@ -4,6 +4,7 @@ import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { prepareCopyAttempt, forgetCopyAttempt, type ChangeOrderCopyAttempt } from "@/lib/change-orders/copy-attempt";
 import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import {
@@ -270,9 +271,31 @@ export function ChangeOrderPortalPanel({ changeOrderId, tokens }: { changeOrderI
   );
 }
 
-export function DuplicateChangeOrderButton({ id }: { id: string }) {
-  const [state, action, pending] = useReliableActionState(duplicateChangeOrder, initialChangeOrderActionState);
-  return <form action={action}><input name="change_order_id" type="hidden" value={id} /><button className="secondary-action" disabled={pending} type="submit"><Copy size={17} />{pending ? "Copying..." : "Duplicate"}</button>{state.message ? <ActionMessage state={state} /> : null}</form>;
+export function DuplicateChangeOrderButton({ id, revision }: { id: string; revision: number }) {
+  const attemptRef = useRef<ChangeOrderCopyAttempt | undefined>(undefined);
+  const router = useRouter();
+  const [state, action, pending] = useReliableActionState(async (previous: ChangeOrderActionState, form: FormData): Promise<ChangeOrderActionState> => {
+    if (previous.saveDestination || previous.reviewRequired) return previous;
+    let storage: Storage | null = null;
+    try { storage = window.sessionStorage; } catch { /* Keep page-local recovery. */ }
+    const prepared = prepareCopyAttempt(id, revision, storage, attemptRef.current);
+    attemptRef.current = prepared.attempt;
+    form.set("request_id", prepared.attempt.requestId);
+    form.set("expected_revision", String(prepared.attempt.revision));
+    const result = await duplicateChangeOrder(previous, form);
+    if (result.status === "success" || result.saveRejected) {
+      forgetCopyAttempt(prepared.key, storage);
+      attemptRef.current = undefined;
+    }
+    return result;
+  }, initialChangeOrderActionState);
+  useEffect(() => { if (state.saveDestination) router.push(state.saveDestination); }, [state.saveDestination, router]);
+  return <form action={action}>
+    <input name="change_order_id" type="hidden" value={id} />
+    <button className="secondary-action" disabled={pending || Boolean(state.saveDestination) || state.reviewRequired} type="submit"><Copy size={17} />{pending ? "Copying..." : state.status === "error" && !state.reviewRequired ? "Check / retry copy" : "Duplicate"}</button>
+    {state.message ? <ActionMessage state={state} /> : null}
+    {state.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${id}`}>Reload current record</a> : null}
+  </form>;
 }
 
 export function AttachApprovedChangeOrdersButton({ invoiceId }: { invoiceId: string }) {

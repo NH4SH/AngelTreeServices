@@ -58,6 +58,10 @@
     {
       "name": "20261022124200_atomic_change_order_drafts.sql",
       "sha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32"
+    },
+    {
+      "name": "20261022132724_atomic_change_order_copies.sql",
+      "sha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053"
     }
   ]
 }

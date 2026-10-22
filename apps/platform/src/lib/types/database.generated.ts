@@ -15223,6 +15223,14 @@ export type Database = {
                     "retry_after_seconds": number;
                 }[];
             };
+            "copy_change_order_draft": {
+                Args: {
+                    "p_expected_revision": number;
+                    "p_request_id": string;
+                    "p_source_id": string;
+                };
+                Returns: Json;
+            };
             "create_invoice_draft": {
                 Args: {
                     "p_header": Json;

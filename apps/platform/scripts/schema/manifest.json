@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "a9c496453805de9e5edda94ff100edf9095c08ac57972ce572ef7c5200756110",
+  "typesSha256": "e59fe47884d9d6c002a6087659a02424fc9c433c8af03717cd62e5024067e635",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -429,6 +429,10 @@
     {
       "name": "20261022124200_atomic_change_order_drafts.sql",
       "sha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32"
+    },
+    {
+      "name": "20261022132724_atomic_change_order_copies.sql",
+      "sha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053"
     }
   ]
 }

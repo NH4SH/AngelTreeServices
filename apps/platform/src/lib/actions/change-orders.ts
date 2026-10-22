@@ -2,7 +2,6 @@
 
 import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getChangeOrderByPortalToken, getChangeOrderDetail } from "@/lib/data/change-orders";
@@ -214,40 +213,28 @@ export async function revokeChangeOrderPortalLink(_state: ChangeOrderActionState
 
 export async function duplicateChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const detail = await getChangeOrderDetail(id);
-  if (detail.error || !detail.data) return failure(detail.error ?? "Change order not found.");
-  const source = detail.data;
-  const { data, error } = await auth.supabase.from("change_orders").insert({
-    change_order_number: "",
-    source_quote_id: source.source_quote_id,
-    job_id: source.job_id,
-    customer_id: source.customer_id,
-    organization_id: source.organization_id,
-    service_location_id: source.service_location_id,
-    requested_by_contact_id: source.requested_by_contact?.is_active === false ? null : source.requested_by_contact_id,
-    approval_contact_id: source.approval_contact?.is_active === false ? null : source.approval_contact_id,
-    created_by_user_id: auth.userId,
-    title: `Copy of ${source.title}`.slice(0, 180),
-    reason: source.reason,
-    customer_description: source.customer_description,
-    customer_notes: source.customer_notes,
-    internal_notes: source.internal_notes,
-    status: "draft",
-    subtotal_cents: source.subtotal_cents,
-    tax_cents: source.tax_cents,
-    fee_cents: source.fee_cents,
-    total_cents: source.total_cents,
-    original_approved_amount_cents: source.original_approved_amount_cents,
-    schedule_impact: source.schedule_impact,
-  }).select("id").single();
-  if (error || !data) return failure(error?.message ?? "Could not duplicate the change order.");
-  const lines = (source.change_order_line_items ?? []).map(({ id: _id, change_order_id: _co, created_at: _created, updated_at: _updated, ...line }) => ({ ...line, change_order_id: data.id }));
-  const { error: linesError } = lines.length ? await auth.supabase.from("change_order_line_items").insert(lines) : { error: null };
-  if (linesError) { await auth.supabase.from("change_orders").delete().eq("id", data.id); return failure(linesError.message); }
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_duplicated", subjectId: data.id, subjectType: "change_order", metadata: { source_change_order_id: id } });
-  redirect(`/admin/change-orders/${data.id}/edit`);
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = text(formData, "change_order_id", 80), requestId = text(formData, "request_id", 80);
+  const rawRevision = String(formData.get("expected_revision") ?? ""), revision = Number(rawRevision);
+  if (!isUuid(id) || !isUuid(requestId) || !/^\d+$/.test(rawRevision) || !Number.isSafeInteger(revision) || revision < 0)
+    return { ...failure("Reload this record before copying it."), saveRejected: true, reviewRequired: true };
+  const { data, error } = await callDeliveryCommand(auth.supabase, "copy_change_order_draft", {
+    p_request_id: requestId, p_source_id: id, p_expected_revision: revision,
+  });
+  if (error) {
+    const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
+    return { ...failure(rejected ? error.message : "The copy could not be confirmed. Retry here to find the same draft safely."),
+      saveRejected: rejected, reviewRequired: rejected };
+  }
+  if (!data || data.request_id !== requestId || data.source_id !== id || data.source_revision !== revision || !isUuid(data.id) || data.id === id
+    || !(data.job_id === null || isUuid(data.job_id)) || !(data.organization_id === null || isUuid(data.organization_id))
+    || !Number.isSafeInteger(data.edit_revision) || data.edit_revision < 0 || !Number.isSafeInteger(data.current_revision) || data.current_revision < data.edit_revision
+    || !Number.isSafeInteger(data.line_count) || data.line_count < 0 || typeof data.replayed !== "boolean"
+    || !["draft", "pending_internal_review", "ready_to_send", "sent", "approved", "declined", "change_requested", "cancelled", "expired"].includes(data.current_status))
+    return failure("The copy could not be confirmed. Retry here to find the same draft safely.");
+  revalidateChangeOrderPaths(data.id, data.job_id, data.organization_id);
+  return { ...success(data.replayed ? "Your earlier copy was found. Opening the current record." : "A new draft was copied. Nothing was sent to the customer."),
+    saveDestination: `/admin/change-orders/${data.id}${data.replayed ? "" : "/edit"}` };
 }
 
 export async function approveChangeOrderByPortal(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

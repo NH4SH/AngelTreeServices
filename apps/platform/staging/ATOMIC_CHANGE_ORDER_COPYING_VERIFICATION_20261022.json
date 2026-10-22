@@ -1,0 +1,171 @@
+{
+  "scope": "Atomic change-order copying and same-tab retry recovery; local application and staging-only database verification",
+  "pushedEditingCommit": "92bb19b",
+  "alignedMainBase": "05e8e9036c30e6d8bdbbf9048fa80a9d4d87ca36",
+  "preservedWebsiteCommit": "cf38c2abcc2693f445fc360ba1f7cfeb15e3c4bd",
+  "newImplementationPushed": false,
+  "migration": {
+    "name": "20261022132724_atomic_change_order_copies.sql",
+    "sha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 108,
+    "sqlAssertions": 35,
+    "priorDraftAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 6,
+    "schemaContractMatched": true,
+    "migrationSha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053",
+    "crmChecksPassed": 2222,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "browser": {
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "horizontalOverflow": false,
+      "keyboardCopyOpensCompleteEditor": true,
+      "staleMobileCopyDenied": true,
+      "staleCopyDisabled": true,
+      "reloadCurrentRecordWorks": true,
+      "lostResponseAfterCommit": true,
+      "reloadWithChangedSourceRecoversSameCopy": true,
+      "copyRequestsForLostResponse": 1,
+      "copyAuditsForLostResponse": 1,
+      "browserErrors": 0,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/lib/change-orders/copy-attempt.ts",
+          "sha256": "83124330f727cb4b1687845b86bc2efda243162bfefc116ebea0e265a6d9076f"
+        },
+        {
+          "path": "apps/platform/src/components/change-order-forms.tsx",
+          "sha256": "229ec842910b7a81a4c40632e6bf30d4712a9ddab62f2cf3fefff0a2851be8a0"
+        },
+        {
+          "path": "apps/platform/src/lib/actions/change-orders.ts",
+          "sha256": "275afdcdf82610bcd0572a39d0f6e59dd2a4bba153c0aea8bb56b2cf3e2507e3"
+        },
+        {
+          "path": "apps/platform/src/app/admin/change-orders/[changeOrderId]/page.tsx",
+          "sha256": "4983722f60398cf2e0fc1551dc11f5540206f0b680d3a9200604bc84a93f2ece"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "e59fe47884d9d6c002a6087659a02424fc9c433c8af03717cd62e5024067e635"
+        }
+      ],
+      "providerCalls": 0,
+      "syntheticActorDisabled": true,
+      "lostResponseProxyStopped": true
+    },
+    "uiDetectorFindings": 0,
+    "existingDevelopmentDatabaseReset": false,
+    "taskStackStoppedWithDataPreserved": true
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 108,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 35,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "added": [
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "detail": "Function `public.copy_change_order_draft(p_request_id uuid, p_source_id uuid, p_expected_revision integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/copy_change_order_draft`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "metadata": {
+          "name": "copy_change_order_draft",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_request_id uuid, p_source_id uuid, p_expected_revision integer",
+          "security_definer": true
+        },
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      }
+    ],
+    "removed": [],
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 63
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 64
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrations": 102,
+    "lastMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/atomic-change-order-copying"
+}

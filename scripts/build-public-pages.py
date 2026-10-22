@@ -171,7 +171,9 @@ def header(active: str) -> str:
   </header>"""
 
 
-def footer(include_mobile_actions: bool = True) -> str:
+def footer(include_mobile_actions: bool = True, estimate_first: bool = False) -> str:
+    call_link = f'<a class="ats-mobile-actions__call" href="tel:{PHONE_LINK}">Call now</a>'
+    estimate_link = '<a class="ats-mobile-actions__estimate ats-estimate-link" href="/#contact">Free estimate</a>'
     result = f"""
   <footer class="ats-page-footer">
     <div class="ats-page-footer__inner">
@@ -212,8 +214,8 @@ def footer(include_mobile_actions: bool = True) -> str:
     <p class="ats-page-footer__legal">Serving Fredericksburg, Spotsylvania, Stafford, King George, Caroline and other confirmed communities. Service in Woodbridge and the Richmond area is tree work only. <a href="/service-areas/">View service areas</a>. <a href="/privacy/">Privacy</a></p>
   </footer>
   <nav class="ats-mobile-actions" aria-label="Quick actions">
-    <a class="ats-mobile-actions__call" href="tel:{PHONE_LINK}">Call now</a>
-    <a class="ats-mobile-actions__estimate ats-estimate-link" href="/#contact">Free estimate</a>
+    {estimate_link if estimate_first else call_link}
+    {call_link if estimate_first else estimate_link}
   </nav>"""
     return result if include_mobile_actions else result.split('\n  <nav class="ats-mobile-actions"', 1)[0]
 
@@ -359,7 +361,8 @@ def page_document(page: dict) -> str:
         hero_class = " ats-page-hero__inner--single"
 
     schema = json.dumps(schema_for_page(page), ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
-    page_footer = footer(include_mobile_actions=not page.get("firewood"))
+    landscaping = page['path'] == '/services/landscaping/'
+    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping)
     page_header = header(page["active"])
     hero_actions = action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)
     if page.get("firewood"):
@@ -379,6 +382,9 @@ def page_document(page: dict) -> str:
     about = page['path'] == '/about/'
     body_class = 'ats-tree-removal-page' if tree_removal else 'ats-tree-pruning-page' if tree_pruning else 'ats-stump-grinding-page' if stump_grinding else 'ats-emergency-tree-page' if emergency else 'ats-commercial-hoa-page' if commercial else 'ats-about-page' if about else ('ats-project-page' if page['type'] == 'project' else 'ats-firewood-page' if page.get('firewood') else '')
     mobile_actions_script = '\n  <script src="/tree-removal-mobile.js?v=1" defer></script>' if tree_removal else '\n  <script src="/tree-pruning-mobile.js?v=1" defer></script>' if tree_pruning else '\n  <script src="/stump-grinding-mobile.js?v=1" defer></script>' if stump_grinding else '\n  <script src="/emergency-tree-mobile.js?v=1" defer></script>' if emergency else '\n  <script src="/commercial-hoa-mobile.js?v=1" defer></script>' if commercial else '\n  <script src="/about-mobile.js?v=1" defer></script>' if about else ''
+    if landscaping:
+        body_class = 'ats-landscaping-page'
+        mobile_actions_script = '\n  <script src="/landscaping-mobile.js?v=1" defer></script>'
     topics = """<nav class="ats-removal-topics" aria-label="On this page">
             <p>On this page</p>
             <ul>

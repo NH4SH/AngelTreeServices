@@ -2115,6 +2115,10 @@ body.ats-gallery-open {
   display: none;
 }
 
+.ats-landscaping-page .ats-mobile-actions[hidden] {
+  display: none;
+}
+
 .ats-removal-topics,
 .ats-pruning-topics,
 .ats-stump-topics,
@@ -2442,6 +2446,64 @@ body.ats-gallery-open {
 
 /* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
+  body.ats-landscaping-page {
+    padding-bottom: calc(max(88px, var(--ats-landscaping-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  /* Keep existing privacy controls clear of the bar when enlarged text adds a row. */
+  .ats-landscaping-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-landscaping-notice-bottom: max(84px, calc(var(--ats-landscaping-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-landscaping-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-landscaping-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-landscaping-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-landscaping-header-offset, 120px)));
+  }
+
+  .ats-landscaping-page .ats-page-hero {
+    padding-block: 36px 80px;
+  }
+
+  .ats-landscaping-page :is(.ats-page-hero__inner, .ats-two-column) {
+    gap: 28px;
+  }
+
+  .ats-landscaping-page .ats-breadcrumbs {
+    margin-bottom: 18px;
+  }
+
+  .ats-landscaping-page .ats-page-hero__lead {
+    margin-top: 20px;
+  }
+
+  .ats-landscaping-page .ats-page-hero__trust {
+    margin-top: 16px;
+  }
+
+  .ats-landscaping-page .ats-actions {
+    margin-top: 24px;
+  }
+
+  .ats-landscaping-page .ats-content-section {
+    padding-block: 48px;
+  }
+
+  .ats-landscaping-page .ats-final-cta {
+    padding: 48px 20px;
+  }
+
+  .ats-landscaping-page .ats-mobile-actions {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .ats-landscaping-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
   .ats-stump-grinding-page .ats-mobile-menu nav {
     max-height: min(70dvh, calc(100dvh - var(--ats-stump-anchor-offset, 120px)));
   }

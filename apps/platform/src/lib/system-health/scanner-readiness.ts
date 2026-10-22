@@ -9,7 +9,9 @@ const marker = Buffer.from("Angel Tree synthetic production scanner readiness ch
 /** No business bytes or record identifiers; no redirects or certificate bypass. */
 async function exchange(url: URL, token: string): Promise<Reply> {
   return new Promise((resolve, reject) => {
-    const req = request(url, { method: "POST", rejectUnauthorized: true,
+    // A resumed TLS session can omit the peer certificate. This infrequent
+    // expiry check needs a fresh handshake, while retaining normal CA validation.
+    const req = request(url, { method: "POST", rejectUnauthorized: true, agent: false,
       headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream", "content-length": marker.length } }, res => {
       const certificateExpiresAt = res.socket instanceof TLSSocket ? res.socket.getPeerCertificate().valid_to : "";
       let bytes = 0;

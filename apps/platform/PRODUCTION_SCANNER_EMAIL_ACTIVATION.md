@@ -8,7 +8,7 @@ Owner authorization: enable the production scanner and automatic customer emails
 - Public TLS, digest matching, EICAR quarantine, missing/wrong/cross-environment token rejection and concurrent 25 MiB scans passed. Staging scanning remains intact. Readiness now checks loaded definition age and TLS expiry through the existing incident-deduplicated health monitor.
 - A dedicated `CUSTOMER_EMAIL_WORKER_SECRET` activates customer communication processing without activating job advancement, calendar synchronization or manager-notification workers. Existing installations may still use the original shared key as a fallback.
 - Migration 102 preserves the transactional delivery admission function, authorization, source locks, provider idempotency identities and uncertain-delivery protections. It puts first/overdue invoice reminders in the same admission family and includes accepted legacy invoice/quote delivery history. It changes no financial values, RLS or business records.
-- Local real-Postgres concurrency checks passed: one winner for competing reminder stages; legacy accepted delivery suppression; legitimate later reminders; uncertain delivery holds; unrelated payment receipts; separate invoices; no anonymous or staff dispatch grants. All 2,194 regression checks and typecheck passed.
+- Local real-Postgres concurrency checks passed: one winner for competing reminder stages; legacy accepted delivery suppression; legitimate later reminders; uncertain delivery holds; unrelated payment receipts; separate invoices; no anonymous or staff dispatch grants. All 2,195 regression checks and typecheck passed.
 - Migration 102 was installed through the native exact-ledger workflow in staging, then production. Historical staging candidate verifiers retain their original exact-ledger acceptance; the additional migration is independently hash-pinned.
 
 ## Activation procedure
@@ -19,10 +19,12 @@ Owner authorization: enable the production scanner and automatic customer emails
 4. Enable customer automation while refreshing the settings activation timestamp so historical payment receipts are not backfilled. Preserve existing per-record opt-outs and the minimum send interval.
 5. Let the normal processor cancel stale sources and reconcile provider acknowledgments. Repeat inspection before any further pass. Never manually resend accepted or uncertain deliveries.
 
+A closed-connection TLS regression test reproduces missing peer-certificate metadata under session resumption. Readiness uses a fresh, normally verified TLS handshake so repeated monitoring does not produce a false outage. A separate fresh local Supabase stack replayed all 102 committed migrations and regenerated the public schema contract.
+
 Final activation evidence and actual delivery counts are recorded below after live verification.
 
 ## Operating limits
 
-The home Mac requires power, internet and a running guest. A full Mac reboot requires FileVault unlock and operator login. Scanner failure or stale definitions hold files closed; monitoring reports the outage. No business documents are retained by the scanning bridge. The scanner has no Supabase, Resend or Stripe credentials.
+The home Mac requires power, internet and a running guest. A full Mac reboot requires FileVault unlock and operator login. Scanner failure, stale definitions or a definition reload hold files closed; monitoring reports sustained outages. The current memory-bounded engine pauses scans briefly during reload rather than raising its memory limit or approving unchecked files. No business documents are retained by the scanning bridge. The scanner has no Supabase, Resend or Stripe credentials.
 
 Netlify's current plan requires all supported variable scopes. The three new variables remain production-context only, have no client-public prefix, and both credentials are marked secret. No plan upgrade is required.

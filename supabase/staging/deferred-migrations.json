@@ -82,6 +82,10 @@
     {
       "name": "20261022170133_atomic_change_order_portal_links.sql",
       "sha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15"
+    },
+    {
+      "name": "20261022183123_atomic_invoice_portal_links.sql",
+      "sha256": "2cd37902e08ebc6b8203ec3059a775cea6c45d51627b7ac7d880d0edda597840"
     }
   ]
 }

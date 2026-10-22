@@ -1,194 +1,31 @@
 "use server";
-
 import { revalidatePath } from "next/cache";
-import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { createNewInvoicePortalTokenRecord, createOrGetInvoicePortalTokenRecord, getActiveInvoicePortalTokens } from "@/lib/portal/invoice-links";
-import { getPortalUrl } from "@/lib/portal/urls";
+import { performInvoiceLinkCommand, type InvoiceLinkIntent } from "@/lib/portal/invoice-link-command";
 import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
 
-export type InvoicePortalTokenActionState = {
-  ok: boolean;
-  status: "idle" | "success" | "error";
-  message: string;
-  portalUrl?: string;
-  expiresAt?: string;
-  reusedExisting?: boolean;
-};
-
-const getString = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
-
-export async function createInvoicePortalLink(
-  _previousState: InvoicePortalTokenActionState,
-  formData: FormData,
-): Promise<InvoicePortalTokenActionState> {
+export type InvoicePortalTokenActionState = { ok: boolean; status: "idle" | "success" | "error"; message: string;
+  saveRejected?: boolean; reviewRequired?: boolean; savedLinkVersion?: string; saveDestination?: string };
+const uuid = (v: string) => /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
+export async function createInvoicePortalLink(_state: InvoicePortalTokenActionState, form: FormData): Promise<InvoicePortalTokenActionState> { return manage(form, "generate"); }
+export async function regenerateInvoicePortalLink(_state: InvoicePortalTokenActionState, form: FormData): Promise<InvoicePortalTokenActionState> { return manage(form, "regenerate"); }
+export async function revokeInvoicePortalLink(_state: InvoicePortalTokenActionState, form: FormData): Promise<InvoicePortalTokenActionState> { return manage(form, "revoke"); }
+async function manage(form: FormData, intent: InvoiceLinkIntent): Promise<InvoicePortalTokenActionState> {
   const auth = await requireInvoiceLinkAdmin();
-
-  if (auth.error) {
-    return auth.error;
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = String(form.get("invoice_id") ?? ""), requestId = String(form.get("request_id") ?? ""), version = String(form.get("expected_version") ?? "");
+  const tokenId = String(form.get("token_id") ?? "") || null;
+  if (!uuid(id) || !uuid(requestId) || !/^[a-f0-9]{64}$/.test(version) || (intent === "revoke" ? !tokenId || !uuid(tokenId) : tokenId !== null))
+    return { ok: false, status: "error", message: "Reload the invoice before changing its customer link.", saveRejected: true, reviewRequired: true };
+  const { data, error } = await performInvoiceLinkCommand({ invoiceId: id, requestId, version, intent, tokenId, supabase: auth.supabase });
+  if (error || !data) {
+    const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error?.code ?? "");
+    return { ok: false, status: "error", message: rejected ? safeStaffMessage(error?.message ?? "Reload the invoice before continuing.") : "The invoice-link action could not be confirmed. Check the earlier action here safely.", saveRejected: rejected, reviewRequired: rejected };
   }
-
-  const invoiceId = getString(formData, "invoice_id");
-  const { data: invoice, error: invoiceError } = await auth.supabase
-    .from("invoices")
-    .select("id, customer_id, organization_id")
-    .eq("id", invoiceId)
-    .single();
-
-  if (invoiceError || !invoice) {
-    console.error("Invoice portal link invoice lookup failed", invoiceError);
-    return { ok: false, status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
-  }
-
-  const token = await createOrGetInvoicePortalTokenRecord({
-    invoiceId: invoice.id,
-    supabase: auth.supabase,
-  });
-
-  if (token.error) {
-    return { ok: false, status: "error", message: token.error };
-  }
-
-  if (token.created) {
-    await recordActivity(auth.supabase, {
-      actorUserId: auth.userId,
-      eventType: "invoice_portal_link_generated",
-      subjectId: invoice.id,
-      subjectType: "invoice",
-    });
-  }
-
-  revalidatePath(`/admin/invoices/${invoice.id}`);
-
-  return {
-    ok: true,
-    status: "success",
-    message: "Customer link ready.",
-    portalUrl: await getPortalUrl("invoice", token.rawToken),
-    expiresAt: token.expiresAt,
-    reusedExisting: !token.created,
-  };
-}
-
-export async function regenerateInvoicePortalLink(
-  _previousState: InvoicePortalTokenActionState,
-  formData: FormData,
-): Promise<InvoicePortalTokenActionState> {
-  const auth = await requireInvoiceLinkAdmin();
-
-  if (auth.error) {
-    return auth.error;
-  }
-
-  const invoiceId = getString(formData, "invoice_id");
-  const { data: invoice, error: invoiceError } = await auth.supabase
-    .from("invoices")
-    .select("id, customer_id, organization_id")
-    .eq("id", invoiceId)
-    .single();
-
-  if (invoiceError || !invoice) {
-    console.error("Invoice portal link invoice lookup failed", invoiceError);
-    return { ok: false, status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
-  }
-
-  const activeTokenLookup = await getActiveInvoicePortalTokens(auth.supabase, invoice.id);
-  if (activeTokenLookup.error) {
-    return { ok: false, status: "error", message: activeTokenLookup.error };
-  }
-
-  const token = await createNewInvoicePortalTokenRecord({
-    customerId: invoice.customer_id,
-    organizationId: invoice.organization_id,
-    invoiceId: invoice.id,
-    supabase: auth.supabase,
-    userId: auth.userId,
-  });
-
-  if (token.error) {
-    return { ok: false, status: "error", message: token.error };
-  }
-
-  const activeTokenIds = activeTokenLookup.tokens.map((activeToken) => activeToken.id);
-  if (activeTokenIds.length > 0) {
-    const { error: revokeError } = await auth.supabase
-      .from("invoice_portal_tokens")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("invoice_id", invoice.id)
-      .in("id", activeTokenIds);
-
-    if (revokeError) {
-      await auth.supabase
-        .from("invoice_portal_tokens")
-        .update({ revoked_at: new Date().toISOString() })
-        .eq("id", token.tokenId);
-      return {
-        ok: false,
-        status: "error",
-        message: "Could not regenerate the customer link. The previous link remains protected.",
-      };
-    }
-  }
-
-  await recordActivity(auth.supabase, {
-    actorUserId: auth.userId,
-    eventType: "invoice_portal_link_regenerated",
-    subjectId: invoice.id,
-    subjectType: "invoice",
-  });
-
-  revalidatePath(`/admin/invoices/${invoice.id}`);
-
-  return {
-    ok: true,
-    status: "success",
-    message: activeTokenIds.length
-      ? "Secure customer invoice link regenerated. The previous active link is now revoked."
-      : "Customer link ready.",
-    portalUrl: await getPortalUrl("invoice", token.rawToken),
-    expiresAt: token.expiresAt,
-    reusedExisting: false,
-  };
-}
-
-export async function revokeInvoicePortalLink(
-  _previousState: InvoicePortalTokenActionState,
-  formData: FormData,
-): Promise<InvoicePortalTokenActionState> {
-  const auth = await requireInvoiceLinkAdmin();
-
-  if (auth.error) {
-    return auth.error;
-  }
-
-  const invoiceId = getString(formData, "invoice_id");
-  const tokenId = getString(formData, "token_id");
-  const { data, error } = await auth.supabase
-    .from("invoice_portal_tokens")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", tokenId)
-    .eq("invoice_id", invoiceId)
-    .select("id")
-    .maybeSingle();
-
-  if (error) {
-    console.error("Invoice portal link revoke failed", error);
-    return { ok: false, status: "error", message: "Could not revoke the customer link. Please try again." };
-  }
-
-  if (!data) {
-    return { ok: false, status: "error", message: "Invoice link not found or no access." };
-  }
-
-  await recordActivity(auth.supabase, {
-    actorUserId: auth.userId,
-    eventType: "invoice_portal_link_revoked",
-    subjectId: invoiceId,
-    subjectType: "invoice",
-  });
-
-  revalidatePath(`/admin/invoices/${invoiceId}`);
-  return { ok: true, status: "success", message: "Secure customer invoice link revoked." };
+  revalidatePath(`/admin/invoices/${id}`);
+  const message = { created: "Secure customer invoice link generated.", reused: "Existing customer invoice link reused.", regenerated: "Customer invoice link regenerated. Previous links are disabled.", revoked: "Selected customer invoice link revoked." }[data.outcome];
+  return { ok: true, status: "success", message: data.replayed ? "Your earlier link action is confirmed. Review the current invoice links." : message ?? "Invoice link action confirmed.", savedLinkVersion: data.current_link_version, saveDestination: `/admin/invoices/${id}?link_action=${requestId}` };
 }
 
 async function requireInvoiceLinkAdmin() {

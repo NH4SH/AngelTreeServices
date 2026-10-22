@@ -1,0 +1,188 @@
+{
+  "scope": "Atomic invoice customer-link management, replay-safe recovery and post-lock capability recheck for payment preferences",
+  "pushedChangeOrderLinkCommit": "c9b4cd6",
+  "alignedMainBase": "1c828891606e60823f4315657f42eeea1a0bfa5a",
+  "preservedUnrelatedMainCommit": "1c82889",
+  "newImplementationPushed": false,
+  "migration": {
+    "name": "20261022183123_atomic_invoice_portal_links.sql",
+    "sha256": "2cd37902e08ebc6b8203ec3059a775cea6c45d51627b7ac7d880d0edda597840"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 114,
+    "sqlAssertions": 41,
+    "totalSqlAssertions": 340,
+    "concurrentApiScenarios": 10,
+    "paymentRegressionPassed": true,
+    "schemaContractMatched": true,
+    "migrationSha256": "2cd37902e08ebc6b8203ec3059a775cea6c45d51627b7ac7d880d0edda597840",
+    "crmChecksPassed": 2284,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "paymentRegressionChecksPassed": 36,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "uiDetectorFindings": 0,
+    "browser": {
+      "audits": 1,
+      "tokens": 1,
+      "invoice": {
+        "status": "sent",
+        "total_cents": 10000,
+        "balance_due_cents": 10000
+      },
+      "checkout": 0,
+      "payments": 0,
+      "receipts": 1,
+      "emailEvents": 0,
+      "communications": 0,
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "horizontalOverflow": false,
+      "keyboardSubmissionVerified": true,
+      "successfulResponseDropped": true,
+      "pendingIdentityRetainedAcrossReload": true,
+      "sharingDisabledUntilConfirmation": true,
+      "browserWarningsOrErrors": 0,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/lib/actions/invoice-portal-tokens.ts",
+          "sha256": "96622b92610f28d23feb0ab1cfa7b30f1f80350331ebfb419fadc32bc379954f"
+        },
+        {
+          "path": "apps/platform/src/lib/data/portal-invoice.ts",
+          "sha256": "b47a19ce2d812f9b04c3891d081d305b385faebfb92b413cc547d8d70028e315"
+        },
+        {
+          "path": "apps/platform/src/lib/portal/invoice-link-command.ts",
+          "sha256": "0b0249a9b60193091771ed77185548568124c53b6bfcdf55640f16081e402f84"
+        },
+        {
+          "path": "apps/platform/src/lib/portal/invoice-link-attempt.ts",
+          "sha256": "ea52b0c3e32ab6ff72fdff64f6e200005805a9978434d10eb281ab85bd85018e"
+        },
+        {
+          "path": "apps/platform/src/lib/portal/invoice-links.ts",
+          "sha256": "142374db96231a652cef86487988433b2962d6ae47c9caeba5d341a94f07a948"
+        },
+        {
+          "path": "apps/platform/src/components/invoice-portal-link-panel.tsx",
+          "sha256": "b34e9ee167a344d0e0e24e4248b3da1f074f311c977660ed30c5c6f59a640a7a"
+        },
+        {
+          "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+          "sha256": "13b7d9a587a05dcecd78c1d6b6d9643dcf4f67ea80d2d3dbab511a806ee56ff6"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "29f458f3dd4f249b37b1b92f8a37e5f18095ced3c79adeda3c8e617af226a541"
+        },
+        {
+          "path": "apps/platform/src/lib/types/rpc-contracts.ts",
+          "sha256": "5fda9fc618cbed8495220bb7aedc2a13732617b73a1a4dac8690e111bc561d73"
+        }
+      ],
+      "nativeConfirmationAutomation": "Not exercised; generation/recovery and focus verified in browser, replacement/revocation verified through SQL/API."
+    },
+    "syntheticActorsDisabled": true,
+    "taskWebAndProxyStopped": true,
+    "taskStackStoppedWithDataPreserved": true,
+    "existingDevelopmentDatabaseReset": false
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 114,
+    "automaticEmailEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "syntheticAssertions": 41,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "authorizationAndCapabilitiesUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 69
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 73
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "added": [
+      "authenticated_security_definer_function_executable|create_or_get_invoice_portal_token",
+      "authenticated_security_definer_function_executable|get_invoice_link_request",
+      "authenticated_security_definer_function_executable|get_invoice_link_state",
+      "authenticated_security_definer_function_executable|manage_invoice_portal_link"
+    ],
+    "removed": []
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrationCount": 102,
+    "latestMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/invoice-link-safety"
+}

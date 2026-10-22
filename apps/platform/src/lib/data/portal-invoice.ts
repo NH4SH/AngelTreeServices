@@ -1,5 +1,6 @@
 import "server-only";
 
+import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import {
@@ -21,6 +22,7 @@ export type InvoicePortalTokenSummary = Pick<
   "id" | "invoice_id" | "token_hint" | "expires_at" | "revoked_at" | "created_at"
 > & {
   portalUrl: string | null;
+  usable: boolean;
 };
 
 export type PortalInvoiceLookupStatus =
@@ -36,38 +38,20 @@ export type PortalInvoiceLookup = {
   message: string;
 };
 
-export async function getInvoicePortalTokens(
-  invoiceId: string,
-): Promise<DataResult<InvoicePortalTokenSummary[]>> {
+export async function getInvoicePortalTokens(invoiceId: string): Promise<DataResult<InvoicePortalTokenSummary[]> & { linkVersion: string | null }> {
   const supabase = await createClient();
-
-  if (!supabase) {
-    return { data: [], error: "Supabase is not configured." };
-  }
-
-  const { data, error } = await supabase
-    .from("invoice_portal_tokens")
-    .select("id, invoice_id, token_hint, token_encrypted, expires_at, revoked_at, created_at")
-    .eq("invoice_id", invoiceId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return { data: [], error: formatInvoicePortalTokenError(error.message) };
-  }
-
-  const tokenRows = data ?? [];
-  const records = await Promise.all(tokenRows.map(async (token) => {
-    const isActive = !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now());
-    const rawToken = isActive ? decryptPortalToken(token.token_encrypted) : null;
-    const { token_encrypted: _tokenEncrypted, ...summary } = token;
-
-    return {
-      ...summary,
-      portalUrl: rawToken ? await getPortalUrl("invoice", rawToken) : null,
-    } as InvoicePortalTokenSummary;
+  if (!supabase) return { data: [], error: "Supabase is not configured.", linkVersion: null };
+  const { data, error } = await callDeliveryCommand(supabase, "get_invoice_link_state", { p_invoice_id: invoiceId });
+  if (error || !data || typeof data.link_version !== "string" || !/^[a-f0-9]{64}$/.test(data.link_version) || !Array.isArray(data.tokens)
+    || data.tokens.some((t: unknown) => !t || typeof t !== "object" || typeof (t as { id?: unknown }).id !== "string" || typeof (t as { usable?: unknown }).usable !== "boolean"
+      || !((t as { token_encrypted?: unknown }).token_encrypted === null || typeof (t as { token_encrypted?: unknown }).token_encrypted === "string")))
+    return { data: [], error: formatInvoicePortalTokenError(error?.message ?? "Invoice links could not be loaded. Reload before changing them."), linkVersion: null };
+  const records = await Promise.all(data.tokens.map(async (token: InvoicePortalToken & { usable: boolean }) => {
+    const raw = token.usable ? decryptPortalToken(token.token_encrypted) : null;
+    return { id: token.id, invoice_id: token.invoice_id, token_hint: token.token_hint, expires_at: token.expires_at, revoked_at: token.revoked_at, created_at: token.created_at,
+      usable: token.usable, portalUrl: raw && hashPortalToken(raw) === token.token_hash ? await getPortalUrl("invoice", raw) : null };
   }));
-
-  return { data: records, error: null };
+  return { data: records, error: null, linkVersion: data.link_version };
 }
 
 export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalInvoiceLookup> {
@@ -84,7 +68,7 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
 
   const { data: token, error: tokenError } = await supabase
     .from("invoice_portal_tokens")
-    .select("invoice_id, expires_at, revoked_at")
+    .select("invoice_id, customer_id, organization_id, expires_at, revoked_at")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -120,6 +104,10 @@ export async function getInvoiceByPortalToken(rawToken: string): Promise<PortalI
 
   if (invoiceError || !invoice) {
     return portalLookup("invalid", "This invoice is not available.");
+  }
+
+  if (token.customer_id !== invoice.customer_id || token.organization_id !== invoice.organization_id) {
+    return portalLookup("invalid", "This secure invoice link is no longer available. Please contact Angel Tree Services.");
   }
 
   return {

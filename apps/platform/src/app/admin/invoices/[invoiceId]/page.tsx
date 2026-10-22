@@ -60,7 +60,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
   const detail = await getInvoiceDetail(invoiceId);
   const canManageDelivery = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview, checkoutReview] = await Promise.all([
-    detail.data && canManageDelivery ? getInvoicePortalTokens(invoiceId) : { data: [], error: null },
+    detail.data && canManageDelivery ? getInvoicePortalTokens(invoiceId) : { data: [], error: null, linkVersion: null },
     detail.data ? getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null },
     detail.data ? getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null },
     detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
@@ -143,7 +143,9 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
             {canManageDelivery ? (
               <section className="invoice-delivery-grid" aria-label="Customer invoice delivery">
                 <InvoicePortalLinkPanel
+                  key={portalTokens.linkVersion}
                   invoiceId={detail.data.id}
+                  linkVersion={portalTokens.linkVersion}
                   tokens={portalTokens.data}
                 />
                 <section className="commerce-side-panel invoice-email-delivery-panel print-hidden">

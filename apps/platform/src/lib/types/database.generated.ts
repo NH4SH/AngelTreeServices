@@ -15531,6 +15531,22 @@ export type Database = {
                     "status": string;
                 }[];
             };
+            "get_invoice_link_request": {
+                Args: {
+                    "p_expected_version": string;
+                    "p_intent": string;
+                    "p_invoice_id": string;
+                    "p_request_id": string;
+                    "p_token_id"?: string;
+                };
+                Returns: Json;
+            };
+            "get_invoice_link_state": {
+                Args: {
+                    "p_invoice_id": string;
+                };
+                Returns: Json;
+            };
             "get_invoice_payment_principal": {
                 Args: {
                     "p_invoice_id": string;
@@ -15661,6 +15677,17 @@ export type Database = {
                     "p_expected_revision": number;
                     "p_intent": string;
                     "p_request_id": string;
+                };
+                Returns: Json;
+            };
+            "manage_invoice_portal_link": {
+                Args: {
+                    "p_candidate"?: Json;
+                    "p_expected_version": string;
+                    "p_intent": string;
+                    "p_invoice_id": string;
+                    "p_request_id": string;
+                    "p_token_id"?: string;
                 };
                 Returns: Json;
             };

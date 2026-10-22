@@ -1,0 +1,82 @@
+{
+  "tree": {
+    "source_sha256": "b29f5114d300bc4b54f96674e75467502b01e2060ad4863b0ce44cb381477ab6",
+    "variants": [
+      {
+        "src": "/assets/versioned/mobile-tree-256.ab255394c7.webp",
+        "width": 256,
+        "height": 256
+      },
+      {
+        "src": "/assets/versioned/service-tree-320.20be49f1f8.webp",
+        "width": 320,
+        "height": 320
+      },
+      {
+        "src": "/assets/versioned/mobile-tree-480.83ef2c6260.webp",
+        "width": 480,
+        "height": 480
+      },
+      {
+        "src": "/assets/versioned/mobile-tree-640.c8549d8107.webp",
+        "width": 640,
+        "height": 640
+      },
+      {
+        "src": "/assets/versioned/service-tree-840.58f189d9e9.webp",
+        "width": 840,
+        "height": 840
+      }
+    ]
+  },
+  "landscaping": {
+    "source_sha256": "69397f19e9e065308fa0ec7d84bf273a05ed3e26639927f45e22b55036f4c454",
+    "variants": [
+      {
+        "src": "/assets/versioned/mobile-landscaping-256.6644e6bc3c.webp",
+        "width": 256,
+        "height": 256
+      },
+      {
+        "src": "/assets/versioned/mobile-landscaping-320.61bf309517.webp",
+        "width": 320,
+        "height": 320
+      },
+      {
+        "src": "/assets/versioned/mobile-landscaping-384.c70b2e1d2a.webp",
+        "width": 384,
+        "height": 384
+      }
+    ]
+  },
+  "bucket": {
+    "source_sha256": "4e05056d306fa68c630763b87fff3206a297adc59ffaebf1aed14656950533c7",
+    "variants": [
+      {
+        "src": "/assets/versioned/mobile-bucket-480.d656a7d12b.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/mobile-bucket-720.4e5784ccf7.webp",
+        "width": 720,
+        "height": 405
+      },
+      {
+        "src": "/assets/versioned/mobile-bucket-840.da7febd1e0.webp",
+        "width": 840,
+        "height": 472
+      },
+      {
+        "src": "/assets/versioned/mobile-bucket-1280.dde3686984.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/mobile-bucket-1600.fac54ed57a.webp",
+        "width": 1600,
+        "height": 899
+      }
+    ]
+  }
+}

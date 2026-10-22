@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
@@ -9,7 +10,7 @@ import {createClient} from '@supabase/supabase-js';
 const enabled=process.env.QUOTE_CHANGE_DISPOSABLE==='1'&&Boolean(process.env.QUOTE_CHANGE_LOCAL_STATUS_FILE);
 test('quote change requests: real local authorization, atomicity, concurrency and recovery',{skip:!enabled,timeout:180000},async t=>{
   const c=JSON.parse(readFileSync(process.env.QUOTE_CHANGE_LOCAL_STATUS_FILE,'utf8')),web=process.env.QUOTE_CHANGE_WEB_URL;
-  assert.equal(c.API_URL,'http://127.0.0.1:54321');assert.equal(web,'http://127.0.0.1:3102');
+  const target=localPaymentTarget(c);assert.equal(c.API_URL,target.api);assert.equal(web,target.web);
   const originalFetch=globalThis.fetch;let blocked=0;
   const localFetch=(input,init)=>{
     const url=new URL(input instanceof Request?input.url:input);
@@ -50,7 +51,7 @@ test('quote change requests: real local authorization, atomicity, concurrency an
   const run=(name,fn)=>t.test(name,async()=>{await fn();proof.push({name,pass:true});});
   assert.equal(process.env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
   const docker=process.env.QUOTE_CHANGE_DOCKER_BIN;assert.ok(docker);
-  const base=['exec','-i','supabase_db_ats_pr02_disposable','psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'];
+  const base=['exec','-i',target.container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'];
   function processSQL(source,hold=false){
     const p=spawn(docker,base,{env:process.env});let out='',err='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);
     const done=new Promise((resolve,reject)=>{p.on('error',reject);p.on('exit',code=>code===0?resolve(out.trim()):reject(Error(err)));});
@@ -147,7 +148,7 @@ test('quote change requests: real local authorization, atomicity, concurrency an
     const {requestQuoteChanges}=load('../src/lib/quotes/change-request.ts',{'server-only':{}});
     const action=load('../src/lib/actions/portal-tokens.ts',{
       'next/cache':{revalidatePath:p=>paths.push(p)},'@/lib/activity-log':{},'@/lib/auth/roles':{},'@/lib/data/portal-quote':{},'@/lib/quotes/workflow':{},
-      '@/lib/quotes/change-request':{requestQuoteChanges},'@/lib/supabase/admin':{getServiceRoleClient:()=>db},'@/lib/supabase/server':{},'@/lib/portal/quote-links':{},
+      '@/lib/quotes/change-request':{requestQuoteChanges},'@/lib/supabase/admin':{getServiceRoleClient:()=>db},'@/lib/supabase/server':{},'@/lib/portal/quote-links':{},'@/lib/portal/quote-link-command':{},'@/lib/portal/quote-link-batch':{},'@/lib/portal/quote-link-attempt':{},
       '@/lib/portal/tokens':{hashPortalToken:raw=>createHash('sha256').update(raw).digest('hex')},'@/lib/portal/urls':{},'@/lib/quotes/multi-email':{},
       '@/lib/security/portal-rate-limit':{checkPortalActionRateLimit:async()=>({available:true,allowed:true})},'@/lib/security/errors':{},
       '@/lib/notifications/source-events':{deliverCustomerSourceEvent:async x=>notifications.push(x)},

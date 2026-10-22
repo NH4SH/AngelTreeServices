@@ -9,6 +9,8 @@ type NullableRpcArgs<Name extends RpcName, Keys extends keyof RpcArgs<Name>> =
     [Key in keyof Pick<RpcArgs<Name>, Keys>]: RpcArgs<Name>[Key] | null;
   };
 type NullableCommandArgs = {
+  get_quote_link_request: NullableRpcArgs<'get_quote_link_request', 'p_token_id'>;
+  manage_quote_portal_link: NullableRpcArgs<'manage_quote_portal_link', 'p_token_id'>;
   get_invoice_link_request: NullableRpcArgs<'get_invoice_link_request', 'p_token_id'>;
   manage_invoice_portal_link: NullableRpcArgs<'manage_invoice_portal_link', 'p_token_id'>;
   save_change_order_draft: NullableRpcArgs<'save_change_order_draft', 'p_change_order_id' | 'p_expected_revision'>;

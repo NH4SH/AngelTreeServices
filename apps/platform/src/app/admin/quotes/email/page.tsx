@@ -77,6 +77,7 @@ export default async function MultiQuoteEmailPage({ searchParams }: MultiQuoteEm
         attemptId={randomUUID()}
         draft={draft}
         legacyQuoteIds={legacyQuoteIds}
+        linkVersions={Object.fromEntries(quotes.flatMap((quote, index) => tokenLookups[index].linkVersion ? [[quote.id, tokenLookups[index].linkVersion!]] : []))}
         partyName={validation.partyName}
         quoteIds={quoteIds}
         recipient={validation.recipient}

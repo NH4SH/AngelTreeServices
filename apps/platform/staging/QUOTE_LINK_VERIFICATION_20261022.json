@@ -1,0 +1,155 @@
+{
+  "date": "2026-10-22",
+  "scope": "Quote customer-link authority and office retry recovery; synthetic local and staging database verification only",
+  "previousInvoiceBatchPushed": "08ed9d9bdad9b1f930056772a2131f793be022fe",
+  "newBatchPushed": false,
+  "migration": {
+    "name": "20261022185403_atomic_quote_portal_links.sql",
+    "sha256": "44649ff3f2459d9a3151fece1d8e02e4680de534cc9dc9b8846a50f760113609",
+    "sourceCount": 115,
+    "deferredInventoryCount": 22,
+    "historicCandidateCount": 93
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 115,
+    "sqlAssertions": 52,
+    "totalSqlAssertions": 392,
+    "concurrentApiScenarios": 12,
+    "paymentRegressionPassed": true,
+    "schemaContractMatched": true,
+    "migrationSha256": "44649ff3f2459d9a3151fece1d8e02e4680de534cc9dc9b8846a50f760113609",
+    "crmChecksPassed": 2306,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "nativeQuoteApprovalScenarios": 22,
+    "nativeQuoteChangeScenarios": 12,
+    "paymentRegressionChecks": 36,
+    "typecheckPassed": true,
+    "isolatedOptimizedBuildPassed": true,
+    "lintScriptAvailable": false,
+    "sourceMatchesPreviewAndBuild": true,
+    "applicationSourceSha256": "a358bfaabac595c5bfeedb92010218fe3091527d67715c63a4bcd493ba242806",
+    "uiDetectorFindings": 0
+  },
+  "browser": {
+    "desktopWidth": 1280,
+    "mobileWidth": 390,
+    "horizontalOverflow": false,
+    "keyboardGenerationAndRecoveryPassed": true,
+    "lostCommittedResponseRecoveredAfterReload": true,
+    "pendingSharingDisabled": true,
+    "combinedEmailBlockedForLegacyLinks": true,
+    "customerProposalOpened": true,
+    "capturedWarningsOrErrors": 0,
+    "nativeReplacementConfirmationAutomated": false,
+    "singleEmailComposerProviderEnabled": false,
+    "database": {
+      "status": "sent",
+      "tokens": 1,
+      "outbound": 0,
+      "receipts": 1,
+      "totalCents": 10000,
+      "emailEvents": 0,
+      "currentTokens": 1,
+      "communications": 0,
+      "generatedAudits": 1
+    }
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 115,
+    "automaticEmailEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "syntheticAssertions": 52,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "authorizationAndCapabilitiesUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "before": 73,
+    "after": 79,
+    "added": [
+      "create_or_get_quote_portal_token",
+      "get_quote_link_batch_request",
+      "get_quote_link_request",
+      "get_quote_link_state",
+      "manage_quote_portal_link",
+      "recover_quote_portal_links"
+    ],
+    "groups": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33,
+        "level": "INFO"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 79,
+        "level": "WARN"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1,
+        "level": "WARN"
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "changed": false
+  },
+  "production": {
+    "ledgerCount": 102,
+    "latestMigration": "20261021233829",
+    "writes": 0,
+    "appDeployed": false,
+    "providerCalls": 0,
+    "customerEmailsSent": 0
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "taskProxyStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true
+  }
+}

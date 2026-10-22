@@ -66,7 +66,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
   const [approvalSource, portalTokens, emailEvents, communications, recipientOptions, assignedUsers, lifecyclePreview] = await Promise.all([
     detail.data?.status === "approved" ? getQuoteApprovalSource(quoteId) : { data: null, error: null },
-    detail.data ? getQuotePortalTokens(quoteId) : { data: [], error: null },
+    detail.data ? getQuotePortalTokens(quoteId) : { data: [], error: null, linkVersion: null },
     detail.data ? getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null },
     detail.data ? getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null },
     detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
@@ -162,6 +162,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 documentHref={`/admin/quotes/${detail.data.id}/print`}
                 draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
                 portalLinkState={emailPortalLinkState}
+                linkVersion={portalTokens.linkVersion}
                 portalUrl={activePortalUrl}
                 quoteId={detail.data.id}
                 recipient={recipient}
@@ -349,7 +350,9 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 <section className="commerce-side-panel" id="portal-link">
                   {portalTokens.error ? <DataWarning message={`Customer portal links: ${portalTokens.error}`} /> : null}
                   <QuotePortalLinkPanel
+                    key={portalTokens.linkVersion}
                     quoteId={detail.data.id}
+                    linkVersion={portalTokens.linkVersion}
                     tokens={portalTokens.data}
                   />
                 </section>

@@ -59,21 +59,19 @@ export async function sendMultiQuoteEmail(
   const submittedDraft = readMultiQuoteEmailEdits(formData);
   if (submittedDraft.error) return { status: "error", message: submittedDraft.error };
 
-  const createdTokenIds: string[] = [];
+  // Keep generated links available for retry. Another reviewed email may already
+  // have reused one; failed preparation must never revoke that customer access.
   const deliveryTokens: {kind:string;id:string}[] = [];
   const linkedQuotes: { quote: (typeof quotes)[number]; portalUrl: string }[] = [];
   for (const quote of quotes) {
     const token = await createOrGetQuotePortalTokenRecord({ quoteId: quote.id, supabase: auth.supabase });
     if (token.error) {
-      await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
       return { status: "error", message: token.error };
     }
-    if (token.created) createdTokenIds.push(token.tokenId);
     deliveryTokens.push({kind:"quote",id:token.tokenId});
     try {
       linkedQuotes.push({ quote, portalUrl: await getPortalUrl("quote", token.rawToken) });
     } catch {
-      await revokeNewQuoteTokens(auth.supabase, createdTokenIds);
       return { status: "error", message: "The secure customer link could not be built. Verify APP_BASE_URL before sending." };
     }
   }
@@ -508,14 +506,6 @@ function readCcRecipients(formData: FormData, primaryRecipient: string): { recip
 
 function multiQuoteDraftFieldLabel(field: keyof MultiQuoteEmailEdits) {
   return { subject: "Email subject", greeting: "Greeting", intro: "Introduction", closing: "Closing" }[field];
-}
-
-async function revokeNewQuoteTokens(
-  supabase: Parameters<typeof createOrGetQuotePortalTokenRecord>[0]["supabase"],
-  tokenIds: string[],
-) {
-  if (!tokenIds.length) return;
-  await supabase.from("quote_portal_tokens").update({ revoked_at: new Date().toISOString() }).in("id", tokenIds);
 }
 
 function normalizeDraftText(value: string) {

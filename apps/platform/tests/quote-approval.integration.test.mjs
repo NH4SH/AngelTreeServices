@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -8,12 +9,13 @@ const enabled = process.env.QUOTE_APPROVAL_DISPOSABLE_STACK === "1" && Boolean(p
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 test("Atomic quote approval with real local Auth, RLS and concurrent transactions", { skip: !enabled, timeout: 240000 }, async t => {
   const c = JSON.parse(readFileSync(process.env.QUOTE_APPROVAL_LOCAL_STATUS_FILE, "utf8"));
-  assert.equal(c.API_URL, "http://127.0.0.1:54321");
-  assert.equal(process.env.QUOTE_APPROVAL_WEB_URL, "http://127.0.0.1:3102");
+  const target=localPaymentTarget(c);
+  assert.equal(c.API_URL,target.api);
+  assert.equal(process.env.QUOTE_APPROVAL_WEB_URL,target.web);
   assert.match(process.env.DOCKER_HOST ?? "", /^unix:\/\//);
   const docker = process.env.QUOTE_APPROVAL_DOCKER_BIN;
   assert.ok(docker);
-  const base = ["exec", "-i", "supabase_db_ats_pr02_disposable", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
+  const base = ["exec", "-i", target.container, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
   function sql(source) {
     return new Promise((resolve, reject) => {
       const p = spawn(docker, base, { env: process.env }); let out = "", err = "";

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { forgetQuoteLinkBatchAttempt, prepareQuoteLinkBatchAttempt, readQuoteLinkBatchAttempt, type QuoteLinkBatchAttempt } from "@/lib/portal/quote-link-attempt";
+function storage() { try { return window.sessionStorage; } catch { return null; } }
 import { AdditionalEmailOption } from "@/components/additional-email-option";
 import { AlertTriangle, Mail, Monitor, RefreshCw, RotateCcw, Send, Smartphone } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,7 +15,6 @@ import {
 import { sendMultiQuoteEmail, type TransactionalEmailActionState } from "@/lib/actions/transactional-email";
 import {
   applyMultiQuoteEmailEdits,
-  applyMultiQuotePortalUrls,
   type MultiQuoteEmailDraft,
   type MultiQuoteEmailEdits,
 } from "@/lib/quotes/multi-email";
@@ -29,6 +31,7 @@ export function MultiQuoteEmailComposer({
   attemptId,
   draft,
   legacyQuoteIds,
+  linkVersions,
   partyName,
   quoteIds,
   recipient,
@@ -36,6 +39,7 @@ export function MultiQuoteEmailComposer({
   attemptId: string;
   draft: MultiQuoteEmailDraft;
   legacyQuoteIds: string[];
+  linkVersions: Record<string, string>;
   partyName: string;
   quoteIds: string[];
   recipient: string;
@@ -45,41 +49,40 @@ export function MultiQuoteEmailComposer({
     return sendMultiQuoteEmail(previous, form);
   }, initialState);
   useEffect(()=>{if(state.deliveryState==="accepted"||state.deliveryState==="unknown")setAdditionalCopy(false);},[state]);
-  const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(
-    regenerateLegacyQuotePortalLinksForEmail,
-    initialRecoveryState,
-  );
+  const router = useRouter(), attemptRef = useRef<QuoteLinkBatchAttempt | undefined>(undefined);
+  const [attempt, setAttempt] = useState<QuoteLinkBatchAttempt | undefined>(undefined), [restored, setRestored] = useState(false);
+  const selectionKey = [...quoteIds].sort().join(",");
+  useEffect(() => { const saved = readQuoteLinkBatchAttempt(quoteIds, storage()); attemptRef.current = saved; setAttempt(saved); setRestored(true); }, [selectionKey]);
+  const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(async (previous: MultiQuotePortalRecoveryState, form: FormData): Promise<MultiQuotePortalRecoveryState> => {
+    if (previous.reviewRequired) return previous;
+    const saved = prepareQuoteLinkBatchAttempt(quoteIds, legacyQuoteIds.map(id => ({ id, version: linkVersions[id] })), storage(), attemptRef.current);
+    attemptRef.current = saved; setAttempt(saved);
+    form.set("request_id", saved.requestId); form.set("link_selection", JSON.stringify(saved.selection));
+    quoteIds.forEach(id => form.append("selected_quote_id", id));
+    const result = await regenerateLegacyQuotePortalLinksForEmail(previous, form);
+    if (result.status === "success" || result.saveRejected) { forgetQuoteLinkBatchAttempt(quoteIds, storage()); attemptRef.current = undefined; setAttempt(undefined); }
+    return result;
+  }, initialRecoveryState);
+  useEffect(() => { if (recoveryState.saveDestination) { router.push(recoveryState.saveDestination); router.refresh(); } }, [recoveryState.saveDestination, router]);
   const initialEdits = useMemo(() => draftEdits(draft), [draft]);
   const [edits, setEdits] = useState<MultiQuoteEmailEdits>(initialEdits);
-  const [replacementUrls, setReplacementUrls] = useState<Record<string, string>>({});
   const [previewMode, setPreviewMode] = useState<"html" | "text">("html");
   const [viewportMode, setViewportMode] = useState<"desktop" | "mobile">("desktop");
-  const previewDraft = applyMultiQuotePortalUrls(draft, replacementUrls);
-  const preview = applyMultiQuoteEmailEdits(previewDraft, edits);
   const sent = state.status === "success" || state.deliveryState === "accepted";
   const needsReview = state.deliveryState === "unknown";
-  const unresolvedLegacyQuoteIds = legacyQuoteIds.filter((quoteId) => !replacementUrls[quoteId]);
+  const unresolvedLegacyQuoteIds = legacyQuoteIds;
   const replacementRequired = unresolvedLegacyQuoteIds.length > 0;
-  const sendBlocked = pending || ((sent || needsReview) && !additionalCopy) || recoveryPending || replacementRequired;
-
-  useEffect(() => {
-    if (Object.keys(recoveryState.portalUrls).length === 0) return;
-    setReplacementUrls((current) => ({ ...current, ...recoveryState.portalUrls }));
-  }, [recoveryState.portalUrls]);
+  const refreshing = Boolean(recoveryState.savedVersions && Object.entries(recoveryState.savedVersions).some(([id, version]) => linkVersions[id] !== version));
+  const sendBlocked = pending || ((sent || needsReview) && !additionalCopy) || !restored || Boolean(attempt) || Boolean(recoveryState.reviewRequired) || refreshing || recoveryPending || replacementRequired;
+  const preview = applyMultiQuoteEmailEdits(attempt || recoveryPending || recoveryState.reviewRequired || refreshing ? { ...draft, items: draft.items.map(item => ({ ...item, portalUrl: "" })) } : draft, edits);
 
   function update<K extends keyof MultiQuoteEmailEdits>(key: K, value: MultiQuoteEmailEdits[K]) {
     setEdits((current) => ({ ...current, [key]: value }));
   }
 
   function replaceLegacyLinks() {
-    const proposalLabel = unresolvedLegacyQuoteIds.length === 1 ? "proposal" : "proposals";
-    if (!window.confirm(`Replace the older customer ${proposalLabel === "proposal" ? "link" : "links"}? Previously sent URLs for the affected ${proposalLabel} will stop working.`)) {
-      return;
-    }
-
-    const formData = new FormData();
-    unresolvedLegacyQuoteIds.forEach((quoteId) => formData.append("quote_id", quoteId));
-    void recoveryAction(formData);
+    if (!attemptRef.current && !window.confirm("Replace the older customer links? Previously sent URLs for the affected proposals will stop working. No email is sent automatically.")) return;
+    void recoveryAction(new FormData());
   }
 
   return (
@@ -96,23 +99,24 @@ export function MultiQuoteEmailComposer({
         </button>
       </header>
 
-      {replacementRequired ? (
+      {replacementRequired || attempt ? (
         <section className="email-portal-recovery-notice" role="alert">
           <AlertTriangle aria-hidden="true" size={21} />
           <div>
-            <strong>{unresolvedLegacyQuoteIds.length} older customer {unresolvedLegacyQuoteIds.length === 1 ? "link needs" : "links need"} replacement</strong>
+            <strong>{attempt ? "Check your earlier link replacements" : `${unresolvedLegacyQuoteIds.length} older customer ${unresolvedLegacyQuoteIds.length === 1 ? "link needs" : "links need"} replacement`}</strong>
             <p>The affected proposals predate secure link recovery. Replacing their links will disable those previous customer URLs and keep this combined email workflow open.</p>
             {recoveryState.message ? <p className={`form-message ${recoveryState.status}`}>{recoveryState.message}</p> : null}
           </div>
-          <button className="secondary-action" disabled={recoveryPending} onClick={replaceLegacyLinks} type="button">
+          <button className="secondary-action" disabled={!restored || recoveryPending || refreshing || recoveryState.reviewRequired} onClick={replaceLegacyLinks} type="button">
             <RefreshCw aria-hidden="true" size={17} />
-            {recoveryPending ? "Regenerating..." : "Regenerate links and continue"}
+            {recoveryPending ? "Checking links..." : attempt ? "Check earlier link action" : "Regenerate links and continue"}
           </button>
         </section>
       ) : recoveryState.message ? (
         <p className={`form-message ${recoveryState.status}`} role={recoveryState.status === "error" ? "alert" : "status"}>{recoveryState.message}</p>
       ) : null}
 
+      {recoveryState.reviewRequired || refreshing ? <a className="text-link" href={`/admin/quotes/email?${quoteIds.map(id => `quote_id=${id}`).join("&")}`}>Reload current proposal links</a> : null}
       <form
         className="customer-email-composer-form"
         id="multi-quote-email-form"

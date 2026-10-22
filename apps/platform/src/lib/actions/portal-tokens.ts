@@ -1,171 +1,57 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
 import { approveQuoteWithPortalToken } from "@/lib/quotes/workflow";
 import { requestQuoteChanges } from "@/lib/quotes/change-request";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import {
-  createNewQuotePortalTokenRecord,
-  createOrGetQuotePortalTokenRecord,
-  getActiveQuotePortalTokens,
-  LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
-} from "@/lib/portal/quote-links";
+import { performQuoteLinkCommand } from "@/lib/portal/quote-link-command";
+import { performQuoteLinkBatchCommand } from "@/lib/portal/quote-link-batch";
+import { parseQuoteLinkSelection } from "@/lib/portal/quote-link-attempt";
 import { hashPortalToken } from "@/lib/portal/tokens";
-import { getPortalUrl } from "@/lib/portal/urls";
-import { normalizeMultiQuoteIds } from "@/lib/quotes/multi-email";
 import type { QuoteStatus } from "@/lib/types/database";
 import { checkPortalActionRateLimit } from "@/lib/security/portal-rate-limit";
 import { safeStaffMessage } from "@/lib/security/errors";
 import { deliverCustomerSourceEvent } from "@/lib/notifications/source-events";
 
-export type PortalTokenActionState = {
-  ok: boolean;
-  status: string;
-  message: string;
-  portalUrl?: string;
-  expiresAt?: string;
-  reusedExisting?: boolean;
-  requestRejected?: boolean;
-};
-
-export type MultiQuotePortalRecoveryState = {
-  message: string;
-  ok: boolean;
-  portalUrls: Record<string, string>;
-  status: "idle" | "success" | "error";
-};
-
-function getString(formData: FormData, key: string) {
-  return String(formData.get(key) ?? "").trim();
+export type PortalTokenActionState = { ok: boolean; status: string; message: string; requestRejected?: boolean;
+  saveRejected?: boolean; reviewRequired?: boolean; savedLinkVersion?: string; saveDestination?: string };
+export type MultiQuotePortalRecoveryState = { ok: boolean; status: "idle" | "success" | "error"; message: string; portalUrls: Record<string,string>;
+  saveRejected?: boolean; reviewRequired?: boolean; savedVersions?: Record<string,string>; saveDestination?: string };
+function getString(form: FormData,key: string) { return String(form.get(key) ?? "").trim(); }
+const uuid = (v: string) => /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
+export async function createQuotePortalLink(_previous: PortalTokenActionState,form: FormData): Promise<PortalTokenActionState> { return manageQuoteLink(form,"generate"); }
+export async function regenerateQuotePortalLink(_previous: PortalTokenActionState,form: FormData): Promise<PortalTokenActionState> { return manageQuoteLink(form,"regenerate"); }
+export async function revokeQuotePortalLink(_previous: PortalTokenActionState,form: FormData): Promise<PortalTokenActionState> { return manageQuoteLink(form,"revoke"); }
+async function manageQuoteLink(form: FormData,intent: "generate" | "regenerate" | "revoke"): Promise<PortalTokenActionState> {
+  const auth = await requireQuoteLinkRegenerator(); if(auth.error) return {...auth.error,saveRejected:true};
+  const id=getString(form,"quote_id"),requestId=getString(form,"request_id"),version=getString(form,"expected_version"),tokenId=getString(form,"token_id")||null;
+  if(!uuid(id)||!uuid(requestId)||!/^[a-f0-9]{64}$/.test(version)||(intent==="revoke"?!tokenId||!uuid(tokenId):tokenId!==null))
+    return {ok:false,status:"error",message:"Reload the proposal before changing its customer link.",saveRejected:true,reviewRequired:true};
+  const {data,error}=await performQuoteLinkCommand({quoteId:id,requestId,version,intent,tokenId,supabase:auth.supabase});
+  if(error||!data)return quoteLinkFailure(error);
+  revalidatePath(`/admin/quotes/${id}`);
+  const messages:Record<string,string>={created:"Secure proposal link generated.",reused:"Existing proposal link reused.",regenerated:"Proposal link regenerated. Previous links are disabled.",revoked:"Selected proposal link revoked."};
+  return {ok:true,status:"success",message:data.replayed?"Your earlier link action is confirmed. Review the current proposal links.":messages[data.outcome],savedLinkVersion:data.current_link_version,saveDestination:`/admin/quotes/${id}?link_action=${requestId}`};
 }
-
-export async function createQuotePortalLink(
-  _previousState: PortalTokenActionState,
-  formData: FormData,
-): Promise<PortalTokenActionState> {
-  const supabase = await createClient();
-
-  if (!supabase) {
-    return { ok: false, status: "error", message: "Supabase is not configured." };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, status: "error", message: "Sign in before generating customer links." };
-  }
-
-  const quoteId = getString(formData, "quote_id");
-  const { data: quote, error: quoteError } = await supabase
-    .from("quotes")
-    .select("id, customer_id, organization_id")
-    .eq("id", quoteId)
-    .single();
-
-  if (quoteError || !quote) {
-    console.error("Quote portal link quote lookup failed", quoteError);
-    return { ok: false, status: "error", message: quoteError?.message ?? "Quote not found or no access." };
-  }
-
-  const tokenRecord = await createOrGetQuotePortalTokenRecord({ quoteId: quote.id, supabase });
-
-  if (tokenRecord.error) {
-    return { ok: false, status: "error", message: tokenRecord.error };
-  }
-
-  if (tokenRecord.created) {
-    await recordActivity(supabase, {
-      actorUserId: user.id,
-      eventType: "quote_portal_link_generated",
-      subjectId: quote.id,
-      subjectType: "quote",
-    });
-  }
-
-  revalidatePath(`/admin/quotes/${quote.id}`);
-
-  return {
-    ok: true,
-    status: "success",
-    message: "Customer link ready.",
-    portalUrl: await getPortalUrl("quote", tokenRecord.rawToken),
-    expiresAt: tokenRecord.expiresAt,
-    reusedExisting: !tokenRecord.created,
-  };
+function quoteLinkFailure(error: {code?:string;message:string}|null): PortalTokenActionState {
+  const rejected=["PT409","40001","22023","22P02","22003","23503","23514","42501"].includes(error?.code??"");
+  return {ok:false,status:"error",message:rejected?safeStaffMessage(error?.message??"Review the current proposal links."):"The proposal-link action could not be confirmed. Check the earlier action here safely.",saveRejected:rejected,reviewRequired:rejected};
 }
-
-export async function regenerateQuotePortalLink(
-  _previousState: PortalTokenActionState,
-  formData: FormData,
-): Promise<PortalTokenActionState> {
-  const auth = await requireQuoteLinkRegenerator();
-  if (auth.error) return auth.error;
-
-  const quoteId = getString(formData, "quote_id");
-  const result = await regenerateQuotePortalLinkForUser(auth.supabase, auth.userId, quoteId);
-  if (result.ok) revalidatePath(`/admin/quotes/${quoteId}`);
-  return result;
-}
-
-export async function regenerateLegacyQuotePortalLinksForEmail(
-  _previousState: MultiQuotePortalRecoveryState,
-  formData: FormData,
-): Promise<MultiQuotePortalRecoveryState> {
-  const quoteIds = normalizeMultiQuoteIds(formData.getAll("quote_id").map(String), 25);
-  if (quoteIds.length === 0) {
-    return { message: "No proposal links need replacement.", ok: false, portalUrls: {}, status: "error" };
-  }
-
-  const auth = await requireQuoteLinkRegenerator();
-  if (auth.error) {
-    return { message: auth.error.message, ok: false, portalUrls: {}, status: "error" };
-  }
-
-  const portalUrls: Record<string, string> = {};
-  for (const quoteId of quoteIds) {
-    const currentToken = await createOrGetQuotePortalTokenRecord({ quoteId, supabase: auth.supabase });
-    if (!currentToken.error) {
-      portalUrls[quoteId] = await getPortalUrl("quote", currentToken.rawToken);
-      if (currentToken.created) {
-        await recordActivity(auth.supabase, {
-          actorUserId: auth.userId,
-          eventType: "quote_portal_link_generated",
-          subjectId: quoteId,
-          subjectType: "quote",
-        });
-        revalidatePath(`/admin/quotes/${quoteId}`);
-      }
-      continue;
-    }
-
-    if (currentToken.error !== LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR) {
-      return { message: currentToken.error, ok: false, portalUrls, status: "error" };
-    }
-
-    const result = await regenerateQuotePortalLinkForUser(auth.supabase, auth.userId, quoteId);
-    if (!result.ok || !result.portalUrl) {
-      return { message: result.message, ok: false, portalUrls, status: "error" };
-    }
-
-    portalUrls[quoteId] = result.portalUrl;
-    revalidatePath(`/admin/quotes/${quoteId}`);
-  }
-
-  revalidatePath("/admin/quotes/email");
-  return {
-    message: quoteIds.length === 1
-      ? "Replacement link ready. You can continue sending this proposal."
-      : `${quoteIds.length} replacement links are ready. You can continue sending these proposals.`,
-    ok: true,
-    portalUrls,
-    status: "success",
-  };
+export async function regenerateLegacyQuotePortalLinksForEmail(_previous: MultiQuotePortalRecoveryState,form: FormData): Promise<MultiQuotePortalRecoveryState> {
+  const auth=await requireQuoteLinkRegenerator();if(auth.error)return {...auth.error,status:"error",portalUrls:{},saveRejected:true};
+  const requestId=getString(form,"request_id");let selection;
+  try { selection=parseQuoteLinkSelection(JSON.parse(getString(form,"link_selection"))); } catch { /* Reload rather than guessing newer links. */ }
+  if(!uuid(requestId)||!selection)return {ok:false,status:"error",message:"Reload the selected proposals before replacing their older links.",portalUrls:{},saveRejected:true,reviewRequired:true};
+  const {data,error}=await performQuoteLinkBatchCommand({requestId,selection,supabase:auth.supabase});
+  if(error||!data)return {...quoteLinkFailure(error),status:"error",portalUrls:{}};
+  for(const entry of selection)revalidatePath(`/admin/quotes/${entry.id}`);revalidatePath("/admin/quotes/email");
+  const query=new URLSearchParams();for(const id of form.getAll("selected_quote_id").map(String).filter(uuid))query.append("quote_id",id);
+  if(!query.has("quote_id"))for(const entry of selection)query.append("quote_id",entry.id);
+  query.set("link_action",requestId);
+  return {ok:true,status:"success",portalUrls:{},message:data.replayed?"Your earlier link replacements are confirmed. Review the current proposals.":"Proposal links are ready. No email was sent.",savedVersions:data.versions,saveDestination:`/admin/quotes/email?${query}`};
 }
 
 async function requireQuoteLinkRegenerator() {
@@ -185,115 +71,6 @@ async function requireQuoteLinkRegenerator() {
   }
 
   return { error: null, supabase, userId: user.id };
-}
-
-async function regenerateQuotePortalLinkForUser(
-  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
-  userId: string,
-  quoteId: string,
-): Promise<PortalTokenActionState> {
-  const { data: quote, error: quoteError } = await supabase
-    .from("quotes")
-    .select("id, customer_id, organization_id")
-    .eq("id", quoteId)
-    .single();
-
-  if (quoteError || !quote) {
-    console.error("Quote portal link quote lookup failed", quoteError);
-    return { ok: false, status: "error", message: quoteError?.message ?? "Quote not found or no access." };
-  }
-
-  const activeTokenLookup = await getActiveQuotePortalTokens(supabase, quote.id);
-  if (activeTokenLookup.error) {
-    return { ok: false, status: "error", message: activeTokenLookup.error };
-  }
-
-  const tokenRecord = await createNewQuotePortalTokenRecord({
-    customerId: quote.customer_id,
-    organizationId: quote.organization_id,
-    quoteId: quote.id,
-    supabase,
-    userId,
-  });
-
-  if (tokenRecord.error || !tokenRecord.tokenId) {
-    return { ok: false, status: "error", message: tokenRecord.error ?? "Could not regenerate a secure quote token." };
-  }
-
-  const activeTokenIds = activeTokenLookup.tokens.map((token) => token.id);
-  if (activeTokenIds.length > 0) {
-    const { error: revokeError } = await supabase
-      .from("quote_portal_tokens")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("quote_id", quote.id)
-      .in("id", activeTokenIds);
-
-    if (revokeError) {
-      await supabase.from("quote_portal_tokens").update({ revoked_at: new Date().toISOString() }).eq("id", tokenRecord.tokenId);
-      console.error("Quote portal link regeneration revoke failed", revokeError);
-      return { ok: false, status: "error", message: "Could not regenerate the customer link. The previous link remains protected." };
-    }
-  }
-
-  await recordActivity(supabase, {
-    actorUserId: userId,
-    eventType: "quote_portal_link_regenerated",
-    subjectId: quote.id,
-    subjectType: "quote",
-  });
-
-  return {
-    ok: true,
-    status: "success",
-    message: activeTokenIds.length
-      ? "Secure customer quote link regenerated. The previous active link is now revoked."
-      : "Customer link ready.",
-    portalUrl: await getPortalUrl("quote", tokenRecord.rawToken),
-    expiresAt: tokenRecord.expiresAt,
-    reusedExisting: false,
-  };
-}
-
-export async function revokeQuotePortalLink(
-  _previousState: PortalTokenActionState,
-  formData: FormData,
-): Promise<PortalTokenActionState> {
-  const supabase = await createClient();
-
-  if (!supabase) {
-    return { ok: false, status: "error", message: "Supabase is not configured." };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, status: "error", message: "Sign in before revoking customer links." };
-  }
-
-  const tokenId = getString(formData, "token_id");
-  const quoteId = getString(formData, "quote_id");
-  const { error } = await supabase
-    .from("quote_portal_tokens")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", tokenId)
-    .eq("quote_id", quoteId);
-
-  if (error) {
-    console.error("Quote portal link revoke failed", error);
-    return { ok: false, status: "error", message: "Could not revoke the customer link. Please try again." };
-  }
-
-  await recordActivity(supabase, {
-    actorUserId: user.id,
-    eventType: "quote_portal_link_revoked",
-    subjectId: quoteId,
-    subjectType: "quote",
-  });
-
-  revalidatePath(`/admin/quotes/${quoteId}`);
-  return { ok: true, status: "success", message: "Secure customer quote link revoked." };
 }
 
 export async function approveQuoteByPortalToken(

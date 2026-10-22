@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "29f458f3dd4f249b37b1b92f8a37e5f18095ced3c79adeda3c8e617af226a541",
+  "typesSha256": "e1daae8e1998a44017de994140d6e4e8df4c9a3951041667486b426fddb3f062",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -457,6 +457,10 @@
     {
       "name": "20261022183123_atomic_invoice_portal_links.sql",
       "sha256": "2cd37902e08ebc6b8203ec3059a775cea6c45d51627b7ac7d880d0edda597840"
+    },
+    {
+      "name": "20261022185403_atomic_quote_portal_links.sql",
+      "sha256": "44649ff3f2459d9a3151fece1d8e02e4680de534cc9dc9b8846a50f760113609"
     }
   ]
 }

@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import type { ChangeEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
-import { usePortalLinkAction } from "@/components/use-portal-link-action";
+import { forgetQuoteLinkAttempt, prepareQuoteLinkAttempt, readQuoteLinkAttempt, type QuoteLinkAttempt } from "@/lib/portal/quote-link-attempt";
+function linkStorage() { try { return window.sessionStorage; } catch { return null; } }
 import { regenerateQuotePortalLink, type PortalTokenActionState } from "@/lib/actions/portal-tokens";
 import {
   sendInvoiceEmail,
@@ -47,45 +48,56 @@ export function SendQuoteEmailForm({
   draft,
   portalUrl,
   portalLinkState = "none",
+  linkVersion,
   quoteId,
   recipient,
-}: ComposerProps & { portalLinkState?: QuoteEmailPortalLinkState; quoteId: string }) {
+}: ComposerProps & { portalLinkState?: QuoteEmailPortalLinkState; linkVersion: string | null; quoteId: string }) {
   const attemptRef = useRef("");
   const [state, formAction, pending] = useReliableActionState(async (previous: TransactionalEmailActionState, form: FormData) => {
     attemptRef.current ||= crypto.randomUUID();
     form.set("email_attempt_id", attemptRef.current);
     return sendQuoteEmail(previous, form);
   }, initialState);
-  const regeneration = usePortalLinkAction(regenerateQuotePortalLink, initialPortalLinkState);
-  const resolvedPortalUrl = regeneration.state.portalUrl ?? portalUrl;
-  const replacementRequired = portalLinkState === "legacy_unrecoverable" && !resolvedPortalUrl;
-
+  const router = useRouter(), linkAttemptRef = useRef<QuoteLinkAttempt | undefined>(undefined);
+  const [linkAttempt, setLinkAttempt] = useState<QuoteLinkAttempt | undefined>(undefined), [restored, setRestored] = useState(false);
+  useEffect(() => { const saved = readQuoteLinkAttempt(quoteId, linkStorage()); linkAttemptRef.current = saved; setLinkAttempt(saved); setRestored(true); }, [quoteId]);
+  const [recoveryState, recoveryAction, recoveryPending] = useReliableActionState(async (previous: PortalTokenActionState, form: FormData): Promise<PortalTokenActionState> => {
+    if (previous.reviewRequired) return previous;
+    const saved = prepareQuoteLinkAttempt(quoteId, linkVersion ?? "", "regenerate", null, linkStorage(), linkAttemptRef.current);
+    linkAttemptRef.current = saved.attempt; setLinkAttempt(saved.attempt);
+    if (saved.blocked) return { ok: false, status: "error", message: "Check the earlier action in the customer link panel before continuing.", reviewRequired: true };
+    form.set("quote_id", quoteId); form.set("request_id", saved.attempt.requestId); form.set("expected_version", saved.attempt.version);
+    const result = await regenerateQuotePortalLink(previous, form);
+    if (result.status === "success" || result.saveRejected) { forgetQuoteLinkAttempt(quoteId, linkStorage()); linkAttemptRef.current = undefined; setLinkAttempt(undefined); }
+    return result;
+  }, initialPortalLinkState);
+  useEffect(() => { if (recoveryState.saveDestination) { router.push(recoveryState.saveDestination); router.refresh(); } }, [recoveryState.saveDestination, router]);
+  const replacementRequired = portalLinkState === "legacy_unrecoverable" && !portalUrl;
+  const refreshing = Boolean(recoveryState.saveDestination && recoveryState.savedLinkVersion !== linkVersion);
+  const linkBlocked = !restored || Boolean(linkAttempt) || recoveryPending || Boolean(recoveryState.reviewRequired) || refreshing;
   function regenerateLegacyLink() {
-    if (!window.confirm("Replace this older customer link? The previous URL will stop working, and a new secure link will be used for this email.")) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("quote_id", quoteId);
-    void regeneration.submit(formData);
+    if (!linkAttemptRef.current && !window.confirm("Replace this older customer link? The previous URL will stop working. No email is sent automatically.")) return;
+    void recoveryAction(new FormData());
   }
 
   return (
     <CustomerDocumentEmailComposer
-      disabled={disabled}
+      disabled={disabled || linkBlocked}
       documentHref={documentHref}
       draft={draft}
       formAction={formAction}
       hiddenField={<input name="quote_id" type="hidden" value={quoteId} />}
       pending={pending}
       portalLinkRecovery={{
-        message: regeneration.state.message,
+        message: recoveryState.message,
         onRegenerate: regenerateLegacyLink,
-        pending: regeneration.pending,
-        required: replacementRequired,
-        status: regeneration.state.status,
+        pending: recoveryPending || !restored || refreshing || Boolean(recoveryState.reviewRequired),
+        required: replacementRequired || Boolean(linkAttempt) || Boolean(recoveryState.reviewRequired),
+        retry: Boolean(linkAttempt),
+        reviewHref: recoveryState.reviewRequired || refreshing ? `/admin/quotes/${quoteId}` : undefined,
+        status: recoveryState.status,
       }}
-      portalUrl={resolvedPortalUrl}
+      portalUrl={linkBlocked ? "" : portalUrl}
       recipient={recipient}
       state={state}
     />
@@ -141,6 +153,8 @@ function CustomerDocumentEmailComposer({
     onRegenerate: () => void;
     pending: boolean;
     required: boolean;
+    retry?: boolean;
+    reviewHref?: string;
     status: string;
   };
   state: TransactionalEmailActionState;
@@ -236,7 +250,7 @@ function CustomerDocumentEmailComposer({
         <section className="email-portal-recovery-notice" role="alert">
           <AlertTriangle aria-hidden="true" size={21} />
           <div>
-            <strong>Older customer link needs replacement</strong>
+            <strong>{portalLinkRecovery.retry ? "Check your earlier link action" : "Customer link needs review"}</strong>
             <p>This proposal has an active link that predates secure link recovery. Replacing it will disable the previous customer URL and create a new secure link for this email.</p>
             {portalLinkRecovery.message ? (
               <p className={`form-message ${portalLinkRecovery.status}`} role={portalLinkRecovery.status === "error" ? "alert" : "status"}>
@@ -246,7 +260,7 @@ function CustomerDocumentEmailComposer({
           </div>
           <button className="secondary-action" disabled={portalLinkRecovery.pending} onClick={portalLinkRecovery.onRegenerate} type="button">
             <RefreshCw aria-hidden="true" size={17} />
-            {portalLinkRecovery.pending ? "Regenerating..." : "Regenerate link and continue"}
+            {portalLinkRecovery.pending ? "Checking link..." : portalLinkRecovery.retry ? "Check earlier link action" : "Regenerate link and continue"}
           </button>
         </section>
       ) : portalLinkRecovery?.message ? (
@@ -255,6 +269,7 @@ function CustomerDocumentEmailComposer({
         </p>
       ) : null}
 
+      {portalLinkRecovery?.reviewHref ? <a className="text-link" href={portalLinkRecovery.reviewHref}>Reload current proposal links</a> : null}
       <form
         className="customer-email-composer-form"
         id={formId}

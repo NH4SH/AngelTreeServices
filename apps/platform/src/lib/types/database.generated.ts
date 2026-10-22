@@ -15602,6 +15602,29 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "get_quote_link_batch_request": {
+                Args: {
+                    "p_entries": Json;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
+            "get_quote_link_request": {
+                Args: {
+                    "p_expected_version": string;
+                    "p_intent": string;
+                    "p_quote_id": string;
+                    "p_request_id": string;
+                    "p_token_id"?: string;
+                };
+                Returns: Json;
+            };
+            "get_quote_link_state": {
+                Args: {
+                    "p_quote_id": string;
+                };
+                Returns: Json;
+            };
             "get_recurring_review_runs": {
                 Args: Record<PropertyKey, never>;
                 Returns: Json;
@@ -15686,6 +15709,17 @@ export type Database = {
                     "p_expected_version": string;
                     "p_intent": string;
                     "p_invoice_id": string;
+                    "p_request_id": string;
+                    "p_token_id"?: string;
+                };
+                Returns: Json;
+            };
+            "manage_quote_portal_link": {
+                Args: {
+                    "p_candidate"?: Json;
+                    "p_expected_version": string;
+                    "p_intent": string;
+                    "p_quote_id": string;
                     "p_request_id": string;
                     "p_token_id"?: string;
                 };
@@ -15907,6 +15941,13 @@ export type Database = {
                     "first_view": boolean;
                     "recorded": boolean;
                 }[];
+            };
+            "recover_quote_portal_links": {
+                Args: {
+                    "p_entries": Json;
+                    "p_request_id": string;
+                };
+                Returns: Json;
             };
             "release_invoice_void": {
                 Args: {

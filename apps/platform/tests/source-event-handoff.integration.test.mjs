@@ -74,7 +74,7 @@ test('durable source handoff: actual transactions, capabilities, recovery and un
  });
  await run('the actual response server action forwards reviewed identity to one transaction and reuses the saved source on retry',async()=>{
   const co=await addition(),k=await token('change_order',co.id),request=randomUUID(),delivered=[],paths=[],calls=[];
-  const action=load('../src/lib/actions/change-orders.ts',{
+  const action=load('../src/lib/actions/change-orders.ts',{'@/lib/email/delivery-commands':{callDeliveryCommand},
    'next/cache':{revalidatePath:p=>paths.push(p)},'next/navigation':{},'@/lib/activity-log':{},'@/lib/auth/roles':{},
    '@/lib/data/change-orders':{getChangeOrderByPortalToken:async raw=>{assert.equal(raw,k.raw);return{status:'ready',changeOrder:await read('change_orders',co.id),tokenId:k.id};}},
    '@/lib/notifications/source-events':{deliverCustomerSourceEvent:async x=>delivered.push(x)},'@/lib/portal/tokens':{hashPortalToken:raw=>createHash('sha256').update(raw).digest('hex')},

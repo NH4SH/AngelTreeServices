@@ -1,4 +1,5 @@
 import "server-only";
+import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 
 import { decryptPortalToken, hashPortalToken } from "@/lib/portal/tokens";
 import { getPortalUrl } from "@/lib/portal/urls";
@@ -112,19 +113,18 @@ export async function getChangeOrderByPortalToken(rawToken: string) {
   if (!supabase) return portalFailure("configuration_required", "Secure change order links are not configured yet.");
   if (!tokenHash) return portalFailure("invalid", "This secure change order link is not valid.");
 
-  const { data: token, error: tokenError } = await supabase.from("change_order_portal_tokens")
-    .select("id, change_order_id, intended_contact_id, expires_at, revoked_at, viewed_at")
-    .eq("token_hash", tokenHash).maybeSingle();
-  if (tokenError || !token) return portalFailure("invalid", "This secure change order link is not valid.");
-  if (token.revoked_at) return portalFailure("revoked", "This secure change order link has been revoked. Please contact Angel Tree Services.");
-  if (token.expires_at && new Date(token.expires_at).getTime() <= Date.now()) return portalFailure("expired", "This secure change order link has expired. Please contact Angel Tree Services.");
+  const result = await callDeliveryCommand(supabase, "get_change_order_portal_review", { p_token_hash: tokenHash });
+  const document = result.data;
+  if (result.error) return portalFailure("configuration_required", "This secure change order is temporarily unavailable. Please try again shortly.");
+  if (!document || typeof document !== "object" || typeof document.review_hash !== "string" || !/^[a-f0-9]{64}$/.test(document.review_hash))
+    return portalFailure("invalid", "This secure change order link is unavailable. It may have expired or been replaced. Contact our office for a current link.");
+  // Preserve first-view telemetry without broadening the capability-scoped read.
+  await supabase.from("change_order_portal_tokens").update({ viewed_at: new Date().toISOString() })
+    .eq("token_hash", tokenHash).is("viewed_at", null).is("revoked_at", null);
+  return { status: "ready" as const, changeOrder: document as ChangeOrderWithRelations & { review_hash: string }, message: "" };
 
-  const { data, error } = await supabase.from("change_orders").select(changeOrderSelect).eq("id", token.change_order_id).maybeSingle();
-  if (error || !data) return portalFailure("invalid", "This change order is not available.");
-  if (!token.viewed_at) await supabase.from("change_order_portal_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", token.id);
-  return { status: "ready" as const, changeOrder: data as ChangeOrderWithRelations, tokenId: token.id as string, message: "" };
 }
 
 function portalFailure(status: "configuration_required" | "invalid" | "expired" | "revoked", message: string) {
-  return { status, changeOrder: null, tokenId: null, message };
+  return { status, changeOrder: null, message };
 }

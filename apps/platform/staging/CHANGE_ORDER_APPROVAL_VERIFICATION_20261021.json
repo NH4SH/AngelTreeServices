@@ -1,0 +1,75 @@
+{
+  "scope": "Change-order customer approval safety, retry recovery and secure-link states; local implementation plus staging-only migration",
+  "pushedAppointmentCommit": "896f0a898a4ff9498eb7e461f44d7ad385621bf4",
+  "alignedMainBase": "9b5c1276ac2119c492ec6b0834b80aed9ed93767",
+  "migration": {
+    "name": "20261022030436_bound_change_order_portal_approval.sql",
+    "sha256": "e5f8391c93b649242b7327b7c05c55f4865b98e92364656a8eb6941a121ecbc7"
+  },
+  "local": {
+    "passed": true,
+    "ledgerCount": 106,
+    "freshFullReplay": true,
+    "sqlAssertions": 34,
+    "concurrentScenarios": 5,
+    "migrationSha256": "e5f8391c93b649242b7327b7c05c55f4865b98e92364656a8eb6941a121ecbc7",
+    "crmChecksPassed": 2209,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "isolatedOptimizedBuildPassed": true,
+    "freshSchemaContractMatched": true,
+    "existingDevelopmentDatabaseReset": false,
+    "browser": {
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "screens": [
+        "sent/open",
+        "change_requested/waiting",
+        "invalid/unavailable"
+      ],
+      "horizontalOverflow": false,
+      "keyboardNameToApprovalButton": true,
+      "browserMutationSubmitted": false
+    },
+    "realProviderCalls": 0
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 106,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 34,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "newWarnings": 0,
+    "authenticatedCommandWarningsBefore": 62,
+    "authenticatedCommandWarningsAfter": 62,
+    "authPasswordWarningsBefore": 1,
+    "authPasswordWarningsAfter": 1,
+    "privateRlsInformationBefore": 32,
+    "privateRlsInformationAfter": 33,
+    "addedInformation": "app_private.change_order_approval_requests: deliberately denied private receipt table"
+  },
+  "hosted": {
+    "appDeployed": false,
+    "productionChanged": false,
+    "productionMigrationCount": 102,
+    "productionLastMigration": "20261021233829",
+    "publishedDeploysUnchanged": true,
+    "productionDeployId": "6ad95318d4baa154ecf3456a",
+    "stagingDeployId": "6ad93840ccebc7a5679b1b28"
+  },
+  "limitations": [
+    "Hosted staging UI remains on its prior app release; new UI verified locally only.",
+    "No actual customer/provider email, browser approval submission, real mailbox, PDF or physical device acceptance.",
+    "Office change-order editing still uses multiple requests; atomic draft saving is the next recommended priority."
+  ]
+}

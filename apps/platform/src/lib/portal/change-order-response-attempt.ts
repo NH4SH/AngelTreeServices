@@ -13,3 +13,13 @@ export async function prepareChangeOrderResponseAttempt(token:string,intent:stri
  return{key,attempt};
 }
 export function forgetChangeOrderResponseAttempt(key:string,storage:StorageLike|null){try{storage?.removeItem(key);}catch{/* No stored identity to clear. */}}
+
+export type ChangeOrderApprovalAttempt=ChangeOrderResponseAttempt & {reviewHash:string};
+export async function prepareChangeOrderApprovalAttempt(token:string,name:string,reviewedAt:string,reviewHash:string,storage:StorageLike|null,previous?:ChangeOrderApprovalAttempt){
+ const key='change-order-approval:'+await digest(token);let saved=previous;
+ if(!saved&&storage){try{const v=JSON.parse(storage.getItem(key)||'null');if(uuid(v?.requestId)&&/^[a-f0-9]{64}$/.test(v?.payloadHash)&&/^[a-f0-9]{64}$/.test(v?.reviewHash)&&typeof v?.reviewedAt==='string'&&Number.isFinite(Date.parse(v.reviewedAt)))saved=v;}catch{/* In-memory retry remains available. */}}
+ const payloadHash=await digest(name.trim());
+ const attempt=saved?.payloadHash===payloadHash?saved:{requestId:crypto.randomUUID(),payloadHash,reviewedAt:saved?.reviewedAt??reviewedAt,reviewHash:saved?.reviewHash??reviewHash};
+ try{storage?.setItem(key,JSON.stringify(attempt));}catch{/* Never store the capability or authorizing name. */}
+ return{key,attempt};
+}

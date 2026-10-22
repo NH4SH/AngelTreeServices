@@ -14967,6 +14967,16 @@ export type Database = {
                     "newly_approved": boolean;
                 }[];
             };
+            "approve_change_order_by_portal": {
+                Args: {
+                    "p_approver_name": string;
+                    "p_expected_updated_at": string;
+                    "p_request_id": string;
+                    "p_review_hash": string;
+                    "p_token_hash": string;
+                };
+                Returns: Json;
+            };
             "approve_quote": {
                 Args: {
                     "p_expected_revision": number;
@@ -15434,6 +15444,12 @@ export type Database = {
             };
             "get_calendar_operations": {
                 Args: Record<PropertyKey, never>;
+                Returns: Json;
+            };
+            "get_change_order_portal_review": {
+                Args: {
+                    "p_token_hash": string;
+                };
                 Returns: Json;
             };
             "get_crew_change_order_scope": {

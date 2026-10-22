@@ -1,5 +1,6 @@
 "use server";
 
+import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
@@ -315,29 +316,30 @@ export async function duplicateChangeOrder(_state: ChangeOrderActionState, formD
 export async function approveChangeOrderByPortal(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const rawToken = text(formData, "token", 300);
   const approverName = text(formData, "approver_name", 160);
+  const requestId = text(formData, "request_id", 80);
+  const expectedUpdatedAt = text(formData, "expected_updated_at", 80);
+  const reviewHash = text(formData, "review_hash", 80);
+  const tokenHash = hashPortalToken(rawToken);
+  if (!tokenHash || !isUuid(requestId) || !Number.isFinite(Date.parse(expectedUpdatedAt)) || !/^[a-f0-9]{64}$/.test(reviewHash) || !approverName)
+    return { ...failure("Refresh and review this additional work, then enter the name of the person authorizing it."), responseRejected: true };
   const rateLimit = await checkPortalActionRateLimit("change-order-approve", rawToken);
-  if (!rateLimit.available) return failure("Change-order responses are temporarily unavailable. Please try again shortly.");
+  if (!rateLimit.available) return failure("Change-order responses are temporarily unavailable. Your approval has not been confirmed.");
   if (!rateLimit.allowed) return failure("Please wait before submitting another response.");
-  const lookup = await getChangeOrderByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
-  if (!supabase || lookup.status !== "ready" || !lookup.changeOrder || !lookup.tokenId) return failure(lookup.message || "This change order link is unavailable.");
-  if (!approverName) return failure("Enter the name of the person authorizing this additional work.");
-  if (!["sent", "change_requested", "approved"].includes(lookup.changeOrder.status)) return failure("This change order is not open for approval.");
-  const { data, error } = await supabase.rpc("approve_change_order", {
-    p_change_order_id: lookup.changeOrder.id,
-    p_approved_by_contact_id: lookup.changeOrder.approval_contact_id,
-    p_approved_by_name: approverName,
-    p_approval_method: "portal",
-    p_approval_notes: null,
-    p_recorded_by_user_id: null,
-  } satisfies RpcCommandArgs<"approve_change_order">).single();
-  if (error || !data) return failure(error?.message ?? "Could not approve the change order.");
-  await supabase.from("change_order_portal_tokens").update({ used_at: new Date().toISOString() }).eq("id", lookup.tokenId);
-  await deliverCustomerSourceEvent({key: `change-order:${lookup.changeOrder.id}:portal-approved`});
+  if (!supabase) return failure("The approval could not be confirmed. Keep this page open and try again, or call our office.");
+  const { data, error } = await callDeliveryCommand(supabase, "approve_change_order_by_portal", {
+    p_request_id: requestId, p_token_hash: tokenHash, p_expected_updated_at: expectedUpdatedAt, p_review_hash: reviewHash, p_approver_name: approverName,
+  });
+  if (error) {
+    const rejected = ["22023", "PT409", "40001", "42501", "23514"].includes(error.code ?? "");
+    return { ...failure(rejected ? safeStaffMessage(error.message) : "The approval could not be confirmed. Keep this page open and retry the same approval, or call our office."), responseRejected: rejected };
+  }
+  if (!data || !isUuid(data.change_order_id) || !isUuid(data.job_id) || !isUuid(data.source_event_id) || typeof data.replayed !== "boolean" || typeof data.newly_approved !== "boolean")
+    return failure("The approval could not be confirmed. Keep this page open and retry the same approval, or call our office.");
+  await deliverCustomerSourceEvent({ id: data.source_event_id });
   revalidatePath(`/portal/change-order/${rawToken}`);
-  revalidateChangeOrderPaths(lookup.changeOrder.id, lookup.changeOrder.job_id, lookup.changeOrder.organization_id);
-  const result = data as { newly_approved: boolean };
-  return success(result.newly_approved ? "Additional work approved. Angel Tree Services will confirm any schedule impact." : "This additional work was already approved. No scope was duplicated.");
+  revalidateChangeOrderPaths(data.change_order_id, data.job_id, null);
+  return success(data.replayed ? "Your saved approval is confirmed. No additional scope was added again." : "Additional work approved. Angel Tree Services will confirm any schedule impact.");
 }
 
 export async function respondToChangeOrderByPortal(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
@@ -349,7 +351,7 @@ export async function respondToChangeOrderByPortal(_state: ChangeOrderActionStat
   if (!rateLimit.allowed) return failure("Please wait before submitting another response.");
   const lookup = await getChangeOrderByPortalToken(rawToken);
   const supabase = getServiceRoleClient();
-  if (!supabase || lookup.status !== "ready" || !lookup.changeOrder || !lookup.tokenId) return failure(lookup.message || "This change order link is unavailable.");
+  if (!supabase || lookup.status !== "ready" || !lookup.changeOrder) return failure(lookup.message || "This change order link is unavailable.");
   const tokenHash=hashPortalToken(rawToken);
   const requestId=text(formData,"request_id",80),expectedUpdatedAt=text(formData,"expected_updated_at",80);
   if(!tokenHash||!isUuid(requestId)||!expectedUpdatedAt)return failure("Refresh and review this addition before responding.");

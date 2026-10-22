@@ -2,13 +2,22 @@
 
 import { useRef } from "react";
 import {prepareChangeOrderResponseAttempt,forgetChangeOrderResponseAttempt,type ChangeOrderResponseAttempt} from "@/lib/portal/change-order-response-attempt";
+import {prepareChangeOrderApprovalAttempt,type ChangeOrderApprovalAttempt} from "@/lib/portal/change-order-response-attempt";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { CheckCircle2, MessageSquareText, XCircle } from "lucide-react";
 import { approveChangeOrderByPortal, respondToChangeOrderByPortal } from "@/lib/actions/change-orders";
 import { initialChangeOrderActionState } from "@/lib/action-states/change-orders";
 
-export function PortalChangeOrderActions({ token, expectedUpdatedAt }: { token: string; expectedUpdatedAt:string }) {
-  const [approvalState, approvalAction, approvalPending] = useReliableActionState(approveChangeOrderByPortal, initialChangeOrderActionState);
+export function PortalChangeOrderActions({ token, expectedUpdatedAt, reviewHash }: { token: string; expectedUpdatedAt:string; reviewHash:string }) {
+  const approvalRef=useRef<ChangeOrderApprovalAttempt|undefined>(undefined);
+  const [approvalState, approvalAction, approvalPending] = useReliableActionState(async(previous:typeof initialChangeOrderActionState,form:FormData)=>{
+    let storage:Storage|null=null;try{storage=window.sessionStorage;}catch{/* Page-local identity remains. */}
+    const {key,attempt}=await prepareChangeOrderApprovalAttempt(token,String(form.get("approver_name")??""),expectedUpdatedAt,reviewHash,storage,approvalRef.current);
+    approvalRef.current=attempt;form.set("request_id",attempt.requestId);form.set("expected_updated_at",attempt.reviewedAt);form.set("review_hash",attempt.reviewHash);
+    const result=await approveChangeOrderByPortal(previous,form);
+    if(result.status==="success"||result.responseRejected){forgetChangeOrderResponseAttempt(key,storage);approvalRef.current=undefined;}
+    return result;
+  }, initialChangeOrderActionState);
   const attemptRef=useRef<ChangeOrderResponseAttempt|undefined>(undefined);
   const [responseState, responseAction, responsePending] = useReliableActionState(async(previous:typeof initialChangeOrderActionState,form:FormData)=>{
     let storage:Storage|null=null;try{storage=window.sessionStorage;}catch{/* Page-local identity remains. */}
@@ -22,8 +31,8 @@ export function PortalChangeOrderActions({ token, expectedUpdatedAt }: { token: 
   return (
     <section className="customer-quote-actions">
       <div className="customer-quote-actions-intro"><p className="surface-label"><CheckCircle2 size={18} /> Your decision</p><h2>Authorize this additional work?</h2><p>Approval adds only this change-order scope to the work order. The original quote remains unchanged.</p></div>
-      <form action={approvalAction} className="crm-form"><input name="token" type="hidden" value={token} /><label>Name of person authorizing<input maxLength={160} name="approver_name" required /></label><button className="customer-approve-button" disabled={approvalPending || responsePending} type="submit"><CheckCircle2 size={20} />{approvalPending ? "Approving..." : "Approve additional work"}</button>{approvalState.message ? <p className="form-message error">{approvalState.message}</p> : null}</form>
-      <form method="post" action={responseAction} className="customer-change-form"><input name="token" type="hidden" value={token} /><label>Message<textarea maxLength={1000} name="message" placeholder="Tell us what should change, or why you are declining." rows={4} /></label><div className="customer-response-buttons"><button className="customer-secondary-button" disabled={approvalPending || responsePending} name="response_intent" type="submit" value="request_changes"><MessageSquareText size={18} /> Request changes</button><button className="customer-decline-button" disabled={approvalPending || responsePending} name="response_intent" type="submit" value="decline"><XCircle size={18} /> Decline</button></div>{responseState.message ? <p className={`form-message ${responseState.status}`}>{responseState.message}</p> : null}</form>
+      <form action={approvalAction} className="crm-form"><input name="token" type="hidden" value={token} /><label>Name of person authorizing<input maxLength={160} name="approver_name" required /></label><button className="customer-approve-button" disabled={approvalPending || responsePending} type="submit"><CheckCircle2 size={20} />{approvalPending ? "Approving..." : "Approve additional work"}</button>{approvalState.message ? <p className="form-message error" role="status">{approvalState.message}</p> : null}{approvalState.responseRejected ? <a href={`/portal/change-order/${token}`}>Refresh and review this addition</a> : null}</form>
+      <form action={responseAction} className="customer-change-form"><input name="token" type="hidden" value={token} /><label>Message<textarea maxLength={1000} name="message" placeholder="Tell us what should change, or why you are declining." rows={4} /></label><div className="customer-response-buttons"><button className="customer-secondary-button" disabled={approvalPending || responsePending} name="response_intent" type="submit" value="request_changes"><MessageSquareText size={18} /> Request changes</button><button className="customer-decline-button" disabled={approvalPending || responsePending} name="response_intent" type="submit" value="decline"><XCircle size={18} /> Decline</button></div>{responseState.message ? <p className={`form-message ${responseState.status}`} role="status">{responseState.message}</p> : null}</form>
     </section>
   );
 }

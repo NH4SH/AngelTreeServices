@@ -47,3 +47,12 @@ export function initialCustomerPaymentPreference(selected: CustomerPaymentPrefer
   if (selected === "card" && online && card) return selected;
   return online ? "ach" : "cash_check_pickup";
 }
+export function customerChangeOrderState(status: string, expiresAt?: string | null, now = Date.now()) {
+  if (status === "approved") return { canRespond: false, title: "Additional work approved", message: "Your approval is on file. Angel Tree Services will confirm any schedule or coordination changes." };
+  if (status === "change_requested") return { canRespond: false, title: "Changes under review", message: "Your requested changes are with our office. Please wait for an updated addition before approving the work." };
+  if (status === "declined") return { canRespond: false, title: "Additional work declined", message: "This additional work was declined. No further response is needed. Contact our office if you would like to discuss it." };
+  if (status === "cancelled") return { canRespond: false, title: "Additional work no longer active", message: "This addition has been cancelled. It does not change your original approved proposal. Contact our office with any questions." };
+  if (status === "expired" || (status === "sent" && expiresAt && Date.parse(expiresAt) <= now)) return { canRespond: false, title: "Additional-work offer expired", message: "This addition is no longer open for approval. Contact our office for a current version." };
+  if (status === "sent") return { canRespond: true, title: "Review this additional work", message: "The original approved quote remains unchanged. This page covers only the added or changed scope below." };
+  return { canRespond: false, title: "Not awaiting a response", message: "You can review this copy, but it is not open for approval. Contact our office for the current version." };
+}

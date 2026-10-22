@@ -127,7 +127,8 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
       </section>
 
       <section className="customer-invoice-document" id="invoice-details" aria-label="Full invoice and terms">
-        <InvoiceDocument invoice={invoice} />
+        {/* Keep the printable copy on the same verified balance as payment review. This is a read-only projection. */}
+        <InvoiceDocument invoice={{ ...invoice, balance_due_cents: amountDueCents }} />
       </section>
 
       <footer className="customer-portal-footer print-hidden">

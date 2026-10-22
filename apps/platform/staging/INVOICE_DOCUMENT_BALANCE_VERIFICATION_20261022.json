@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-22",
+  "scope": "Read-only customer invoice/print balance consistency",
+  "previousBatchPushed": "2f31094b5699fd3e8de4e478a0c3171bbb73c683",
+  "alignedMain": "7c22b44",
+  "newBatchPushed": false,
+  "schemaMigrationRequired": false,
+  "persistentDatabaseChanges": false,
+  "verification": {
+    "local": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 13,
+      "renderedCases": 13,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "staging": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 13,
+      "renderedCases": 13,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "productionChanged": false,
+    "sqlSha256": "fc2fa55fb3c739fa1096547a164441d8d2bf893fa7b4c2089992d63ab320fd56"
+  },
+  "checks": {
+    "crmPassed": 2315,
+    "crmFailed": 0,
+    "crmSkipped": 0,
+    "typecheckPassed": true,
+    "isolatedBuildPassed": true,
+    "lintScriptAvailable": false,
+    "sourceMatchesPreviewAndBuild": true,
+    "applicationSourceSha256": "7216be90a1524c2b16b4cce229568e45e629c05fc67ef0138d6f85fe364fe6c7",
+    "uiHookFindings": 0
+  },
+  "browser": {
+    "pages": [
+      {
+        "name": "partial",
+        "footer": "Balance due: $600.00",
+        "hero": "Balance due$600.00",
+        "scrollWidth": 1280,
+        "totals": "Subtotal$1,000.00Total$1,000.00Paid-$400.00Balance due$600.00",
+        "width": 1280
+      },
+      {
+        "name": "partial",
+        "footer": "Balance due: $600.00",
+        "hero": "Balance due$600.00",
+        "scrollWidth": 768,
+        "totals": "Subtotal$1,000.00Total$1,000.00Paid-$400.00Balance due$600.00",
+        "width": 768
+      },
+      {
+        "name": "partial",
+        "footer": "Balance due: $600.00",
+        "hero": "Balance due$600.00",
+        "scrollWidth": 390,
+        "totals": "Subtotal$1,000.00Total$1,000.00Paid-$400.00Balance due$600.00",
+        "width": 390
+      },
+      {
+        "name": "processing",
+        "chooserCount": 0,
+        "hero": "Balance awaiting payment confirmation$1,000.00",
+        "scrollWidth": 390,
+        "state": "Your bank payment is processingPlease do not submit another payment while this clears. Bank payments may take several business days. The balance updates after the payment is confirmed.Refresh payment status",
+        "totals": "Subtotal$1,000.00Total$1,000.00Balance due$1,000.00",
+        "width": 390
+      },
+      {
+        "name": "settled",
+        "hero": "Balance due$0.00",
+        "paymentRadioCount": 0,
+        "scrollWidth": 390,
+        "state": "Payment receivedThere is no remaining balance on this invoice. You can keep a copy for your records.",
+        "totals": "Subtotal$1,000.00Total$1,000.00Paid-$1,000.00Balance due$0.00",
+        "width": 390
+      }
+    ],
+    "logs": [],
+    "keyboardPrintFocus": true,
+    "businessActionsSubmitted": false,
+    "nativePdfPaginationTested": false
+  },
+  "securityAdvisors": {
+    "unchanged": true,
+    "groups": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33,
+        "level": "INFO"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 79,
+        "level": "WARN"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1,
+        "level": "WARN"
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "changed": false
+  },
+  "production": {
+    "writes": 0,
+    "appDeployed": false,
+    "providerCalls": 0,
+    "customerEmailsSent": 0
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true
+  }
+}

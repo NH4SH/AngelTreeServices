@@ -1,51 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
+import {harness,elements,text,InvoiceDocument,Chooser} from './customer-invoice-fixture.mjs';
 
-const require=createRequire(import.meta.url),ts=require('typescript');
-const jsx=require('react/jsx-runtime');
-function load(file,deps={}) {
- const source=readFileSync(new URL(file,import.meta.url),'utf8');
- const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- const module={exports:{}};
- new Function('require','module','exports',js)(name=>{assert.ok(name in deps,`Unexpected import ${name}`);return deps[name];},module,module.exports);
- return module.exports;
-}
-const states=load('../src/lib/portal/customer-states.ts');
-const InvoiceDocument=()=>null,Chooser=()=>null,Contact=()=>null;
-function harness({rate={available:true,allowed:true},invoice=true,client=true,receipt={error:null,totalCents:70000}}={}) {
- const calls=[],db={synthetic:true};
- const record={id:'00000000-0000-4000-8000-000000000001',invoice_number:'SYNTHETIC',status:'sent',total_cents:100000,payments:[{status:'succeeded',provider:'stripe',payment_method:'card',amount_cents:90000}],invoice_line_items:[],jobs:null};
- const page=load('../src/app/portal/invoice/[token]/page.tsx',{
-  'react/jsx-runtime':jsx,
-  'lucide-react':Object.fromEntries(['CalendarDays','CircleDollarSign','MapPin','ReceiptText','ShieldCheck'].map(k=>[k,()=>null])),
-  '@/components/documents/invoice-document':{InvoiceDocument},
-  '@/components/documents/print-button':{PrintButton:()=>null},
-  '@/components/invoice-portal-payment-button':{InvoicePortalPaymentChooser:Chooser},
-  '@/components/portal-contact':{PortalContact:Contact},
-  '@/components/portal-view-tracker':{PortalViewTracker:()=>null},
-  '@/lib/portal/customer-states':states,
-  '../../customer-clarity.css':{},
-  '@/lib/security/portal-rate-limit':{checkPortalPageRateLimit:async()=>{calls.push('rate');return rate;}},
-  '@/lib/data/portal-invoice':{getInvoiceByPortalToken:async()=>{calls.push('token');return{invoice:invoice?record:null,message:'Synthetic invalid capability'};}},
-  '@/lib/supabase/admin':{getServiceRoleClient:()=>{calls.push('client');return client?db:null;}},
-  '@/lib/payments/reconciliation':{getSuccessfulPaymentTotal:async(actual,id)=>{assert.equal(actual,db);assert.equal(id,record.id);calls.push('principal');return receipt;}},
-  '@/lib/business-time':{formatBusinessDateTime:()=> 'Synthetic date'},
-  '@/lib/invoices/status':{getInvoiceDisplayNumber:n=>n},
-  '@/lib/stripe/server':{getStripeServerConfig:()=>({configured:false})},
-  '@/lib/payments/payment-options':{getInvoicePaymentConfiguration:()=>({cardEnabled:false,businessCheckMailingAddress:null,stripePublishableKey:null,surchargeBps:300,surchargeEnabled:false})},
- }).default;
- return {calls,record,render:payment=>page({params:Promise.resolve({token:'synthetic-capability'}),searchParams:Promise.resolve({payment})})};
-}
-function elements(node) {
- if(Array.isArray(node))return node.flatMap(elements);
- return node&&typeof node==='object'&&'props'in node?[node,...elements(node.props.children)]:[];
-}
-function text(node) {
- if(Array.isArray(node))return node.map(text).join(' ');
- if(node&&typeof node==='object'&&'props'in node)return text(node.props.children);
- return typeof node==='string'||typeof node==='number'?String(node):'';
+// Evaluate these pure document components under the unit runner's react-server
+// condition. Actual React DOM rendering is covered by the SQL-backed suite.
+function expand(node){
+ if(Array.isArray(node))return node.map(expand);
+ if(node&&typeof node==='object'&&'props'in node){if(typeof node.type==='function')return expand(node.type(node.props));return{...node,props:{...node.props,children:expand(node.props.children)}};}
+ return node;
 }
 
 test('invoice balance and chooser use the complete checkout principal receipt rather than an embedded payment list',async()=>{
@@ -54,7 +16,8 @@ test('invoice balance and chooser use the complete checkout principal receipt ra
  const chooser=elements(view).find(e=>e.type===Chooser);
  assert.ok(chooser);assert.equal(chooser.props.amountDueCents,30000);
  assert.match(text(view),/\$300\.00/);assert.doesNotMatch(text(view),/\$100\.00/);
- assert.equal(elements(view).find(e=>e.type===InvoiceDocument).props.invoice,h.record);
+ const rendered=elements(view).find(e=>e.type===InvoiceDocument).props.invoice;
+ assert.equal(rendered.balance_due_cents,30000);assert.equal(rendered.id,h.record.id);assert.equal(h.record.balance_due_cents,0);assert.notEqual(rendered,h.record);
 });
 test('rate limits and invalid capabilities stop before privileged balance reads',async()=>{
  for(const [options,expected]of [[{rate:{available:false,allowed:false}},['rate']],[{rate:{available:true,allowed:false}},['rate']],[{invoice:false},['rate','token']]]){
@@ -74,4 +37,27 @@ test('a complete settled receipt and pending payments both prevent a second paym
  const settled=await paid.render('success');assert.match(text(settled),/Payment received/);assert.ok(!elements(settled).some(e=>e.type===Chooser));
  const pending=harness();pending.record.payments=[{status:'pending',provider:'stripe',payment_method:'ach'}];
  const processing=await pending.render('cancelled');assert.match(text(processing),/Your bank payment is processing/);assert.ok(!elements(processing).some(e=>e.type===Chooser));
+});
+
+test('the full printable document and payment review agree despite a stale stored balance',async()=>{
+ for(const c of [
+  {name:'unpaid',principal:0,due:100000,stored:0},
+  {name:'partial',principal:40000,due:60000,stored:100000},
+  {name:'refunded principal',principal:20000,due:80000,stored:60000},
+  {name:'lost dispute',principal:30000,due:70000,stored:60000},
+  {name:'settled',principal:100000,due:0,stored:100000,status:'paid'},
+  {name:'overpayment stays clamped',principal:120000,due:0,stored:100000},
+  {name:'pending is not received money',principal:0,due:100000,stored:0,payments:[{status:'pending',provider:'stripe',payment_method:'ach'}]},
+ ]){
+  const h=harness({receipt:{error:null,totalCents:c.principal},record:{balance_due_cents:c.stored,status:c.status??'sent',payments:c.payments??[]}});
+  const view=await h.render(),money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n/100);
+  const document=expand(elements(view).find(e=>e.type===InvoiceDocument)),nodes=elements(document);
+  const totals=nodes.find(e=>e.type==='dl'&&e.props.className?.includes('invoice-document-totals'));
+  assert.ok(totals,c.name);assert.ok(text(totals).includes('Balance due '+money(c.due)),c.name);
+  assert.ok(nodes.some(e=>e.type==='strong'&&text(e).replace(/\s+/g,' ')==='Balance due: '+money(c.due)),c.name);
+  const applied=Math.min(c.principal,100000);assert.equal(elements(totals).some(e=>e.type==='dt'&&text(e)==='Paid'),applied>0,c.name);
+  if(applied)assert.ok(text(totals).includes('Paid - '+money(applied)),c.name);
+  const chooser=elements(view).find(e=>e.type===Chooser);if(chooser)assert.equal(chooser.props.amountDueCents,c.due,c.name);
+  assert.equal(h.record.balance_due_cents,c.stored,'Rendering must not reconcile or mutate the invoice');
+ }
 });

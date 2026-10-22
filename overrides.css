@@ -2882,3 +2882,18 @@ body.ats-form-submitted .ats-form-success {
     margin-top: 4px;
   }
 }
+
+/* The contact block and urgent phone action share the mobile tap-area floor. */
+@media (max-width: 960px) {
+  #contact .fe-block-577c25637a863c64b65c :is(a[href^="tel:"], a[href^="mailto:"]),
+  #contact .ats-form-urgent a {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    max-width: 100%;
+    padding-block: 8px;
+    overflow-wrap: anywhere;
+  }
+}

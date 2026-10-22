@@ -2611,3 +2611,24 @@ body.ats-gallery-open {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Standalone mobile actions retain their type while gaining forgiving tap areas. */
+@media (max-width: 960px) {
+  .ats-page-footer a,
+  .ats-actions > .ats-estimate-link:not(.ats-button),
+  [data-gallery-estimate],
+  .ats-callout > p > .ats-estimate-link:only-child {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+    max-width: 100%;
+    padding-block: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .ats-page-footer li + li {
+    margin-top: 0;
+  }
+}

@@ -385,6 +385,20 @@ def page_document(page: dict) -> str:
     if landscaping:
         body_class = 'ats-landscaping-page'
         mobile_actions_script = '\n  <script src="/landscaping-mobile.js?v=1" defer></script>'
+    service_choices = ''
+    if page['path'] == '/services/':
+        body_class = 'ats-services-overview-page'
+        mobile_actions_script = '\n  <script src="/services-overview-mobile.js?v=1" defer></script>'
+        service_choices = '''
+          <nav class="ats-service-choices" aria-label="Explore tree services">
+            <ul>
+              <li><a href="/services/tree-removal/">Tree removal</a></li>
+              <li><a href="/services/tree-pruning/">Tree pruning</a></li>
+              <li><a href="/services/stump-grinding/">Stump grinding</a></li>
+              <li><a href="/services/emergency-tree-service/">Storm &amp; emergency</a></li>
+              <li><a href="/services/commercial-hoa-tree-care/">Commercial &amp; HOA</a></li>
+            </ul>
+          </nav>'''
     topics = """<nav class="ats-removal-topics" aria-label="On this page">
             <p>On this page</p>
             <ul>
@@ -471,7 +485,7 @@ def page_document(page: dict) -> str:
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
           {breadcrumbs(page)}
-          <h1>{html_text(page['h1'])}</h1>
+          <h1>{html_text(page['h1'])}</h1>{service_choices}
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust') if not page.get('firewood') else ''}
           {hero_action_block}{topics}

@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-.ats-landscaping-page .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2125,6 +2125,10 @@ body.ats-gallery-open {
 .ats-emergency-topics,
 .ats-commercial-topics,
 .ats-about-topics {
+  display: none;
+}
+
+.ats-service-choices {
   display: none;
 }
 
@@ -2446,6 +2450,93 @@ body.ats-gallery-open {
 
 /* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
+  body.ats-services-overview-page {
+    padding-bottom: calc(max(88px, var(--ats-services-overview-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-services-overview-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-services-overview-notice-bottom: max(84px, calc(var(--ats-services-overview-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-services-overview-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-services-overview-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-services-overview-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-services-overview-header-offset, 120px)));
+  }
+
+  .ats-services-overview-page .ats-page-hero {
+    padding-block: 36px 80px;
+  }
+
+  .ats-services-overview-page .ats-breadcrumbs {
+    margin-bottom: 18px;
+  }
+
+  .ats-services-overview-page .ats-page-hero__lead {
+    margin-top: 20px;
+  }
+
+  .ats-services-overview-page .ats-page-hero__trust {
+    margin-top: 16px;
+  }
+
+  .ats-services-overview-page .ats-actions {
+    margin-top: 24px;
+  }
+
+  .ats-services-overview-page .ats-service-choices {
+    display: block;
+    margin-top: 20px;
+  }
+
+  .ats-service-choices ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ats-service-choices li:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .ats-service-choices a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    color: var(--ats-white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-underline-offset: 4px;
+  }
+
+  .ats-service-choices a:focus-visible {
+    outline: 3px solid var(--ats-white);
+    outline-offset: 2px;
+  }
+
+  .ats-services-overview-page .ats-content-section {
+    padding-block: 48px;
+  }
+
+  .ats-services-overview-page .ats-final-cta {
+    padding: 48px 20px;
+  }
+
+  .ats-services-overview-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
   body.ats-landscaping-page {
     padding-bottom: calc(max(88px, var(--ats-landscaping-bar-space, 88px)) + env(safe-area-inset-bottom));
   }

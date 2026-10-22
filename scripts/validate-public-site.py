@@ -1569,6 +1569,7 @@ class Validator:
             self.site_dir / "commercial-hoa-mobile.js",
             self.site_dir / "about-mobile.js",
             self.site_dir / "landscaping-mobile.js",
+            self.site_dir / "services-overview-mobile.js",
             self.site_dir / "ats-website.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",

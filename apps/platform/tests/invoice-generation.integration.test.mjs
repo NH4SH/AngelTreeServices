@@ -9,7 +9,8 @@ const options = { auth: { persistSession: false, autoRefreshToken: false, detect
 test("PR04 atomic invoice generation with real local Auth, RLS and concurrent transactions", { skip: !enabled, timeout: 240000 }, async t => {
   const c = JSON.parse(readFileSync(process.env.PR04_LOCAL_STATUS_FILE, "utf8"));
   const isolated = process.env.PR04_LOCAL_ENV_FILE ? JSON.parse(readFileSync(process.env.PR04_LOCAL_ENV_FILE, "utf8")) : null;
-  if (isolated) { assert.equal(c.API_URL, "http://127.0.0.1:62421"); assert.match(isolated.container, /^supabase_db_ats_comanual_[a-f0-9]+$/); }
+  if (isolated?.projectId.startsWith("ats_coreview_")) { assert.equal(c.API_URL, "http://127.0.0.1:63421"); assert.match(isolated.container, /^supabase_db_ats_coreview_[a-f0-9]+$/); }
+  else if (isolated) { assert.equal(c.API_URL, "http://127.0.0.1:62421"); assert.match(isolated.container, /^supabase_db_ats_comanual_[a-f0-9]+$/); }
   else assert.equal(c.API_URL, "http://127.0.0.1:54321");
   assert.match(process.env.DOCKER_HOST ?? "", /^unix:\/\//);
   const docker = process.env.PR04_DOCKER_BIN;

@@ -86,26 +86,35 @@ async function saveChangeOrderDraft(formData: FormData, editing: boolean): Promi
 
 export async function updateChangeOrderWorkflow(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const intent = text(formData, "workflow_intent", 40);
-  const { data: current, error } = await auth.supabase.from("change_orders").select("id, job_id, organization_id, status").eq("id", id).single();
-  if (error || !current) return failure(error?.message ?? "Change order not found.");
-
-  const transitions: Record<string, { allowed: string[]; values: Record<string, unknown>; event: string; message: string }> = {
-    request_review: { allowed: ["draft", "change_requested"], values: { status: "pending_internal_review" }, event: "change_order_review_requested", message: "Change order sent for internal review." },
-    approve_internal: { allowed: ["draft", "pending_internal_review", "change_requested"], values: { status: "ready_to_send", internally_reviewed_at: new Date().toISOString(), internally_reviewed_by_user_id: auth.userId }, event: "change_order_internally_approved", message: "Change order is ready to send." },
-    return_clarification: { allowed: ["pending_internal_review", "ready_to_send"], values: { status: "draft", internally_reviewed_at: null, internally_reviewed_by_user_id: null }, event: "change_order_returned_for_clarification", message: "Change order returned to draft for clarification." },
-    cancel: { allowed: ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"], values: { status: "cancelled", cancelled_at: new Date().toISOString() }, event: "change_order_cancelled", message: "Change order cancelled." },
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = text(formData, "change_order_id", 80), requestId = text(formData, "request_id", 80), intent = text(formData, "workflow_intent", 40);
+  const rawRevision = String(formData.get("expected_revision") ?? ""), revision = Number(rawRevision);
+  const transitions: Record<string, { from: string[]; to: string; message: string }> = {
+    request_review: { from: ["draft", "change_requested"], to: "pending_internal_review", message: "Change order sent for internal review." },
+    approve_internal: { from: ["draft", "pending_internal_review", "change_requested"], to: "ready_to_send", message: "Change order is ready to send." },
+    return_clarification: { from: ["pending_internal_review", "ready_to_send"], to: "draft", message: "Change order returned to draft for clarification." },
+    cancel: { from: ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"], to: "cancelled", message: "Change order cancelled." },
   };
   const transition = transitions[intent];
-  if (!transition || !transition.allowed.includes(current.status)) return failure("That workflow action is not available for this change order.");
-  const { data: updated, error: updateError } = await auth.supabase.from("change_orders").update(transition.values)
-    .eq("id", id).eq("status", current.status).select("id").maybeSingle();
-  if (updateError || !updated) return failure(updateError?.message ?? "The change order changed in another session. Refresh and try again.");
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: transition.event, subjectId: id, subjectType: "change_order" });
-  revalidateChangeOrderPaths(id, current.job_id, current.organization_id);
-  return success(transition.message);
+  if (!transition || !isUuid(id) || !isUuid(requestId) || !/^\d+$/.test(rawRevision) || !Number.isSafeInteger(revision) || revision < 0)
+    return { ...failure("Reload this record before choosing a workflow action."), saveRejected: true, reviewRequired: true };
+  const { data, error } = await callDeliveryCommand(auth.supabase, "transition_change_order_workflow", {
+    p_request_id: requestId, p_change_order_id: id, p_expected_revision: revision, p_intent: intent,
+  });
+  if (error) {
+    const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
+    return { ...failure(rejected ? error.message : "This action could not be confirmed. Retry the same action here to check its result safely."),
+      saveRejected: rejected, reviewRequired: rejected };
+  }
+  if (!data || data.request_id !== requestId || data.id !== id || data.intent !== intent || data.reviewed_revision !== revision
+    || !(data.job_id === null || isUuid(data.job_id)) || !(data.organization_id === null || isUuid(data.organization_id))
+    || !Number.isSafeInteger(data.edit_revision) || data.edit_revision <= revision || !Number.isSafeInteger(data.current_revision) || data.current_revision < data.edit_revision
+    || !transition.from.includes(data.from_status) || data.to_status !== transition.to || typeof data.replayed !== "boolean"
+    || !["draft", "pending_internal_review", "ready_to_send", "sent", "approved", "declined", "change_requested", "cancelled", "expired"].includes(data.current_status))
+    return failure("This action could not be confirmed. Retry the same action here to check its result safely.");
+  revalidateChangeOrderPaths(id, data.job_id, data.organization_id);
+  return { ...success(data.replayed ? "Your earlier action is confirmed. Opening the current record; no history was duplicated." : transition.message),
+    savedRevision: data.current_revision, saveDestination: `/admin/change-orders/${id}?workflow=${data.current_status}` };
 }
 
 export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

@@ -4,6 +4,7 @@ import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { readWorkflowAttempt, prepareWorkflowAttempt, forgetWorkflowAttempt, workflowIntents, type WorkflowAttempt, type WorkflowIntent } from "@/lib/change-orders/workflow-attempt";
 import { prepareCopyAttempt, forgetCopyAttempt, type ChangeOrderCopyAttempt } from "@/lib/change-orders/copy-attempt";
 import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
@@ -235,21 +236,22 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
 }
 
 export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
-  const [workflowState, workflowAction, workflowPending] = useReliableActionState(updateChangeOrderWorkflow, initialChangeOrderActionState);
+  const { state: workflowState, action: workflowAction, pending: workflowPending, attempt: workflowAttempt } = useWorkflowAction(order.id, order.edit_revision);
+  const workflowDisabled = workflowPending || Boolean(workflowAttempt) || Boolean(workflowState.reviewRequired) || Boolean(workflowState.saveDestination && order.edit_revision < (workflowState.savedRevision ?? Infinity));
   const [emailState, emailAction, emailPending] = useReliableActionState(sendChangeOrderEmail, initialChangeOrderActionState);
   const [manualState, manualAction, manualPending] = useDraftSave(manuallyApproveChangeOrder, `manual-approval:${order.id}`, order.edit_revision, undefined, undefined, "An earlier approval is still unconfirmed. Retry the same approver and documentation, or review the approval history before starting another request.");
   const open = ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status);
   return (
     <div className="change-order-workflow-stack">
       <p className={`status-pill change-order-status ${order.status}`}>{formatStatus(order.status)}</p>
-      {workflowState.message ? <ActionMessage state={workflowState} /> : null}
+      {workflowState.message ? <ActionMessage state={workflowState} /> : null}{workflowState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`}>Reload current record</a> : null}{workflowAttempt && !workflowPending ? <form action={workflowAction} onSubmit={(event) => submitDraftForm(event, workflowAction)}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value={workflowAttempt.intent} /><p className="field-note">An earlier action needs confirmation.</p><button className="secondary-action" type="submit">Check earlier action</button></form> : null}
       {emailState.message ? <ActionMessage state={emailState} /> : null}
-      {order.status === "draft" || order.status === "change_requested" ? <WorkflowButton action={workflowAction} disabled={workflowPending} id={order.id} intent="request_review" label="Send for internal review" icon={<ShieldCheck size={17} />} /> : null}
-      {["draft", "pending_internal_review", "change_requested"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowPending} id={order.id} intent="approve_internal" label="Approve internally" icon={<CheckCircle2 size={17} />} /> : null}
-      {["pending_internal_review", "ready_to_send"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowPending} id={order.id} intent="return_clarification" label="Return for clarification" icon={<X size={17} />} secondary /> : null}
+      {order.status === "draft" || order.status === "change_requested" ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="request_review" label="Send for internal review" icon={<ShieldCheck size={17} />} /> : null}
+      {["draft", "pending_internal_review", "change_requested"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="approve_internal" label="Approve internally" icon={<CheckCircle2 size={17} />} /> : null}
+      {["pending_internal_review", "ready_to_send"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="return_clarification" label="Return for clarification" icon={<X size={17} />} secondary /> : null}
       {["ready_to_send", "sent"].includes(order.status) ? <form action={emailAction}><input name="change_order_id" type="hidden" value={order.id} /><button disabled={emailPending} type="submit"><Mail size={17} />{emailPending ? "Sending..." : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button></form> : null}
       {open ? <details className="change-order-manual-approval"><summary>Record approval received outside portal</summary><form onSubmit={(event) => submitDraftForm(event, manualAction)} className="crm-form"><input name="change_order_id" type="hidden" value={order.id} /><label>Approver name<input name="approver_name" required /></label><label>Approval method<select name="approval_method" required><option value="phone">Phone</option><option value="email">Email outside CRM</option><option value="in_person">In person</option><option value="signed_paper">Signed paper</option><option value="other">Other documented method</option></select></label><label>Documentation notes<textarea name="approval_notes" required rows={3} /></label><button disabled={manualPending || manualState.reviewRequired || Boolean(manualState.saveDestination)} type="submit"><CheckCircle2 size={17} />{manualPending ? "Recording..." : "Record manual approval"}</button>{manualState.message ? <ActionMessage state={manualState} /> : null}{manualState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`} target="_blank" rel="noreferrer">Review current record</a> : null}</form></details> : null}
-      {open ? <form action={workflowAction} onSubmit={(event) => { if (!window.confirm("Cancel this change order? It will not change the original quote or work already approved.")) event.preventDefault(); }}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value="cancel" /><button className="danger-secondary-action" disabled={workflowPending} type="submit">Cancel change order</button></form> : null}
+      {open ? <form action={workflowAction} onSubmit={(event) => { event.preventDefault(); if (window.confirm("Cancel this change order? It will not change the original quote or work already approved.")) submitDraftForm(event, workflowAction); }}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value="cancel" /><button className="danger-secondary-action" disabled={workflowDisabled} type="submit">Cancel change order</button></form> : null}
     </div>
   );
 }
@@ -303,9 +305,31 @@ export function AttachApprovedChangeOrdersButton({ invoiceId }: { invoiceId: str
   return <form action={action}><input name="invoice_id" type="hidden" value={invoiceId} /><button className="secondary-action" disabled={pending} type="submit"><FilePlus2 size={17} />{pending ? "Checking approved work..." : "Add approved change orders"}</button>{state.message ? <ActionMessage state={state} /> : null}<p className="field-note">Only approved, uninvoiced additions are copied. Draft, declined, and cancelled work is excluded.</p></form>;
 }
 
-function WorkflowButton({ action, disabled, icon, id, intent, label, secondary = false }: { action: (payload: FormData) => void; disabled: boolean; icon: React.ReactNode; id: string; intent: string; label: string; secondary?: boolean }) {
-  return <form action={action}><input name="change_order_id" type="hidden" value={id} /><input name="workflow_intent" type="hidden" value={intent} /><button className={secondary ? "secondary-action" : undefined} disabled={disabled} type="submit">{icon}{label}</button></form>;
+function WorkflowButton({ action, disabled, icon, id, intent, label, secondary = false }: { action: (payload: FormData) => Promise<void>; disabled: boolean; icon: React.ReactNode; id: string; intent: string; label: string; secondary?: boolean }) {
+  return <form action={action} onSubmit={(event) => submitDraftForm(event, action)}><input name="change_order_id" type="hidden" value={id} /><input name="workflow_intent" type="hidden" value={intent} /><button className={secondary ? "secondary-action" : undefined} disabled={disabled} type="submit">{icon}{label}</button></form>;
 }
+function workflowStorage(): Storage | null { try { return window.sessionStorage; } catch { return null; } }
+function useWorkflowAction(id: string, revision: number) {
+  const attemptRef = useRef<WorkflowAttempt | undefined>(undefined);
+  const [attempt, setAttempt] = useState<WorkflowAttempt | undefined>(undefined);
+  const router = useRouter();
+  useEffect(() => { const saved = readWorkflowAttempt(id, workflowStorage()); attemptRef.current = saved; setAttempt(saved); }, [id]);
+  const [state, action, pending] = useReliableActionState(async (previous: ChangeOrderActionState, form: FormData): Promise<ChangeOrderActionState> => {
+    if (previous.reviewRequired || previous.saveDestination && revision < (previous.savedRevision ?? Infinity)) return previous;
+    const intent = String(form.get("workflow_intent")) as WorkflowIntent;
+    if (!workflowIntents.includes(intent)) return { status: "error", message: "Reload the record before choosing that action.", reviewRequired: true };
+    const storage = workflowStorage(), prepared = prepareWorkflowAttempt(id, revision, intent, storage, attemptRef.current);
+    attemptRef.current = prepared.attempt; setAttempt(prepared.attempt);
+    if (prepared.blocked) return { status: "error", message: "Check the earlier action before choosing another." };
+    form.set("request_id", prepared.attempt.requestId); form.set("expected_revision", String(prepared.attempt.revision));
+    const result = await updateChangeOrderWorkflow(previous, form);
+    if (result.status === "success" || result.saveRejected) { forgetWorkflowAttempt(id, storage); attemptRef.current = undefined; setAttempt(undefined); }
+    return result;
+  }, initialChangeOrderActionState);
+  useEffect(() => { if (state.saveDestination) router.push(state.saveDestination); }, [state.saveDestination, router]);
+  return { state, action, pending, attempt };
+}
+
 function useDraftSave(action: (previous: ChangeOrderActionState, form: FormData) => Promise<ChangeOrderActionState>, scope: string, revision: number | null,
   onSaved?: (ids: string[], submitted: string[]) => void, lineKeys?: () => string[], blockedMessage?: string) {
   const attemptRef = useRef<ChangeOrderDraftAttempt | undefined>(undefined);

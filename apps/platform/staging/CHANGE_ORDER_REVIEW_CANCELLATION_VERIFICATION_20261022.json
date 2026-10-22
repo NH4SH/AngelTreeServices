@@ -1,0 +1,182 @@
+{
+  "scope": "Version-bound internal review, cancellation and lost-response recovery; local app and staging-only database verification",
+  "pushedManualApprovalCommit": "9073592a5e4321350e7e7bda646b7ec1a380d228",
+  "alignedMainBase": "047899b1e448363e031ab21b29a8d58664dd6801",
+  "preservedMainUpdates": [
+    "8dc3da4",
+    "047899b"
+  ],
+  "newImplementationPushed": false,
+  "migration": {
+    "name": "20261022143008_atomic_change_order_review_transitions.sql",
+    "sha256": "a08734c33832788e2b70ed9fad0c8956a4c405a16910056402288238da066d9c"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 110,
+    "sqlAssertions": 39,
+    "priorManualApprovalAssertions": 40,
+    "priorCopyAssertions": 35,
+    "priorDraftAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 8,
+    "schemaContractMatched": true,
+    "migrationSha256": "a08734c33832788e2b70ed9fad0c8956a4c405a16910056402288238da066d9c",
+    "crmChecksPassed": 2233,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "invoiceGenerationScenariosPassed": 30,
+    "invoiceGenerationScenariosFailed": 0,
+    "browser": {
+      "status": "ready_to_send",
+      "invoice_id": null,
+      "request_count": 1,
+      "review_history_count": 1,
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "mobileHorizontalOverflow": false,
+      "keyboardReviewActionVerified": true,
+      "fourWorkflowActionsVerified": true,
+      "consecutiveActionsWithoutReload": true,
+      "staleRevisionBlocked": true,
+      "lostResponseCommittedBeforeDrop": true,
+      "pendingIntentRetainedAcrossReload": true,
+      "originalButtonUnavailableAfterReload": true,
+      "recoveryThenNextActionVerified": true,
+      "finalRuntimeBrowserErrors": 0,
+      "transientPreviewCopyErrorsResolved": 2,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/components/change-order-forms.tsx",
+          "sha256": "52e8e6680e15ca473413d46c8b30de4dcf498f954a0d81ab59d0a17f7fdb494f"
+        },
+        {
+          "path": "apps/platform/src/app/admin/change-orders/[changeOrderId]/page.tsx",
+          "sha256": "e3f80aa7160e12aa4a8e9ea668eed65065ed08a29731b579de2c624bdd38e7b3"
+        },
+        {
+          "path": "apps/platform/src/lib/actions/change-orders.ts",
+          "sha256": "1de8daf1673b7e6ba3270b0c74878604c35257370965190b437ceac048327bf7"
+        },
+        {
+          "path": "apps/platform/src/lib/change-orders/workflow-attempt.ts",
+          "sha256": "8705e3546c748fc8da80ca58ad62cb52eef196e55d436a48b088159f4c7edbeb"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "1465b0ab4efab482f8d3d0aaac92919181ee3de8928eb44cbc1dd3b7d0d80890"
+        }
+      ]
+    },
+    "uiDetectorFindings": 0,
+    "existingDevelopmentDatabaseReset": false,
+    "syntheticActorsDisabled": true,
+    "taskWebAndProxyStopped": true,
+    "taskStackStoppedWithDataPreserved": true
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 110,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 39,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "added": [
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "detail": "Function `public.transition_change_order_workflow(p_request_id uuid, p_change_order_id uuid, p_expected_revision integer, p_intent text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/transition_change_order_workflow`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "metadata": {
+          "name": "transition_change_order_workflow",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_request_id uuid, p_change_order_id uuid, p_expected_revision integer, p_intent text",
+          "security_definer": true
+        },
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      }
+    ],
+    "removed": [],
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 65
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 66
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrations": 102,
+    "lastMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/change-order-review-cancellation"
+}

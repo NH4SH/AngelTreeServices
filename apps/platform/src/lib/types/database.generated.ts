@@ -16236,6 +16236,15 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "transition_change_order_workflow": {
+                Args: {
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                    "p_intent": string;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
             "unblock_website_sender": {
                 Args: {
                     "p_block": string;

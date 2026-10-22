@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { readWorkflowAttempt, prepareWorkflowAttempt, forgetWorkflowAttempt, workflowIntents, type WorkflowAttempt, type WorkflowIntent } from "@/lib/change-orders/workflow-attempt";
+import { readSendAttempt, prepareSendAttempt, forgetSendAttempt, type ChangeOrderSendAttempt } from "@/lib/change-orders/send-attempt";
 import { prepareCopyAttempt, forgetCopyAttempt, type ChangeOrderCopyAttempt } from "@/lib/change-orders/copy-attempt";
 import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
@@ -238,22 +239,47 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
 export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
   const { state: workflowState, action: workflowAction, pending: workflowPending, attempt: workflowAttempt } = useWorkflowAction(order.id, order.edit_revision);
   const workflowDisabled = workflowPending || Boolean(workflowAttempt) || Boolean(workflowState.reviewRequired) || Boolean(workflowState.saveDestination && order.edit_revision < (workflowState.savedRevision ?? Infinity));
-  const [emailState, emailAction, emailPending] = useReliableActionState(sendChangeOrderEmail, initialChangeOrderActionState);
   const [manualState, manualAction, manualPending] = useDraftSave(manuallyApproveChangeOrder, `manual-approval:${order.id}`, order.edit_revision, undefined, undefined, "An earlier approval is still unconfirmed. Retry the same approver and documentation, or review the approval history before starting another request.");
   const open = ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status);
   return (
     <div className="change-order-workflow-stack">
       <p className={`status-pill change-order-status ${order.status}`}>{formatStatus(order.status)}</p>
       {workflowState.message ? <ActionMessage state={workflowState} /> : null}{workflowState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`}>Reload current record</a> : null}{workflowAttempt && !workflowPending ? <form action={workflowAction} onSubmit={(event) => submitDraftForm(event, workflowAction)}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value={workflowAttempt.intent} /><p className="field-note">An earlier action needs confirmation.</p><button className="secondary-action" type="submit">Check earlier action</button></form> : null}
-      {emailState.message ? <ActionMessage state={emailState} /> : null}
       {order.status === "draft" || order.status === "change_requested" ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="request_review" label="Send for internal review" icon={<ShieldCheck size={17} />} /> : null}
       {["draft", "pending_internal_review", "change_requested"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="approve_internal" label="Approve internally" icon={<CheckCircle2 size={17} />} /> : null}
       {["pending_internal_review", "ready_to_send"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="return_clarification" label="Return for clarification" icon={<X size={17} />} secondary /> : null}
-      {["ready_to_send", "sent"].includes(order.status) ? <form action={emailAction}><input name="change_order_id" type="hidden" value={order.id} /><button disabled={emailPending} type="submit"><Mail size={17} />{emailPending ? "Sending..." : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button></form> : null}
+      <ChangeOrderEmailAction order={order} />
       {open ? <details className="change-order-manual-approval"><summary>Record approval received outside portal</summary><form onSubmit={(event) => submitDraftForm(event, manualAction)} className="crm-form"><input name="change_order_id" type="hidden" value={order.id} /><label>Approver name<input name="approver_name" required /></label><label>Approval method<select name="approval_method" required><option value="phone">Phone</option><option value="email">Email outside CRM</option><option value="in_person">In person</option><option value="signed_paper">Signed paper</option><option value="other">Other documented method</option></select></label><label>Documentation notes<textarea name="approval_notes" required rows={3} /></label><button disabled={manualPending || manualState.reviewRequired || Boolean(manualState.saveDestination)} type="submit"><CheckCircle2 size={17} />{manualPending ? "Recording..." : "Record manual approval"}</button>{manualState.message ? <ActionMessage state={manualState} /> : null}{manualState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`} target="_blank" rel="noreferrer">Review current record</a> : null}</form></details> : null}
       {open ? <form action={workflowAction} onSubmit={(event) => { event.preventDefault(); if (window.confirm("Cancel this change order? It will not change the original quote or work already approved.")) submitDraftForm(event, workflowAction); }}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value="cancel" /><button className="danger-secondary-action" disabled={workflowDisabled} type="submit">Cancel change order</button></form> : null}
     </div>
   );
+}
+
+function ChangeOrderEmailAction({ order }: { order: ChangeOrderWithRelations }) {
+  const attemptRef = useRef<ChangeOrderSendAttempt | undefined>(undefined);
+  const [attempt, setAttempt] = useState<ChangeOrderSendAttempt | undefined>(undefined);
+  const router = useRouter();
+  useEffect(() => { const saved = readSendAttempt(order.id, workflowStorage()); attemptRef.current = saved; setAttempt(saved); }, [order.id]);
+  const [state, action, pending] = useReliableActionState(async (previous: ChangeOrderActionState, form: FormData): Promise<ChangeOrderActionState> => {
+    if (previous.saveDestination || previous.reviewRequired) return previous;
+    const storage = workflowStorage(), earlier = attemptRef.current ?? readSendAttempt(order.id, storage);
+    if (!earlier && order.status === "sent" && !window.confirm("Send an additional approval email for the current version? The existing customer link stays active. If an earlier email is uncertain, check Delivery review first.")) return previous;
+    const saved = prepareSendAttempt(order.id, order.edit_revision, order.status === "sent", storage, earlier);
+    attemptRef.current = saved; setAttempt(saved);
+    form.set("request_id", saved.requestId); form.set("expected_revision", String(saved.revision)); form.set("additional_copy", saved.additionalCopy ? "1" : "0");
+    const result = await sendChangeOrderEmail(previous, form);
+    if (result.status === "success" || result.saveRejected) { forgetSendAttempt(order.id, storage); attemptRef.current = undefined; setAttempt(undefined); }
+    return result;
+  }, initialChangeOrderActionState);
+  useEffect(() => { if (state.saveDestination) router.push(state.saveDestination); }, [state.saveDestination, router]);
+  if (!["ready_to_send", "sent"].includes(order.status) && !attempt && !state.message) return null;
+  return <form action={action} onSubmit={event => submitDraftForm(event, action)}>
+    <input name="change_order_id" type="hidden" value={order.id} />
+    <button disabled={pending || state.reviewRequired || Boolean(state.saveDestination)} type="submit"><Mail size={17} />{pending ? "Checking email..." : attempt ? "Check saved email" : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button>
+    {state.message ? <ActionMessage state={state} /> : null}
+    {state.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`}>Reload current record</a> : null}
+    {attempt || state.status === "error" ? <Link className="text-link" href="/admin/communications/delivery-review">Open Delivery review</Link> : null}
+  </form>;
 }
 
 export function ChangeOrderPortalPanel({ changeOrderId, tokens }: { changeOrderId: string; tokens: ChangeOrderTokenSummary[] }) {

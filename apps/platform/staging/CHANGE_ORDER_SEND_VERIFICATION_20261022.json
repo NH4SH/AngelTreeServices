@@ -1,0 +1,153 @@
+{
+  "scope": "Reviewed change-order sending, frozen-request recovery and prepared-copy dispatch admission; local app and staging-only database verification",
+  "pushedReviewCancellationCommit": "9ee37ca",
+  "alignedMainBase": "9ee37ca9afb1b806758d0a594b3ff1bdc1460cf6",
+  "newImplementationPushed": false,
+  "migrations": [
+    {
+      "name": "20261022153445_reviewed_change_order_sending.sql",
+      "sha256": "e603f476c5597eb4e06ba587abc6bb56a6bb7ae65a6a0996a0b4f3404d8dff21"
+    },
+    {
+      "name": "20261022162956_guard_pending_change_order_sends.sql",
+      "sha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e"
+    }
+  ],
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 112,
+    "sqlAssertions": 36,
+    "priorWorkflowAssertions": 39,
+    "priorManualApprovalAssertions": 40,
+    "priorCopyAssertions": 35,
+    "priorDraftAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 9,
+    "schemaContractMatched": true,
+    "migrationSha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e",
+    "crmChecksPassed": 2246,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "browser": {
+      "state": "sent",
+      "payload_hash": "6dafe6d7fb366dbd89a6b4a2d522100e054ba5dbceda0e76b78c633c8fa453e8",
+      "attempt_count": 1,
+      "receipt_count": 1,
+      "delivery_count": 1,
+      "sent_history_count": 1,
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "mobileHorizontalOverflow": false,
+      "keyboardSubmitVerified": true,
+      "successfulPrepareResponseDropped": true,
+      "pendingIdentityRetainedAcrossReload": true,
+      "acceptedRecoveryBeforeSourceRead": true,
+      "laterSourceEditPreserved": true,
+      "noAdditionalCopyCreatedOnRecovery": true,
+      "providerTransportCalls": 0,
+      "browserErrors": 0,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/lib/actions/change-orders.ts",
+          "sha256": "7c9c402b378282dda151e1c73e12a2c073e92091f6d897297c4e48783c85468a"
+        },
+        {
+          "path": "apps/platform/src/components/change-order-forms.tsx",
+          "sha256": "7bacf6b17c42fb0c5b9f8e31efb66aef1e2e38cd0ae510eed444faacdcbe12aa"
+        },
+        {
+          "path": "apps/platform/src/lib/change-orders/send-attempt.ts",
+          "sha256": "755484fbe8e54e50449fc6b6bf9481ecaccf39a191897804f1ec41fb64ffe41b"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "4df050845f26bd42c2b2bd57c2a938b955f852cc07287ba99d24485ebe41261f"
+        }
+      ]
+    },
+    "uiDetectorFindings": 0,
+    "syntheticActorsDisabled": true,
+    "taskWebAndProxyStopped": true,
+    "taskStackStoppedWithDataPreserved": true,
+    "existingDevelopmentDatabaseReset": false
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 112,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 36,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "priorStagingInstallation": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 111,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 35,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "added": [],
+    "removed": [],
+    "beforeFindingGroups": 3,
+    "afterFindingGroups": 3
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrations": 102,
+    "lastMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/change-order-send-safety"
+}

@@ -78,7 +78,7 @@ test('durable source handoff: actual transactions, capabilities, recovery and un
    'next/cache':{revalidatePath:p=>paths.push(p)},'next/navigation':{},'@/lib/activity-log':{},'@/lib/auth/roles':{},
    '@/lib/data/change-orders':{getChangeOrderByPortalToken:async raw=>{assert.equal(raw,k.raw);return{status:'ready',changeOrder:await read('change_orders',co.id),tokenId:k.id};}},
    '@/lib/notifications/source-events':{deliverCustomerSourceEvent:async x=>delivered.push(x)},'@/lib/portal/tokens':{hashPortalToken:raw=>createHash('sha256').update(raw).digest('hex')},
-   '@/lib/email/send':{},'@/lib/portal/change-order-links':{},'@/lib/portal/urls':{},'@/lib/supabase/server':{},
+   '@/lib/email/send':{},'@/lib/email/config':{},'@/lib/email/delivery':{},'@/lib/email/delivery-followups':{},'@/lib/portal/change-order-links':{},'@/lib/portal/urls':{},'@/lib/supabase/server':{},
    '@/lib/supabase/admin':{getServiceRoleClient:()=>({rpc:async(name,args)=>{calls.push({name,args});return rpc(name,args);}})},
    '@/lib/security/portal-rate-limit':{checkPortalActionRateLimit:async()=>({available:true,allowed:true})},'@/lib/security/errors':{safeStaffMessage:m=>m},
   }).respondToChangeOrderByPortal;

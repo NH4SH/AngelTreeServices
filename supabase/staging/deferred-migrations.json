@@ -70,6 +70,14 @@
     {
       "name": "20261022143008_atomic_change_order_review_transitions.sql",
       "sha256": "a08734c33832788e2b70ed9fad0c8956a4c405a16910056402288238da066d9c"
+    },
+    {
+      "name": "20261022153445_reviewed_change_order_sending.sql",
+      "sha256": "e603f476c5597eb4e06ba587abc6bb56a6bb7ae65a6a0996a0b4f3404d8dff21"
+    },
+    {
+      "name": "20261022162956_guard_pending_change_order_sends.sql",
+      "sha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e"
     }
   ]
 }

@@ -15463,6 +15463,24 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "get_change_order_send_request": {
+                Args: {
+                    "p_actor_id": string;
+                    "p_additional_copy"?: boolean;
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
+            "get_change_order_send_source": {
+                Args: {
+                    "p_actor_id": string;
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                };
+                Returns: Json;
+            };
             "get_crew_change_order_scope": {
                 Args: {
                     "p_job_id": string;
@@ -15631,6 +15649,19 @@ export type Database = {
                     "p_user": string;
                 };
                 Returns: boolean;
+            };
+            "prepare_change_order_send": {
+                Args: {
+                    "p_actor_id": string;
+                    "p_additional_copy": boolean;
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                    "p_expected_snapshot": Json;
+                    "p_payload": Json;
+                    "p_portal_token_id": string;
+                    "p_request_id": string;
+                };
+                Returns: Json;
             };
             "prepare_customer_activity": {
                 Args: {

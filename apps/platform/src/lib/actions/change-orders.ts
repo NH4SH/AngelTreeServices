@@ -4,10 +4,13 @@ import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
-import { getChangeOrderByPortalToken, getChangeOrderDetail } from "@/lib/data/change-orders";
+import { getChangeOrderByPortalToken } from "@/lib/data/change-orders";
 import { deliverCustomerSourceEvent } from "@/lib/notifications/source-events";
 import { hashPortalToken } from "@/lib/portal/tokens";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { sendEmailTransport } from "@/lib/email/send";
+import { getEmailSetupState } from "@/lib/email/config";
+import { deliveryResult, dispatchSavedEmail, freezeEmailPayload } from "@/lib/email/delivery";
+import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
 import {
   createNewChangeOrderPortalTokenRecord,
   createOrGetChangeOrderPortalTokenRecord,
@@ -119,38 +122,57 @@ export async function updateChangeOrderWorkflow(_state: ChangeOrderActionState, 
 
 export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const detail = await getChangeOrderDetail(id);
-  const order = detail.data;
-  if (detail.error || !order) return failure(detail.error ?? "Change order not found.");
-  if (!["ready_to_send", "sent"].includes(order.status)) return failure("Approve the change order internally before sending it.");
-  const recipient = order.approval_contact?.email ?? order.customers?.email ?? order.organizations?.billing_email;
-  if (!recipient) return failure("Add an email for the selected approval contact before sending.");
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = text(formData, "change_order_id", 80), requestId = text(formData, "request_id", 80);
+  const rawRevision = String(formData.get("expected_revision") ?? ""), revision = Number(rawRevision);
+  const copyValue = String(formData.get("additional_copy") ?? "0"), additionalCopy = copyValue === "1";
+  if (!isUuid(id) || !isUuid(requestId) || !/^\d+$/.test(rawRevision) || !Number.isSafeInteger(revision) || revision < 0 || !["0", "1"].includes(copyValue))
+    return { ...failure("Reload this record before choosing an approval email."), saveRejected: true, reviewRequired: true };
+  const db = getServiceRoleClient();
+  if (!db) return failure("Delivery storage is unavailable. Your email request is kept here for a safe retry.");
+  const identity = { p_request_id: requestId, p_change_order_id: id, p_expected_revision: revision, p_actor_id: auth.userId, p_additional_copy: additionalCopy };
+  const recovered = await callDeliveryCommand(db, "get_change_order_send_request", identity);
+  if (recovered.error) return sendRequestFailure(recovered.error);
+  let receipt = recovered.data;
+  const setup = getEmailSetupState();
+  if (receipt === null) {
+    const source = await callDeliveryCommand(db, "get_change_order_send_source", { p_change_order_id: id, p_expected_revision: revision, p_actor_id: auth.userId });
+    if (source.error) return sendRequestFailure(source.error);
+    const order = source.data?.order as ChangeOrderEmailSource | undefined;
+    if (!order || order.id !== id || order.edit_revision !== revision || !isUuid(order.id) || !Number.isSafeInteger(order.total_cents)
+      || !Number.isSafeInteger(order.original_approved_amount_cents) || typeof order.change_order_number !== "string" || typeof order.title !== "string" || !source.data?.snapshot)
+      return failure("The email details could not be confirmed. Retry the same request here safely.");
+    const recipient = order.approval_contact?.email ?? order.customers?.email ?? order.organizations?.billing_email;
+    if (!recipient) return { ...failure("Add an email for the selected approval contact before sending."), saveRejected: true, reviewRequired: true };
+    const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase });
+    if (token.error) return failure(token.error);
+    const portalUrl = await getPortalUrl("change-order", token.rawToken);
+    const payload = freezeEmailPayload({ to: recipient, subject: `${order.change_order_number}: ${order.title}`, text: changeOrderEmailText(order, portalUrl), emailType: "change_order" }, setup);
+    const prepared = await callDeliveryCommand(db, "prepare_change_order_send", { ...identity, p_payload: payload, p_portal_token_id: token.tokenId, p_expected_snapshot: source.data.snapshot });
+    if (prepared.error) return sendRequestFailure(prepared.error);
+    receipt = prepared.data;
+  }
+  if (!receipt || receipt.request_id !== requestId || receipt.id !== id || receipt.reviewed_revision !== revision || receipt.additional_copy !== additionalCopy
+    || !isUuid(receipt.delivery_id) || !(receipt.job_id === null || isUuid(receipt.job_id)) || !(receipt.organization_id === null || isUuid(receipt.organization_id))
+    || !Number.isSafeInteger(receipt.current_revision) || receipt.current_revision < revision || typeof receipt.replayed !== "boolean")
+    return failure("The saved email could not be confirmed. Retry the same request here safely.");
+  const current = await callDeliveryCommand(db, "get_outbound_delivery", { p_delivery_id: receipt.delivery_id });
+  if (current.error || current.data?.id !== receipt.delivery_id) return failure("The saved email needs Delivery review before another email is sent.");
+  const row = current.data;
+  let result = deliveryResult(row);
+  if (row.state === "prepared" || row.state === "rejected" && row.retry_authorized) {
+    if (!setup.configured) return failure("Email sending is not configured. This request is saved; no email was sent.");
+    result = await dispatchSavedEmail(row.id, db, sendEmailTransport);
+  }
+  if (result.ok) result = await completeDeliveryFollowups(db, row.id, result);
+  revalidateChangeOrderPaths(id, receipt.job_id, receipt.organization_id);
+  return { status: result.ok && result.sourceReconciled ? "success" : "error", message: result.message,
+    ...(result.ok && result.sourceReconciled ? { saveDestination: `/admin/change-orders/${id}?email_confirmed=1` } : {}) };
+}
 
-  const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase });
-  if (token.error) return failure(token.error);
-  const portalUrl = await getPortalUrl("change-order", token.rawToken);
-  const result = await sendTransactionalEmail({
-    to: recipient,
-    subject: `${order.change_order_number}: ${order.title}`,
-    text: changeOrderEmailText(order, portalUrl),
-    emailType: "change_order",
-    expectedSourceVersions: {[`change_order:${id}`]: order.updated_at},
-    deliveryPortalTokens: [{kind:"change_order",id:token.tokenId}],
-    relatedChangeOrderId: id,
-    relatedCustomerId: order.customer_id,
-    relatedJobId: order.job_id,
-    relatedQuoteId: order.source_quote_id,
-    relatedOrganizationId: order.organization_id,
-    sentByUserId: auth.userId,
-    supabase: auth.supabase,
-    idempotencyKey: `change-order:${id}:${order.updated_at}:${recipient}`,
-  });
-  if (!result.ok) return failure(result.message);
-
-  revalidateChangeOrderPaths(id, order.job_id, order.organization_id);
-  return { status: result.sourceReconciled ? "success" : "error", message: result.message, portalUrl };
+function sendRequestFailure(error: { code?: string; message: string }): ChangeOrderActionState {
+  const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
+  return { ...failure(rejected ? error.message : "The email request could not be confirmed. Retry the same request here safely."), saveRejected: rejected, reviewRequired: rejected };
 }
 
 export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
@@ -370,7 +392,9 @@ async function validateContacts(supabase: any, organizationId: string | null, co
   return null;
 }
 
-function changeOrderEmailText(order: NonNullable<Awaited<ReturnType<typeof getChangeOrderDetail>>["data"]>, portalUrl: string) {
+type ChangeOrderEmailSource = { id: string; edit_revision: number; change_order_number: string; title: string; total_cents: number; original_approved_amount_cents: number;
+  customers: { display_name: string; email: string | null } | null; organizations: { name: string; billing_email: string | null } | null; approval_contact: { full_name: string; email: string | null } | null };
+function changeOrderEmailText(order: ChangeOrderEmailSource, portalUrl: string) {
   const party = order.organizations?.name ?? order.customers?.display_name ?? "Customer";
   return [`Hello ${order.approval_contact?.full_name ?? party},`, "", `Angel Tree Services prepared ${order.change_order_number} for additional or changed work.`, `Additional amount: ${money(order.total_cents)}`, `Revised combined amount: ${money(order.original_approved_amount_cents + order.total_cents)}`, "", "Review and respond through your secure link:", portalUrl, "", "This email does not alter the original approved quote."].join("\n");
 }

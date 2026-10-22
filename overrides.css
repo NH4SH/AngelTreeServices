@@ -468,6 +468,7 @@ body.ats-form-submitted .ats-form-success {
 #contact .ats-form-discount-details summary {
   display: list-item;
   list-style: disclosure-closed inside;
+  text-align: center;
   min-height: 44px;
   box-sizing: border-box;
   padding-block: 10px;

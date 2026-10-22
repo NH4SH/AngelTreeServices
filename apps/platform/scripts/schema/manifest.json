@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "285d34c904dba324f613c426980a149a59c68395a99aae4ae18a1aac51634c8e",
+  "typesSha256": "2d52f7ee8e2cfeb0de51635b601cad15f29db80de7dcc07cf00e846eff7a2c58",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -409,6 +409,18 @@
     {
       "name": "20261021233829_reminder_family_delivery_guard.sql",
       "sha256": "6c1caeb2234043c0062f8f0de3880f4802e5d1e20d2983e3633ae51a7a47ba81"
+    },
+    {
+      "name": "20261022021634_appointment_change_notices.sql",
+      "sha256": "541d4003d712a1d070ff00873ea737675c8500a9e402e23d3ffeca73edf5fe83"
+    },
+    {
+      "name": "20261022024624_appointment_notice_snapshot_compatibility.sql",
+      "sha256": "b6a79a13f703cc5cadd50a9e6e6a2b05bb45c440b4a16e285ea5d2cf49f16bde"
+    },
+    {
+      "name": "20261022025337_appointment_notice_delivery_ordering.sql",
+      "sha256": "bd76821b9e89fa517112236c8a8ecb39c61ccec8b29ac8fe2093c1887fa46e49"
     }
   ]
 }

@@ -48,6 +48,12 @@ export function CommunicationSettingsForm({ settings }: { settings: Communicatio
       </fieldset>
 
       <fieldset className="communication-setting-group">
+        <legend>Visit updates</legend>
+        <CheckSetting defaultChecked={settings.appointment_change_notices_enabled} label="Send appointment changes and cancellations" name="appointment_change_notices_enabled" />
+        <p className="field-help">Sends the latest update after a short pause. Cancellation applies to the affected visit only. Earlier changes are not sent when this is turned on.</p>
+      </fieldset>
+
+      <fieldset className="communication-setting-group">
         <legend>Quote follow-ups</legend>
         <CheckSetting defaultChecked={settings.quote_follow_up_enabled} label="Schedule automatic follow-ups" name="quote_follow_up_enabled" />
         <div className="form-grid-two">

@@ -98,6 +98,8 @@ export type EmailEventType =
   | "invoice_payment_reminder"
   | "overdue_invoice_reminder"
   | "payment_confirmation"
+  | "appointment_changed"
+  | "appointment_cancelled"
   | "payment_preference_notice"
   | "admin_customer_activity"
   | "system_health_alert"
@@ -114,6 +116,8 @@ export type CommunicationType = Extract<
   | "invoice_payment_reminder"
   | "overdue_invoice_reminder"
   | "payment_confirmation"
+  | "appointment_changed"
+  | "appointment_cancelled"
 >;
 export type CommunicationStatus = "pending" | "processing" | "sent" | "skipped" | "failed" | "cancelled";
 export type CommunicationRecipientSource = "customer" | "organization";
@@ -875,6 +879,7 @@ export type CommunicationSettings = {
   invoice_first_reminder_days: number;
   invoice_second_reminder_days: number;
   payment_confirmation_enabled: boolean;
+  appointment_change_notices_enabled: boolean;
   created_at: string;
   updated_at: string;
 };

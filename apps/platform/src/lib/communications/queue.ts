@@ -72,9 +72,15 @@ export async function syncAutomatedCommunications(supabase: SupabaseClient) {
     return { created: 0, error: null };
   }
 
+  let coverage: NoticeCoverage[] = [];
+  if (settings.appointment_change_notices_enabled) {
+    const result = await supabase.rpc("get_appointment_notice_coverage");
+    if (result.error || !Array.isArray(result.data)) return { created: 0, error: "Visit update coverage could not be checked." };
+    coverage = result.data as NoticeCoverage[];
+  }
   const results = await Promise.all([
-    syncScheduleEvents(supabase, settings),
-    syncAppointments(supabase, settings),
+    syncScheduleEvents(supabase, settings, coverage),
+    syncAppointments(supabase, settings, coverage),
     syncQuotes(supabase, settings),
     syncInvoices(supabase, settings),
     syncPayments(supabase, settings),
@@ -216,7 +222,9 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
   return insertQueueRows(supabase, queue);
 }
 
-async function syncScheduleEvents(supabase: SupabaseClient, settings: CommunicationSettings) {
+type NoticeCoverage = { source_kind: "schedule_event" | "appointment"; source_id: string; suppress_reminder: boolean };
+
+async function syncScheduleEvents(supabase: SupabaseClient, settings: CommunicationSettings, coverage: NoticeCoverage[]) {
   const now = new Date().toISOString();
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
@@ -249,7 +257,8 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
     const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
     const prefix = isEstimate ? "estimate" : "work";
 
-    if (confirmationEnabled && event.created_at >= settings.updated_at) {
+    const covered = coverage.find(item => item.source_kind === "schedule_event" && item.source_id === event.id);
+    if (!covered && confirmationEnabled && event.created_at >= settings.updated_at) {
       queue.push(buildQueueInput({
         communicationType: `${prefix}_confirmation` as CommunicationType,
         party,
@@ -262,7 +271,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
       }));
     }
 
-    if (reminderEnabled) {
+    if (reminderEnabled && !covered?.suppress_reminder) {
       queue.push(buildQueueInput({
         communicationType: `${prefix}_reminder` as CommunicationType,
         party,
@@ -279,7 +288,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
   return insertQueueRows(supabase, queue);
 }
 
-async function syncAppointments(supabase: SupabaseClient, settings: CommunicationSettings) {
+async function syncAppointments(supabase: SupabaseClient, settings: CommunicationSettings, coverage: NoticeCoverage[]) {
   const now = new Date().toISOString();
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
@@ -305,7 +314,8 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
     const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
     const prefix = isEstimate ? "estimate" : "work";
 
-    if (confirmationEnabled && appointment.created_at >= settings.updated_at) {
+    const covered = coverage.find(item => item.source_kind === "appointment" && item.source_id === appointment.id);
+    if (!covered && confirmationEnabled && appointment.created_at >= settings.updated_at) {
       queue.push(buildQueueInput({
         appointmentId: appointment.id,
         communicationType: `${prefix}_confirmation` as CommunicationType,
@@ -318,7 +328,7 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
       }));
     }
 
-    if (reminderEnabled) {
+    if (reminderEnabled && !covered?.suppress_reminder) {
       queue.push(buildQueueInput({
         appointmentId: appointment.id,
         communicationType: `${prefix}_reminder` as CommunicationType,

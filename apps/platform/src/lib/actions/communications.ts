@@ -143,6 +143,7 @@ export async function updateCommunicationSettings(
       work_reminder_enabled: checked(formData, "work_reminder_enabled"),
       quote_follow_up_enabled: checked(formData, "quote_follow_up_enabled"),
       invoice_reminder_enabled: checked(formData, "invoice_reminder_enabled"),
+      appointment_change_notices_enabled: checked(formData, "appointment_change_notices_enabled"),
       payment_confirmation_enabled: checked(formData, "payment_confirmation_enabled"),
       ...numberFields,
     })

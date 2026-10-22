@@ -1,0 +1,65 @@
+{
+  "scope": "Appointment change and cancellation notices; local implementation plus staging-only database installation",
+  "testedMainBase": "38395bac84eab311862f9d49cc6363439c07c4f8",
+  "migrations": [
+    {
+      "name": "20261022021634_appointment_change_notices.sql",
+      "sha256": "541d4003d712a1d070ff00873ea737675c8500a9e402e23d3ffeca73edf5fe83"
+    },
+    {
+      "name": "20261022024624_appointment_notice_snapshot_compatibility.sql",
+      "sha256": "b6a79a13f703cc5cadd50a9e6e6a2b05bb45c440b4a16e285ea5d2cf49f16bde"
+    },
+    {
+      "name": "20261022025337_appointment_notice_delivery_ordering.sql",
+      "sha256": "bd76821b9e89fa517112236c8a8ecb39c61ccec8b29ac8fe2093c1887fa46e49"
+    }
+  ],
+  "local": {
+    "freshNativeMigrations": 105,
+    "transactionAssertions": 36,
+    "concurrentPipelineScenarios": 5,
+    "syntheticTransportCalls": 3,
+    "realProviderCalls": 0,
+    "crmChecksPassed": 2203,
+    "typecheckPassed": true,
+    "isolatedAppBuildPassed": true,
+    "freshSchemaContractMatched": true,
+    "existingDevelopmentDatabaseReset": false
+  },
+  "website": {
+    "nodeChecksPassed": 185,
+    "pythonChecksPassed": 9,
+    "publicBuildAndValidationPassed": true
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 105,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 36,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "newWarnings": 0,
+    "existingAuthenticatedCommandWarnings": 62,
+    "existingAuthPasswordProtectionWarnings": 1,
+    "privateRlsInfoCountBefore": 31,
+    "privateRlsInfoCountAfter": 32
+  },
+  "release": {
+    "pushed": false,
+    "appDeployed": false,
+    "productionChanged": false,
+    "productionMigrationLedgerChanged": false,
+    "newFeatureEnabledInStaging": false,
+    "customerEmailsSent": 0,
+    "existingHistoryPreserved": true
+  }
+}

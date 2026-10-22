@@ -7,6 +7,25 @@ import { formatBusinessDate } from "@/lib/business-time";
 
 const companyName = "Angel Tree Services";
 
+export function appointmentChangeTemplate(input: {
+  customerName: string; kind: "changed" | "cancelled"; timezone: string; location: string;
+  before: { starts_at: string; ends_at: string | null; status: string; type: string };
+  after: { starts_at: string; ends_at: string | null; type: string };
+}): TransactionalEmailTemplate {
+  const cancelled = input.kind === "cancelled";
+  const label = (cancelled ? input.before.type : input.after.type) === "estimate" ? "estimate appointment" : "work visit";
+  const action = cancelled ? "cancelled" : input.before.status === "cancelled" ? "reinstated" : "updated";
+  const subject = `${companyName}: your ${label} has been ${action}`;
+  const text = [`Hi ${input.customerName},`, "", `Your ${label} with ${companyName} has been ${action}.`,
+    cancelled ? `Cancelled visit: ${formatAppointmentWindow(input.before.starts_at, input.before.ends_at, input.timezone)}`
+      : `Previous date and window: ${formatAppointmentWindow(input.before.starts_at, input.before.ends_at, input.timezone)}\nUpdated date and window: ${formatAppointmentWindow(input.after.starts_at, input.after.ends_at, input.timezone)}`,
+    `Service location: ${input.location}`, "",
+    cancelled ? "This notice applies to this visit only. Any other scheduled visits remain unchanged. Contact our office to arrange another time."
+      : "Please use the updated details above. Other scheduled visits remain unchanged. Reply if this time does not work for you or if the access plan needs to change.",
+    "", "Questions? Reply to this email or call (540) 388-8715.", "", "Thank you,", companyName].join("\n");
+  return brandedTemplate(subject, text, cancelled ? "Visit cancelled" : "Visit updated");
+}
+
 export function appointmentCommunicationTemplate(input: {
   communicationLabel: "estimate" | "work appointment";
   customerName: string;

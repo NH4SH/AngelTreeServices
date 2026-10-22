@@ -8,6 +8,7 @@ import { getExistingCommunicationPortalUrl } from "@/lib/communications/portal-l
 import { syncAutomatedCommunications, getCommunicationSettingsFromClient } from "@/lib/communications/queue";
 import {
   appointmentCommunicationTemplate,
+  appointmentChangeTemplate,
   invoiceReminderTemplate,
   paymentConfirmationTemplate,
   quoteFollowUpTemplate,
@@ -31,7 +32,7 @@ type PreparedCommunication = {
 };
 
 type PreparationResult =
-  | { action: "cancel" | "skip"; reason: string }
+  | { action: "cancel" | "skip" | "wait"; reason: string }
   | { action: "send"; data: PreparedCommunication };
 
 export type CommunicationAttemptResult = {
@@ -125,6 +126,10 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
     const snapshot=await callDeliveryCommand(supabase,"get_outbound_source_snapshot",{p_context:emailDeliveryContext(sourceInput)});
     if(snapshot.error||!snapshot.data)throw Error("Source snapshot unavailable");
     const prepared = await prepareCommunication(supabase, communication, settingsResult.data);
+    if (prepared.action === "wait") {
+      const recorded = await returnToPending(supabase, communication, prepared.reason);
+      return { status: "pending", outcome: "not_sent", recorded, message: prepared.reason };
+    }
     if (prepared.action !== "send") {
       const status = prepared.action === "cancel" ? "cancelled" : "skipped";
       const recorded = await updateClaim(supabase, communication, { cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
@@ -200,6 +205,9 @@ async function prepareCommunication(
   }
 
   switch (communication.communication_type) {
+    case "appointment_changed":
+    case "appointment_cancelled":
+      return prepareAppointmentChange(supabase, communication, recipient.email, recipient.customerName, settings);
     case "quote_follow_up":
       return prepareQuoteFollowUp(supabase, communication, recipient.email, recipient.customerName);
     case "invoice_payment_reminder":
@@ -213,6 +221,22 @@ async function prepareCommunication(
     case "payment_confirmation":
       return preparePaymentConfirmation(supabase, communication, recipient.email, recipient.customerName);
   }
+}
+
+async function prepareAppointmentChange(supabase: SupabaseClient, communication: CustomerCommunication,
+  recipientEmail: string, customerName: string, settings: CommunicationSettings): Promise<PreparationResult> {
+  const result = await callDeliveryCommand(supabase, "get_appointment_change_notice", { p_communication_id: communication.id });
+  if (result.error || !result.data) throw Error("Visit update unavailable");
+  const notice = result.data as { status: string; kind?: "changed" | "cancelled";
+    before?: { starts_at: string; ends_at: string | null; status: string; type: string };
+    after?: { starts_at: string; ends_at: string | null; type: string }; location?: LocationRow | null };
+  if (notice.status === "held") return { action: "wait", reason: "This visit update is waiting for delivery checks. No email was sent." };
+  if (notice.status !== "ready") return { action: "cancel", reason: "A newer visit update replaced this notice, or the visit is no longer eligible." };
+  if (!notice.before || !notice.after || !notice.kind) throw Error("Incomplete visit update");
+  return { action: "send", data: { recipientEmail, customerName, template: appointmentChangeTemplate({
+    customerName, kind: notice.kind, before: notice.before, after: notice.after,
+    location: formatLocation(notice.location ?? null), timezone: settings.business_timezone,
+  }) } };
 }
 
 async function getCurrentRecipient(supabase: SupabaseClient, communication: CustomerCommunication) {
@@ -525,6 +549,9 @@ async function getRecentMatchingDelivery(supabase: SupabaseClient, communication
     .eq("status", "sent").order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (own.error) return { kind: "error" as const };
   if (own.data) return { kind: "current" as const, providerMessageId: own.data.provider_message_id, sentAt: own.data.sent_at };
+  // Each immutable visit revision has its own durable identity. A second genuine
+  // change/cancellation must reach the customer even inside the reminder interval.
+  if (["appointment_changed", "appointment_cancelled"].includes(communication.communication_type)) return { kind: "none" as const };
   const since = new Date(Date.now() - intervalHours * 60 * 60_000).toISOString();
   const matchingTypes = communication.communication_type === "invoice_payment_reminder" || communication.communication_type === "overdue_invoice_reminder"
     ? ["invoice", "invoice_payment_reminder", "overdue_invoice_reminder"]

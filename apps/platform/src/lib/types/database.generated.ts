@@ -1079,6 +1079,7 @@ export type Database = {
             };
             "communication_settings": {
                 Row: {
+                    "appointment_change_notices_enabled": boolean;
                     "automated_sending_enabled": boolean;
                     "business_timezone": string;
                     "created_at": string;
@@ -1101,6 +1102,7 @@ export type Database = {
                 };
                 ComputedFields: never;
                 Insert: {
+                    "appointment_change_notices_enabled"?: boolean;
                     "automated_sending_enabled"?: boolean;
                     "business_timezone"?: string;
                     "created_at"?: string;
@@ -1122,6 +1124,7 @@ export type Database = {
                     "work_reminder_hours_before"?: number;
                 };
                 Update: {
+                    "appointment_change_notices_enabled"?: boolean;
                     "automated_sending_enabled"?: boolean;
                     "business_timezone"?: string;
                     "created_at"?: string;
@@ -15394,6 +15397,20 @@ export type Database = {
                     "p_request_id": string;
                 };
                 Returns: Json;
+            };
+            "get_appointment_change_notice": {
+                Args: {
+                    "p_communication_id": string;
+                };
+                Returns: Json;
+            };
+            "get_appointment_notice_coverage": {
+                Args: Record<PropertyKey, never>;
+                Returns: {
+                    "source_id": string;
+                    "source_kind": string;
+                    "suppress_reminder": boolean;
+                }[];
             };
             "get_attachment_scan_states": {
                 Args: {

@@ -154,7 +154,7 @@ function PortalUnavailable({ message }: { message: string }) {
         <ShieldCheck aria-hidden="true" size={28} />
         <h1>Invoice link unavailable</h1>
         <p>{message}</p>
-        <PortalContact />
+        <PortalContact showLinkHelp />
       </section>
     </main>
   );

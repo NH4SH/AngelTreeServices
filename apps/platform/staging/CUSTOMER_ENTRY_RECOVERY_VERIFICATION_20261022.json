@@ -1,0 +1,259 @@
+{
+  "date": "2026-10-22",
+  "status": "verified_local_and_staging_synthetic",
+  "previousBatchPushed": "fa62bd3",
+  "newBatchPushed": false,
+  "branch": "codex/customer-entry-recovery",
+  "includesOriginMain": "fa62bd3",
+  "schemaChanges": false,
+  "migrationsRequired": false,
+  "checks": {
+    "crmPassed": 2328,
+    "crmFailed": 0,
+    "crmSkipped": 0,
+    "finalTypecheckPassed": true,
+    "finalIsolatedBuildPassed": true,
+    "source": {
+      "fileCount": 624,
+      "sha256": "f212094f48b1ed5530ec9d454dfb10a766c340bdda0fd61950480796e665bec7",
+      "algorithm": "SHA256 of sorted src relative path + NUL + bytes + NUL, excluding .impeccable design metadata",
+      "previewMatches": true,
+      "buildMatches": true
+    },
+    "mechanicalDesignFindings": 0
+  },
+  "databaseVerification": {
+    "local": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 18,
+      "renderedCases": 18,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "staging": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 18,
+      "renderedCases": 18,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "productionChanged": false,
+    "sqlSha256": "2faf482d3c605081ad58439c10f98b2f30665284e6c0f8c88720247f60db4117"
+  },
+  "actualLocalHttp": {
+    "cases": [
+      {
+        "kind": "change_order",
+        "scenario": "active",
+        "available": true,
+        "passed": true
+      },
+      {
+        "kind": "change_order",
+        "scenario": "expired",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "change_order",
+        "scenario": "reassigned",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "change_order",
+        "scenario": "revoked",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "change_order",
+        "scenario": "unknown",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "change_order",
+        "scenario": "wrong_document",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "active",
+        "available": true,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "expired",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "reassigned",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "revoked",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "unknown",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "invoice",
+        "scenario": "wrong_document",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "active",
+        "available": true,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "expired",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "reassigned",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "revoked",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "unknown",
+        "available": false,
+        "passed": true
+      },
+      {
+        "kind": "quote",
+        "scenario": "wrong_document",
+        "available": false,
+        "passed": true
+      }
+    ],
+    "protectedEntryPreserved": true,
+    "realProviderCalls": 0,
+    "customerEmailsSent": 0
+  },
+  "browserVerification": {
+    "views": 27,
+    "widths": [
+      1280,
+      768,
+      390
+    ],
+    "horizontalOverflow": false,
+    "helpBodyTextPx": 16,
+    "minimumHelpTargetHeightPx": 44,
+    "keyboardCases": [
+      {
+        "name": "entry",
+        "focus": {
+          "outline": "solid",
+          "tag": "SUMMARY",
+          "width": "3px"
+        },
+        "enterOpens": true,
+        "spaceCloses": true
+      },
+      {
+        "name": "quote-unavailable",
+        "focus": {
+          "outline": "solid",
+          "tag": "SUMMARY",
+          "width": "3px"
+        },
+        "enterOpens": true,
+        "spaceCloses": true
+      },
+      {
+        "name": "invoice-unavailable",
+        "focus": {
+          "outline": "solid",
+          "tag": "SUMMARY",
+          "width": "3px"
+        },
+        "enterOpens": true,
+        "spaceCloses": true
+      },
+      {
+        "name": "change_order-unavailable",
+        "focus": {
+          "outline": "solid",
+          "tag": "SUMMARY",
+          "width": "3px"
+        },
+        "enterOpens": true,
+        "spaceCloses": true
+      }
+    ],
+    "consoleWarningsOrErrors": 0,
+    "visualScreenshotsInspected": true
+  },
+  "stagingSecurityAdvisor": {
+    "unchanged": true,
+    "comparisonExcludes": [
+      "observed_at"
+    ],
+    "counts": {
+      "rls_enabled_no_policy": 33,
+      "authenticated_security_definer_function_executable": 79,
+      "auth_leaked_password_protection": 1
+    }
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true,
+    "ownedPortsClosed": [
+      3147,
+      60421,
+      60422
+    ],
+    "viewportReset": true,
+    "taskTabClosed": true,
+    "userTabsPreserved": true
+  },
+  "productionChanged": false,
+  "appDeployed": false,
+  "realProviderCalls": 0,
+  "customerEmailsSent": 0,
+  "hostingUnchanged": true,
+  "hostedStagingUiDeployed": false,
+  "stagingTestMethod": "Rollback-only installed SQL fixtures, actual existing token loaders through controlled adapters, and local React DOM rendering; no hosted HTTP/Auth claim",
+  "nativePdfRetested": false,
+  "verifiedPrintStylesAndDocumentsUnchanged": true
+}

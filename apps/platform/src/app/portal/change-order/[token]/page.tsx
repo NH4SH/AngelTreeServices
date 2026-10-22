@@ -24,6 +24,6 @@ export default async function ChangeOrderPortalPage({ params }: { params: Promis
     <footer className="customer-portal-footer"><strong>Angel Tree Services</strong><span>Questions? Reply to the email that included this secure link.</span></footer>
   </main>;
 }
-function Unavailable({ message }: { message: string }) { return <main className="customer-portal-page customer-portal-unavailable"><div className="customer-portal-brand"><span><Leaf size={22} /></span><div><strong>Angel Tree Services</strong><small>Secure customer portal</small></div></div><section><ShieldCheck size={28} /><h1>Change order link unavailable</h1><p>{message}</p><PortalContact /></section></main>; }
+function Unavailable({ message }: { message: string }) { return <main className="customer-portal-page customer-portal-unavailable"><div className="customer-portal-brand"><span><Leaf size={22} /></span><div><strong>Angel Tree Services</strong><small>Secure customer portal</small></div></div><section><ShieldCheck size={28} /><h1>Change order link unavailable</h1><p>{message}</p><PortalContact showLinkHelp /></section></main>; }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100); }
 function location(order: NonNullable<Awaited<ReturnType<typeof getChangeOrderByPortalToken>>["changeOrder"]>) { const value = order.service_locations; return value ? [value.label, value.street, value.city, value.state, value.postal_code].filter(Boolean).join(", ") : "No service location attached"; }

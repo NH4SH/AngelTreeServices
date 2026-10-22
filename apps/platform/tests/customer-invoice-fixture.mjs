@@ -18,7 +18,7 @@ const terms=load('../src/lib/documents/terms.ts',{'@/lib/business-time':{formatB
 const documentTerms=load('../src/components/documents/document-terms.tsx',{'react/jsx-runtime':jsx});
 const InvoiceDocument=load('../src/components/documents/invoice-document.tsx',{'react/jsx-runtime':jsx,'@/components/documents/document-shell':shell,'@/components/documents/document-terms':documentTerms,'@/lib/documents/terms':terms,'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'@/lib/business-time':{formatBusinessDateTime:()=> 'Synthetic date'},'@/lib/invoices/status':{formatInvoiceStatus:status=>status,getInvoiceDisplayNumber:n=>n}}).InvoiceDocument;
 const Chooser=()=>null,Contact=()=>null;
-function harness({rate={available:true,allowed:true},invoice=true,client=true,receipt={error:null,totalCents:70000},record:changes={},paymentRead=async()=>receipt}={}) {
+function harness({rate={available:true,allowed:true},invoice=true,client=true,receipt={error:null,totalCents:70000},record:changes={},paymentRead=async()=>receipt,contact=Contact}={}) {
  const calls=[],db={synthetic:true};
  const record={id:'00000000-0000-4000-8000-000000000001',invoice_number:'SYNTHETIC',status:'sent',total_cents:100000,payments:[{status:'succeeded',provider:'stripe',payment_method:'card',amount_cents:90000}],invoice_line_items:[],jobs:null,subtotal_cents:100000,tax_cents:0,balance_due_cents:0,created_at:'2026-10-22T12:00:00Z',customers:{display_name:'Synthetic customer'},...changes};
  const page=load('../src/app/portal/invoice/[token]/page.tsx',{
@@ -27,7 +27,7 @@ function harness({rate={available:true,allowed:true},invoice=true,client=true,re
   '@/components/documents/invoice-document':{InvoiceDocument},
   '@/components/documents/print-button':{PrintButton:()=>null},
   '@/components/invoice-portal-payment-button':{InvoicePortalPaymentChooser:Chooser},
-  '@/components/portal-contact':{PortalContact:Contact},
+  '@/components/portal-contact':{PortalContact:contact},
   '@/components/portal-view-tracker':{PortalViewTracker:()=>null},
   '@/lib/portal/customer-states':states,
   '../../customer-clarity.css':{},'../../customer-print.css':{},

@@ -137,3 +137,11 @@ Private local evidence: `/Users/noelsierra/Documents/Codex/2026-10-21/dashboard-
 After the independent supplement's browser binding failed, root's existing browser remained accessible. A separate temporary local public preview was inspected at1365px desktop and390px mobile without a submission. No horizontal overflow was measured at those widths. Commercial-request fields revealed correctly; choosing Email made email required; a grounded service-link query selected Tree Care; keyboard Tab focused the phone field and blur validation announced the empty required name. Draft restoration was visible. These checks strengthen the public-form evidence, but do not prove accepted lead delivery, success acknowledgement, real phone/email handoff, generated service-page layout or hosted configuration.
 
 Evidence: `public-contact-desktop.png`, `public-contact-mobile.png`, `public-contact-mobile-fields.png`, `public-contact-mobile-details.png`. Root closed its temporary public tab, reset viewport overrides and stopped its static preview. Earlier A/B findings and the independent23/40 score are unchanged.
+
+## Implementation follow-through — October 22, 2026
+
+The findings above remain the historical review, not a list of wholly open defects. Payment/closed-proposal clarity and actionable reminder work are recorded in `CUSTOMER_PAYMENT_CLARITY.md` and `ACTIONABLE_REMINDER_EMAILS.md`. Print/save acceptance is complete and pushed through `fa62bd3`; see `CUSTOMER_DOCUMENT_PRINT_READINESS.md`.
+
+Customer entry and lost-link recovery are now verified locally and with rollback-only synthetic staging inputs, pending push/release; see `CUSTOMER_ENTRY_RECOVERY.md`. The existing sign-in gates and document capability rules are preserved. This adds office recovery guidance, not an account hub or automatic replacement-link email sender.
+
+The next customer follow-up is response acceptance, starting with additional-work request/decline outcomes and accessibility. Contractual consistency still needs the owner's authoritative business wording. This does not replace the original roadmap or change the historical review score.

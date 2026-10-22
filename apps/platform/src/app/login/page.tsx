@@ -1,6 +1,7 @@
 import { Leaf } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AccessStatusShell } from "@/components/access-status-shell";
+import { PortalContact } from "@/components/portal-contact";
 import {
   getCurrentUserRolesFromClient,
   hasAllowedRole,
@@ -77,6 +78,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             signedOut={params.signedOut === "true"}
           />
         ) : null}
+        <aside className="login-customer-document-help" aria-labelledby="login-customer-help-title">
+          <h2 id="login-customer-help-title">Looking for a proposal or invoice?</h2>
+          <p>Open the secure document link in your Angel Tree email. You do not need to sign in to open that link.</p>
+          <PortalContact showLinkHelp />
+        </aside>
         <p className="login-privacy-links">
           <a href="https://angeltreeservices.org/privacy/">Privacy policy</a>
           <span aria-hidden="true"> · </span>

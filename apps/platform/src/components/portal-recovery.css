@@ -1,0 +1,128 @@
+.customer-portal-contact {
+  margin-top: 16px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.customer-portal-contact p {
+  max-width: 65ch;
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.customer-portal-contact > a,
+.customer-link-help > summary {
+  min-height: 44px;
+  padding-block: 8px;
+  color: var(--color-forest);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.customer-portal-contact > a {
+  display: inline-flex;
+  align-items: center;
+  text-underline-offset: 4px;
+}
+
+.customer-link-help {
+  margin-top: 8px;
+}
+
+.customer-link-help > summary {
+  cursor: pointer;
+}
+
+.customer-link-help[open] > p {
+  margin-top: 10px;
+  font-size: 1rem;
+}
+
+.customer-portal-contact :is(a, summary):focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.customer-document-entry {
+  max-width: 760px;
+}
+
+.customer-document-entry .customer-portal-intro h1 {
+  max-width: 20ch;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.1;
+}
+
+.customer-document-entry .customer-portal-intro > p {
+  max-width: 65ch;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.customer-document-steps {
+  display: grid;
+  gap: 22px;
+  margin-block: 28px 36px;
+  padding-inline-start: 24px;
+}
+
+.customer-document-steps li {
+  padding-inline-start: 6px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.customer-document-steps li::marker {
+  color: var(--color-forest);
+  font-weight: 700;
+}
+
+.customer-document-steps p {
+  max-width: 65ch;
+  margin: 5px 0 0;
+  color: var(--color-muted);
+}
+
+.customer-document-entry-help {
+  border-top: 1px solid var(--color-border);
+  padding-top: 28px;
+}
+
+.customer-document-entry-help h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.4;
+}
+
+.customer-document-entry-help > p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.customer-document-entry .customer-portal-footer {
+  margin-top: 36px;
+}
+
+.customer-document-account {
+  overflow-wrap: anywhere;
+}
+
+.login-customer-document-help {
+  margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 24px;
+}
+
+.login-customer-document-help h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.login-customer-document-help > p {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  line-height: 1.6;
+}

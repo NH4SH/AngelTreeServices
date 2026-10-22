@@ -1,8 +1,10 @@
 import { FileSignature, Leaf, ShieldCheck } from "lucide-react";
 import { QuoteDocument } from "@/components/documents/quote-document";
+import { PrintButton } from "@/components/documents/print-button";
 import { PortalContact } from "@/components/portal-contact";
 import { customerQuoteState } from "@/lib/portal/customer-states";
 import "../../customer-clarity.css";
+import "../../customer-print.css";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getQuoteByPortalToken } from "@/lib/data/portal-quote";
@@ -40,7 +42,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
   const workSummary = buildPortalWorkSummary(lookup.quote);
 
   return (
-    <main className="customer-portal-page customer-quote-page">
+    <main className="customer-portal-page customer-quote-page customer-document-page">
       <PortalViewTracker documentType="quote" token={token} />
       <header className="customer-portal-header">
         <div className="customer-portal-brand">
@@ -61,6 +63,10 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
         <h1>{response.title}</h1>
         <p>{response.message}</p>
       </section>
+
+      <div className="customer-document-actions print-hidden">
+        <PrintButton label="Print or save proposal" showPrivacyHint />
+      </div>
 
       <dl className="customer-quote-metadata" aria-label="Proposal details">
         <div className="customer-quote-metadata-prepared">
@@ -106,6 +112,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
                 : response.message
             }
             quote={lookup.quote}
+            statusLabel={statusLabel}
             showApprovalSection={false}
           />
         </div>

@@ -1,0 +1,183 @@
+{
+  "date": "2026-10-22",
+  "status": "pending_native_pdf_confirmation_mac_locked",
+  "previousBatchPushed": "99149c3",
+  "newBatchPushed": false,
+  "finalPdfVerified": false,
+  "schemaChanges": false,
+  "checks": {
+    "crmPassed": 2321,
+    "crmFailed": 0,
+    "crmSkipped": 0,
+    "typecheckPassed": true,
+    "finalIsolatedBuildPassed": true,
+    "sourceMatchesPreviewAndBuild": true,
+    "applicationSourceSha256": "01250a81e4c65236c55686237ea36b01059dcfac285d50b2aa9c7ca8dfb94b58"
+  },
+  "databaseVerification": {
+    "local": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 6,
+      "renderedCases": 6,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "staging": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 6,
+      "renderedCases": 6,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "productionChanged": false,
+    "sqlSha256": "4d8838fc8448a16c53d25ea7dd592f9c9d71c1ccc5292cbb325045c7c079d9a3"
+  },
+  "baselineNativePdf": {
+    "pages": 2,
+    "containsDocumentHeading": false,
+    "containsSyntheticService": false,
+    "browserHeadersIncludeSecurePath": true,
+    "textCharacters": 267
+  },
+  "firstNativePdfRound": [
+    {
+      "kind": "change_order",
+      "variant": "long",
+      "pages": 5,
+      "pageTextCharacters": [
+        1823,
+        2405,
+        2097,
+        1913,
+        1184
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true
+    },
+    {
+      "kind": "change_order",
+      "variant": "short",
+      "pages": 1,
+      "pageTextCharacters": [
+        456
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0
+      ],
+      "allPagesHaveContent": true
+    },
+    {
+      "kind": "invoice",
+      "variant": "long",
+      "pages": 5,
+      "pageTextCharacters": [
+        2721,
+        3585,
+        2731,
+        2865,
+        542
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true
+    },
+    {
+      "kind": "invoice",
+      "variant": "short",
+      "pages": 2,
+      "pageTextCharacters": [
+        1449,
+        1914
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0
+      ],
+      "allPagesHaveContent": true
+    },
+    {
+      "kind": "quote",
+      "variant": "long",
+      "pages": 4,
+      "pageTextCharacters": [
+        2759,
+        3585,
+        2624,
+        1252
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true
+    },
+    {
+      "kind": "quote",
+      "variant": "short",
+      "pages": 2,
+      "pageTextCharacters": [
+        1006,
+        114
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0
+      ],
+      "allPagesHaveContent": true
+    }
+  ],
+  "finalConfirmationFilesCreated": false,
+  "hostingUnchanged": true,
+  "productionWrites": 0,
+  "appDeployed": false,
+  "realProviderCalls": 0,
+  "customerEmailsSent": 0,
+  "pendingCleanup": {
+    "safariHeadersFootersOriginal": true,
+    "safariHeadersFootersRestored": false,
+    "inAppViewportReset": false,
+    "taskServicesStopped": false,
+    "userDevelopmentAppChanged": false
+  }
+}

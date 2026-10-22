@@ -12,11 +12,13 @@ export function QuoteDocument({
   quote,
   showApprovalSection = true,
   showInternalPreview = false,
+  statusLabel,
 }: {
   approvalMessage?: string;
   quote: QuoteDetail;
   showApprovalSection?: boolean;
   showInternalPreview?: boolean;
+  statusLabel?: string;
 }) {
   const lineItems = [...(quote.quote_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const proposalNote = getProposalNote(quote, lineItems);
@@ -28,6 +30,7 @@ export function QuoteDocument({
       className="quote-proposal-document"
       documentLabel="Proposal"
       documentNumber={formatDocumentProposalNumber(quote.quote_number)}
+      statusLabel={statusLabel}
       footerDetails={
         <>
           <div>

@@ -1,0 +1,204 @@
+/* Customer document controls use the incumbent secondary action style. */
+.customer-document-page .document-print-button {
+  min-height: 44px;
+}
+
+.customer-change-order-hero .document-print-controls {
+  margin-top: 16px;
+}
+
+.customer-document-actions {
+  margin-bottom: 16px;
+}
+
+.customer-document-page .document-print-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.customer-document-page .document-print-help {
+  max-width: 50ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.customer-document-page .change-order-document-reference p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+@media print {
+  html:has(.customer-document-page),
+  body:has(.customer-document-page) {
+    min-height: 0 !important;
+    height: auto !important;
+    background: white !important;
+  }
+
+  /* Collapse the interactive page, rather than leaving invisible layout boxes
+     behind the paper. Keep the shared staff/schedule print behavior scoped out. */
+  .customer-document-page > :not(.customer-quote-workspace):not(.customer-invoice-document),
+  .customer-document-page .customer-quote-action-column {
+    display: none !important;
+  }
+
+  .customer-document-page,
+  .customer-document-page .customer-quote-workspace,
+  .customer-document-page .customer-quote-document-column,
+  .customer-document-page .customer-invoice-document,
+  .customer-document-page .document-print-region {
+    display: block;
+    position: static;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: white;
+    box-shadow: none;
+  }
+
+  .customer-document-page .document-print-region {
+    overflow-wrap: anywhere;
+  }
+
+  .customer-document-page .business-document-header,
+  .customer-document-page .change-order-document > header,
+  .customer-document-page .quote-proposal-line-heading,
+  .customer-document-page .quote-proposal-line-pricing,
+  .customer-document-page .change-order-document-party,
+  .customer-document-page .change-order-total-comparison {
+    break-inside: avoid;
+  }
+
+  /* A single long scope/notes section must be allowed to continue onto paper. */
+  .customer-document-page .quote-proposal-line,
+  .customer-document-page .line-item-row,
+  .customer-document-page .document-terms,
+  .customer-document-page .business-document-preformatted {
+    break-inside: auto;
+  }
+
+  .customer-document-page .quote-proposal-line-heading,
+  .customer-document-page .document-terms-heading,
+  .customer-document-page .change-order-document h3 {
+    break-after: avoid;
+  }
+
+  .customer-document-page .business-document-meta,
+  .customer-document-page .document-terms-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-document-page .business-document-header {
+    padding-bottom: 10px;
+  }
+
+  .customer-document-page .business-document-meta {
+    margin-top: 12px;
+  }
+
+  .customer-document-page .business-document-meta > div {
+    padding: 6px 8px;
+  }
+
+  .customer-document-page .business-document-meta dd {
+    font-size: 9.5pt;
+    line-height: 1.3;
+  }
+
+  .customer-document-page .quote-proposal-scope {
+    margin-top: 12px;
+  }
+
+  .customer-document-page .quote-proposal-line {
+    padding-block: 8px;
+  }
+
+  /* WebKit can split grid rows through a term. Columns retain each complete
+     definition and allow the terms section to fragment naturally. */
+  .customer-document-page .document-terms-list {
+    display: block;
+    columns: 2;
+    column-gap: 14px;
+  }
+
+  .customer-document-page .document-term {
+    padding-block: 4px;
+    break-inside: avoid;
+  }
+
+  .customer-document-page .document-term dt {
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+
+  .customer-document-page .document-term dd {
+    margin-top: 2px;
+    font-size: 8.5pt;
+    line-height: 1.3;
+  }
+
+  .customer-document-page .quote-document-terms .document-term:last-child {
+    column-span: all;
+  }
+
+  .customer-document-page .business-document-footer {
+    margin-top: 10px;
+    padding-top: 6px;
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+
+  .customer-document-page .change-order-document .line-items-preview {
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: white;
+  }
+
+  .customer-document-page .change-order-document .line-item-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 6px 20px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .customer-document-page .change-order-document .line-item-row > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .customer-document-page .change-order-document .line-item-row > :nth-child(2)::before {
+    content: "Qty: ";
+  }
+
+  .customer-document-page .change-order-document .line-item-row > :nth-child(3)::before {
+    content: "Unit price: ";
+  }
+
+  .customer-document-page .change-order-document .line-item-row > :nth-child(4)::before {
+    content: "Line total: ";
+  }
+
+  .customer-document-page .change-order-document .line-item-row > :not(:first-child) {
+    text-align: right;
+  }
+
+  .customer-document-page .change-order-document > section,
+  .customer-document-page .change-order-total-comparison {
+    margin-top: 14px;
+  }
+}

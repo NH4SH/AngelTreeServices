@@ -5,6 +5,7 @@ import { InvoicePortalPaymentChooser } from "@/components/invoice-portal-payment
 import { PortalContact } from "@/components/portal-contact";
 import { customerInvoiceState } from "@/lib/portal/customer-states";
 import "../../customer-clarity.css";
+import "../../customer-print.css";
 import { PortalViewTracker } from "@/components/portal-view-tracker";
 import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
 import { formatBusinessDateTime } from "@/lib/business-time";
@@ -49,7 +50,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
 
 
   return (
-    <main className="customer-portal-page customer-quote-page customer-invoice-page">
+    <main className="customer-portal-page customer-quote-page customer-invoice-page customer-document-page">
       <PortalViewTracker documentType="invoice" token={token} />
       <header className="customer-portal-header print-hidden">
         <div className="customer-portal-brand">
@@ -71,7 +72,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
           <h1>{getInvoiceDisplayNumber(invoice.invoice_number)}</h1>
           <p>Check your balance and payment status here. The full invoice is below for your records.</p>
           <nav className="customer-invoice-shortcuts" aria-label="Invoice sections">{paymentState.canChoose ? <a className="customer-invoice-pay-link" href="#invoice-payment">Choose payment method</a> : <a href="#invoice-payment-status">View payment status</a>}<a href="#invoice-details">View full invoice</a></nav>
-          <PrintButton label="Print or save invoice" />
+          <PrintButton label="Print or save invoice" showPrivacyHint />
         </div>
 
         <aside className="customer-portal-summary-card customer-invoice-summary">

@@ -30,7 +30,7 @@ function harness({rate={available:true,allowed:true},invoice=true,client=true,re
   '@/components/portal-contact':{PortalContact:Contact},
   '@/components/portal-view-tracker':{PortalViewTracker:()=>null},
   '@/lib/portal/customer-states':states,
-  '../../customer-clarity.css':{},
+  '../../customer-clarity.css':{},'../../customer-print.css':{},
   '@/lib/security/portal-rate-limit':{checkPortalPageRateLimit:async()=>{calls.push('rate');return rate;}},
   '@/lib/data/portal-invoice':{getInvoiceByPortalToken:async()=>{calls.push('token');return{invoice:invoice?record:null,message:'Synthetic invalid capability'};}},
   '@/lib/supabase/admin':{getServiceRoleClient:()=>{calls.push('client');return client?db:null;}},

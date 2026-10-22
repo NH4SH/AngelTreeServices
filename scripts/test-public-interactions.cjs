@@ -451,7 +451,7 @@ for (const service of [
   });
 }
 
-function landscapingActionsHarness({ observers = true, resizeObserver = true, mutationObserver = true, available = true } = {}) {
+function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandscapingActions', observers = true, resizeObserver = true, mutationObserver = true, available = true } = {}) {
   const hero = {}, final = {}, focused = {}, observation = [], listeners = {}, properties = {};
   const consentPanel = { id: 'ats-consent', hidden: true };
   let headerHeight = 70, barHeight = 64, resize, mutate, consentPresent = false;
@@ -473,7 +473,7 @@ function landscapingActionsHarness({ observers = true, resizeObserver = true, mu
   if (mutationObserver) window.MutationObserver = function (callback) { mutate = callback; this.observe = (target, options) => {
     assert.equal(target, document.body); assert.deepEqual(Array.from(options.attributeFilter), ['hidden']);
   }; };
-  loadScript('landscaping-mobile.js', ['initLandscapingActions'], { document, window }).initLandscapingActions();
+  loadScript(file, [init], { document, window })[init]();
   return { actions, hero, final, focused, document, observation, listeners, properties,
     notify: entries => observation.at(-1).callback(entries.map(([target, ratio, intersecting = true]) => ({ target, intersectionRatio: ratio, isIntersecting: intersecting }))),
     resize: (headerSize, barSize) => { headerHeight = headerSize; barHeight = barSize; resize(); },
@@ -482,8 +482,12 @@ function landscapingActionsHarness({ observers = true, resizeObserver = true, mu
     mutation: records => mutate(records) };
 }
 
-test('Landscaping bar yields independently to complete hero and final action pairs', () => {
-  const h = landscapingActionsHarness();
+for (const service of [
+  { name: 'Landscaping', file: 'landscaping-mobile.js', init: 'initLandscapingActions', prefix: 'landscaping' },
+  { name: 'Tree services overview', file: 'services-overview-mobile.js', init: 'initServicesOverviewActions', prefix: 'services-overview' },
+]) {
+test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
+  const h = pageActionsHarness(service);
   assert.deepEqual(h.observation[0].targets, [h.hero, h.final]);
   assert.equal(h.observation[0].options.rootMargin, '-70px 0px 0px 0px');
   h.notify([[h.hero, 0.98]]); assert.equal(h.actions.hidden, false);
@@ -495,37 +499,37 @@ test('Landscaping bar yields independently to complete hero and final action pai
   h.notify([[h.final, 0, false]]); assert.equal(h.actions.hidden, false);
 });
 
-test('Landscaping bar preserves focus until it leaves either quick action', () => {
-  const h = landscapingActionsHarness(); h.document.activeElement = h.focused;
+test(`${service.name} bar preserves focus until it leaves either quick action`, () => {
+  const h = pageActionsHarness(service); h.document.activeElement = h.focused;
   h.notify([[h.final, 1]]); assert.equal(h.actions.hidden, false);
   h.listeners.focusout({ relatedTarget: h.focused }); assert.equal(h.actions.hidden, false);
   h.listeners.focusout({ relatedTarget: {} }); assert.equal(h.actions.hidden, true);
   h.notify([[h.final, 0, false]]); assert.equal(h.actions.hidden, false);
 });
 
-test('Landscaping header and bar clearance grow with enlarged text without losing hidden-bar space', () => {
-  const h = landscapingActionsHarness();
-  assert.equal(h.properties['--ats-landscaping-header-offset'], '90px');
-  assert.equal(h.properties['--ats-landscaping-bar-space'], '84px');
+test(`${service.name} header and bar clearance grow with enlarged text without losing hidden-bar space`, () => {
+  const h = pageActionsHarness(service);
+  assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '90px');
+  assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '84px');
   h.resize(70, 128); assert.equal(h.observation.length, 1);
-  assert.equal(h.properties['--ats-landscaping-bar-space'], '148px');
+  assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
   h.resize(142, 0); assert.equal(h.observation[0].disconnected, true);
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
-  assert.equal(h.properties['--ats-landscaping-header-offset'], '162px');
-  assert.equal(h.properties['--ats-landscaping-bar-space'], '148px');
+  assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
+  assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
 });
 
-test('Landscaping missing observers or page markup retain the visible fallback', () => {
+test(`${service.name} missing observers or page markup retain the visible fallback`, () => {
   for (const config of [{ observers: false }, { observers: false, resizeObserver: false }, { mutationObserver: false }, { available: false }]) {
-    const h = landscapingActionsHarness(config); assert.equal(h.actions.hidden, false);
+    const h = pageActionsHarness({ ...service, ...config }); assert.equal(h.actions.hidden, false);
   }
-  const h = landscapingActionsHarness({ resizeObserver: false });
-  h.resize(100, 80); assert.equal(h.properties['--ats-landscaping-header-offset'], '120px');
-  assert.equal(h.properties['--ats-landscaping-bar-space'], '100px');
+  const h = pageActionsHarness({ ...service, resizeObserver: false });
+  h.resize(100, 80); assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '120px');
+  assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '100px');
 });
 
-test('Landscaping keeps Call available when the cookie panel covers the hero or final buttons', () => {
-  const h = landscapingActionsHarness();
+test(`${service.name} keeps Call available when the cookie panel covers the hero or final buttons`, () => {
+  const h = pageActionsHarness(service);
   h.notify([[h.hero, 1]]); assert.equal(h.actions.hidden, true);
   h.consent(false); assert.equal(h.actions.hidden, false, 'late-loaded cookie controls cannot leave Call obscured');
   h.notify([[h.hero, 0, false], [h.final, 1]]); assert.equal(h.actions.hidden, false);
@@ -534,8 +538,8 @@ test('Landscaping keeps Call available when the cookie panel covers the hero or 
   h.consent(false, false); assert.equal(h.actions.hidden, true, 'removing the panel also restores normal visibility');
 });
 
-test('Landscaping cookie-panel observation preserves focus and ignores the bar’s own hidden mutations', () => {
-  const h = landscapingActionsHarness(); h.consent(false); h.document.activeElement = h.focused;
+test(`${service.name} cookie-panel observation preserves focus and ignores the bar’s own hidden mutations`, () => {
+  const h = pageActionsHarness(service); h.consent(false); h.document.activeElement = h.focused;
   h.notify([[h.hero, 1]]); h.consent(true);
   assert.equal(h.actions.hidden, false, 'closing settings cannot remove a focused action');
   h.document.activeElement = {};
@@ -546,6 +550,7 @@ test('Landscaping cookie-panel observation preserves focus and ignores the bar�
   h.mutation([{ type: 'childList', target: {} }]);
   assert.equal(h.actions.hidden, true, 'inserted consent markup is rechecked');
 });
+}
 
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {

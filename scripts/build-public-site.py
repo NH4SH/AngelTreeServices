@@ -34,6 +34,7 @@ STATIC_FILES = (
     "commercial-hoa-mobile.js",
     "about-mobile.js",
     "landscaping-mobile.js",
+    "services-overview-mobile.js",
     "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",

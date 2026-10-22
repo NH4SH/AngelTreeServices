@@ -237,7 +237,7 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
 export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
   const [workflowState, workflowAction, workflowPending] = useReliableActionState(updateChangeOrderWorkflow, initialChangeOrderActionState);
   const [emailState, emailAction, emailPending] = useReliableActionState(sendChangeOrderEmail, initialChangeOrderActionState);
-  const [manualState, manualAction, manualPending] = useReliableActionState(manuallyApproveChangeOrder, initialChangeOrderActionState);
+  const [manualState, manualAction, manualPending] = useDraftSave(manuallyApproveChangeOrder, `manual-approval:${order.id}`, order.edit_revision, undefined, undefined, "An earlier approval is still unconfirmed. Retry the same approver and documentation, or review the approval history before starting another request.");
   const open = ["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(order.status);
   return (
     <div className="change-order-workflow-stack">
@@ -248,7 +248,7 @@ export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRela
       {["draft", "pending_internal_review", "change_requested"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowPending} id={order.id} intent="approve_internal" label="Approve internally" icon={<CheckCircle2 size={17} />} /> : null}
       {["pending_internal_review", "ready_to_send"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowPending} id={order.id} intent="return_clarification" label="Return for clarification" icon={<X size={17} />} secondary /> : null}
       {["ready_to_send", "sent"].includes(order.status) ? <form action={emailAction}><input name="change_order_id" type="hidden" value={order.id} /><button disabled={emailPending} type="submit"><Mail size={17} />{emailPending ? "Sending..." : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button></form> : null}
-      {open ? <details className="change-order-manual-approval"><summary>Record approval received outside portal</summary><form action={manualAction} className="crm-form"><input name="change_order_id" type="hidden" value={order.id} /><label>Approver name<input name="approver_name" required /></label><label>Approval method<select name="approval_method" required><option value="phone">Phone</option><option value="email">Email outside CRM</option><option value="in_person">In person</option><option value="signed_paper">Signed paper</option><option value="other">Other documented method</option></select></label><label>Documentation notes<textarea name="approval_notes" required rows={3} /></label><button disabled={manualPending} type="submit"><CheckCircle2 size={17} />{manualPending ? "Recording..." : "Record manual approval"}</button>{manualState.message ? <ActionMessage state={manualState} /> : null}</form></details> : null}
+      {open ? <details className="change-order-manual-approval"><summary>Record approval received outside portal</summary><form onSubmit={(event) => submitDraftForm(event, manualAction)} className="crm-form"><input name="change_order_id" type="hidden" value={order.id} /><label>Approver name<input name="approver_name" required /></label><label>Approval method<select name="approval_method" required><option value="phone">Phone</option><option value="email">Email outside CRM</option><option value="in_person">In person</option><option value="signed_paper">Signed paper</option><option value="other">Other documented method</option></select></label><label>Documentation notes<textarea name="approval_notes" required rows={3} /></label><button disabled={manualPending || manualState.reviewRequired || Boolean(manualState.saveDestination)} type="submit"><CheckCircle2 size={17} />{manualPending ? "Recording..." : "Record manual approval"}</button>{manualState.message ? <ActionMessage state={manualState} /> : null}{manualState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`} target="_blank" rel="noreferrer">Review current record</a> : null}</form></details> : null}
       {open ? <form action={workflowAction} onSubmit={(event) => { if (!window.confirm("Cancel this change order? It will not change the original quote or work already approved.")) event.preventDefault(); }}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value="cancel" /><button className="danger-secondary-action" disabled={workflowPending} type="submit">Cancel change order</button></form> : null}
     </div>
   );
@@ -307,7 +307,7 @@ function WorkflowButton({ action, disabled, icon, id, intent, label, secondary =
   return <form action={action}><input name="change_order_id" type="hidden" value={id} /><input name="workflow_intent" type="hidden" value={intent} /><button className={secondary ? "secondary-action" : undefined} disabled={disabled} type="submit">{icon}{label}</button></form>;
 }
 function useDraftSave(action: (previous: ChangeOrderActionState, form: FormData) => Promise<ChangeOrderActionState>, scope: string, revision: number | null,
-  onSaved?: (ids: string[], submitted: string[]) => void, lineKeys?: () => string[]) {
+  onSaved?: (ids: string[], submitted: string[]) => void, lineKeys?: () => string[], blockedMessage?: string) {
   const attemptRef = useRef<ChangeOrderDraftAttempt | undefined>(undefined);
   const revisionRef = useRef(revision);
   const router = useRouter();
@@ -317,7 +317,7 @@ function useDraftSave(action: (previous: ChangeOrderActionState, form: FormData)
     try { storage = window.sessionStorage; } catch { /* Page-local recovery remains. */ }
     const prepared = await prepareDraftAttempt(scope, form, revisionRef.current, storage, attemptRef.current);
     attemptRef.current = prepared.attempt;
-    if (prepared.blocked) return { status: "error", message: "An earlier save is still unconfirmed. Retry the same entries or review the current record before starting another save." };
+    if (prepared.blocked) return { status: "error", message: blockedMessage ?? "An earlier save is still unconfirmed. Retry the same entries or review the current record before starting another save." };
     form.set("request_id", prepared.attempt.requestId);
     if (prepared.attempt.revision !== null) form.set("expected_revision", String(prepared.attempt.revision));
     const submitted = lineKeys?.() ?? [];

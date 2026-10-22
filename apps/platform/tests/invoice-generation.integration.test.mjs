@@ -8,11 +8,13 @@ const enabled = process.env.PR04_DISPOSABLE_STACK === "1" && Boolean(process.env
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 test("PR04 atomic invoice generation with real local Auth, RLS and concurrent transactions", { skip: !enabled, timeout: 240000 }, async t => {
   const c = JSON.parse(readFileSync(process.env.PR04_LOCAL_STATUS_FILE, "utf8"));
-  assert.equal(c.API_URL, "http://127.0.0.1:54321");
+  const isolated = process.env.PR04_LOCAL_ENV_FILE ? JSON.parse(readFileSync(process.env.PR04_LOCAL_ENV_FILE, "utf8")) : null;
+  if (isolated) { assert.equal(c.API_URL, "http://127.0.0.1:62421"); assert.match(isolated.container, /^supabase_db_ats_comanual_[a-f0-9]+$/); }
+  else assert.equal(c.API_URL, "http://127.0.0.1:54321");
   assert.match(process.env.DOCKER_HOST ?? "", /^unix:\/\//);
   const docker = process.env.PR04_DOCKER_BIN;
   assert.ok(docker);
-  const base = ["exec", "-i", "supabase_db_ats_pr02_disposable", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
+  const base = ["exec", "-i", isolated?.container ?? "supabase_db_ats_pr02_disposable", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"];
   function sql(source) {
     return new Promise((resolve, reject) => {
       const p = spawn(docker, base, { env: process.env }); let out = "", err = "";
@@ -72,8 +74,8 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
   }
   async function addition(j,extra={}) {
     const row=check(await service.from('change_orders').insert({job_id:j.id,customer_id:j.customer_id,organization_id:j.organization_id,service_location_id:j.service_location_id,
-      source_quote_id:j.source_quote_id,created_by_user_id:owner.id,title:'PR04 additional work',status:'approved',subtotal_cents:500,tax_cents:50,fee_cents:25,total_cents:575,...extra}).select('*').single());
-    check(await service.from('change_order_line_items').insert({change_order_id:row.id,title:'Approved limb removal',quantity:1,unit_price_cents:500,amount_cents:500}));return row;
+      source_quote_id:j.source_quote_id,created_by_user_id:owner.id,title:'PR04 additional work',subtotal_cents:500,tax_cents:50,fee_cents:25,total_cents:575,...extra,status:'draft'}).select('*').single());
+    check(await service.from('change_order_line_items').insert({change_order_id:row.id,title:'Approved limb removal',quantity:1,unit_price_cents:500,amount_cents:500}));return check(await service.from('change_orders').update({status:extra.status??'approved'}).eq('id',row.id).select('*').single());
   }
   async function session(j){return check(await service.from('schedule_events').insert({job_id:j.id,service_location_id:j.service_location_id,title:'PR04 work session',event_type:'job',status:'scheduled',starts_at:'2026-11-01T14:00:00Z',ends_at:'2026-11-01T16:00:00Z',created_by_user_id:owner.id}).select('*').single());}
   const gen=(j,id=randomUUID(),actor=owner,extra={})=>actor.client.rpc('generate_job_invoice',{p_request_id:id,p_job_id:j?.id??null,...extra});
@@ -146,9 +148,11 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
     assert.equal(check(await service.from('quotes').select('id').eq('id',q.id).single()).id,q.id);
   });
   await run('inconsistent or foreign approved addition rolls back the entire generated draft',async()=>{
-    const j=await job();await quote(j);const co=await addition(await jobRead(j));check(await service.from('change_order_line_items').update({amount_cents:499}).eq('change_order_id',co.id));
+    const j=await job();await quote(j);const co=await addition(await jobRead(j));denied(await service.from('change_order_line_items').update({amount_cents:499}).eq('change_order_id',co.id),'23514');
+    // Inject legacy corruption only through the explicitly disposable maintenance connection.
+    await sql(`update public.change_order_line_items set amount_cents=499 where change_order_id='${co.id}'`);
     denied(await gen(j),'23514');assert.equal((await invoices(j)).length,0);
-    check(await service.from('change_order_line_items').update({amount_cents:500}).eq('change_order_id',co.id));const other=check(await service.from('service_locations').insert({customer_id:customer.id,label:'Other local property',street:'789 Test Street',city:'Fredericksburg',state:'VA'}).select('id').single());check(await service.from('change_orders').update({service_location_id:other.id}).eq('id',co.id));
+    await sql(`update public.change_order_line_items set amount_cents=500 where change_order_id='${co.id}'`);const other=check(await service.from('service_locations').insert({customer_id:customer.id,label:'Other local property',street:'789 Test Street',city:'Fredericksburg',state:'VA'}).select('id').single());denied(await service.from('change_orders').update({service_location_id:other.id}).eq('id',co.id),'23514');await sql(`update public.change_orders set service_location_id='${other.id}'where id='${co.id}'`);
     denied(await gen(j),'23514');assert.equal((await requests(j)).length,0);
   });
   await run('custom work-order invoices preserve entered lines and internal note inside the transaction',async()=>{
@@ -201,10 +205,10 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
       check(await pending);
     }
   });
-  await run('approved addition line edits serialize on the change-order parent lock',async()=>{
+  await run('approved addition line edits wait on the parent and remain denied',async()=>{
     const j=await job(),co=await addition(j),release=await hold(`select id from public.change_orders where id='${co.id}' for update`);
     const pending=service.from('change_order_line_items').update({description:'Committed addition edit'}).eq('change_order_id',co.id).then(r=>r);
-    try{await waitBlocked(release.pid);}finally{await release();}check(await pending);
+    try{await waitBlocked(release.pid);}finally{await release();}denied(await pending,'23514');assert.equal(check(await service.from('change_order_line_items').select('description').eq('change_order_id',co.id).single()).description,null);
   });
   await run('organization billing preserves active contacts and party/location authority',async()=>{
     const org=check(await service.from('organizations').insert({name:`PR04 organization ${marker}`}).select('id').single());
@@ -251,7 +255,7 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
   });
   await run('change-order approval locks the job before the addition and can safely precede simultaneous generation',async()=>{
     const j=await job(),co=await addition(j,{status:'sent'}),release=await hold(`select id from public.jobs where id='${j.id}' for update`);
-    const approve=owner.client.rpc('approve_change_order',{p_change_order_id:co.id,p_approved_by_name:'PR04 local approver',p_approval_method:'phone',p_recorded_by_user_id:owner.id}).then(r=>r);
+    const approve=owner.client.rpc('record_change_order_manual_approval',{p_request_id:randomUUID(),p_change_order_id:co.id,p_expected_revision:co.edit_revision,p_approval:{name:'PR04 local approver',method:'phone',notes:'Synthetic customer authorization for reviewed scope.'}}).then(r=>r);
     let pending;
     try {await waitBlocked(release.pid);
       // NOWAIT proves approval has not taken the child lock while waiting on job.
@@ -274,7 +278,8 @@ test("PR04 atomic invoice generation with real local Auth, RLS and concurrent tr
     const approved=check(await service.rpc('approve_change_order',args));assert.equal(approved[0].newly_approved,true);
     const history=check(await service.from('activity_log').select('actor_type,actor_user_id').eq('subject_id',co.id).eq('event_type','change_order_approved'));
     assert.equal(history.length,1);assert.equal(history[0].actor_type,'portal');assert.equal(history[0].actor_user_id,null);
-    assert.equal(check(await owner.client.rpc('approve_change_order',args))[0].newly_approved,false);
+    denied(await owner.client.rpc('approve_change_order',args),'42501');
+    assert.equal(check(await service.rpc('approve_change_order',args))[0].newly_approved,false);
     assert.equal(check(await service.from('job_change_order_scope_items').select('id').eq('change_order_id',co.id)).length,1);
     assert.equal(check(await service.from('activity_log').select('id').eq('subject_id',co.id).eq('event_type','change_order_approved')).length,1);
     denied(await owner.client.from('activity_log').insert({subject_type:'change_order',subject_id:co.id,event_type:'forged_history'}),'42501');

@@ -15728,6 +15728,15 @@ export type Database = {
                     "payment_id": string;
                 }[];
             };
+            "record_change_order_manual_approval": {
+                Args: {
+                    "p_approval": Json;
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
             "record_invoice_delivery": {
                 Args: {
                     "p_invoice_id": string;

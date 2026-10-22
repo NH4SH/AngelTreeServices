@@ -146,25 +146,32 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
 
 export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const approverName = text(formData, "approver_name", 160);
-  const method = text(formData, "approval_method", 30);
-  const contactId = text(formData, "approved_by_contact_id", 80) || null;
-  const approvalNotes = optionalMultiline(formData, "approval_notes", 2000);
-  if (!approverName || !approvalNotes || !["phone", "email", "in_person", "signed_paper", "other"].includes(method)) return failure("Approver name, authorization method, and documentation notes are required.");
-  const { data, error } = await auth.supabase.rpc("approve_change_order", {
-    p_change_order_id: id,
-    p_approved_by_contact_id: contactId,
-    p_approved_by_name: approverName,
-    p_approval_method: method,
-    p_approval_notes: approvalNotes,
-    p_recorded_by_user_id: auth.userId,
-  } satisfies RpcCommandArgs<"approve_change_order">).single();
-  if (error || !data) return failure(error?.message ?? "Could not record approval.");
-  const result = data as { job_id: string; newly_approved: boolean };
-  revalidateChangeOrderPaths(id, result.job_id, null);
-  return success(result.newly_approved ? "Manual approval recorded and additional scope added to the work order." : "Approval was already recorded; no scope was duplicated.");
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = text(formData, "change_order_id", 80), requestId = text(formData, "request_id", 80);
+  const rawRevision = String(formData.get("expected_revision") ?? ""), revision = Number(rawRevision);
+  const name = text(formData, "approver_name", 160), method = text(formData, "approval_method", 30);
+  const contactId = text(formData, "approved_by_contact_id", 80) || null, notes = optionalMultiline(formData, "approval_notes", 2000);
+  if (!isUuid(id) || !isUuid(requestId) || !/^\d+$/.test(rawRevision) || !Number.isSafeInteger(revision) || revision < 0)
+    return { ...failure("Reload this record before approving. Keep a copy of your approval details."), saveRejected: true, reviewRequired: true };
+  if (!name || !notes || !["phone", "email", "in_person", "signed_paper", "other"].includes(method) || contactId !== null && !isUuid(contactId))
+    return { ...failure("Approver name, authorization method, and documentation notes are required."), saveRejected: true };
+  const { data, error } = await callDeliveryCommand(auth.supabase, "record_change_order_manual_approval", {
+    p_request_id: requestId, p_change_order_id: id, p_expected_revision: revision,
+    p_approval: { name, method, notes, contact_id: contactId },
+  });
+  if (error) {
+    const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
+    return { ...failure(rejected ? error.message : "Approval could not be confirmed. Keep these details and retry here to check the same request safely."),
+      saveRejected: rejected, reviewRequired: ["PT409", "40001", "23514", "42501"].includes(error.code ?? "") };
+  }
+  if (!data || data.request_id !== requestId || data.id !== id || data.reviewed_revision !== revision || !isUuid(data.job_id)
+    || !(data.organization_id === null || isUuid(data.organization_id)) || !Number.isSafeInteger(data.edit_revision) || data.edit_revision <= revision
+    || !Number.isSafeInteger(data.current_revision) || data.current_revision < data.edit_revision || data.current_status !== "approved"
+    || data.newly_approved !== true || typeof data.replayed !== "boolean" || !Number.isSafeInteger(data.applied_scope_count) || data.applied_scope_count < 0)
+    return failure("Approval could not be confirmed. Keep these details and retry here to check the same request safely.");
+  revalidateChangeOrderPaths(id, data.job_id, data.organization_id);
+  return { ...success(data.replayed ? "Your earlier approval is confirmed. No scope or email was duplicated." : "Manual approval recorded and additional scope added to the work order."),
+    saveDestination: `/admin/change-orders/${id}?approval_recorded=1` };
 }
 
 export async function createChangeOrderPortalLink(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

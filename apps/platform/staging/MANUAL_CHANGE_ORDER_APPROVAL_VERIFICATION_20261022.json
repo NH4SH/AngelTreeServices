@@ -1,0 +1,173 @@
+{
+  "scope": "Reviewed manual approval and durable authorization recovery; local app and staging-only database verification",
+  "pushedCopyingCommit": "b441e8d93112cce2cabf29f4ebcba05f46619797",
+  "alignedMainBase": "b441e8d93112cce2cabf29f4ebcba05f46619797",
+  "newImplementationPushed": false,
+  "migration": {
+    "name": "20261022134716_bound_manual_change_order_approval.sql",
+    "sha256": "5ddf741a475e44f9c27c1589c5779e078c4c2eacd2b699db9254df506261ada7"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 109,
+    "sqlAssertions": 40,
+    "priorCopyAssertions": 35,
+    "priorDraftAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 6,
+    "schemaContractMatched": true,
+    "migrationSha256": "5ddf741a475e44f9c27c1589c5779e078c4c2eacd2b699db9254df506261ada7",
+    "crmChecksPassed": 2227,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "invoiceGenerationScenariosPassed": 30,
+    "invoiceGenerationScenariosFailed": 0,
+    "browser": {
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "horizontalOverflow": false,
+      "keyboardNameToMethod": true,
+      "staleApprovalDisabled": true,
+      "staleNameAndNotesRetained": true,
+      "lostResponseAfterApprovalCommit": true,
+      "differentPendingDocumentationBlocked": true,
+      "samePendingDocumentationRecoversApproval": true,
+      "receiptCount": 1,
+      "approvalAuditCount": 1,
+      "scopeCount": 1,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/components/change-order-forms.tsx",
+          "sha256": "b3a152593d15bc9de682976bf5c04efb87809b830486e7c74db2e850976f5c64"
+        },
+        {
+          "path": "apps/platform/src/lib/actions/change-orders.ts",
+          "sha256": "802a3e7a0baef5c3e21c0d733fc300ddd156bef28fb3a34b13784c7a2ccf1deb"
+        },
+        {
+          "path": "apps/platform/src/lib/change-orders/draft-attempt.ts",
+          "sha256": "903167a67cd3541e1bcdbac1c00af2f3b8e52771fe83e1d7286269efef00ebf3"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "4bc6c60cd0355e664a3cae07c59101bd98ba4bc23ad989ab5ab58ed375fc3d67"
+        }
+      ],
+      "realProviderCalls": 0,
+      "syntheticActorsDisabled": true,
+      "taskWebAndProxyStopped": true,
+      "browserErrors": 0
+    },
+    "uiDetectorFindings": 0,
+    "existingDevelopmentDatabaseReset": false,
+    "taskStackStoppedWithDataPreserved": true
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 109,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 40,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false,
+    "oldUnversionedAuthenticatedApprovalRevoked": true,
+    "serviceOnlyPortalApprovalPreserved": true,
+    "originalApprovalBodyUnchanged": true
+  },
+  "securityAdvisors": {
+    "added": [
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "detail": "Function `public.record_change_order_manual_approval(p_request_id uuid, p_change_order_id uuid, p_expected_revision integer, p_approval jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/record_change_order_manual_approval`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+        "metadata": {
+          "name": "record_change_order_manual_approval",
+          "schema": "public",
+          "language": "plpgsql",
+          "arguments": "p_request_id uuid, p_change_order_id uuid, p_expected_revision integer, p_approval jsonb",
+          "security_definer": true
+        },
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      }
+    ],
+    "removed": [],
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 64
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 65
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrations": 102,
+    "lastMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/change-order-workflow-safety"
+}

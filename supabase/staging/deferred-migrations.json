@@ -62,6 +62,10 @@
     {
       "name": "20261022132724_atomic_change_order_copies.sql",
       "sha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053"
+    },
+    {
+      "name": "20261022134716_bound_manual_change_order_approval.sql",
+      "sha256": "5ddf741a475e44f9c27c1589c5779e078c4c2eacd2b699db9254df506261ada7"
     }
   ]
 }

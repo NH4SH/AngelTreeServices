@@ -375,6 +375,7 @@ test("mobile quick actions retain their existing fallback when observation is un
 for (const service of [
   { name: "Tree Removal", file: "tree-removal-mobile.js", init: "initRemovalActions", offset: "--ats-removal-anchor-offset" },
   { name: "Tree Pruning", file: "tree-pruning-mobile.js", init: "initPruningActions", offset: "--ats-pruning-anchor-offset" },
+  { name: "Commercial & HOA", file: "commercial-hoa-mobile.js", init: "initCommercialActions", offset: "--ats-commercial-anchor-offset" },
   { name: "Storm / Emergency", file: "emergency-tree-mobile.js", init: "initEmergencyActions", offset: "--ats-emergency-anchor-offset" },
   { name: "Stump Grinding", file: "stump-grinding-mobile.js", init: "initStumpActions", offset: "--ats-stump-anchor-offset" },
 ]) {
@@ -421,27 +422,32 @@ for (const service of [
   });
 }
 
-test("Storm quick actions retain keyboard focus when the hero returns", () => {
-  let notify, leave;
-  const focusedLink = {};
-  const actions = { hidden: false, contains: element => element === focusedLink,
-    addEventListener: (type, callback) => { assert.equal(type, "focusout"); leave = callback; } };
-  const hero = {};
-  const document = { activeElement: focusedLink, body: { style: { setProperty() {} } }, addEventListener() {},
-    querySelector: selector => selector.endsWith(".ats-mobile-actions") ? actions : selector.endsWith(".ats-actions") ? hero : null };
-  function IntersectionObserver(callback) { notify = callback; this.observe = () => {}; }
-  const helpers = loadScript("emergency-tree-mobile.js", ["initEmergencyActions"], { document,
-    window: { IntersectionObserver, addEventListener() {} } });
-  helpers.initEmergencyActions();
-  notify([{ target: hero, isIntersecting: true, intersectionRatio: 1 }]);
-  assert.equal(actions.hidden, false, "a focused bar cannot disappear during scrolling or resizing");
-  leave({ relatedTarget: focusedLink });
-  assert.equal(actions.hidden, false, "moving between quick actions preserves the bar");
-  leave({ relatedTarget: {} });
-  assert.equal(actions.hidden, true, "the visible hero can replace the bar after focus leaves");
-  notify([{ target: hero, isIntersecting: false, intersectionRatio: 0 }]);
-  assert.equal(actions.hidden, false);
-});
+for (const service of [
+  { name: "Storm", file: "emergency-tree-mobile.js", init: "initEmergencyActions" },
+  { name: "Commercial & HOA", file: "commercial-hoa-mobile.js", init: "initCommercialActions" },
+]) {
+  test(`${service.name} quick actions retain keyboard focus when the hero returns`, () => {
+    let notify, leave;
+    const focusedLink = {};
+    const actions = { hidden: false, contains: element => element === focusedLink,
+      addEventListener: (type, callback) => { assert.equal(type, "focusout"); leave = callback; } };
+    const hero = {};
+    const document = { activeElement: focusedLink, body: { style: { setProperty() {} } }, addEventListener() {},
+      querySelector: selector => selector.endsWith(".ats-mobile-actions") ? actions : selector.endsWith(".ats-actions") ? hero : null };
+    function IntersectionObserver(callback) { notify = callback; this.observe = () => {}; }
+    const helpers = loadScript(service.file, [service.init], { document,
+      window: { IntersectionObserver, addEventListener() {} } });
+    helpers[service.init]();
+    notify([{ target: hero, isIntersecting: true, intersectionRatio: 1 }]);
+    assert.equal(actions.hidden, false, "a focused bar cannot disappear during scrolling or resizing");
+    leave({ relatedTarget: focusedLink });
+    assert.equal(actions.hidden, false, "moving between quick actions preserves the bar");
+    leave({ relatedTarget: {} });
+    assert.equal(actions.hidden, true, "the visible hero can replace the bar after focus leaves");
+    notify([{ target: hero, isIntersecting: false, intersectionRatio: 0 }]);
+    assert.equal(actions.hidden, false);
+  });
+}
 
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {

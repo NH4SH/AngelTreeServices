@@ -31,6 +31,7 @@ STATIC_FILES = (
     "stump-grinding-mobile.js",
     "emergency-tree-mobile.js",
     "commercial-hoa-mobile.js",
+    "about-mobile.js",
     "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",

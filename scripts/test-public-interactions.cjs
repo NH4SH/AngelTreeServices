@@ -376,6 +376,7 @@ for (const service of [
   { name: "Tree Removal", file: "tree-removal-mobile.js", init: "initRemovalActions", offset: "--ats-removal-anchor-offset" },
   { name: "Tree Pruning", file: "tree-pruning-mobile.js", init: "initPruningActions", offset: "--ats-pruning-anchor-offset" },
   { name: "Commercial & HOA", file: "commercial-hoa-mobile.js", init: "initCommercialActions", offset: "--ats-commercial-anchor-offset" },
+  { name: "About", file: "about-mobile.js", init: "initAboutActions", offset: "--ats-about-anchor-offset" },
   { name: "Storm / Emergency", file: "emergency-tree-mobile.js", init: "initEmergencyActions", offset: "--ats-emergency-anchor-offset" },
   { name: "Stump Grinding", file: "stump-grinding-mobile.js", init: "initStumpActions", offset: "--ats-stump-anchor-offset" },
 ]) {
@@ -425,6 +426,7 @@ for (const service of [
 for (const service of [
   { name: "Storm", file: "emergency-tree-mobile.js", init: "initEmergencyActions" },
   { name: "Commercial & HOA", file: "commercial-hoa-mobile.js", init: "initCommercialActions" },
+  { name: "About", file: "about-mobile.js", init: "initAboutActions" },
 ]) {
   test(`${service.name} quick actions retain keyboard focus when the hero returns`, () => {
     let notify, leave;

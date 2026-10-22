@@ -2115,11 +2115,12 @@ body.ats-gallery-open {
 .ats-pruning-topics,
 .ats-stump-topics,
 .ats-emergency-topics,
-.ats-commercial-topics {
+.ats-commercial-topics,
+.ats-about-topics {
   display: none;
 }
 
-:is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-mobile-actions[hidden] {
+:is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2141,6 +2142,10 @@ body.ats-gallery-open {
 
 .ats-commercial-hoa-page :is(#commercial-review-title, #commercial-process, #commercial-details, #commercial-faq) {
   scroll-margin-top: var(--ats-commercial-anchor-offset, 120px);
+}
+
+.ats-about-page :is(#about-origin-title, #founder-experience-title, #about-community-title, #about-recognition-title) {
+  scroll-margin-top: var(--ats-about-anchor-offset, 120px);
 }
 
 :focus-visible {
@@ -2445,6 +2450,41 @@ body.ats-gallery-open {
     max-height: min(70dvh, calc(100dvh - var(--ats-commercial-anchor-offset, 120px)));
   }
 
+  .ats-about-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-about-anchor-offset, 120px)));
+  }
+
+  .ats-about-page :is(.ats-about-origin__grid, .ats-about-history, .ats-about-practices, .ats-about-community, .ats-two-column) {
+    gap: 28px;
+  }
+
+  .ats-about-page .ats-about-origin__note {
+    padding-block: 24px;
+  }
+
+  .ats-about-page .ats-about-territories {
+    padding: 24px;
+  }
+
+  .ats-about-page .ats-about-practices__list li {
+    display: grid;
+    grid-template-columns: minmax(32px, max-content) minmax(0, 1fr);
+    gap: 4px 12px;
+    min-height: 0;
+    padding: 20px 0;
+  }
+
+  .ats-about-page .ats-about-practices__list li::before {
+    position: static;
+    grid-row: 1 / span 2;
+    padding-top: 4px;
+  }
+
+  .ats-about-page .ats-about-practices__list span {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
   .ats-emergency-tree-page .ats-mobile-actions {
     grid-template-columns: minmax(min-content, 1.2fr) minmax(min-content, 0.8fr);
   }
@@ -2463,32 +2503,32 @@ body.ats-gallery-open {
     background: transparent;
   }
 
-  body:is(.ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) {
+  body:is(.ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) {
     padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 
-  :is(.ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-mobile-actions a {
+  :is(.ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-mobile-actions a {
     padding: 8px 12px;
     text-align: center;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-page-hero {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-page-hero {
     padding-block: 36px 80px;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics) {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics, .ats-about-topics) {
     display: block;
     margin-top: 24px;
     text-align: left;
   }
 
-  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics) p {
+  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics, .ats-about-topics) p {
     margin: 0 0 4px;
     font-size: 16px;
     font-weight: 600;
   }
 
-  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics) ul {
+  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics, .ats-about-topics) ul {
     display: flex;
     flex-wrap: wrap;
     gap: 0 16px;
@@ -2497,7 +2537,7 @@ body.ats-gallery-open {
     list-style: none;
   }
 
-  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics) a {
+  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics, .ats-about-topics) a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -2509,29 +2549,29 @@ body.ats-gallery-open {
     text-underline-offset: 4px;
   }
 
-  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics) a:focus-visible {
+  :is(.ats-removal-topics, .ats-pruning-topics, .ats-stump-topics, .ats-emergency-topics, .ats-commercial-topics, .ats-about-topics) a:focus-visible {
     outline-color: var(--ats-white);
     box-shadow: none;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-content-section {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-content-section {
     padding-block: 48px;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) :is(.ats-card-grid, .ats-process-list) {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) :is(.ats-card-grid, .ats-process-list) {
     margin-top: 28px;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-card {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-card {
     padding: 24px;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-process-list {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-process-list {
     border-left: 0;
     border-top: 1px solid var(--ats-border);
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-process-list li {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-process-list li {
     display: grid;
     grid-template-columns: minmax(32px, max-content) minmax(0, 1fr);
     gap: 4px 12px;
@@ -2539,19 +2579,19 @@ body.ats-gallery-open {
     border-right: 0;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-process-list .ats-card__number {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-process-list .ats-card__number {
     grid-row: 1 / span 2;
     margin: 0;
     padding-top: 4px;
     color: var(--ats-green-dark);
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-process-list strong {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-process-list strong {
     margin: 0;
     line-height: 1.5;
   }
 
-  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page) .ats-process-list li > span:last-child {
+  :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-process-list li > span:last-child {
     grid-column: 2;
     line-height: 1.65;
   }

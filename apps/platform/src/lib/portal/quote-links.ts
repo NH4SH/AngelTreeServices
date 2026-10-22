@@ -1,15 +1,15 @@
 import "server-only";
+import { readVerifiedDocumentToken } from "@/lib/portal/document-token";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  decryptPortalToken,
   encryptPortalToken,
   generatePortalToken,
   getPortalTokenHint,
   hashPortalToken,
   QUOTE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
-import { getEncryptedPortalToken, type PortalTokenRpcRecord } from "@/lib/portal/token-record";
+import { type PortalTokenRpcRecord } from "@/lib/portal/token-record";
 
 export const LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR =
   "An existing customer link is still active but was created before link recovery was enabled. Use Regenerate link only if you intend to replace it.";
@@ -51,15 +51,12 @@ export async function createOrGetQuotePortalTokenRecord({
   }
 
   const token = data as PortalTokenRpcRecord;
-  if (token.created) {
-    return { created: true, error: null, expiresAt: token.expires_at ?? expiresAt, rawToken, tokenId: token.id };
-  }
-
-  const recoveredToken = decryptPortalToken(getEncryptedPortalToken(token));
+  const verified = await readVerifiedDocumentToken({ supabase, kind: "quote", recordId: quoteId, tokenId: token.id, ...(token.created ? { rawToken } : {}) });
+  const recoveredToken = verified.rawToken;
   if (!recoveredToken) {
     return {
       created: false,
-      error: LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
+      error: verified.error ?? LEGACY_QUOTE_PORTAL_LINK_RECOVERY_ERROR,
       expiresAt: "",
       rawToken: "",
       tokenId: "",
@@ -67,7 +64,7 @@ export async function createOrGetQuotePortalTokenRecord({
   }
 
   return {
-    created: false,
+    created: token.created,
     error: null,
     expiresAt: token.expires_at ?? expiresAt,
     rawToken: recoveredToken,

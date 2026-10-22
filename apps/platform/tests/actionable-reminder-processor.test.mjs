@@ -16,7 +16,7 @@ function fixture(type='invoice_payment_reminder',options={}) {
  const db=memoryDB(tables),settings={automated_sending_enabled:options.enabled??true,minimum_send_interval_hours:24,business_timezone:'America/New_York'};
  const processor=load('../src/lib/communications/processor.ts',{
   'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{formatProposalNumber:x=>x},'@/lib/payments/reconciliation':{getSuccessfulPaymentTotal:memoryPaymentPrincipal},
-  '@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async()=>({url:options.portalUrl??`http://127.0.0.1:3102/portal/${quote?'quote':'invoice'}/synthetic-review`})},
+  '@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async()=>({tokenId:"00000000-0000-4000-8000-000000000001",url:options.portalUrl??`http://127.0.0.1:3102/portal/${quote?'quote':'invoice'}/synthetic-review`})},
   '@/lib/communications/queue':{syncAutomatedCommunications:async()=>({error:null}),getCommunicationSettingsFromClient:async()=>({data:settings,error:null})},
   '@/lib/communications/templates':templates,'@/lib/email/delivery-context':{emailDeliveryContext},
   '@/lib/email/send':{sendTransactionalEmail:()=>assert.fail('No real email transport is allowed')},'@/lib/supabase/admin':{getServiceRoleClient:()=>assert.fail('Supply the synthetic database')},'@/lib/runtime/deadline':{mapBounded,withDeadline},
@@ -26,7 +26,7 @@ function fixture(type='invoice_payment_reminder',options={}) {
 test('all three reminder types carry real actionable templates through the existing processor with one acceptance and stable request identity',async()=>{
  for(const type of ['invoice_payment_reminder','overdue_invoice_reminder','quote_follow_up']){
   const f=fixture(type);assert.equal((await f.run()).outcome,'accepted');assert.equal((await f.run()).outcome,'accepted');assert.equal(f.sends.length,1);
-  const sent=f.sends[0];assert.equal(sent.idempotencyKey,'customer-communication/synthetic-reminder');assert.equal(sent.relatedCommunicationId,f.row.id);assert.ok(sent.expectedSourceSnapshot);
+  const sent=f.sends[0];assert.equal(sent.idempotencyKey,'customer-communication/synthetic-reminder');assert.equal(sent.relatedCommunicationId,f.row.id);assert.ok(sent.expectedSourceSnapshot);assert.deepEqual(sent.deliveryPortalTokens,[{kind:type==='quote_follow_up'?'quote':'invoice',id:'00000000-0000-4000-8000-000000000001'}]);
   assert.match(sent.html,type==='quote_follow_up'?/>Review proposal<\/a>/:/>View invoice<\/a>/);assert.match(sent.html,/href="tel:\+15403888715"/);assert.equal(sent.to,'synthetic@example.invalid');
  }
 });

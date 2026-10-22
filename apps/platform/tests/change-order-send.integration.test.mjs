@@ -1,3 +1,4 @@
+import {localPaymentTarget} from './local-payment-target.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID, randomBytes, createHash} from 'node:crypto';
@@ -12,11 +13,13 @@ const exec = promisify(execFile);
 test('version-bound additional-work sending and recovery through the API', {skip: !enabled, timeout: 180000}, async t => {
   const status = JSON.parse(readFileSync(process.env.CO_SEND_STATUS_FILE));
   const environment = JSON.parse(readFileSync(process.env.CO_SEND_ENV_FILE));
+  if(process.env.DOCUMENT_EMAIL_DISPOSABLE!==undefined){const target=localPaymentTarget(status);assert.equal(environment.container,target.container);}else{
   assert.ok(
     status.API_URL === 'http://127.0.0.1:64421' && /^supabase_db_ats_cosend_[a-f0-9]+$/.test(environment.container)
       || status.API_URL === 'http://127.0.0.1:65421' && /^supabase_db_ats_colink_[a-f0-9]+$/.test(environment.container),
     'Sending regression checks require an explicitly paired disposable local stack',
   );
+  }
   const docker = process.env.CO_SEND_DOCKER_BIN || 'docker';
   const base = ['--host', process.env.DOCKER_HOST || 'unix:///var/run/docker.sock', 'exec', '-i', environment.container,
     'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];

@@ -1,5 +1,6 @@
 "use server";
 
+import { readVerifiedDocumentToken } from "@/lib/portal/document-token";
 import { revalidatePath } from "next/cache";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
 import { getInvoiceDetail } from "@/lib/data/invoices";
@@ -370,20 +371,10 @@ async function validateSubmittedPortalUrl(
     return { created: false, error: safeStaffMessage(error.message), tokenId: null, url: "" };
   }
 
-  if (!data || data.revoked_at) {
-    return { created: false, error: "The submitted customer link is not active for this record.", tokenId: null, url: "" };
-  }
-
-  if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) {
-    return { created: false, error: "The submitted customer link has expired. Regenerate only if you intend to replace it.", tokenId: null, url: "" };
-  }
-
-  return {
-    created: false,
-    error: null,
-    tokenId: data.id as string,
-    url: submittedPortalUrl.startsWith("http") ? submittedPortalUrl : await getPortalUrl(portalType, rawToken),
-  };
+  if (!data) return { created: false, error: "The submitted customer link is not active for this record.", tokenId: null, url: "" };
+  const verified = await readVerifiedDocumentToken({ supabase, kind: portalType, recordId, tokenId: data.id, rawToken });
+  if (verified.error || !verified.rawToken) return { created: false, error: verified.error ?? "Review the current customer links.", tokenId: null, url: "" };
+  return { created: false, error: null, tokenId: verified.tokenId, url: await getPortalUrl(portalType, verified.rawToken) };
 }
 
 function extractPortalToken(value: string, portalType: "quote" | "invoice") {

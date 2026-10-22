@@ -28,7 +28,7 @@ export function reminderFixture(options={}) {
  const template=input=>{balances.push(input.balanceDueCents);return{subject:'Synthetic reminder',text:'Local only',html:'<p>Local only</p>'};};
  const processor=load('../src/lib/communications/processor.ts',{
   'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{},'@/lib/payments/reconciliation':principal,
-  '@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async()=>({url:'http://127.0.0.1:3102/portal/invoice/synthetic'})},
+  '@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async()=>({tokenId:"00000000-0000-4000-8000-000000000001",url:'http://127.0.0.1:3102/portal/invoice/synthetic'})},
   '@/lib/communications/queue':{getCommunicationSettingsFromClient:async()=>({data:{automated_sending_enabled:false,minimum_send_interval_hours:24,business_timezone:'America/New_York'},error:null})},
   '@/lib/communications/templates':{invoiceReminderTemplate:template,paymentConfirmationTemplate:template},'@/lib/email/delivery-context':{emailDeliveryContext},
   '@/lib/email/send':{sendTransactionalEmail:()=>assert.fail('No real provider')},'@/lib/supabase/admin':{},'@/lib/runtime/deadline':{withDeadline,mapBounded},

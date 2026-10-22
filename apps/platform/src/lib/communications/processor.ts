@@ -29,6 +29,7 @@ type PreparedCommunication = {
   customerName: string;
   recipientEmail: string;
   template: TransactionalEmailTemplate;
+  portalTokens?: {kind: "quote" | "invoice"; id: string}[];
 };
 
 type PreparationResult =
@@ -161,7 +162,7 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
     if (current.error || !current.data) return { status: "processing", outcome: "not_sent", recorded: false, message: "The delivery claim changed. No email was sent." };
     providerStarted = true;
     const result = await send({ expectedSourceSnapshot:snapshot.data, to: prepared.data.recipientEmail, subject: prepared.data.template.subject, text: prepared.data.template.text,
-      html: prepared.data.template.html, emailType: communication.communication_type, idempotencyKey: `customer-communication/${communication.id}`,
+      html: prepared.data.template.html, deliveryPortalTokens: prepared.data.portalTokens, emailType: communication.communication_type, idempotencyKey: `customer-communication/${communication.id}`,
       relatedAppointmentId: communication.appointment_id, relatedCommunicationId: communication.id, relatedCustomerId: communication.customer_id,
       relatedInvoiceId: communication.invoice_id, relatedJobId: communication.job_id, relatedOrganizationId: communication.organization_id,
       relatedPaymentId: communication.payment_id, relatedQuoteId: communication.quote_id, relatedScheduleEventId: communication.schedule_event_id, supabase });
@@ -334,7 +335,7 @@ async function prepareQuoteFollowUp(
   }
 
   const portal = await getExistingCommunicationPortalUrl(supabase, "quote", quote.id);
-  if (!portal.url) return { action: "skip", reason: portal.error ?? "The active quote link is unavailable." };
+  if (!portal.url || !portal.tokenId) return { action: "skip", reason: portal.error ?? "The active quote link is unavailable." };
 
   const lineItems = ((quote.quote_line_items ?? []) as { name: string; description: string | null; sort_order: number }[])
     .sort((left, right) => left.sort_order - right.sort_order);
@@ -343,6 +344,7 @@ async function prepareQuoteFollowUp(
     data: {
       customerName,
       recipientEmail,
+      portalTokens: [{ kind: "quote", id: portal.tokenId }],
       template: quoteFollowUpTemplate({
         customerName,
         lineItems,
@@ -376,7 +378,7 @@ async function prepareInvoiceReminder(
   if (balanceDueCents <= 0) return { action: "cancel", reason: "The invoice no longer has a balance due." };
 
   const portal = await getExistingCommunicationPortalUrl(supabase, "invoice", invoice.id);
-  if (!portal.url) return { action: "skip", reason: portal.error ?? "The active invoice link is unavailable." };
+  if (!portal.url || !portal.tokenId) return { action: "skip", reason: portal.error ?? "The active invoice link is unavailable." };
 
   const job = one<{ service_locations: LocationRow | LocationRow[] | null }>(invoice.jobs);
   const location = one<LocationRow>(job?.service_locations ?? null);
@@ -385,6 +387,7 @@ async function prepareInvoiceReminder(
     data: {
       customerName,
       recipientEmail,
+      portalTokens: [{ kind: "invoice", id: portal.tokenId }],
       template: invoiceReminderTemplate({
         balanceDueCents,
         customerName,

@@ -4,6 +4,14 @@ import {readFileSync} from 'node:fs';
 // Explicit opt-in for the separate payment stack. Never accepts a hosted target,
 // the ordinary development database, arbitrary container names, or arbitrary ports.
 export function localPaymentTarget(status,env=process.env){
+ if(env.DOCUMENT_EMAIL_DISPOSABLE!==undefined){
+  assert.equal(env.DOCUMENT_EMAIL_DISPOSABLE,'1');assert.equal(env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
+  const f=JSON.parse(readFileSync(env.DOCUMENT_EMAIL_ENV_FILE,'utf8')),c=status??JSON.parse(readFileSync(env.DOCUMENT_EMAIL_STATUS_FILE,'utf8'));
+  assert.match(f.projectId,/^ats_docmail_[a-f0-9]{12}$/);assert.equal(f.createdThisTask,true);assert.equal(f.container,'supabase_db_'+f.projectId);
+  assert.equal(f.api,'http://127.0.0.1:60421');assert.equal(f.web,'http://127.0.0.1:3146');assert.equal(f.databasePort,60422);assert.equal(c.API_URL,f.api);
+  const db=new URL(c.DB_URL);assert.equal(db.protocol,'postgresql:');assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'60422');assert.equal(db.pathname,'/postgres');assert.equal(db.search,'');assert.equal(db.hash,'');
+  return{fresh:true,container:f.container,api:f.api,web:f.web};
+ }
  if(env.QUOTE_LINK_DISPOSABLE!==undefined){
   assert.equal(env.QUOTE_LINK_DISPOSABLE,'1');assert.equal(env.DOCKER_HOST,'unix:///Users/noelsierra/.lima/pr02-disposable/sock/docker.sock');
   const f=JSON.parse(readFileSync(env.QUOTE_LINK_ENV_FILE,'utf8')),c=status??JSON.parse(readFileSync(env.QUOTE_LINK_STATUS_FILE,'utf8'));

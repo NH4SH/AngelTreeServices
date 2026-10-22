@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-22",
+  "scope": "Document email capability binding and durable retry acceptance; local app and staging database verification",
+  "previousQuoteBatchPushed": "0acd2194fd89a2419813d9477539aad617b7469c",
+  "newBatchPushed": false,
+  "migration": {
+    "name": "20261022194856_bind_document_email_capabilities.sql",
+    "sha256": "c0e9597766fe0404784d94b689e19e9c4fb679b795ba36c5d9d1dfe0526911a8",
+    "sourceCount": 116,
+    "deferredInventoryCount": 23,
+    "historicCandidateCount": 93
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 116,
+    "sqlAssertions": 48,
+    "totalSqlAssertions": 440,
+    "concurrentApiScenarios": 13,
+    "paymentRegressionPassed": true,
+    "schemaContractMatched": true,
+    "migrationSha256": "c0e9597766fe0404784d94b689e19e9c4fb679b795ba36c5d9d1dfe0526911a8",
+    "crmChecksPassed": 2314,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "nativeDeliveryReviewScenarios": 26,
+    "nativeChangeOrderSendingScenarios": 9,
+    "nativePaymentScenarios": 34,
+    "paymentTapChecks": 36,
+    "typecheckPassed": true,
+    "isolatedOptimizedBuildPassed": true,
+    "lintScriptAvailable": false,
+    "sourceMatchesPreviewAndBuild": true,
+    "applicationSourceSha256": "0370ff0b6bcc822f45b31ec51f1604ffa1e3c0d65687ddf95c527f3235ba4056",
+    "realProviderCalls": 0
+  },
+  "browser": {
+    "desktopWidth": 1280,
+    "mobileWidth": 390,
+    "horizontalOverflow": false,
+    "quoteOpened": true,
+    "invoiceOpened": true,
+    "unpaidInvoiceBalanceConsistent": true,
+    "preSendChangeOrderReadOnly": true,
+    "consoleWarningsOrErrors": 0,
+    "financialOrApprovalActionsSubmitted": false,
+    "hostedStagingAppDeployed": false
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 116,
+    "automaticEmailEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "syntheticAssertions": 48,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "authorizationAndCapabilitiesUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "unchanged": true,
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33,
+        "level": "INFO"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 79,
+        "level": "WARN"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1,
+        "level": "WARN"
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33,
+        "level": "INFO"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 79,
+        "level": "WARN"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1,
+        "level": "WARN"
+      }
+    ]
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "changed": false
+  },
+  "production": {
+    "ledgerCount": 102,
+    "latestMigration": "20261021233829",
+    "unattemptedUnboundActionableReminders": 0,
+    "inventoryIsPointInTimeOnly": true,
+    "writes": 0,
+    "appDeployed": false,
+    "providerCalls": 0,
+    "customerEmailsSent": 0
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true
+  }
+}

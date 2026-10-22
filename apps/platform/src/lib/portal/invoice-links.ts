@@ -1,8 +1,8 @@
 import "server-only";
+import { readVerifiedDocumentToken } from "@/lib/portal/document-token";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  decryptPortalToken,
   encryptPortalToken,
   generatePortalToken,
   getPortalTokenHint,
@@ -10,7 +10,7 @@ import {
   INVOICE_PORTAL_LINK_LIFETIME_DAYS,
 } from "@/lib/portal/tokens";
 import { formatInvoicePortalTokenError } from "@/lib/portal/invoice-token-errors";
-import { getEncryptedPortalToken, type PortalTokenRpcRecord } from "@/lib/portal/token-record";
+import { type PortalTokenRpcRecord } from "@/lib/portal/token-record";
 
 export async function createOrGetInvoicePortalTokenRecord({
   invoiceId,
@@ -49,15 +49,12 @@ export async function createOrGetInvoicePortalTokenRecord({
   }
 
   const token = data as PortalTokenRpcRecord;
-  if (token.created) {
-    return { created: true, error: null, expiresAt: token.expires_at ?? expiresAt, rawToken, tokenId: token.id };
-  }
-
-  const recoveredToken = decryptPortalToken(getEncryptedPortalToken(token));
+  const verified = await readVerifiedDocumentToken({ supabase, kind: "invoice", recordId: invoiceId, tokenId: token.id, ...(token.created ? { rawToken } : {}) });
+  const recoveredToken = verified.rawToken;
   if (!recoveredToken) {
     return {
       created: false,
-      error: "An existing customer link is still active but was created before link recovery was enabled. Use Regenerate link only if you intend to replace it.",
+      error: verified.error ?? "Review the current customer links before sending.",
       expiresAt: "",
       rawToken: "",
       tokenId: "",
@@ -65,7 +62,7 @@ export async function createOrGetInvoicePortalTokenRecord({
   }
 
   return {
-    created: false,
+    created: token.created,
     error: null,
     expiresAt: token.expires_at ?? expiresAt,
     rawToken: recoveredToken,

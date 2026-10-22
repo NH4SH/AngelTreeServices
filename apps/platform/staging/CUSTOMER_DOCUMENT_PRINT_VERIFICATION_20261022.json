@@ -1,9 +1,9 @@
 {
   "date": "2026-10-22",
-  "status": "pending_native_pdf_confirmation_mac_locked",
+  "status": "verified_local_and_staging_synthetic",
   "previousBatchPushed": "99149c3",
   "newBatchPushed": false,
-  "finalPdfVerified": false,
+  "finalPdfVerified": true,
   "schemaChanges": false,
   "checks": {
     "crmPassed": 2321,
@@ -12,7 +12,10 @@
     "typecheckPassed": true,
     "finalIsolatedBuildPassed": true,
     "sourceMatchesPreviewAndBuild": true,
-    "applicationSourceSha256": "01250a81e4c65236c55686237ea36b01059dcfac285d50b2aa9c7ca8dfb94b58"
+    "applicationSourceSha256": "ff468bc8fbcde6e93a2eee99a4e8ca96d0fa035ed4cd3d3b200df28fe397f442",
+    "sourceSealAlgorithm": "SHA256 of sorted Git-tracked src relative path + NUL + bytes + NUL, excluding .impeccable design metadata",
+    "trackedSourceFilesVerified": 622,
+    "finalFocusedPrintTestsPassed": 6
   },
   "databaseVerification": {
     "local": {
@@ -167,17 +170,258 @@
       "allPagesHaveContent": true
     }
   ],
-  "finalConfirmationFilesCreated": false,
+  "finalConfirmationFilesCreated": true,
   "hostingUnchanged": true,
   "productionWrites": 0,
   "appDeployed": false,
   "realProviderCalls": 0,
   "customerEmailsSent": 0,
-  "pendingCleanup": {
-    "safariHeadersFootersOriginal": true,
-    "safariHeadersFootersRestored": false,
-    "inAppViewportReset": false,
-    "taskServicesStopped": false,
-    "userDevelopmentAppChanged": false
-  }
+  "finalNativePdfRound": [
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 80,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "change_order",
+      "variant": "long",
+      "pages": 4,
+      "pageTextCharacters": [
+        3148,
+        3241,
+        2895,
+        307
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "65f4fb9ff559315a1a32322aeabfc1779de053a797fd19bc7a86e7b892b76594"
+    },
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 0,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "change_order",
+      "variant": "short",
+      "pages": 1,
+      "pageTextCharacters": [
+        486
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "eeaa3d03fbf23d1a3632da3c4735c1f3bf24195c3aa3e338856289b163f0cfe9"
+    },
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 80,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "invoice",
+      "variant": "long",
+      "pages": 5,
+      "pageTextCharacters": [
+        2935,
+        3495,
+        2634,
+        2829,
+        444
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "d423ad085939c94a219ac0f9acc77512a1ecdd2026ee7ad38fa404d5314a1874"
+    },
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 0,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "invoice",
+      "variant": "short",
+      "pages": 2,
+      "pageTextCharacters": [
+        1537,
+        1702
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "267a770f9383acdef599402be1232b6f35f26459844b0df1e421e848eeb4d636"
+    },
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 80,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "quote",
+      "variant": "long",
+      "pages": 4,
+      "pageTextCharacters": [
+        2973,
+        3495,
+        2634,
+        1118
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "ec0ab272f1056d4ac36510f54b4d54270df70ca9947d75828b5707aa1ed0016d"
+    },
+    {
+      "completeScopeTextPresent": true,
+      "expectedRepeatedSentences": 0,
+      "allTermsPresent": true,
+      "expectedAmountsPresent": true,
+      "kind": "quote",
+      "variant": "short",
+      "pages": 1,
+      "pageTextCharacters": [
+        1121
+      ],
+      "missingScopeMarkers": [],
+      "privateLinkPresent": false,
+      "interactiveTextPresent": [],
+      "textOutsidePaper": [
+        0
+      ],
+      "allPagesHaveContent": true,
+      "sha256": "b8441ba9a9653cdfe35063593cd5ccfc168f442d3f8a20c9a586098d02921093"
+    }
+  ],
+  "finalNativePdfRoundVisuallyInspected": true,
+  "nativePdfSettings": {
+    "browser": "Safari",
+    "paper": "US Letter",
+    "scalePercent": 100,
+    "browserHeadersFootersDisabledForExports": true,
+    "physicalPrintingTested": false,
+    "otherBrowsersTested": false
+  },
+  "responsiveBrowser": {
+    "passed": true,
+    "cases": 18,
+    "widths": [
+      390,
+      768,
+      1280
+    ],
+    "horizontalOverflow": false,
+    "singlePaperAndPrintControl": true,
+    "minimumPrintControlHeight": 44,
+    "screenshotsInspected": true,
+    "keyboard": [
+      {
+        "kind": "change_order",
+        "tabNext": {
+          "label": "Call (540) 388-8715",
+          "tag": "A"
+        },
+        "returnFocus": {
+          "description": "Sharing this copy? Turn off headers and footers in the print dialog to keep your private link out of the file.",
+          "isPrint": true,
+          "label": "Print or save change order",
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "type": "button"
+        }
+      },
+      {
+        "kind": "invoice",
+        "tabNext": {
+          "label": "",
+          "tag": "INPUT"
+        },
+        "returnFocus": {
+          "description": "Sharing this copy? Turn off headers and footers in the print dialog to keep your private link out of the file.",
+          "isPrint": true,
+          "label": "Print or save invoice",
+          "outlineStyle": "solid",
+          "outlineWidth": "3px",
+          "type": "button"
+        }
+      },
+      {
+        "kind": "quote",
+        "tabNext": {
+          "label": "View full scope below",
+          "tag": "A"
+        },
+        "returnFocus": {
+          "description": "Sharing this copy? Turn off headers and footers in the print dialog to keep your private link out of the file.",
+          "isPrint": true,
+          "label": "Print or save proposal",
+          "outlineStyle": "solid",
+          "outlineWidth": "3px",
+          "type": "button"
+        }
+      }
+    ],
+    "consoleErrorsOrWarnings": 0
+  },
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true,
+    "viewportReset": true,
+    "taskTabClosed": true,
+    "userTabsPreserved": true,
+    "headersFootersOriginal": true,
+    "headersFootersRestored": true,
+    "verifiedAfterReopeningPrintDialog": true,
+    "routerPreserved": true,
+    "physicalPrinting": false
+  },
+  "stagingSecurityAdvisorBaselineUnchanged": {
+    "rlsEnabledNoPolicyInfo": 33,
+    "authenticatedSecurityDefinerWarnings": 79,
+    "leakedPasswordProtectionWarnings": 1
+  },
+  "mainAlignment": {
+    "originMain": "99149c3",
+    "includesAllMainHistory": true,
+    "newBatchPushed": false
+  },
+  "acceptedFinalPdfNames": [
+    "accepted-change_order-short.pdf",
+    "accepted-change_order-long.pdf",
+    "verified-quote-short.pdf",
+    "verified-quote-long.pdf",
+    "verified-invoice-short.pdf",
+    "verified-invoice-long.pdf"
+  ]
 }

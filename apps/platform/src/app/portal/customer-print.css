@@ -121,19 +121,31 @@
   }
 
   .customer-document-page .quote-proposal-line {
+    display: block;
     padding-block: 8px;
   }
 
-  /* WebKit can split grid rows through a term. Columns retain each complete
-     definition and allow the terms section to fragment naturally. */
+  .customer-document-page .quote-proposal-line-list {
+    display: block;
+  }
+
+  .customer-document-page .quote-proposal-line > :not(:first-child) {
+    margin-top: 6px;
+  }
+
+  /* Inline blocks keep each definition together in Safari's paged output.
+     Grid rows and multicolumn flow can split or ignore term boundaries. */
   .customer-document-page .document-terms-list {
     display: block;
-    columns: 2;
-    column-gap: 14px;
+    font-size: 0;
   }
 
   .customer-document-page .document-term {
-    padding-block: 4px;
+    display: inline-block;
+    box-sizing: border-box;
+    width: 50%;
+    padding: 4px 14px 4px 0;
+    vertical-align: top;
     break-inside: avoid;
   }
 
@@ -149,7 +161,7 @@
   }
 
   .customer-document-page .quote-document-terms .document-term:last-child {
-    column-span: all;
+    width: 100%;
   }
 
   .customer-document-page .business-document-footer {
@@ -167,10 +179,7 @@
   }
 
   .customer-document-page .change-order-document .line-item-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    gap: 6px 20px;
+    display: block;
     padding: 8px 0;
     border: 0;
     border-bottom: 1px solid var(--color-border);
@@ -178,7 +187,15 @@
   }
 
   .customer-document-page .change-order-document .line-item-row > :first-child {
-    grid-column: 1 / -1;
+    display: block;
+  }
+
+  .customer-document-page .change-order-document .formatted-line-description > * {
+    display: block;
+  }
+
+  .customer-document-page .change-order-document .formatted-line-description > span {
+    margin-top: 4px;
   }
 
   .customer-document-page .change-order-document .line-item-row > :nth-child(2)::before {
@@ -194,6 +211,10 @@
   }
 
   .customer-document-page .change-order-document .line-item-row > :not(:first-child) {
+    display: inline-block;
+    width: 33.333%;
+    margin-top: 6px;
+    vertical-align: top;
     text-align: right;
   }
 

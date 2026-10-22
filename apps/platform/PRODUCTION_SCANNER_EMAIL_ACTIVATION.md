@@ -21,7 +21,35 @@ Owner authorization: enable the production scanner and automatic customer emails
 
 A closed-connection TLS regression test reproduces missing peer-certificate metadata under session resumption. Readiness uses a fresh, normally verified TLS handshake so repeated monitoring does not produce a false outage. A separate fresh local Supabase stack replayed all 102 committed migrations and regenerated the public schema contract.
 
-Final activation evidence and actual delivery counts are recorded below after live verification.
+## Completed activation — October 21, 2026 (Eastern)
+
+The production release is **`943f3e2f8ffd724029186d4a40c417fa8b150099`**, Netlify deploy **`6ad95318d4baa154ecf3456a`**. Documentation-only commits after this release use skip markers; the deployed application code matches main.
+
+| Check | Final evidence |
+| --- | --- |
+| Private scanner | Enabled for all seven private attachment areas; all buckets remain private |
+| Scanner runtime | Repeated clean/digest checks, EICAR quarantine and two concurrent 25 MiB scans passed from the actual Netlify CRM runtime within the unchanged 12-second deadline |
+| Monitoring | Scheduled run at `2026-10-22T00:10:22Z` recorded operational status, current loaded definitions and trusted TLS; no active scanner incident |
+| Credentials | Distinct staging/production scanner tokens; cross-environment, missing and wrong tokens denied; no scanner ports exposed beyond the existing HTTPS ingress |
+| Customer email | Enabled; existing offsets, per-record opt-outs and 24-hour minimum interval preserved; hourly Netlify function confirmed |
+| Activation deliveries | Seven due customer reminders accepted: five proposal follow-ups and two reminders for distinct invoices; each has one provider attempt and a recorded acknowledgment |
+| Duplicate protection | Four redundant proposal stages skipped; one competing invoice stage cancelled before any provider attempt; zero duplicate provider IDs or repeated customer-reminder identities |
+| Repeat processing | Final repeat: zero claimed, sent, failed or uncertain; no overdue pending queue rows |
+| Old communications | Past appointment reminder cancelled normally; previously sent reminder not resent; zero historical payment receipts backfilled |
+| History and finance | All 433 pre-existing email-history rows retain their original fingerprint; invoice, invoice-line, payment and checkout row counts and fingerprints match the pre-activation snapshot |
+| Staging | Migration 102 installed; customer/recurring automation still off, existing library-only scan gate preserved, staging application deployment unchanged |
+| Other automation | Shared job/calendar/manager worker key remains absent; recurring generation remains off; retention/purge were not activated |
+| Verification | 2,195 regression checks, typecheck, full fresh 102-migration replay, schema fingerprint check and optimized hosted production build passed; security advisor counts unchanged |
+
+The inventory immediately before gate activation contained zero objects or referenced file paths in the seven areas. No legacy file was labelled clean, deleted, replaced or made public. The local financial rehearsal database was closed to new connections; the existing local development app and stack remain intact.
+
+The competing invoice reminder remains visible in Delivery review as a blocked item (`matching_delivery`, cancelled, zero provider attempts). Its counterpart was accepted. **Do not retry or copy this blocked reminder.** This is a recorded duplicate suppression, not an uncertain delivery. Future scheduled reminders remain queued normally.
+
+During verification, Node's resumed TLS sessions caused false scanner-monitor failures and administrator health alerts. A regression test reproduces the issue without the fix; fresh verified handshakes correct it. The scheduled monitor recorded recovery, and the incident and alert history were preserved. These operational alerts were separate from customer reminders.
+
+This activation did not deploy the public website. An independent website update was observed and preserved. Existing production service credentials were not overwritten; only the new scanner settings and dedicated customer-email worker credential were added. Nine public login-page JavaScript assets were checked for the new credential values; none contained them.
+
+Private operator evidence and credentials are retained outside Git in the restricted local activation workspace. No token values, customer addresses, frozen email bodies or backup credentials appear in this report.
 
 ## Operating limits
 

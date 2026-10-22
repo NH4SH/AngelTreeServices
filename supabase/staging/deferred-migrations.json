@@ -78,6 +78,10 @@
     {
       "name": "20261022162956_guard_pending_change_order_sends.sql",
       "sha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e"
+    },
+    {
+      "name": "20261022170133_atomic_change_order_portal_links.sql",
+      "sha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15"
     }
   ]
 }

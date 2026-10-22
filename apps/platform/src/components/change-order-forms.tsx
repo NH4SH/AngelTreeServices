@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { readWorkflowAttempt, prepareWorkflowAttempt, forgetWorkflowAttempt, workflowIntents, type WorkflowAttempt, type WorkflowIntent } from "@/lib/change-orders/workflow-attempt";
 import { readSendAttempt, prepareSendAttempt, forgetSendAttempt, type ChangeOrderSendAttempt } from "@/lib/change-orders/send-attempt";
+import { readLinkAttempt, prepareLinkAttempt, forgetLinkAttempt, linkIntents, type ChangeOrderLinkAttempt, type LinkIntent } from "@/lib/change-orders/link-attempt";
 import { prepareCopyAttempt, forgetCopyAttempt, type ChangeOrderCopyAttempt } from "@/lib/change-orders/copy-attempt";
 import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
@@ -236,7 +237,7 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
   );
 }
 
-export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRelations }) {
+export function ChangeOrderWorkflowPanel({ order, linkVersion }: { order: ChangeOrderWithRelations; linkVersion: string | null }) {
   const { state: workflowState, action: workflowAction, pending: workflowPending, attempt: workflowAttempt } = useWorkflowAction(order.id, order.edit_revision);
   const workflowDisabled = workflowPending || Boolean(workflowAttempt) || Boolean(workflowState.reviewRequired) || Boolean(workflowState.saveDestination && order.edit_revision < (workflowState.savedRevision ?? Infinity));
   const [manualState, manualAction, manualPending] = useDraftSave(manuallyApproveChangeOrder, `manual-approval:${order.id}`, order.edit_revision, undefined, undefined, "An earlier approval is still unconfirmed. Retry the same approver and documentation, or review the approval history before starting another request.");
@@ -248,14 +249,14 @@ export function ChangeOrderWorkflowPanel({ order }: { order: ChangeOrderWithRela
       {order.status === "draft" || order.status === "change_requested" ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="request_review" label="Send for internal review" icon={<ShieldCheck size={17} />} /> : null}
       {["draft", "pending_internal_review", "change_requested"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="approve_internal" label="Approve internally" icon={<CheckCircle2 size={17} />} /> : null}
       {["pending_internal_review", "ready_to_send"].includes(order.status) ? <WorkflowButton action={workflowAction} disabled={workflowDisabled} id={order.id} intent="return_clarification" label="Return for clarification" icon={<X size={17} />} secondary /> : null}
-      <ChangeOrderEmailAction order={order} />
+      <ChangeOrderEmailAction key={linkVersion} order={order} linkVersion={linkVersion} />
       {open ? <details className="change-order-manual-approval"><summary>Record approval received outside portal</summary><form onSubmit={(event) => submitDraftForm(event, manualAction)} className="crm-form"><input name="change_order_id" type="hidden" value={order.id} /><label>Approver name<input name="approver_name" required /></label><label>Approval method<select name="approval_method" required><option value="phone">Phone</option><option value="email">Email outside CRM</option><option value="in_person">In person</option><option value="signed_paper">Signed paper</option><option value="other">Other documented method</option></select></label><label>Documentation notes<textarea name="approval_notes" required rows={3} /></label><button disabled={manualPending || manualState.reviewRequired || Boolean(manualState.saveDestination)} type="submit"><CheckCircle2 size={17} />{manualPending ? "Recording..." : "Record manual approval"}</button>{manualState.message ? <ActionMessage state={manualState} /> : null}{manualState.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`} target="_blank" rel="noreferrer">Review current record</a> : null}</form></details> : null}
       {open ? <form action={workflowAction} onSubmit={(event) => { event.preventDefault(); if (window.confirm("Cancel this change order? It will not change the original quote or work already approved.")) submitDraftForm(event, workflowAction); }}><input name="change_order_id" type="hidden" value={order.id} /><input name="workflow_intent" type="hidden" value="cancel" /><button className="danger-secondary-action" disabled={workflowDisabled} type="submit">Cancel change order</button></form> : null}
     </div>
   );
 }
 
-function ChangeOrderEmailAction({ order }: { order: ChangeOrderWithRelations }) {
+function ChangeOrderEmailAction({ order, linkVersion }: { order: ChangeOrderWithRelations; linkVersion: string | null }) {
   const attemptRef = useRef<ChangeOrderSendAttempt | undefined>(undefined);
   const [attempt, setAttempt] = useState<ChangeOrderSendAttempt | undefined>(undefined);
   const router = useRouter();
@@ -264,9 +265,10 @@ function ChangeOrderEmailAction({ order }: { order: ChangeOrderWithRelations }) 
     if (previous.saveDestination || previous.reviewRequired) return previous;
     const storage = workflowStorage(), earlier = attemptRef.current ?? readSendAttempt(order.id, storage);
     if (!earlier && order.status === "sent" && !window.confirm("Send an additional approval email for the current version? The existing customer link stays active. If an earlier email is uncertain, check Delivery review first.")) return previous;
-    const saved = prepareSendAttempt(order.id, order.edit_revision, order.status === "sent", storage, earlier);
+    const saved = prepareSendAttempt(order.id, order.edit_revision, order.status === "sent", storage, earlier, linkVersion);
     attemptRef.current = saved; setAttempt(saved);
     form.set("request_id", saved.requestId); form.set("expected_revision", String(saved.revision)); form.set("additional_copy", saved.additionalCopy ? "1" : "0");
+    form.set("expected_link_version", saved.linkVersion ?? "");
     const result = await sendChangeOrderEmail(previous, form);
     if (result.status === "success" || result.saveRejected) { forgetSendAttempt(order.id, storage); attemptRef.current = undefined; setAttempt(undefined); }
     return result;
@@ -275,28 +277,52 @@ function ChangeOrderEmailAction({ order }: { order: ChangeOrderWithRelations }) 
   if (!["ready_to_send", "sent"].includes(order.status) && !attempt && !state.message) return null;
   return <form action={action} onSubmit={event => submitDraftForm(event, action)}>
     <input name="change_order_id" type="hidden" value={order.id} />
-    <button disabled={pending || state.reviewRequired || Boolean(state.saveDestination)} type="submit"><Mail size={17} />{pending ? "Checking email..." : attempt ? "Check saved email" : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button>
+    <button disabled={pending || state.reviewRequired || Boolean(state.saveDestination) || !attempt && !linkVersion} type="submit"><Mail size={17} />{pending ? "Checking email..." : attempt ? "Check saved email" : order.status === "sent" ? "Resend approval email" : "Send for customer approval"}</button>
     {state.message ? <ActionMessage state={state} /> : null}
     {state.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${order.id}`}>Reload current record</a> : null}
     {attempt || state.status === "error" ? <Link className="text-link" href="/admin/communications/delivery-review">Open Delivery review</Link> : null}
   </form>;
 }
 
-export function ChangeOrderPortalPanel({ changeOrderId, tokens }: { changeOrderId: string; tokens: ChangeOrderTokenSummary[] }) {
-  const [createState, createAction, createPending] = useReliableActionState(createChangeOrderPortalLink, initialChangeOrderActionState);
-  const [regenerateState, regenerateAction, regeneratePending] = useReliableActionState(regenerateChangeOrderPortalLink, initialChangeOrderActionState);
-  const [revokeState, revokeAction, revokePending] = useReliableActionState(revokeChangeOrderPortalLink, initialChangeOrderActionState);
-  const active = tokens.find((token) => !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now()));
-  const portalUrl = createState.portalUrl ?? regenerateState.portalUrl ?? active?.portalUrl ?? null;
-  const busy = createPending || regeneratePending || revokePending;
-  return (
-    <div className="change-order-link-panel">
-      <div><p className="surface-label"><Link2 size={17} /> Customer link</p><h2>{active ? "Active secure link" : "No active link"}</h2><p>Normal edits update this link and never revoke it.</p></div>
-      {portalUrl ? <button className="secondary-action" onClick={() => void navigator.clipboard.writeText(portalUrl)} type="button"><Copy size={17} /> Copy customer link</button> : <form action={createAction}><input name="change_order_id" type="hidden" value={changeOrderId} /><button disabled={busy} type="submit"><Link2 size={17} />{createPending ? "Generating..." : "Generate link"}</button></form>}
-      {[createState, regenerateState, revokeState].map((state, index) => state.message ? <ActionMessage key={index} state={state} /> : null)}
-      {active ? <details><summary>Link controls</summary><p>Regenerating disables the previous customer link. Revoking disables access without creating a replacement.</p><form action={regenerateAction} onSubmit={(event) => { if (!window.confirm("Regenerating this link will disable the previous customer link.")) event.preventDefault(); }}><input name="change_order_id" type="hidden" value={changeOrderId} /><button className="secondary-action" disabled={busy} type="submit">{regeneratePending ? "Regenerating..." : "Regenerate link"}</button></form><form action={revokeAction} onSubmit={(event) => { if (!window.confirm("Revoke this customer link? The customer will no longer be able to open it.")) event.preventDefault(); }}><input name="change_order_id" type="hidden" value={changeOrderId} /><button className="danger-secondary-action" disabled={busy} type="submit">{revokePending ? "Revoking..." : "Revoke link"}</button></form></details> : null}
-    </div>
-  );
+export function ChangeOrderPortalPanel({ changeOrderId, revision, linkVersion, tokens }: { changeOrderId: string; revision: number; linkVersion: string | null; tokens: ChangeOrderTokenSummary[] }) {
+  const attemptRef = useRef<ChangeOrderLinkAttempt | undefined>(undefined);
+  const [attempt, setAttempt] = useState<ChangeOrderLinkAttempt | undefined>(undefined);
+  const router = useRouter();
+  const [restored, setRestored] = useState(false);
+  useEffect(() => { const saved = readLinkAttempt(changeOrderId, workflowStorage()); attemptRef.current = saved; setAttempt(saved); setRestored(true); }, [changeOrderId]);
+  const [state, action, pending] = useReliableActionState(async (previous: ChangeOrderActionState, form: FormData): Promise<ChangeOrderActionState> => {
+    if (previous.reviewRequired || previous.saveDestination && linkVersion !== previous.savedLinkVersion) return previous;
+    const intent = String(form.get("link_intent")) as LinkIntent;
+    if (!linkIntents.includes(intent)) return { status: "error", message: "Reload before choosing a link action.", reviewRequired: true };
+    const storage = workflowStorage(), earlier = attemptRef.current ?? readLinkAttempt(changeOrderId, storage);
+    if (!earlier && intent !== "generate" && !window.confirm(intent === "regenerate" ? "Regenerate this customer link? Previous links will stop working. No email is sent automatically." : "Revoke this customer link? The customer will no longer be able to open it.")) return previous;
+    if (!earlier && !linkVersion) return { status: "error", message: "Reload the record to load its current customer links.", reviewRequired: true };
+    const prepared = prepareLinkAttempt(changeOrderId, revision, linkVersion ?? "", intent, storage, earlier);
+    attemptRef.current = prepared.attempt; setAttempt(prepared.attempt);
+    if (prepared.blocked) return { status: "error", message: "Check the earlier link action before choosing another." };
+    form.set("request_id", prepared.attempt.requestId); form.set("expected_revision", String(prepared.attempt.revision)); form.set("expected_link_version", prepared.attempt.linkVersion);
+    const run = prepared.attempt.intent === "generate" ? createChangeOrderPortalLink : prepared.attempt.intent === "regenerate" ? regenerateChangeOrderPortalLink : revokeChangeOrderPortalLink;
+    const result = await run(previous, form);
+    if (result.status === "success" || result.saveRejected) { forgetLinkAttempt(changeOrderId, storage); attemptRef.current = undefined; setAttempt(undefined); }
+    return result;
+  }, initialChangeOrderActionState);
+  useEffect(() => { if (state.saveDestination) { router.push(state.saveDestination); router.refresh(); } }, [state.saveDestination, router]);
+  const active = tokens.find(token => !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now()));
+  const busy = !restored || pending || Boolean(attempt) || state.reviewRequired || Boolean(state.saveDestination && state.savedLinkVersion !== linkVersion);
+  const copyReady = !busy && Boolean(active?.usable && active.portalUrl);
+  const linkForm = (intent: LinkIntent, label: string, danger = false) => <form action={action} onSubmit={event => submitDraftForm(event, action)}>
+    <input name="change_order_id" type="hidden" value={changeOrderId} /><input name="link_intent" type="hidden" value={intent} />
+    <button className={danger ? "danger-secondary-action" : "secondary-action"} disabled={busy || !linkVersion} type="submit">{pending ? "Checking link..." : label}</button>
+  </form>;
+  return <div className="change-order-link-panel">
+    <div><p className="surface-label"><Link2 size={17} /> Customer link</p><h2>{active ? active.usable && active.portalUrl ? "Active secure link" : "Link needs review" : "No active link"}</h2><p>Normal edits update this link and never revoke it.</p></div>
+    {active ? <button className="secondary-action" disabled={!copyReady} onClick={() => { if (copyReady && active.portalUrl) void navigator.clipboard.writeText(active.portalUrl); }} type="button"><Copy size={17} /> Copy customer link</button> : !attempt ? linkForm("generate", "Generate link") : null}
+    {active && (!active.usable || !active.portalUrl) ? <p className="field-note">This link cannot be shared for the current approval contact. Regenerate it to create a recoverable replacement.</p> : null}
+    {attempt ? <form action={action} onSubmit={event => submitDraftForm(event, action)}><input name="change_order_id" type="hidden" value={changeOrderId} /><input name="link_intent" type="hidden" value={attempt.intent} /><button className="secondary-action" disabled={pending} type="submit">{pending ? "Checking link..." : "Check earlier link action"}</button></form> : null}
+    {state.message ? <ActionMessage state={state} /> : null}
+    {state.reviewRequired ? <a className="text-link" href={`/admin/change-orders/${changeOrderId}`}>Reload current link controls</a> : null}
+    {active ? <details><summary>Link controls</summary><p>Regenerating disables previous customer links. Revoking disables access without creating a replacement.</p>{linkForm("regenerate", "Regenerate link")}{linkForm("revoke", "Revoke link", true)}</details> : null}
+  </div>;
 }
 
 export function DuplicateChangeOrderButton({ id, revision }: { id: string; revision: number }) {

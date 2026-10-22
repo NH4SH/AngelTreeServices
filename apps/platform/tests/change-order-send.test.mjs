@@ -5,13 +5,14 @@ import { load } from './pr10-test-helpers.mjs';
 import { prepareSendAttempt, readSendAttempt, forgetSendAttempt } from '../src/lib/change-orders/send-attempt.ts';
 
 const uid = randomUUID(), id = randomUUID(), request = randomUUID(), deliveryId = randomUUID(), job = randomUUID(), tokenId = randomUUID();
+const linkVersion = 'a1'.repeat(32);
 const storedReceipt = { request_id: request, id, reviewed_revision: 4, delivery_id: deliveryId, job_id: job, organization_id: null,
   current_revision: 4, current_status: 'ready_to_send', additional_copy: false, replayed: false };
 const acceptedRow = { id: deliveryId, state: 'accepted', repair_state: 'complete', history_recorded: true, provider_message_id: 'synthetic-provider-id', followup_sync_pending: false };
 const delivery = load('../src/lib/email/delivery.ts', { 'server-only': {}, 'node:crypto': {}, '@/lib/email/delivery-commands': {}, '@/lib/email/delivery-context': {} });
 function form(overrides = {}) {
   const f = new FormData();
-  for (const [key, value] of Object.entries({ change_order_id: id, request_id: request, expected_revision: '4', additional_copy: '0', ...overrides })) f.set(key, value);
+  for (const [key, value] of Object.entries({ change_order_id: id, request_id: request, expected_revision: '4', additional_copy: '0', expected_link_version: linkVersion, ...overrides })) f.set(key, value);
   return f;
 }
 function fixture(options = {}) {
@@ -45,7 +46,7 @@ function fixture(options = {}) {
     '@/lib/email/delivery': { deliveryResult: delivery.deliveryResult, freezeEmailPayload: (input, envelope) => { frozen.push({ input, envelope }); return delivery.freezeEmailPayload(input, envelope); },
       dispatchSavedEmail: async (savedId, db, send) => { events.push('dispatch'); assert.equal(db, serviceDB); assert.equal(send, transport); dispatches.push(savedId); return options.dispatchResult ?? send({ deliveryId: savedId }); } },
     '@/lib/email/delivery-followups': { completeDeliveryFollowups: async (db, savedId, result) => { assert.equal(db, serviceDB); followups.push(savedId); return result; } },
-    '@/lib/portal/change-order-links': { createOrGetChangeOrderPortalTokenRecord: async args => { events.push('portal-token'); assert.deepEqual(args, { changeOrderId: id, supabase: authDB }); return { error: null, rawToken: 'synthetic-private-capability', tokenId }; } },
+    '@/lib/portal/change-order-links': { createOrGetChangeOrderPortalTokenRecord: async args => { events.push('portal-token'); assert.deepEqual(args, { changeOrderId: id, supabase: authDB, requestId: request, revision: 4, linkVersion }); return { error: null, rawToken: 'synthetic-private-capability', tokenId }; } },
     '@/lib/portal/urls': { getPortalUrl: async (kind, raw) => { events.push('portal-url'); assert.equal(kind, 'change-order'); assert.equal(raw, 'synthetic-private-capability'); return 'https://synthetic.invalid/change-order/synthetic-private-capability'; } },
     '@/lib/supabase/server': { createClient: async () => authDB }, '@/lib/supabase/admin': { getServiceRoleClient: () => options.unavailable ? null : serviceDB },
     '@/lib/security/portal-rate-limit': {}, '@/lib/security/errors': { safeStaffMessage: value => value },
@@ -65,9 +66,19 @@ test('first send binds actual staff, page revision, selected token, frozen envel
   assert.deepEqual(f.dispatches, [deliveryId]); assert.equal(f.transports.length, 1); assert.deepEqual(f.followups, [deliveryId]); assert.ok(f.paths.includes(`/admin/jobs/${job}`));
 });
 test('accepted recovery confirms saved delivery before reading current content or making a new portal link', async () => {
-  const f = fixture({ receipt: { current_revision: 9, current_status: 'cancelled', replayed: true } }), result = await f.run();
+  const f = fixture({ receipt: { current_revision: 9, current_status: 'cancelled', replayed: true } }), result = await f.run({ expected_link_version: '' });
   assert.equal(result.status, 'success'); assert.deepEqual(f.calls.map(call => call.name), ['get_change_order_send_request', 'get_outbound_delivery']);
   assert.equal(f.frozen.length, 0); assert.deepEqual(f.dispatches, []); assert.deepEqual(f.transports, []); assert.deepEqual(f.followups, [deliveryId]);
+});
+test('an uncommitted legacy send request needs a reviewed link digest while already committed legacy requests remain recoverable', async () => {
+  for (const digest of ['', 'bad', 'A'.repeat(64)]) {
+    const pending = fixture({ newRequest: true }), result = await pending.run({ expected_link_version: digest });
+    assert.equal(result.status, 'error'); assert.equal(result.saveRejected, true); assert.equal(result.reviewRequired, true);
+    assert.deepEqual(pending.events, ['get_change_order_send_request']); assert.equal(pending.transports.length, 0);
+  }
+  const committed = fixture({ receipt: { replayed: true } }), recovered = await committed.run({ expected_link_version: '' });
+  assert.equal(recovered.status, 'success'); assert.deepEqual(committed.events, ['get_change_order_send_request', 'get_outbound_delivery']);
+  assert.equal(committed.transports.length, 0); assert.equal(committed.frozen.length, 0);
 });
 test('unknown or already dispatching recovery never rebuilds or redispatches customer email', async () => {
   for (const state of ['unknown', 'dispatching']) {
@@ -138,4 +149,17 @@ test('browser recovery rejects malformed cached requests and retains in-memory i
   for (const record of [{ requestId: 'bad', sourceId: id, revision: 4, additionalCopy: false }, { requestId: request, sourceId: randomUUID(), revision: 4, additionalCopy: false }, { requestId: request, sourceId: id, revision: -1, additionalCopy: false }, { requestId: request, sourceId: id, revision: 4, additionalCopy: 'yes' }]) assert.equal(readSendAttempt(id, { ...broken, getItem: () => JSON.stringify(record) }), undefined);
   const withPrivateFields = { requestId: request, sourceId: id, revision: 4, additionalCopy: false, recipient: 'synthetic@example.invalid', portalToken: 'synthetic-capability' };
   assert.deepEqual(readSendAttempt(id, { ...broken, getItem: () => JSON.stringify(withPrivateFields) }), { requestId: request, sourceId: id, revision: 4, additionalCopy: false });
+});
+test('new browser send attempts retain the reviewed link digest across reload without storing a capability', () => {
+  const values = new Map(), storage = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+  const original = prepareSendAttempt(id, 4, false, storage, undefined, linkVersion);
+  assert.equal(original.linkVersion, linkVersion);
+  const recovered = prepareSendAttempt(id, 9, true, storage, undefined, 'b2'.repeat(32));
+  assert.deepEqual(recovered, original); assert.deepEqual(readSendAttempt(id, storage), original);
+  assert.deepEqual(Object.keys(JSON.parse([...values.values()][0])).sort(), ['additionalCopy', 'linkVersion', 'requestId', 'revision', 'sourceId']);
+  const opaque = JSON.stringify({ ...original, rawToken: 'synthetic-private-capability', portalUrl: 'https://synthetic.invalid/private' });
+  storage.setItem(`change-order-email:${id}`, opaque);
+  assert.deepEqual(readSendAttempt(id, storage), original);
+  storage.setItem(`change-order-email:${id}`, JSON.stringify({ ...original, linkVersion: 'bad' }));
+  assert.equal(readSendAttempt(id, storage).linkVersion, undefined);
 });

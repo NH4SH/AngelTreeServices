@@ -1,0 +1,182 @@
+{
+  "scope": "Atomic change-order customer-link management and durable retry recovery; local app and staging-only database verification",
+  "pushedSendingCommit": "dddba7a",
+  "alignedMainBase": "dddba7a3235a5769fd8e86ea045d4845511ad057",
+  "newImplementationPushed": false,
+  "migration": {
+    "name": "20261022170133_atomic_change_order_portal_links.sql",
+    "sha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 113,
+    "sqlAssertions": 40,
+    "totalSqlAssertions": 299,
+    "priorSendingAssertions": 36,
+    "priorWorkflowAssertions": 39,
+    "priorManualApprovalAssertions": 40,
+    "priorCopyAssertions": 35,
+    "priorDraftAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 9,
+    "priorSendingApiScenarios": 9,
+    "schemaContractMatched": true,
+    "migrationSha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15",
+    "crmChecksPassed": 2269,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "optimizedBuildPassed": true,
+    "uiDetectorFindings": 0,
+    "browser": {
+      "audits": 1,
+      "tokens": 1,
+      "receipts": 1,
+      "revision": 2,
+      "emailDeliveries": 0,
+      "desktopWidth": 1280,
+      "mobileWidth": 390,
+      "horizontalOverflow": false,
+      "keyboardFocusVerified": true,
+      "successfulResponseDropped": true,
+      "pendingIdentityRetainedAcrossReload": true,
+      "copyDisabledUntilPendingRecovery": true,
+      "oldLinkNeverReturnedInActionState": true,
+      "providerCalls": 0,
+      "browserWarningsOrErrors": 0,
+      "sourceFingerprintsMatched": [
+        {
+          "path": "apps/platform/src/lib/actions/change-orders.ts",
+          "sha256": "84ba3c2f4237df04049438e4ca8b615df41dfc113fb00a4ca4958adf74c7a8da"
+        },
+        {
+          "path": "apps/platform/src/lib/data/change-orders.ts",
+          "sha256": "a54921e0eefc0fd45e9264e5ae7890874d22c5a6064b4069eeeb922ee89578e7"
+        },
+        {
+          "path": "apps/platform/src/lib/portal/change-order-links.ts",
+          "sha256": "30016f8957a305777d78872f1fd65459cae168c28265ac74a3a1ad3606b67c73"
+        },
+        {
+          "path": "apps/platform/src/components/change-order-forms.tsx",
+          "sha256": "09b87c8c7fee116d889201bb2e7d56452ba95f40d7403aee8b33a04a76d4f08d"
+        },
+        {
+          "path": "apps/platform/src/lib/change-orders/link-attempt.ts",
+          "sha256": "4fe87a38d77cc482cb56d5bd7601d73a82a3948f6d7f0ed99592da690e37d92a"
+        },
+        {
+          "path": "apps/platform/src/lib/change-orders/send-attempt.ts",
+          "sha256": "6f93a7d9918d3f083a627df4ae2c86bcc6bb580585d87c5ebecc877f6c451c53"
+        },
+        {
+          "path": "apps/platform/src/lib/types/database.generated.ts",
+          "sha256": "5648d51bd1e6a8ab618e4982d48d573e3a30a327edc989f98c3935d87aa5ef3b"
+        }
+      ],
+      "limitation": "Native regeneration confirmation could not be dismissed reliably by browser automation; click was not acknowledged and database state remained unchanged. Replacement/revocation correctness verified through SQL and concurrent API tests."
+    },
+    "syntheticActorsDisabled": true,
+    "taskWebAndProxyStopped": true,
+    "taskStackStoppedWithDataPreserved": true,
+    "existingDevelopmentDatabaseReset": false,
+    "vmRestoredToPreviouslyStoppedState": true
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 113,
+    "automaticEmailEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "syntheticAssertions": 40,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "authorizationAndCapabilitiesUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false
+  },
+  "securityAdvisors": {
+    "beforeGroups": 3,
+    "afterGroups": 3,
+    "beforeCounts": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 66
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "afterCounts": [
+      {
+        "name": "rls_enabled_no_policy",
+        "count": 33
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "count": 69
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "count": 1
+      }
+    ],
+    "added": [
+      "authenticated_security_definer_function_executable|get_change_order_link_request",
+      "authenticated_security_definer_function_executable|get_change_order_link_state",
+      "authenticated_security_definer_function_executable|manage_change_order_portal_link"
+    ],
+    "removed": []
+  },
+  "hosting": {
+    "before": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "after": [
+      {
+        "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+        "deployId": "6ad95318d4baa154ecf3456a",
+        "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+        "stopBuilds": false,
+        "repoLinked": true
+      },
+      {
+        "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+        "deployId": "6ad93840ccebc7a5679b1b28",
+        "commit": null,
+        "repoLinked": false
+      }
+    ],
+    "unchanged": true
+  },
+  "production": {
+    "migrationCount": 102,
+    "latestMigration": "20261021233829",
+    "changed": false
+  },
+  "applicationDeployed": false,
+  "realProviderCalls": 0,
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/change-order-link-safety"
+}

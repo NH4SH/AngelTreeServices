@@ -12,7 +12,7 @@ import { getEmailSetupState } from "@/lib/email/config";
 import { deliveryResult, dispatchSavedEmail, freezeEmailPayload } from "@/lib/email/delivery";
 import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
 import {
-  createNewChangeOrderPortalTokenRecord,
+  performChangeOrderLinkCommand,
   createOrGetChangeOrderPortalTokenRecord,
 } from "@/lib/portal/change-order-links";
 import { getPortalUrl } from "@/lib/portal/urls";
@@ -136,6 +136,8 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
   let receipt = recovered.data;
   const setup = getEmailSetupState();
   if (receipt === null) {
+    const linkVersion = String(formData.get("expected_link_version") ?? "");
+    if (!/^[a-f0-9]{64}$/.test(linkVersion)) return { ...failure("Reload this record to review its current customer link before sending."), saveRejected: true, reviewRequired: true };
     const source = await callDeliveryCommand(db, "get_change_order_send_source", { p_change_order_id: id, p_expected_revision: revision, p_actor_id: auth.userId });
     if (source.error) return sendRequestFailure(source.error);
     const order = source.data?.order as ChangeOrderEmailSource | undefined;
@@ -144,8 +146,8 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
       return failure("The email details could not be confirmed. Retry the same request here safely.");
     const recipient = order.approval_contact?.email ?? order.customers?.email ?? order.organizations?.billing_email;
     if (!recipient) return { ...failure("Add an email for the selected approval contact before sending."), saveRejected: true, reviewRequired: true };
-    const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase });
-    if (token.error) return failure(token.error);
+    const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase, requestId, revision, linkVersion });
+    if (token.error) return { ...failure(token.error), saveRejected: token.reviewRequired, reviewRequired: token.reviewRequired };
     const portalUrl = await getPortalUrl("change-order", token.rawToken);
     const payload = freezeEmailPayload({ to: recipient, subject: `${order.change_order_number}: ${order.title}`, text: changeOrderEmailText(order, portalUrl), emailType: "change_order" }, setup);
     const prepared = await callDeliveryCommand(db, "prepare_change_order_send", { ...identity, p_payload: payload, p_portal_token_id: token.tokenId, p_expected_snapshot: source.data.snapshot });
@@ -170,9 +172,9 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
     ...(result.ok && result.sourceReconciled ? { saveDestination: `/admin/change-orders/${id}?email_confirmed=1` } : {}) };
 }
 
-function sendRequestFailure(error: { code?: string; message: string }): ChangeOrderActionState {
+function sendRequestFailure(error: { code?: string; message: string }, unconfirmed = "The email request could not be confirmed. Retry the same request here safely."): ChangeOrderActionState {
   const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
-  return { ...failure(rejected ? error.message : "The email request could not be confirmed. Retry the same request here safely."), saveRejected: rejected, reviewRequired: rejected };
+  return { ...failure(rejected ? error.message : unconfirmed), saveRejected: rejected, reviewRequired: rejected };
 }
 
 export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
@@ -206,47 +208,30 @@ export async function manuallyApproveChangeOrder(_state: ChangeOrderActionState,
 }
 
 export async function createChangeOrderPortalLink(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
-  const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase });
-  if (token.error) return failure(token.error);
-  const portalUrl = await getPortalUrl("change-order", token.rawToken);
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: token.created ? "change_order_portal_link_created" : "change_order_portal_link_reused", subjectId: id, subjectType: "change_order" });
-  revalidatePath(`/admin/change-orders/${id}`);
-  return { status: "success", message: token.created ? "Secure customer link generated." : "Existing active customer link reused.", portalUrl };
+  return manageChangeOrderLink(formData, "generate");
 }
 
 export async function regenerateChangeOrderPortalLink(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
-  const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const { data: order, error } = await auth.supabase.from("change_orders").select("customer_id, organization_id, approval_contact_id").eq("id", id).single();
-  if (error || !order) return failure(error?.message ?? "Change order not found.");
-  const token = await createNewChangeOrderPortalTokenRecord({ changeOrderId: id, customerId: order.customer_id, organizationId: order.organization_id, intendedContactId: order.approval_contact_id, supabase: auth.supabase, userId: auth.userId });
-  if (token.error) return failure(token.error);
-  const revokedAt = new Date().toISOString();
-  const { error: revokeError } = await auth.supabase.from("change_order_portal_tokens").update({ revoked_at: revokedAt })
-    .eq("change_order_id", id).is("revoked_at", null).neq("id", token.tokenId);
-  if (revokeError) {
-    await auth.supabase.from("change_order_portal_tokens").update({ revoked_at: revokedAt }).eq("id", token.tokenId);
-    return failure("Could not safely replace the previous link. The newly created link was disabled.");
-  }
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_portal_link_regenerated", subjectId: id, subjectType: "change_order" });
-  revalidatePath(`/admin/change-orders/${id}`);
-  return { status: "success", message: "Secure customer link regenerated. The previous link is disabled.", portalUrl: await getPortalUrl("change-order", token.rawToken) };
+  return manageChangeOrderLink(formData, "regenerate");
 }
 
 export async function revokeChangeOrderPortalLink(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
+  return manageChangeOrderLink(formData, "revoke");
+}
+
+async function manageChangeOrderLink(formData: FormData, intent: "generate" | "regenerate" | "revoke"): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const id = text(formData, "change_order_id", 80);
-  const { error } = await auth.supabase.from("change_order_portal_tokens").update({ revoked_at: new Date().toISOString() })
-    .eq("change_order_id", id).is("revoked_at", null);
-  if (error) return failure(error.message);
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_portal_link_revoked", subjectId: id, subjectType: "change_order" });
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const id = text(formData, "change_order_id", 80), requestId = text(formData, "request_id", 80), linkVersion = text(formData, "expected_link_version", 80);
+  const rawRevision = String(formData.get("expected_revision") ?? ""), revision = Number(rawRevision);
+  if (!isUuid(id) || !isUuid(requestId) || !/^\d+$/.test(rawRevision) || !Number.isSafeInteger(revision) || revision < 0 || !/^[a-f0-9]{64}$/.test(linkVersion))
+    return { ...failure("Reload this record before changing its customer link."), saveRejected: true, reviewRequired: true };
+  const { data, error } = await performChangeOrderLinkCommand({ changeOrderId: id, requestId, revision, linkVersion, intent, supabase: auth.supabase });
+  if (error || !data) return sendRequestFailure(error ?? { message: "The link action could not be confirmed." }, "The link action could not be confirmed. Check the earlier action here safely.");
+  const messages: Record<string, string> = { created: "Secure customer link generated.", reused: "Existing active customer link reused.", regenerated: "Customer link regenerated. Previous links are disabled.", revoked: "Customer link revoked." };
   revalidatePath(`/admin/change-orders/${id}`);
-  return success("Secure customer link revoked.");
+  return { ...success(data.replayed ? "Your earlier link action is confirmed. Review the current link controls." : messages[data.outcome]),
+    savedLinkVersion: data.current_link_version, saveDestination: `/admin/change-orders/${id}?link_action=${requestId}` };
 }
 
 export async function duplicateChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {

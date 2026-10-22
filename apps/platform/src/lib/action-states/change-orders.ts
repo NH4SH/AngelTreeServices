@@ -3,6 +3,7 @@ export type ChangeOrderActionState = {
   saveRejected?: boolean;
   reviewRequired?: boolean;
   savedRevision?: number;
+  savedLinkVersion?: string;
   savedLineIds?: string[];
   saveDestination?: string;
   status: "idle" | "success" | "error";

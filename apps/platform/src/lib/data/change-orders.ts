@@ -31,7 +31,7 @@ const changeOrderSelect = `
 export type ChangeOrderTokenSummary = Pick<
   ChangeOrderPortalToken,
   "id" | "token_hint" | "expires_at" | "viewed_at" | "used_at" | "revoked_at" | "created_at"
-> & { portalUrl: string | null };
+> & { portalUrl: string | null; usable: boolean };
 
 export type ChangeOrderActivity = {
   id: string;
@@ -84,20 +84,21 @@ export async function getChangeOrderFormOptions() {
   };
 }
 
-export async function getChangeOrderTokens(changeOrderId: string): Promise<DataResult<ChangeOrderTokenSummary[]>> {
+export async function getChangeOrderTokens(changeOrderId: string): Promise<DataResult<ChangeOrderTokenSummary[]> & { linkVersion: string | null }> {
   const supabase = await createClient();
-  if (!supabase) return { data: [], error: "Supabase is not configured." };
-  const { data, error } = await supabase.from("change_order_portal_tokens")
-    .select("id, token_hint, token_encrypted, expires_at, viewed_at, used_at, revoked_at, created_at")
-    .eq("change_order_id", changeOrderId).order("created_at", { ascending: false });
-  if (error) return { data: [], error: safeStaffMessage(error.message) };
-  const summaries = await Promise.all((data ?? []).map(async (token) => {
-    const active = !token.revoked_at && (!token.expires_at || new Date(token.expires_at).getTime() > Date.now());
-    const raw = active ? decryptPortalToken(token.token_encrypted) : null;
-    const { token_encrypted: _encrypted, ...summary } = token;
-    return { ...summary, portalUrl: raw ? await getPortalUrl("change-order", raw) : null } as ChangeOrderTokenSummary;
+  if (!supabase) return { data: [], error: "Supabase is not configured.", linkVersion: null };
+  const { data, error } = await callDeliveryCommand(supabase, "get_change_order_link_state", { p_change_order_id: changeOrderId });
+  if (error || !data || !/^[a-f0-9]{64}$/.test(data.link_version) || !Array.isArray(data.tokens) || data.tokens.some((token: unknown) => !token || typeof token !== "object"
+      || typeof (token as ChangeOrderPortalToken).id !== "string" || typeof (token as { usable?: unknown }).usable !== "boolean"
+      || !((token as ChangeOrderPortalToken).token_encrypted === null || typeof (token as ChangeOrderPortalToken).token_encrypted === "string")))
+    return { data: [], error: safeStaffMessage(error?.message ?? "Customer links could not be loaded. Reload before changing them."), linkVersion: null };
+  const summaries = await Promise.all(data.tokens.map(async (token: ChangeOrderPortalToken & { usable: boolean }) => {
+    const raw = token.usable ? decryptPortalToken(token.token_encrypted) : null;
+    return { id: token.id, token_hint: token.token_hint, expires_at: token.expires_at, viewed_at: token.viewed_at, used_at: token.used_at,
+      revoked_at: token.revoked_at, created_at: token.created_at, usable: token.usable,
+      portalUrl: raw && hashPortalToken(raw) === token.token_hash ? await getPortalUrl("change-order", raw) : null } as ChangeOrderTokenSummary;
   }));
-  return { data: summaries, error: null };
+  return { data: summaries, error: null, linkVersion: data.link_version };
 }
 
 export async function getChangeOrderActivity(changeOrderId: string): Promise<DataResult<ChangeOrderActivity[]>> {

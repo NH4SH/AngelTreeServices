@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "4df050845f26bd42c2b2bd57c2a938b955f852cc07287ba99d24485ebe41261f",
+  "typesSha256": "5648d51bd1e6a8ab618e4982d48d573e3a30a327edc989f98c3935d87aa5ef3b",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -449,6 +449,10 @@
     {
       "name": "20261022162956_guard_pending_change_order_sends.sql",
       "sha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e"
+    },
+    {
+      "name": "20261022170133_atomic_change_order_portal_links.sql",
+      "sha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15"
     }
   ]
 }

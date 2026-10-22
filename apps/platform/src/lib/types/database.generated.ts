@@ -15457,6 +15457,22 @@ export type Database = {
                 Args: Record<PropertyKey, never>;
                 Returns: Json;
             };
+            "get_change_order_link_request": {
+                Args: {
+                    "p_change_order_id": string;
+                    "p_expected_link_version": string;
+                    "p_expected_revision": number;
+                    "p_intent": string;
+                    "p_request_id": string;
+                };
+                Returns: Json;
+            };
+            "get_change_order_link_state": {
+                Args: {
+                    "p_change_order_id": string;
+                };
+                Returns: Json;
+            };
             "get_change_order_portal_review": {
                 Args: {
                     "p_token_hash": string;
@@ -15634,6 +15650,17 @@ export type Database = {
                 Args: {
                     "p_all"?: boolean;
                     "p_page"?: number;
+                };
+                Returns: Json;
+            };
+            "manage_change_order_portal_link": {
+                Args: {
+                    "p_candidate"?: Json;
+                    "p_change_order_id": string;
+                    "p_expected_link_version": string;
+                    "p_expected_revision": number;
+                    "p_intent": string;
+                    "p_request_id": string;
                 };
                 Returns: Json;
             };

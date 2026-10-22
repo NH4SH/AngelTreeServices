@@ -714,6 +714,7 @@ export type Database = {
                     "customer_id": string | null;
                     "customer_notes": string | null;
                     "declined_at": string | null;
+                    "edit_revision": number;
                     "expires_at": string | null;
                     "fee_cents": number;
                     "id": string;
@@ -756,6 +757,7 @@ export type Database = {
                     "customer_id"?: string | null;
                     "customer_notes"?: string | null;
                     "declined_at"?: string | null;
+                    "edit_revision"?: number;
                     "expires_at"?: string | null;
                     "fee_cents"?: number;
                     "id"?: string;
@@ -797,6 +799,7 @@ export type Database = {
                     "customer_id"?: string | null;
                     "customer_notes"?: string | null;
                     "declined_at"?: string | null;
+                    "edit_revision"?: number;
                     "expires_at"?: string | null;
                     "fee_cents"?: number;
                     "id"?: string;
@@ -15921,6 +15924,16 @@ export type Database = {
                 Args: {
                     "p_job_id": string;
                     "p_payload": Json;
+                };
+                Returns: Json;
+            };
+            "save_change_order_draft": {
+                Args: {
+                    "p_change_order_id": string;
+                    "p_expected_revision": number;
+                    "p_header": Json;
+                    "p_lines": Json;
+                    "p_request_id": string;
                 };
                 Returns: Json;
             };

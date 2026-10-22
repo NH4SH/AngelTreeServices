@@ -2,7 +2,9 @@
 
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   createChangeOrder,
@@ -57,7 +59,12 @@ export function ChangeOrderEditor({
   sourceCloseoutId?: string;
 }) {
   const action = order ? updateChangeOrder : createChangeOrder;
-  const [state, formAction, pending] = useReliableActionState(action, initialChangeOrderActionState);
+  const [state, formAction, pending] = useDraftSave(action, order ? `edit:${order.id}` : `new:${defaultJobId}:${sourceCloseoutId}`, order?.edit_revision ?? null, (ids, submitted) => {
+    setLines(current => current.map(line => {
+      const index = submitted.indexOf(line.clientId);
+      return index < 0 ? line : { ...line, persistedId: ids[index] };
+    }));
+  }, () => lines.map(line => line.clientId));
   const [selectedJobId, setSelectedJobId] = useState(order?.job_id ?? defaultJobId);
   const [lines, setLines] = useState<LineDraft[]>(order?.change_order_line_items?.length
     ? [...order.change_order_line_items].sort((a, b) => a.sort_order - b.sort_order).map((line) => ({
@@ -82,8 +89,9 @@ export function ChangeOrderEditor({
   const closeHref = order ? `/admin/change-orders/${order.id}` : "/admin/change-orders";
 
   return (
-    <form action={formAction} className="crm-form change-order-editor">
+    <form action={formAction} className="crm-form change-order-editor" onSubmit={event => submitDraftForm(event, formAction)}>
       {state.message ? <ActionMessage state={state} /> : null}
+      {state.status === "error" || state.reviewRequired ? <p className="field-note">Your entries are kept in this form. {order ? <a href={closeHref} rel="noopener" target="_blank">Review the current record in another tab</a> : "Review the additional-work directory before starting another draft if the result is uncertain."}</p> : null}
       {order ? <input name="change_order_id" type="hidden" value={order.id} /> : null}
       <input name="source_closeout_id" type="hidden" value={order?.source_closeout_id ?? sourceCloseoutId} />
       <input name="source_quote_id" type="hidden" value={order?.source_quote_id ?? selectedJob?.source_quote_id ?? ""} />
@@ -180,8 +188,8 @@ export function ChangeOrderEditor({
       </section>
 
       <div className="quote-editor-action-bar">
-        <button disabled={pending} name="submit_intent" type="submit" value="save"><Save size={17} />{pending ? "Saving..." : order ? "Save changes" : "Save draft"}</button>
-        <button className="secondary-action" disabled={pending} name="submit_intent" type="submit" value={order ? "save_close" : "review"}><ShieldCheck size={17} />{order ? "Save and close" : "Save for review"}</button>
+        <button disabled={pending || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value="save"><Save size={17} />{pending ? "Saving..." : order ? "Save changes" : "Save draft"}</button>
+        <button className="secondary-action" disabled={pending || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value={order ? "save_close" : "review"}><ShieldCheck size={17} />{order ? "Save and close" : "Save for review"}</button>
         <Link className="secondary-action" href={closeHref}><X size={17} /> Cancel</Link>
       </div>
     </form>
@@ -189,13 +197,13 @@ export function ChangeOrderEditor({
 }
 
 export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
-  const [state, action, pending] = useReliableActionState(createChangeOrder, initialChangeOrderActionState);
+  const [state, action, pending] = useDraftSave(createChangeOrder, `new:${jobId}:inline`, null);
   const [title, setTitle] = useState("");
 
   return (
     <details className="job-inline-disclosure job-add-work-disclosure">
       <summary><Plus size={17} />Add work item</summary>
-      <form action={action} className="crm-form job-add-work-form">
+      <form action={action} className="crm-form job-add-work-form" onSubmit={event => submitDraftForm(event, action)}>
         <input name="job_id" type="hidden" value={jobId} />
         <input name="return_to_job" type="hidden" value="1" />
         <input name="submit_intent" type="hidden" value="save" />
@@ -218,7 +226,7 @@ export function InlineJobWorkAdditionForm({ jobId }: { jobId: string }) {
           <label>Unit<input defaultValue="each" name="line_unit" /></label>
           <label>Price per unit<input min="0" name="line_rate" required step="0.01" type="number" /></label>
         </div>
-        <button disabled={pending} type="submit"><Save size={17} />{pending ? "Adding..." : "Add to work order"}</button>
+        <button disabled={pending || Boolean(state.saveDestination)} type="submit"><Save size={17} />{pending ? "Adding..." : "Add to work order"}</button>
         {state.message ? <ActionMessage state={state} /> : null}
       </form>
     </details>
@@ -275,10 +283,48 @@ export function AttachApprovedChangeOrdersButton({ invoiceId }: { invoiceId: str
 function WorkflowButton({ action, disabled, icon, id, intent, label, secondary = false }: { action: (payload: FormData) => void; disabled: boolean; icon: React.ReactNode; id: string; intent: string; label: string; secondary?: boolean }) {
   return <form action={action}><input name="change_order_id" type="hidden" value={id} /><input name="workflow_intent" type="hidden" value={intent} /><button className={secondary ? "secondary-action" : undefined} disabled={disabled} type="submit">{icon}{label}</button></form>;
 }
+function useDraftSave(action: (previous: ChangeOrderActionState, form: FormData) => Promise<ChangeOrderActionState>, scope: string, revision: number | null,
+  onSaved?: (ids: string[], submitted: string[]) => void, lineKeys?: () => string[]) {
+  const attemptRef = useRef<ChangeOrderDraftAttempt | undefined>(undefined);
+  const revisionRef = useRef(revision);
+  const router = useRouter();
+  const resultState = useReliableActionState(async (previous: ChangeOrderActionState, form: FormData): Promise<ChangeOrderActionState> => {
+    if (previous.saveDestination) return previous;
+    let storage: Storage | null = null;
+    try { storage = window.sessionStorage; } catch { /* Page-local recovery remains. */ }
+    const prepared = await prepareDraftAttempt(scope, form, revisionRef.current, storage, attemptRef.current);
+    attemptRef.current = prepared.attempt;
+    if (prepared.blocked) return { status: "error", message: "An earlier save is still unconfirmed. Retry the same entries or review the current record before starting another save." };
+    form.set("request_id", prepared.attempt.requestId);
+    if (prepared.attempt.revision !== null) form.set("expected_revision", String(prepared.attempt.revision));
+    const submitted = lineKeys?.() ?? [];
+    const result = await action(previous, form);
+    if (result.status === "success" || result.saveRejected) {
+      forgetDraftAttempt(prepared.key, storage);
+      attemptRef.current = undefined;
+    }
+    if (result.status === "success" && result.savedRevision !== undefined && result.savedLineIds) {
+      revisionRef.current = result.savedRevision;
+      onSaved?.(result.savedLineIds, submitted);
+    }
+    return result;
+  }, initialChangeOrderActionState);
+  const destination = resultState[0].saveDestination;
+  useEffect(() => { if (destination) router.push(destination); }, [destination, router]);
+  return resultState;
+}
+
+function submitDraftForm(event: React.FormEvent<HTMLFormElement>, dispatch: (form: FormData) => Promise<void>) {
+  event.preventDefault();
+  // Avoid React's automatic uncontrolled-field reset after a rejected save.
+  const submitter = (event.nativeEvent as SubmitEvent).submitter;
+  void dispatch(new FormData(event.currentTarget, submitter instanceof HTMLButtonElement ? submitter : undefined));
+}
+
 function ActionMessage({ state }: { state: ChangeOrderActionState }) { return <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p>; }
 function newLine(): LineDraft { return { clientId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, title: "", description: "", quantity: "1", unit: "each", rate: "", categoryId: "", materialId: "", internalCost: "" }; }
 function patchLine(setLines: React.Dispatch<React.SetStateAction<LineDraft[]>>, id: string, key: keyof LineDraft, value: string) { setLines((current) => current.map((line) => line.clientId === id ? { ...line, [key]: value } : line)); }
-function lineTotal(line: LineDraft) { return Math.round((Number.parseFloat(line.quantity) || 0) * (Number.parseFloat(line.rate) || 0) * 100); }
+function lineTotal(line: LineDraft) { return Math.round(Math.round((Number.parseFloat(line.quantity) || 0) * 100) * Math.round((Number.parseFloat(line.rate) || 0) * 100) / 100); }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100); }
 function formatStatus(status: string) { return status.replaceAll("_", " "); }
 function contactRole(contact: OrganizationContact) { return contact.contact_roles?.length ? contact.contact_roles.map(formatStatus).join(", ") : contact.role_title || "Contact"; }

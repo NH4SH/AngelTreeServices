@@ -22,130 +22,67 @@ import { safeStaffMessage } from "@/lib/security/errors";
 import type { RpcCommandArgs } from "@/lib/types/rpc-contracts";
 
 export async function createChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
-  const auth = await requireStaff();
-  if (auth.error) return auth.error;
-
-  const jobId = text(formData, "job_id", 80);
-  const title = text(formData, "title", 180);
-  const lineItems = parseLineItems(formData);
-  if (!jobId || !title || lineItems.length === 0) {
-    return failure("Choose a work order, add a title, and include at least one priced line item.");
-  }
-
-  const { data: job, error: jobError } = await auth.supabase.from("jobs")
-    .select("id, customer_id, organization_id, service_location_id, source_quote_id")
-    .eq("id", jobId).single();
-  if (jobError || !job) return failure(jobError?.message ?? "Work order not found or no access.");
-
-  const sourceQuoteId = text(formData, "source_quote_id", 80) || job.source_quote_id || null;
-  let originalApprovedAmountCents = 0;
-  if (sourceQuoteId) {
-    const { data: quote, error } = await auth.supabase.from("quotes").select("id, job_id, total_cents, status").eq("id", sourceQuoteId).single();
-    if (error || !quote) return failure(error?.message ?? "Source quote not found.");
-    if (quote.job_id && quote.job_id !== jobId) return failure("The selected quote belongs to a different work order.");
-    originalApprovedAmountCents = quote.total_cents;
-  }
-
-  const approvalContactId = text(formData, "approval_contact_id", 80) || null;
-  const requestedByContactId = text(formData, "requested_by_contact_id", 80) || null;
-  const contactError = await validateContacts(auth.supabase, job.organization_id, [approvalContactId, requestedByContactId]);
-  if (contactError) return failure(contactError);
-
-  const subtotalCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
-  const taxCents = cents(formData.get("tax"));
-  const feeCents = cents(formData.get("fees"));
-  const sourceCloseoutId = text(formData, "source_closeout_id", 80) || null;
-  const closeoutNotes = sourceCloseoutId ? await getCloseoutSupportingNotes(auth.supabase, sourceCloseoutId, jobId) : null;
-  if (closeoutNotes?.error) return failure(closeoutNotes.error);
-
-  const { data: changeOrder, error } = await auth.supabase.from("change_orders").insert({
-    change_order_number: "",
-    source_quote_id: sourceQuoteId,
-    job_id: jobId,
-    source_closeout_id: sourceCloseoutId,
-    customer_id: job.customer_id,
-    organization_id: job.organization_id,
-    service_location_id: job.service_location_id,
-    requested_by_contact_id: requestedByContactId,
-    approval_contact_id: approvalContactId,
-    created_by_user_id: auth.userId,
-    title,
-    reason: optional(formData, "reason", 1000),
-    customer_description: optionalMultiline(formData, "customer_description", 5000),
-    customer_notes: optionalMultiline(formData, "customer_notes", 3000),
-    internal_notes: combineNotes(optionalMultiline(formData, "internal_notes", 5000), closeoutNotes?.notes ?? null),
-    status: formData.get("submit_intent") === "review" ? "pending_internal_review" : "draft",
-    subtotal_cents: subtotalCents,
-    tax_cents: taxCents,
-    fee_cents: feeCents,
-    total_cents: subtotalCents + taxCents + feeCents,
-    original_approved_amount_cents: originalApprovedAmountCents,
-    expires_at: dateAtEndOfDay(formData.get("expires_on")),
-    schedule_impact: parseScheduleImpact(formData),
-  }).select("id").single();
-  if (error || !changeOrder) return failure(error?.message ?? "Could not create the change order.");
-
-  const { error: linesError } = await auth.supabase.from("change_order_line_items").insert(
-    lineItems.map(({ id: _id, ...item }) => ({ ...item, change_order_id: changeOrder.id })),
-  );
-  if (linesError) {
-    await auth.supabase.from("change_orders").delete().eq("id", changeOrder.id);
-    return failure(`Change order was not created because line items failed: ${linesError.message}`);
-  }
-
-  if (sourceCloseoutId) await auth.supabase.from("job_closeouts").update({ change_order_id: changeOrder.id }).eq("id", sourceCloseoutId).is("change_order_id", null);
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_created", subjectId: changeOrder.id, subjectType: "change_order", metadata: { job_id: jobId } });
-  revalidateChangeOrderPaths(changeOrder.id, jobId, job.organization_id);
-  if (formData.get("return_to_job") === "1") redirect(`/admin/jobs/${jobId}?change_added=1#job-scope`);
-  redirect(`/admin/change-orders/${changeOrder.id}`);
+  return saveChangeOrderDraft(formData, false);
 }
 
 export async function updateChangeOrder(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
+  return saveChangeOrderDraft(formData, true);
+}
+
+async function saveChangeOrderDraft(formData: FormData, editing: boolean): Promise<ChangeOrderActionState> {
   const auth = await requireStaff();
-  if (auth.error) return auth.error;
-  const changeOrderId = text(formData, "change_order_id", 80);
-  const title = text(formData, "title", 180);
-  const lineItems = parseLineItems(formData);
-  if (!changeOrderId || !title || lineItems.length === 0) return failure("Add a title and at least one priced line item.");
-
-  const { data: current, error: lookupError } = await auth.supabase.from("change_orders")
-    .select("id, job_id, organization_id, status").eq("id", changeOrderId).single();
-  if (lookupError || !current) return failure(lookupError?.message ?? "Change order not found.");
-  if (!["draft", "pending_internal_review", "ready_to_send", "sent", "change_requested"].includes(current.status)) {
-    return failure("Approved, declined, cancelled, and expired change orders are locked from normal editing.");
+  if (auth.error) return { ...auth.error, saveRejected: true };
+  const requestId = text(formData, "request_id", 80), id = editing ? text(formData, "change_order_id", 80) : null;
+  const revision = editing ? Number(String(formData.get("expected_revision") ?? "")) : null;
+  if (!isUuid(requestId) || (editing && (!isUuid(id) || !/^\d+$/.test(String(formData.get("expected_revision") ?? "")) || !Number.isSafeInteger(revision) || (revision ?? -1) < 0)))
+    return { ...failure("Reload this editor before saving. Keep a copy of your unsaved entries."), saveRejected: true };
+  const lines = parseLineItems(formData);
+  const moneyFields = ["tax", "fees", ...formData.getAll("line_rate").map((_, i) => `line_rate:${i}`)];
+  const validMoney = (value: unknown) => /^\d*(?:\.\d{1,2})?$/.test(String(value ?? "").trim()) && Number(value || 0) <= 21474836.47;
+  const validQuantity = (value: unknown) => /^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(String(value ?? "").trim()) && Number(value) > 0 && Number(value) <= 99999999.99;
+  if (!text(formData, "title", 180) || !lines.length || lines.length > 200 || lines.length !== formData.getAll("line_title").length
+    || !moneyFields.every(key => validMoney(key.includes(":") ? formData.getAll("line_rate")[Number(key.split(":")[1])] : formData.get(key)))
+    || !formData.getAll("line_quantity").every(validQuantity) || !formData.getAll("line_internal_cost").every(validMoney)
+    || lines.some(line => !Number.isSafeInteger(line.amount_cents) || line.amount_cents > 2147483647))
+    return { ...failure("Review every line title, quantity, price, tax and fee. No changes were saved."), saveRejected: true };
+  const costs = hasAllowedRole(auth.roles, platformRoleGroups.financialReporting);
+  const commandLines = lines.map(line => {
+    const { internal_cost_estimate_cents, ...visible } = line;
+    return costs ? { ...visible, internal_cost_estimate_cents } : visible;
+  });
+  let expiresAt: string | null;
+  try { expiresAt = dateAtEndOfDay(formData.get("expires_on")); }
+  catch { return { ...failure("Choose a valid approval expiry date."), saveRejected: true }; }
+  const header = {
+    title: text(formData, "title", 180), reason: optional(formData, "reason", 1000),
+    customer_description: optionalMultiline(formData, "customer_description", 5000), customer_notes: optionalMultiline(formData, "customer_notes", 3000),
+    internal_notes: optionalMultiline(formData, "internal_notes", 5000), requested_by_contact_id: optional(formData, "requested_by_contact_id", 80),
+    approval_contact_id: optional(formData, "approval_contact_id", 80), tax_cents: cents(formData.get("tax")), fee_cents: cents(formData.get("fees")),
+    expires_at: expiresAt, schedule_impact: parseScheduleImpact(formData),
+    ...(!editing ? { job_id: text(formData, "job_id", 80), source_quote_id: optional(formData, "source_quote_id", 80),
+      source_closeout_id: optional(formData, "source_closeout_id", 80), submit_for_review: formData.get("submit_intent") === "review" } : {}),
+  };
+  const { data, error } = await callDeliveryCommand(auth.supabase, "save_change_order_draft", {
+    p_request_id: requestId, p_change_order_id: id, p_expected_revision: revision, p_header: header, p_lines: commandLines,
+  });
+  if (error) {
+    const rejected = ["PT409", "40001", "22023", "22P02", "22003", "23503", "23514", "42501"].includes(error.code ?? "");
+    return { ...failure(rejected ? error.message : "The save could not be confirmed. Keep this form and retry with the same details to check safely."), saveRejected: rejected, reviewRequired: error.code === "PT409" || error.code === "40001" || error.code === "23514" };
   }
-
-  const approvalContactId = text(formData, "approval_contact_id", 80) || null;
-  const requestedByContactId = text(formData, "requested_by_contact_id", 80) || null;
-  const contactError = await validateContacts(auth.supabase, current.organization_id, [approvalContactId, requestedByContactId]);
-  if (contactError) return failure(contactError);
-  const subtotalCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
-  const taxCents = cents(formData.get("tax"));
-  const feeCents = cents(formData.get("fees"));
-
-  const { error } = await auth.supabase.from("change_orders").update({
-    title,
-    reason: optional(formData, "reason", 1000),
-    customer_description: optionalMultiline(formData, "customer_description", 5000),
-    customer_notes: optionalMultiline(formData, "customer_notes", 3000),
-    internal_notes: optionalMultiline(formData, "internal_notes", 5000),
-    requested_by_contact_id: requestedByContactId,
-    approval_contact_id: approvalContactId,
-    subtotal_cents: subtotalCents,
-    tax_cents: taxCents,
-    fee_cents: feeCents,
-    total_cents: subtotalCents + taxCents + feeCents,
-    expires_at: dateAtEndOfDay(formData.get("expires_on")),
-    schedule_impact: parseScheduleImpact(formData),
-  }).eq("id", changeOrderId);
-  if (error) return failure(error.message);
-
-  const lineError = await syncLines(auth.supabase, changeOrderId, lineItems);
-  if (lineError) return failure(`Change order details saved, but line items could not be fully updated: ${lineError}`);
-  await recordActivity(auth.supabase, { actorUserId: auth.userId, eventType: "change_order_edited", subjectId: changeOrderId, subjectType: "change_order" });
-  revalidateChangeOrderPaths(changeOrderId, current.job_id, current.organization_id);
-  if (formData.get("submit_intent") === "save_close") redirect(`/admin/change-orders/${changeOrderId}?updated=1`);
-  return success("Changes saved. Existing customer link remains active.");
+  if (!data || data.request_id !== requestId || !isUuid(data.id) || (editing && data.id !== id) || !isUuid(data.job_id)
+    || !(data.organization_id === null || isUuid(data.organization_id)) || !Number.isSafeInteger(data.edit_revision) || data.edit_revision < 0
+    || !Number.isSafeInteger(data.current_revision) || data.current_revision < data.edit_revision || typeof data.replayed !== "boolean" || !Number.isFinite(Date.parse(data.updated_at))
+    || !["draft", "pending_internal_review", "ready_to_send", "sent", "approved", "declined", "change_requested", "cancelled", "expired"].includes(data.current_status)
+    || !Array.isArray(data.line_ids) || data.line_ids.length !== lines.length || data.line_ids.some((line: unknown) => !isUuid(line)) || new Set(data.line_ids).size !== lines.length)
+    return failure("The save could not be confirmed. Keep this form and retry with the same details to check safely.");
+  revalidateChangeOrderPaths(data.id, data.job_id, data.organization_id);
+  if (!editing) {
+    return { ...success("Additional-work draft saved."), savedRevision: data.edit_revision, savedLineIds: data.line_ids,
+      saveDestination: formData.get("return_to_job") === "1" ? `/admin/jobs/${data.job_id}?change_added=1#job-scope` : `/admin/change-orders/${data.id}` };
+  }
+  if (data.replayed || data.current_revision !== data.edit_revision) return { ...success("Your earlier save is confirmed. Review the current record before editing again."), savedRevision: data.edit_revision, savedLineIds: data.line_ids, reviewRequired: true };
+  if (formData.get("submit_intent") === "save_close") return { ...success("Changes saved together."), savedRevision: data.edit_revision, savedLineIds: data.line_ids, saveDestination: `/admin/change-orders/${data.id}?updated=1` };
+  return { ...success("Changes saved together. The existing customer link remains active."), savedRevision: data.edit_revision, savedLineIds: data.line_ids };
 }
 
 export async function updateChangeOrderWorkflow(_state: ChangeOrderActionState, formData: FormData): Promise<ChangeOrderActionState> {
@@ -384,7 +321,7 @@ async function requireStaff() {
   if (!user) return { error: failure("Sign in before managing change orders.") };
   const roles = await getUserRoles(supabase, user.id);
   if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) return { error: failure("Only authorized office staff can manage change orders.") };
-  return { supabase, userId: user.id, error: null };
+  return { supabase, userId: user.id, roles, error: null };
 }
 
 type LineInput = { id: string | null; title: string; description: string | null; quantity: number; unit: string | null; unit_price_cents: number; amount_cents: number; service_category_id: string | null; material_id: string | null; internal_cost_estimate_cents: number | null; sort_order: number };
@@ -410,37 +347,13 @@ function parseLineItems(formData: FormData): LineInput[] {
       quantity,
       unit: String(units[index] ?? "").trim().slice(0, 40) || null,
       unit_price_cents: unitPrice,
-      amount_cents: Math.max(0, Math.round(quantity * unitPrice)),
+      amount_cents: Math.max(0, Math.round(Math.round(quantity * 100) * unitPrice / 100)),
       service_category_id: String(categories[index] ?? "").trim() || null,
       material_id: String(materials[index] ?? "").trim() || null,
       internal_cost_estimate_cents: String(costs[index] ?? "").trim() ? cents(costs[index]) : null,
       sort_order: index,
     };
   }).filter((item) => item.title && item.quantity > 0);
-}
-
-async function syncLines(supabase: any, changeOrderId: string, lines: LineInput[]) {
-  const { data: existing, error } = await supabase.from("change_order_line_items").select("id").eq("change_order_id", changeOrderId);
-  if (error) return error.message;
-  const existingIds = new Set<string>(((existing ?? []) as { id: string }[]).map((row) => row.id));
-  const retained = new Set<string>();
-  for (const line of lines) {
-    const { id, ...values } = line;
-    if (id && existingIds.has(id)) {
-      const result = await supabase.from("change_order_line_items").update(values).eq("id", id).eq("change_order_id", changeOrderId);
-      if (result.error) return result.error.message;
-      retained.add(id);
-    } else {
-      const result = await supabase.from("change_order_line_items").insert({ ...values, change_order_id: changeOrderId });
-      if (result.error) return result.error.message;
-    }
-  }
-  const removed = [...existingIds].filter((id) => !retained.has(id));
-  if (removed.length) {
-    const result = await supabase.from("change_order_line_items").delete().eq("change_order_id", changeOrderId).in("id", removed);
-    if (result.error) return "Approved or invoiced line items cannot be removed. Cancel this edit and create a correcting change order instead.";
-  }
-  return null;
 }
 
 async function validateContacts(supabase: any, organizationId: string | null, contactIds: (string | null)[]) {
@@ -454,13 +367,6 @@ async function validateContacts(supabase: any, organizationId: string | null, co
   return null;
 }
 
-async function getCloseoutSupportingNotes(supabase: any, closeoutId: string, jobId: string) {
-  const { data, error } = await supabase.from("job_closeouts").select("id, job_id, additional_work_description, crew_internal_notes, incident_description").eq("id", closeoutId).single();
-  if (error || !data) return { error: error?.message ?? "Closeout not found.", notes: null };
-  if (data.job_id !== jobId) return { error: "The closeout belongs to a different work order.", notes: null };
-  return { error: null, notes: [data.additional_work_description && `Crew additional-work request:\n${data.additional_work_description}`, data.crew_internal_notes && `Crew internal notes:\n${data.crew_internal_notes}`, data.incident_description && `Related exception:\n${data.incident_description}`].filter(Boolean).join("\n\n") || null };
-}
-
 function changeOrderEmailText(order: NonNullable<Awaited<ReturnType<typeof getChangeOrderDetail>>["data"]>, portalUrl: string) {
   const party = order.organizations?.name ?? order.customers?.display_name ?? "Customer";
   return [`Hello ${order.approval_contact?.full_name ?? party},`, "", `Angel Tree Services prepared ${order.change_order_number} for additional or changed work.`, `Additional amount: ${money(order.total_cents)}`, `Revised combined amount: ${money(order.original_approved_amount_cents + order.total_cents)}`, "", "Review and respond through your secure link:", portalUrl, "", "This email does not alter the original approved quote."].join("\n");
@@ -470,7 +376,6 @@ function parseScheduleImpact(formData: FormData) {
   const keys = ["scheduled_date", "estimated_duration", "assigned_crew", "equipment", "materials", "permits", "subcontractors"];
   return Object.fromEntries(keys.map((key) => [key, formData.get(`impact_${key}`) === "on"]));
 }
-function combineNotes(...notes: (string | null)[]) { return notes.filter(Boolean).join("\n\n") || null; }
 function cents(value: FormDataEntryValue | null) { const parsed = Number.parseFloat(String(value ?? "0")); return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed * 100)) : 0; }
 function text(formData: FormData, key: string, max: number) { return String(formData.get(key) ?? "").trim().slice(0, max); }
 function optional(formData: FormData, key: string, max: number) { return text(formData, key, max) || null; }

@@ -54,6 +54,10 @@
     {
       "name": "20261022030436_bound_change_order_portal_approval.sql",
       "sha256": "e5f8391c93b649242b7327b7c05c55f4865b98e92364656a8eb6941a121ecbc7"
+    },
+    {
+      "name": "20261022124200_atomic_change_order_drafts.sql",
+      "sha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32"
     }
   ]
 }

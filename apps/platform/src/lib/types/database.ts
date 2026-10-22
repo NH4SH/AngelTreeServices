@@ -433,6 +433,7 @@ export type InvoiceLineItem = {
 
 export type ChangeOrder = {
   id: string;
+  edit_revision: number;
   change_order_number: string;
   source_quote_id: string | null;
   job_id: string | null;

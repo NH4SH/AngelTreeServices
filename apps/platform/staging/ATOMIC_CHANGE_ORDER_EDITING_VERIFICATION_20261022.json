@@ -1,0 +1,114 @@
+{
+  "scope": "Atomic change-order creation/editing and safe request recovery; local implementation with staging-only database verification",
+  "pushedApprovalCommit": "2ee726a13be7ca7b7630130a30ec47e48c0ade97",
+  "alignedMainBase": "2ee726a13be7ca7b7630130a30ec47e48c0ade97",
+  "migration": {
+    "name": "20261022124200_atomic_change_order_drafts.sql",
+    "sha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32"
+  },
+  "local": {
+    "passed": true,
+    "freshFullReplay": true,
+    "ledgerCount": 107,
+    "sqlAssertions": 39,
+    "priorApprovalAssertions": 34,
+    "priorAppointmentAssertions": 36,
+    "concurrentApiScenarios": 6,
+    "schemaContractMatched": true,
+    "migrationSha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32",
+    "crmChecksPassed": 2216,
+    "crmChecksFailed": 0,
+    "crmChecksSkipped": 0,
+    "typecheckPassed": true,
+    "isolatedOptimizedBuildPassed": true,
+    "existingDevelopmentDatabaseReset": false,
+    "browser": {
+      "widths": [
+        1280,
+        390
+      ],
+      "horizontalOverflow": false,
+      "consecutiveSaveEdits": 2,
+      "newLineIdsRetained": true,
+      "mobileConflictEntriesRetained": true,
+      "unsafeConflictSaveDisabled": true,
+      "inlineCreationAndReturnContext": true,
+      "keyboardTitleToReason": true,
+      "fractionalQuantityStoredCents": 15,
+      "syntheticActorDisabled": true,
+      "developmentDisclosureHydrationWarningObserved": true
+    },
+    "uiDetectorFindings": 0,
+    "realProviderCalls": 0,
+    "verifiedSourceFingerprints": [
+      {
+        "path": "apps/platform/src/lib/change-orders/draft-attempt.ts",
+        "sha256": "903167a67cd3541e1bcdbac1c00af2f3b8e52771fe83e1d7286269efef00ebf3"
+      },
+      {
+        "path": "apps/platform/src/components/change-order-forms.tsx",
+        "sha256": "6b6849fbd5694363dc0b4e864ee87cf242466f00af8e8a8b09782c03355d5a27"
+      },
+      {
+        "path": "apps/platform/src/lib/action-states/change-orders.ts",
+        "sha256": "d917a5e3fb5b2f45a3d3498c90dd32779f9bf8ec55864f1a3c2756b063877a05"
+      },
+      {
+        "path": "apps/platform/src/lib/actions/change-orders.ts",
+        "sha256": "4aa7c5f49485b0c890240b1ea5d33489c4ed02ff21e70b637d719694ec5b143d"
+      },
+      {
+        "path": "apps/platform/src/lib/types/database.generated.ts",
+        "sha256": "a9c496453805de9e5edda94ff100edf9095c08ac57972ce572ef7c5200756110"
+      },
+      {
+        "path": "apps/platform/src/lib/types/database.ts",
+        "sha256": "5be4f0305bf3db2569157215d40d32b329c2a920da45249516acd747e42b304e"
+      },
+      {
+        "path": "apps/platform/src/lib/types/rpc-contracts.ts",
+        "sha256": "f3b8a1e84eda3d7e0eb8876d88828f6f6c9c8578da75841ac223b381ae527bba"
+      }
+    ]
+  },
+  "staging": {
+    "passed": true,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "ledgerCount": 107,
+    "newNoticeSwitch": false,
+    "automaticEmailEnabled": false,
+    "syntheticAssertions": 39,
+    "syntheticFixturesRolledBack": true,
+    "existingRecordsUnchanged": true,
+    "unrelatedRoutinesUnchanged": true,
+    "realProviderCalls": 0,
+    "appDeployed": false,
+    "productionChanged": false,
+    "newRevisionColumnInitializedAtZero": true,
+    "rowComparisonExcludesOnlyNewRevisionColumn": true,
+    "hostedNewUiTested": false
+  },
+  "securityAdvisors": {
+    "authenticatedCommandWarningsBefore": 62,
+    "authenticatedCommandWarningsAfter": 63,
+    "newReviewedOfficeCommand": "public.save_change_order_draft",
+    "privateRlsInfoBefore": 33,
+    "privateRlsInfoAfter": 33,
+    "authPasswordWarningsBefore": 1,
+    "authPasswordWarningsAfter": 1
+  },
+  "hosted": {
+    "appDeployed": false,
+    "productionChanged": false,
+    "productionMigrationCount": 102,
+    "productionLastMigration": "20261021233829",
+    "productionDeployId": "6ad95318d4baa154ecf3456a",
+    "stagingDeployId": "6ad93840ccebc7a5679b1b28",
+    "publishedDeploysUnchanged": true
+  },
+  "remaining": [
+    "Duplicate change-order copying retains its older compensated writer; atomic copy recovery is the next recommended transaction-safety task.",
+    "No hosted staging UI release, actual customer email, physical-device, screen-reader or full offline-form restoration acceptance claimed.",
+    "Existing inline disclosure emitted a development hydration warning after interaction before hydration; save/navigation passed."
+  ]
+}

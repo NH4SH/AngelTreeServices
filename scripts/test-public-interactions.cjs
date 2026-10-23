@@ -489,6 +489,7 @@ for (const service of [
   { name: 'Tree services overview', file: 'services-overview-mobile.js', init: 'initServicesOverviewActions', prefix: 'services-overview' },
   { name: 'Projects library', file: 'projects-mobile.js', init: 'initProjectsActions', prefix: 'projects-library' },
   { name: 'Reviews and recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
+  { name: 'Credentials and safety', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
 ]) {
 test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
   const h = pageActionsHarness(service);
@@ -521,7 +522,7 @@ test(`${service.name} header and bar clearance grow with enlarged text without l
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
   assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
   assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
-  if (['projects-library', 'recognition'].includes(service.prefix)) {
+  if (['projects-library', 'recognition', 'credentials'].includes(service.prefix)) {
     assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '162px');
     assert.equal(h.rootProperties[`--ats-${service.prefix}-bar-space`], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
   }
@@ -560,19 +561,24 @@ test(`${service.name} cookie-panel observation preserves focus and ignores the b
 });
 }
 
-test('Recognition scrolling header reserves menu space while only sticky headers obscure actions', () => {
-  const h = pageActionsHarness({ file: 'recognition-mobile.js', init: 'initRecognitionActions' });
+for (const service of [
+  { name: 'Recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
+  { name: 'Credentials', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
+]) {
+test(`${service.name} scrolling header reserves menu space while only sticky headers obscure actions`, () => {
+  const h = pageActionsHarness(service);
   assert.equal(h.observation[0].options.rootMargin, '-70px 0px 0px 0px');
   h.headerMode('static'); h.resize(70, 64);
   assert.equal(h.observation.at(-1).options.rootMargin, '-0px 0px 0px 0px');
-  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '20px');
+  assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '20px');
   h.resize(202, 128);
-  assert.equal(h.rootProperties['--ats-recognition-menu-offset'], '222px');
-  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '20px');
+  assert.equal(h.rootProperties[`--ats-${service.prefix}-menu-offset`], '222px');
+  assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '20px');
   h.headerMode('sticky'); h.resize(202, 128);
   assert.equal(h.observation.at(-1).options.rootMargin, '-202px 0px 0px 0px');
-  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '222px');
+  assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '222px');
 });
+}
 
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {

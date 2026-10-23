@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page) .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page, .ats-credentials-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2130,11 +2130,16 @@ body.ats-gallery-open {
 
 .ats-service-choices,
 .ats-projects-browse,
+.ats-credentials-topics,
 .ats-recognition-topics {
   display: none;
 }
 
 .ats-recognition-page .ats-mobile-actions {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+}
+
+.ats-credentials-page .ats-mobile-actions {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
 }
 
@@ -2456,6 +2461,143 @@ body.ats-gallery-open {
 
 /* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
+  body.ats-credentials-page {
+    padding-bottom: calc(max(88px, var(--ats-credentials-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-credentials-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-credentials-notice-bottom: max(84px, calc(var(--ats-credentials-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-credentials-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-credentials-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-credentials-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-credentials-menu-offset, 120px)));
+  }
+
+  .ats-credentials-page :is(#saul-sierra-hernandez, #credentials-planning-title, #credentials-safety-title, #credentials-documentation-title) {
+    scroll-margin-top: var(--ats-credentials-scroll-offset, var(--ats-credentials-header-offset, 120px));
+  }
+
+  @supports selector(html:has(body)) {
+    html:has(> body.ats-credentials-page) {
+      scroll-padding-top: var(--ats-credentials-header-offset, 120px);
+      scroll-padding-bottom: calc(max(88px, var(--ats-credentials-bar-space, 88px)) + env(safe-area-inset-bottom));
+    }
+
+    .ats-credentials-page :is(#saul-sierra-hernandez, #credentials-planning-title, #credentials-safety-title, #credentials-documentation-title) {
+      scroll-margin-top: 0;
+    }
+  }
+
+  .ats-credentials-page .ats-page-hero {
+    padding-block: 36px 80px;
+  }
+
+  .ats-credentials-page .ats-breadcrumbs {
+    margin-bottom: 18px;
+  }
+
+  .ats-credentials-page .ats-credentials-topics {
+    display: block;
+    margin-top: 16px;
+  }
+
+  .ats-credentials-topics ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ats-credentials-topics li {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ats-credentials-topics a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    color: var(--ats-white);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-underline-offset: 4px;
+  }
+
+  .ats-credentials-topics a:focus-visible {
+    outline-color: var(--ats-white);
+    box-shadow: none;
+  }
+
+  .ats-credentials-page .ats-page-hero__lead {
+    margin-top: 20px;
+  }
+
+  .ats-credentials-page .ats-page-hero__trust {
+    margin-top: 16px;
+  }
+
+  .ats-credentials-page .ats-actions {
+    margin-top: 24px;
+  }
+
+  .ats-credentials-page .ats-content-section {
+    padding-block: 48px;
+  }
+
+  .ats-credentials-page :is(.ats-credential-panel, .ats-two-column) {
+    gap: 24px;
+  }
+
+  .ats-credentials-page .ats-affiliations {
+    margin-top: 36px;
+    padding-top: 28px;
+  }
+
+  .ats-credentials-page .ats-card-grid {
+    margin-top: 28px;
+    gap: 24px;
+  }
+
+  .ats-credentials-page :is(.ats-card, .ats-callout, .ats-testimonial) {
+    padding: 24px;
+  }
+
+  .ats-credentials-page .ats-final-cta {
+    padding: 48px 20px;
+  }
+
+  .ats-credentials-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  /* Long focused source links need reading room above the contact bar. */
+  @media (max-height: 650px) {
+    body.ats-credentials-page {
+      --ats-credentials-scroll-offset: 20px;
+    }
+
+    .ats-credentials-page .ats-page-header {
+      position: static;
+    }
+
+    @supports selector(html:has(body)) {
+      html:has(> body.ats-credentials-page) {
+        scroll-padding-top: 20px;
+      }
+    }
+  }
+
   body.ats-recognition-page {
     padding-bottom: calc(max(88px, var(--ats-recognition-bar-space, 88px)) + env(safe-area-inset-bottom));
   }

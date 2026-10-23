@@ -1,0 +1,82 @@
+{
+  "observedAt": "2026-10-23T14:50:31.420Z",
+  "status": "complete-staging-only",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "mainIncluded": "763fd40",
+  "implementationPreserved": "3f12f24",
+  "branch": "codex/staging-document-terms-reconciliation",
+  "nodeVersion": "v22.23.4",
+  "supabaseCliVersion": "2.121.0",
+  "migration": {
+    "name": "20261023030829_preserve_customer_document_terms.sql",
+    "sha256": "89ea8e617f752360a0550ff12dc4fe4c1f7208c673ec978f74edb536996f345d",
+    "previousCount": 117,
+    "currentCount": 118,
+    "nativeInstall": true,
+    "allPreviousCompleteLedgerRowsUnchanged": true,
+    "finalEntryMatchesNativeLocalRehearsal": true,
+    "dryRunSelectedOnly118": true,
+    "repeatDryRunUpToDate": true
+  },
+  "schema": {
+    "beforeObjects": 5103,
+    "afterObjects": 5110,
+    "expectedAdditions": 7,
+    "allOriginalObjectsUnchanged": true,
+    "newObjectsMatchLocalRehearsal": true,
+    "existingRlsGrantsDefaultsUnchanged": true,
+    "privateTriggerInvoker": true,
+    "privateTriggerSearchPathEmpty": true,
+    "noNewApiExecuteGrant": true
+  },
+  "preservation": {
+    "protectedSets": 49,
+    "allOriginalQuoteInvoiceFieldsUnchanged": true,
+    "allDocumentsBoundToLegacy": true,
+    "approvalExpiryDefinitionUnchanged": true,
+    "authEmailGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true
+  },
+  "tests": {
+    "unitPassed": 2404,
+    "unitFailed": 0,
+    "unitSkipped": 0,
+    "maintenanceCases": 10,
+    "localCandidateAssertions": 30,
+    "failedNativeUpgradeSchemaAndLedgerRolledBack": true,
+    "localInstalledTermsAssertions": 30,
+    "localInstalledExpiryAssertions": 30,
+    "stagingCandidateTermsAssertions": 30,
+    "stagingCandidateExpiryAssertions": 30,
+    "stagingInstalledTermsAssertions": 30,
+    "stagingInstalledExpiryAssertions": 30,
+    "allSyntheticFixturesRolledBack": true,
+    "actualRecordRendererCases": 4,
+    "freshSchemaContract": true,
+    "offlineSchemaContract": true,
+    "typecheck": true,
+    "newApplicationBuildRequired": false,
+    "applicationCodeChanged": false
+  },
+  "advisors": {
+    "detailsUnchangedExcludingObservationTimes": true,
+    "rlsNoPolicy": 33,
+    "authenticatedDefinerExecution": 79,
+    "leakedPasswordProtection": 1
+  },
+  "boundaries": {
+    "productionQueried": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "keysRotated": false,
+    "customerCommunicationsSent": false,
+    "paymentProviderRequests": false,
+    "scannerChanged": false,
+    "runtimeSecurityBranchChanged": false,
+    "pushed": false,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/staging-document-terms-118"
+}

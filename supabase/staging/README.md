@@ -267,3 +267,16 @@ See `apps/platform/STAGING_REQUEST_STATUS_RECONCILIATION.md` for the one-routine
 delta, local rollback/idempotency proof, actual hosted denials and intentional
 narrow authenticated-definer advisor warning. This is not an app deployment,
 scanner activation, production change or grant of hosting readiness.
+
+## Migration118 maintenance target
+
+The targeted customer-document terms reconciliation is complete on ATS CRM
+Staging at 118 migrations, latest `20261023030829`. Use
+`apps/platform/scripts/release/verify-staging-document-terms-candidate.mjs`
+with `--project-ref gbyhdsuiqeslgjdnbqng` for fresh read-only maintenance.
+It pins the complete native ledger, full catalog/permissions, unchanged
+proposal-expiry command, protected records/settings/Auth guard, and immutable
+legacy terms bindings. It has no install, repair or deploy mode. Historical
+candidates remain unchanged and must not be resealed to accept the new target.
+See `apps/platform/STAGING_DOCUMENT_TERMS_RECONCILIATION.md`. No app deployment,
+production change, wording approval or hosting readiness is implied.

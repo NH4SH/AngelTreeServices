@@ -1,6 +1,14 @@
 /** Presentation only. Server token checks and financial/approval commands remain authoritative. */
-export function customerQuoteState(status: string) {
-  switch (status) {
+export function customerQuoteDisplayStatus(status: string, expiresAt?: string | null, now = Date.now()) {
+  // A document deadline is separate from its capability-token lifetime. Preserve
+  // already recorded outcomes and do not invent a deadline for undated quotes.
+  const expired = ["draft", "sent", "change_requested"].includes(status)
+    && Boolean(expiresAt && Date.parse(expiresAt) <= now);
+  return expired ? "expired" : status;
+}
+
+export function customerQuoteState(status: string, expiresAt?: string | null, now = Date.now()) {
+  switch (customerQuoteDisplayStatus(status, expiresAt, now)) {
     case "draft":
     case "sent":
       return { kind: "open", canRespond: true, title: "Review your proposal", message: "Review the work and pricing below, then approve the proposal or request a change." } as const;

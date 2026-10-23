@@ -47,6 +47,7 @@ select set_config('test.uid','${actor}',false),set_config('test.staff','true',fa
 `;
 const lines=(n=1000,more={})=>[{name:'Work',quantity:1,unit_price_cents:n,total_cents:n,...more}];
 const approval=readFileSync(new URL('../../../supabase/migrations/20261016064442_atomic_quote_approval.sql',import.meta.url),'utf8');
+const expiry=readFileSync(new URL('../../../supabase/migrations/20261023015338_enforce_proposal_expiry.sql',import.meta.url),'utf8');
 const lifecycle=readFileSync(new URL('../../../supabase/migrations/20260729165208_schedule_sources_and_lead_lifecycle.sql',import.meta.url),'utf8');
 const leadGuard=lifecycle.slice(lifecycle.indexOf('create or replace function public.prevent_inactive_lead_conversion()'),lifecycle.indexOf('create or replace function public.schedule_party_estimate('));
 // Explicit untouched-schema stand-ins. The local integration suite exercises
@@ -72,12 +73,56 @@ grant select,insert,update on quote_portal_tokens,customer_communications to ser
 `;
 test('actual approval migration: atomic acceptance, safe replay, source gates and authorization',async t=>{
  const db=new PGlite();try{
-  await db.exec(fixture);await db.exec(validate);await db.exec(migration);await db.exec(enforcement);await db.exec(approvalFixture);await db.exec(leadGuard);await db.exec(approval);
+  await db.exec(fixture);await db.exec(validate);await db.exec(migration);await db.exec(enforcement);await db.exec(approvalFixture);await db.exec(leadGuard);await db.exec(approval);await db.exec(expiry);
   const query=async(s,p=[])=>(await db.query(s,p)).rows;
   const read=async id=>(await query('select * from quotes where id=$1',[id]))[0];
   const create=async(header={},items=lines())=>read((await query('select create_quote_draft($1,$2) value',[{customer_id:customer,service_location_id:location,...header},items]))[0].value.id);
   const accept=async q=>(await query('select approve_quote($1,$2) value',[q.id,q.edit_revision]))[0].value;
   const job=async q=>(await query('select * from jobs where source_quote_id=$1',[q.id]));
+  await t.test('stored past deadlines reject every new open approval without partial work or history',async()=>{
+   for(const status of ['draft','sent','change_requested']){
+    const initial=await create({expires_at:'2020-01-01T00:00:00Z'});await query('update quotes set status=$1 where id=$2',[status,initial.id]);const q=await read(initial.id);
+    const historyBefore=await query('select * from activity_log where subject_id=$1',[q.id]);
+    await assert.rejects(accept(q),e=>e.code==='23514'&&/proposal has expired/.test(e.message));
+    assert.deepEqual(await read(q.id),q);assert.equal((await job(q)).length,0);assert.deepEqual(await query('select * from activity_log where subject_id=$1',[q.id]),historyBefore);
+   }
+  });
+  await t.test('future and undated proposals retain the existing acceptance behavior',async()=>{
+   for(const expires_at of [null,'2099-01-01T00:00:00Z']){const q=await create({expires_at});assert.ok((await accept(q)).job_id);}
+  });
+  await t.test('a committed approval is safely replayed after its proposal deadline',async()=>{
+   const q=await create({expires_at:new Date(Date.now()+1000).toISOString()}),first=await accept(q),before=await read(q.id);
+   await db.query('select pg_sleep(1.1)');const again=await accept(q);
+   assert.equal(again.replayed,true);assert.equal(again.job_id,first.job_id);assert.deepEqual(await read(q.id),before);assert.equal((await job(q)).length,1);
+   assert.equal((await query("select * from activity_log where subject_id=$1 and event_type='quote_approved'",[q.id])).length,1);
+  });
+  await t.test('expiry during tentative work creation rolls the entire transaction back',async()=>{
+   await db.exec("create function pg_temp.expiry_delay() returns trigger language plpgsql as $$begin perform pg_sleep(0.8);return new;end$$;create trigger expiry_delay before insert on jobs for each row execute function pg_temp.expiry_delay()");
+   try{
+    const q=await create({expires_at:new Date(Date.now()+400).toISOString()}),historyBefore=await query('select * from activity_log where subject_id=$1',[q.id]);
+    await assert.rejects(accept(q),e=>e.code==='23514'&&/proposal has expired/.test(e.message));
+    assert.deepEqual(await read(q.id),q);assert.equal((await job(q)).length,0);assert.deepEqual(await query('select * from activity_log where subject_id=$1',[q.id]),historyBefore);
+   }finally{await db.exec('drop trigger expiry_delay on jobs;drop function pg_temp.expiry_delay()');}
+  });
+  await t.test('usable customer tokens cannot extend the proposal deadline; revoked tokens still deny saved-result recovery',async()=>{
+   const q=await create({expires_at:'2020-01-01T00:00:00Z'}),hash='e'.repeat(64);
+   await query("insert into quote_portal_tokens(quote_id,token_hash,expires_at) values($1,$2,clock_timestamp()+interval '1 day')",[q.id,hash]);
+   await db.exec("set role service_role;select set_config('test.uid','',false)");
+   try{await assert.rejects(query('select approve_quote_by_portal($1,$2)',[hash,q.edit_revision]),e=>e.code==='23514'&&/proposal has expired/.test(e.message));}
+   finally{await db.exec(`reset role;select set_config('test.uid','${actor}',false)`);}
+   assert.equal((await job(q)).length,0);assert.deepEqual(await read(q.id),q);
+   const saved=await create(),accepted=await accept(saved);assert.ok(accepted.job_id);
+   await query('insert into quote_portal_tokens(quote_id,token_hash,revoked_at) values($1,$2,clock_timestamp())',[saved.id,'f'.repeat(64)]);
+   await db.exec("set role service_role;select set_config('test.uid','',false)");
+   try{await assert.rejects(query('select approve_quote_by_portal($1,$2)',['f'.repeat(64),saved.edit_revision]),/unavailable or expired/);}
+   finally{await db.exec(`reset role;select set_config('test.uid','${actor}',false)`);}
+  });
+  await t.test('the migration is idempotent and keeps closed historical repair available',async()=>{
+   const before=(await query("select pg_get_functiondef('app_private.approve_quote_locked(uuid,integer,text)'::regprocedure) definition"))[0].definition;
+   await db.exec(expiry);assert.equal((await query("select pg_get_functiondef('app_private.approve_quote_locked(uuid,integer,text)'::regprocedure) definition"))[0].definition,before);
+   const q=await create({expires_at:'2020-01-01T00:00:00Z'});await query("update quotes set status='approved',approved_at='2020-01-01T00:00:00Z' where id=$1",[q.id]);
+   const legacy=await read(q.id);assert.equal(legacy.approved_from_revision,null);assert.ok((await accept(legacy)).job_id);
+  });
   await t.test('acceptance binds the exact version and ordered work scope in one transaction',async()=>{
    const q=await create({customer_message:'Local note'},[{name:'First',description:'Scope one',quantity:1,unit_price_cents:1000,total_cents:1000},{name:'Second',quantity:2,unit_price_cents:500,total_cents:1000}]),r=await accept(q),after=await read(q.id);
    assert.equal(after.status,'approved');assert.equal(after.approved_from_revision,q.edit_revision);assert.equal(after.job_id,r.job_id);assert.equal((await job(q))[0].requested_scope,'Local note\n\nScope one\n\nSecond');assert.equal((await job(q)).length,1);

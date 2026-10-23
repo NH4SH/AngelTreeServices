@@ -13,8 +13,9 @@ import "./portal-quote-actions.css";
 
 const initialState: PortalTokenActionState = { ok: false, status: "idle", message: "" };
 
-export function PortalQuoteActions({ quoteStatus, expirationLabel, expectedRevision, rawToken, statusLabel, totalLabel, workSummary }: {
+export function PortalQuoteActions({ quoteStatus, expiresAt, expirationLabel, expectedRevision, rawToken, statusLabel, totalLabel, workSummary }: {
   quoteStatus: string; expirationLabel: string; expectedRevision: number; rawToken: string;
+  expiresAt?: string | null;
   statusLabel: string; totalLabel: string; workSummary: PortalWorkSummary | null;
 }) {
   const id = useId();
@@ -24,7 +25,7 @@ export function PortalQuoteActions({ quoteStatus, expirationLabel, expectedRevis
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [activeAction, setActiveAction] = useState<"approval" | "changes">("approval");
   const [message, setMessage] = useState("");
-  const response = customerQuoteState(quoteStatus);
+  const response = customerQuoteState(quoteStatus, expiresAt);
 
   const [approvalState, approvalAction, approvalPending] = useReliableActionState(async (previous: PortalTokenActionState, form: FormData) => {
     if (submittingRef.current) return previous;
@@ -62,7 +63,7 @@ export function PortalQuoteActions({ quoteStatus, expirationLabel, expectedRevis
   const pending = approvalPending || changePending;
   const feedback = activeAction === "approval" ? approvalState : changeState;
   // A freshly loaded closed state is authoritative over any earlier receipt.
-  const outcome = proposalResponseOutcome(quoteStatus, approvalState, changeState);
+  const outcome = proposalResponseOutcome(quoteStatus, approvalState, changeState, expiresAt);
   useEffect(() => {
     if (interactedRef.current && !pending && (outcome || feedback.status === "error")) feedbackRef.current?.focus();
   }, [pending, outcome?.title, feedback]);

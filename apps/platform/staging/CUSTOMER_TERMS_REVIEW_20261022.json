@@ -1,0 +1,126 @@
+{
+  "reviewDate": "2026-10-22",
+  "baseline": "Existing CRM wording, selected by owner for review; not approval of business policy",
+  "applicationCodeChanged": false,
+  "businessTermsChanged": false,
+  "productionQueriedOrChanged": false,
+  "pushedOrDeployed": false,
+  "recommendedNextImplementation": "Enforce non-null stored proposal expiry for new approvals while preserving committed-approval replay and authorization",
+  "renderVerification": {
+    "verifiedAt": "2026-10-23T01:41:37.909Z",
+    "syntheticOnly": true,
+    "databaseConnections": false,
+    "providerCalls": false,
+    "applicationFilesChanged": false,
+    "interpretation": "Successful probes reproduce existing wording conflicts; they do not certify policy or claim the conflicts are resolved.",
+    "cases": [
+      {
+        "case": "quote-custom-instructions",
+        "emailIncludesSavedPaymentAndDebris": true,
+        "printOmitsBoth": true,
+        "printSaysAllDebrisRemoved": true,
+        "scopeAndTotalPreserved": true
+      },
+      {
+        "case": "quote-net30",
+        "savedNet30OmittedInEmailAndPrint": true,
+        "printSaysPaymentUponCompletion": true
+      },
+      {
+        "case": "quote-no-expiration",
+        "headerAsksForValidity": true,
+        "termsState30Days": true
+      },
+      {
+        "case": "quote-explicit-expiration",
+        "emailAndPrintDatesAgree": true
+      },
+      {
+        "case": "invoice-net45",
+        "metadataAndEmailMatchStoredDate": true,
+        "printStillSays15Days": true,
+        "penaltyWordingStillStartsAfter15Days": true
+      },
+      {
+        "case": "invoice-without-date",
+        "printSaysNoDateAnd15Days": true,
+        "emailUsesStoredNet30": true
+      },
+      {
+        "case": "surcharge-text-versus-calculation",
+        "configured250bpsChargeCents": 2500,
+        "disabledSurchargeCents": 0,
+        "printAlwaysSays3Percent": true,
+        "providerCalls": false
+      },
+      {
+        "case": "approved-quote",
+        "currentSharedTermsStillRendered": true,
+        "savedCustomPaymentStillAbsent": true
+      }
+    ]
+  },
+  "sqlVerification": {
+    "verifiedAt": "2026-10-23T01:43:43.465Z",
+    "target": "in-memory PGlite with the existing quote-approval migration fixture",
+    "hostedDatabaseConnections": false,
+    "realAuthOrRlsCertified": false,
+    "scope": "Actual core approval SQL; surrounding historical-schema and effective-access helpers use the existing explicit fixture doubles.",
+    "cases": [
+      {
+        "case": "stored-past-expiry-staff-approval",
+        "expiryInPast": true,
+        "statusBefore": "sent",
+        "approvalSucceeded": true,
+        "workOrderCreated": true
+      },
+      {
+        "case": "stored-past-expiry-usable-customer-token",
+        "quoteExpiryInPast": true,
+        "tokenExpiryInFuture": true,
+        "approvalSucceeded": true,
+        "workOrderCreated": true
+      },
+      {
+        "case": "explicitly-expired-status-control",
+        "approvalRejected": true
+      }
+    ]
+  },
+  "stagingDefinitionRead": {
+    "target": "gbyhdsuiqeslgjdnbqng",
+    "readOnlyTransaction": true,
+    "rolledBack": true,
+    "businessMutations": false,
+    "routines": [
+      {
+        "routine": "app_private.approve_quote_locked(uuid,integer,text)",
+        "definition_sha256": "36084c2a32e363ccc5d2fec8e6d2b2e0f25c0debcf7db18de619c155e827d2ef",
+        "reads_quote_expiry": false,
+        "reads_header_expiry": false,
+        "reads_token_expiry": true,
+        "reads_expected_revision": true
+      },
+      {
+        "routine": "app_private.validate_quote_header(quotes,boolean)",
+        "definition_sha256": "69857d8d66670e8abe392b41a4333855dad123988bc2dfa99106b57733bc1074",
+        "reads_quote_expiry": false,
+        "reads_header_expiry": false,
+        "reads_token_expiry": false,
+        "reads_expected_revision": false
+      }
+    ]
+  },
+  "existingTargetedTests": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+  },
+  "policyDecisionsStillRequired": [
+    "standard payment deadline and grace period",
+    "precedence of reviewed per-proposal payment/debris instructions",
+    "existing penalty and warranty wording",
+    "meaning of missing proposal expiry"
+  ],
+  "historicalDocumentTextMustBePreserved": true
+}

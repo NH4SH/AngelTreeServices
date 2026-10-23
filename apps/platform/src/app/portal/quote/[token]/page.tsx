@@ -2,7 +2,7 @@ import { FileSignature, Leaf, ShieldCheck } from "lucide-react";
 import { QuoteDocument } from "@/components/documents/quote-document";
 import { PrintButton } from "@/components/documents/print-button";
 import { PortalContact } from "@/components/portal-contact";
-import { customerQuoteState } from "@/lib/portal/customer-states";
+import { customerQuoteDisplayStatus, customerQuoteState } from "@/lib/portal/customer-states";
 import "../../customer-clarity.css";
 import "../../customer-print.css";
 import { PortalQuoteActions } from "@/components/portal-quote-actions";
@@ -30,8 +30,8 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
     return <PortalUnavailable message={lookup.message} />;
   }
 
-  const response = customerQuoteState(lookup.quote.status);
-  const statusLabel = formatCustomerQuoteStatus(lookup.quote.status);
+  const response = customerQuoteState(lookup.quote.status, lookup.quote.expires_at);
+  const statusLabel = formatCustomerQuoteStatus(customerQuoteDisplayStatus(lookup.quote.status, lookup.quote.expires_at));
   const totalLabel = formatCurrency(lookup.quote.total_cents);
   const expirationLabel = lookup.quote.expires_at
     ? formatDate(lookup.quote.expires_at)
@@ -95,6 +95,7 @@ export default async function CustomerQuotePortalPage({ params }: CustomerQuoteP
         <aside className="customer-quote-action-column">
           <PortalQuoteActions
             quoteStatus={lookup.quote.status}
+            expiresAt={lookup.quote.expires_at}
             expirationLabel={expirationLabel}
             expectedRevision={lookup.quote.edit_revision}
             rawToken={token}

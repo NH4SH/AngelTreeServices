@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-22",
+  "branch": "codex/proposal-expiry-enforcement",
+  "mainIncludedThrough": "3fbc40a45f31d4dd5f3ae740a6b1fcfa5a9aa8d9",
+  "scope": "New approval deadline enforcement and matching customer presentation; existing terms unchanged",
+  "candidateMigration": "20261023015338_enforce_proposal_expiry.sql",
+  "candidateMigrationSha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230",
+  "pushed": false,
+  "appDeployed": false,
+  "productionQueriedOrChanged": false,
+  "providerCalls": false,
+  "customerEmailsSent": 0,
+  "businessTermsChanged": false,
+  "newEnvironmentVariables": [],
+  "verification": {
+    "unit": {
+      "passed": 2379,
+      "failed": 0,
+      "skipped": 0,
+      "nodeVersion": "22.23.3"
+    },
+    "focused": {
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "nativeConcurrency": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "independentConnections": true,
+      "cases": [
+        "Proposal expiry during linked-job lock wait",
+        "Token expiry during linked-job lock wait",
+        "Simultaneous approvals preserve one work order, audit and source event"
+      ]
+    },
+    "localInstalledSchema": {
+      "passed": 30,
+      "syntheticOnly": true,
+      "transactionRolledBack": true,
+      "target": "ats_docmail_30e1592cbeea"
+    },
+    "stagingInstalledSchema": {
+      "passed": 30,
+      "syntheticOnly": true,
+      "migrationAndFixturesRolledBack": true,
+      "assertions": [
+        "anonymous cannot execute app_private.approve_quote_locked(uuid,integer,text)",
+        "anonymous cannot execute approve_quote_by_portal(text,integer)",
+        "anonymous cannot execute approve_quote(uuid,integer)",
+        "change_requested customer past deadline rejects without business/history/event changes",
+        "change_requested staff past deadline rejects without business/history/event changes",
+        "crew cannot approve a future proposal",
+        "customer committed approval survives proposal expiry without duplicate handoff",
+        "disabled owner cannot approve",
+        "draft customer past deadline rejects without business/history/event changes",
+        "draft staff past deadline rejects without business/history/event changes",
+        "expired token still denies committed-result recovery",
+        "expiry during tentative work creation rolls back quote work history and source events",
+        "future customer retains one-work-order approval",
+        "future staff retains one-work-order approval",
+        "historical approved-record repair is preserved",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "revoked token still denies committed-result recovery",
+        "sent customer past deadline rejects without business/history/event changes",
+        "sent staff past deadline rejects without business/history/event changes",
+        "staff cannot invoke trusted customer/core entry points",
+        "staff committed approval survives proposal expiry without duplicate handoff",
+        "stale revision still denies without side effects",
+        "undated customer retains one-work-order approval",
+        "undated staff retains one-work-order approval",
+        "wrong_party token still denies committed-result recovery"
+      ],
+      "target": "gbyhdsuiqeslgjdnbqng",
+      "baseline": {
+        "fingerprint": "e488a14c913e077f8f3855c0ff25bea9",
+        "ledger_count": 116,
+        "latest": "20261022194856",
+        "approval_definition_sha256": "36084c2a32e363ccc5d2fec8e6d2b2e0f25c0debcf7db18de619c155e827d2ef"
+      },
+      "after": {
+        "fingerprint": "e488a14c913e077f8f3855c0ff25bea9",
+        "ledger_count": 116,
+        "latest": "20261022194856",
+        "approval_definition_sha256": "36084c2a32e363ccc5d2fec8e6d2b2e0f25c0debcf7db18de619c155e827d2ef"
+      },
+      "unchanged": true,
+      "permanentMigrationInstalled": false,
+      "hostedAppBrowserTested": false
+    },
+    "advisors": {
+      "findingDetailsUnchanged": true,
+      "baseline": {
+        "rls_enabled_no_policy": 33,
+        "authenticated_security_definer_function_executable": 79,
+        "auth_leaked_password_protection": 1
+      }
+    },
+    "typeGeneration": "passed",
+    "typescript": "passed",
+    "optimizedBuild": "passed",
+    "browser": {
+      "target": "Isolated local preview with actual database-backed synthetic documents",
+      "widths": [
+        1280,
+        390
+      ],
+      "expiredFormsAbsent": true,
+      "closedScopePrintAndContactRetained": true,
+      "horizontalOverflow": false,
+      "keyboardContactFocusVisible": true,
+      "futureAndUndatedApprovalAvailable": true,
+      "approvedOutcomeRetainedAfterExpiry": true,
+      "errorLogs": 0,
+      "contractualConfirmationSubmitted": false
+    },
+    "applicationSourceParity": {
+      "files": 630,
+      "sha256": "17ce32866b8b323b99978bafb178d2dbc68bf83ba859bd13d50e2d73e621e232",
+      "excludes": [
+        ".impeccable design metadata"
+      ]
+    },
+    "buildAndPreviewSourceIdentical": true,
+    "whitespaceCheckPassed": true
+  },
+  "guarantees": {
+    "wallTimeAfterLockWait": true,
+    "wallTimeBeforeSavingNewApproval": true,
+    "tentativeWorkRollsBackOnExpiry": true,
+    "committedApprovalReplayPreserved": true,
+    "legacyApprovedRecordRepairPreserved": true,
+    "tokenAndRoleGatesPreserved": true,
+    "rlsAndRpcGrantsUnchanged": true,
+    "sourceEventDeduplicationPreserved": true,
+    "undatedDeadlineInvented": false,
+    "closedStatusRewritten": false
+  },
+  "limitations": [
+    "No automatic client expiry timer; database command is authoritative for a page held open across its deadline",
+    "Existing change-request transaction is unchanged",
+    "No business-term or default-deadline policy changes",
+    "Migration 117 remains deferred pending targeted permanent staging reconciliation",
+    "Existing staging security-advisor baseline is not resolved by this change"
+  ],
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/proposal-expiry",
+  "cleanup": {
+    "previewStopped": true,
+    "localRoutineRestored": true,
+    "ownedStackStopped": true,
+    "volumesPreserved": true,
+    "routineSha256": "36084c2a32e363ccc5d2fec8e6d2b2e0f25c0debcf7db18de619c155e827d2ef",
+    "ledgerCount": 116,
+    "latestMigration": "20261022194856"
+  }
+}

@@ -1,7 +1,9 @@
 import { renderCustomerDocumentAction } from "./customer-document-action.ts";
 import type { CustomerDocumentEmailDraft } from "@/lib/documents/email-drafts";
 
-const companyName = "Angel Tree Services";
+import { companyBrand, customerContactEmail, customerContactHref } from "../company-brand.ts";
+
+const companyName = companyBrand.name;
 
 export function renderCustomerDocumentEmailHtml(
   draft: CustomerDocumentEmailDraft,
@@ -62,10 +64,10 @@ export function renderCustomerDocumentEmailHtml(
           <p style="margin:0;color:#303934;font-size:15px;line-height:1.65;">${formatPlainText(draft.closing)}</p>
           <p style="margin:20px 0 0;color:#27312b;font-size:15px;line-height:1.55;">Thank you,<br /><br /><strong>${companyName}</strong></p>
         </td></tr>
-        <tr><td style="padding:18px 28px;background:#edf4ef;border-top:1px solid #d7e3da;color:#536158;font-size:13px;line-height:1.65;">
-          <a href="tel:+15403888715" style="color:#174b32;text-decoration:none;">(540) 388-8715</a><br />
-          <a href="mailto:info@angeltreeservice.org" style="color:#174b32;text-decoration:none;">info@angeltreeservice.org</a><br />
-          <a href="https://angeltreeservices.org/" style="color:#174b32;text-decoration:none;">angeltreeservices.org</a>
+        <tr><td style="padding:18px 28px;background:#edf4ef;border-top:1px solid #d7e3da;overflow-wrap:anywhere;word-break:break-word;color:#536158;font-size:13px;line-height:1.65;">
+          <a href="${companyBrand.phoneHref}" style="color:#174b32;text-decoration:none;">${companyBrand.phone}</a><br />
+          <a href="${escapeAttribute(customerContactHref(draft.contactEmail))}" style="color:#174b32;text-decoration:none;">${escapeHtml(customerContactEmail(draft.contactEmail))}</a><br />
+          <a href="${companyBrand.websiteHref}" style="color:#174b32;text-decoration:none;">${companyBrand.website}</a>
         </td></tr>
       </table>
     </td></tr>

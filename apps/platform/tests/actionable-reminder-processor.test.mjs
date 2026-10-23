@@ -8,7 +8,7 @@ import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';
 import {emailDeliveryContext} from '../src/lib/email/delivery-context.ts';
 import {mapBounded,withDeadline} from '../src/lib/runtime/deadline.ts';
 
-const templates=load('../src/lib/communications/templates.ts',{'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml}});
+const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml}});
 function fixture(type='invoice_payment_reminder',options={}) {
  const quote=type==='quote_follow_up',now=new Date().toISOString(),sends=[];
  const row={id:'synthetic-reminder',customer_id:'synthetic-customer',organization_id:null,invoice_id:quote?null:'synthetic-invoice',quote_id:quote?'synthetic-quote':null,job_id:null,schedule_event_id:null,appointment_id:null,payment_id:null,communication_type:type,recipient_email:'synthetic@example.invalid',status:'pending',attempt_count:0,created_at:now,scheduled_for:now,processing_started_at:null,is_automatic:options.automatic??false};

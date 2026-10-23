@@ -1,3 +1,4 @@
+import { companyBrand, companyContactText, customerContactEmail } from "../company-brand.ts";
 import type { InvoiceDetail, InvoiceLineItem, JobDetail, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
 import { formatProposalReference } from "../quotes/proposal-number.ts";
 
@@ -8,6 +9,7 @@ export type EmailDraft = {
 
 export type CustomerDocumentEmailDraft = EmailDraft & {
   documentType: "quote" | "invoice";
+  contactEmail?: string;
   greeting: string;
   intro: string;
   referenceLabel?: string;
@@ -34,7 +36,7 @@ export type ScopePresentationBlock = {
   text: string;
 };
 
-const companyName = "Angel Tree Services";
+const companyName = companyBrand.name;
 type EmailLocation = {
   label?: string | null;
   street?: string | null;
@@ -129,7 +131,7 @@ export type InvoiceEmailDraftInput = Pick<
 
 export function generateQuoteEmailDraft(
   quote: QuoteEmailDraftInput,
-  options: { portalUrl?: string } = {},
+  options: { portalUrl?: string; contactEmail?: string } = {},
 ): CustomerDocumentEmailDraft {
   const propertyLabel = formatQuoteLocation(quote);
   const workDescription = describeQuoteWork(quote);
@@ -163,6 +165,7 @@ export function generateQuoteEmailDraft(
     timingValue: quote.expires_at ? `Valid through ${formatDate(quote.expires_at)}` : "See the proposal for validity terms",
     ctaLabel: "Review and approve proposal",
     portalUrl: options.portalUrl ?? "",
+    contactEmail: customerContactEmail(options.contactEmail),
     body: "",
   };
 
@@ -171,7 +174,7 @@ export function generateQuoteEmailDraft(
 
 export function generateInvoiceEmailDraft(
   invoice: InvoiceEmailDraftInput,
-  options: { portalUrl?: string } = {},
+  options: { portalUrl?: string; contactEmail?: string } = {},
 ): CustomerDocumentEmailDraft {
   const propertyLabel = formatInvoiceLocation(invoice);
   const firstName = firstNameFrom(
@@ -205,6 +208,7 @@ export function generateInvoiceEmailDraft(
       : invoice.payment_terms?.trim() || "See the invoice for payment terms",
     ctaLabel: "Review and pay invoice",
     portalUrl: options.portalUrl ?? "",
+    contactEmail: customerContactEmail(options.contactEmail),
     body: "",
   };
 
@@ -246,10 +250,7 @@ export function buildCustomerDocumentEmailText(draft: Omit<CustomerDocumentEmail
     "",
     "Thank you,",
     "",
-    companyName,
-    "(540) 388-8715",
-    "info@angeltreeservice.org",
-    "angeltreeservices.org",
+    companyContactText(draft.contactEmail),
   ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n").trim();
 }
 

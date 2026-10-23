@@ -1,3 +1,4 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
@@ -123,7 +124,7 @@ test('malformed or mismatched receipts cannot acknowledge a link action or reach
 function actionFixture(options = {}) {
   const calls = [], paths = [], supabase = { auth: { getUser: async () => ({ data: { user: options.signedOut ? null : { id: userId } } }) },
     from: () => assert.fail('Link actions must not perform separate table writes') };
-  const actions = load('../src/lib/actions/change-orders.ts', {
+  const actions = load('../src/lib/actions/change-orders.ts', {'../company-brand.ts':branding,
     '@/lib/email/delivery-commands': { callDeliveryCommand: () => assert.fail('Link actions must use the shared reviewed helper') },
     'next/cache': { revalidatePath: path => paths.push(path) }, '@/lib/activity-log': { recordActivity: () => assert.fail('Audit belongs to transaction') },
     '@/lib/auth/roles': { getUserRoles: async () => options.roles ?? ['estimator'], hasAllowedRole: (roles, allowed) => roles.some(role => allowed.includes(role)), platformRoleGroups: { internalStaff: ['owner', 'admin', 'payroll_admin', 'estimator'] } },
@@ -175,7 +176,7 @@ function readerFixture(options = {}) {
   const calls = [], decrypts = [], urls = [], client = { from: () => assert.fail('Token listing must use the guarded state command') };
   const tokens = options.tokens ?? [{ id: tokenId, token_hint: 'hint', token_encrypted: encryptedToken, token_hash: tokenHash, usable: true,
     expires_at: base.expires_at, viewed_at: null, used_at: null, revoked_at: null, created_at: '2026-10-22T00:00:00Z', extraPrivate: 'private' }];
-  const data = load('../src/lib/data/change-orders.ts', {
+  const data = load('../src/lib/data/change-orders.ts', {'../company-brand.ts':branding,
     'server-only': {}, '@/lib/email/delivery-commands': { callDeliveryCommand: async (db, name, args) => { assert.equal(db, client); calls.push({ name, args }); return options.result ?? { data: { link_version: linkVersion, tokens }, error: null }; } },
     '@/lib/portal/tokens': { decryptPortalToken: value => { decrypts.push(value); return rawToken; }, hashPortalToken: raw => { assert.equal(raw, rawToken); return options.hash ?? tokenHash; } },
     '@/lib/portal/urls': { getPortalUrl: async (kind, raw) => { assert.equal(kind, 'change-order'); assert.equal(raw, rawToken); urls.push(raw); return 'https://synthetic.invalid/current-link'; } },

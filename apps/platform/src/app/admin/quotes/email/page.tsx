@@ -1,3 +1,4 @@
+import { getEmailSetupState } from "@/lib/email/config";
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { Mail, ShieldCheck, UsersRound } from "lucide-react";
@@ -43,7 +44,7 @@ export default async function MultiQuoteEmailPage({ searchParams }: MultiQuoteEm
     quote,
     portalUrl: tokenLookups[index].data.find((token) => token.portalUrl)?.portalUrl ?? "",
   }));
-  const draft = buildMultiQuoteEmailDraft(previewQuotes);
+  const draft = buildMultiQuoteEmailDraft(previewQuotes, undefined, { contactEmail: getEmailSetupState().replyTo });
   const legacyQuoteIds = quotes.flatMap((quote, index) =>
     getQuoteEmailPortalLinkState(tokenLookups[index].data) === "legacy_unrecoverable" ? [quote.id] : [],
   );

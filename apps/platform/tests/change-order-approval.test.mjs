@@ -1,3 +1,4 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
@@ -28,7 +29,7 @@ test('only sent, unexpired additions present decision controls; closed/waiting c
 const receipt={change_order_id:randomUUID(),job_id:randomUUID(),source_event_id:randomUUID(),replayed:false,newly_approved:true};
 function actionFixture(options={}){
  const calls=[],notifications=[],form=new FormData();Object.entries({token:'synthetic-token',request_id:randomUUID(),expected_updated_at:before,review_hash:hash,approver_name:'Synthetic Name',change_order_id:'forged-client-id',...options.form}).forEach(([k,v])=>form.set(k,v));
- const action=load('../src/lib/actions/change-orders.ts',{
+ const action=load('../src/lib/actions/change-orders.ts',{'../company-brand.ts':branding,
   '@/lib/email/delivery-commands':{callDeliveryCommand:async(db,name,args)=>{calls.push({name,args});return options.result??{data:receipt,error:null};}},'next/cache':{revalidatePath(){}},'next/navigation':{},'@/lib/activity-log':{},'@/lib/auth/roles':{},'@/lib/data/change-orders':{getChangeOrderByPortalToken:()=>assert.fail('A separate lookup cannot authorize approval')},'@/lib/notifications/source-events':{deliverCustomerSourceEvent:async v=>notifications.push(v)},'@/lib/portal/tokens':{hashPortalToken:()=>options.invalidToken?null:hash},'@/lib/email/send':{},'@/lib/email/config':{},'@/lib/email/delivery':{},'@/lib/email/delivery-followups':{},'@/lib/portal/change-order-links':{},'@/lib/portal/urls':{},'@/lib/supabase/server':{},'@/lib/supabase/admin':{getServiceRoleClient:()=>({})},'@/lib/security/portal-rate-limit':{checkPortalActionRateLimit:async()=>options.rate??{allowed:true,available:true}},'@/lib/security/errors':{safeStaffMessage:message=>message},
  });return{calls,notifications,run:()=>action.approveChangeOrderByPortal({},form)};
 }

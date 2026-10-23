@@ -79,11 +79,11 @@ test('portal quote/invoice/change-order links, OAuth, employee notices and reset
   const f = stagingFixture(), urls = canonical(f), origin = f.env.APP_BASE_URL;
   const portal = load('../src/lib/portal/urls.ts', { 'server-only': {}, '@/lib/security/app-base-url': urls });
   const google = load('../src/lib/integrations/google-calendar/config.ts', {
-    'server-only': {}, '@/lib/security/app-base-url': urls, './credentials': { isGoogleTokenEncryptionConfigured: () => false },
+    'server-only': {}, '@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})}, '@/lib/security/app-base-url': urls, './credentials': { isGoogleTokenEncryptionConfigured: () => false },
   });
   const stripe = load('../src/lib/stripe/server.ts', { 'server-only': {}, stripe: { default: class { constructor() { assert.fail('Core staging must not create a provider client'); } } }, '@/lib/security/app-base-url': urls });
   const templates = load('../src/lib/email/templates.ts', {
-    'server-only': {}, '@/lib/security/app-base-url': urls, '@/lib/documents/email-drafts': {}, '@/lib/email/customer-document-layout': {},
+    'server-only': {}, '@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})}, '@/lib/security/app-base-url': urls, '@/lib/documents/email-drafts': {}, '@/lib/email/customer-document-layout': {},
   });
   await withEnvironment(f.env, async () => {
     for (const type of ['quote', 'invoice', 'change-order']) {

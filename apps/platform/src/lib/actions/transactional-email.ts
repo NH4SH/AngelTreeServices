@@ -1,5 +1,6 @@
 "use server";
 
+import { getEmailSetupState } from "@/lib/email/config";
 import { readVerifiedDocumentToken } from "@/lib/portal/document-token";
 import { revalidatePath } from "next/cache";
 import { hasAllowedRole, platformRoleGroups, getUserRoles } from "@/lib/auth/roles";
@@ -77,7 +78,7 @@ export async function sendMultiQuoteEmail(
     }
   }
 
-  const template = buildMultiQuoteEmailDraft(linkedQuotes, submittedDraft.edits);
+  const template = buildMultiQuoteEmailDraft(linkedQuotes, submittedDraft.edits, { contactEmail: getEmailSetupState().replyTo });
   const result = await sendTransactionalEmail({
     deliveryQuoteIds: quoteIds,
     expectedSourceVersions: Object.fromEntries(quotes.map((quote) => [`quote:${quote.id}`,quote.edit_revision])),

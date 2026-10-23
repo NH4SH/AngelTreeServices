@@ -1,3 +1,4 @@
+import { companyBrand, companyContactText, customerContactEmail, customerContactHref } from "../company-brand.ts";
 import type { QuoteDetail, QuoteStatus } from "@/lib/types/database";
 import { formatProposalNumber } from "./proposal-number.ts";
 
@@ -13,6 +14,7 @@ export type MultiQuoteEmailItem = {
 };
 
 export type MultiQuoteEmailDraft = {
+  contactEmail?: string;
   subject: string;
   greeting: string;
   intro: string;
@@ -35,7 +37,7 @@ export type MultiQuoteSelectionResult =
 
 const openQuoteStatuses = new Set<QuoteStatus>(["draft", "sent", "change_requested"]);
 const quoteIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const companyName = "Angel Tree Services";
+const companyName = companyBrand.name;
 
 export function normalizeMultiQuoteIds(values: string[], maximum = Number.POSITIVE_INFINITY) {
   const unique = new Set<string>();
@@ -111,6 +113,7 @@ export function validateMultiQuoteSelection(quotes: QuoteDetail[]): MultiQuoteSe
 export function buildMultiQuoteEmailDraft(
   quotes: { quote: QuoteDetail; portalUrl?: string }[],
   edits?: MultiQuoteEmailEdits,
+  options: { contactEmail?: string } = {},
 ): MultiQuoteEmailDraft {
   const details = quotes.map(({ quote }) => quote);
   const validation = validateMultiQuoteSelection(details);
@@ -133,6 +136,7 @@ export function buildMultiQuoteEmailDraft(
   const draft = {
     ...generated,
     ...edits,
+    contactEmail: customerContactEmail(options.contactEmail),
     items,
     body: "",
   };
@@ -140,7 +144,7 @@ export function buildMultiQuoteEmailDraft(
 }
 
 export function applyMultiQuoteEmailEdits(draft: MultiQuoteEmailDraft, edits: MultiQuoteEmailEdits) {
-  const updated = { ...draft, ...edits };
+  const updated = { ...draft, ...edits, contactEmail: draft.contactEmail };
   return { ...updated, body: buildMultiQuoteEmailText(updated) };
 }
 
@@ -180,10 +184,7 @@ export function buildMultiQuoteEmailText(draft: Omit<MultiQuoteEmailDraft, "body
     "",
     "Thank you,",
     "",
-    companyName,
-    "(540) 388-8715",
-    "info@angeltreeservice.org",
-    "angeltreeservices.org",
+    companyContactText(draft.contactEmail),
   ].join("\n").replaceAll(/\n{3,}/g, "\n\n").trim();
 }
 
@@ -202,7 +203,7 @@ export function renderMultiQuoteEmailHtml(draft: MultiQuoteEmailDraft, logoUrl?:
 <tr><td style="padding:28px 28px 20px;"><p style="margin:0 0 18px;font-size:17px;line-height:1.55;">${escapeHtml(draft.greeting)}</p><p style="margin:0;color:#303934;font-size:16px;line-height:1.65;">${formatPlainText(draft.intro)}</p></td></tr>
 ${proposalRows}
 <tr><td style="padding:4px 28px 28px;"><p style="margin:0;color:#303934;font-size:15px;line-height:1.65;">${formatPlainText(draft.closing)}</p><p style="margin:20px 0 0;font-size:15px;line-height:1.55;">Thank you,<br /><br /><strong>${companyName}</strong></p></td></tr>
-<tr><td style="padding:18px 28px;background:#edf4ef;border-top:1px solid #d7e3da;color:#536158;font-size:13px;line-height:1.65;"><a href="tel:+15403888715" style="color:#174b32;text-decoration:none;">(540) 388-8715</a><br /><a href="mailto:info@angeltreeservice.org" style="color:#174b32;text-decoration:none;">info@angeltreeservice.org</a><br /><a href="https://angeltreeservices.org/" style="color:#174b32;text-decoration:none;">angeltreeservices.org</a></td></tr>
+<tr><td style="padding:18px 28px;background:#edf4ef;border-top:1px solid #d7e3da;overflow-wrap:anywhere;word-break:break-word;color:#536158;font-size:13px;line-height:1.65;"><a href="${companyBrand.phoneHref}" style="color:#174b32;text-decoration:none;">${companyBrand.phone}</a><br /><a href="${escapeAttribute(customerContactHref(draft.contactEmail))}" style="color:#174b32;text-decoration:none;">${escapeHtml(customerContactEmail(draft.contactEmail))}</a><br /><a href="${companyBrand.websiteHref}" style="color:#174b32;text-decoration:none;">${companyBrand.website}</a></td></tr>
 </table></td></tr></table></body></html>`;
 }
 

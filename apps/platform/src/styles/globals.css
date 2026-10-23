@@ -10230,6 +10230,7 @@ h1 {
 }
 
 .business-document-footer {
+  overflow-wrap: anywhere;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -10534,7 +10535,8 @@ h1 {
   line-height: 1.4;
 }
 
-.quote-proposal-document .business-document-footer > div {
+.business-document-footer > div {
+  min-width: 0;
   display: grid;
   gap: 3px;
 }
@@ -11450,6 +11452,7 @@ h1 {
   color: oklch(.46 .025 154);
   font-size: .78rem;
   line-height: 1.6;
+  overflow-wrap: anywhere;
   padding: 16px 20px;
 }
 

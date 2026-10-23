@@ -81,7 +81,7 @@ export function generateCompletedJobSummaryDrafts({
       `Completed ${service} work in ${city}.`,
       `${detailSentence || " Our crew wrapped up the agreed scope and left the work area clean."}`,
       "",
-      "Need help with trees, landscaping, or lawn care around the Fredericksburg region? Contact Angel Tree Services for an estimate.",
+      "Need help with trees or landscaping around the Fredericksburg region? Contact Angel Tree Services for an estimate.",
     ].join("\n"),
     facebookPost: [
       `Another ${service} project completed in ${city}.`,

@@ -17,19 +17,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       className="quote-proposal-document invoice-customer-document"
       documentLabel="Invoice"
       documentNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
-      footerDetails={
-        <>
-          <div>
-            <strong>Angel Tree Services</strong>
-            <span>Fredericksburg, Virginia region</span>
-          </div>
-          <div>
-            <span>(540) 388-8715</span>
-            <span>{contactEmail}</span>
-            <span>angeltreeservices.org</span>
-          </div>
-        </>
-      }
+      contactEmail={contactEmail}
       statusLabel={formatInvoiceStatus(invoice.status, "customer")}
     >
       <DocumentMeta

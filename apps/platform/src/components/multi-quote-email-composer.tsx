@@ -1,5 +1,6 @@
 "use client";
 
+import { companyBrand, customerContactEmail } from "../lib/company-brand.ts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { forgetQuoteLinkBatchAttempt, prepareQuoteLinkBatchAttempt, readQuoteLinkBatchAttempt, type QuoteLinkBatchAttempt } from "@/lib/portal/quote-link-attempt";
@@ -221,7 +222,7 @@ function MultiQuotePreview({ draft }: { draft: MultiQuoteEmailDraft }) {
       <p className="email-preview-prewrap">{draft.closing}</p>
       <p>Thank you,<br /><br /><strong>Angel Tree Services</strong></p>
     </div>
-    <footer>(540) 388-8715<br />info@angeltreeservice.org<br />angeltreeservices.org</footer>
+    <footer>{companyBrand.phone}<br />{customerContactEmail(draft.contactEmail)}<br />{companyBrand.website}</footer>
   </article>;
 }
 

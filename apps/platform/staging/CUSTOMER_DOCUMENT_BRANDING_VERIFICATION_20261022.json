@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-22",
+  "baseCommit": "a2732f6",
+  "branch": "codex/customer-document-branding",
+  "sourceSha256": "3e4682bb973c2a09d792190d2147f6a26dd3ca9fcc4b33de283e2408749a291c",
+  "unitChecks": 2365,
+  "unitFailed": 0,
+  "unitSkipped": 0,
+  "typecheck": true,
+  "optimizedBuild": true,
+  "local": {
+    "passed": true,
+    "ledgerCount": 116,
+    "installedSqlCases": 6,
+    "renderedCases": 6,
+    "recordsUnchanged": true,
+    "authAndRoleRecordsUnchanged": true,
+    "settingsAndPrincipalRoutineUnchanged": true,
+    "rolledBack": true,
+    "appDeployed": false,
+    "realProviderCalls": 0
+  },
+  "staging": {
+    "passed": true,
+    "ledgerCount": 116,
+    "installedSqlCases": 6,
+    "renderedCases": 6,
+    "recordsUnchanged": true,
+    "authAndRoleRecordsUnchanged": true,
+    "settingsAndPrincipalRoutineUnchanged": true,
+    "rolledBack": true,
+    "appDeployed": false,
+    "realProviderCalls": 0
+  },
+  "sqlSha256": "1a126084e6969ae566faf81a6cb96cfdf933b0308b98a5eb8a34e30d4c19a8a6",
+  "desktopWidths": [
+    1280
+  ],
+  "mobileWidths": [
+    390
+  ],
+  "browserDocumentCasesPerWidth": 6,
+  "longContactDocumentCases": 3,
+  "actualComposerPreviews": [
+    "proposal",
+    "invoice",
+    "combined proposals"
+  ],
+  "actualSafariPrints": {
+    "changeOrderPages": 1,
+    "longProposalPages": 4,
+    "invoicePages": 2,
+    "privateCapabilityAbsent": true,
+    "publicContactComplete": true,
+    "originalPrintSettingsRestored": true
+  },
+  "securityAdvisors": {
+    "unchanged": true,
+    "rls_enabled_no_policy": 33,
+    "authenticated_security_definer_function_executable": 79,
+    "auth_leaked_password_protection": 1
+  },
+  "designDetector": {
+    "existingFindings": 24,
+    "findingsOnChangedLines": 0
+  },
+  "publishedDeploymentsUnchanged": true,
+  "productionChanged": false,
+  "realProviderCalls": 0,
+  "schemaChanged": false,
+  "scannerChanged": false
+}

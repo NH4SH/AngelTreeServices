@@ -1,5 +1,6 @@
 "use client";
 
+import { companyBrand, customerContactEmail } from "../lib/company-brand.ts";
 import { AlertTriangle, Expand, FileText, Mail, Maximize2, Monitor, RefreshCw, RotateCcw, Send, Smartphone, X } from "lucide-react";
 import Link from "next/link";
 import { AdditionalEmailOption } from "@/components/additional-email-option";
@@ -399,7 +400,7 @@ function BrandedEmailPreview({ draft }: { draft: CustomerDocumentEmailDraft }) {
         <p className="email-preview-prewrap">{draft.closing}</p>
         <p>Thank you,<br /><br /><strong>Angel Tree Services</strong></p>
       </div>
-      <footer>(540) 388-8715<br />info@angeltreeservice.org<br />angeltreeservices.org</footer>
+      <footer>{companyBrand.phone}<br />{customerContactEmail(draft.contactEmail)}<br />{companyBrand.website}</footer>
     </article>
   );
 }

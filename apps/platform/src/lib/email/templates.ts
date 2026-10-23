@@ -1,4 +1,5 @@
 import "server-only";
+import { getEmailSetupState } from "@/lib/email/config";
 
 import type {
   EmployeeAccessAssignedRole,
@@ -113,7 +114,7 @@ export function quoteEmailTemplate(
   quote: QuoteDetail,
   options: { edits?: CustomerDocumentEmailEdits; portalUrl?: string } = {},
 ): TransactionalEmailTemplate {
-  const generated = generateQuoteEmailDraft(quote, { portalUrl: options.portalUrl });
+  const generated = generateQuoteEmailDraft(quote, { portalUrl: options.portalUrl, contactEmail: getEmailSetupState().replyTo });
   const draft = options.edits ? applyCustomerDocumentEmailEdits(generated, options.edits) : generated;
   return {
     subject: draft.subject,
@@ -126,7 +127,7 @@ export function invoiceEmailTemplate(
   invoice: InvoiceDetail,
   options: { edits?: CustomerDocumentEmailEdits; portalUrl?: string } = {},
 ): TransactionalEmailTemplate {
-  const generated = generateInvoiceEmailDraft(invoice, { portalUrl: options.portalUrl });
+  const generated = generateInvoiceEmailDraft(invoice, { portalUrl: options.portalUrl, contactEmail: getEmailSetupState().replyTo });
   const draft = options.edits ? applyCustomerDocumentEmailEdits(generated, options.edits) : generated;
   return {
     subject: draft.subject,

@@ -158,3 +158,10 @@ Continue the original customer follow-up with proposal response outcomes/accessi
 Change-order response outcomes/accessibility (`946ae0b`) are pushed to main. Proposal approval/change-request outcomes and accessibility are now verified locally and against 14 rollback-only staging command scenarios, pending push/release; see `PROPOSAL_RESPONSE_OUTCOMES.md`. This preserves existing response capabilities and authorization while adding clear saved/uncertain/closed outcomes, exact-retry guidance, early-submission recovery, immediate saving controls, retained wording and keyboard focus.
 
 Next in the existing customer follow-up: reconcile document/email branding and contact sources, including the historical lawn-care tagline still visible on the actual proposal, then authoritative business wording and mailbox/screen-reader/device acceptance. Financial/contractual terms and production remain unchanged. Historical review findings and scores remain historical.
+
+
+## Document branding follow-through — October 22, 2026
+
+Proposal response outcomes (`c67f0e3`) are pushed through `a2732f6`, preserving concurrent main/public-site work. Document/email branding and contact consistency is now verified locally and with six rollback-only staging document cases, pending push/release; see `CUSTOMER_DOCUMENT_BRANDING.md`. Public contact uses the existing reply-to setting; current service branding is corrected while historical records, saved deliveries and contractual/financial terms remain unchanged.
+
+Continue this existing customer follow-up with owner-approved authoritative business wording, then mailbox-client, screen-reader and physical-device acceptance. No competing roadmap, staging app deployment or production change is introduced; the original review findings and scores remain historical.

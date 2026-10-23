@@ -160,7 +160,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
               <SendQuoteEmailForm
                 disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
                 documentHref={`/admin/quotes/${detail.data.id}/print`}
-                draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl, contactEmail: emailSetup.replyTo })}
                 portalLinkState={emailPortalLinkState}
                 linkVersion={portalTokens.linkVersion}
                 portalUrl={activePortalUrl}

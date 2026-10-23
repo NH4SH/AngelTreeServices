@@ -1,3 +1,4 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';import test from 'node:test';import {randomUUID,createHash} from 'node:crypto';import * as crypto from 'node:crypto';import {execFile,spawn} from 'node:child_process';import {promisify} from 'node:util';import {writeFileSync} from 'node:fs';
 import {load} from './pr10-test-helpers.mjs';import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';import {mapBounded} from '../src/lib/runtime/deadline.ts';import {emailDeliveryContext} from '../src/lib/email/delivery-context.ts';
 const enabled=process.env.SOURCE_HANDOFF_DISPOSABLE==='1',exec=promisify(execFile);
@@ -74,7 +75,7 @@ test('durable source handoff: actual transactions, capabilities, recovery and un
  });
  await run('the actual response server action forwards reviewed identity to one transaction and reuses the saved source on retry',async()=>{
   const co=await addition(),k=await token('change_order',co.id),request=randomUUID(),delivered=[],paths=[],calls=[];
-  const action=load('../src/lib/actions/change-orders.ts',{'@/lib/email/delivery-commands':{callDeliveryCommand},
+  const action=load('../src/lib/actions/change-orders.ts',{'../company-brand.ts':branding,'@/lib/email/delivery-commands':{callDeliveryCommand},
    'next/cache':{revalidatePath:p=>paths.push(p)},'next/navigation':{},'@/lib/activity-log':{},'@/lib/auth/roles':{},
    '@/lib/data/change-orders':{getChangeOrderByPortalToken:async raw=>{assert.equal(raw,k.raw);return{status:'ready',changeOrder:await read('change_orders',co.id),tokenId:k.id};}},
    '@/lib/notifications/source-events':{deliverCustomerSourceEvent:async x=>delivered.push(x)},'@/lib/portal/tokens':{hashPortalToken:raw=>createHash('sha256').update(raw).digest('hex')},

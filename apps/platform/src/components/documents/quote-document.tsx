@@ -31,19 +31,7 @@ export function QuoteDocument({
       documentLabel="Proposal"
       documentNumber={formatDocumentProposalNumber(quote.quote_number)}
       statusLabel={statusLabel}
-      footerDetails={
-        <>
-          <div>
-            <strong>Angel Tree Services</strong>
-            <span>Fredericksburg, Virginia region</span>
-          </div>
-          <div>
-            <span>(540) 388-8715</span>
-            <span>{contactEmail}</span>
-            <span>angeltreeservices.org</span>
-          </div>
-        </>
-      }
+      contactEmail={contactEmail}
       previewLabel={showInternalPreview ? "Internal draft preview" : undefined}
     >
       <DocumentMeta

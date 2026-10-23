@@ -1,3 +1,4 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -13,7 +14,7 @@ function load(file,deps={}) {
  return module.exports;
 }
 const states=load('../src/lib/portal/customer-states.ts');
-const shell=load('../src/components/documents/document-shell.tsx',{'react/jsx-runtime':jsx,'lucide-react':{Leaf:()=>null}});
+const shell=load('../src/components/documents/document-shell.tsx',{'../../lib/company-brand.ts':branding,'react/jsx-runtime':jsx,'lucide-react':{Leaf:()=>null}});
 const terms=load('../src/lib/documents/terms.ts',{'@/lib/business-time':{formatBusinessDate:()=> 'Synthetic date'}});
 const documentTerms=load('../src/components/documents/document-terms.tsx',{'react/jsx-runtime':jsx});
 const InvoiceDocument=load('../src/components/documents/invoice-document.tsx',{'react/jsx-runtime':jsx,'@/components/documents/document-shell':shell,'@/components/documents/document-terms':documentTerms,'@/lib/documents/terms':terms,'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'@/lib/business-time':{formatBusinessDateTime:()=> 'Synthetic date'},'@/lib/invoices/status':{formatInvoiceStatus:status=>status,getInvoiceDisplayNumber:n=>n}}).InvoiceDocument;

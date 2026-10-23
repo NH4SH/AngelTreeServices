@@ -1,5 +1,6 @@
 "use server";
 
+import { companyContactText } from "../company-brand.ts";
 import { callDeliveryCommand } from "@/lib/email/delivery-commands";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/activity-log";
@@ -149,7 +150,7 @@ export async function sendChangeOrderEmail(_state: ChangeOrderActionState, formD
     const token = await createOrGetChangeOrderPortalTokenRecord({ changeOrderId: id, supabase: auth.supabase, requestId, revision, linkVersion });
     if (token.error) return { ...failure(token.error), saveRejected: token.reviewRequired, reviewRequired: token.reviewRequired };
     const portalUrl = await getPortalUrl("change-order", token.rawToken);
-    const payload = freezeEmailPayload({ to: recipient, subject: `${order.change_order_number}: ${order.title}`, text: changeOrderEmailText(order, portalUrl), emailType: "change_order" }, setup);
+    const payload = freezeEmailPayload({ to: recipient, subject: `${order.change_order_number}: ${order.title}`, text: changeOrderEmailText(order, portalUrl, setup.replyTo), emailType: "change_order" }, setup);
     const prepared = await callDeliveryCommand(db, "prepare_change_order_send", { ...identity, p_payload: payload, p_portal_token_id: token.tokenId, p_expected_snapshot: source.data.snapshot });
     if (prepared.error) return sendRequestFailure(prepared.error);
     receipt = prepared.data;
@@ -382,9 +383,9 @@ async function validateContacts(supabase: any, organizationId: string | null, co
 
 type ChangeOrderEmailSource = { id: string; edit_revision: number; change_order_number: string; title: string; total_cents: number; original_approved_amount_cents: number;
   customers: { display_name: string; email: string | null } | null; organizations: { name: string; billing_email: string | null } | null; approval_contact: { full_name: string; email: string | null } | null };
-function changeOrderEmailText(order: ChangeOrderEmailSource, portalUrl: string) {
+function changeOrderEmailText(order: ChangeOrderEmailSource, portalUrl: string, contactEmail?: string) {
   const party = order.organizations?.name ?? order.customers?.display_name ?? "Customer";
-  return [`Hello ${order.approval_contact?.full_name ?? party},`, "", `Angel Tree Services prepared ${order.change_order_number} for additional or changed work.`, `Additional amount: ${money(order.total_cents)}`, `Revised combined amount: ${money(order.original_approved_amount_cents + order.total_cents)}`, "", "Review and respond through your secure link:", portalUrl, "", "This email does not alter the original approved quote."].join("\n");
+  return [`Hello ${order.approval_contact?.full_name ?? party},`, "", `Angel Tree Services prepared ${order.change_order_number} for additional or changed work.`, `Additional amount: ${money(order.total_cents)}`, `Revised combined amount: ${money(order.original_approved_amount_cents + order.total_cents)}`, "", "Review and respond through your secure link:", portalUrl, "", "This email does not alter the original approved quote.", "", companyContactText(contactEmail)].join("\n");
 }
 
 function parseScheduleImpact(formData: FormData) {

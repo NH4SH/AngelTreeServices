@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { Leaf } from "lucide-react";
+import { companyBrand, customerContactEmail } from "../../lib/company-brand.ts";
 
 type DocumentShellProps = {
   brandLogoSrc?: string;
   children: ReactNode;
   className?: string;
+  contactEmail?: string;
   documentLabel: string;
   documentNumber: string;
   footerDetails?: ReactNode;
@@ -16,6 +18,7 @@ export function DocumentShell({
   brandLogoSrc,
   children,
   className,
+  contactEmail,
   documentLabel,
   documentNumber,
   footerDetails,
@@ -34,8 +37,8 @@ export function DocumentShell({
             </span>
           )}
           <div>
-            <strong>Angel Tree Services</strong>
-            <small>Tree service, landscaping, and lawn care</small>
+            <strong>{companyBrand.name}</strong>
+            <small>{companyBrand.services}</small>
           </div>
         </div>
         <div className="business-document-identity">
@@ -47,15 +50,17 @@ export function DocumentShell({
       </header>
       {children}
       <footer className="business-document-footer">
-        {footerDetails ?? (
-          <>
-            <strong>Angel Tree Services</strong>
-            <span>Fredericksburg, Virginia region</span>
-          </>
-        )}
+        {footerDetails ?? <DocumentContactDetails contactEmail={contactEmail} />}
       </footer>
     </article>
   );
+}
+
+export function DocumentContactDetails({ contactEmail }: { contactEmail?: string }) {
+  return <>
+    <div><strong>{companyBrand.name}</strong><span>{companyBrand.region}</span></div>
+    <div><span>{companyBrand.phone}</span><span>{customerContactEmail(contactEmail)}</span><span>{companyBrand.website}</span></div>
+  </>;
 }
 
 export function DocumentSection({ children, title }: { children: ReactNode; title: string }) {

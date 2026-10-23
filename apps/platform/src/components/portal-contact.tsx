@@ -1,10 +1,11 @@
 import "./portal-recovery.css";
+import { companyBrand } from "../lib/company-brand.ts";
 
 export function PortalContact({ showLinkHelp = false }: { showLinkHelp?: boolean }) {
   return (
     <div className="customer-portal-contact">
       <p>Need help? Reply to the email containing your secure link, or call our office.</p>
-      <a href="tel:+15403888715">Call (540) 388-8715</a>
+      <a href={companyBrand.phoneHref}>Call {companyBrand.phone}</a>
       {showLinkHelp ? (
         // The browser owns `open`; a customer may toggle this before hydration.
         <details className="customer-link-help" suppressHydrationWarning>

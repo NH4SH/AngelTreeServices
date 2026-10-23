@@ -1,10 +1,11 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import * as jsx from 'react/jsx-runtime';
 import * as crypto from 'node:crypto';
 import {load} from './customer-invoice-fixture.mjs';
 
 const icon=()=>null;
-export const PortalContact=load('../src/components/portal-contact.tsx',{'react/jsx-runtime':jsx,'./portal-recovery.css':{}}).PortalContact;
+export const PortalContact=load('../src/components/portal-contact.tsx',{'../lib/company-brand.ts':branding,'react/jsx-runtime':jsx,'./portal-recovery.css':{}}).PortalContact;
 export const CustomerDocumentEntry=load('../src/components/customer-document-entry.tsx',{'react/jsx-runtime':jsx,'lucide-react':{Leaf:icon,ShieldCheck:icon},'@/components/portal-contact':{PortalContact}}).CustomerDocumentEntry;
 export const SetupRequired=()=>null;
 const redirect=path=>{throw Object.assign(new Error('Redirect'),{path});};

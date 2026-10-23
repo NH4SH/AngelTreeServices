@@ -161,7 +161,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                       detail.data.status === "void"
                     }
                     documentHref={`/admin/invoices/${detail.data.id}/print`}
-                    draft={generateInvoiceEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                    draft={generateInvoiceEmailDraft(detail.data, { portalUrl: activePortalUrl, contactEmail: emailSetup.replyTo })}
                     invoiceId={detail.data.id}
                     portalUrl={activePortalUrl}
                     recipient={recipient}

@@ -1,3 +1,4 @@
+import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
@@ -26,7 +27,7 @@ function fixture(options = {}) {
     original_approved_amount_cents: 50000, customers: { display_name: 'Synthetic Customer', email: ' Customer@Example.Invalid ' }, organizations: null, approval_contact: null }, snapshot };
   const row = { ...(options.newRequest ? { id: deliveryId, state: 'prepared', repair_state: 'pending', history_recorded: false } : acceptedRow), ...options.row };
   const transport = async input => { transports.push(input); return delivery.deliveryResult(acceptedRow); };
-  const actions = load('../src/lib/actions/change-orders.ts', {
+  const actions = load('../src/lib/actions/change-orders.ts', {'../company-brand.ts':branding,
     '@/lib/email/delivery-commands': { callDeliveryCommand: async (db, name, args) => {
       assert.equal(db, serviceDB, 'delivery commands use only the server client'); calls.push({ name, args }); events.push(name);
       if (options.errors?.[name]) return { data: null, error: options.errors[name] };
@@ -63,6 +64,7 @@ test('first send binds actual staff, page revision, selected token, frozen envel
   assert.deepEqual(args.p_expected_snapshot, f.snapshot); assert.equal(args.p_payload.from, 'Angel Tree <synthetic@example.invalid>'); assert.equal(args.p_payload.reply_to, 'office@example.invalid');
   assert.deepEqual(args.p_payload.to, ['customer@example.invalid']); assert.deepEqual(args.p_payload.cc, []); assert.equal(args.p_payload.subject, 'CO-SYNTHETIC: Reviewed synthetic scope');
   assert.match(args.p_payload.text, /Additional amount: \$100\.00/); assert.match(args.p_payload.text, /Revised combined amount: \$600\.00/); assert.match(args.p_payload.text, /synthetic-private-capability/);
+  assert.match(args.p_payload.text, /office@example\.invalid/); assert.match(args.p_payload.text, /\(540\) 388-8715/); assert.doesNotMatch(args.p_payload.text, /info@angeltreeservice\.org/);
   assert.deepEqual(f.dispatches, [deliveryId]); assert.equal(f.transports.length, 1); assert.deepEqual(f.followups, [deliveryId]); assert.ok(f.paths.includes(`/admin/jobs/${job}`));
 });
 test('accepted recovery confirms saved delivery before reading current content or making a new portal link', async () => {

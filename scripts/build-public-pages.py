@@ -471,7 +471,7 @@ def page_document(page: dict) -> str:
             <p>On this page</p>
             <ul>
               <li><a href="#service-project-example">Project example</a></li>
-              <li><a href="#stump-scope">Scope &amp; utilities</a></li>
+              <li><a href="#stump-scope">Cost &amp; utilities</a></li>
               <li><a href="#stump-process">Process</a></li>
               <li><a href="#stump-access">Site access</a></li>
               <li><a href="#stump-faq">FAQs</a></li>
@@ -829,10 +829,11 @@ SERVICE_PAGES = [
             ("An existing stump", "Older stumps can be reviewed for access, size, surrounding growth, and site constraints."),
             ("Preparing the area", "Tell us if the goal is mowing access, surface improvement, landscaping, or potential replanting."),
         ],
-        "scope_heading": "Set expectations for depth, chips, and finish",
-        "scope_copy": "<p>A stump-grinding proposal should identify the stump or stumps included and clarify the expected work. Grinding produces chips, and the treatment of those chips or any backfill should be stated rather than assumed.</p><p>Grinding does not normally remove every root extending through the yard. Roots may remain below grade and can affect immediate replanting or other future work.</p>",
+        "scope_heading": "What affects stump grinding cost?",
+        "scope_copy": "<p>Stump grinding is quoted for the stump and the site. We review the property before providing a free written estimate.</p><ul><li><strong>Stump size and number.</strong> The stumps included and the amount of wood to grind affect the work involved.</li><li><strong>Machine access.</strong> Gates, turns, steps, slopes and soft ground can affect how equipment reaches the stump.</li><li><strong>Depth and surrounding conditions.</strong> The agreed grinding depth and area, nearby hardscape, stones and metal can influence the scope.</li><li><strong>Chips and finish.</strong> Chip handling, cleanup and any included backfill affect what is quoted.</li></ul><p>Your written quote should identify the stumps, agreed depth or area and cleanup included. Ask us to explain any options or exclusions before approving.</p><p>Grinding does not normally remove every root extending through the yard. Roots may remain below grade and can affect immediate replanting or other future work.</p>",
         "callout_heading": "Utilities come before grinding",
         "callout_copy": "Underground electric, gas, communications, irrigation, and other private or public lines may affect the work area. Share known utilities and follow the utility-marking steps provided during scheduling.",
+        "callout_note": "<strong>Agree on the cleanup and finish.</strong> Grinding creates wood chips and may leave a low area. Your quote should state how chips are handled and whether backfill is included. Share any mowing, landscaping or replanting plans so the agreed finish is clear; grinding alone does not mean the area is ready for that next use.",
         "considerations": [
             ("Machine access", "Gate openings, steps, walls, slopes, soft ground, and nearby plantings can affect whether equipment can reach the stump."),
             ("Stump and surface conditions", "Stump size, surrounding roots, stones, metal, soil, and adjacent hardscape can influence the practical scope."),
@@ -840,9 +841,12 @@ SERVICE_PAGES = [
             ("Replanting plans", "If you intend to plant in the same spot, mention it before work so expectations about remaining roots and soil can be discussed."),
         ],
         "faqs": [
+            ("How much does stump grinding cost?", "Pricing depends on the size and number of stumps, equipment access, the agreed depth and area, site conditions and chip handling or cleanup. We provide a free written estimate after reviewing the property. Compare quotes for the same scope, including any backfill or other finish work listed."),
+            ("Is stump grinding included with tree removal?", "Only when it is listed in your written tree-removal quote. Grinding can be discussed with a removal project or as separate work for an existing stump."),
+            ("How deep will you grind the stump?", "The expected depth and area should be agreed in your written quote. Your intended use, underground utilities, access and site conditions can affect what is practical. Ask us to explain the proposed depth and any limits before approving."),
+            ("Does stump grinding include chip removal and backfill?", "Chip handling and any backfill depend on the written scope. Ask whether chips stay on site, are spread or are removed, and whether filling the low area is included. Confirm those details before assuming the ground will be ready for planting or another use."),
             ("Does stump grinding remove every root?", "No. Grinding addresses the stump and an agreed depth or area; roots commonly remain below the surrounding ground."),
             ("Can I plant another tree in the same place?", "It may be better to offset a new planting because roots, chips, and changing soil conditions can remain. Share your plan during the estimate."),
-            ("Are the chips removed?", "That depends on the written scope. Ask for chip handling and any backfill expectation to be stated clearly in the proposal."),
             ("Can you grind a stump behind a fence?", "Possibly, but gate width, turns, slopes, steps, and ground conditions must be reviewed before confirming access."),
         ],
         "related": [("/services/tree-removal/", "Tree removal planning"), ("/services/tree-pruning/", "Tree pruning"), ("/projects/", "Real Angel Tree work")],

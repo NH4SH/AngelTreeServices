@@ -1,3 +1,48 @@
+## Stump Grinding pricing and cleanup — local draft, October 23, 2026
+
+Owner approved implementation and local tests only. No commit, push, QA upload
+or deployment. Parent: 609abe5; preserve newer changes at any approved release.
+Analytics, consent and CRM code/settings remain unchanged.
+
+- Final release-readiness review: no blocking regression found; no application or
+  copy correction needed. Fresh 248 tests and 18-page build/validation pass, and
+  all 293 shipping hashes match the implementation draft. Fresh 28 FAQ keyboard
+  cases at 320/701/1280px and synthetic doubled text at 320px pass with box/text
+  reflow and visible focus. Mobile topic clearance is ~20px; enlarged target also
+  clears the header. Exact multiline draft/context recovery and Clear pass.
+  Zero console warnings/errors; fresh desktop/mobile captures reviewed. Viewport
+  restored. REVIEW.txt and final-review-* record the evidence. Only this
+  checklist's review evidence changed; commit/push/upload/deploy remain held.
+- Four factors in the existing scope section explain stump size/number, access,
+  agreed depth/site conditions, and chips/finish. Written-quote guidance clarifies
+  chip handling, cleanup and any included backfill. No fixed price, depth, minimum
+  charge, included backfill or ready-to-plant finish is promised. No new service.
+- The original Utilities come before grinding heading and complete warning remain
+  exact, as do root-removal limitations and the existing replanting/access answers.
+  The mobile topic is Cost & utilities, retaining the existing stump-scope anchor.
+- Seven FAQs cover cost, inclusion with tree removal, depth, chips/backfill,
+  remaining roots, replanting and fenced access. General physical cleanup context
+  is checked against Illinois Extension and Iowa State Extension; no regional
+  lawn-care instructions or unconfirmed business prices/services are copied.
+- All 239 Node + 9 Python tests pass (248 total), with 18 pages built/validated.
+  Exactly one of 293 shipping files changes: Stump Grinding HTML. Other 17 pages,
+  SEO head/schema, photos/captions, all link destinations and content outside the
+  approved scope/FAQ/topic label remain byte-identical. No CSS or runtime changes.
+- Browser: 320/390/768/1280px and synthetic doubled text at 320/390px; 42 FAQ
+  open/close cases, Enter/Space, visible focus, a mouse click, text/box reflow and
+  >=44px targets pass. Normal topic jump settles ~20px below the header; enlarged
+  target remains visible below it. New text contrast >=5.23:1. Captures reviewed.
+- Exact synthetic name and multiline notes survive a Stump visit and estimate
+  return with Tree Care / stump-grinding selected. Clear draft empties test fields.
+  No submissions, calls, emails or saved consent choices. Zero console errors.
+- Local noindex preview blocks external connections and submissions; no upload.
+  Native phone/OS text/keyboard/autofill, spoken screen readers, live lead delivery
+  and search outcomes are not verified. Inherited brand wrapping under artificial
+  full-page doubled text remains outside this copy patch. Local Maps key is unset;
+  its source and production setup remain unchanged.
+- Evidence: this chat's outputs/stump-pricing-guidance/. Ready for owner review;
+  separate approval is required for release, followed by production smoke checks.
+
 ## Tree Pruning pricing and timing — local draft, October 23, 2026
 
 Owner approved implementation and local tests only. No commit, push, QA upload

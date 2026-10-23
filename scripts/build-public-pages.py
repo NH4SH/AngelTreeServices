@@ -480,7 +480,7 @@ def page_document(page: dict) -> str:
             <p>On this page</p>
             <ul>
               <li><a href="#emergency-safety">Safety</a></li>
-              <li><a href="#emergency-scope">What to share</a></li>
+              <li><a href="#emergency-scope">Cost &amp; cleanup</a></li>
               <li><a href="#emergency-faq">FAQs</a></li>
             </ul>
           </nav>""" if emergency else """<nav class="ats-commercial-topics" aria-label="On this page">
@@ -873,10 +873,11 @@ SERVICE_PAGES = [
             ("A structure or vehicle is affected", "Keep people away from the area and call so the situation and availability can be discussed."),
             ("Damage is urgent but stable", "If there is no immediate danger, send the address and details for an urgent estimate request."),
         ],
-        "scope_heading": "What to share when you call",
-        "scope_copy": "<p>Describe what fell or broke, whether a structure or access is affected, whether anyone is in danger, and whether power or utility lines are nearby. Do not move into an unsafe area to take better photographs.</p><p>Angel Tree Services does not claim 24/7 availability. Calling is the fastest way to confirm whether and when the team can help.</p>",
+        "scope_heading": "What affects storm cleanup costs?",
+        "scope_copy": "<p>Storm cleanup is quoted for the damage, site conditions and work agreed for the property.</p><ul><li><strong>Damage and tree position.</strong> The size and amount of wood, broken limbs and where a tree has fallen affect the work involved.</li><li><strong>Access and equipment.</strong> Equipment access, slopes, soft ground and nearby structures can affect the method.</li><li><strong>Site hazards.</strong> Unstable trees, hanging limbs and nearby utility lines affect how work can proceed.</li><li><strong>Cleanup and follow-up.</strong> The handling of wood and brush, stump grinding and any later tree work affect the scope.</li></ul><p>Ask for the urgent work, debris handling and any separate follow-up to be clear in your written quote.</p><p>Describe what fell or broke, whether a structure or access is affected, whether anyone is in danger, and whether power or utility lines are nearby. Do not move into an unsafe area to take better photographs.</p><p>Angel Tree Services does not claim 24/7 availability. Calling is the fastest way to confirm whether and when the team can help.</p>",
         "callout_heading": "Never approach an energized or contacted line",
         "callout_copy": "Treat every downed line as energized. Keep people and pets away, avoid touching the tree or nearby objects, and contact emergency services or the responsible utility. Angel Tree Services does not work on energized utility lines.",
+        "callout_note": "<strong>Agree on the cleanup and follow-up.</strong> Confirm which wood and brush will be hauled away, chipped or left on site, and whether stump grinding or later tree work is included or quoted separately. Work to address an immediate tree concern and the final cleanup may have different scopes.",
         "considerations": [
             ("Immediate access", "Tell us if a driveway, entrance, road, or essential access point is blocked."),
             ("Structures and vehicles", "Identify what is affected without entering or standing beneath a compromised area."),
@@ -886,6 +887,10 @@ SERVICE_PAGES = [
         "faqs": [
             ("Do you offer guaranteed 24/7 response?", "No 24/7 guarantee is stated. Call to explain the situation and confirm current availability."),
             ("What if a tree is touching a power line?", "Stay away. Contact 911 or the electric utility as appropriate, and do not touch the tree, line, or nearby objects."),
+            ("How much does storm-damage tree work cost?", "The price depends on the damage, the position and amount of wood, access, equipment, site hazards and the cleanup agreed. Ask us to distinguish urgent tree work from debris handling and any later work in the written quote."),
+            ("Does storm cleanup include removing wood and brush?", "Wood and brush handling should be stated in your written quote. Confirm what will be hauled away, chipped or left on site, and whether any further cleanup is separate. Do not approach unstable trees or utility lines to gather debris."),
+            ("Are stump grinding and follow-up tree work included?", "Only when they are listed in your written quote. After immediate hazards are addressed, remaining pruning, removal or stump grinding can be discussed as part of the agreed work or a separate follow-up scope."),
+            ("What happens after I call?", "Share the property address, what happened and whether access, a building, a vehicle or utility lines are affected. The team will discuss the situation, current response timing and the next step. Keep people clear of the damaged area."),
             ("Should I send photos?", "Only from a safe location. Do not enter a hazardous area, stand under broken limbs, or approach lines to take a picture."),
             ("Can a normal concern still be handled quickly?", "Describe the concern and timing in the estimate form. Calling is best when access, structures, vehicles, or immediate safety are involved."),
         ],

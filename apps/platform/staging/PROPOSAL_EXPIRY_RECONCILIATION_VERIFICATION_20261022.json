@@ -1,0 +1,148 @@
+{
+  "date": "2026-10-22",
+  "verifiedAtUtc": "2026-10-23T03:00:55.329Z",
+  "status": "complete-staging-only",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "implementationPushedToMain": "d60b455",
+  "reconciliationBranch": "codex/staging-proposal-expiry-117",
+  "reconciliationRecordsPushed": false,
+  "appDeployed": false,
+  "productionQueriedOrChanged": false,
+  "customerEmailsSent": 0,
+  "providerCalls": false,
+  "migration": {
+    "name": "20261023015338_enforce_proposal_expiry.sql",
+    "sha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230",
+    "installer": "Native Supabase CLI 2.121.0; original file, explicit staging ref, isolated directory, --skip-vault",
+    "beforeCount": 116,
+    "afterCount": 117,
+    "latest": "20261023015338",
+    "originalLedgerRowsAndStatementsUnchanged": true,
+    "finalNativeEntryMatchesLocalRehearsal": true,
+    "dryRunSelectedOnly117": true,
+    "seedsImported": false,
+    "customRolesImported": false,
+    "historyRepaired": false
+  },
+  "catalog": {
+    "beforeCount": 5103,
+    "afterCount": 5103,
+    "changed": [
+      "app_private.approve_quote_locked(uuid,integer,text) body"
+    ],
+    "added": [],
+    "removed": [],
+    "ownerPermissionsConfigAndArgumentsUnchanged": true,
+    "otherObjectsPoliciesTriggersConstraintsAndDefaultsUnchanged": true,
+    "previousApprovalSha256": "36084c2a32e363ccc5d2fec8e6d2b2e0f25c0debcf7db18de619c155e827d2ef",
+    "approvalSha256": "7a958f1e24fc415cf05adde8594369b15d130d3a6cdf80dcf9e84751ff4ae52f"
+  },
+  "protectedState": {
+    "recordSets": 49,
+    "businessAuthHistorySettingsAndNoSendGuardUnchanged": true,
+    "automaticSendingEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false
+  },
+  "verification": {
+    "unit": {
+      "passed": 2388,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focused": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    "localRehearsal": {
+      "ledgerBefore": 116,
+      "ledgerAfter": 117,
+      "originalLedgerPrefixUnchanged": true,
+      "failedUpgradeRolledBackSchemaAndLedger": true,
+      "repeatUpgradeNoChanges": true,
+      "migrationSqlIdempotent": true,
+      "installedAssertions": 30,
+      "approvalSha256": "7a958f1e24fc415cf05adde8594369b15d130d3a6cdf80dcf9e84751ff4ae52f",
+      "originalMigrationsUnchanged": true,
+      "seedImported": false,
+      "hostedConnections": false
+    },
+    "staging": {
+      "passed": 30,
+      "syntheticOnly": true,
+      "rolledBack": true,
+      "fullSnapshotUnchangedAfterTests": true,
+      "assertions": [
+        "anonymous cannot execute app_private.approve_quote_locked(uuid,integer,text)",
+        "anonymous cannot execute approve_quote_by_portal(text,integer)",
+        "anonymous cannot execute approve_quote(uuid,integer)",
+        "change_requested customer past deadline rejects without business/history/event changes",
+        "change_requested staff past deadline rejects without business/history/event changes",
+        "crew cannot approve a future proposal",
+        "customer committed approval survives proposal expiry without duplicate handoff",
+        "disabled owner cannot approve",
+        "draft customer past deadline rejects without business/history/event changes",
+        "draft staff past deadline rejects without business/history/event changes",
+        "expired token still denies committed-result recovery",
+        "expiry during tentative work creation rolls back quote work history and source events",
+        "future customer retains one-work-order approval",
+        "future staff retains one-work-order approval",
+        "historical approved-record repair is preserved",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "revoked token still denies committed-result recovery",
+        "sent customer past deadline rejects without business/history/event changes",
+        "sent staff past deadline rejects without business/history/event changes",
+        "staff cannot invoke trusted customer/core entry points",
+        "staff committed approval survives proposal expiry without duplicate handoff",
+        "stale revision still denies without side effects",
+        "undated customer retains one-work-order approval",
+        "undated staff retains one-work-order approval",
+        "wrong_party token still denies committed-result recovery"
+      ]
+    },
+    "maintenanceVerifier": {
+      "passed": true,
+      "readOnly": true,
+      "observedMigrationCount": 117,
+      "completeCandidateVerified": true
+    },
+    "repeatNativeDryRun": {
+      "upToDate": true,
+      "migrations": [],
+      "seeds": [],
+      "roles": []
+    },
+    "schemaGenerationPassed": true,
+    "freshSchemaCheckPassed": true,
+    "offlineSchemaCheckPassed": true,
+    "publicTypesChanged": false,
+    "securityAdvisoryDetailsUnchanged": true,
+    "securityAdvisoryBaseline": {
+      "rls_enabled_no_policy": 33,
+      "authenticated_security_definer_function_executable": 79,
+      "auth_leaked_password_protection": 1
+    }
+  },
+  "setupIssues": {
+    "initialCli403": "Resolved by ATS owner CLI sign-in before installation",
+    "overlappingCliDryRun": "One temporary login authentication failure; final sequential repeat passed without migration reapplication"
+  },
+  "cleanup": {
+    "onlyOwnedStackStopped": true,
+    "volumesPreserved": true,
+    "existingReviewDatabasesUnchanged": true
+  },
+  "limitations": [
+    "Hosted app was not redeployed or browser-tested with the new UI",
+    "Existing security-advisor baseline is unchanged, not resolved",
+    "No production migration or release authorized",
+    "Business terms/defaults remain unchanged"
+  ],
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/staging-proposal-expiry-117"
+}

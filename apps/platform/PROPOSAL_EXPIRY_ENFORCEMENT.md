@@ -53,3 +53,7 @@ Private evidence is in `/Users/noelsierra/Documents/Codex/2026-10-22/proposal-ex
 ## Next step
 
 Perform the targeted staging-only installation/reconciliation for migration 117, then verify the permanently installed command and ledger without deploying the app. The remaining customer wording work is still the existing terms-consistency follow-up: decide per-record payment/debris precedence, due dates, penalty/warranty wording and the meaning of missing proposal expiry before changing those defaults. No business policy decision or automatic email change is bundled here.
+
+## Push and staging follow-through
+
+The owner subsequently authorized a push and staging reconciliation. The verified implementation is pushed to main as `d60b455` with deployment skipped. A fresh native 116→117 local rehearsal, rollback/idempotency checks, 30 installed assertions and generated schema contract passed; all 2,388 current CRM checks pass. After renewed CLI sign-in, the original migration 117 was installed on ATS CRM Staging, its 30 synthetic assertions passed and rolled back, and the exact ledger/catalog/protected-state verifier passed. The repeat dry run is empty. See `STAGING_PROPOSAL_EXPIRY_RECONCILIATION.md`. No app deployment or production change was made. Earlier 116/deferred observations in this implementation report remain historical.

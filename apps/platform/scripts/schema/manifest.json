@@ -465,6 +465,10 @@
     {
       "name": "20261022194856_bind_document_email_capabilities.sql",
       "sha256": "c0e9597766fe0404784d94b689e19e9c4fb679b795ba36c5d9d1dfe0526911a8"
+    },
+    {
+      "name": "20261023015338_enforce_proposal_expiry.sql",
+      "sha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230"
     }
   ]
 }

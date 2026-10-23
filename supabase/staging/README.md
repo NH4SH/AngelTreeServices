@@ -1,6 +1,32 @@
 # Staging permission reconciliation
 
-**Current candidate (October 20):** ATS staging is verified at 99 migrations,
+## Migration 117 maintenance target — October 22, 2026
+
+ATS CRM Staging is now verified at 117 migrations, latest
+`20261023015338_enforce_proposal_expiry.sql`. Only the existing approval core's
+body changed; its permissions, all other catalog objects, original native ledger
+rows, protected records/settings and no-send Auth guard remain unchanged. The
+30 synthetic installed-command assertions passed and rolled back. No app was
+deployed and production was neither queried nor changed.
+
+Current read-only maintenance, from `apps/platform` with the pinned CLI on PATH
+or selected by `STAGING_SUPABASE_BIN`:
+
+```sh
+node scripts/release/verify-staging-proposal-expiry-candidate.mjs --project-ref gbyhdsuiqeslgjdnbqng
+```
+
+`--print-sql` emits the pinned read-only snapshot for connected-tool collection.
+The verifier binds original source bytes, physical identity, the complete native
+ledger, fresh evidence, protected state, unchanged catalog/ACL/defaults and the
+reviewed approval definition. It has no install, repair, key retrieval or deploy
+mode. See `apps/platform/STAGING_PROPOSAL_EXPIRY_RECONCILIATION.md`. Earlier
+candidates, dates and readiness flags below remain historical. The deferred file
+continues to pin sources deferred from the historical 93-file candidate; it is
+not live hosted status. Do not replay old installers or alter their seals to
+accept migration 117.
+
+**Historical 99 candidate (October 20):** ATS staging was verified at 99 migrations,
 including unchanged `20261021032121_quote_draft_requests.sql`. The complete catalog
 matches the normal-owner rehearsal: 12 additions from 98, zero existing changes or
 removals. Exact history/defaults, principal and standalone commands, active

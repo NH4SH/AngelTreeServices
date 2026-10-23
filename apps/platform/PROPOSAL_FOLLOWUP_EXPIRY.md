@@ -45,3 +45,7 @@ Local verification used new isolated projects, not a reset/upgrade of the shared
 Sanitized receipt: `staging/PROPOSAL_FOLLOWUP_EXPIRY_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/proposal-followup-expiry/`, including pre-change source/reproductions, fresh replay/upgrade and concurrency results, staging fingerprints, schema/advisor results and test/build logs. Raw tokens, generated records and detailed logs remain outside Git. Only owned disposable projects are stopped after acceptance, with their data retained.
 
 No template or UI changed, so the preceding visual acceptance remains applicable; actual mailbox/device/assistive-technology acceptance and owner terms-policy decisions remain open. Keep the Netlify managed-runtime issue separate. Nothing was deployed or activated, no production data/settings/keys changed, and no customer email/provider call occurred.
+
+### Push and staging follow-through — October 23, 2026
+
+The verified implementation is pushed normally to `origin/main` as `bf0d794395d98e7af7941e333e3d5875529312bc`, with CI/Netlify skip markers. Targeted native staging reconciliation for the unchanged migration 119 is now complete; see `STAGING_PROPOSAL_FOLLOWUP_RECONCILIATION.md`. Staging has 119 migrations with both expiry checkpoints installed and its prior ledger, protected records, rights and OFF settings preserved. The original local/rollback-only receipt remains historical evidence. No application deployment or production change is implied.

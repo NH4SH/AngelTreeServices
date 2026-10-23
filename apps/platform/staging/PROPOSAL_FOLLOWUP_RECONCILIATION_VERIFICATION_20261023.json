@@ -1,0 +1,125 @@
+{
+  "observedAt": "2026-10-23T21:23:31.012000+00:00",
+  "status": "verified-staging-installed",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "branch": "codex/staging-proposal-followup-expiry",
+  "mainThrough": "8fed53223db2ae616f8d47f0655e5d9a0a79f900",
+  "expiryImplementationPushed": "bf0d794395d98e7af7941e333e3d5875529312bc",
+  "migrationCount": 119,
+  "latestMigration": "20261023205744",
+  "originalMigrationSha256": "e013c69ea6a39b0af8b8e2c45f8578efa54e3a3edace02e671fee278f092c076",
+  "local": {
+    "fresh118Replay": true,
+    "candidateRollbackAssertions": 27,
+    "failedNativeUpgradeRollsBackSchemaAndLedger": true,
+    "nativeUpgradeAndRepeat": true,
+    "installedAssertions": 27,
+    "migrationCount": 119,
+    "allOriginalLedgerRowsAndRecordsPreserved": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "realProviderCalls": 0
+  },
+  "nativeConcurrency": {
+    "proof": [
+      {
+        "scenario": "observed-quote-lock-wait-crosses-expiry",
+        "passed": true,
+        "providerAttempts": 0
+      },
+      {
+        "scenario": "observed-family-lock-wait-crosses-expiry",
+        "passed": true,
+        "providerAttempts": 0
+      },
+      {
+        "scenario": "two-competing-claims",
+        "passed": true,
+        "nativeAttempts": 1,
+        "realProviderCalls": 0
+      }
+    ],
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "exact118Preflight": true,
+    "candidateAssertions": 27,
+    "candidateFixturesRolledBack": true,
+    "prospectiveCatalogMatchesTwoReviewedRoutineBodies": true,
+    "native119Installed": true,
+    "nativeLedgerMatchesLocal": true,
+    "all118CompletePriorLedgerRowsUnchanged": true,
+    "installedAssertions": 27,
+    "installedFixturesRolledBack": true,
+    "catalogObjects": 5110,
+    "changedRoutineBodies": [
+      "routine|app_private.email_source_eligible(c jsonb, p jsonb)",
+      "routine|public.claim_outbound_delivery(p_delivery_id uuid)"
+    ],
+    "allUnrelatedObjectsUnchanged": true,
+    "routineMetadataAndPrivilegesUnchanged": true,
+    "all49ProtectedSetsUnchanged": true,
+    "settingsAndAuthGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "finalDryRunPendingMigrations": 0,
+    "seedRoleVaultImports": false
+  },
+  "advisors": {
+    "beforeAfterIdentical": true,
+    "warnFindings": 80,
+    "authenticatedDefinerNotices": 79,
+    "existingLeakedPasswordWarning": 1,
+    "newFindings": 0
+  },
+  "regression": {
+    "passed": 2476,
+    "failed": 0,
+    "skipped": 0,
+    "newMaintenanceTests": 10
+  },
+  "typecheck": {
+    "node": "22.23.4",
+    "frameworkFloorVerified": true,
+    "typegen": true,
+    "typecheck": true,
+    "offlineSchema": true,
+    "externalApplicationRequests": 0,
+    "newOptimizedBuildClaimed": false
+  },
+  "schema": {
+    "freshNativeReplayMatchesCommittedContract": true,
+    "all119OriginalSourceHashesPreserved": true,
+    "publicTypesUnchanged": true
+  },
+  "publicMainCompatibility": {
+    "interactionTests": 239,
+    "styleTests": 9,
+    "buildAnd18PageValidation": true,
+    "python": "3.13.16"
+  },
+  "maintenance": {
+    "freshReadOnly119VerifierPassed": true,
+    "sourceCopyParity": true,
+    "sourceSha256": {
+      "apps/platform/scripts/release/verify-staging-proposal-followup-candidate.mjs": "a989c5fc91ffbdf984a84f3ff04879830105b5c861449ffbd7473d11b5339c63",
+      "apps/platform/tests/staging-proposal-followup-candidate.test.mjs": "393ad394b026d4a8d29caf09ce04edef8005f79ea13f97c7b6c5074bd832008c",
+      "supabase/staging/proposal-followup-candidate-119.json": "62d4137b68d31f63cf2a9bc366f4e6bc1faffde288746a6f20198cfe6752c792",
+      "supabase/staging/proposal-followup-snapshot-119.sql": "b0c5530b712721e07c1d18c9729b52ef4f27eba30d6a2db38210d1026a69765f"
+    }
+  },
+  "runtimeSecurityBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78",
+  "boundaries": {
+    "reconciliationPushed": false,
+    "appDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "productionReady": false,
+    "credentialsChanged": false,
+    "realEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/staging-proposal-followup-119"
+}

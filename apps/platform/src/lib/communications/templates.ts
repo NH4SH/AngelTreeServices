@@ -2,11 +2,13 @@ import "server-only";
 
 import { renderCustomerReminderEmailHtml } from "../email/customer-reminder-layout.ts";
 import { renderCustomerPaymentReceiptHtml } from "../email/customer-payment-receipt-layout.ts";
+import { renderCustomerAppointmentEmail } from "../email/customer-appointment-layout.ts";
+import { companyBrand } from "../company-brand.ts";
 
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
 import { formatBusinessDate } from "@/lib/business-time";
 
-const companyName = "Angel Tree Services";
+const companyName = companyBrand.name;
 
 export function appointmentChangeTemplate(input: {
   customerName: string; kind: "changed" | "cancelled"; timezone: string; location: string;
@@ -17,14 +19,14 @@ export function appointmentChangeTemplate(input: {
   const label = (cancelled ? input.before.type : input.after.type) === "estimate" ? "estimate appointment" : "work visit";
   const action = cancelled ? "cancelled" : input.before.status === "cancelled" ? "reinstated" : "updated";
   const subject = `${companyName}: your ${label} has been ${action}`;
-  const text = [`Hi ${input.customerName},`, "", `Your ${label} with ${companyName} has been ${action}.`,
+  const paragraphs = [`Hi ${input.customerName},`, `Your ${label} with ${companyName} has been ${action}.`,
     cancelled ? `Cancelled visit: ${formatAppointmentWindow(input.before.starts_at, input.before.ends_at, input.timezone)}`
       : `Previous date and window: ${formatAppointmentWindow(input.before.starts_at, input.before.ends_at, input.timezone)}\nUpdated date and window: ${formatAppointmentWindow(input.after.starts_at, input.after.ends_at, input.timezone)}`,
-    `Service location: ${input.location}`, "",
+    `Service location: ${input.location}`,
     cancelled ? "This notice applies to this visit only. Any other scheduled visits remain unchanged. Contact our office to arrange another time."
       : "Please use the updated details above. Other scheduled visits remain unchanged. Reply if this time does not work for you or if the access plan needs to change.",
-    "", "Questions? Reply to this email or call (540) 388-8715.", "", "Thank you,", companyName].join("\n");
-  return brandedTemplate(subject, text, cancelled ? "Visit cancelled" : "Visit updated");
+  ];
+  return renderCustomerAppointmentEmail({ subject, paragraphs, title: cancelled ? "Visit cancelled" : action === "reinstated" ? "Visit reinstated" : "Visit updated" });
 }
 
 export function appointmentCommunicationTemplate(input: {
@@ -39,22 +41,17 @@ export function appointmentCommunicationTemplate(input: {
 }) {
   const action = input.isConfirmation ? "is scheduled" : "is coming up";
   const subject = `${companyName}: your ${input.communicationLabel} ${action}`;
-  const text = [
+  const paragraphs = [
     `Hi ${input.customerName},`,
-    "",
     `Your ${input.communicationLabel} with ${companyName} ${action}.`,
     input.workSessions && input.workSessions.length > 1
       ? `Work schedule (${input.workSessions.length} days):\n${input.workSessions.map((session) => formatScheduleLine(session.startsAt, session.endsAt, input.timezone)).join("\n")}`
       : `Date and arrival window: ${formatAppointmentWindow(input.startsAt, input.endsAt, input.timezone)}`,
     `Service location: ${input.location}`,
-    "",
     "Please reply to this email or call our office if the location or access plan changes.",
-    "",
-    "Thank you,",
-    companyName,
-  ].join("\n");
+  ];
 
-  return brandedTemplate(subject, text, input.isConfirmation ? "Appointment confirmed" : "Appointment reminder");
+  return renderCustomerAppointmentEmail({ subject, paragraphs, title: input.isConfirmation ? "Appointment confirmed" : "Appointment reminder" });
 }
 
 function formatScheduleLine(startsAt: string, endsAt: string | null, timezone: string) {
@@ -150,18 +147,6 @@ export function paymentConfirmationTemplate(input: {
   return { subject, text, html: renderCustomerPaymentReceiptHtml({ subject, greeting, intro, details }) };
 }
 
-function brandedTemplate(subject: string, text: string, eyebrow: string): TransactionalEmailTemplate {
-  const paragraphs = text.split("\n\n").map((paragraph) => (
-    `<p style="margin:0 0 16px;color:#28312c;font-size:16px;line-height:1.6;white-space:pre-wrap">${escapeHtml(paragraph)}</p>`
-  )).join("");
-
-  return {
-    subject,
-    text,
-    html: `<!doctype html><html><body style="margin:0;background:#f3f7f4;font-family:Arial,sans-serif"><div style="padding:24px 12px"><div style="max-width:640px;margin:0 auto;border:1px solid #d8e4dc;background:#ffffff"><div style="padding:20px 24px;background:#174b32;color:#ffffff"><div style="font-size:13px;font-weight:700;text-transform:uppercase">${escapeHtml(eyebrow)}</div><div style="margin-top:5px;font-size:24px;font-weight:800">${companyName}</div></div><div style="padding:24px">${paragraphs}</div><div style="padding:16px 24px;border-top:1px solid #d8e4dc;color:#5b665f;font-size:13px">Professional tree service, landscaping, and lawn care.</div></div></div></body></html>`,
-  };
-}
-
 function formatAppointmentWindow(startsAt: string, endsAt: string | null, timezone: string) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     dateStyle: "full",
@@ -189,13 +174,4 @@ function money(cents: number) {
 
 function compactDescription(value: string) {
   return value.replace(/\s+/g, " ").trim().slice(0, 180);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

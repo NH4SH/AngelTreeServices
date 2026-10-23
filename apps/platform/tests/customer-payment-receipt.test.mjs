@@ -1,3 +1,4 @@
+import {renderCustomerAppointmentEmail} from '../src/lib/email/customer-appointment-layout.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as crypto from 'node:crypto';
@@ -12,7 +13,7 @@ import {companyBrand}from'../src/lib/company-brand.ts';
 const {paymentConfirmationTemplate:receipt}=load('../src/lib/communications/templates.ts',{
  'server-only':{},'@/lib/business-time':{formatBusinessDate},
  '../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},
- '../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml},
+ '../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml},'../email/customer-appointment-layout.ts':{renderCustomerAppointmentEmail},'../company-brand.ts':{companyBrand},
 });
 const input={amountCents:10000,balanceDueCents:5000,customerName:'Synthetic homeowner',invoiceNumber:'SYNTHETIC-119',paidAt:'2026-10-22T16:30:00Z',paymentMethod:'card',reference:null,surchargeCents:300,totalCollectedCents:10300};
 test('receipt shows the same payment facts in HTML and plain text without recalculating amounts',()=>{

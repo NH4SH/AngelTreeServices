@@ -1,0 +1,106 @@
+{
+  "observedAt": "2026-10-23T20:14:04.093068+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/appointment-email-consistency",
+  "baseMain": "1f250dac4ae2605f15c06d19c87b7e52a397fdeb",
+  "receiptChangesPushedToMain": true,
+  "unitSuite": {
+    "passed": 2435,
+    "failed": 0,
+    "skipped": 0,
+    "newAppointmentEmailTests": 7,
+    "independentlyCapturedAppointmentCases": 11,
+    "unchangedNeighboringTemplateCases": 3
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "migrationCount": 105,
+    "noticeProtectionAssertions": 36,
+    "inputAssertions": 12,
+    "renderFixtureCount": 11,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndAllPublicPrivateAuthRowsUnchanged": true,
+    "applicationSchemaChanged": false,
+    "settingsChanged": false,
+    "realProviderCalls": 0
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 12,
+    "noticeProtectionAssertions": 36,
+    "renderFixtureCount": 11,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeRendererInputs": {
+    "local": 11,
+    "staging": 11,
+    "operationalSubjectsAndCopyPreserved": true,
+    "currentBrandAndContact": true,
+    "sourceInputsUnchanged": true,
+    "realProviderCalls": 0
+  },
+  "browser": {
+    "generatedActualTemplateHtml": true,
+    "syntheticInputsOnly": true,
+    "viewCount": 25,
+    "variantsAtDesktopAndPhone": 11,
+    "viewports": [
+      390,
+      768,
+      1280
+    ],
+    "horizontalOverflow": false,
+    "minimumPhoneTargetHeight": 49.59375,
+    "bodyTextPx": 16,
+    "keyboardPhoneFocus": true,
+    "phoneCallPlaced": false,
+    "consoleErrors": 0,
+    "contrastRatios": {
+      "#27312b/#fbfdfb": 13.17,
+      "#174b32/#fbfdfb": 9.84,
+      "#ffffff/#174b32": 10.05,
+      "#536158/#edf4ef": 5.84,
+      "#174b32/#edf4ef": 8.99
+    },
+    "detectorIntentionalExceptions": [
+      "Established Arial email-safe font stack (one warning); no remote fonts introduced"
+    ],
+    "viewportRestored": true,
+    "mailboxClientCertified": false
+  },
+  "sourceCopyParity": true,
+  "schedulingAndDeliveryApplicationCodeChanged": false,
+  "databaseMigrationsChanged": false,
+  "businessTermsChanged": false,
+  "runtimeSecurityBranchPreservedAt": "06580f6",
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "environmentValuesChanged": false,
+    "realEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/appointment-email-consistency"
+}

@@ -1,0 +1,264 @@
+{
+  "cases": [
+    {
+      "id": "estimate-confirmation",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": "2035-03-12T14:00:00Z",
+        "timezone": "America/New_York",
+        "communicationLabel": "estimate",
+        "isConfirmation": true
+      },
+      "subject": "Angel Tree Services: your estimate is scheduled",
+      "text": "Hi Synthetic homeowner,\n\nYour estimate with Angel Tree Services is scheduled.\nDate and arrival window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "estimate-reminder",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": "2035-03-12T14:00:00Z",
+        "timezone": "America/New_York",
+        "communicationLabel": "estimate",
+        "isConfirmation": false
+      },
+      "subject": "Angel Tree Services: your estimate is coming up",
+      "text": "Hi Synthetic homeowner,\n\nYour estimate with Angel Tree Services is coming up.\nDate and arrival window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "work-appointment-confirmation",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": "2035-03-12T14:00:00Z",
+        "timezone": "America/New_York",
+        "communicationLabel": "work appointment",
+        "isConfirmation": true
+      },
+      "subject": "Angel Tree Services: your work appointment is scheduled",
+      "text": "Hi Synthetic homeowner,\n\nYour work appointment with Angel Tree Services is scheduled.\nDate and arrival window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "work-appointment-reminder",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": "2035-03-12T14:00:00Z",
+        "timezone": "America/New_York",
+        "communicationLabel": "work appointment",
+        "isConfirmation": false
+      },
+      "subject": "Angel Tree Services: your work appointment is coming up",
+      "text": "Hi Synthetic homeowner,\n\nYour work appointment with Angel Tree Services is coming up.\nDate and arrival window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "multi-day",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": "2035-03-12T14:00:00Z",
+        "timezone": "America/New_York",
+        "communicationLabel": "work appointment",
+        "isConfirmation": true,
+        "workSessions": [
+          {
+            "startsAt": "2035-03-12T13:00:00Z",
+            "endsAt": "2035-03-12T14:00:00Z"
+          },
+          {
+            "startsAt": "2035-03-13T13:00:00Z",
+            "endsAt": "2035-03-13T16:00:00Z"
+          }
+        ]
+      },
+      "subject": "Angel Tree Services: your work appointment is scheduled",
+      "text": "Hi Synthetic homeowner,\n\nYour work appointment with Angel Tree Services is scheduled.\nWork schedule (2 days):\nMonday, Mar 12: 9:00 AM to 10:00 AM\nTuesday, Mar 13: 9:00 AM to 12:00 PM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "open-ended",
+      "kind": "appointmentCommunicationTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "startsAt": "2035-03-12T13:00:00Z",
+        "endsAt": null,
+        "timezone": "America/New_York",
+        "communicationLabel": "estimate",
+        "isConfirmation": false
+      },
+      "subject": "Angel Tree Services: your estimate is coming up",
+      "text": "Hi Synthetic homeowner,\n\nYour estimate with Angel Tree Services is coming up.\nDate and arrival window: Monday, March 12, 2035 at 9:00 AM (arrival time may vary)\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease reply to this email or call our office if the location or access plan changes.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "estimate-changed",
+      "kind": "appointmentChangeTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "timezone": "America/New_York",
+        "kind": "changed",
+        "before": {
+          "starts_at": "2035-03-12T13:00:00Z",
+          "ends_at": "2035-03-12T14:00:00Z",
+          "status": "scheduled",
+          "type": "estimate"
+        },
+        "after": {
+          "starts_at": "2035-03-14T13:00:00Z",
+          "ends_at": "2035-03-14T14:00:00Z",
+          "type": "estimate"
+        }
+      },
+      "subject": "Angel Tree Services: your estimate appointment has been updated",
+      "text": "Hi Synthetic homeowner,\n\nYour estimate appointment with Angel Tree Services has been updated.\nPrevious date and window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nUpdated date and window: Wednesday, March 14, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease use the updated details above. Other scheduled visits remain unchanged. Reply if this time does not work for you or if the access plan needs to change.\n\nQuestions? Reply to this email or call (540) 388-8715.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "estimate-cancelled",
+      "kind": "appointmentChangeTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "timezone": "America/New_York",
+        "kind": "cancelled",
+        "before": {
+          "starts_at": "2035-03-12T13:00:00Z",
+          "ends_at": "2035-03-12T14:00:00Z",
+          "status": "scheduled",
+          "type": "estimate"
+        },
+        "after": {
+          "starts_at": "2035-03-14T13:00:00Z",
+          "ends_at": "2035-03-14T14:00:00Z",
+          "type": "estimate"
+        }
+      },
+      "subject": "Angel Tree Services: your estimate appointment has been cancelled",
+      "text": "Hi Synthetic homeowner,\n\nYour estimate appointment with Angel Tree Services has been cancelled.\nCancelled visit: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nThis notice applies to this visit only. Any other scheduled visits remain unchanged. Contact our office to arrange another time.\n\nQuestions? Reply to this email or call (540) 388-8715.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "job-changed",
+      "kind": "appointmentChangeTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "timezone": "America/New_York",
+        "kind": "changed",
+        "before": {
+          "starts_at": "2035-03-12T13:00:00Z",
+          "ends_at": "2035-03-12T14:00:00Z",
+          "status": "scheduled",
+          "type": "job"
+        },
+        "after": {
+          "starts_at": "2035-03-14T13:00:00Z",
+          "ends_at": "2035-03-14T14:00:00Z",
+          "type": "job"
+        }
+      },
+      "subject": "Angel Tree Services: your work visit has been updated",
+      "text": "Hi Synthetic homeowner,\n\nYour work visit with Angel Tree Services has been updated.\nPrevious date and window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nUpdated date and window: Wednesday, March 14, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease use the updated details above. Other scheduled visits remain unchanged. Reply if this time does not work for you or if the access plan needs to change.\n\nQuestions? Reply to this email or call (540) 388-8715.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "job-cancelled",
+      "kind": "appointmentChangeTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "timezone": "America/New_York",
+        "kind": "cancelled",
+        "before": {
+          "starts_at": "2035-03-12T13:00:00Z",
+          "ends_at": "2035-03-12T14:00:00Z",
+          "status": "scheduled",
+          "type": "job"
+        },
+        "after": {
+          "starts_at": "2035-03-14T13:00:00Z",
+          "ends_at": "2035-03-14T14:00:00Z",
+          "type": "job"
+        }
+      },
+      "subject": "Angel Tree Services: your work visit has been cancelled",
+      "text": "Hi Synthetic homeowner,\n\nYour work visit with Angel Tree Services has been cancelled.\nCancelled visit: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nThis notice applies to this visit only. Any other scheduled visits remain unchanged. Contact our office to arrange another time.\n\nQuestions? Reply to this email or call (540) 388-8715.\n\nThank you,\nAngel Tree Services"
+    },
+    {
+      "id": "reinstated",
+      "kind": "appointmentChangeTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "location": "123 Synthetic Lane, Fredericksburg, VA",
+        "timezone": "America/New_York",
+        "kind": "changed",
+        "before": {
+          "starts_at": "2035-03-12T13:00:00Z",
+          "ends_at": "2035-03-12T14:00:00Z",
+          "status": "cancelled",
+          "type": "job"
+        },
+        "after": {
+          "starts_at": "2035-03-14T13:00:00Z",
+          "ends_at": "2035-03-14T14:00:00Z",
+          "type": "job"
+        }
+      },
+      "subject": "Angel Tree Services: your work visit has been reinstated",
+      "text": "Hi Synthetic homeowner,\n\nYour work visit with Angel Tree Services has been reinstated.\nPrevious date and window: Monday, March 12, 2035 at 9:00 AM to 10:00 AM\nUpdated date and window: Wednesday, March 14, 2035 at 9:00 AM to 10:00 AM\nService location: 123 Synthetic Lane, Fredericksburg, VA\n\nPlease use the updated details above. Other scheduled visits remain unchanged. Reply if this time does not work for you or if the access plan needs to change.\n\nQuestions? Reply to this email or call (540) 388-8715.\n\nThank you,\nAngel Tree Services"
+    }
+  ],
+  "unrelated": [
+    {
+      "kind": "quoteFollowUpTemplate",
+      "input": {
+        "customerName": "Synthetic homeowner",
+        "lineItems": [
+          {
+            "name": "Synthetic tree work",
+            "description": "Synthetic scope"
+          }
+        ],
+        "portalUrl": "https://example.invalid/portal/quote/synthetic",
+        "proposalNumber": "SYNTHETIC-119"
+      },
+      "sha256": "e6d76addc7787dbab530c008e430c2698a14fb753db52a342c5737c9b0bb5db3"
+    },
+    {
+      "kind": "invoiceReminderTemplate",
+      "input": {
+        "balanceDueCents": 10000,
+        "customerName": "Synthetic homeowner",
+        "dueAt": "2035-03-14",
+        "invoiceNumber": "SYNTHETIC-119",
+        "isOverdue": false,
+        "portalUrl": "https://example.invalid/portal/invoice/synthetic",
+        "serviceLocation": "123 Synthetic Lane, Fredericksburg, VA"
+      },
+      "sha256": "0516a6e3da96c6a08f7bb881c47c2c7ada4c8c1cb65c89402d76b1c6b6f38830"
+    },
+    {
+      "kind": "paymentConfirmationTemplate",
+      "input": {
+        "amountCents": 10000,
+        "balanceDueCents": 0,
+        "customerName": "Synthetic homeowner",
+        "invoiceNumber": "SYNTHETIC-119",
+        "paidAt": "2035-03-14T13:00:00Z",
+        "paymentMethod": "cash",
+        "reference": "Synthetic reference",
+        "surchargeCents": 0,
+        "totalCollectedCents": 10000
+      },
+      "sha256": "ed2ffc8f1149f3f931a3d801baa21bd1fe60b778813d47a66a1bb802e92e37cf"
+    }
+  ]
+}

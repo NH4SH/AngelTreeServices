@@ -1,3 +1,5 @@
+import {companyBrand} from '../src/lib/company-brand.ts';
+import {renderCustomerAppointmentEmail} from '../src/lib/email/customer-appointment-layout.ts';
 import {renderCustomerPaymentReceiptHtml} from '../src/lib/email/customer-payment-receipt-layout.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -6,7 +8,7 @@ import {formatBusinessDate} from '../src/lib/business-time.ts';
 import {renderCustomerReminderEmailHtml} from '../src/lib/email/customer-reminder-layout.ts';
 import {renderCustomerDocumentAction} from '../src/lib/email/customer-document-action.ts';
 
-const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},'../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml}});
+const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},'../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml},'../email/customer-appointment-layout.ts':{renderCustomerAppointmentEmail},'../company-brand.ts':{companyBrand}});
 const invoice=(patch={})=>templates.invoiceReminderTemplate({balanceDueCents:175099,customerName:'Jamie Sample',dueAt:'2026-11-05',invoiceNumber:'261021-200',isOverdue:false,portalUrl:'https://stage.example.invalid/portal/invoice/synthetic-review',serviceLocation:'123 Sample Lane, Fredericksburg, VA 22401',...patch});
 const quote=(patch={})=>templates.quoteFollowUpTemplate({customerName:'Jamie Sample',lineItems:[{name:'Oak removal',description:'Remove the marked tree and clean up.'}],portalUrl:'https://stage.example.invalid/portal/quote/synthetic-review',proposalNumber:'261021-100',...patch});
 const anchors=html=>[...html.matchAll(/<a\s+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(m=>({href:m[1],label:m[2]}));

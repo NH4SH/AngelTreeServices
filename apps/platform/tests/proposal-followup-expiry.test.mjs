@@ -68,11 +68,12 @@ test('already accepted or uncertain follow-ups are not reprocessed after expiry'
 });
 
 test('automatic planning omits expired proposals and preserves both stages for future/undated sources', async () => {
-  const rows = [quote('2020-01-01T00:00:00Z','expired'),quote(new Date(Date.now()+86_400_000).toISOString(),'future'),quote(null,'undated')];
+  const expired='00000000-0000-4000-8000-000000000001',future='00000000-0000-4000-8000-000000000002',undated='00000000-0000-4000-8000-000000000003';
+  const rows = [quote('2020-01-01T00:00:00Z',expired),quote(new Date(Date.now()+86_400_000).toISOString(),future),quote(null,undated)];
   const f = appointmentQueueFixture({settings:{quote_follow_up_enabled:true,quote_first_follow_up_days:3,quote_second_follow_up_days:7},tables:{schedule_events:[],quotes:rows}});
   assert.equal((await f.run()).error,null);
   assert.equal(f.upserts.length,4);
-  assert.deepEqual([...new Set(f.upserts.map(r=>r.quote_id))].sort(),['future','undated']);
+  assert.deepEqual([...new Set(f.upserts.map(r=>r.quote_id))].sort(),[future,undated]);
   const count = f.tables.customer_communications.length;
   await f.run();
   assert.equal(f.tables.customer_communications.length,count);

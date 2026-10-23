@@ -1,0 +1,206 @@
+{
+  "date": "2026-10-23",
+  "mainThrough": "4a9ea6c30f5855d93f4857fdcf7187342054b898",
+  "previousPaymentPlanningPushed": true,
+  "featureBranch": "codex/reminder-source-planning",
+  "featurePushed": false,
+  "reproduction": [
+    {
+      "family": "quotes",
+      "eligibleSources": 1001,
+      "expectedStages": 2002,
+      "previousPrepared": 2000,
+      "reportedError": null,
+      "realProviderCalls": 0
+    },
+    {
+      "family": "invoices",
+      "eligibleSources": 1001,
+      "expectedStages": 2002,
+      "previousPrepared": 2000,
+      "reportedError": null,
+      "realProviderCalls": 0
+    }
+  ],
+  "implementation": {
+    "families": [
+      "quote_follow_up",
+      "invoice_payment_reminder",
+      "overdue_invoice_reminder"
+    ],
+    "sourcePageSize": 200,
+    "writeBatchSize": 200,
+    "budgetMsPerFamily": 5000,
+    "orderedUuidCursor": true,
+    "readUntilEmpty": true,
+    "writesAfterCompleteFamilyRead": true,
+    "existingStableStageKeysAndDuplicateIgnorePreserved": true,
+    "newMigration": false
+  },
+  "regression": {
+    "passed": 2535,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 26
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "local": {
+    "migrationCount": 120,
+    "nativeAssertions": 12,
+    "syntheticQuotes": 1005,
+    "syntheticInvoices": 1006,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "migrationCount": 120,
+    "nativeAssertions": 12,
+    "syntheticQuotes": 1005,
+    "syntheticInvoices": 1006,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "observedAt": 1792796391962,
+    "catalogObjects": 5110,
+    "protectedRecordSets": 49,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "exact120MaintenanceVerifierPassed": true
+  },
+  "nativeInputScenarios": [
+    {
+      "environment": "local",
+      "family": "quotes",
+      "scenarios": 8,
+      "previousCappedSuccessReproduced": true,
+      "all1001EligibleSourcesPrepared": true,
+      "lowerCapHandled": true,
+      "allHealthyPayloadFieldsAndTimingIdentical": true,
+      "readFailurePreventsClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostWritesResumeWithHistoryPreserved": true,
+      "concurrentSameKeyPreparation": true,
+      "realProviderCalls": 0
+    },
+    {
+      "environment": "local",
+      "family": "invoices",
+      "scenarios": 8,
+      "previousCappedSuccessReproduced": true,
+      "all1001EligibleSourcesPrepared": true,
+      "lowerCapHandled": true,
+      "allHealthyPayloadFieldsAndTimingIdentical": true,
+      "readFailurePreventsClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostWritesResumeWithHistoryPreserved": true,
+      "concurrentSameKeyPreparation": true,
+      "realProviderCalls": 0
+    },
+    {
+      "environment": "staging",
+      "family": "quotes",
+      "scenarios": 8,
+      "previousCappedSuccessReproduced": true,
+      "all1001EligibleSourcesPrepared": true,
+      "lowerCapHandled": true,
+      "allHealthyPayloadFieldsAndTimingIdentical": true,
+      "readFailurePreventsClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostWritesResumeWithHistoryPreserved": true,
+      "concurrentSameKeyPreparation": true,
+      "realProviderCalls": 0
+    },
+    {
+      "environment": "staging",
+      "family": "invoices",
+      "scenarios": 8,
+      "previousCappedSuccessReproduced": true,
+      "all1001EligibleSourcesPrepared": true,
+      "lowerCapHandled": true,
+      "allHealthyPayloadFieldsAndTimingIdentical": true,
+      "readFailurePreventsClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostWritesResumeWithHistoryPreserved": true,
+      "concurrentSameKeyPreparation": true,
+      "realProviderCalls": 0
+    }
+  ],
+  "realLocalApi": {
+    "actualLocalSupabaseClientAndPostgrest": true,
+    "previousPreparedCount": 4000,
+    "currentPreparedCount": 4004,
+    "sourcePagesPerFamily": 7,
+    "sourceAndWriteBatchLimit": 200,
+    "writeBatches": 22,
+    "existingHistoryAndStoredSettingsUnchanged": true,
+    "invoiceScopePreserved": true,
+    "localSyntheticRecordsOnly": true,
+    "realProviderCalls": 0
+  },
+  "preservation": {
+    "all120MigrationSourcesAndPublicTypesUnchanged": true,
+    "schemaManifestAndDependenciesUnchanged": true,
+    "paymentAndVisitPreparationByteIdentical": true,
+    "financialCommandsAndAmountsUnchanged": true,
+    "eligibilityExpiryContactsVersionsAndTimingPreserved": true,
+    "acceptedUncertainAndOtherQueueHistoryPreserved": true,
+    "senderSnapshotsClaimsAndProviderKeysUnchanged": true,
+    "employeeDashboardAndPriorCrmWorkPreserved": true,
+    "runtimeBranch": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sources": [
+    {
+      "path": "apps/platform/src/lib/communications/queue.ts",
+      "sha256": "1bfcad169d5ebb2c48c15e69c3548a627abf22a6b9c87f7e32f896b253483797"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-fixture.mjs",
+      "sha256": "93c1af7102867826443a44da35d8cbc0261e5f2961b300c3a80e063175a99cbd"
+    },
+    {
+      "path": "apps/platform/tests/proposal-followup-expiry.test.mjs",
+      "sha256": "19aa0c7e6db4c8f920f05e23811857c1ab84fe8ec9a73c3b880f95ba3d1540d5"
+    },
+    {
+      "path": "apps/platform/tests/reminder-source-planning.test.mjs",
+      "sha256": "d4ebbea53208f1132dcea7ca8036e4732763f0216fc94729b2a7e17aeaf7d0bc"
+    },
+    {
+      "path": "supabase/verification/reminder_source_planning.sql",
+      "sha256": "eea3ef4f4c38d37dd08e361b5ece0d6a4de9c15df8d41e418369f7fbeee00396"
+    }
+  ],
+  "boundaries": {
+    "applicationDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "hostedMigrationApplied": false,
+    "storedSendingSwitchChanged": false,
+    "historicalRetriesStarted": 0,
+    "realProviderCalls": 0,
+    "customerEmails": 0,
+    "keysRotated": false,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/reminder-source-planning"
+}

@@ -138,89 +138,150 @@ export async function cancelPendingCommunications(
   return error?.message ?? null;
 }
 
+// Complete source reads precede writes. Keep the existing source filters and
+// use UUID cursors so earlier deletions cannot shift later records out of view.
+async function readReminderSources<T extends { id: string }>(
+  queryPage: (after: string | null, signal: AbortSignal) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  deadline: number,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let after: string | null = null;
+  while (true) {
+    if (Date.now() >= deadline) throw Error("Reminder preparation timed out");
+    const result = await queryPage(after, AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+    if (result.error || !Array.isArray(result.data) || result.data.length > 200) throw Error("Reminder sources unavailable");
+    if (!result.data.length) return rows;
+    for (const row of result.data) {
+      const id = row?.id;
+      if (typeof id !== "string" || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id) || (after !== null && id <= after)) {
+        throw Error("Reminder sources did not advance");
+      }
+      after = id;
+      rows.push(row);
+    }
+  }
+}
+
+async function insertReminderRows(supabase: SupabaseClient, rows: QueueInput[], deadline: number, unavailable: string) {
+  let prepared = 0;
+  try {
+    for (let offset = 0; offset < rows.length; offset += 200) {
+      if (Date.now() >= deadline) throw Error("Reminder preparation timed out");
+      const batch = rows.slice(offset, offset + 200);
+      const result = await supabase.from("customer_communications")
+        .upsert(batch, { ignoreDuplicates: true, onConflict: "idempotency_key" })
+        .abortSignal(AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+      if (result.error) throw Error("Reminder preparation unavailable");
+      prepared += batch.length;
+    }
+    return { created: prepared, error: null };
+  } catch {
+    return { created: prepared, error: unavailable };
+  }
+}
+
 async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSettings) {
   if (!settings.quote_follow_up_enabled) return emptySyncResult();
 
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
-    .from("quotes")
-    .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers:customers!quotes_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(email, is_active), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(email, is_active)")
-    .eq("status", "sent")
-    .eq("automatic_follow_ups_enabled", true)
-    .not("sent_at", "is", null)
-    .gte("sent_at", lookback)
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  const now = new Date().toISOString();
+  const deadline = Date.now() + 5_000;
+  const unavailable = "Proposal follow-ups could not be prepared. Review the queue before retrying.";
+  try {
+    const data = await readReminderSources((after, signal) => {
+      let query = supabase
+        .from("quotes")
+        .select("id, customer_id, organization_id, sent_at, status, updated_at, automatic_follow_ups_enabled, customers:customers!quotes_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), approval_contact:organization_contacts!quotes_approval_contact_id_fkey(email, is_active), recipient_contact:organization_contacts!quotes_recipient_contact_id_fkey(email, is_active)")
+        .eq("status", "sent")
+        .eq("automatic_follow_ups_enabled", true)
+        .not("sent_at", "is", null)
+        .gte("sent_at", lookback)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .order("id")
+        .limit(200);
+      if (after) query = query.gt("id", after);
+      return query.abortSignal(signal);
+    }, deadline);
 
-  if (error) return { created: 0, error: error.message };
+    const queue: QueueInput[] = [];
+    for (const quote of data ?? []) {
+      const party = getQueueableParty(quote.customers, quote.organizations, contactEmail(quote.approval_contact, quote.recipient_contact));
+      if (!party || !quote.sent_at) continue;
 
-  const queue: QueueInput[] = [];
-  for (const quote of data ?? []) {
-    const party = getQueueableParty(quote.customers, quote.organizations, contactEmail(quote.approval_contact, quote.recipient_contact));
-    if (!party || !quote.sent_at) continue;
-
-    for (const [stage, days] of [
-      ["first", settings.quote_first_follow_up_days],
-      ["second", settings.quote_second_follow_up_days],
-    ] as const) {
-      queue.push(buildQueueInput({
-        communicationType: "quote_follow_up",
-        party,
-        idempotencyKey: `auto:quote:${quote.id}:follow-up:${stage}`,
-        quoteId: quote.id,
-        reminderStage: stage,
-        scheduledFor: addHours(quote.sent_at, days * 24),
-        sourceVersion: quote.updated_at,
-      }));
+      for (const [stage, days] of [
+        ["first", settings.quote_first_follow_up_days],
+        ["second", settings.quote_second_follow_up_days],
+      ] as const) {
+        queue.push(buildQueueInput({
+          communicationType: "quote_follow_up",
+          party,
+          idempotencyKey: `auto:quote:${quote.id}:follow-up:${stage}`,
+          quoteId: quote.id,
+          reminderStage: stage,
+          scheduledFor: addHours(quote.sent_at, days * 24),
+          sourceVersion: quote.updated_at,
+        }));
+      }
     }
-  }
 
-  return insertQueueRows(supabase, queue);
+    return insertReminderRows(supabase, queue, deadline, unavailable);
+  } catch {
+    return { created: 0, error: unavailable };
+  }
 }
 
 async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSettings, invoiceId?: string) {
   if (!settings.invoice_reminder_enabled) return emptySyncResult();
 
   const dueLookback = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
-  let query = supabase
-    .from("invoices")
-    .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers:customers!invoices_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
-    .in("status", ["sent", "partially_paid", "overdue"])
-    .eq("automatic_reminders_enabled", true)
-    .gt("balance_due_cents", 0)
-    .not("due_at", "is", null)
-    .gte("due_at", dueLookback);
+  const deadline = Date.now() + 5_000;
+  const unavailable = "Invoice reminders could not be prepared. Review the queue before retrying.";
+  try {
+    const data = await readReminderSources((after, signal) => {
+      let query = supabase
+        .from("invoices")
+        .select("id, customer_id, organization_id, due_at, status, balance_due_cents, updated_at, automatic_reminders_enabled, customers:customers!invoices_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active)")
+        .in("status", ["sent", "partially_paid", "overdue"])
+        .eq("automatic_reminders_enabled", true)
+        .gt("balance_due_cents", 0)
+        .not("due_at", "is", null)
+        .gte("due_at", dueLookback)
+        .order("id")
+        .limit(200);
+      if (invoiceId) query = query.eq("id", invoiceId);
+      if (after) query = query.gt("id", after);
+      return query.abortSignal(signal);
+    }, deadline);
 
-  if (invoiceId) query = query.eq("id", invoiceId);
-  const { data, error } = await query;
+    const queue: QueueInput[] = [];
+    for (const invoice of data ?? []) {
+      const party = getQueueableParty(invoice.customers, invoice.organizations, contactEmail(invoice.accounts_payable_contact, invoice.billing_contact));
+      if (!party || !invoice.due_at) continue;
 
-  if (error) return { created: 0, error: error.message };
+      queue.push(buildQueueInput({
+        communicationType: "invoice_payment_reminder",
+        party,
+        idempotencyKey: `auto:invoice:${invoice.id}:reminder:first`,
+        invoiceId: invoice.id,
+        reminderStage: "first",
+        scheduledFor: addHours(invoice.due_at, settings.invoice_first_reminder_days * 24),
+        sourceVersion: invoice.updated_at,
+      }));
+      queue.push(buildQueueInput({
+        communicationType: "overdue_invoice_reminder",
+        party,
+        idempotencyKey: `auto:invoice:${invoice.id}:reminder:second`,
+        invoiceId: invoice.id,
+        reminderStage: "second",
+        scheduledFor: addHours(invoice.due_at, settings.invoice_second_reminder_days * 24),
+        sourceVersion: invoice.updated_at,
+      }));
+    }
 
-  const queue: QueueInput[] = [];
-  for (const invoice of data ?? []) {
-    const party = getQueueableParty(invoice.customers, invoice.organizations, contactEmail(invoice.accounts_payable_contact, invoice.billing_contact));
-    if (!party || !invoice.due_at) continue;
-
-    queue.push(buildQueueInput({
-      communicationType: "invoice_payment_reminder",
-      party,
-      idempotencyKey: `auto:invoice:${invoice.id}:reminder:first`,
-      invoiceId: invoice.id,
-      reminderStage: "first",
-      scheduledFor: addHours(invoice.due_at, settings.invoice_first_reminder_days * 24),
-      sourceVersion: invoice.updated_at,
-    }));
-    queue.push(buildQueueInput({
-      communicationType: "overdue_invoice_reminder",
-      party,
-      idempotencyKey: `auto:invoice:${invoice.id}:reminder:second`,
-      invoiceId: invoice.id,
-      reminderStage: "second",
-      scheduledFor: addHours(invoice.due_at, settings.invoice_second_reminder_days * 24),
-      sourceVersion: invoice.updated_at,
-    }));
+    return insertReminderRows(supabase, queue, deadline, unavailable);
+  } catch {
+    return { created: 0, error: unavailable };
   }
-
-  return insertQueueRows(supabase, queue);
 }
 
 type NoticeCoverage = { source_kind: "schedule_event" | "appointment"; source_id: string; suppress_reminder: boolean };

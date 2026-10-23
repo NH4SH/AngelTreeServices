@@ -1,0 +1,118 @@
+{
+  "siteId": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+  "sourceCommit": "8fa9df32c95a2e6d6a72c77422391ae7b9ca7528",
+  "mainCommit": "fa67e689ea6809c82486ec2448cee30d0b7122d3",
+  "deployId": "6adab6d33b9c3096a37ad0a1",
+  "url": "https://admin.angeltreeservices.org",
+  "previousDeploy": "6ad95318d4baa154ecf3456a",
+  "published": true,
+  "buildConfigurationUnchanged": true,
+  "completedAt": "2026-10-23T01:22:36.484Z",
+  "functions": [
+    {
+      "name": "advance-scheduled-jobs",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "name": "manager-notifications",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "name": "process-communications",
+      "schedule": "@hourly"
+    },
+    {
+      "name": "process-google-calendar",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "name": "run-system-health",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "name": "___netlify-server-handler",
+      "schedule": null
+    }
+  ],
+  "checks": [
+    {
+      "path": "/api/health/live",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/admin?range=last_90",
+      "status": 307
+    }
+  ],
+  "assetsChecked": 10,
+  "stagingUnchanged": true,
+  "anonymousDashboardDenied": true,
+  "customerActionsInvoked": false,
+  "verifiedAt": "2026-10-23T01:22:43.010Z",
+  "browser": {
+    "desktop1920": {
+      "background": "rgb(17, 23, 19)",
+      "clientWidth": 1920,
+      "cssZoom": "1",
+      "label": "Cash collectedJul 25\u2013Oct 22",
+      "moneyReady": true,
+      "scrollWidth": 1920,
+      "selected": "/admin?range=last_90",
+      "shellWidth": 1920,
+      "unavailable": false,
+      "url": "https://admin.angeltreeservices.org/admin?range=last_90",
+      "visualScale": 1,
+      "width": 1920
+    },
+    "desktop1280": {
+      "clientWidth": 1280,
+      "cssZoom": "1",
+      "scrollWidth": 1280,
+      "selected": "/admin?range=last_90",
+      "shellWidth": 1280,
+      "visualScale": 1,
+      "width": 1280
+    },
+    "mobile390": {
+      "clientWidth": 390,
+      "cssZoom": "1",
+      "scrollWidth": 390,
+      "selected": "/admin?range=last_90",
+      "shellWidth": 390,
+      "visualScale": 1,
+      "width": 390
+    },
+    "normal": {
+      "clientWidth": 904,
+      "cssZoom": "1",
+      "dateWindow": "Jul 25\u2013Oct 22",
+      "moneyReady": true,
+      "scrollWidth": 904,
+      "selected": "/admin?range=last_90",
+      "shellWidth": 904,
+      "url": "https://admin.angeltreeservices.org/admin?range=last_90",
+      "visualScale": 1,
+      "width": 904
+    },
+    "ninetyDaySelectionMs": 911,
+    "loadingStateObserved": true,
+    "verifiedAt": "2026-10-23T01:24:47.925Z"
+  },
+  "customerBrandingPreservedAndNotReleased": true,
+  "databaseWritesOrMigrationsPerformed": false,
+  "releasePackagingIncidentResolved": true,
+  "invalidArtifactCleanup": {
+    "removedOnlyInvalidDeploysCreatedInThisRelease": [
+      "6adab473fa62ba9fe83cd53e",
+      "6adab5ef3b52b1e950ca88e0",
+      "6adab65c4d72faf0b525dc47"
+    ],
+    "priorProductionDeployPreserved": "6ad95318d4baa154ecf3456a",
+    "publishedDeployPreserved": "6adab6d33b9c3096a37ad0a1",
+    "diagnosticsRetainedPrivately": true
+  }
+}

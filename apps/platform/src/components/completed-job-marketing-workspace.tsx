@@ -62,16 +62,19 @@ export function CompletedJobMarketingWorkspace({
         </p>
       </div>
 
-      {!googleReviewUrl ? (
-        <p className="form-message error">
-          Add `NEXT_PUBLIC_GOOGLE_REVIEW_URL` to configure the Google review destination. Drafts currently show a placeholder.
-        </p>
-      ) : null}
-
-      <div className="email-draft-grid">
-        <EmailDraftCard draft={reviewDraft.email} label="Review request email draft" />
-        <CopyDraftCard body={reviewDraft.textMessageBody} label="Review request text draft" note="Draft only. This does not send a text message." />
-      </div>
+      <section aria-label="Customer review request">
+        {reviewDraft.reviewUrl ? (
+          <div className="email-draft-grid">
+            <EmailDraftCard key={`${job.id}:email:${reviewDraft.reviewUrl}`} draft={reviewDraft.email} label="Review request email draft" />
+            <CopyDraftCard key={`${job.id}:text:${reviewDraft.reviewUrl}`} body={reviewDraft.textMessageBody} label="Review request text draft" note="Draft only. This does not send a text message." />
+          </div>
+        ) : (
+          <div className="notice-panel" role="status">
+            <strong>Review link needed</strong>
+            <p>Ask your CRM administrator to add a valid Google review link. Email and text drafts will be available here once the link is configured.</p>
+          </div>
+        )}
+      </section>
 
       <div className="marketing-control-grid">
         <section className="marketing-control-panel">

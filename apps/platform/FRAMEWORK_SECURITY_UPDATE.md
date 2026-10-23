@@ -45,3 +45,7 @@ The Node runtime security branch remains separately at `06580f6`; it was neither
 Next: once Netlify confirms patched runtime availability, perform an explicitly authorized isolated hosted acceptance of the reviewed release combination before any production rollout. The customer terms policy decisions in `CUSTOMER_TERMS_REVIEW.md` also remain open; no business wording was chosen during this security batch.
 
 Sanitized receipt: `staging/FRAMEWORK_SECURITY_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/framework-security-update/`, containing clean build source, both lane logs, staging snapshots/fixtures, compiled acceptance and the undeployed Netlify artifact. Credentials, complete logs, local build keys and raw snapshots stay outside Git. This new security candidate is committed locally, pending a separate push request.
+
+## Push follow-through — October 23, 2026
+
+At the owner's request, the verified framework update was pushed normally to `origin/main` as `cad55f16c36fa1a009e59017c35be806f6b10709`, preserving the existing history. The verification receipt above remains the historical pre-push receipt. No deployment, production change, credential rotation or additional support message accompanied this push. The next customer-readiness follow-through is recorded in `REVIEW_REQUEST_DRAFT_READINESS.md`.

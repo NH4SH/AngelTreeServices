@@ -1,0 +1,19 @@
+{
+  "job": {
+    "id": "00000000-0000-4000-8000-000000000119",
+    "service_type": "tree_trimming",
+    "customers": {
+      "display_name": "Synthetic homeowner"
+    },
+    "organizations": null
+  },
+  "reviewUrl": "https://g.page/r/SYNTHETIC/review",
+  "draft": {
+    "email": {
+      "subject": "Angel Tree Services: how did your tree trimming service go?",
+      "body": "Hi Synthetic homeowner,\n\nThank you for choosing Angel Tree Services. We hope the completed tree trimming work looks great.\n\nIf you have a moment, we would appreciate an honest Google review:\nhttps://g.page/r/SYNTHETIC/review\n\nIf anything needs another look, please reply here or call our office first. We are happy to help.\n\nThank you,\nAngel Tree Services"
+    },
+    "reviewUrl": "https://g.page/r/SYNTHETIC/review",
+    "textMessageBody": "Thank you for choosing Angel Tree Services. We hope your tree trimming work looks great. If you have a moment, we would appreciate an honest Google review: https://g.page/r/SYNTHETIC/review If anything needs another look, please reply here first."
+  }
+}

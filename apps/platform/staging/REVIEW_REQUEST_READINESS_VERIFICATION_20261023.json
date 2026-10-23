@@ -1,0 +1,100 @@
+{
+  "observedAt": "2026-10-23T19:30:54.099303+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/review-request-draft-readiness",
+  "baseMain": "cad55f16c36fa1a009e59017c35be806f6b10709",
+  "frameworkSecurityPushedToMain": true,
+  "unitTests": {
+    "passed": 2418,
+    "failed": 0,
+    "skipped": 0,
+    "newReadinessTests": 7
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "browser": {
+    "browser": "in-app browser",
+    "isolatedActualComponentPreview": true,
+    "syntheticInputsOnly": true,
+    "widths": [
+      390,
+      768,
+      1280
+    ],
+    "states": [
+      "missing",
+      "invalid",
+      "ready",
+      "long customer name"
+    ],
+    "horizontalOverflow": false,
+    "clipboardMatchesOriginal": [
+      "subject",
+      "body",
+      "full email",
+      "text"
+    ],
+    "keyboardEnterAndTab": true,
+    "visibleFocus": true,
+    "finalConsoleErrors": 0,
+    "detectorFindings": 0,
+    "clipboardRestored": true,
+    "viewportRestored": true,
+    "privatePreviewRouteExcludedFromGit": true
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 5,
+    "renderFixtureCount": 4,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "stagingRenderer": {
+    "syntheticOnly": true,
+    "completedJobStatuses": [
+      "completed",
+      "invoiced",
+      "paid",
+      "ready_to_invoice"
+    ],
+    "rendererAssertions": 32,
+    "originalConfiguredWordingPreserved": true,
+    "missingAndInvalidBodiesWithheld": true,
+    "noOutboundMessages": true,
+    "applicationDeployed": false
+  },
+  "sourceCopyParity": true,
+  "databaseMigrationsChanged": false,
+  "existingCopyWordingPreserved": true,
+  "newAutomaticSender": false,
+  "environmentValuesChanged": false,
+  "actualBusinessReviewDestinationVerified": false,
+  "runtimeSecurityBranchPreservedAt": "06580f6",
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "customerEmailsSent": 0,
+    "textsSent": 0,
+    "paymentProviderCalls": 0,
+    "supportMessagesSent": 0
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/review-request-readiness"
+}

@@ -2,7 +2,6 @@ import type { EmailDraft } from "@/lib/documents/email-drafts";
 import type { JobDetail } from "@/lib/types/database";
 
 const companyName = "Angel Tree Services";
-const missingReviewUrl = "[Add Google review link]";
 
 export type ReviewRequestDraft = {
   email: EmailDraft;
@@ -17,40 +16,57 @@ export type CompletedJobSummaryDrafts = {
 };
 
 export function getGoogleReviewUrl() {
-  return process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL?.trim() || null;
+  return normalizeReviewUrl(process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL);
+}
+
+export function normalizeReviewUrl(value: string | null | undefined): string | null {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  if (!candidate || candidate.length > 2048 || /[\u0000-\u0020\u007f]/.test(candidate) || !/^https:\/\//i.test(candidate)) {
+    return null;
+  }
+
+  try {
+    const url = new URL(candidate);
+    // The configured destination can be a Google link or a company redirect.
+    // Validation never opens it or claims the destination has been verified.
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password) return null;
+    return candidate;
+  } catch {
+    return null;
+  }
 }
 
 export function generateCompletedJobReviewRequest(
   job: JobDetail,
-  reviewUrl: string | null,
+  reviewUrlInput: string | null,
 ): ReviewRequestDraft {
   const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
   const service = formatServiceType(job.service_type);
-  const link = reviewUrl || missingReviewUrl;
+  const reviewUrl = normalizeReviewUrl(reviewUrlInput);
 
   return {
     email: {
       subject: `${companyName}: how did your ${service} service go?`,
-      body: [
+      body: reviewUrl ? [
         `Hi ${customerName},`,
         "",
         `Thank you for choosing ${companyName}. We hope the completed ${service} work looks great.`,
         "",
         "If you have a moment, we would appreciate an honest Google review:",
-        link,
+        reviewUrl,
         "",
         "If anything needs another look, please reply here or call our office first. We are happy to help.",
         "",
         "Thank you,",
         companyName,
-      ].join("\n"),
+      ].join("\n") : "",
     },
     reviewUrl,
-    textMessageBody: [
+    textMessageBody: reviewUrl ? [
       `Thank you for choosing ${companyName}. We hope your ${service} work looks great.`,
-      `If you have a moment, we would appreciate an honest Google review: ${link}`,
+      `If you have a moment, we would appreciate an honest Google review: ${reviewUrl}`,
       "If anything needs another look, please reply here first.",
-    ].join(" "),
+    ].join(" ") : "",
   };
 }
 

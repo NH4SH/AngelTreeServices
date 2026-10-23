@@ -177,3 +177,9 @@ The next implementation priority is now **enforcement of an explicitly stored pr
 The explicit stored-expiry enforcement candidate is now verified locally and with 30 rollback-only assertions in staging. New approvals reject after the deadline, including lock waits and tentative work creation that cross it. The portal shows a closed outcome while retaining document/office help. Committed-result replay, token/authorization checks, undated behavior, historical approved-record repair and source-event deduplication remain intact. See `PROPOSAL_EXPIRY_ENFORCEMENT.md`; the earlier review findings remain historical.
 
 Next is targeted permanent staging reconciliation for migration 117, which has only been exercised inside rolled-back staging transactions. No app deploy, production change or communication send occurred. Then continue the existing record-aware terms follow-up once the owner chooses the unresolved policy/override rules. The prior branding work and released dashboard fix are preserved.
+
+### Document-terms preservation — October 22, 2026
+
+The staging 117 reconciliation is complete and pushed to main as `e956e25`. The next existing terms-review step is now implemented locally: retain the exact current clauses in a fixed legacy rendering version and bind proposals/invoices to it before changing defaults. Candidate 118 passed local upgrade/command checks, 60 rollback-only staging assertions, component comparisons, desktop/mobile inspection, schema checks, typecheck/build and all 2,394 CRM checks. See `CUSTOMER_DOCUMENT_TERMS_PRESERVATION.md`.
+
+Staging remains at 117 after rollback; permanent reconciliation for 118 is next. Policy choices about record-specific instructions, deadlines, penalties, surcharges, warranty and undated validity remain with the owner. Existing wording, history, security, employee UI, dashboard and prior CRM work are preserved. No app deployment, production change or email send occurred.

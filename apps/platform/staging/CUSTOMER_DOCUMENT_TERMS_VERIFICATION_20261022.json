@@ -1,0 +1,358 @@
+{
+  "version": 1,
+  "verifiedOn": "2026-10-22",
+  "branch": "codex/customer-document-terms-preservation",
+  "mainIncludedThrough": "810ecf1",
+  "previousReconciliationPushed": "e956e25",
+  "newBatchPushed": false,
+  "migration": {
+    "ordinal": 118,
+    "name": "20261023030829_preserve_customer_document_terms.sql",
+    "sha256": "89ea8e617f752360a0550ff12dc4fe4c1f7208c673ec978f74edb536996f345d",
+    "nativeCliVersion": "2.121.0",
+    "permanentlyInstalledOnOwnedLocalStack": true,
+    "permanentlyInstalledOnStaging": false,
+    "productionInstalled": false
+  },
+  "legacyBaseline": {
+    "version": "legacy-2026-10-22",
+    "quote": {
+      "count": 5,
+      "sha256": "3a9d054f667f33e85a4de97431256a092d17b8c4641f47f2905d7cf5a8324562"
+    },
+    "invoice": {
+      "count": 13,
+      "sha256": "061f0675abd085dd1a583dbbfdaf87d263c2bc89c268e98954e5ede466469a6b"
+    }
+  },
+  "preserved": {
+    "wording": true,
+    "totalsAndScope": true,
+    "financialAndApprovalCommands": true,
+    "existingRlsAndGrants": true,
+    "timestampAndRevisionValues": true,
+    "savedEmailPayloads": true,
+    "earlierCrmAndWebsiteWork": true
+  },
+  "implementation": {
+    "versionColumns": [
+      "public.quotes.document_terms_version",
+      "public.invoices.document_terms_version"
+    ],
+    "onlySupportedVersion": "legacy-2026-10-22",
+    "existingRowsReceiveConstantDefault": true,
+    "existingDocumentsCannotBeRelabeled": true,
+    "unsupportedExplicitVersionsFail": true,
+    "preMigrationReaderCompatibility": true,
+    "privateTriggerSecurity": "invoker; empty search_path; no direct API-role execution grants"
+  },
+  "checks": {
+    "unit": {
+      "passed": 2394,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focusedDocumentTests": 18,
+    "stagingCandidateTests": 19,
+    "localUpgrade": {
+      "assertions": [
+        "anon cannot directly execute the private trigger",
+        "authenticated cannot directly execute the private trigger",
+        "invoice creation ignores forged version and retry retains original draft",
+        "invoice draft retains all original values, timestamps and revision",
+        "invoice paid retains all original values, timestamps and revision",
+        "invoice sent retains all original values, timestamps and revision",
+        "invoice void retains all original values, timestamps and revision",
+        "invoices cannot relabel an existing document: ",
+        "invoices cannot relabel an existing document: NULL",
+        "invoices cannot relabel an existing document: unsupported-future",
+        "invoices rejects invalid version on insertion: ",
+        "invoices rejects invalid version on insertion: NULL",
+        "invoices rejects invalid version on insertion: unsupported-future",
+        "invoices version has no new authenticated update grant",
+        "normal invoice editing preserves binding and financial totals",
+        "normal quote editing preserves the binding while retaining editable scope",
+        "private trigger remains invoker with empty search path",
+        "quote approved retains all original values, timestamps and revision",
+        "quote cancelled retains all original values, timestamps and revision",
+        "quote creation ignores forged version and retry retains original draft",
+        "quote draft retains all original values, timestamps and revision",
+        "quote sent retains all original values, timestamps and revision",
+        "quotes cannot relabel an existing document: ",
+        "quotes cannot relabel an existing document: NULL",
+        "quotes cannot relabel an existing document: unsupported-future",
+        "quotes rejects invalid version on insertion: ",
+        "quotes rejects invalid version on insertion: NULL",
+        "quotes rejects invalid version on insertion: unsupported-future",
+        "quotes version has no new authenticated update grant",
+        "service_role cannot directly execute the private trigger"
+      ],
+      "rolledBack": true,
+      "syntheticOnly": true
+    },
+    "localExpiryAfterNative118Install": {
+      "assertions": [
+        "anonymous cannot execute app_private.approve_quote_locked(uuid,integer,text)",
+        "anonymous cannot execute approve_quote_by_portal(text,integer)",
+        "anonymous cannot execute approve_quote(uuid,integer)",
+        "change_requested customer past deadline rejects without business/history/event changes",
+        "change_requested staff past deadline rejects without business/history/event changes",
+        "crew cannot approve a future proposal",
+        "customer committed approval survives proposal expiry without duplicate handoff",
+        "disabled owner cannot approve",
+        "draft customer past deadline rejects without business/history/event changes",
+        "draft staff past deadline rejects without business/history/event changes",
+        "expired token still denies committed-result recovery",
+        "expiry during tentative work creation rolls back quote work history and source events",
+        "future customer retains one-work-order approval",
+        "future staff retains one-work-order approval",
+        "historical approved-record repair is preserved",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "revoked token still denies committed-result recovery",
+        "sent customer past deadline rejects without business/history/event changes",
+        "sent staff past deadline rejects without business/history/event changes",
+        "staff cannot invoke trusted customer/core entry points",
+        "staff committed approval survives proposal expiry without duplicate handoff",
+        "stale revision still denies without side effects",
+        "undated customer retains one-work-order approval",
+        "undated staff retains one-work-order approval",
+        "wrong_party token still denies committed-result recovery"
+      ],
+      "rolledBack": true,
+      "syntheticOnly": true
+    },
+    "stagingUpgrade": {
+      "assertions": [
+        "anon cannot directly execute the private trigger",
+        "authenticated cannot directly execute the private trigger",
+        "invoice creation ignores forged version and retry retains original draft",
+        "invoice draft retains all original values, timestamps and revision",
+        "invoice paid retains all original values, timestamps and revision",
+        "invoice sent retains all original values, timestamps and revision",
+        "invoice void retains all original values, timestamps and revision",
+        "invoices cannot relabel an existing document: ",
+        "invoices cannot relabel an existing document: NULL",
+        "invoices cannot relabel an existing document: unsupported-future",
+        "invoices rejects invalid version on insertion: ",
+        "invoices rejects invalid version on insertion: NULL",
+        "invoices rejects invalid version on insertion: unsupported-future",
+        "invoices version has no new authenticated update grant",
+        "normal invoice editing preserves binding and financial totals",
+        "normal quote editing preserves the binding while retaining editable scope",
+        "private trigger remains invoker with empty search path",
+        "quote approved retains all original values, timestamps and revision",
+        "quote cancelled retains all original values, timestamps and revision",
+        "quote creation ignores forged version and retry retains original draft",
+        "quote draft retains all original values, timestamps and revision",
+        "quote sent retains all original values, timestamps and revision",
+        "quotes cannot relabel an existing document: ",
+        "quotes cannot relabel an existing document: NULL",
+        "quotes cannot relabel an existing document: unsupported-future",
+        "quotes rejects invalid version on insertion: ",
+        "quotes rejects invalid version on insertion: NULL",
+        "quotes rejects invalid version on insertion: unsupported-future",
+        "quotes version has no new authenticated update grant",
+        "service_role cannot directly execute the private trigger"
+      ],
+      "rolledBack": true,
+      "syntheticOnly": true
+    },
+    "stagingExpiryInSameTransaction": {
+      "assertions": [
+        "anonymous cannot execute app_private.approve_quote_locked(uuid,integer,text)",
+        "anonymous cannot execute approve_quote_by_portal(text,integer)",
+        "anonymous cannot execute approve_quote(uuid,integer)",
+        "change_requested customer past deadline rejects without business/history/event changes",
+        "change_requested staff past deadline rejects without business/history/event changes",
+        "crew cannot approve a future proposal",
+        "customer committed approval survives proposal expiry without duplicate handoff",
+        "disabled owner cannot approve",
+        "draft customer past deadline rejects without business/history/event changes",
+        "draft staff past deadline rejects without business/history/event changes",
+        "expired token still denies committed-result recovery",
+        "expiry during tentative work creation rolls back quote work history and source events",
+        "future customer retains one-work-order approval",
+        "future staff retains one-work-order approval",
+        "historical approved-record repair is preserved",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "revoked token still denies committed-result recovery",
+        "sent customer past deadline rejects without business/history/event changes",
+        "sent staff past deadline rejects without business/history/event changes",
+        "staff cannot invoke trusted customer/core entry points",
+        "staff committed approval survives proposal expiry without duplicate handoff",
+        "stale revision still denies without side effects",
+        "undated customer retains one-work-order approval",
+        "undated staff retains one-work-order approval",
+        "wrong_party token still denies committed-result recovery"
+      ],
+      "rolledBack": true,
+      "syntheticOnly": true
+    },
+    "nativeLocalSecondUpgradeNoOp": true,
+    "renderer": {
+      "cases": [
+        {
+          "target": "local",
+          "family": "quote",
+          "explicitLegacyMatchesPreMigrationRecord": true,
+          "scopeAndAmountRetained": true,
+          "versionNotShownToCustomer": true,
+          "inputUnchanged": true,
+          "renderedTextSha256": "bc266f8f0e52b7c8179cdcfce379bf77bad975f1cc238f737aec157c8eec0299"
+        },
+        {
+          "target": "local",
+          "family": "invoice",
+          "explicitLegacyMatchesPreMigrationRecord": true,
+          "scopeAndAmountRetained": true,
+          "versionNotShownToCustomer": true,
+          "inputUnchanged": true,
+          "renderedTextSha256": "f5d8b46cd9f705b1d3511626c9a86ce394fc434e98ba10d668310a039b3615cb"
+        },
+        {
+          "target": "staging",
+          "family": "quote",
+          "explicitLegacyMatchesPreMigrationRecord": true,
+          "scopeAndAmountRetained": true,
+          "versionNotShownToCustomer": true,
+          "inputUnchanged": true,
+          "renderedTextSha256": "be42ce9cfaada9c30d9b5e4d31707b32c3ea4ad36cbb5c2782195a8708b8e026"
+        },
+        {
+          "target": "staging",
+          "family": "invoice",
+          "explicitLegacyMatchesPreMigrationRecord": true,
+          "scopeAndAmountRetained": true,
+          "versionNotShownToCustomer": true,
+          "inputUnchanged": true,
+          "renderedTextSha256": "aa5158bab07c628c80724840ae9a0437b50d91cc734571a93acb82124f2e97b8"
+        }
+      ],
+      "providerCalls": 0,
+      "hostedAppBrowserTested": false
+    },
+    "browser": {
+      "target": "owned local synthetic capability-authorized preview",
+      "cases": [
+        {
+          "family": "quote",
+          "width": 1280,
+          "clauseCount": 5,
+          "overflow": false,
+          "printButtons": 1,
+          "scopeVisibleInDocument": true,
+          "title": "Review your proposal",
+          "versionExposed": false
+        },
+        {
+          "family": "quote",
+          "width": 390,
+          "clauseCount": 5,
+          "overflow": false,
+          "printButtons": 1,
+          "scopeVisibleInDocument": true,
+          "title": "Review your proposal",
+          "versionExposed": false
+        },
+        {
+          "family": "invoice",
+          "width": 1280,
+          "clauseCount": 13,
+          "overflow": false,
+          "printButtons": 1,
+          "scopeVisibleInDocument": true,
+          "title": "INV-118",
+          "versionExposed": false
+        },
+        {
+          "family": "invoice",
+          "width": 390,
+          "clauseCount": 13,
+          "overflow": false,
+          "printButtons": 1,
+          "scopeVisibleInDocument": true,
+          "title": "INV-118",
+          "versionExposed": false
+        }
+      ],
+      "errors": [],
+      "actionsSubmitted": false
+    },
+    "freshSchemaGeneration": true,
+    "independentFreshSchemaCheck": true,
+    "offlineSchemaContract": true,
+    "routeTypeGeneration": true,
+    "typeScript": true,
+    "optimizedNextBuild": true,
+    "sourceParity": {
+      "applicationSource": {
+        "files": 631,
+        "sha256": "e80dca017382363a2144c38d9807a9b2d6ac894f76010f5b0e3a3e03293d6b29"
+      },
+      "buildAndPreviewMatch": true,
+      "excluded": ".impeccable design metadata",
+      "finalWhitespaceCleanup": "Removed one redundant trailing blank line from the legacy source after validation; all 631 source files still match tested build/preview after normalizing final newlines."
+    }
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "organization": "ATS",
+    "installedMigrationCount": 117,
+    "latestInstalledMigration": "20261023015338",
+    "nativeLedgerAndStatementsUnchanged": true,
+    "catalogObjectCount": 5103,
+    "catalogUnchangedAfterRollback": true,
+    "protectedDataSetCount": 49,
+    "protectedStateUnchanged": true,
+    "approvalDefinitionSha256": "7a958f1e24fc415cf05adde8594369b15d130d3a6cdf80dcf9e84751ff4ae52f",
+    "approvalPermissionsUnchanged": true,
+    "authEmailGuardUnchanged": true,
+    "automaticSendingEnabled": false,
+    "appointmentChangeNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "securityAdvisorDetailsUnchanged": true,
+    "existingAdvisorCounts": {
+      "rls_enabled_no_policy": 33,
+      "authenticated_security_definer_function_executable": 79,
+      "auth_leaked_password_protection": 1
+    }
+  },
+  "boundaries": {
+    "productionRead": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "providerCalls": 0,
+    "emailsSent": 0,
+    "realPayments": 0,
+    "scannerChanged": false,
+    "hostedAuthSettingsOrKeysChanged": false,
+    "readinessFlagsWidened": false
+  },
+  "cleanup": {
+    "previewStopped": true,
+    "temporaryBrowserTabClosed": true,
+    "viewportReset": true,
+    "onlyOwnedStackStopped": true,
+    "volumesPreserved": true,
+    "otherAppsAndDatabasesPreserved": true
+  },
+  "limitations": [
+    "The binding identifies the current renderer baseline, not a reconstruction of wording originally accepted by past customers.",
+    "Per-record instructions, due dates, surcharge disclosures, penalties, warranty and undated-validity policy questions remain open.",
+    "Staging migration 118 was tested with DDL and fixtures rolled back; permanent reconciliation is pending.",
+    "Staging renderer adapters used actual SQL-produced records; no new hosted staging app/browser deployment or native PDF certification.",
+    "Existing advisor findings are unchanged, not resolved; direct service-role relabel UPDATE was not a separate test."
+  ],
+  "nextStep": "Targeted permanent staging reconciliation for migration 118, followed by owner decisions before any terms wording changes.",
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/customer-document-terms-preservation"
+}

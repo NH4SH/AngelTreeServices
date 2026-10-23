@@ -1,6 +1,6 @@
 import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
-import { invoiceTerms } from "@/lib/documents/terms";
+import { getInvoiceTerms } from "@/lib/documents/terms";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
@@ -41,7 +41,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
       />
 
       <DocumentTerms
-        terms={invoiceTerms}
+        terms={getInvoiceTerms(invoice.document_terms_version)}
         title="Terms & Conditions - Invoices"
         variant="invoice"
       />

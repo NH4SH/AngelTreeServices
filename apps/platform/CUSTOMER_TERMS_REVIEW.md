@@ -117,3 +117,9 @@ Private reproduction scripts, synthetic HTML/email text, SQL evidence and target
 The owner authorized proposal-expiry enforcement after this review. New acceptance now checks the stored deadline after lock waits and again before saving approval; the customer page shows the matching closed state. Committed approvals, existing token/role gates, undated behavior, legacy approved-record repair and source-event deduplication are preserved. The full CRM suite, installed-schema local/staging rollback tests, native lock-wait/concurrent-approval tests, typecheck, build and local desktop/mobile inspection passed. See `PROPOSAL_EXPIRY_ENFORCEMENT.md` and `staging/PROPOSAL_EXPIRY_VERIFICATION_20261022.json` for scope and evidence.
 
 This closes finding 1 in the local candidate, not in production. Migration 117 remains deferred for targeted permanent staging installation/reconciliation. The original review evidence above is historical. No terms/defaults were changed, and findings 2–5 and the business decisions remain open.
+
+## Preservation follow-through — October 22, 2026
+
+Migration 117 is now permanently reconciled in staging and its records are pushed to main as `e956e25`; production is unchanged. The next customer-document batch preserves the current five/thirteen clauses as a fixed legacy version and binds quotes/invoices to that baseline, without rewriting words, amounts or financial behavior. Candidate 118 passed local and rollback-only staging checks; it remains local and deferred for permanent staging reconciliation. See `CUSTOMER_DOCUMENT_TERMS_PRESERVATION.md`.
+
+This addresses the engineering foundation in finding 6. It records today's renderer baseline, not proof of each past document's originally accepted wording. Findings 2–5, saved email/PDF history and the owner policy decisions above remain unchanged. Future business wording needs a new reviewed version and creation/revision workflow.

@@ -98,6 +98,10 @@
     {
       "name": "20261023015338_enforce_proposal_expiry.sql",
       "sha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230"
+    },
+    {
+      "name": "20261023030829_preserve_customer_document_terms.sql",
+      "sha256": "89ea8e617f752360a0550ff12dc4fe4c1f7208c673ec978f74edb536996f345d"
     }
   ]
 }

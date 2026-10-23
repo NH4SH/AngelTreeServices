@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "e1daae8e1998a44017de994140d6e4e8df4c9a3951041667486b426fddb3f062",
+  "typesSha256": "3fc18306ab6fdf4f6b4013e8b7e0113ecf8e6912e4bf180a36e1067e8728b3d2",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -469,6 +469,10 @@
     {
       "name": "20261023015338_enforce_proposal_expiry.sql",
       "sha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230"
+    },
+    {
+      "name": "20261023030829_preserve_customer_document_terms.sql",
+      "sha256": "89ea8e617f752360a0550ff12dc4fe4c1f7208c673ec978f74edb536996f345d"
     }
   ]
 }

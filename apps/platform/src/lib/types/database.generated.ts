@@ -6839,6 +6839,7 @@ export type Database = {
                     "billing_contact_id": string | null;
                     "created_at": string;
                     "customer_id": string | null;
+                    "document_terms_version": string;
                     "due_at": string | null;
                     "first_viewed_at": string | null;
                     "id": string;
@@ -6874,6 +6875,7 @@ export type Database = {
                     "billing_contact_id"?: string | null;
                     "created_at"?: string;
                     "customer_id"?: string | null;
+                    "document_terms_version"?: string;
                     "due_at"?: string | null;
                     "first_viewed_at"?: string | null;
                     "id"?: string;
@@ -6908,6 +6910,7 @@ export type Database = {
                     "billing_contact_id"?: string | null;
                     "created_at"?: string;
                     "customer_id"?: string | null;
+                    "document_terms_version"?: string;
                     "due_at"?: string | null;
                     "first_viewed_at"?: string | null;
                     "id"?: string;
@@ -10803,6 +10806,7 @@ export type Database = {
                     "customer_message": string | null;
                     "debris_handling": string | null;
                     "debris_handling_notes": string | null;
+                    "document_terms_version": string;
                     "edit_revision": number;
                     "estimate_schedule_event_id": string | null;
                     "estimator_employee_id": string | null;
@@ -10852,6 +10856,7 @@ export type Database = {
                     "customer_message"?: string | null;
                     "debris_handling"?: string | null;
                     "debris_handling_notes"?: string | null;
+                    "document_terms_version"?: string;
                     "edit_revision"?: number;
                     "estimate_schedule_event_id"?: string | null;
                     "estimator_employee_id"?: string | null;
@@ -10900,6 +10905,7 @@ export type Database = {
                     "customer_message"?: string | null;
                     "debris_handling"?: string | null;
                     "debris_handling_notes"?: string | null;
+                    "document_terms_version"?: string;
                     "edit_revision"?: number;
                     "estimate_schedule_event_id"?: string | null;
                     "estimator_employee_id"?: string | null;

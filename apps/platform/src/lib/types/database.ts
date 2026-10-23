@@ -288,6 +288,8 @@ export type Job = {
 };
 
 export type Quote = {
+  /** Absent on pre-118 records; renders the legacy baseline. */
+  document_terms_version?: string | null;
   edit_revision: number;
   id: string;
   job_id: string | null;
@@ -381,6 +383,8 @@ export type InvoicePortalToken = {
 };
 
 export type Invoice = {
+  /** Absent on pre-118 records; renders the legacy baseline. */
+  document_terms_version?: string | null;
   id: string;
   job_id: string;
   quote_id: string | null;

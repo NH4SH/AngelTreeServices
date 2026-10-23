@@ -58,7 +58,7 @@ export function QuoteDocument({
       ) : null}
 
       <DocumentTerms
-        terms={getQuoteTerms(quote.expires_at)}
+        terms={getQuoteTerms(quote.expires_at, quote.document_terms_version)}
         title="Terms & Conditions"
         variant="quote"
       />

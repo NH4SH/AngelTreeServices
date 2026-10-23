@@ -22,8 +22,17 @@ export function verifySources(candidate,reader=read,inventory=readdirSync(new UR
  assert.equal(candidate.version,1);assert.equal(candidate.projectRef,stagingRef);
  assert.equal(candidate.previousMigrationCount,116);assert.equal(candidate.expectedMigrationCount,117);
  assert.equal(candidate.productionReady,false);assert.equal(candidate.deployed,false);
- assert.deepEqual(candidate.migrations.map(x=>x.name),inventory,'Migration inventory changed.');
- assert.equal(inventory.length,117);assert.equal(inventory.at(-1),'20261023015338_enforce_proposal_expiry.sql');
+ const pinned=candidate.migrations.map(x=>x.name);
+ assert.equal(pinned.length,117);assert.equal(pinned.at(-1),'20261023015338_enforce_proposal_expiry.sql');
+ const later=inventory.filter(name=>!pinned.includes(name));
+ const deferred=JSON.parse(reader('supabase/staging/deferred-migrations.json'));
+ assert.equal(deferred.readyForHosting,false);
+ for(const name of later){
+  const entry=deferred.migrations.find(x=>x.name===name);
+  assert.ok(name>pinned.at(-1)&&entry,'Unreviewed later migration.');
+  assert.equal(sha(reader('supabase/migrations/'+name)),entry.sha256,'Later source bytes changed.');
+ }
+ assert.deepEqual(inventory,[...pinned,...later].sort(),'Migration inventory changed.');
  for(const f of candidate.migrations)assert.equal(sha(reader('supabase/migrations/'+f.name)),f.sha256,'Migration bytes changed: '+f.name);
  assert.equal(sha(reader('supabase/staging/proposal-expiry-snapshot-117.sql')),candidate.snapshotSqlSha256,'Snapshot query changed.');
  return candidate;

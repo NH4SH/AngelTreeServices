@@ -1,0 +1,11 @@
+{
+  "version": "legacy-2026-10-22",
+  "quote": {
+    "count": 5,
+    "sha256": "3a9d054f667f33e85a4de97431256a092d17b8c4641f47f2905d7cf5a8324562"
+  },
+  "invoice": {
+    "count": 13,
+    "sha256": "061f0675abd085dd1a583dbbfdaf87d263c2bc89c268e98954e5ede466469a6b"
+  }
+}

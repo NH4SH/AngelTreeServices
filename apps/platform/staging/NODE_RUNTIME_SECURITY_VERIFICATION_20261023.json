@@ -1,0 +1,401 @@
+{
+  "version": 1,
+  "verifiedOn": "2026-10-23",
+  "status": "local-remediation-verified-hosted-runtime-security-blocked",
+  "productionReady": false,
+  "deployedToBusinessProduction": false,
+  "keysRotated": false,
+  "branch": "codex/runtime-security-fix",
+  "applicationSourceCommit": "088f6e56ea953d764bb32bcdd6e60a7878ea76b6",
+  "basePublishedCommit": "8fa9df32c95a2e6d6a72c77422391ae7b9ca7528",
+  "unreleasedCrmChangesIncluded": false,
+  "nodeInstalls": [
+    {
+      "version": "v22.23.4",
+      "archiveSha256": "c9e1dbc748b33ed2d14f42445191ecaf14c56259c7a9a26d0042c49ec2b66428",
+      "source": "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-arm64.tar.gz",
+      "installedAt": "/Users/noelsierra/.local/opt/node-v22.23.4-darwin-arm64",
+      "priorInstallsPreserved": true
+    },
+    {
+      "version": "v24.22.1",
+      "archiveSha256": "89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7",
+      "source": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-arm64.tar.gz",
+      "installedAt": "/Users/noelsierra/.local/opt/node-v24.22.1-darwin-arm64",
+      "priorInstallsPreserved": true
+    }
+  ],
+  "dependencyGraphChanged": false,
+  "defaultGlobalNodeOrPathChanged": false,
+  "checks": {
+    "units": [
+      {
+        "node": "22.23.4",
+        "tests": 2210,
+        "pass": 2210,
+        "fail": 0,
+        "skipped": 0
+      },
+      {
+        "node": "24.22.1",
+        "tests": 2210,
+        "pass": 2210,
+        "fail": 0,
+        "skipped": 0
+      }
+    ],
+    "typecheckAndOptimizedBuildNode22": true,
+    "typecheckAndOptimizedBuildNode24": true,
+    "affectedBuildAndDevRefused": true,
+    "schemaContractUnchanged": true,
+    "localCompiledSyntheticScenarios": [
+      {
+        "name": "compiled browser artifacts contain no synthetic server or scanner credential canaries",
+        "pass": true
+      },
+      {
+        "name": "compiled startup rejects production site/database, inherited provider key and missing staging marker",
+        "pass": true
+      },
+      {
+        "name": "gate access admits compiled login/health while CRM routes still require their own login",
+        "pass": true
+      },
+      {
+        "name": "anonymous canonical/framework/function/worker routes never reach the compiled app, even after an authorized request",
+        "pass": true
+      },
+      {
+        "name": "real compiled static asset is private behind the gate and its bytes survive forwarding",
+        "pass": true
+      },
+      {
+        "name": "all five compiled workers remain unauthorized and production-origin lead intake stays denied",
+        "pass": true
+      },
+      {
+        "name": "wrong aliases and bypass headers cannot forward even an authorized perimeter session",
+        "pass": true
+      },
+      {
+        "name": "ending perimeter access clears its cookie and subsequent anonymous CRM navigation is denied",
+        "pass": true
+      }
+    ],
+    "localOutboundAttempts": 0,
+    "stagingCommandAssertions": {
+      "assertions": [
+        "anonymous cannot execute app_private.approve_quote_locked(uuid,integer,text)",
+        "anonymous cannot execute approve_quote_by_portal(text,integer)",
+        "anonymous cannot execute approve_quote(uuid,integer)",
+        "change_requested customer past deadline rejects without business/history/event changes",
+        "change_requested staff past deadline rejects without business/history/event changes",
+        "crew cannot approve a future proposal",
+        "customer committed approval survives proposal expiry without duplicate handoff",
+        "disabled owner cannot approve",
+        "draft customer past deadline rejects without business/history/event changes",
+        "draft staff past deadline rejects without business/history/event changes",
+        "expired token still denies committed-result recovery",
+        "expiry during tentative work creation rolls back quote work history and source events",
+        "future customer retains one-work-order approval",
+        "future staff retains one-work-order approval",
+        "historical approved-record repair is preserved",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "plain deadline rejection",
+        "revoked token still denies committed-result recovery",
+        "sent customer past deadline rejects without business/history/event changes",
+        "sent staff past deadline rejects without business/history/event changes",
+        "staff cannot invoke trusted customer/core entry points",
+        "staff committed approval survives proposal expiry without duplicate handoff",
+        "stale revision still denies without side effects",
+        "undated customer retains one-work-order approval",
+        "undated staff retains one-work-order approval",
+        "wrong_party token still denies committed-result recovery"
+      ],
+      "rolledBack": true,
+      "syntheticOnly": true
+    },
+    "hostedStaging": {
+      "stagingOnly": true,
+      "syntheticOnly": true,
+      "results": [
+        {
+          "name": "Anonymous requests remain outside the actual staging CRM and generated handler",
+          "passed": true
+        },
+        {
+          "name": "Existing staging access produces a private secure cookie without employee or Auth signup",
+          "passed": true
+        },
+        {
+          "name": "Compiled staging liveness and login work on the managed runtime",
+          "passed": true
+        },
+        {
+          "name": "All five internal worker routes reject unauthenticated callers before sending or processing",
+          "passed": true
+        },
+        {
+          "name": "Invalid synthetic customer links, anonymous private files and admin reads fail closed",
+          "passed": true
+        },
+        {
+          "name": "Unapproved immutable aliases and tampered gate sessions remain denied",
+          "passed": true
+        },
+        {
+          "name": "Temporary staging access can end without creating or modifying Auth accounts",
+          "passed": true
+        }
+      ],
+      "customerEmailsSent": 0,
+      "realPaymentCalls": 0,
+      "authenticatedMutationWorkersInvoked": 0
+    },
+    "hostedRuntimeSecurityPassed": false,
+    "runtimeEvidence": {
+      "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "deployId": "6adb68aaafaed79557bf7051",
+      "observedAt": 1792764308701,
+      "packagedFunctions": [
+        {
+          "name": "___netlify-server-handler",
+          "runtime": "nodejs22.x"
+        }
+      ],
+      "deployedFunctions": [
+        {
+          "name": "___netlify-server-handler",
+          "runtime": "nodejs22.x"
+        }
+      ],
+      "executionRecords": [
+        {
+          "event": "ats_runtime_security",
+          "component": "crm-server",
+          "advisory": "CVE-2026-111497",
+          "nodeVersion": "v22.23.2",
+          "patched": false,
+          "supportedForBuild": false,
+          "architecture": "x64",
+          "platform": "linux",
+          "functionName": "___netlify-server-handler",
+          "deployId": "6adb68aaafaed79557bf7051",
+          "observedLogTime": "2026-10-23T14:03:07.343Z"
+        }
+      ]
+    },
+    "localScannerImage": {
+      "node": "v22.23.4",
+      "uid": 1000,
+      "platform": "linux",
+      "architecture": "arm64",
+      "benignBrotliRoundTrip": true,
+      "imageId": "sha256:0a7a75b63bbe10f61e692ccdaadc87892e9b965676d54f05832d7937626f1468",
+      "base": {
+        "repository": "docker.io/library/node",
+        "tag": "22.23.4-bookworm-slim",
+        "digest": "sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d",
+        "platforms": [
+          {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          {
+            "architecture": "unknown",
+            "os": "unknown"
+          },
+          {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          },
+          {
+            "architecture": "unknown",
+            "os": "unknown"
+          },
+          {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          },
+          {
+            "architecture": "unknown",
+            "os": "unknown"
+          },
+          {
+            "architecture": "ppc64le",
+            "os": "linux"
+          },
+          {
+            "architecture": "unknown",
+            "os": "unknown"
+          }
+        ]
+      },
+      "productionScannerChanged": false,
+      "network": "none",
+      "rootFilesystemReadOnly": true
+    },
+    "localCompiledNode22SourceCommit": "39f53a7e43fc50236d2b7ce3e5a87e4905204f44",
+    "localCompiledNode24SourceCommit": "088f6e56ea953d764bb32bcdd6e60a7878ea76b6",
+    "laterReceiptCheckerChangesApplicationRuntimeSource": false
+  },
+  "staging": {
+    "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+    "databaseRef": "gbyhdsuiqeslgjdnbqng",
+    "latestDeployId": "6adb68aaafaed79557bf7051",
+    "functionCount": 1,
+    "scheduledFunctions": 0,
+    "actualNodeVersion": "v22.23.2",
+    "requiredFixedFloor": "v22.23.4",
+    "managedRuntimeRegion": "us-east-2",
+    "initialObservedFallbackNodeVersion": "v24.21.0",
+    "node24FixedFloor": "v24.22.1",
+    "runtimePin": {
+      "siteId": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "key": "AWS_LAMBDA_JS_RUNTIME",
+      "scopes": [
+        "builds",
+        "functions",
+        "post_processing",
+        "runtime"
+      ],
+      "secret": false,
+      "context": "all",
+      "value": "nodejs22.x",
+      "sharedVariablesUnchanged": true,
+      "productionChanged": false,
+      "reason": "Manual no-build uploads resolve function runtime in the dev context after the two-minute artifact cache expires."
+    },
+    "manualUploadIssue": "CLI27.14.2 expires the function manifest cache after two minutes; no-build uploads can repackage under default dev context. A production-only runtime override was insufficient. An all-context staging-only override plus fresh packaging selects Node22 but its managed patch is still affected.",
+    "ledgerCount": 117,
+    "catalogObjectCount": 5103,
+    "protectedDataSets": 49,
+    "ledgerCatalogPermissionsGuardAndProtectedStateUnchanged": true,
+    "automatedSendingEnabled": false,
+    "appointmentNoticesEnabled": false,
+    "recurringGenerationEnabled": false,
+    "migration118Applied": false
+  },
+  "productionArtifact": {
+    "directory": "/Users/noelsierra/Documents/Codex/2026-10-23/runtime-security-fix/production-candidate/apps/platform",
+    "sourceCommit": "088f6e56ea953d764bb32bcdd6e60a7878ea76b6",
+    "basePublishedCommit": "8fa9df32c95a2e6d6a72c77422391ae7b9ca7528",
+    "unreleasedChangesIncluded": false,
+    "nodeBuildVersion": "22.23.4",
+    "publicBuildSettingsPreserved": true,
+    "productionSecretSettingsRead": false,
+    "productionBuildNetworkAttempts": 0,
+    "publicSettingMetadataReadOnly": true,
+    "deployed": false,
+    "workerSchedules": [
+      {
+        "name": "advance-scheduled-jobs",
+        "schedule": "*/5 * * * *"
+      },
+      {
+        "name": "manager-notifications",
+        "schedule": "*/5 * * * *"
+      },
+      {
+        "name": "process-communications",
+        "schedule": "@hourly"
+      },
+      {
+        "name": "process-google-calendar",
+        "schedule": "*/5 * * * *"
+      },
+      {
+        "name": "run-system-health",
+        "schedule": "*/10 * * * *"
+      }
+    ],
+    "functions": [
+      {
+        "name": "advance-scheduled-jobs",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "a27df501ba6c02556d82c3aa14ee3a0e1a6a66020b0151fc214158109a5a0177"
+      },
+      {
+        "name": "manager-notifications",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "7cb09d4e0be7b4a96060b09719c15b3bf804a2455e740329d600830fdc367c26"
+      },
+      {
+        "name": "process-communications",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "8ff9d7818a19535c482252eb7c61a0bb0a07909a44c3e67d183c4117b3038da5"
+      },
+      {
+        "name": "process-google-calendar",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "4f173fab95deb55e8c572e5de7c4bf4040d2872300204debf03eaa6a40d5e8f1"
+      },
+      {
+        "name": "run-system-health",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "91f11407f09bb72378a70fbd370f47fe1cfe960f53f857bc4049bc31904ba9a2"
+      },
+      {
+        "name": "___netlify-server-handler",
+        "runtime": "nodejs22.x",
+        "bundleSha256": "67c1eb5b1a3b082a2a479009f8103a750896283581fc275647c9ab4135382543"
+      }
+    ]
+  },
+  "hostedPreservation": {
+    "stagingDeployId": "6adb68aaafaed79557bf7051",
+    "productionDeployId": "6adab6d33b9c3096a37ad0a1",
+    "productionUnchanged": true,
+    "originalStagingVariableCount": 11,
+    "originalStagingVariablesUnchanged": true,
+    "newVariableOnly": "AWS_LAMBDA_JS_RUNTIME",
+    "newVariableValue": "nodejs22.x",
+    "newVariableContext": "all",
+    "sharedVariablesUnchanged": true,
+    "globalCliSelectionUnchanged": true,
+    "keysRotated": false
+  },
+  "sourcePreservation": {
+    "basePublishedCommit": "8fa9df32c95a2e6d6a72c77422391ae7b9ca7528",
+    "runtimeBranch": "codex/runtime-security-fix",
+    "unreleasedBranchCommit": "3f12f24",
+    "unreleasedBranchUnchanged": true,
+    "businessUiAndSchemaPathsUnchanged": true,
+    "productionArtifactApplicationSourceMatches": true,
+    "applicationSourceFileCount": 613
+  },
+  "secretsAndSideEffects": {
+    "customerDataUsed": false,
+    "customerEmailsSent": 0,
+    "realPaymentsTriggered": 0,
+    "providerBusinessRequests": 0,
+    "authenticatedMutationWorkersInvoked": 0,
+    "newAuthenticationGrants": false,
+    "productionSettingWrites": 0,
+    "productionPublicSettingMetadataReadOnly": true,
+    "productionServerSecretsReadForBuild": false,
+    "supportContacted": false,
+    "homeScannerChanged": false
+  },
+  "remaining": {
+    "managedNodePatchRollout": "Require Netlify availability/confirmation and fresh staging actual execution evidence for Node22.23.4+ before production activation.",
+    "productionVerification": "Actual production patch remains unverified. After separate approval, all six functions require matching deployment/runtime evidence; observe scheduled workers passively.",
+    "scanner": "Replacement fixed bridge image is prepared locally; home production bridge/host updates require separate approval.",
+    "framework": "Next16.3.8 remains unchanged. Netlify October14 advisory recommends16.4.1; bounded source search found no ImageResponse/use-cache/cacheComponents usage but Server Actions are present. Separate framework security update recommended.",
+    "unreleasedWork": "Migration118 reconciliation and all other unreleased CRM work are preserved separately."
+  },
+  "limitations": [
+    "No exploit payload or compromise investigation was performed.",
+    "Read-only receipt verification checks consistency/freshness of authenticated API/log evidence supplied by the caller; it does not authenticate arbitrary input provenance.",
+    "The staging server is functional but does not pass the Node advisory security gate. Neither successful builds nor major-version labels establish host patching.",
+    "No support note was sent, no production deployment was attempted and no key rotation was performed."
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/runtime-security-fix",
+  "supportNote": "/Users/noelsierra/Documents/Codex/2026-10-23/runtime-security-fix/NETLIFY_RUNTIME_PATCH_SUPPORT_NOTE.md"
+}

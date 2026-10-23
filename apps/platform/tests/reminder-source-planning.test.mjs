@@ -54,13 +54,13 @@ for(const table of ['quotes','invoices']){
     const g=fixture(table,401,{sourceUpsertFault:{table,at:2,mode:'error'}});assert.equal((await g.followups()).sourceReconciled,false);assert.equal(g.acks,0);
   });
   test(table+': deleting an earlier record cannot shift later records out of view',async()=>{
-    const f=fixture(table,401,{onSourceRead({tables,read}){if(read===1)tables[table]=tables[table].filter(r=>r.id!==id(1));}});
+    const f=fixture(table,401,{onSourceRead({tables,table:readTable,read}){if(readTable===table&&read===1)tables[table]=tables[table].filter(r=>r.id!==id(1));}});
     assert.equal((await f.run()).error,null);assert.equal(f.upserts.length,802);
     assert.ok(f.upserts.some(r=>r.quote_id===id(401)||r.invoice_id===id(401)));
   });
   test(table+': source-page budget expiry is visible without writes',async()=>{
     const now=Date.now;let elapsed=0;Date.now=()=>now()+elapsed;
-    try{const f=fixture(table,401,{onSourceRead({read}){if(read===1)elapsed=6000;}});assert.ok((await f.run()).error);assert.equal(f.upserts.length,0);}
+    try{const f=fixture(table,401,{onSourceRead({table:readTable,read}){if(readTable===table&&read===1)elapsed=6000;}});assert.ok((await f.run()).error);assert.equal(f.upserts.length,0);}
     finally{Date.now=now;}
   });
   test(table+': master and family OFF switches preserve existing behavior',async()=>{

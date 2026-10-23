@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-23",
+  "mainThrough": "5005e92",
+  "previousReminderFix": "9c57df65142e4569dc08a2f3e2021289e1481270",
+  "previousReminderFixPushed": true,
+  "concurrentWebsiteCommitPreserved": "0921c20",
+  "featureBranch": "codex/visit-reminder-planning",
+  "featurePushed": false,
+  "implementation": {
+    "sourcePageSize": 200,
+    "writeBatchSize": 200,
+    "visitSourceBudgetMs": 5000,
+    "visitWriteBudgetMs": 5000,
+    "coverageBudgetMs": 5000,
+    "sequentialCleanupUnchangedAndOutsideBudgets": true,
+    "completeReadsBeforeFamilyCleanupAndWrites": true,
+    "orderedUuidCursors": true,
+    "coveragePresenceAndPositiveSuppressionPasses": true,
+    "duplicateCoverageSetSemantics": true,
+    "earliestWorkVisitAcrossAllPages": true,
+    "noNewMigration": true
+  },
+  "regression": {
+    "passed": 2560,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 25
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "local": {
+    "migrationCount": 120,
+    "nativeAssertions": 8,
+    "syntheticScheduleEvents": 1003,
+    "syntheticAppointments": 1003,
+    "coverageRows": 1003,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "migrationCount": 120,
+    "nativeAssertions": 8,
+    "syntheticScheduleEvents": 1003,
+    "syntheticAppointments": 1003,
+    "coverageRows": 1003,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "observedAt": 1792797200655,
+    "catalogObjects": 5110,
+    "protectedRecordSets": 49,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "exact120MaintenanceVerifierPassed": true,
+    "temporaryUncommittedNoticeSwitchRolledBack": true
+  },
+  "nativeInputScenarios": {
+    "scenarios": 38,
+    "results": [
+      {
+        "environment": "local",
+        "family": "schedule_events",
+        "scenarios": 8,
+        "previousCappedSuccessReproduced": true,
+        "all1001SourcesPrepared": true,
+        "healthyPayloadsAndTimingIdentical": true,
+        "readFailurePreventsClaims": true,
+        "recoveryPendingUntilComplete": true,
+        "partialAndLostWritesResumeWithHistoryPreserved": true,
+        "concurrentSameKeyPreparation": true
+      },
+      {
+        "environment": "local",
+        "family": "appointments",
+        "scenarios": 8,
+        "previousCappedSuccessReproduced": true,
+        "all1001SourcesPrepared": true,
+        "healthyPayloadsAndTimingIdentical": true,
+        "readFailurePreventsClaims": true,
+        "recoveryPendingUntilComplete": true,
+        "partialAndLostWritesResumeWithHistoryPreserved": true,
+        "concurrentSameKeyPreparation": true
+      },
+      {
+        "environment": "local",
+        "family": "notice_coverage",
+        "scenarios": 3,
+        "all1003NativeCoverageRowsHandled": true,
+        "canonicalFalseAndTrueSuppressionCombined": true,
+        "workFirstVisitPreserved": true,
+        "partialCoverageBlocksClaimsAndAck": true
+      },
+      {
+        "environment": "staging",
+        "family": "schedule_events",
+        "scenarios": 8,
+        "previousCappedSuccessReproduced": true,
+        "all1001SourcesPrepared": true,
+        "healthyPayloadsAndTimingIdentical": true,
+        "readFailurePreventsClaims": true,
+        "recoveryPendingUntilComplete": true,
+        "partialAndLostWritesResumeWithHistoryPreserved": true,
+        "concurrentSameKeyPreparation": true
+      },
+      {
+        "environment": "staging",
+        "family": "appointments",
+        "scenarios": 8,
+        "previousCappedSuccessReproduced": true,
+        "all1001SourcesPrepared": true,
+        "healthyPayloadsAndTimingIdentical": true,
+        "readFailurePreventsClaims": true,
+        "recoveryPendingUntilComplete": true,
+        "partialAndLostWritesResumeWithHistoryPreserved": true,
+        "concurrentSameKeyPreparation": true
+      },
+      {
+        "environment": "staging",
+        "family": "notice_coverage",
+        "scenarios": 3,
+        "all1003NativeCoverageRowsHandled": true,
+        "canonicalFalseAndTrueSuppressionCombined": true,
+        "workFirstVisitPreserved": true,
+        "partialCoverageBlocksClaimsAndAck": true
+      }
+    ],
+    "productionChanged": false,
+    "realProviderCalls": 0
+  },
+  "realLocalApi": {
+    "actualLocalSupabaseClientAndPostgrest": true,
+    "previousPreparedCount": 4000,
+    "currentPreparedCount": 4004,
+    "sourcePagesPerFamily": 7,
+    "sourceAndWriteBatchLimit": 200,
+    "writeBatches": 22,
+    "actualCoverageRpcPages": 18,
+    "canonicalCoverageExercised": true,
+    "existingHistoryAndStoredSettingsUnchanged": true,
+    "localSyntheticRecordsOnly": true,
+    "realProviderCalls": 0,
+    "completePassDurationMs": 2789
+  },
+  "preservation": {
+    "all120MigrationSourcesTypesManifestAndDependenciesUnchanged": true,
+    "proposalInvoicePaymentAndCheckedCleanupByteIdentical": true,
+    "financialCommandsAmountsAndProviderIdentityUnchanged": true,
+    "recipientsTimingSourceVersionsAndStableKeysPreserved": true,
+    "nativeSendTimeSuppressionRlsAndPermissionsUnchanged": true,
+    "historyAndPriorEmployeeDashboardWorkPreserved": true,
+    "runtimeBranch": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sources": [
+    {
+      "path": "apps/platform/src/lib/communications/queue.ts",
+      "sha256": "41b03f76f966c1a35407a8f850d167c5914af986c9cd429b963b30d9ef57fc04"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-fixture.mjs",
+      "sha256": "d06054d157284e9793fea7f6030d78e4c54e6eed46efb4933c874e471b34e8fd"
+    },
+    {
+      "path": "apps/platform/tests/appointment-notices.test.mjs",
+      "sha256": "c5cab4f76e7ed444cc36ac861358566f912c7f93dce7f01130507264a37eb493"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-sync-safety.test.mjs",
+      "sha256": "14f58562538ee1657a52031a05a2efe876734b24702a4267c79e5e5009a4c654"
+    },
+    {
+      "path": "apps/platform/tests/reminder-source-planning.test.mjs",
+      "sha256": "8dc5b64fe6099a4a8ca0af4b28914455ea9640ed88f1d696a5ec5580f06adcbb"
+    },
+    {
+      "path": "apps/platform/tests/visit-reminder-planning.test.mjs",
+      "sha256": "e9b4a39bb26137a6b21eb45611da82b60d82ba171a3894df3d22edaa43fa1042"
+    },
+    {
+      "path": "supabase/verification/visit_reminder_planning.sql",
+      "sha256": "71f31196ae40ef0bd6ad8e50a2be617500867536c419e07334cc008ccc11597b"
+    }
+  ],
+  "boundaries": {
+    "applicationDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "hostedMigrationApplied": false,
+    "persistentHostedSettingChanged": false,
+    "realProviderCalls": 0,
+    "customerEmails": 0,
+    "keysRotated": false,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/visit-reminder-planning",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_visitplan_cfcbdaf5495e",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  }
+}

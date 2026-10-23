@@ -19,7 +19,7 @@ export function appointmentQueueFixture(options = {}) {
     updated_at:'2000-01-01T00:00:00.000Z', ...options.settings,
   };
   const job = {id:'synthetic-job', lead_disposition:'active', customers:{id:'synthetic-customer', email:'synthetic@example.invalid', status:'active'}, organizations:null};
-  const source = {id:'synthetic-visit', job_id:job.id, event_type:'estimate', appointment_type:'estimate', status:'scheduled', starts_at:startsAt, created_at:new Date().toISOString(), jobs:job};
+  const source = {id:'10000000-0000-4000-8000-000000000001', job_id:job.id, event_type:'estimate', appointment_type:'estimate', status:'scheduled', starts_at:startsAt, created_at:new Date().toISOString(), jobs:job};
   const base = {[column]:source.id, source_version:'2035-01-14T14:00:00.000Z', status:'pending', communication_type:'estimate_reminder', scheduled_for:startsAt};
   const rows = [
     {id:'obsolete', ...base}, {id:'legacy', ...base, source_version:null},
@@ -30,15 +30,32 @@ export function appointmentQueueFixture(options = {}) {
   const tables = {communication_settings:[settings], schedule_events:[], appointments:[], customer_communications:rows};
   tables[sourceTable] = [source];
   if (options.tables) for (const [name, data] of Object.entries(options.tables)) tables[name] = structuredClone(data);
-  let fault = options.fault, acks = 0, cleanupCalls = 0, paymentReads = 0, paymentWrites = 0;
+  let fault = options.fault, acks = 0, cleanupCalls = 0, paymentReads = 0, paymentWrites = 0, coverageReads = 0;
   const sourceReads = {}, sourceWrites = {};
   const calls = [], upserts = [];
   const delivery = {id:crypto.randomUUID(), state:'accepted', repair_state:'complete', history_recorded:true, provider_message_id:'synthetic-accepted', followup_sync_pending:true};
   const db = {
-    async rpc(name) {
+    rpc(name) {
       calls.push({rpc:name});
       if (name === 'claim_due_customer_communications') return {data:[], error:null};
-      if (name === 'get_appointment_notice_coverage') return {data:options.coverage ?? [], error:null};
+      if (name === 'get_appointment_notice_coverage') {
+        const filters=[],names=[];let cap=Infinity;
+        const q={eq(k,v){names.push([k,v]);filters.push(r=>r[k]===v);return q;},gt(k,v){names.push([k,v]);filters.push(r=>r[k]>v);return q;},order(k){assert.equal(k,'source_id');return q;},limit(n){cap=n;return q;},abortSignal(s){assert.ok(s instanceof AbortSignal);return q;},then(resolve,reject){return execute().then(resolve,reject);}};
+        async function execute(){
+          coverageReads++;calls.push({coverageRead:coverageReads,filters:names,cap});
+          options.onCoverageRead?.({read:coverageReads});
+          let data=(options.coverage??[]).filter(r=>filters.every(f=>f(r))).sort((a,b)=>a.source_id.localeCompare(b.source_id)).slice(0,Math.min(cap,options.coverageRowCap??Infinity));
+          const fault=options.coverageReadFault?.at===coverageReads?options.coverageReadFault.mode:null;
+          if(fault==='throw')throw Error('PRIVATE_SYNTHETIC_COVERAGE');
+          if(fault==='error')return{data:null,error:{message:'PRIVATE_SYNTHETIC_COVERAGE'}};
+          if(fault==='null')data=null;
+          if(fault==='repeat')data=[options.coverage[0]];
+          if(fault==='reverse')data.reverse();
+          if(fault==='invalid')data=[{source_kind:'schedule_event',source_id:'invalid'}];
+          return{data,error:null};
+        }
+        return q;
+      }
       if (name === 'get_outbound_delivery') return {data:structuredClone(delivery), error:null};
       if (name === 'acknowledge_outbound_followup') { acks++; delivery.followup_sync_pending = false; return {data:true, error:null}; }
       assert.fail('Unexpected RPC: ' + name);
@@ -75,7 +92,7 @@ export function appointmentQueueFixture(options = {}) {
         let targets = (tables[table] ?? []).filter(r => filters.every(f => f(r)));
         if (sort) targets.sort((a,b)=>String(a[sort.key]).localeCompare(String(b[sort.key]))*(sort.ascending?1:-1));
         const paymentRead = table === 'payments' && operation === 'read';
-        const sourceRead = operation === 'read' && ['quotes','invoices'].includes(table);
+        const sourceRead = operation === 'read' && ['quotes','invoices','schedule_events','appointments'].includes(table);
         if (sourceRead) sourceReads[table]=(sourceReads[table]??0)+1;
         if (paymentRead) paymentReads++;
         targets = targets.slice(0,Math.min(cap,paymentRead?options.paymentRowCap??Infinity:options.sourceRowCaps?.[table]??Infinity));
@@ -102,7 +119,7 @@ export function appointmentQueueFixture(options = {}) {
         if (operation === 'update') targets.forEach(r => Object.assign(r,values));
         if (failing) return fail(); // Lost acknowledgement after a successful write.
         if (operation === 'upsert') {
-          const family=values[0]?.quote_id?'quotes':values[0]?.invoice_id&&!values[0]?.payment_id?'invoices':null;
+          const family=values[0]?.quote_id?'quotes':values[0]?.invoice_id&&!values[0]?.payment_id?'invoices':values[0]?.schedule_event_id?'schedule_events':values[0]?.appointment_id?'appointments':null;
           if (family) sourceWrites[family]=(sourceWrites[family]??0)+1;
           const sourceWriteFault=family&&options.sourceUpsertFault?.table===family&&options.sourceUpsertFault.at===sourceWrites[family]?options.sourceUpsertFault.mode:null;
           if (sourceWriteFault==='throw') throw Error('PRIVATE_SYNTHETIC_SOURCE_WRITE');
@@ -142,7 +159,7 @@ export function appointmentQueueFixture(options = {}) {
     get acks() { return acks; },
     setFault(value) { fault = value; },
     clearPaymentFaults() { options.paymentReadFault=null; options.paymentUpsertFault=null; },
-    clearSourceFaults() { options.sourceReadFault=null; options.sourceUpsertFault=null; },
+    clearSourceFaults() { options.sourceReadFault=null; options.sourceUpsertFault=null; options.coverageReadFault=null; },
     run:() => queue.syncAutomatedCommunications(db),
     invoice:(id) => queue.syncInvoicePaymentCommunications(db,id),
     worker:() => processor.processDueCommunications(1,{db,send:forbidden}),

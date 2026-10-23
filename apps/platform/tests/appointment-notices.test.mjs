@@ -3,6 +3,7 @@ import {renderCustomerAppointmentEmail} from '../src/lib/email/customer-appointm
 import {renderCustomerPaymentReceiptHtml} from '../src/lib/email/customer-payment-receipt-layout.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {appointmentQueueFixture} from './appointment-queue-fixture.mjs';
 import {load,memoryDB} from './pr10-test-helpers.mjs';
 import {formatBusinessDate} from '../src/lib/business-time.ts';
 import {renderCustomerReminderEmailHtml} from '../src/lib/email/customer-reminder-layout.ts';
@@ -48,14 +49,12 @@ test('customer templates distinguish visit cancellation from a whole job and sho
 });
 
 function queueFixture({enabled=true,coverage=[],failure=false}={}) {
- const inserted=[],calls=[],now=new Date().toISOString(),settings={automated_sending_enabled:true,appointment_change_notices_enabled:enabled,estimate_confirmation_enabled:true,estimate_reminder_enabled:true,estimate_reminder_hours_before:24,updated_at:'2000-01-01T00:00:00Z'};
- const jobs={id:'job',lead_disposition:'active',customers:{id:'customer',email:'notice@example.invalid',status:'active'},organizations:null};
- const db={rpc:async name=>{calls.push(name);return{data:coverage,error:failure?{code:'XX000'}:null};},from(table){let op='read',single=false;const q={select(){return q;},eq(){return q;},in(){return q;},not(){return q;},gt(){return q;},gte(){return q;},lte(){return q;},or(){return q;},update(){op='update';return q;},upsert(rows){inserted.push(...rows);op='insert';return q;},maybeSingle(){single=true;return execute();},then(resolve,reject){return execute().then(resolve,reject);}};function execute(){const data=op!=='read'?[]:table==='communication_settings'?settings:table==='schedule_events'?[{id:'visit',job_id:'job',event_type:'estimate',starts_at:'2035-01-01T13:00:00Z',created_at:now,jobs}]:[];return Promise.resolve({data:single?data:data,error:null});}return q;}};
- const queue=load('../src/lib/communications/queue.ts',{'server-only':{}});return{calls,inserted,run:()=>queue.syncAutomatedCommunications(db)};
+ const f=appointmentQueueFixture({settings:{appointment_change_notices_enabled:enabled},coverage,coverageReadFault:failure?{at:1,mode:'error'}:null});
+ return{inserted:f.upserts,calls:f.calls,run:f.run};
 }
 test('polling omits replaced confirmations and nearby reminders; coverage failures stop the batch',async()=>{
- const held=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'visit',suppress_reminder:true}]});assert.equal((await held.run()).error,null);assert.equal(held.inserted.length,0);
- const later=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'visit',suppress_reminder:false}]});await later.run();assert.deepEqual(later.inserted.map(r=>r.communication_type),['estimate_reminder']);
+ const held=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'10000000-0000-4000-8000-000000000001',suppress_reminder:true}]});assert.equal((await held.run()).error,null);assert.equal(held.inserted.length,0);
+ const later=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'10000000-0000-4000-8000-000000000001',suppress_reminder:false}]});await later.run();assert.deepEqual(later.inserted.map(r=>r.communication_type),['estimate_reminder']);
  const failed=queueFixture({failure:true});assert.ok((await failed.run()).error);assert.equal(failed.inserted.length,0);
- const disabled=queueFixture({enabled:false});await disabled.run();assert.equal(disabled.calls.length,0);assert.equal(disabled.inserted.length,2);
+ const disabled=queueFixture({enabled:false});await disabled.run();assert.equal(disabled.calls.some(c=>c.rpc),false);assert.equal(disabled.inserted.length,2);
 });

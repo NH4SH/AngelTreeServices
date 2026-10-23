@@ -76,7 +76,7 @@ for (const kind of ['schedule_event','appointment']) {
   test(kind + ': a later visit failure retains earlier cleanup but withholds the buffered family', async () => {
     const f = appointmentQueueFixture({kind,fault:'error',failCleanupAt:2});
     const first = f.tables[f.sourceTable][0];
-    const second = {...first,id:'second-visit',starts_at:new Date(Date.parse(first.starts_at) + 24 * 60 * 60_000).toISOString()};
+    const second = {...first,id:'10000000-0000-4000-8000-000000000002',starts_at:new Date(Date.parse(first.starts_at) + 24 * 60 * 60_000).toISOString()};
     f.tables[f.sourceTable].push(second);
     assert.ok((await f.run()).error);
     assert.equal(f.upserts.length,0);
@@ -92,7 +92,7 @@ for (const kind of ['schedule_event','appointment']) {
 
 test('coverage suppression and the automatic-sending OFF switch retain existing behavior', async () => {
   for (const kind of ['schedule_event','appointment']) {
-    const held = appointmentQueueFixture({kind,settings:{appointment_change_notices_enabled:true},coverage:[{source_kind:kind,source_id:'synthetic-visit',suppress_reminder:true}]});
+    const held = appointmentQueueFixture({kind,settings:{appointment_change_notices_enabled:true},coverage:[{source_kind:kind,source_id:'10000000-0000-4000-8000-000000000001',suppress_reminder:true}]});
     assert.equal((await held.run()).error,null);
     assert.equal(held.upserts.length,0);
     const off = appointmentQueueFixture({kind,fault:'error',settings:{automated_sending_enabled:false}});

@@ -74,9 +74,11 @@ export async function syncAutomatedCommunications(supabase: SupabaseClient) {
 
   let coverage: NoticeCoverage[] = [];
   if (settings.appointment_change_notices_enabled) {
-    const result = await supabase.rpc("get_appointment_notice_coverage");
-    if (result.error || !Array.isArray(result.data)) return { created: 0, error: "Visit update coverage could not be checked." };
-    coverage = result.data as NoticeCoverage[];
+    try {
+      coverage = await readNoticeCoverage(supabase);
+    } catch {
+      return { created: 0, error: "Visit update coverage could not be checked." };
+    }
   }
   const results = await Promise.all([
     syncScheduleEvents(supabase, settings, coverage),
@@ -286,129 +288,180 @@ async function syncInvoices(supabase: SupabaseClient, settings: CommunicationSet
 
 type NoticeCoverage = { source_kind: "schedule_event" | "appointment"; source_id: string; suppress_reminder: boolean };
 
+// Coverage is a set, not a unique row per source: canonical schedule links can
+// repeat an appointment. Read presence and positive suppression separately so a
+// page ending inside duplicate IDs cannot hide a later true suppression value.
+async function readNoticeCoverage(supabase: SupabaseClient): Promise<NoticeCoverage[]> {
+  const deadline = Date.now() + 5_000;
+  const covered = new Map<string, NoticeCoverage>();
+  for (const kind of ["schedule_event", "appointment"] as const) {
+    for (const suppressOnly of [false, true]) {
+      let after: string | null = null;
+      while (true) {
+        if (Date.now() >= deadline) throw Error("Visit coverage timed out");
+        let query = supabase.rpc("get_appointment_notice_coverage")
+          .eq("source_kind", kind).order("source_id").limit(200);
+        if (suppressOnly) query = query.eq("suppress_reminder", true);
+        if (after) query = query.gt("source_id", after);
+        const result = await query.abortSignal(AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+        if (result.error || !Array.isArray(result.data) || result.data.length > 200) throw Error("Visit coverage unavailable");
+        if (!result.data.length) break;
+        let previous: string | null = after;
+        for (const row of result.data as NoticeCoverage[]) {
+          const id = row?.source_id;
+          if (row?.source_kind !== kind || typeof id !== "string" || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id)
+            || (after !== null && id <= after) || (previous !== null && id < previous)
+            || (suppressOnly && row.suppress_reminder !== true)) throw Error("Visit coverage did not advance");
+          previous = id;
+          const key = `${kind}:${id}`;
+          if (!covered.has(key) || suppressOnly) covered.set(key, { source_kind: kind, source_id: id, suppress_reminder: suppressOnly });
+        }
+        after = previous;
+      }
+    }
+  }
+  return [...covered.values()];
+}
+
 async function syncScheduleEvents(supabase: SupabaseClient, settings: CommunicationSettings, coverage: NoticeCoverage[]) {
   const now = new Date().toISOString();
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
-    .from("schedule_events")
-    .select("id, event_type, status, starts_at, ends_at, created_at, updated_at, job_id, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, lead_disposition, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
-    .in("event_type", ["estimate", "job", "maintenance", "emergency"])
-    .in("status", ["scheduled", "confirmed"])
-    .not("job_id", "is", null)
-    .gt("starts_at", now)
-    .lte("starts_at", through);
+  const unavailable = "Visit reminders could not be prepared. Review the queue before retrying.";
+  try {
+    const data = await readReminderSources((after, signal) => {
+      let query = supabase
+        .from("schedule_events")
+        .select("id, event_type, status, starts_at, ends_at, created_at, updated_at, job_id, jobs:jobs!schedule_events_job_id_fkey(id, customer_id, organization_id, lead_disposition, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+        .in("event_type", ["estimate", "job", "maintenance", "emergency"])
+        .in("status", ["scheduled", "confirmed"])
+        .not("job_id", "is", null)
+        .gt("starts_at", now)
+        .lte("starts_at", through)
+        .order("id").limit(200);
+      if (after) query = query.gt("id", after);
+      return query.abortSignal(signal);
+    }, Date.now() + 5_000);
 
-  if (error) return { created: 0, error: error.message };
+    const queue: QueueInput[] = [];
+    const firstWorkEventByJob = new Map<string, string>();
+    for (const event of [...(data ?? [])].filter((item) => item.event_type === "job" && item.job_id).sort((left, right) => left.starts_at.localeCompare(right.starts_at))) {
+      if (!firstWorkEventByJob.has(event.job_id!)) firstWorkEventByJob.set(event.job_id!, event.id);
+    }
+    for (const event of data ?? []) {
+      if (event.event_type === "job" && event.job_id && firstWorkEventByJob.get(event.job_id) !== event.id) continue;
+      const job = one<any>(event.jobs);
+      if (job?.lead_disposition && job.lead_disposition !== "active") continue;
+      const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
+      if (!job || !party) continue;
 
-  const queue: QueueInput[] = [];
-  const firstWorkEventByJob = new Map<string, string>();
-  for (const event of [...(data ?? [])].filter((item) => item.event_type === "job" && item.job_id).sort((left, right) => left.starts_at.localeCompare(right.starts_at))) {
-    if (!firstWorkEventByJob.has(event.job_id!)) firstWorkEventByJob.set(event.job_id!, event.id);
+      if (!await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at)) {
+        return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+      }
+      const isEstimate = event.event_type === "estimate";
+      const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
+      const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
+      const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
+      const prefix = isEstimate ? "estimate" : "work";
+
+      const covered = coverage.find(item => item.source_kind === "schedule_event" && item.source_id === event.id);
+      if (!covered && confirmationEnabled && event.created_at >= settings.updated_at) {
+        queue.push(buildQueueInput({
+          communicationType: `${prefix}_confirmation` as CommunicationType,
+          party,
+          idempotencyKey: `auto:schedule-event:${event.id}:confirmation:${event.starts_at}`,
+          jobId: job.id,
+          reminderStage: "confirmation",
+          scheduleEventId: event.id,
+          scheduledFor: new Date().toISOString(),
+          sourceVersion: event.starts_at,
+        }));
+      }
+
+      if (reminderEnabled && !covered?.suppress_reminder) {
+        queue.push(buildQueueInput({
+          communicationType: `${prefix}_reminder` as CommunicationType,
+          party,
+          idempotencyKey: `auto:schedule-event:${event.id}:reminder:${event.starts_at}`,
+          jobId: job.id,
+          reminderStage: "reminder",
+          scheduleEventId: event.id,
+          scheduledFor: notBeforeNow(addHours(event.starts_at, -hoursBefore)),
+          sourceVersion: event.starts_at,
+        }));
+      }
+    }
+
+    return insertReminderRows(supabase, queue, Date.now() + 5_000, unavailable);
+  } catch {
+    return { created: 0, error: unavailable };
   }
-  for (const event of data ?? []) {
-    if (event.event_type === "job" && event.job_id && firstWorkEventByJob.get(event.job_id) !== event.id) continue;
-    const job = one<any>(event.jobs);
-    if (job?.lead_disposition && job.lead_disposition !== "active") continue;
-    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
-    if (!job || !party) continue;
-
-    if (!await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at)) {
-      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
-    }
-    const isEstimate = event.event_type === "estimate";
-    const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
-    const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
-    const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
-    const prefix = isEstimate ? "estimate" : "work";
-
-    const covered = coverage.find(item => item.source_kind === "schedule_event" && item.source_id === event.id);
-    if (!covered && confirmationEnabled && event.created_at >= settings.updated_at) {
-      queue.push(buildQueueInput({
-        communicationType: `${prefix}_confirmation` as CommunicationType,
-        party,
-        idempotencyKey: `auto:schedule-event:${event.id}:confirmation:${event.starts_at}`,
-        jobId: job.id,
-        reminderStage: "confirmation",
-        scheduleEventId: event.id,
-        scheduledFor: new Date().toISOString(),
-        sourceVersion: event.starts_at,
-      }));
-    }
-
-    if (reminderEnabled && !covered?.suppress_reminder) {
-      queue.push(buildQueueInput({
-        communicationType: `${prefix}_reminder` as CommunicationType,
-        party,
-        idempotencyKey: `auto:schedule-event:${event.id}:reminder:${event.starts_at}`,
-        jobId: job.id,
-        reminderStage: "reminder",
-        scheduleEventId: event.id,
-        scheduledFor: notBeforeNow(addHours(event.starts_at, -hoursBefore)),
-        sourceVersion: event.starts_at,
-      }));
-    }
-  }
-
-  return insertQueueRows(supabase, queue);
 }
 
 async function syncAppointments(supabase: SupabaseClient, settings: CommunicationSettings, coverage: NoticeCoverage[]) {
   const now = new Date().toISOString();
   const through = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
-    .from("appointments")
-    .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
-    .in("appointment_type", ["estimate", "job", "maintenance"])
-    .in("status", ["scheduled", "confirmed"])
-    .gt("starts_at", now)
-    .lte("starts_at", through);
+  const unavailable = "Visit reminders could not be prepared. Review the queue before retrying.";
+  try {
+    const data = await readReminderSources((after, signal) => {
+      let query = supabase
+        .from("appointments")
+        .select("id, appointment_type, status, starts_at, created_at, updated_at, job_id, jobs(id, customer_id, organization_id, customers:customers!jobs_customer_id_fkey(id, email, organization_id, status), organizations(id, billing_email, status), onsite_contact:organization_contacts!jobs_onsite_contact_id_fkey(email, is_active), property_contact:organization_contacts!jobs_property_manager_contact_id_fkey(email, is_active))")
+        .in("appointment_type", ["estimate", "job", "maintenance"])
+        .in("status", ["scheduled", "confirmed"])
+        .gt("starts_at", now)
+        .lte("starts_at", through)
+        .order("id").limit(200);
+      if (after) query = query.gt("id", after);
+      return query.abortSignal(signal);
+    }, Date.now() + 5_000);
 
-  if (error) return { created: 0, error: error.message };
+    const queue: QueueInput[] = [];
+    for (const appointment of data ?? []) {
+      const job = one<any>(appointment.jobs);
+      const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
+      if (!job || !party) continue;
 
-  const queue: QueueInput[] = [];
-  for (const appointment of data ?? []) {
-    const job = one<any>(appointment.jobs);
-    const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
-    if (!job || !party) continue;
+      if (!await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at)) {
+        return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+      }
+      const isEstimate = appointment.appointment_type === "estimate";
+      const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
+      const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
+      const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
+      const prefix = isEstimate ? "estimate" : "work";
 
-    if (!await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at)) {
-      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+      const covered = coverage.find(item => item.source_kind === "appointment" && item.source_id === appointment.id);
+      if (!covered && confirmationEnabled && appointment.created_at >= settings.updated_at) {
+        queue.push(buildQueueInput({
+          appointmentId: appointment.id,
+          communicationType: `${prefix}_confirmation` as CommunicationType,
+          party,
+          idempotencyKey: `auto:appointment:${appointment.id}:confirmation:${appointment.starts_at}`,
+          jobId: job.id,
+          reminderStage: "confirmation",
+          scheduledFor: new Date().toISOString(),
+          sourceVersion: appointment.starts_at,
+        }));
+      }
+
+      if (reminderEnabled && !covered?.suppress_reminder) {
+        queue.push(buildQueueInput({
+          appointmentId: appointment.id,
+          communicationType: `${prefix}_reminder` as CommunicationType,
+          party,
+          idempotencyKey: `auto:appointment:${appointment.id}:reminder:${appointment.starts_at}`,
+          jobId: job.id,
+          reminderStage: "reminder",
+          scheduledFor: notBeforeNow(addHours(appointment.starts_at, -hoursBefore)),
+          sourceVersion: appointment.starts_at,
+        }));
+      }
     }
-    const isEstimate = appointment.appointment_type === "estimate";
-    const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
-    const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
-    const hoursBefore = isEstimate ? settings.estimate_reminder_hours_before : settings.work_reminder_hours_before;
-    const prefix = isEstimate ? "estimate" : "work";
 
-    const covered = coverage.find(item => item.source_kind === "appointment" && item.source_id === appointment.id);
-    if (!covered && confirmationEnabled && appointment.created_at >= settings.updated_at) {
-      queue.push(buildQueueInput({
-        appointmentId: appointment.id,
-        communicationType: `${prefix}_confirmation` as CommunicationType,
-        party,
-        idempotencyKey: `auto:appointment:${appointment.id}:confirmation:${appointment.starts_at}`,
-        jobId: job.id,
-        reminderStage: "confirmation",
-        scheduledFor: new Date().toISOString(),
-        sourceVersion: appointment.starts_at,
-      }));
-    }
-
-    if (reminderEnabled && !covered?.suppress_reminder) {
-      queue.push(buildQueueInput({
-        appointmentId: appointment.id,
-        communicationType: `${prefix}_reminder` as CommunicationType,
-        party,
-        idempotencyKey: `auto:appointment:${appointment.id}:reminder:${appointment.starts_at}`,
-        jobId: job.id,
-        reminderStage: "reminder",
-        scheduledFor: notBeforeNow(addHours(appointment.starts_at, -hoursBefore)),
-        sourceVersion: appointment.starts_at,
-      }));
-    }
+    return insertReminderRows(supabase, queue, Date.now() + 5_000, unavailable);
+  } catch {
+    return { created: 0, error: unavailable };
   }
-
-  return insertQueueRows(supabase, queue);
 }
 
 async function syncPayments(supabase: SupabaseClient, settings: CommunicationSettings, invoiceId?: string) {
@@ -533,15 +586,6 @@ function buildQueueInput(input: {
   };
 }
 
-async function insertQueueRows(supabase: SupabaseClient, rows: QueueInput[]) {
-  if (rows.length === 0) return emptySyncResult();
-
-  const { error } = await supabase
-    .from("customer_communications")
-    .upsert(rows, { ignoreDuplicates: true, onConflict: "idempotency_key" });
-
-  return { created: error ? 0 : rows.length, error: error?.message ?? null };
-}
 
 function isQueueableCustomer(customer: CustomerReference | null): customer is CustomerReference {
   return Boolean(customer && customer.status !== "archived" && isValidEmail(customer.email ?? ""));

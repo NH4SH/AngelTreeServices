@@ -462,7 +462,7 @@ def page_document(page: dict) -> str:
             <p>On this page</p>
             <ul>
               <li><a href="#service-project-example">Project example</a></li>
-              <li><a href="#pruning-scope">Pruning guidance</a></li>
+              <li><a href="#pruning-scope">Cost &amp; timing</a></li>
               <li><a href="#pruning-process">Process</a></li>
               <li><a href="#pruning-access">Site access</a></li>
               <li><a href="#pruning-faq">FAQs</a></li>
@@ -781,10 +781,11 @@ SERVICE_PAGES = [
             ("Deadwood and damage", "Dead or broken branches can be evaluated for targeted removal and storm-related cleanup."),
             ("Structure and training", "Young-tree training or selective structural work may support a more appropriate form as the tree develops."),
         ],
-        "scope_heading": "Pruning should describe the intended result",
-        "scope_copy": "<p>The written scope should identify the trees, the pruning objective, and the cleanup included. Terms such as clearance, deadwood removal, structural pruning, or reduction should be used only when they describe the actual recommendation.</p><p>Timing, species, condition, and the amount of live material involved can affect what is appropriate. Pruning cannot eliminate every future branch or storm risk.</p>",
-        "callout_heading": "Topping is not a pruning goal",
-        "callout_copy": "Indiscriminate cutting to a uniform height or leaving large stubs can create poor structure and unwanted regrowth. A useful proposal should describe purposeful cuts tied to the property and tree.",
+        "scope_heading": "What affects tree pruning cost?",
+        "scope_copy": "<p>Tree trimming and pruning are priced for the work your trees need and the property around them. We review the site before providing a free written estimate.</p><ul><li><strong>Tree size and number.</strong> Height, branch size and the trees included affect the work involved.</li><li><strong>Pruning goal and condition.</strong> Clearance, deadwood removal, structural pruning and appropriate reduction require different cuts and amounts of work.</li><li><strong>Access and nearby property.</strong> Roofs, fences, overhead utilities, ground conditions and space below the canopy influence the crew’s approach and equipment.</li><li><strong>Brush handling and cleanup.</strong> The agreed handling of cut branches and debris forms part of the scope and price.</li></ul><p>Your written quote identifies the trees, the pruning objective and the cleanup included. The amount of live material removed must suit the species, condition and goal. Pruning cannot eliminate every future branch or storm risk.</p>",
+        "callout_heading": "When should trees be pruned?",
+        "callout_copy": "Timing depends on the species, condition and reason for pruning. Late winter or early spring, before new growth, is often suitable for planned pruning of many deciduous trees. Flowering patterns and disease concerns can change the recommendation. Dead, broken or hanging branches need prompt assessment, even outside a preferred pruning season. Stay clear of damaged limbs and utility lines.",
+        "callout_note": "<strong>Topping is not a pruning goal.</strong> Indiscriminate cutting to a uniform height or leaving large stubs can create poor structure and unwanted regrowth. A useful proposal should describe purposeful cuts tied to the property and tree.",
         "considerations": [
             ("The requested clearance", "Show the estimator the roof, drive, view, walkway, or neighboring area you are trying to address."),
             ("Tree condition and timing", "Visible damage, recent changes, and the desired schedule are helpful context for the visit."),
@@ -792,10 +793,13 @@ SERVICE_PAGES = [
             ("Future expectations", "Explain whether your priority is clearance, appearance, deadwood, young-tree development, or storm cleanup."),
         ],
         "faqs": [
+            ("What affects the cost of tree trimming or pruning?", "The estimate accounts for the trees involved, their size and condition, the pruning objective, access, nearby property and cleanup. Compare quotes for the same work and ask about any options or exclusions. We provide a free written estimate after reviewing the property."),
+            ("When is the best time to prune a tree in Fredericksburg?", "The right time depends on the species, its condition and the work needed. Many deciduous trees suit pruning before spring growth, while flowering patterns and disease concerns can call for different timing. We consider those factors during the property review. A damaged or hanging limb needs prompt assessment rather than waiting for a season."),
+            ("Can pruning address my concern, or does the tree need removal?", "An on-site review helps determine whether selective pruning, monitoring or removal best fits the tree and its surroundings. Point out the clearance, damage or other concern you want addressed. Pruning cannot correct every condition or make every tree safe to retain."),
+            ("Does the pruning quote include brush removal and cleanup?", "Your written quote states the branch and brush handling and cleanup included. Tell us whether you want cut material removed or left in an agreed place, and mention any specific expectations before approving the work."),
             ("Is tree trimming the same as professional pruning?", "People often use the words interchangeably. The useful distinction is whether the work has a defined objective and an appropriate scope rather than indiscriminate cutting."),
+            ("Do you top trees or remove a set percentage of the canopy?", "No. We recommend purposeful pruning rather than indiscriminate topping. The amount to remove depends on the goal, species, size, condition and site. An on-site review is more reliable than choosing a percentage without context."),
             ("Can pruning prevent all storm damage?", "No. Pruning may address specific branches or objectives, but no pruning can guarantee that a tree or branch will never fail."),
-            ("Do you recommend topping?", "No. A recommendation should use purposeful pruning rather than indiscriminate topping."),
-            ("How do I know how much should be removed?", "That depends on the goal, tree, condition, and site. An on-site review is more reliable than choosing a percentage without context."),
         ],
         "related": [("/services/tree-removal/", "Tree removal planning"), ("/services/emergency-tree-service/", "Storm and emergency guidance"), ("/credentials-safety/#saul-sierra-hernandez", "Saul Sierra Hernandez’s arborist credential")],
         "cta_title": "Tell us what you want the pruning to accomplish.",

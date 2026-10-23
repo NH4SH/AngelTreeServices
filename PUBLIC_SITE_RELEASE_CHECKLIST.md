@@ -1,3 +1,50 @@
+## Tree Pruning pricing and timing — local draft, October 23, 2026
+
+Owner approved implementation and local tests only. No commit, push, QA upload
+or deployment. Parent: 8fed532; preserve newer repository changes at any future
+approved release. Analytics, consent and CRM code/settings remain unchanged.
+
+- Final release-readiness review: no blocking regression found and no application
+  or copy correction needed. Fresh 248 tests and 18-page build/validation pass;
+  all 293 shipping hashes match the implementation draft. Fresh 28 FAQ cases at
+  320/701/1280px and synthetic doubled text at 320px, visible keyboard focus,
+  enlarged topic clearance (~20px), exact multiline draft/context recovery and
+  Clear pass. Zero console warnings/errors; final desktop capture reviewed and
+  viewport restored. REVIEW.txt and final-review-* record the evidence. Only
+  this checklist's review evidence changed; commit/push/upload/deploy remain held.
+- The existing scope section now explains four pruning cost factors and the
+  written quote. Its timing callout qualifies the season by species, condition,
+  flowering and disease concerns. The original topping explanation and storm
+  risk limits remain. The mobile topic is Cost & timing, retaining pruning-scope.
+- Seven FAQs cover pricing, timing, pruning versus removal, branch/brush cleanup,
+  trimming terminology, topping/amount removed and storm limitations. No numeric
+  prices, fixed pruning percentage, universal seasonal rule or guarantee added.
+- Timing references checked: Virginia Cooperative Extension, Pruning Deciduous
+  Trees (430-456), and ISA TreesAreGood, Pruning Mature Trees (2021). The linked
+  VCE species calendar is under review and was not used for a month-by-month rule.
+- All 239 Node and 9 Python tests pass (248 total), plus build and validation of
+  18 pages. Exactly one of 293 shipping files changes: Tree Pruning HTML. The
+  other 17 pages, SEO head/schema, photos/captions, all link destinations and
+  content outside the approved scope/FAQ/topic label remain byte-identical.
+- Browser: 320/390/768/1280px normal layouts and synthetic doubled text at
+  320/390px; 42 FAQ open/close cases pass, including seven keyboard cases at the
+  narrowest enlarged size. Settled mouse-click retest, Enter/Space, visible focus,
+  topic-anchor clearance and >=44px FAQ targets pass. New text contrast >=5.23:1.
+  The first narrow enlarged mouse probes ran during smooth scrolling; corrected
+  tests pass without an application change. This is desktop-browser simulation,
+  not native OS text or spoken screen-reader certification. The inherited brand
+  wrapping under forced full-page doubled text is unchanged and outside this copy
+  patch. No new guidance/FAQ box overflow was measured. Captures reviewed.
+- Exact synthetic name and multiline notes survive a Pruning visit and contextual
+  estimate return, selecting Tree Care / tree-pruning. Clear draft empties them.
+  No lead, phone call, email or saved consent choice. Zero console warnings/errors.
+- The local-only preview blocks submissions and external connections; no upload.
+  Local Maps autocomplete is absent because no local Maps key is configured;
+  its source and production setup remain unchanged. Native phone/autofill,
+  spoken assistive technology, real lead delivery and search outcomes unverified.
+- Evidence: outputs/pruning-pricing-guidance/ in the website chat workspace.
+  Publication requires separate approval and non-submitting production checks.
+
 ## Tree Removal pricing guidance — release approved, October 23, 2026
 
 Owner approved commit, push and publication of the reviewed pricing/FAQ patch.

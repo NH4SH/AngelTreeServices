@@ -35,6 +35,7 @@ STATIC_FILES = (
     "about-mobile.js",
     "landscaping-mobile.js",
     "services-overview-mobile.js",
+    "projects-mobile.js",
     "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",

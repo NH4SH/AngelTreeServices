@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page) .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2129,8 +2129,13 @@ body.ats-gallery-open {
 }
 
 .ats-service-choices,
-.ats-projects-browse {
+.ats-projects-browse,
+.ats-recognition-topics {
   display: none;
+}
+
+.ats-recognition-page .ats-mobile-actions {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
 }
 
 :is(.ats-tree-removal-page, .ats-tree-pruning-page, .ats-stump-grinding-page, .ats-emergency-tree-page, .ats-commercial-hoa-page, .ats-about-page) .ats-mobile-actions[hidden] {
@@ -2451,6 +2456,137 @@ body.ats-gallery-open {
 
 /* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
+  body.ats-recognition-page {
+    padding-bottom: calc(max(88px, var(--ats-recognition-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-recognition-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-recognition-notice-bottom: max(84px, calc(var(--ats-recognition-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-recognition-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-recognition-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-recognition-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-recognition-menu-offset, 120px)));
+  }
+
+  .ats-recognition-page :is(#review-proof-title, #recognition-history-title, #nbc4-title, #community-title, #best-of-burg, #nbc4, #community) {
+    scroll-margin-top: var(--ats-recognition-scroll-offset, var(--ats-recognition-header-offset, 120px));
+  }
+
+  @supports selector(html:has(body)) {
+    html:has(> body.ats-recognition-page) {
+      scroll-padding-top: var(--ats-recognition-header-offset, 120px);
+      scroll-padding-bottom: calc(max(88px, var(--ats-recognition-bar-space, 88px)) + env(safe-area-inset-bottom));
+    }
+
+    .ats-recognition-page :is(#review-proof-title, #recognition-history-title, #nbc4-title, #community-title, #best-of-burg, #nbc4, #community) {
+      scroll-margin-top: 0;
+    }
+  }
+
+  .ats-recognition-page .ats-page-hero {
+    padding-block: 36px 80px;
+  }
+
+  .ats-recognition-page .ats-breadcrumbs {
+    margin-bottom: 18px;
+  }
+
+  .ats-recognition-page .ats-recognition-topics {
+    display: block;
+    margin-top: 16px;
+  }
+
+  .ats-recognition-topics ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ats-recognition-topics li {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ats-recognition-topics a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    color: var(--ats-white);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-underline-offset: 4px;
+  }
+
+  .ats-recognition-topics a:focus-visible {
+    outline-color: var(--ats-white);
+    box-shadow: none;
+  }
+
+  .ats-recognition-page .ats-page-hero__lead {
+    margin-top: 20px;
+  }
+
+  .ats-recognition-page .ats-page-hero__trust {
+    margin-top: 16px;
+  }
+
+  .ats-recognition-page .ats-actions {
+    margin-top: 24px;
+  }
+
+  .ats-recognition-page .ats-content-section {
+    padding-block: 48px;
+  }
+
+  .ats-recognition-page :is(.ats-recognition-intro, .ats-customer-experiences__heading, .ats-professional-trust__grid, .ats-recognition-media__grid, .ats-recognition-next) {
+    gap: 24px;
+  }
+
+  .ats-recognition-page :is(.ats-review-metrics, .ats-testimonial-grid, .ats-recognition-history__grid) {
+    margin-top: 28px;
+  }
+
+  .ats-recognition-page :is(.ats-review-metrics article, .ats-testimonial, .ats-recognition-history__grid article) {
+    padding: 24px;
+  }
+
+  .ats-recognition-page .ats-final-cta {
+    padding: 48px 20px;
+  }
+
+  .ats-recognition-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  /* Leave reading room when enlarged text makes the header tall on a short phone. */
+  @media (max-height: 650px) {
+    body.ats-recognition-page {
+      --ats-recognition-scroll-offset: 20px;
+    }
+
+    .ats-recognition-page .ats-page-header {
+      position: static;
+    }
+
+    @supports selector(html:has(body)) {
+      html:has(> body.ats-recognition-page) {
+        scroll-padding-top: 20px;
+      }
+    }
+  }
+
   body.ats-projects-library-page {
     padding-bottom: calc(max(88px, var(--ats-projects-library-bar-space, 88px)) + env(safe-area-inset-bottom));
   }

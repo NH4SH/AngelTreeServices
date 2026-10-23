@@ -451,7 +451,7 @@ for (const service of [
   });
 }
 
-function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandscapingActions', observers = true, resizeObserver = true, mutationObserver = true, available = true } = {}) {
+function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandscapingActions', observers = true, resizeObserver = true, mutationObserver = true, available = true, headerPosition = 'sticky' } = {}) {
   const hero = {}, final = {}, focused = {}, observation = [], listeners = {}, properties = {}, rootProperties = {};
   const consentPanel = { id: 'ats-consent', hidden: true };
   let headerHeight = 70, barHeight = 64, resize, mutate, consentPresent = false;
@@ -464,7 +464,7 @@ function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandsc
     querySelector: selector => !available ? null : selector.endsWith('.ats-mobile-actions') ? actions : header,
     querySelectorAll: () => available ? [hero, final] : [],
     getElementById: id => id === 'ats-consent' && consentPresent ? consentPanel : null };
-  const window = { addEventListener: (name, callback) => { if (name === 'resize') resize = callback; } };
+  const window = { getComputedStyle: () => ({ position: headerPosition }), addEventListener: (name, callback) => { if (name === 'resize') resize = callback; } };
   if (observers) window.IntersectionObserver = function (callback, options) {
     this.targets = []; this.options = options; this.callback = callback;
     this.observe = target => this.targets.push(target);
@@ -478,6 +478,7 @@ function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandsc
   return { actions, hero, final, focused, document, observation, listeners, properties, rootProperties,
     notify: entries => observation.at(-1).callback(entries.map(([target, ratio, intersecting = true]) => ({ target, intersectionRatio: ratio, isIntersecting: intersecting }))),
     resize: (headerSize, barSize) => { headerHeight = headerSize; barHeight = barSize; resize(); },
+    headerMode: position => { headerPosition = position; },
     consent: (hidden, present = true) => { consentPresent = present; consentPanel.hidden = hidden;
       mutate([{ type: present ? 'attributes' : 'childList', target: consentPanel }]); },
     mutation: records => mutate(records) };
@@ -487,6 +488,7 @@ for (const service of [
   { name: 'Landscaping', file: 'landscaping-mobile.js', init: 'initLandscapingActions', prefix: 'landscaping' },
   { name: 'Tree services overview', file: 'services-overview-mobile.js', init: 'initServicesOverviewActions', prefix: 'services-overview' },
   { name: 'Projects library', file: 'projects-mobile.js', init: 'initProjectsActions', prefix: 'projects-library' },
+  { name: 'Reviews and recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
 ]) {
 test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
   const h = pageActionsHarness(service);
@@ -519,9 +521,9 @@ test(`${service.name} header and bar clearance grow with enlarged text without l
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
   assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
   assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
-  if (service.prefix === 'projects-library') {
-    assert.equal(h.rootProperties['--ats-projects-library-header-offset'], '162px');
-    assert.equal(h.rootProperties['--ats-projects-library-bar-space'], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
+  if (['projects-library', 'recognition'].includes(service.prefix)) {
+    assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '162px');
+    assert.equal(h.rootProperties[`--ats-${service.prefix}-bar-space`], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
   }
 });
 
@@ -557,6 +559,20 @@ test(`${service.name} cookie-panel observation preserves focus and ignores the b
   assert.equal(h.actions.hidden, true, 'inserted consent markup is rechecked');
 });
 }
+
+test('Recognition scrolling header reserves menu space while only sticky headers obscure actions', () => {
+  const h = pageActionsHarness({ file: 'recognition-mobile.js', init: 'initRecognitionActions' });
+  assert.equal(h.observation[0].options.rootMargin, '-70px 0px 0px 0px');
+  h.headerMode('static'); h.resize(70, 64);
+  assert.equal(h.observation.at(-1).options.rootMargin, '-0px 0px 0px 0px');
+  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '20px');
+  h.resize(202, 128);
+  assert.equal(h.rootProperties['--ats-recognition-menu-offset'], '222px');
+  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '20px');
+  h.headerMode('sticky'); h.resize(202, 128);
+  assert.equal(h.observation.at(-1).options.rootMargin, '-202px 0px 0px 0px');
+  assert.equal(h.rootProperties['--ats-recognition-header-offset'], '222px');
+});
 
 for (const body of ["", "null", "true", "42", '"received"', "[]", "<html>Received</html>", "{broken", "{}", '{"message":{}}']) {
   test(`ambiguous lead response is rejected for ${JSON.stringify(body)}`, async () => {

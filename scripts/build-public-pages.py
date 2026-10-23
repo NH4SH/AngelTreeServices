@@ -362,7 +362,8 @@ def page_document(page: dict) -> str:
 
     schema = json.dumps(schema_for_page(page), ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     landscaping = page['path'] == '/services/landscaping/'
-    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping)
+    recognition = page['path'] == '/recognition/'
+    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition)
     page_header = header(page["active"])
     hero_actions = action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)
     if page.get("firewood"):
@@ -404,6 +405,19 @@ def page_document(page: dict) -> str:
         body_class = 'ats-projects-library-page'
         mobile_actions_script = '\n  <script src="/projects-mobile.js?v=1" defer></script>'
         project_browse = '\n          <p class="ats-projects-browse"><a href="#field-gallery-title">Browse photos</a></p>'
+    recognition_browse = ''
+    if recognition:
+        body_class = 'ats-recognition-page'
+        mobile_actions_script = '\n  <script src="/recognition-mobile.js?v=1" defer></script>'
+        recognition_browse = '''
+          <nav class="ats-recognition-topics" aria-label="On this page">
+            <ul>
+              <li><a href="#review-proof-title">Reviews</a></li>
+              <li><a href="#recognition-history-title">Recognition</a></li>
+              <li><a href="#nbc4-title">Media</a></li>
+              <li><a href="#community-title">Community</a></li>
+            </ul>
+          </nav>'''
     topics = """<nav class="ats-removal-topics" aria-label="On this page">
             <p>On this page</p>
             <ul>
@@ -490,7 +504,7 @@ def page_document(page: dict) -> str:
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
           {breadcrumbs(page)}
-          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}
+          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}{recognition_browse}
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust') if not page.get('firewood') else ''}
           {hero_action_block}{topics}
@@ -1340,7 +1354,7 @@ def recognition_body() -> str:
         <div class="ats-recognition-intro">
           <div>
             <p class="ats-eyebrow">Customer review proof</p>
-            <h2 class="ats-section-heading" id="review-proof-title">Independent platforms, shown separately.</h2>
+            <h2 class="ats-section-heading" id="review-proof-title" tabindex="-1">Independent platforms, shown separately.</h2>
           </div>
           <p>Google remains the primary review signal. Angi adds a longer project-history view, while BBB publishes a separate business rating. No scores or review counts are combined.</p>
         </div>
@@ -1396,7 +1410,7 @@ def recognition_body() -> str:
     <section class="ats-content-section ats-content-section--white ats-recognition-history" id="best-of-burg" aria-labelledby="recognition-history-title">
       <div class="ats-section-inner">
         <p class="ats-eyebrow">Recognition</p>
-        <h2 class="ats-section-heading" id="recognition-history-title">Local recognition, stated precisely.</h2>
+        <h2 class="ats-section-heading" id="recognition-history-title" tabindex="-1">Local recognition, stated precisely.</h2>
         <div class="ats-recognition-history__grid">
           <article>
             <p class="ats-recognition-history__year">2026</p>
@@ -1417,7 +1431,7 @@ def recognition_body() -> str:
       <div class="ats-section-inner ats-recognition-media__grid">
         <div class="ats-prose">
           <p class="ats-eyebrow">Independent regional coverage</p>
-          <h2 id="nbc4-title">Featured by NBC4</h2>
+          <h2 id="nbc4-title" tabindex="-1">Featured by NBC4</h2>
           <p>On September 19, 2024, NBC4 Responds reported on Angel Tree Services after its Google Business Profile was disabled. The report described the company as a family business and documented that Google reinstated the profile after NBC4 Responds contacted Google.</p>
           <p>The coverage concerned the business-profile issue and its effect on the company. It was not an endorsement, ranking, or workmanship award.</p>
           <ul class="ats-source-links">
@@ -1440,7 +1454,7 @@ def recognition_body() -> str:
       <div class="ats-section-inner">
         <div class="ats-community-proof__heading">
           <p class="ats-eyebrow">Community and professional connections</p>
-          <h2 class="ats-section-heading" id="community-title">Rooted in the Fredericksburg community</h2>
+          <h2 class="ats-section-heading" id="community-title" tabindex="-1">Rooted in the Fredericksburg community</h2>
           <p class="ats-section-intro">Angel Tree Services LLC supports local professional connections and practical ways to keep usable arborist wood chips in the community.</p>
         </div>
         <div class="ats-community-proof__grid">

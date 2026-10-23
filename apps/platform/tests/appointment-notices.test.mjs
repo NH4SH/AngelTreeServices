@@ -1,3 +1,4 @@
+import {renderCustomerPaymentReceiptHtml} from '../src/lib/email/customer-payment-receipt-layout.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {load,memoryDB} from './pr10-test-helpers.mjs';
@@ -6,7 +7,7 @@ import {renderCustomerReminderEmailHtml} from '../src/lib/email/customer-reminde
 import {callDeliveryCommand} from '../src/lib/email/delivery-commands.ts';
 import {emailDeliveryContext} from '../src/lib/email/delivery-context.ts';
 import {mapBounded,withDeadline} from '../src/lib/runtime/deadline.ts';
-const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml}});
+const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},'../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml}});
 const notice={status:'ready',kind:'changed',before:{starts_at:'2035-03-12T13:00:00Z',ends_at:'2035-03-12T14:00:00Z',status:'scheduled',type:'estimate'},after:{starts_at:'2035-03-14T13:00:00Z',ends_at:'2035-03-14T14:00:00Z',type:'estimate'},location:{street:'123 Synthetic Lane',city:'Fredericksburg',state:'VA',postal_code:'22401'}};
 function fixture(options={}) {
  const now=new Date().toISOString(),row={id:'synthetic-notice',communication_type:options.kind==='cancelled'?'appointment_cancelled':'appointment_changed',customer_id:'synthetic-customer',organization_id:null,job_id:'synthetic-job',appointment_id:'synthetic-appointment',schedule_event_id:null,invoice_id:null,quote_id:null,payment_id:null,recipient_email:'notice@example.invalid',is_automatic:true,status:'pending',attempt_count:0,scheduled_for:now,processing_started_at:null};

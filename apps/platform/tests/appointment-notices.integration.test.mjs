@@ -1,3 +1,4 @@
+import {renderCustomerPaymentReceiptHtml} from '../src/lib/email/customer-payment-receipt-layout.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as crypto from 'node:crypto';
@@ -17,7 +18,7 @@ test('appointment notices: native SQL, concurrent workers and synthetic durable 
  const anon=createClient(status.API_URL,status.ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const ok=r=>{assert.equal(r.error?.code??null,null,r.error?.message);return r.data;};
  const marker=crypto.randomUUID(),sends=[],proof=[];
- const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml}});
+ const templates=load('../src/lib/communications/templates.ts',{'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'server-only':{},'@/lib/business-time':{formatBusinessDate},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},'../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml}});
  const durable=load('../src/lib/email/delivery.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'node:crypto':crypto,'@/lib/email/delivery-context':{emailDeliveryContext}});
  const followups=load('../src/lib/email/delivery-followups.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'@/lib/communications/queue':{syncAutomatedCommunications:()=>assert.fail('Visit notice has no financial follow-up')},'@/lib/runtime/deadline':{withDeadline},'@/lib/email/delivery':durable});
  const processor=load('../src/lib/communications/processor.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{},'@/lib/payments/reconciliation':{},'@/lib/communications/portal-links':{},'@/lib/communications/queue':{getCommunicationSettingsFromClient:async()=>db.from('communication_settings').select('*').eq('singleton',true).single()},'@/lib/communications/templates':templates,'@/lib/email/delivery-context':{emailDeliveryContext},'@/lib/email/send':{sendTransactionalEmail:()=>assert.fail('Real provider transport forbidden')},'@/lib/supabase/admin':{getServiceRoleClient:()=>assert.fail('Explicit disposable DB required')},'@/lib/runtime/deadline':{mapBounded,withDeadline}});

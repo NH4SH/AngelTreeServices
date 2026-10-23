@@ -1,6 +1,7 @@
 import "server-only";
 
 import { renderCustomerReminderEmailHtml } from "../email/customer-reminder-layout.ts";
+import { renderCustomerPaymentReceiptHtml } from "../email/customer-payment-receipt-layout.ts";
 
 import type { TransactionalEmailTemplate } from "@/lib/email/templates";
 import { formatBusinessDate } from "@/lib/business-time";
@@ -121,30 +122,32 @@ export function paymentConfirmationTemplate(input: {
   balanceDueCents: number;
   customerName: string;
   invoiceNumber: string;
-  paidAt: string;
+  paidAt: string | null;
+  paymentMethod?: string | null;
   reference: string | null;
   surchargeCents: number;
   totalCollectedCents: number;
 }) {
   const subject = `${companyName}: payment received for Invoice #${input.invoiceNumber}`;
-  const text = [
-    `Hi ${input.customerName},`,
-    "",
-    `We received your payment for Invoice #${input.invoiceNumber}.`,
-    `Invoice principal: ${money(input.amountCents)}`,
-    input.surchargeCents > 0 ? `Credit-card surcharge: ${money(input.surchargeCents)}` : "",
-    `Total charged: ${money(input.totalCollectedCents)}`,
-    `Payment date: ${formatDate(input.paidAt)}`,
-    input.reference ? `Reference: ${input.reference}` : "",
-    `Remaining balance: ${money(input.balanceDueCents)}`,
-    "",
-    "Thank you for choosing Angel Tree Services. Please reply to this email if you have any billing questions.",
-    "",
-    "Thank you,",
-    companyName,
-  ].filter(Boolean).join("\n");
-
-  return brandedTemplate(subject, text, "Payment received");
+  const greeting = `Hi ${input.customerName},`;
+  const intro = `We received your payment for Invoice #${input.invoiceNumber}.`;
+  const date = input.paidAt ? formatDate(input.paidAt) : "Invalid date";
+  const methods = new Map([ ["card", "Card"], ["ach", "Bank payment (ACH)"], ["check", "Check"], ["cash", "Cash"], ["other", "Other"] ]);
+  const details = [
+    { label: "Invoice", value: `#${input.invoiceNumber}` },
+    { label: "Payment method", value: methods.get(input.paymentMethod ?? "") ?? "Not recorded" },
+    { label: "Payment date", value: date === "Invalid date" ? "Not recorded" : date },
+    { label: "Applied to invoice", value: money(input.amountCents) },
+    ...(input.surchargeCents > 0 ? [{ label: "Credit-card surcharge", value: money(input.surchargeCents) }] : []),
+    { label: "Total received", value: money(input.totalCollectedCents) },
+    ...(input.reference?.trim() ? [{ label: "Reference", value: input.reference.trim() }] : []),
+    { label: "Remaining invoice balance", value: money(input.balanceDueCents) },
+  ];
+  const text = [greeting, intro, details.map(item => `${item.label}: ${item.value}`).join("\n"),
+    "Keep this receipt for your records. The remaining invoice balance reflects our records when this receipt was prepared.",
+    "Billing questions? Reply to this email or call (540) 388-8715.", `Thank you,\n${companyName}`,
+  ].join("\n\n");
+  return { subject, text, html: renderCustomerPaymentReceiptHtml({ subject, greeting, intro, details }) };
 }
 
 function brandedTemplate(subject: string, text: string, eyebrow: string): TransactionalEmailTemplate {

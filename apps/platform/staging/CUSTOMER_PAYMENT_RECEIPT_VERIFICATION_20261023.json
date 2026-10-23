@@ -1,0 +1,157 @@
+{
+  "observedAt": "2026-10-23T19:54:34.925647+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/customer-payment-receipt-clarity",
+  "baseMain": "0a2d14806bf723c9b450f6ab5228ed179d878358",
+  "reviewRequestSafetyPushedToMain": true,
+  "unitSuite": {
+    "passed": 2428,
+    "failed": 0,
+    "skipped": 0,
+    "newReceiptTests": 10
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "browser": {
+    "syntheticGeneratedEmailHtml": true,
+    "viewports": [
+      390,
+      768,
+      1280
+    ],
+    "states": [
+      "recorded card payment",
+      "missing date and method",
+      "long Unicode name invoice and reference"
+    ],
+    "horizontalOverflow": false,
+    "keyboardFocusOnOfficePhone": true,
+    "phoneCallPlaced": false,
+    "consoleErrors": 0,
+    "bodyTextPx": 16,
+    "contrastRatios": {
+      "#536158/#fbfdfb": 6.38,
+      "#27312b/#fbfdfb": 13.17,
+      "#ffffff/#174b32": 10.05,
+      "#536158/#edf4ef": 5.84,
+      "#174b32/#edf4ef": 8.99
+    },
+    "detectorIntentionalExceptions": [
+      "Arial email-safe font stack, preserved from existing transactional email conventions (two warnings)"
+    ],
+    "mailboxClientCertified": false
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 8,
+    "renderFixtureCount": 7,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "stagingProcessorCases": {
+    "syntheticOnly": true,
+    "cases": [
+      {
+        "label": "ach",
+        "status": "succeeded",
+        "passed": true,
+        "receiptPrepared": true,
+        "expectedRemainingCents": 5000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "card",
+        "status": "succeeded",
+        "passed": true,
+        "receiptPrepared": true,
+        "expectedRemainingCents": 5000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "cash",
+        "status": "succeeded",
+        "passed": true,
+        "receiptPrepared": true,
+        "expectedRemainingCents": 0,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "check",
+        "status": "succeeded",
+        "passed": true,
+        "receiptPrepared": true,
+        "expectedRemainingCents": 11000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "legacy",
+        "status": "succeeded",
+        "passed": true,
+        "receiptPrepared": true,
+        "expectedRemainingCents": 5000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "pending",
+        "status": "pending",
+        "passed": true,
+        "receiptPrepared": false,
+        "expectedRemainingCents": 15000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      },
+      {
+        "label": "refunded",
+        "status": "refunded",
+        "passed": true,
+        "receiptPrepared": false,
+        "expectedRemainingCents": 15000,
+        "duplicateSimulatedSends": 0,
+        "realProviderCalls": 0
+      }
+    ],
+    "installedDatabaseInputs": true,
+    "actualProcessorAndTemplate": true,
+    "mockTransportOnly": true,
+    "allFixturesRolledBack": true,
+    "applicationDeployed": false
+  },
+  "sourceCopyParity": true,
+  "otherCommunicationTemplateBodiesUnchanged": true,
+  "paymentCalculationsChanged": false,
+  "deduplicationCommandsChanged": false,
+  "databaseMigrationsChanged": false,
+  "runtimeSecurityBranchPreservedAt": "06580f6",
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "productionChanged": false,
+    "keysRotated": false,
+    "environmentValuesChanged": false,
+    "realCustomerEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/customer-payment-receipt-clarity"
+}

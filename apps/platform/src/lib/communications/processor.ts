@@ -510,7 +510,7 @@ async function preparePaymentConfirmation(
   }
   const { data: payment, error } = await supabase
     .from("payments")
-    .select("id, amount_cents, surcharge_cents, total_collected_cents, paid_at, provider, reference, status, invoices(id, invoice_number, total_cents)")
+    .select("id, amount_cents, surcharge_cents, total_collected_cents, paid_at, payment_method, provider, reference, status, invoices(id, invoice_number, total_cents)")
     .eq("id", communication.payment_id)
     .maybeSingle();
 
@@ -531,7 +531,8 @@ async function preparePaymentConfirmation(
         balanceDueCents,
         customerName,
         invoiceNumber: invoice.invoice_number || "Draft",
-        paidAt: payment.paid_at || new Date().toISOString(),
+        paidAt: payment.paid_at,
+        paymentMethod: payment.payment_method,
         reference: payment.provider === "manual" ? payment.reference : null,
         surchargeCents: Number(payment.surcharge_cents ?? 0),
         totalCollectedCents: Number(payment.total_collected_cents ?? payment.amount_cents),

@@ -363,7 +363,8 @@ def page_document(page: dict) -> str:
     schema = json.dumps(schema_for_page(page), ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     landscaping = page['path'] == '/services/landscaping/'
     recognition = page['path'] == '/recognition/'
-    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition)
+    credentials = page['path'] == '/credentials-safety/'
+    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition or credentials)
     page_header = header(page["active"])
     hero_actions = action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)
     if page.get("firewood"):
@@ -416,6 +417,19 @@ def page_document(page: dict) -> str:
               <li><a href="#recognition-history-title">Recognition</a></li>
               <li><a href="#nbc4-title">Media</a></li>
               <li><a href="#community-title">Community</a></li>
+            </ul>
+          </nav>'''
+    credentials_browse = ''
+    if credentials:
+        body_class = 'ats-credentials-page'
+        mobile_actions_script = '\n  <script src="/credentials-mobile.js?v=1" defer></script>'
+        credentials_browse = '''
+          <nav class="ats-credentials-topics" aria-label="On this page">
+            <ul>
+              <li><a href="#saul-sierra-hernandez">Credentials</a></li>
+              <li><a href="#credentials-planning-title">Planning</a></li>
+              <li><a href="#credentials-safety-title">Safety</a></li>
+              <li><a href="#credentials-documentation-title">Documentation</a></li>
             </ul>
           </nav>'''
     topics = """<nav class="ats-removal-topics" aria-label="On this page">
@@ -504,7 +518,7 @@ def page_document(page: dict) -> str:
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
           {breadcrumbs(page)}
-          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}{recognition_browse}
+          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}{recognition_browse}{credentials_browse}
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust') if not page.get('firewood') else ''}
           {hero_action_block}{topics}
@@ -984,7 +998,7 @@ def credentials_body() -> str:
       <div class="ats-section-inner ats-credential-panel">
         <div class="ats-prose">
           <p class="ats-eyebrow">Verified public credentials</p>
-          <h2 id="saul-sierra-hernandez">Saul Sierra Hernandez</h2>
+          <h2 id="saul-sierra-hernandez" tabindex="-1">Saul Sierra Hernandez</h2>
           <p><strong>ISA Certified Arborist&reg; &middot; MA-381822A</strong><br>Issued by the International Society of Arboriculture.</p>
           <p>Certificate issued: <time datetime="2026-04-27">April 27, 2026</time><br>Certificate expiration date: <time datetime="2029-06-30">June 30, 2029</time></p>
           <p><a href="https://certificates.isa-arbor.com/7f935149-a9ba-4691-bfbb-351ceb50a416">Check credential status with ISA</a></p>
@@ -1021,7 +1035,7 @@ def credentials_body() -> str:
     <section class="ats-content-section">
       <div class="ats-section-inner">
         <p class="ats-eyebrow">Before work begins</p>
-        <h2 class="ats-section-heading">What customers should expect to clarify</h2>
+        <h2 class="ats-section-heading" id="credentials-planning-title" tabindex="-1">What customers should expect to clarify</h2>
         <div class="ats-card-grid">{cards([
             ('The recommended scope', 'The written proposal should identify the work being recommended and the property areas involved.'),
             ('Site access and surroundings', 'Structures, fences, drives, utilities, neighboring property, ground conditions, and access can affect the work plan.'),
@@ -1031,8 +1045,8 @@ def credentials_body() -> str:
     </section>
     <section class="ats-content-section">
       <div class="ats-section-inner ats-two-column">
-        <div class="ats-prose"><p class="ats-eyebrow">Safety around urgent conditions</p><h2>Power lines require the utility.</h2><p>Never approach a fallen or contacted power line. Keep people and pets away and contact 911 or the electric utility as appropriate. Angel Tree Services does not represent itself as a provider of energized-line work.</p></div>
-        <aside class="ats-callout"><h2>Need current documentation?</h2><p>If a property manager or organization requires insurance or other documentation, request it through the office. Current availability can be confirmed directly without publishing private documents or unsupported blanket claims.</p><div class="ats-actions"><a class="ats-button ats-button--primary" href="mailto:info@angeltreeservice.org">Email the office</a></div></aside>
+        <div class="ats-prose"><p class="ats-eyebrow">Safety around urgent conditions</p><h2 id="credentials-safety-title" tabindex="-1">Power lines require the utility.</h2><p>Never approach a fallen or contacted power line. Keep people and pets away and contact 911 or the electric utility as appropriate. Angel Tree Services does not represent itself as a provider of energized-line work.</p></div>
+        <aside class="ats-callout"><h2 id="credentials-documentation-title" tabindex="-1">Need current documentation?</h2><p>If a property manager or organization requires insurance or other documentation, request it through the office. Current availability can be confirmed directly without publishing private documents or unsupported blanket claims.</p><div class="ats-actions"><a class="ats-button ats-button--primary" href="mailto:info@angeltreeservice.org">Email the office</a></div></aside>
       </div>
     </section>
     {final_cta('A clear scope is part of a safer start.', 'Tell us about the property, service, and site concerns so the estimate can begin with the right context.', '/#contact', 'Request a free estimate')}"""

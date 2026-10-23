@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-23",
+  "mainThrough": "d14d504a6c82201f5bc3efea55d53d7ec9110a98",
+  "previousReconciliationPushed": true,
+  "featureBranch": "codex/payment-confirmation-planning",
+  "featurePushed": false,
+  "reproduction": {
+    "eligibleSyntheticPayments": 1001,
+    "previousPreparedReceipts": 1000,
+    "previousReportedError": null,
+    "realProviderCalls": 0
+  },
+  "implementation": {
+    "paymentSourcePageSize": 200,
+    "paymentWriteBatchSize": 200,
+    "paymentBudgetMs": 5000,
+    "readUntilEmpty": true,
+    "orderedUuidCursor": true,
+    "writesAfterCompleteRead": true,
+    "existingStableKeysAndDuplicateIgnorePreserved": true,
+    "newMigration": false
+  },
+  "regression": {
+    "passed": 2509,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 14
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "local": {
+    "migrationCount": 120,
+    "nativeAssertions": 11,
+    "syntheticPayments": 1002,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "migrationCount": 120,
+    "nativeAssertions": 11,
+    "syntheticPayments": 1002,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "observedAt": 1792795517973,
+    "catalogObjects": 5110,
+    "protectedRecordSets": 49,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "exact120MaintenanceVerifierPassed": true
+  },
+  "nativeInputScenarios": [
+    {
+      "environment": "local",
+      "scenarios": 8,
+      "previous1000RowSuccessReproduced": true,
+      "all1002PaymentsPrepared": true,
+      "lowerCapHandled": true,
+      "invoiceScopePreserved": true,
+      "existingRecipientTypeKeyVersionFieldsMatch": true,
+      "interruptedReadsPreventClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostBatchRecoveryPreservesHistory": true,
+      "realProviderCalls": 0
+    },
+    {
+      "environment": "staging",
+      "scenarios": 8,
+      "previous1000RowSuccessReproduced": true,
+      "all1002PaymentsPrepared": true,
+      "lowerCapHandled": true,
+      "invoiceScopePreserved": true,
+      "existingRecipientTypeKeyVersionFieldsMatch": true,
+      "interruptedReadsPreventClaims": true,
+      "recoveryPendingUntilComplete": true,
+      "partialAndLostBatchRecoveryPreservesHistory": true,
+      "realProviderCalls": 0
+    }
+  ],
+  "realLocalApi": {
+    "actualLocalSupabaseClientAndPostgrest": true,
+    "previousPreparedCount": 1000,
+    "currentPreparedCount": 1002,
+    "sourcePages": 7,
+    "maxPageAndBatch": 200,
+    "writeBatches": 6,
+    "existingReceiptHistoryAndStoredSettingsUnchanged": true,
+    "invoiceScopePreserved": true,
+    "localSyntheticRecordsOnly": true,
+    "realProviderCalls": 0
+  },
+  "preservation": {
+    "original120SourcesUnchanged": true,
+    "publicTypesAndSchemaManifestUnchanged": true,
+    "financialCommandsAndPaymentAmountsUnchanged": true,
+    "recipientsSourceVersionsAndKeysUnchanged": true,
+    "acceptedAndUncertainHistoryPreserved": true,
+    "sourceAndFinalClaimChecksUnchanged": true,
+    "employeeDashboardAndPriorCrmWorkPreserved": true,
+    "runtimeBranch": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sources": [
+    {
+      "path": "apps/platform/src/lib/communications/queue.ts",
+      "sha256": "51b99e94fcd1c98fcca7b6b44550a69264d2620c037c1418840c6dd944fb22d3"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-fixture.mjs",
+      "sha256": "375f7aa7ccc17315adbc0ec0254b123aab6358a11c87fb24d2fe2512f6c2a8c1"
+    },
+    {
+      "path": "apps/platform/tests/payment-confirmation-planning.test.mjs",
+      "sha256": "deb375fae7e3b799b05733f8a6d18cd683300d63ff9ba0d4a19a36e8c16321e7"
+    },
+    {
+      "path": "supabase/verification/payment_confirmation_planning.sql",
+      "sha256": "9b44d98873556b8797257a7016f8a7861658f166f41a7ad98ba4c09a38f9d0b9"
+    }
+  ],
+  "boundaries": {
+    "applicationDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "hostedMigrationApplied": false,
+    "storedSendingSwitchChanged": false,
+    "historicalReceiptRetriesStarted": 0,
+    "realProviderCalls": 0,
+    "customerEmails": 0,
+    "keysRotated": false,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/payment-confirmation-planning"
+}

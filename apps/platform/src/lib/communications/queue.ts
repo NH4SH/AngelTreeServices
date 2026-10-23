@@ -353,35 +353,65 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
 async function syncPayments(supabase: SupabaseClient, settings: CommunicationSettings, invoiceId?: string) {
   if (!settings.payment_confirmation_enabled) return emptySyncResult();
 
-  let query = supabase
-    .from("payments")
-    .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status), invoices(accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active))")
-    .eq("status", "succeeded")
-    .gte("created_at", settings.updated_at);
-
-  if (invoiceId) query = query.eq("invoice_id", invoiceId);
-  const { data, error } = await query;
-
-  if (error) return { created: 0, error: error.message };
-
-  const queue = (data ?? []).flatMap((payment) => {
-    const invoice = one<any>(payment.invoices);
-    const party = getQueueableParty(payment.customers, payment.organizations, contactEmail(invoice?.accounts_payable_contact, invoice?.billing_contact));
-    if (!party) return [];
-
-    return [buildQueueInput({
-      communicationType: "payment_confirmation",
-      party,
-      idempotencyKey: `auto:payment:${payment.id}:confirmation`,
-      invoiceId: payment.invoice_id,
-      paymentId: payment.id,
-      reminderStage: "payment",
-      scheduledFor: new Date().toISOString(),
-      sourceVersion: payment.updated_at,
-    })];
-  });
-
-  return insertQueueRows(supabase, queue);
+  const pageSize = 200;
+  const deadline = Date.now() + 5_000;
+  const queue: QueueInput[] = [];
+  const unavailable = "Payment confirmations could not be prepared. Review the queue before retrying.";
+  let after: string | null = null;
+  let prepared = 0;
+  try {
+    // Read to an empty page, including when the server caps pages below our
+    // requested size. UUID cursors avoid offset shifts after earlier deletions.
+    while (true) {
+      if (Date.now() >= deadline) throw Error("Payment preparation timed out");
+      let query = supabase
+        .from("payments")
+        .select("id, invoice_id, customer_id, organization_id, status, created_at, updated_at, customers(id, email, organization_id, status), organizations(id, billing_email, status), invoices(accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email, is_active), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email, is_active))")
+        .eq("status", "succeeded")
+        .gte("created_at", settings.updated_at)
+        .order("id")
+        .limit(pageSize);
+      if (invoiceId) query = query.eq("invoice_id", invoiceId);
+      if (after) query = query.gt("id", after);
+      const { data, error } = await query.abortSignal(AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+      if (error || !Array.isArray(data) || data.length > pageSize) throw Error("Payment sources unavailable");
+      if (!data.length) break;
+      for (const payment of data) {
+        const id = payment?.id;
+        if (typeof id !== "string" || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id) || (after !== null && id <= after)) {
+          throw Error("Payment sources did not advance");
+        }
+        after = id;
+        const invoice = one<any>(payment.invoices);
+        const party = getQueueableParty(payment.customers, payment.organizations, contactEmail(invoice?.accounts_payable_contact, invoice?.billing_contact));
+        if (!party) continue;
+        queue.push(buildQueueInput({
+          communicationType: "payment_confirmation",
+          party,
+          idempotencyKey: `auto:payment:${id}:confirmation`,
+          invoiceId: payment.invoice_id,
+          paymentId: id,
+          reminderStage: "payment",
+          scheduledFor: new Date().toISOString(),
+          sourceVersion: payment.updated_at,
+        }));
+      }
+    }
+    // Withhold this family's writes until every source page is checked. Bounded
+    // same-key writes can safely resume after a partial or lost acknowledgement.
+    for (let offset = 0; offset < queue.length; offset += pageSize) {
+      if (Date.now() >= deadline) throw Error("Payment preparation timed out");
+      const batch = queue.slice(offset, offset + pageSize);
+      const { error } = await supabase.from("customer_communications")
+        .upsert(batch, { ignoreDuplicates: true, onConflict: "idempotency_key" })
+        .abortSignal(AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+      if (error) throw Error("Payment preparation unavailable");
+      prepared += batch.length;
+    }
+    return { created: prepared, error: null };
+  } catch {
+    return { created: prepared, error: unavailable };
+  }
 }
 
 async function cancelObsoleteAppointmentVersion(

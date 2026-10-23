@@ -30,7 +30,7 @@ export function appointmentQueueFixture(options = {}) {
   const tables = {communication_settings:[settings], schedule_events:[], appointments:[], customer_communications:rows};
   tables[sourceTable] = [source];
   if (options.tables) for (const [name, data] of Object.entries(options.tables)) tables[name] = structuredClone(data);
-  let fault = options.fault, acks = 0, cleanupCalls = 0;
+  let fault = options.fault, acks = 0, cleanupCalls = 0, paymentReads = 0, paymentWrites = 0;
   const calls = [], upserts = [];
   const delivery = {id:crypto.randomUUID(), state:'accepted', repair_state:'complete', history_recorded:true, provider_message_id:'synthetic-accepted', followup_sync_pending:true};
   const db = {
@@ -43,7 +43,7 @@ export function appointmentQueueFixture(options = {}) {
       assert.fail('Unexpected RPC: ' + name);
     },
     from(table) {
-      let operation = 'read', values, single = false;
+      let operation = 'read', values, single = false, sort = null, cap = Infinity;
       const filters = [], filterNames = [];
       const filter = (name, predicate) => { filterNames.push(name); filters.push(predicate); return q; };
       const q = {
@@ -54,6 +54,9 @@ export function appointmentQueueFixture(options = {}) {
         gt(k,v) { return filter([k,v], r => r[k] > v); },
         gte(k,v) { return filter([k,v], r => r[k] >= v); },
         lte(k,v) { return filter([k,v], r => r[k] <= v); },
+        order(k,o) { sort = {key:k,ascending:o?.ascending!==false}; return q; },
+        limit(n) { cap = n; return q; },
+        abortSignal(signal) { assert.ok(signal instanceof AbortSignal); return q; },
         or(value) {
           const expiryPrefix = 'expires_at.is.null,expires_at.gt.';
           if (value.startsWith(expiryPrefix)) return filter(['or',value], r => r.expires_at == null || Date.parse(r.expires_at) > Date.parse(value.slice(expiryPrefix.length)));
@@ -67,8 +70,20 @@ export function appointmentQueueFixture(options = {}) {
         then(resolve,reject) { return execute().then(resolve,reject); },
       };
       async function execute() {
-        calls.push({table,operation,filters:structuredClone(filterNames)});
-        const targets = (tables[table] ?? []).filter(r => filters.every(f => f(r)));
+        calls.push({table,operation,filters:structuredClone(filterNames),...(sort?{sort,cap}:{})});
+        let targets = (tables[table] ?? []).filter(r => filters.every(f => f(r)));
+        if (sort) targets.sort((a,b)=>String(a[sort.key]).localeCompare(String(b[sort.key]))*(sort.ascending?1:-1));
+        const paymentRead = table === 'payments' && operation === 'read';
+        if (paymentRead) paymentReads++;
+        targets = targets.slice(0,Math.min(cap,paymentRead?options.paymentRowCap??Infinity:Infinity));
+        if (paymentRead && options.onPaymentRead) options.onPaymentRead({tables,read:paymentReads,targets});
+        const readFault = paymentRead && options.paymentReadFault?.at === paymentReads ? options.paymentReadFault.mode : null;
+        if (readFault === 'throw') throw Error('PRIVATE_SYNTHETIC_PAYMENT_READ');
+        if (readFault === 'error') return {data:null,error:{message:'PRIVATE_SYNTHETIC_PAYMENT_READ'}};
+        if (readFault === 'null') return {data:null,error:null};
+        if (readFault === 'repeat') targets = [tables.payments[0]];
+        if (readFault === 'invalid') targets = [{id:'PRIVATE_SYNTHETIC_INVALID_ID'}];
+        if (readFault === 'reverse') targets.reverse();
         const cleanup = table === 'customer_communications' && operation === 'update';
         if (cleanup) cleanupCalls++;
         const failing = cleanup && fault && (!options.failCleanupAt || cleanupCalls === options.failCleanupAt);
@@ -76,8 +91,14 @@ export function appointmentQueueFixture(options = {}) {
         if (operation === 'update') targets.forEach(r => Object.assign(r,values));
         if (failing) return fail(); // Lost acknowledgement after a successful write.
         if (operation === 'upsert') {
+          const paymentWrite = values.some(r=>r.communication_type==='payment_confirmation');
+          if (paymentWrite) paymentWrites++;
+          const writeFault = paymentWrite && options.paymentUpsertFault?.at === paymentWrites ? options.paymentUpsertFault.mode : null;
+          if (writeFault === 'throw') throw Error('PRIVATE_SYNTHETIC_PAYMENT_WRITE');
+          if (writeFault === 'error') return {data:null,error:{message:'PRIVATE_SYNTHETIC_PAYMENT_WRITE'}};
           upserts.push(...structuredClone(values));
           for (const v of values) if (!tables[table].some(r => r.idempotency_key === v.idempotency_key)) tables[table].push({id:crypto.randomUUID(), status:'pending', ...structuredClone(v)});
+          if (writeFault === 'lost') throw Error('PRIVATE_SYNTHETIC_PAYMENT_ACK');
         }
         return {data:structuredClone(single ? targets[0] ?? null : targets), error:null};
       }
@@ -103,7 +124,9 @@ export function appointmentQueueFixture(options = {}) {
     db,tables,calls,upserts,column,sourceTable,delivery,
     get acks() { return acks; },
     setFault(value) { fault = value; },
+    clearPaymentFaults() { options.paymentReadFault=null; options.paymentUpsertFault=null; },
     run:() => queue.syncAutomatedCommunications(db),
+    invoice:(id) => queue.syncInvoicePaymentCommunications(db,id),
     worker:() => processor.processDueCommunications(1,{db,send:forbidden}),
     followups:() => followups.completeDeliveryFollowups(db,delivery.id),
   };

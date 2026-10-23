@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-23",
+  "observedAt": 1792794125433,
+  "mainThrough": "609abe5",
+  "pushedPaymentReceiptFix": "ee15928805f92b9f461634c5b597dd546c6c03f1",
+  "reconciliationBranch": "codex/staging-payment-receipt",
+  "reconciliationPushed": false,
+  "migration": {
+    "number": 120,
+    "name": "20261023213240_scope_payment_receipts_to_payment.sql",
+    "sha256": "7e9a472ae5acd99db72d80d6e377beb60c4674e4a01787be891be291f20f26b5",
+    "installedOnAssignedStaging": true
+  },
+  "local": {
+    "fresh119Replay": true,
+    "candidateRollbackAssertions": 32,
+    "failedNativeUpgradeRollsBackSchemaAndLedger": true,
+    "nativeUpgradeAndRepeat": true,
+    "installedAssertions": 32,
+    "migrationCount": 120,
+    "allOriginalLedgerRowsAndRecordsPreserved": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "realProviderCalls": 0
+  },
+  "nativeConcurrency": [
+    {
+      "scenario": "distinct payments",
+      "observedBothLockWaits": true,
+      "nativeAttempts": 2,
+      "realProviderCalls": 0
+    },
+    {
+      "scenario": "same payment",
+      "observedBothLockWaits": true,
+      "nativeAttempts": 1,
+      "realProviderCalls": 0
+    }
+  ],
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 120,
+    "latestMigration": "20261023213240",
+    "candidateAssertions": 32,
+    "installedAssertions": 32,
+    "syntheticFixturesRolledBack": true,
+    "catalogObjects": 5110,
+    "changedRoutineBodies": 1,
+    "original119CompleteLedgerEntriesPreserved": true,
+    "lastNativeEntryMatchesLocal": true,
+    "originalPermissionsAndDefaultsPreserved": true,
+    "priorProposalExpiryAndDocumentTermsPreserved": true,
+    "protectedRecordSets": 49,
+    "allProtectedStateSettingsGuardUnchanged": true,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "pendingMigrations": 0,
+    "seedsImported": 0,
+    "rolesImported": 0,
+    "vaultImportSkipped": true
+  },
+  "readOnlyMaintenance": {
+    "freshHostedObservationPassed": true,
+    "newAcceptanceRejectionTests": 10,
+    "productionAndWriteFlagsDenied": true
+  },
+  "securityAdvisors": {
+    "exactBeforeAfterEquality": true,
+    "warn": 80,
+    "existingAuthenticatedDefinerNotices": 79,
+    "existingLeakedPasswordWarning": 1,
+    "newFindings": 0
+  },
+  "regression": {
+    "passed": 2495,
+    "failed": 0,
+    "skipped": 0
+  },
+  "contract": {
+    "freshNative120SchemaCheck": true,
+    "offlineMigrationAndPublicTypeFingerprints": true,
+    "typegen": true,
+    "typecheck": true,
+    "frameworkFloor": true,
+    "providerCredentialsCopied": false,
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRerun": false,
+    "applicationCodeUnchanged": true
+  },
+  "publicMainCompatibility": {
+    "nodeTests": 239,
+    "pythonStyleTests": 9,
+    "build": true,
+    "validatedPages": 18
+  },
+  "sources": [
+    {
+      "path": "apps/platform/scripts/release/verify-staging-payment-receipt-candidate.mjs",
+      "sha256": "772f7b1938a83b26949839de2d7d64a38c01b8fd4435a2a7bb2031085898395d"
+    },
+    {
+      "path": "apps/platform/tests/staging-payment-receipt-candidate.test.mjs",
+      "sha256": "c896bb7321abecbfb3c4088e1632a80c0c29204a2165ed1708dbeedba1531394"
+    },
+    {
+      "path": "supabase/staging/payment-receipt-candidate-120.json",
+      "sha256": "0173e4db19d5a4f5f61ad7a5ff0edb0d9d8ec12269d968c3dd34dcf3c5e934df"
+    },
+    {
+      "path": "supabase/staging/payment-receipt-snapshot-120.sql",
+      "sha256": "b0c5530b712721e07c1d18c9729b52ef4f27eba30d6a2db38210d1026a69765f"
+    }
+  ],
+  "runtimeBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78",
+  "boundaries": {
+    "applicationDeployed": false,
+    "applicationSourceChanged": false,
+    "migrationSourcesChanged": false,
+    "publicTypesChanged": false,
+    "dependenciesChanged": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "keysRotated": false,
+    "automaticActivation": false,
+    "historicalRetriesStarted": 0,
+    "realProviderCalls": 0,
+    "customerEmails": 0,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/staging-payment-receipt-120"
+}

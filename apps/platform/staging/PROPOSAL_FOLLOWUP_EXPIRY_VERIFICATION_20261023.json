@@ -1,0 +1,139 @@
+{
+  "observedAt": "2026-10-23T21:13:09.408000+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/proposal-followup-expiry",
+  "baseMain": "4e5bd40e911f944c6a6dbd7b77860a2da25c144a",
+  "appointmentRecoveryPushedToMain": true,
+  "candidateMigration": "20261023205744_guard_expired_proposal_followups.sql",
+  "beforeDatabaseReproduction": {
+    "realProviderCalls": 0,
+    "expiredProposalWithUsableTokenAdmitted": true
+  },
+  "beforeWorkerReproduction": {
+    "actualPreChangeProcessor": true,
+    "expiredProposalOutcome": "accepted",
+    "mockTransportCalls": 1,
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2466,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 7
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localUpgradeRollback": {
+    "baselineMigrationCount": 118,
+    "databaseAssertions": 27,
+    "candidateAndSyntheticDataRolledBack": true
+  },
+  "localInstalledCandidate": {
+    "freshIsolatedProject": true,
+    "migrationCount": 119,
+    "candidateMigration": 119,
+    "databaseAssertions": 27,
+    "sourceFixtureCount": 4,
+    "candidateAndSyntheticFixturesRolledBack": true,
+    "ledgerCatalogAndAllPublicPrivateAuthRowsUnchanged": true,
+    "realProviderCalls": 0
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 27,
+    "sourceFixtureCount": 4,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeConcurrency": {
+    "proof": [
+      {
+        "scenario": "observed-quote-lock-wait-crosses-expiry",
+        "passed": true,
+        "providerAttempts": 0
+      },
+      {
+        "scenario": "observed-family-lock-wait-crosses-expiry",
+        "passed": true,
+        "providerAttempts": 0
+      },
+      {
+        "scenario": "two-competing-claims",
+        "passed": true,
+        "nativeAttempts": 1,
+        "realProviderCalls": 0
+      }
+    ],
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "nativeInputAcceptance": {
+    "sourceScenarios": 8,
+    "actualQueueAndProcessor": true,
+    "allPassed": true,
+    "realProviderCalls": 0
+  },
+  "schema": {
+    "freshReplayFromEmpty": true,
+    "migrationCount": 119,
+    "nativeUpgradeAndRepeat": true,
+    "publicTypesUnchanged": true,
+    "securityAdvisorsUnchanged": true,
+    "existing118MigrationsPreserved": true
+  },
+  "preservation": {
+    "sourceLocksAndExistingClaimPredicatesPreserved": true,
+    "routinePrivilegesAndMetadataPreserved": true,
+    "acceptedAndUnknownHistoryPreserved": true,
+    "futureAndUndatedBehaviorPreserved": true,
+    "ordinaryDocumentSendingRulesPreserved": true,
+    "all118OriginalMigrationHashesMatch": true,
+    "publicTypesUnchanged": true,
+    "sourceCopyParity": true,
+    "runtimeSecurityBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sourceSha256": {
+    "apps/platform/src/lib/communications/processor.ts": "23832d34a407dc1576d62494b6d0d887caff4d318ba1dd366099e6c099daa466",
+    "apps/platform/src/lib/communications/queue.ts": "f6d1342e530a8fcdf3198b1d8214aca1dddd372f88ae248b88f539443ce0d63e",
+    "apps/platform/tests/appointment-queue-fixture.mjs": "835fc1eb3c34628c3c8ef15389594a19a7ceb7ff21a5baa80e5b25e411c70d39",
+    "apps/platform/tests/proposal-followup-expiry.test.mjs": "c9ee31cc30ed4520a8497076804da2571b03a0ba5f1e7f4083e474604ce06a68",
+    "apps/platform/tests/proposal-followup-expiry.integration.test.mjs": "c078cdfe33a4201dd9450324b47279b7c8c0eec5b490adb462431bb692ab827c",
+    "supabase/migrations/20261023205744_guard_expired_proposal_followups.sql": "e013c69ea6a39b0af8b8e2c45f8578efa54e3a3edace02e671fee278f092c076",
+    "supabase/verification/proposal_followup_expiry.sql": "f89379f9d2414a397172e96a66746ea3a025aedc81794f10d46438100ee95f79",
+    "apps/platform/scripts/schema/manifest.json": "ffc4c119a3345ade72438238a8cbd31bdd250f72e2a3e11b678951332927aecf",
+    "supabase/staging/deferred-migrations.json": "f1921060494a5a6ea2f8361a7242a0c7ad7075ff1fbd4fd9207cb67dc8525045"
+  },
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "permanentStagingMigrationApplied": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "realEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0
+  },
+  "limitations": [
+    "Expiry stops new admission; an already admitted provider request cannot be recalled.",
+    "Synthetic acceptance and unknown outcomes are SQL evidence, not provider contact or real inbox delivery.",
+    "Staging remains at 118; candidate 119 was exercised and rolled back."
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/proposal-followup-expiry"
+}

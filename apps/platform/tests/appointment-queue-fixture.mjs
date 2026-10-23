@@ -55,6 +55,8 @@ export function appointmentQueueFixture(options = {}) {
         gte(k,v) { return filter([k,v], r => r[k] >= v); },
         lte(k,v) { return filter([k,v], r => r[k] <= v); },
         or(value) {
+          const expiryPrefix = 'expires_at.is.null,expires_at.gt.';
+          if (value.startsWith(expiryPrefix)) return filter(['or',value], r => r.expires_at == null || Date.parse(r.expires_at) > Date.parse(value.slice(expiryPrefix.length)));
           const prefix = 'source_version.is.null,source_version.neq.';
           assert.ok(value.startsWith(prefix));
           return filter(['or',value], r => r.source_version == null || r.source_version !== value.slice(prefix.length));

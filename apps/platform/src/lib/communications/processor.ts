@@ -326,13 +326,16 @@ async function prepareQuoteFollowUp(
   if (!communication.quote_id) return { action: "skip", reason: "The quote reference is missing." };
   const { data: quote, error } = await supabase
     .from("quotes")
-    .select("id, status, quote_number, automatic_follow_ups_enabled, quote_line_items(name, description, sort_order)")
+    .select("id, status, quote_number, expires_at, automatic_follow_ups_enabled, quote_line_items(name, description, sort_order)")
     .eq("id", communication.quote_id)
     .maybeSingle();
 
   if (error) throw Error("Quote lookup unavailable");
   if (!quote) return { action: "cancel", reason: "The quote no longer exists." };
   if (quote.status !== "sent") return { action: "cancel", reason: `The quote is ${String(quote.status).replaceAll("_", " ")}.` };
+  const expiresAt = quote.expires_at == null ? null : Date.parse(quote.expires_at);
+  if (expiresAt !== null && !Number.isFinite(expiresAt)) throw Error("Proposal expiry unavailable");
+  if (expiresAt !== null && expiresAt <= Date.now()) return { action: "cancel", reason: "The proposal has expired. Contact our office for an updated proposal." };
   if (communication.is_automatic && !quote.automatic_follow_ups_enabled) {
     return { action: "cancel", reason: "Automatic follow-ups are disabled for this quote." };
   }

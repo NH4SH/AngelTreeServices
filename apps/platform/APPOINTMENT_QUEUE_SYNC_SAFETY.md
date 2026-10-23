@@ -40,3 +40,7 @@ Worker write failures/lost responses use controlled response adapters with datab
 Sanitized receipt: `staging/APPOINTMENT_QUEUE_SYNC_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/appointment-queue-sync-safety/`, including the original queue, before reproduction, focused/full test logs, database fingerprints and native-input acceptance results. Raw snapshots, generated records and diagnostics remain outside Git.
 
 The existing roadmap still includes actual mailbox/device/assistive-technology acceptance, unresolved owner terms-policy decisions and the separate Netlify managed-runtime follow-up. This backend-only batch changes no presentation and adds no recovery UI. No production query/change, application deployment, key rotation, support message or customer communication occurred. The newly verified fix remains local; main already contains the requested source-read fix and the separate website update.
+
+### Push follow-through — October 23, 2026
+
+The verified reminder-recovery fix is pushed normally to `origin/main` as `4e5bd40e911f944c6a6dbd7b77860a2da25c144a`, with CI/Netlify skip markers. The original verification receipt remains historical evidence. The next existing deadline/send-time eligibility follow-up is documented in `PROPOSAL_FOLLOWUP_EXPIRY.md`. No application deployment or production change occurred.

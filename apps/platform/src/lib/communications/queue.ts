@@ -148,7 +148,8 @@ async function syncQuotes(supabase: SupabaseClient, settings: CommunicationSetti
     .eq("status", "sent")
     .eq("automatic_follow_ups_enabled", true)
     .not("sent_at", "is", null)
-    .gte("sent_at", lookback);
+    .gte("sent_at", lookback)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   if (error) return { created: 0, error: error.message };
 

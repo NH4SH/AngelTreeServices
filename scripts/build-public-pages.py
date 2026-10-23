@@ -399,6 +399,11 @@ def page_document(page: dict) -> str:
               <li><a href="/services/commercial-hoa-tree-care/">Commercial &amp; HOA</a></li>
             </ul>
           </nav>'''
+    project_browse = ''
+    if page['path'] == '/projects/':
+        body_class = 'ats-projects-library-page'
+        mobile_actions_script = '\n  <script src="/projects-mobile.js?v=1" defer></script>'
+        project_browse = '\n          <p class="ats-projects-browse"><a href="#field-gallery-title">Browse photos</a></p>'
     topics = """<nav class="ats-removal-topics" aria-label="On this page">
             <p>On this page</p>
             <ul>
@@ -485,7 +490,7 @@ def page_document(page: dict) -> str:
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
           {breadcrumbs(page)}
-          <h1>{html_text(page['h1'])}</h1>{service_choices}
+          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust') if not page.get('firewood') else ''}
           {hero_action_block}{topics}
@@ -1182,7 +1187,7 @@ def projects_body() -> str:
     {project_spotlights()}
     <section class="ats-content-section" data-project-gallery aria-labelledby="field-gallery-title">
       <div class="ats-section-inner">
-        <h2 class="ats-section-heading" id="field-gallery-title">More from our field gallery</h2>
+        <h2 class="ats-section-heading" id="field-gallery-title" tabindex="-1">More from our field gallery</h2>
         <p>Select a photo for a closer look at our work.</p>
         <div class="ats-gallery-filters" data-gallery-filters role="group" aria-label="Filter project photos by service" hidden>
           <button type="button" data-gallery-filter="all" aria-pressed="true" aria-controls="field-gallery-photos">All photos</button>

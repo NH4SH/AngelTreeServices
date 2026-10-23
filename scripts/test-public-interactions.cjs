@@ -452,7 +452,7 @@ for (const service of [
 }
 
 function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandscapingActions', observers = true, resizeObserver = true, mutationObserver = true, available = true } = {}) {
-  const hero = {}, final = {}, focused = {}, observation = [], listeners = {}, properties = {};
+  const hero = {}, final = {}, focused = {}, observation = [], listeners = {}, properties = {}, rootProperties = {};
   const consentPanel = { id: 'ats-consent', hidden: true };
   let headerHeight = 70, barHeight = 64, resize, mutate, consentPresent = false;
   const actions = { hidden: false, contains: node => node === focused,
@@ -460,6 +460,7 @@ function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandsc
     addEventListener: (name, callback) => { listeners[name] = callback; } };
   const header = { getBoundingClientRect: () => ({ height: headerHeight }) };
   const document = { activeElement: {}, addEventListener() {}, body: { style: { setProperty: (key, value) => { properties[key] = value; } } },
+    documentElement: { style: { setProperty: (key, value) => { rootProperties[key] = value; properties[key] = value; } } },
     querySelector: selector => !available ? null : selector.endsWith('.ats-mobile-actions') ? actions : header,
     querySelectorAll: () => available ? [hero, final] : [],
     getElementById: id => id === 'ats-consent' && consentPresent ? consentPanel : null };
@@ -474,7 +475,7 @@ function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandsc
     assert.equal(target, document.body); assert.deepEqual(Array.from(options.attributeFilter), ['hidden']);
   }; };
   loadScript(file, [init], { document, window })[init]();
-  return { actions, hero, final, focused, document, observation, listeners, properties,
+  return { actions, hero, final, focused, document, observation, listeners, properties, rootProperties,
     notify: entries => observation.at(-1).callback(entries.map(([target, ratio, intersecting = true]) => ({ target, intersectionRatio: ratio, isIntersecting: intersecting }))),
     resize: (headerSize, barSize) => { headerHeight = headerSize; barHeight = barSize; resize(); },
     consent: (hidden, present = true) => { consentPresent = present; consentPanel.hidden = hidden;
@@ -485,6 +486,7 @@ function pageActionsHarness({ file = 'landscaping-mobile.js', init = 'initLandsc
 for (const service of [
   { name: 'Landscaping', file: 'landscaping-mobile.js', init: 'initLandscapingActions', prefix: 'landscaping' },
   { name: 'Tree services overview', file: 'services-overview-mobile.js', init: 'initServicesOverviewActions', prefix: 'services-overview' },
+  { name: 'Projects library', file: 'projects-mobile.js', init: 'initProjectsActions', prefix: 'projects-library' },
 ]) {
 test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
   const h = pageActionsHarness(service);
@@ -517,6 +519,10 @@ test(`${service.name} header and bar clearance grow with enlarged text without l
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
   assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
   assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
+  if (service.prefix === 'projects-library') {
+    assert.equal(h.rootProperties['--ats-projects-library-header-offset'], '162px');
+    assert.equal(h.rootProperties['--ats-projects-library-bar-space'], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
+  }
 });
 
 test(`${service.name} missing observers or page markup retain the visible fallback`, () => {

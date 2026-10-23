@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-:is(.ats-landscaping-page, .ats-services-overview-page) .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2128,7 +2128,8 @@ body.ats-gallery-open {
   display: none;
 }
 
-.ats-service-choices {
+.ats-service-choices,
+.ats-projects-browse {
   display: none;
 }
 
@@ -2450,6 +2451,91 @@ body.ats-gallery-open {
 
 /* Approved mobile service-page refinements; retain all other page layouts. */
 @media (max-width: 700px) {
+  body.ats-projects-library-page {
+    padding-bottom: calc(max(88px, var(--ats-projects-library-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-projects-library-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-projects-library-notice-bottom: max(84px, calc(var(--ats-projects-library-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-projects-library-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-projects-library-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-projects-library-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-projects-library-header-offset, 120px)));
+  }
+
+  .ats-projects-library-page #field-gallery-title {
+    scroll-margin-top: var(--ats-projects-library-header-offset, 120px);
+  }
+
+  @supports selector(html:has(body)) {
+    html:has(> body.ats-projects-library-page) {
+      scroll-padding-top: var(--ats-projects-library-header-offset, 120px);
+      scroll-padding-bottom: calc(max(88px, var(--ats-projects-library-bar-space, 88px)) + env(safe-area-inset-bottom));
+    }
+
+    .ats-projects-library-page #field-gallery-title {
+      scroll-margin-top: 0;
+    }
+  }
+
+  .ats-projects-library-page .ats-page-hero {
+    padding-block: 36px 80px;
+  }
+
+  .ats-projects-library-page .ats-breadcrumbs {
+    margin-bottom: 18px;
+  }
+
+  .ats-projects-library-page .ats-projects-browse {
+    display: block;
+    margin: 16px 0 0;
+  }
+
+  .ats-projects-browse a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    color: var(--ats-white);
+    font-weight: 600;
+    text-underline-offset: 4px;
+  }
+
+  .ats-projects-browse a:focus-visible {
+    outline: 3px solid var(--ats-white);
+    outline-offset: 2px;
+  }
+
+  .ats-projects-library-page .ats-page-hero__lead {
+    margin-top: 20px;
+  }
+
+  .ats-projects-library-page .ats-page-hero__trust {
+    margin-top: 16px;
+  }
+
+  .ats-projects-library-page .ats-actions {
+    margin-top: 24px;
+  }
+
+  .ats-projects-library-page .ats-content-section {
+    padding-block: 48px;
+  }
+
+  .ats-projects-library-page .ats-final-cta {
+    padding: 48px 20px;
+  }
+
+  .ats-projects-library-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
   body.ats-services-overview-page {
     padding-bottom: calc(max(88px, var(--ats-services-overview-bar-space, 88px)) + env(safe-area-inset-bottom));
   }

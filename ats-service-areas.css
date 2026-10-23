@@ -97,3 +97,83 @@
 @media (max-width: 360px) {
   .ats-area-places { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Preserve the directory's native reading order and existing place labels. */
+.ats-service-areas-page .ats-mobile-actions {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+@media (max-width: 700px) {
+  body.ats-service-areas-page {
+    padding-bottom: calc(max(88px, var(--ats-service-areas-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-service-areas-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-service-areas-notice-bottom: max(84px, calc(var(--ats-service-areas-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-service-areas-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-service-areas-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-service-areas-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-service-areas-menu-offset, 120px)));
+  }
+
+  .ats-service-areas-page :is(.ats-area-group h3, #richmond-coverage-title) {
+    scroll-margin-top: var(--ats-service-areas-scroll-offset, var(--ats-service-areas-header-offset, 120px));
+  }
+
+  @supports selector(html:has(body)) {
+    html:has(> body.ats-service-areas-page) {
+      scroll-padding-top: var(--ats-service-areas-header-offset, 120px);
+      scroll-padding-bottom: calc(max(88px, var(--ats-service-areas-bar-space, 88px)) + env(safe-area-inset-bottom));
+    }
+
+    .ats-service-areas-page :is(.ats-area-group h3, #richmond-coverage-title) {
+      scroll-margin-top: 0;
+    }
+  }
+
+  .ats-service-areas-page .ats-page-hero { padding-block: 36px 80px; }
+  .ats-service-areas-page .ats-breadcrumbs { margin-bottom: 18px; }
+  .ats-service-areas-page .ats-page-hero__lead { margin-top: 20px; }
+  .ats-service-areas-page .ats-page-hero__trust { margin-top: 16px; }
+  .ats-service-areas-page .ats-actions { margin-top: 24px; }
+  .ats-service-areas-page .ats-content-section { padding-block: 48px; }
+  .ats-service-areas-page .ats-two-column { gap: 24px; }
+
+  .ats-service-areas-page .ats-area-jumps {
+    margin: 0 0 32px;
+    padding-block: 20px;
+  }
+
+  .ats-service-areas-page .ats-area-jumps li {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ats-service-areas-page .ats-area-jumps a {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .ats-service-areas-page .ats-area-intro > p { margin-top: 20px; }
+  .ats-service-areas-page .ats-area-directory { row-gap: 32px; }
+  .ats-service-areas-page .ats-area-group h3 { margin-bottom: 16px; }
+
+  .ats-service-areas-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-height: 650px) {
+    body.ats-service-areas-page { --ats-service-areas-scroll-offset: 20px; }
+    /* Scroll with the page while preserving the header's menu stacking layer. */
+    .ats-service-areas-page .ats-page-header { position: relative; }
+
+    @supports selector(html:has(body)) {
+      html:has(> body.ats-service-areas-page) { scroll-padding-top: 20px; }
+    }
+  }
+}

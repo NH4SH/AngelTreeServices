@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page, .ats-credentials-page) .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page, .ats-credentials-page, .ats-service-areas-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 

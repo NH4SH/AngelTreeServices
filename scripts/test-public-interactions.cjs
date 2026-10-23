@@ -490,6 +490,7 @@ for (const service of [
   { name: 'Projects library', file: 'projects-mobile.js', init: 'initProjectsActions', prefix: 'projects-library' },
   { name: 'Reviews and recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
   { name: 'Credentials and safety', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
+  { name: 'Service areas', file: 'service-areas-mobile.js', init: 'initServiceAreasActions', prefix: 'service-areas' },
 ]) {
 test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
   const h = pageActionsHarness(service);
@@ -522,7 +523,7 @@ test(`${service.name} header and bar clearance grow with enlarged text without l
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
   assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
   assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
-  if (['projects-library', 'recognition', 'credentials'].includes(service.prefix)) {
+  if (['projects-library', 'recognition', 'credentials', 'service-areas'].includes(service.prefix)) {
     assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '162px');
     assert.equal(h.rootProperties[`--ats-${service.prefix}-bar-space`], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
   }
@@ -564,11 +565,12 @@ test(`${service.name} cookie-panel observation preserves focus and ignores the b
 for (const service of [
   { name: 'Recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
   { name: 'Credentials', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
+  { name: 'Service areas', file: 'service-areas-mobile.js', init: 'initServiceAreasActions', prefix: 'service-areas', scrollingPosition: 'relative' },
 ]) {
 test(`${service.name} scrolling header reserves menu space while only sticky headers obscure actions`, () => {
   const h = pageActionsHarness(service);
   assert.equal(h.observation[0].options.rootMargin, '-70px 0px 0px 0px');
-  h.headerMode('static'); h.resize(70, 64);
+  h.headerMode(service.scrollingPosition || 'static'); h.resize(70, 64);
   assert.equal(h.observation.at(-1).options.rootMargin, '-0px 0px 0px 0px');
   assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '20px');
   h.resize(202, 128);

@@ -364,7 +364,8 @@ def page_document(page: dict) -> str:
     landscaping = page['path'] == '/services/landscaping/'
     recognition = page['path'] == '/recognition/'
     credentials = page['path'] == '/credentials-safety/'
-    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition or credentials)
+    service_areas = page['path'] == '/service-areas/'
+    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition or credentials or service_areas)
     page_header = header(page["active"])
     hero_actions = action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)
     if page.get("firewood"):
@@ -387,6 +388,9 @@ def page_document(page: dict) -> str:
     if landscaping:
         body_class = 'ats-landscaping-page'
         mobile_actions_script = '\n  <script src="/landscaping-mobile.js?v=1" defer></script>'
+    if service_areas:
+        body_class = 'ats-service-areas-page'
+        mobile_actions_script = '\n  <script src="/service-areas-mobile.js?v=1" defer></script>'
     service_choices = ''
     if page['path'] == '/services/':
         body_class = 'ats-services-overview-page'
@@ -1618,15 +1622,15 @@ def service_areas_body() -> str:
     return f'''
     <section class="ats-content-section ats-content-section--white" aria-labelledby="coverage-directory-title">
       <div class="ats-section-inner">
+        <nav class="ats-area-jumps" aria-label="Browse coverage by region">
+          <p>Jump to your area</p>
+          <ul role="list">{jumps}<li><a href="#richmond-coverage-title">Richmond: tree services only</a></li></ul>
+        </nav>
         <div class="ats-area-intro">
           <h2 class="ats-section-heading" id="coverage-directory-title">Tree care and landscaping coverage.</h2>
           <p>We serve the communities below for <a href="/services/">tree care</a> and <a href="/services/landscaping/">landscaping</a>, except locations marked tree services only. Landscaping includes bush and hedge trimming, weeding, edging and mulch for existing planting beds.</p>
           <p>Tree care includes <a href="/services/tree-removal/">tree removal</a>, <a href="/services/tree-pruning/">pruning</a> and <a href="/services/stump-grinding/">stump grinding</a>. See our <a href="/projects/hollow-tree-removal/">William Street tree removal in Fredericksburg</a> for an example of our work.</p>
         </div>
-        <nav class="ats-area-jumps" aria-label="Browse coverage by region">
-          <p>Jump to your area</p>
-          <ul role="list">{jumps}<li><a href="#richmond-coverage-title">Richmond: tree services only</a></li></ul>
-        </nav>
         <div class="ats-area-directory">{groups}</div>
       </div>
     </section>

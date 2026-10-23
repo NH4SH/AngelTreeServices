@@ -38,6 +38,7 @@ STATIC_FILES = (
     "projects-mobile.js",
     "recognition-mobile.js",
     "credentials-mobile.js",
+    "service-areas-mobile.js",
     "projects-gallery.js",
     "ats-website.js",
     "ats-consent.js",

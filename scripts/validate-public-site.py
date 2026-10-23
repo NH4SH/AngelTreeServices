@@ -1573,6 +1573,7 @@ class Validator:
             self.site_dir / "projects-mobile.js",
             self.site_dir / "recognition-mobile.js",
             self.site_dir / "credentials-mobile.js",
+            self.site_dir / "service-areas-mobile.js",
             self.site_dir / "ats-website.js",
             self.site_dir / "sitemap.xml",
             self.site_dir / "robots.txt",

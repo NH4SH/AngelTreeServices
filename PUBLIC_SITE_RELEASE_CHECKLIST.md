@@ -1,3 +1,61 @@
+## Homepage FAQ revision — release approved, October 23, 2026
+
+Owner approved commit, push and publication of the reviewed homepage FAQ revision.
+Preserve origin/main through 1f1cfb7 as parent and any subsequent repository work.
+Push with [skip ci] [skip netlify], then trigger only public website
+86c48a95-ead4-4b15-8e57-fa827558b2f0. Keep analytics, consent and CRM code/settings
+unchanged; no lead submissions. Re-run the public suite over the integrated
+parent, compare both projects' settings/publication state and run non-submitting
+production smoke checks. Release evidence: outputs/homepage-faq-release/ in this
+chat. Earlier hold notes below record the state before this publication approval.
+
+### Earlier draft and final review
+
+Owner chose the homepage's ten questions only. Publication is held: no commit,
+push, QA upload or deployment is authorized for this revision. Source parent is
+763fd40; preserve newer repository work before any separately approved release.
+
+- Final review: no blocking regression and no further copy/application change.
+  Fresh 239 Node + 9 Python tests, build and 18-page validation pass. Fresh
+  320/1280px checks cover all ten disclosures; single-open state, no overflow,
+  target sizes and keyboard activation pass. Prior doubled-text and exact
+  draft/Clear evidence remains applicable. All 17 other built pages and the
+  three crawler-resource files remain byte-identical after the fresh build.
+  Live robots.txt allows crawling; ordinary and OAI-SearchBot user-agent probes
+  return homepage 200 with no index/snippet suppression. These probes do not
+  prove verified crawler-IP access, indexing or AI citations. Full answers are
+  in initial HTML; existing Fredericksburg metadata and business schema remain.
+  Current Google guidance requires no special AI schema, and FAQ rich results
+  ended May 7, 2026. No added FAQPage markup or crawler-policy change needed.
+  Review evidence: outputs/homepage-faq-revision/review-*. Publication held.
+- Reordered around customer decisions: cost and free estimates first, then tree
+  preservation, work near homes, stump scope and cleanup. Combined credentials
+  and insurance to add urgent storm guidance. Retained residential-only 5%
+  veterans terms and confirmed landscaping services with coverage links.
+- Emergency availability follows the original owner instructions: 24/7 response
+  for serious storm damage and urgent hazards, subject to conditions, crew
+  safety, location and severity. No immediate-arrival or damage-free guarantee.
+- Only the homepage FAQ and its existing validation guards change. Native
+  disclosures, styling, heading and section anchor remain. Other 17 generated
+  pages, metadata/schema, photos, sitemap/robots/llms, form, estimate runtime,
+  analytics, consent and CRM remain unchanged. No FAQPage schema was added.
+- Local suite passes: 239 Node + 9 Python tests (248 total), public build and
+  18-page validation. Local autocomplete is disabled because the local build has
+  no Maps key; source is unchanged. No production or backend submissions.
+- Browser checks pass for all ten disclosures at 320/390/768/1280px and synthetic
+  doubled FAQ text at 320/390px (60 disclosure checks). No horizontal overflow;
+  minimum summary height is 78px at ordinary sizes. Enter/Space, visible focus,
+  single-open grouping, estimate anchor, exact synthetic draft preservation
+  and Clear draft pass. Desktop, phone and doubled-text screenshots reviewed.
+- Evidence: this chat's outputs/homepage-faq-revision/, including complete copy,
+  diff, test log and browser results. Local isolated preview is loopback-only,
+  noindex, blocks external connections and form submission; no QA upload.
+- Release still requires owner copy approval, integrating over the then-current
+  repository parent, and non-submitting production checks after an approved
+  publication. Native phone text settings and spoken screen-reader checks were
+  not repeated for this copy-only revision; synthetic enlargement is not a
+  complete accessibility certification.
+
 ## Tree Removal mobile navigation — release approved, October 21, 2026
 
 Owner approved commit, push and publication of the reviewed Tree Removal mobile

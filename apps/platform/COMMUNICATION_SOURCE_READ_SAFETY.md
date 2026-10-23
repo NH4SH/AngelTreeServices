@@ -40,3 +40,7 @@ Staging used project `gbyhdsuiqeslgjdnbqng` at migration 118. Fresh before/after
 Sanitized receipt: `staging/COMMUNICATION_SOURCE_READ_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/communication-source-read-safety/`, including the original processor, before reproduction, build/test logs, protected-state fingerprints and native-input acceptance results. Raw snapshots/diagnostics and synthetic records remain outside Git.
 
 This backend-only fix adds no UI and changes no templates, so browser/mailbox acceptance is unchanged from the preceding appointment batch. It does not certify real provider delivery, a deployed staging worker or outage recovery in production. Real mailbox/device/assistive-technology acceptance, unresolved owner terms-policy decisions and the separate Netlify managed-runtime follow-up remain open in the existing roadmap. No support contact, key rotation, production query/change, hosting change, application deployment or automatic retry was performed.
+
+### Push follow-through — October 23, 2026
+
+The verified source-read fix is pushed normally to `origin/main` as `1f1cfb79e386eb74a575217d612f5cda1d294078`, with CI/Netlify skip markers. The original receipt remains historical local-verification evidence. The next existing checked-update/recovery gap is documented in `APPOINTMENT_QUEUE_SYNC_SAFETY.md`. The concurrent website-only main update `0a85e15` is also preserved in that candidate. No deployment or production change occurred.

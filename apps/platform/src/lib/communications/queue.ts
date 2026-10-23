@@ -250,7 +250,9 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
     const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
     if (!job || !party) continue;
 
-    await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at);
+    if (!await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at)) {
+      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+    }
     const isEstimate = event.event_type === "estimate";
     const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
     const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
@@ -307,7 +309,9 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
     const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
     if (!job || !party) continue;
 
-    await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at);
+    if (!await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at)) {
+      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+    }
     const isEstimate = appointment.appointment_type === "estimate";
     const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
     const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
@@ -385,16 +389,21 @@ async function cancelObsoleteAppointmentVersion(
   id: string,
   sourceVersion: string,
 ) {
-  await supabase
-    .from("customer_communications")
-    .update({
-      cancelled_at: new Date().toISOString(),
-      skip_reason: "The appointment was rescheduled. A current reminder replaces this one.",
-      status: "cancelled",
-    })
-    .eq(column, id)
-    .eq("status", "pending")
-    .or(`source_version.is.null,source_version.neq.${sourceVersion}`);
+  try {
+    const { error } = await supabase
+      .from("customer_communications")
+      .update({
+        cancelled_at: new Date().toISOString(),
+        skip_reason: "The appointment was rescheduled. A current reminder replaces this one.",
+        status: "cancelled",
+      })
+      .eq(column, id)
+      .eq("status", "pending")
+      .or(`source_version.is.null,source_version.neq.${sourceVersion}`);
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 function buildQueueInput(input: {

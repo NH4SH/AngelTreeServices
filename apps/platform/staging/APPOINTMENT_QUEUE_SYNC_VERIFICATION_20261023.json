@@ -1,0 +1,121 @@
+{
+  "observedAt": "2026-10-23T20:44:57.495000+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/appointment-queue-sync-safety",
+  "baseMain": "0a85e15953f7544137ef22e2dbd332e7050e1041",
+  "sourceReadFixPushedToMain": "1f1cfb79e386eb74a575217d612f5cda1d294078",
+  "concurrentWebsiteMainPreserved": true,
+  "beforeReproduction": {
+    "actualPreChangeQueueWorkerAndFollowups": true,
+    "bothSourceSystems": true,
+    "returnedCleanupErrorIgnored": true,
+    "newQueueRowsPreparedPerSource": 2,
+    "deliveryClaimAttempted": true,
+    "acceptedFollowupIncorrectlyAcknowledged": true,
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2459,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 14
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "migrationCount": 105,
+    "sourceQueueAndAccessAssertions": 51,
+    "sourceFixtureCount": 7,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndAllPublicPrivateAuthRowsUnchanged": true,
+    "applicationSchemaChanged": false,
+    "settingsChanged": false,
+    "realProviderCalls": 0
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 51,
+    "sourceFixtureCount": 7,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeInputAcceptance": {
+    "localScenarios": 49,
+    "stagingScenarios": 49,
+    "syntheticVisitFixturesPerEnvironment": 7,
+    "actualBeforeAndAfterQueue": true,
+    "actualWorkerAndFollowupCode": true,
+    "controlledWriteFaultResponses": true,
+    "adapterOnlyEnabledPlannerFlags": true,
+    "allPassed": true,
+    "healthyQueueKeysRecipientsAndReminderTimingUnchanged": true,
+    "noClaimAfterFailedCleanup": true,
+    "followupRemainsPendingUntilConfirmed": true,
+    "recoveredPreparationUsesSameKeys": true,
+    "realProviderCalls": 0
+  },
+  "websiteMainCompatibility": {
+    "interactionChecksPassed": 239,
+    "styleChecksPassed": 9,
+    "buildPassed": true,
+    "approvedPagesValidated": 18,
+    "python": "3.13.16",
+    "initialPython39Incompatible": true,
+    "sourceChangedToFixPython": false
+  },
+  "preservation": {
+    "pendingOnlyCleanupPredicateUnchanged": true,
+    "sameSourceAndOldVersionPredicateUnchanged": true,
+    "nonpendingAndUnrelatedHistoryUnchanged": true,
+    "sourceReadFixUnchanged": true,
+    "financialCalculationsUnchanged": true,
+    "authorizationAndRLSUnchanged": true,
+    "templatesUnchanged": true,
+    "newMigration": false,
+    "newRecoveryUI": false,
+    "sourceCopyParity": true,
+    "runtimeSecurityBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sourceSha256": {
+    "apps/platform/src/lib/communications/queue.ts": "c81cf6f4d11603b0003a05fc63c40a186d8d8349710e7ec8b1ac1f80ff7b307f",
+    "apps/platform/tests/appointment-queue-fixture.mjs": "1f239483e7334994e140b8e334f06d372112f518e30012cb3becee78982d770d",
+    "apps/platform/tests/appointment-queue-sync-safety.test.mjs": "1021c0a9a5aa20b76abe5b0a01e4c3089c6024e9b2b2d6c27bb217573ef045f6",
+    "supabase/verification/appointment_queue_sync.sql": "0e36a4c50da847a210e9cfa7b4d53420a6d9b51f368ea151477758de8d40c039"
+  },
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "environmentValuesChanged": false,
+    "realEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0,
+    "hostedOutageInduced": false
+  },
+  "limitations": [
+    "Synchronization remains separate operations; earlier cleanup and other families may make partial progress.",
+    "Worker faults and accepted-followup responses use controlled adapters, not real hosted faults or accepted deliveries.",
+    "Local native schema 105 is preserved; exact current staging 118 is verified separately.",
+    "No deployed staging worker, real inbox delivery or globally atomic queue preparation is certified."
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/appointment-queue-sync-safety"
+}

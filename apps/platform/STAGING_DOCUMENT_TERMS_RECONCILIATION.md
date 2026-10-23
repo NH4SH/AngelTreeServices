@@ -42,3 +42,5 @@ Security-advisor details are unchanged after excluding observation timestamps: 3
 Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/staging-document-terms-118/`. Full snapshots, synthetic records, local credentials and native logs remain outside Git. The task-owned local stack is stopped with its volumes preserved; unrelated development services and Impeccable files remain intact. The sanitized receipt is `staging/DOCUMENT_TERMS_RECONCILIATION_VERIFICATION_20261023.json`.
 
 Next: obtain the owner policy decisions identified in `CUSTOMER_TERMS_REVIEW.md` before changing payment/debris override precedence, invoice deadlines, penalties, surcharge disclosures, warranty or the undated proposal default. Netlify's managed-runtime patch remains an independent release blocker. This staging reconciliation grants no app-hosting or production readiness.
+
+Push follow-through: the verified reconciliation and preserved-terms prerequisite are now on `origin/main` through `eb916ca`, using deployment-skip markers. The next independent framework security preparation is documented in `FRAMEWORK_SECURITY_UPDATE.md`; no app deployment or production change is implied.

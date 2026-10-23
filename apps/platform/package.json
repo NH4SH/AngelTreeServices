@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:lan": "next dev --webpack --hostname 0.0.0.0 --port 3000",
-    "build": "next build",
+    "build": "node scripts/release/verify-framework-security.mjs --installed && next build",
     "start": "next start",
     "start:lan": "next start --hostname 0.0.0.0 --port 3000",
     "typecheck": "next typegen && tsc --noEmit --incremental false",
@@ -25,7 +25,8 @@
     "test:quotes": "node --test --experimental-strip-types src/lib/quotes/*.test.mjs",
     "schema:generate": "node scripts/schema/generate.mjs",
     "schema:check": "node scripts/schema/generate.mjs --check",
-    "schema:check:offline": "node scripts/schema/generate.mjs --offline"
+    "schema:check:offline": "node scripts/schema/generate.mjs --offline",
+    "framework:check": "node scripts/release/verify-framework-security.mjs --installed"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",
@@ -33,9 +34,9 @@
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "lucide-react": "^1.22.0",
-    "next": "16.3.8",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
     "server-only": "0.0.1",
     "sharp": "0.35.5",
     "stripe": "^22.3.2"

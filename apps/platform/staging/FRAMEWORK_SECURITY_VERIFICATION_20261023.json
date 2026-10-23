@@ -1,0 +1,154 @@
+{
+  "observedAt": "2026-10-23T15:18:32.565Z",
+  "status": "verified-local-candidate",
+  "baseMain": "eb916ca",
+  "migration118PushedToMain": true,
+  "branch": "codex/framework-security-update",
+  "versions": {
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "sharp": "0.35.5"
+  },
+  "lockfileTargetedDeltaOnly": true,
+  "unchangedSourceFilesCompared": 756,
+  "sourceCopyMatchesCandidate": true,
+  "applicationFeatureCodeChanged": false,
+  "businessTermsChanged": false,
+  "databaseMigrationsChanged": false,
+  "existingPreviewDependenciesChanged": false,
+  "builds": [
+    {
+      "node": "22.23.4",
+      "next": "16.4.2",
+      "react": "19.2.9",
+      "reactDom": "19.2.9",
+      "typegen": true,
+      "typecheck": true,
+      "optimizedBuild": true,
+      "environmentFilesCopied": false,
+      "providerCredentialsPresent": false,
+      "externalApplicationNetworkAttempts": 0
+    },
+    {
+      "node": "24.22.1",
+      "next": "16.4.2",
+      "react": "19.2.9",
+      "reactDom": "19.2.9",
+      "typegen": true,
+      "typecheck": true,
+      "optimizedBuild": true,
+      "environmentFilesCopied": false,
+      "providerCredentialsPresent": false,
+      "externalApplicationNetworkAttempts": 0
+    }
+  ],
+  "unitSuites": [
+    {
+      "node": "22.23.4",
+      "passed": 2411,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "node": "24.22.1",
+      "passed": 2411,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "securityFloorCases": 7,
+  "productionDependencyAudit": {
+    "knownVulnerabilities": 0
+  },
+  "compiledAcceptance": {
+    "loopbackOnly": true,
+    "productionBuild": true,
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "node": "22.23.4",
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "customerEmailsSent": 0,
+    "realPaymentCalls": 0,
+    "results": [
+      {
+        "name": "Compiled liveness, security headers and login/static rendering",
+        "passed": true
+      },
+      {
+        "name": "All internal mutation workers remain unavailable without authorization",
+        "passed": true
+      },
+      {
+        "name": "Synthetic unavailable customer links and private files fail closed",
+        "passed": true
+      },
+      {
+        "name": "Real compiled Server Action accepts benign multipart input and returns the existing configuration denial",
+        "passed": true
+      },
+      {
+        "name": "Compiled Server Action rejects a mismatched Origin before business execution",
+        "passed": true
+      }
+    ]
+  },
+  "stagingAcceptance": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "termsAssertions": 30,
+    "expiryAssertions": 30,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "stagingRendererCases": 2,
+  "localNetlifyPackaging": {
+    "offlineBuild": true,
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "adapterVersion": "5.16.3",
+    "node": "22.23.4",
+    "functionCount": 6,
+    "scheduledFunctionCount": 5,
+    "credentialsExported": false,
+    "environmentFilesCopied": false,
+    "appDeployed": false,
+    "externalApplicationNetworkAttempts": 0,
+    "optionalToolingNetworkAttemptsBlocked": [
+      {
+        "host": "list-v2--netlify-plugins.netlify.app",
+        "blocked": true
+      },
+      {
+        "host": "edge.netlify.com",
+        "blocked": true
+      },
+      {
+        "host": "master--site-name.netlify.app",
+        "blocked": true
+      }
+    ],
+    "allExternalRequestsBlockedBeforeTransmission": true
+  },
+  "runtimeSecurityBranchPreservedAt": "06580f6",
+  "boundaries": {
+    "pushed": false,
+    "appDeployed": false,
+    "productionChanged": false,
+    "keysRotated": false,
+    "providerCredentialsExported": false,
+    "customerEmailsSent": 0,
+    "paymentProviderCalls": 0,
+    "scannerChanged": false,
+    "duplicateSupportRequestSent": false,
+    "productionActualNodePatchVerified": false,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/framework-security-update"
+}

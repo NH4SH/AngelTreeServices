@@ -44,3 +44,5 @@ Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/staging-payment-
 ### Push follow-through — October 23, 2026
 
 The verified reconciliation is pushed normally to `origin/main` as `d14d504a6c82201f5bc3efea55d53d7ec9110a98`, with CI/Netlify skip markers. The next existing communications/scalable-read follow-through is documented in `PAYMENT_CONFIRMATION_PLANNING.md`. Migration 120 and its historical evidence remain unchanged; no application deployment, production change, automatic activation or historical-message retry occurred.
+
+October 23 successor: staging now includes the separately verified migration 121. This migration-120 record remains historical evidence; use `STAGING_BULK_REMINDER_RECONCILIATION.md` and `verify-staging-bulk-reminder-candidate.mjs` for the current exact staging baseline. All original 120 ledger entries, individual-payment receipt behavior and protected records are preserved.

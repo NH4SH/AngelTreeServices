@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-23",
+  "observedAt": 1792799335768,
+  "mainThrough": "b29fbde",
+  "pushedBulkCleanupFix": "b29fbde",
+  "reconciliationBranch": "codex/staging-bulk-reminder-121",
+  "reconciliationPushed": false,
+  "migration": {
+    "number": 121,
+    "name": "20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
+    "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999",
+    "installedOnAssignedStaging": true
+  },
+  "local": {
+    "fresh120Replay": true,
+    "candidateRollbackAssertions": 43,
+    "failedNativeUpgradeRollsBackSchemaAndLedger": true,
+    "nativeUpgradeAndRepeat": true,
+    "installedAssertions": 43,
+    "migrationCount": 121,
+    "allOriginalLedgerRowsAndRecordsPreserved": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "realProviderCalls": 0
+  },
+  "nativeConcurrency": {
+    "scenarios": 8,
+    "results": [
+      {
+        "kind": "schedule_event",
+        "scenario": "reschedule",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "overlap",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "processing",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "timeout",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "reschedule",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "overlap",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "processing",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "timeout",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      }
+    ],
+    "syntheticOnly": true,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 121,
+    "latestMigration": "20261023232306",
+    "candidateAssertions": 43,
+    "installedAssertions": 43,
+    "syntheticFixturesRolledBack": true,
+    "catalogObjects": 5111,
+    "addedReviewedInvokerCommands": 1,
+    "changedOriginalCatalogObjects": 0,
+    "original120CompleteLedgerEntriesPreserved": true,
+    "lastNativeEntryMatchesLocal": true,
+    "originalPermissionsAndDefaultsPreserved": true,
+    "priorPaymentReceiptExpiryAndDocumentTermsPreserved": true,
+    "protectedRecordSets": 49,
+    "allProtectedStateSettingsGuardUnchanged": true,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "pendingMigrations": 0,
+    "seedsImported": 0,
+    "rolesImported": 0,
+    "vaultImportSkipped": true
+  },
+  "readOnlyMaintenance": {
+    "freshHostedObservationPassed": true,
+    "newAcceptanceRejectionTests": 10,
+    "productionAndWriteFlagsDenied": true
+  },
+  "securityAdvisors": {
+    "exactBeforeAfterEquality": true,
+    "warn": 80,
+    "existingAuthenticatedDefinerNotices": 79,
+    "existingLeakedPasswordWarning": 1,
+    "newFindings": 0
+  },
+  "regression": {
+    "passed": 2583,
+    "failed": 0,
+    "skipped": 0
+  },
+  "contract": {
+    "freshNative121SchemaCheck": true,
+    "offlineMigrationAndPublicTypeFingerprints": true,
+    "typegen": true,
+    "typecheck": true,
+    "frameworkFloor": true,
+    "providerCredentialsCopied": false,
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRerun": false,
+    "applicationCodeUnchanged": true
+  },
+  "sources": [
+    {
+      "path": "apps/platform/scripts/release/verify-staging-bulk-reminder-candidate.mjs",
+      "sha256": "fc5241ab7912e11eb47a5c1b0e42dbc2952c39656827c114883e88b89e3183e9"
+    },
+    {
+      "path": "apps/platform/tests/staging-bulk-reminder-candidate.test.mjs",
+      "sha256": "4976478a52bd5aec3b36e10f398acfd80a4f3de3afa14ff795a9e840505cc5b0"
+    },
+    {
+      "path": "supabase/staging/bulk-reminder-candidate-121.json",
+      "sha256": "f788158bed930816efd40652715f1217cb8a4dad79c8c7ccd270006c281337c7"
+    },
+    {
+      "path": "supabase/staging/bulk-reminder-snapshot-121.sql",
+      "sha256": "b0c5530b712721e07c1d18c9729b52ef4f27eba30d6a2db38210d1026a69765f"
+    }
+  ],
+  "runtimeBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78",
+  "boundaries": {
+    "applicationDeployed": false,
+    "applicationSourceChanged": false,
+    "migrationSourcesChanged": false,
+    "publicTypesChanged": false,
+    "dependenciesChanged": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "keysRotated": false,
+    "automaticActivation": false,
+    "historicalRetriesStarted": 0,
+    "realProviderCalls": 0,
+    "customerEmails": 0,
+    "productionReady": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/staging-bulk-reminder-121",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_stage121_227044ef34b9",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  }
+}

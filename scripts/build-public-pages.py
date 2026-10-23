@@ -365,7 +365,8 @@ def page_document(page: dict) -> str:
     recognition = page['path'] == '/recognition/'
     credentials = page['path'] == '/credentials-safety/'
     service_areas = page['path'] == '/service-areas/'
-    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition or credentials or service_areas)
+    case_study = page['type'] == 'project'
+    page_footer = footer(include_mobile_actions=not page.get("firewood"), estimate_first=landscaping or recognition or credentials or service_areas or case_study)
     page_header = header(page["active"])
     hero_actions = action_buttons(html_attr(page['estimate_href']), html_text(page['estimate_label']), page.get('call_first', False), 12)
     if page.get("firewood"):
@@ -391,6 +392,18 @@ def page_document(page: dict) -> str:
     if service_areas:
         body_class = 'ats-service-areas-page'
         mobile_actions_script = '\n  <script src="/service-areas-mobile.js?v=1" defer></script>'
+    case_topics = ''
+    if case_study:
+        mobile_actions_script = '\n  <script src="/case-studies-mobile.js?v=1" defer></script>'
+        if page['path'] == '/projects/hollow-tree-removal/':
+            case_topics = '''
+          <nav class="ats-case-topics" aria-label="On this page">
+            <ul>
+              <li><a href="#case-findings">What we found</a></li>
+              <li><a href="#case-removal">Removal</a></li>
+              <li><a href="#case-cleanup">Cleanup</a></li>
+            </ul>
+          </nav>'''
     service_choices = ''
     if page['path'] == '/services/':
         body_class = 'ats-services-overview-page'
@@ -522,7 +535,7 @@ def page_document(page: dict) -> str:
       <div class="ats-page-hero__inner{hero_class}">
         <div class="ats-page-hero__content">
           {breadcrumbs(page)}
-          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}{recognition_browse}{credentials_browse}
+          <h1>{html_text(page['h1'])}</h1>{service_choices}{project_browse}{recognition_browse}{credentials_browse}{case_topics}
           <p class="ats-page-hero__lead">{html_text(page['lead'])}</p>
           {trust_line('ats-page-hero__trust') if not page.get('firewood') else ''}
           {hero_action_block}{topics}
@@ -1095,13 +1108,13 @@ def tree_project_body() -> str:
     <section class="ats-content-section">
       <div class="ats-section-inner ats-case-study">
         <div class="ats-prose ats-case-copy">
-          <h2>{html_text(identification['heading'])}</h2><p>{html_text(identification['body'])}</p>
+          <h2 id="case-findings" tabindex="-1">{html_text(identification['heading'])}</h2><p>{html_text(identification['body'])}</p>
           <h2>{html_text(risk['heading'])}</h2><p>{html_text(risk['body'])}</p>
           <h3>{html_text(risk['signs_heading'])}</h3><ul>{signs}</ul>
           <p class="ats-case-sources">Tree-risk background: {sources}</p>
         </div>
         <div class="ats-prose ats-case-copy ats-case-section">
-          <h2>{html_text(removal['heading'])}</h2><p>{html_text(removal['body'])}</p>
+          <h2 id="case-removal" tabindex="-1">{html_text(removal['heading'])}</h2><p>{html_text(removal['body'])}</p>
         </div>
         {project_figure(1)}
         <div class="ats-case-pair">
@@ -1109,7 +1122,7 @@ def tree_project_body() -> str:
           {project_figure(3, '(max-width: 760px) calc(100vw - 40px), 46vw')}
         </div>
         <div class="ats-prose ats-case-copy ats-case-section">
-          <h2>{html_text(cleanup['heading'])}</h2><p>{html_text(cleanup['body'])}</p>
+          <h2 id="case-cleanup" tabindex="-1">{html_text(cleanup['heading'])}</h2><p>{html_text(cleanup['body'])}</p>
         </div>
         <div class="ats-case-progress">{project_figure(4, '(max-width: 760px) calc(100vw - 40px), 760px')}</div>
         <div class="ats-case-finish">{project_figure(5)}</div>

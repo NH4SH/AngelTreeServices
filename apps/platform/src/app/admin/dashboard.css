@@ -1,4 +1,5 @@
 /* Dashboard-only palette; the remaining CRM retains its existing appearance. */
+.app-shell.dashboard-dark { width: 100%; }
 .dashboard-dark {
   --dashboard-bg: #111713;
   --dashboard-surface: #19201b;
@@ -53,15 +54,20 @@
 .business-dashboard-heading > div > p:last-child { margin-top: 10px; color: var(--dashboard-muted); font-size: .88rem; }
 .business-dashboard .dashboard-primary-action { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 16px; flex-shrink: 0; background: var(--dashboard-accent); color: #1b2913; border-radius: 6px; padding: 0 18px; font-size: .85rem; font-weight: 750; }
 .business-dashboard .dashboard-primary-action:hover { background: #d2ff9b; }
-.dashboard-focus-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, 1fr); gap: 40px; border-top: 1px solid var(--dashboard-line); }
+.dashboard-focus-grid > * { grid-column: 1 / -1; }
+.dashboard-focus-grid > .dashboard-money { grid-column: 1; grid-row: 1; }
+.dashboard-focus-grid > .dashboard-next-up { grid-column: 2; grid-row: 1; }
+.dashboard-focus-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, 1fr); column-gap: 40px; border-top: 1px solid var(--dashboard-line); }
 .dashboard-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .dashboard-section-heading :is(a,span) { display: inline-flex; align-items: center; gap: 5px; color: var(--dashboard-muted); font-size: .75rem; line-height: 1.5; }
 .dashboard-section-heading a { min-height: 44px; }
 .dashboard-section-heading a:hover { color: var(--dashboard-accent); }
 .dashboard-money { min-width: 0; padding-top: 22px; }
 .dashboard-periods { display: flex; gap: 8px; margin: 12px 0 22px; }
-.dashboard-periods a { display: inline-flex; min-width: 44px; min-height: 40px; justify-content: center; align-items: center; border-radius: 4px; color: var(--dashboard-muted); font-size: .75rem; font-weight: 650; border: 1px solid transparent; }
+.dashboard-periods a { position: relative; display: inline-flex; min-width: 44px; min-height: 40px; justify-content: center; align-items: center; border-radius: 4px; color: var(--dashboard-muted); font-size: .75rem; font-weight: 650; border: 1px solid transparent; }
 .dashboard-periods a[aria-current] { color: var(--dashboard-accent); border-color: var(--dashboard-line); background: var(--dashboard-surface); }
+.dashboard-periods a:has([data-pending="true"]) { cursor: progress; background: var(--dashboard-raised); color: var(--dashboard-accent); }
+.dashboard-period-label[data-pending="true"]::after { content: ""; position: absolute; inset: auto 5px 3px; height: 2px; background: var(--dashboard-accent); }
 .dashboard-periods a:hover { background: var(--dashboard-raised); color: var(--dashboard-text); }
 .business-dashboard .dashboard-metric-label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; font-size: .88rem; color: var(--dashboard-text); }
 .dashboard-metric-label span { color: var(--dashboard-muted); font-size: .75rem; }
@@ -188,13 +194,15 @@
 .dashboard-data-notices p { margin-top: 10px; color: var(--dashboard-muted); }
 @media (max-width: 1200px) {
   .dashboard-dark .app-main > .business-dashboard { padding-inline: 28px; }
-  .dashboard-focus-grid { gap: 24px; grid-template-columns: minmax(0,1.5fr) minmax(270px,1fr); }
+  .dashboard-focus-grid { column-gap: 24px; grid-template-columns: minmax(0,1.5fr) minmax(270px,1fr); }
   .dashboard-next-up { padding-left: 24px; }
   .dashboard-priority { gap: 8px; }
   .dashboard-money-ledger { gap: 12px; }
 }
 @media (max-width: 800px) {
-  .dashboard-focus-grid { grid-template-columns: minmax(0,1fr); gap: 24px; }
+  .dashboard-focus-grid { grid-template-columns: minmax(0,1fr); column-gap: 0; }
+  .dashboard-focus-grid > .dashboard-money, .dashboard-focus-grid > .dashboard-next-up { grid-column: 1; grid-row: auto; }
+  .dashboard-focus-grid > .dashboard-next-up { margin-top: 24px; }
   .dashboard-next-up { border-left: 0; border-top: 1px solid var(--dashboard-line); padding: 24px 0 0; }
   .dashboard-priority-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 28px; margin-top: 8px; }
   .dashboard-priority { min-height: 84px; }

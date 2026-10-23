@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-22",
+  "baseCommit": "ce14a26",
+  "branch": "codex/dashboard-responsiveness",
+  "applicationSourceSha256": "1506e257880eece6b94b82effff2f78aaa874d2029da2e689b71951d475928b8",
+  "controlledLocalStream": {
+    "optionalReadDelayMs": 8000,
+    "before": {
+      "source": "before",
+      "status": 200,
+      "firstHeadersMs": 561,
+      "shellMs": 9061,
+      "periodMs": 9511,
+      "moneyMs": 9510,
+      "completeMs": 9512,
+      "delayedOptionalReadMs": 8000
+    },
+    "after": {
+      "source": "after",
+      "status": 200,
+      "firstHeadersMs": 197,
+      "shellMs": 198,
+      "periodMs": 198,
+      "moneyMs": 540,
+      "completeMs": 8451,
+      "delayedOptionalReadMs": 8000
+    },
+    "warmDevServer": true,
+    "productionSpeedClaim": false
+  },
+  "viewportWidths": [
+    1920,
+    1440,
+    1280,
+    1024,
+    981,
+    980,
+    904,
+    768,
+    390,
+    320
+  ],
+  "horizontalOverflow": false,
+  "keyedClientTransition": {
+    "monthSelectedMs": 215,
+    "ninety": {
+      "selectedMs": 341,
+      "moneyVisibleMs": 860,
+      "date": "Cash collectedJul 25\u2013Oct 22",
+      "selected": "/admin?range=last_90",
+      "workStillLoading": true
+    }
+  },
+  "keyboardPeriodActivation": true,
+  "pendingFeedbackObservedMs": 130,
+  "mobileMenuDuringPendingMs": 681,
+  "consoleErrors": 0,
+  "regressionChecks": 2370,
+  "failed": 0,
+  "skipped": 0,
+  "targetedFinalChecks": 5,
+  "typecheck": true,
+  "optimizedBuild": true,
+  "productionChanged": false,
+  "deployed": false,
+  "schemaChanged": false,
+  "reportQueriesChanged": false,
+  "sendingChanged": false,
+  "priorBrandingCommitPreserved": true,
+  "designDetector": {
+    "existingFindings": 19,
+    "onChangedLines": 0
+  }
+}

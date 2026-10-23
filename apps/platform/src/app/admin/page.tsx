@@ -33,6 +33,8 @@ import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
 import { DashboardMoney, DashboardMoneyLoading } from "@/components/dashboard/DashboardMoney";
+import { DashboardPeriodLinks } from "@/components/dashboard/DashboardPeriodLinks";
+import type { PlatformRoleName } from "@/lib/auth/roles";
 import { dashboardPeriod } from "@/lib/dashboard/cash-series";
 import "./dashboard.css";
 import { getMaterialsDashboardSummary } from "@/lib/data/materials";
@@ -47,6 +49,26 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     return <SetupRequired title="Configure Supabase before opening the admin CRM" />;
   }
 
+  return <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email} appearance="dashboard-dark">
+    <div className="shell app-content business-dashboard">
+        <header className="business-dashboard-heading">
+          <div><h1>Dashboard</h1><p>{formatDashboardDate()}</p></div>
+          <Link prefetch={false} className="dashboard-primary-action" href="/admin/quotes?new=1">New quote <ArrowUpRight size={17} aria-hidden="true" /></Link>
+        </header>
+        <nav className="dashboard-jump-links" aria-label="Dashboard sections"><a href="#dashboard-money-title">Money</a><a href="#dashboard-next-title">Next up</a><a href="#dashboard-daybook-title">Today’s work</a></nav>
+      <div className="dashboard-focus-grid">
+        <section className="dashboard-money" aria-labelledby="dashboard-money-title">
+          <div className="dashboard-section-heading"><h2 id="dashboard-money-title">{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "Money overview" : "Your sales"}</h2><Link prefetch={false} href={`/admin/reports?view=${hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "revenue" : "quotes"}&range=${period}`}>Open reports <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
+          <DashboardPeriodLinks period={period} />
+          <Suspense key={period} fallback={<DashboardMoneyLoading />}><DashboardMoney period={period} /></Suspense>
+        </section>
+        <Suspense key={`work-${period}`} fallback={<DashboardOperationsLoading />}><DashboardOperations roles={context.roles} userId={context.user.id} /></Suspense>
+      </div>
+    </div>
+  </PlatformFrame>;
+}
+
+async function DashboardOperations({roles, userId}: {roles: PlatformRoleName[]; userId: string}) {
   const [jobSummaries, quoteSummaries, followUps, unpaidInvoices, organizationSummary, scheduleSummary, communicationSummary, equipmentSummary, employeeSummary, materialsSummary, workflowPipeline] = await Promise.all([
     loadOptionalDashboardModule("Jobs", getDashboardJobSummaries(), {
       lanes: {
@@ -213,45 +235,34 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   ].map(item => ({ ...item, count: stageCountsAvailable ? workflowPipeline.stages.find(stage => stage.id === item.id)?.count : undefined }));
   const warnings = Array.from(new Set([jobSummaries.error, quoteSummaries.error, followUps.error, unpaidInvoices.error, organizationSummary.error, scheduleSummary.error, communicationSummary.error, equipmentSummary.error, employeeSummary.error, materialsSummary.error].filter((message): message is string => Boolean(message))));
 
-  return (
-    <PlatformFrame active="admin" roles={context.roles} userEmail={context.user.email} appearance="dashboard-dark">
-      <div className="shell app-content business-dashboard">
-        <header className="business-dashboard-heading">
-          <div><h1>Dashboard</h1><p>{formatDashboardDate()}</p></div>
-          <Link className="dashboard-primary-action" href="/admin/quotes?new=1">New quote <ArrowUpRight size={17} aria-hidden="true" /></Link>
-        </header>
-        <nav className="dashboard-jump-links" aria-label="Dashboard sections"><a href="#dashboard-money-title">Money</a><a href="#dashboard-next-title">Next up</a><a href="#dashboard-daybook-title">Today’s work</a></nav>
+  return <>
         {warnings.length ? <details className="dashboard-data-notices"><summary><AlertTriangle size={16} aria-hidden="true" /> Some dashboard information is unavailable</summary>{warnings.map(message => <p key={message}>{message}</p>)}</details> : null}
-        <div className="dashboard-focus-grid">
-          <Suspense key={period} fallback={<DashboardMoneyLoading />}><DashboardMoney period={period} /></Suspense>
           <aside className="dashboard-next-up" aria-labelledby="dashboard-next-title">
             <div className="dashboard-section-heading"><h2 id="dashboard-next-title">Next up</h2><span>Keep work moving</span></div>
-            {scheduleSummary.data.conflicts.length ? <Link href="/admin/schedule" className="dashboard-schedule-alert"><AlertTriangle size={17} aria-hidden="true" /><span>Review schedule conflicts<span>{scheduleSummary.data.conflicts.length} in the loaded window</span></span><ArrowRight size={16} aria-hidden="true" /></Link> : null}
-            <div className="dashboard-priority-list">{priorities.map((item, index) => <Link className="dashboard-priority" href={item.id === "quotes-prepare" ? "/admin/quotes?status=draft" : item.lane.href} key={item.id}>
+            {scheduleSummary.data.conflicts.length ? <Link prefetch={false} href="/admin/schedule" className="dashboard-schedule-alert"><AlertTriangle size={17} aria-hidden="true" /><span>Review schedule conflicts<span>{scheduleSummary.data.conflicts.length} in the loaded window</span></span><ArrowRight size={16} aria-hidden="true" /></Link> : null}
+            <div className="dashboard-priority-list">{priorities.map((item, index) => <Link prefetch={false} className="dashboard-priority" href={item.id === "quotes-prepare" ? "/admin/quotes?status=draft" : item.lane.href} key={item.id}>
               <span className="dashboard-priority-order">0{index + 1}</span><span className="dashboard-priority-copy"><strong>{item.label}</strong><small>{item.detail}</small></span><span className="dashboard-priority-count">{item.count?.toLocaleString() ?? "—"}</span><ArrowUpRight size={16} aria-hidden="true" />
             </Link>)}</div>
             {!stageCountsAvailable ? <p className="dashboard-muted" role="status">Counts unavailable. Open a queue to review its records.</p> : null}
-            <div className="dashboard-next-footer"><Link href="/admin/follow-ups?view=due">Review due follow-ups <ArrowRight size={16} aria-hidden="true" /></Link><Link href="/admin/communications/delivery-review">Delivery review</Link></div>
+            <div className="dashboard-next-footer"><Link prefetch={false} href="/admin/follow-ups?view=due">Review due follow-ups <ArrowRight size={16} aria-hidden="true" /></Link><Link prefetch={false} href="/admin/communications/delivery-review">Delivery review</Link></div>
           </aside>
-        </div>
-
         <section className="dashboard-daybook" aria-labelledby="dashboard-daybook-title">
-          <div className="dashboard-section-heading"><div><h2 id="dashboard-daybook-title">The next two days</h2></div><Link href="/admin/schedule">Full schedule <ArrowUpRight size={16} aria-hidden="true" /></Link></div>
+          <div className="dashboard-section-heading"><div><h2 id="dashboard-daybook-title">The next two days</h2></div><Link prefetch={false} href="/admin/schedule">Full schedule <ArrowUpRight size={16} aria-hidden="true" /></Link></div>
           <div className="dashboard-days">{[today, tomorrow].map(day => {
             const entries = (scheduleSummary.data.nextTwoDays ?? []).filter(entry => getBusinessDateKey(entry.starts_at) === day && ["estimate", "job", "emergency", "maintenance"].includes(entry.event_type));
             return <section className="dashboard-day" key={day} aria-label={day === today ? "Today's work" : "Tomorrow's work"}>
               <header><h3>{day === today ? "Today" : "Tomorrow"}</h3><span>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</span></header>
-              {scheduleSummary.error ? <p className="dashboard-muted" role="status">This schedule preview is unavailable.</p> : !entries.length ? <div className="dashboard-day-empty"><CalendarDays size={24} aria-hidden="true" /><p>No work in this preview.</p><Link href={`/admin/schedule?date=${day}`}>Review the day <ArrowRight size={14} aria-hidden="true" /></Link></div> : <ol className="dashboard-agenda">{entries.slice(0, 4).map(entry => <li key={`${entry.source}-${entry.id}`}><Link href={`/admin/schedule?date=${day}&${entry.source === "appointment" ? "appointment" : "event"}=${entry.id}`}>
+              {scheduleSummary.error ? <p className="dashboard-muted" role="status">This schedule preview is unavailable.</p> : !entries.length ? <div className="dashboard-day-empty"><CalendarDays size={24} aria-hidden="true" /><p>No work in this preview.</p><Link prefetch={false} href={`/admin/schedule?date=${day}`}>Review the day <ArrowRight size={14} aria-hidden="true" /></Link></div> : <ol className="dashboard-agenda">{entries.slice(0, 4).map(entry => <li key={`${entry.source}-${entry.id}`}><Link prefetch={false} href={`/admin/schedule?date=${day}&${entry.source === "appointment" ? "appointment" : "event"}=${entry.id}`}>
                 <time dateTime={entry.starts_at}>{formatBusinessDateTime(entry.starts_at, { hour: "numeric", minute: "2-digit" })}</time><span><strong>{entry.customer_label || entry.title}</strong><small>{entry.event_type.replaceAll("_", " ")} · {entry.status.replaceAll("_", " ")}</small><small>{entry.location_label || "Location needs review"}{entry.assignees.length ? "" : " · Crew needed"}</small></span><ArrowUpRight size={15} aria-hidden="true" />
               </Link></li>)}</ol>}
-              <Link className="dashboard-day-link" href={`/admin/schedule?date=${day}`}>Open full day <ArrowRight size={15} aria-hidden="true" /></Link>
+              <Link prefetch={false} className="dashboard-day-link" href={`/admin/schedule?date=${day}`}>Open full day <ArrowRight size={15} aria-hidden="true" /></Link>
             </section>;
           })}</div>
         </section>
 
         <div className="dashboard-work-grid">
-          <section className="dashboard-workflow" aria-labelledby="dashboard-workflow-title"><div className="dashboard-section-heading"><h2 id="dashboard-workflow-title">Work in progress</h2><span>Current queues</span></div><dl>{workflowPipeline.stages.map(stage => <div key={stage.id}><dt><Link href={dashboardQueueHref(stage.id, stage.href)}>{stage.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></dt><dd>{stageCountsAvailable ? stage.count.toLocaleString() : "—"}</dd></div>)}</dl>{!stageCountsAvailable ? <p className="dashboard-muted">Some counts could not be confirmed. Open the full queues for details.</p> : null}</section>
-          <div className="dashboard-handoffs"><Suspense fallback={<p role="status">Loading your due handoffs…</p>}><NextActionsPanel dueOnly assignedTo={context.user.id} limit={3} /></Suspense></div>
+          <section className="dashboard-workflow" aria-labelledby="dashboard-workflow-title"><div className="dashboard-section-heading"><h2 id="dashboard-workflow-title">Work in progress</h2><span>Current queues</span></div><dl>{workflowPipeline.stages.map(stage => <div key={stage.id}><dt><Link prefetch={false} href={dashboardQueueHref(stage.id, stage.href)}>{stage.label}<ArrowUpRight size={14} aria-hidden="true" /></Link></dt><dd>{stageCountsAvailable ? stage.count.toLocaleString() : "—"}</dd></div>)}</dl>{!stageCountsAvailable ? <p className="dashboard-muted">Some counts could not be confirmed. Open the full queues for details.</p> : null}</section>
+          <div className="dashboard-handoffs"><Suspense fallback={<p role="status">Loading your due handoffs…</p>}><NextActionsPanel dueOnly assignedTo={userId} limit={3} /></Suspense></div>
         </div>
 
         <details className="dashboard-secondary-section"><summary><span>Browse attention queues<small>Leads, quotes, invoices, follow-ups and materials</small></span><ChevronDown size={20} aria-hidden="true" /></summary><div className="dashboard-queue-grid">{attentionLanes.map(lane => <WorkflowLane lane={lane} key={lane.title} />)}</div></details>
@@ -262,7 +273,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <div className="workflow-list schedule-dashboard-list">
               {scheduleSummary.data.todaysCrewSchedules.length ? (
                 scheduleSummary.data.todaysCrewSchedules.map((group) => (
-                  <Link className="workflow-row" href={`/admin/schedule?assigned_user_id=${group.user.id}`} key={group.user.id}>
+                  <Link prefetch={false} className="workflow-row" href={`/admin/schedule?assigned_user_id=${group.user.id}`} key={group.user.id}>
                     <span className="workflow-row-icon" aria-hidden="true">
                       <Truck size={15} />
                     </span>
@@ -286,38 +297,38 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <section className="panel dashboard-panel">
             <PanelHeader title="Customer communications" detail="Loaded reminder and delivery preview" />
             <div className="pipeline-list">
-              <Link className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></Link>
-              <Link className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/communications/delivery-review"><span>Failed communications — review delivery</span><strong>{communicationSummary.data.failed.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/communications"><span>Follow-ups due today</span><strong>{communicationSummary.data.dueToday.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/quotes"><span>Quotes awaiting response</span><strong>{communicationSummary.data.quotesAwaitingResponseCount}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/schedule?event_type=estimate&status=scheduled"><span>Appointments needing confirmation</span><strong>{scheduleSummary.data.upcomingEstimates.filter((entry) => entry.status === "scheduled").length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/communications"><span>Scheduled reminders</span><strong>{communicationSummary.data.scheduled.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/communications/delivery-review"><span>Failed communications — review delivery</span><strong>{communicationSummary.data.failed.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/invoices"><span>Overdue invoices</span><strong>{communicationSummary.data.overdueInvoiceCount}</strong></Link>
             </div>
           </section>
 
           <section className="panel dashboard-panel">
             <PanelHeader title="Fleet attention" detail="Safety, repairs, maintenance, and expiring documents" />
             <div className="pipeline-list">
-              <Link className="pipeline-row" href="/admin/equipment?status=out_of_service"><span>Out of service</span><strong>{equipmentSummary.data.outOfService.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/equipment?status=maintenance_due"><span>Maintenance due soon</span><strong>{equipmentSummary.data.dueMaintenance.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/equipment"><span>Open problem reports</span><strong>{equipmentSummary.data.openProblems.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/equipment"><span>Failed inspections</span><strong>{equipmentSummary.data.failedInspections.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/equipment"><span>Documents expiring in 30 days</span><strong>{equipmentSummary.data.expiringDocuments.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment?status=out_of_service"><span>Out of service</span><strong>{equipmentSummary.data.outOfService.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment?status=maintenance_due"><span>Maintenance due soon</span><strong>{equipmentSummary.data.dueMaintenance.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment"><span>Open problem reports</span><strong>{equipmentSummary.data.openProblems.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment"><span>Failed inspections</span><strong>{equipmentSummary.data.failedInspections.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment"><span>Documents expiring in 30 days</span><strong>{equipmentSummary.data.expiringDocuments.length}</strong></Link>
             </div>
           </section>
 
           <section className="panel dashboard-panel">
             <PanelHeader title="Employee readiness" detail="Onboarding, access, training, credentials, and return review" />
             <div className="pipeline-list">
-              <Link className="pipeline-row" href="/admin/employees?status=onboarding"><span>Employees onboarding</span><strong>{employeeSummary.data.onboarding.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/access"><span>Access requests awaiting approval</span><strong>{employeeSummary.data.pendingAccess.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/employees?credential=expiring"><span>Credentials expiring soon</span><strong>{employeeSummary.data.expiring.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/employees?credential=expired"><span>Expired credentials</span><strong>{employeeSummary.data.expired.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/employees?training=none"><span>Missing training records</span><strong>{employeeSummary.data.missingTraining.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/safety"><span>Safety acknowledgments pending</span><strong>{employeeSummary.data.pendingSafetyAcknowledgments.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/employees"><span>Documents awaiting verification</span><strong>{employeeSummary.data.pendingDocuments.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/equipment"><span>Equipment/PPE overdue for return</span><strong>{employeeSummary.data.equipmentDueBack.length}</strong></Link>
-              <Link className="pipeline-row" href="/admin/employees?status=inactive"><span>Inactive access requiring review</span><strong>{employeeSummary.data.inactiveAccessReview.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees?status=onboarding"><span>Employees onboarding</span><strong>{employeeSummary.data.onboarding.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/access"><span>Access requests awaiting approval</span><strong>{employeeSummary.data.pendingAccess.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees?credential=expiring"><span>Credentials expiring soon</span><strong>{employeeSummary.data.expiring.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees?credential=expired"><span>Expired credentials</span><strong>{employeeSummary.data.expired.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees?training=none"><span>Missing training records</span><strong>{employeeSummary.data.missingTraining.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/safety"><span>Safety acknowledgments pending</span><strong>{employeeSummary.data.pendingSafetyAcknowledgments.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees"><span>Documents awaiting verification</span><strong>{employeeSummary.data.pendingDocuments.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/equipment"><span>Equipment/PPE overdue for return</span><strong>{employeeSummary.data.equipmentDueBack.length}</strong></Link>
+              <Link prefetch={false} className="pipeline-row" href="/admin/employees?status=inactive"><span>Inactive access requiring review</span><strong>{employeeSummary.data.inactiveAccessReview.length}</strong></Link>
             </div>
           </section>
 
@@ -390,11 +401,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <section className="panel dashboard-panel">
             <PanelHeader title="Quick actions" detail="Most common next steps" />
             <div className="quick-actions">
-              <Link href="/admin/customers">Add customer</Link>
-              <Link href="/admin/jobs">Create job</Link>
-              <Link href="/admin/quotes">Prepare quote</Link>
-              <Link href="/admin/invoices?new=1">New invoice</Link>
-              <Link href="/admin/schedule">Open schedule</Link>
+              <Link prefetch={false} href="/admin/customers">Add customer</Link>
+              <Link prefetch={false} href="/admin/jobs">Create job</Link>
+              <Link prefetch={false} href="/admin/quotes">Prepare quote</Link>
+              <Link prefetch={false} href="/admin/invoices?new=1">New invoice</Link>
+              <Link prefetch={false} href="/admin/schedule">Open schedule</Link>
             </div>
           </section>
 
@@ -406,13 +417,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <div className="pipeline-row"><span>Quotes waiting</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.quotes.filter((quote) => quote.status === "sent" || quote.status === "change_requested").length, 0)}</strong></div>
               <div className="pipeline-row"><span>Unpaid invoices</span><strong>{organizationSummary.data.reduce((sum, detail) => sum + detail.invoices.filter((invoice) => ["sent", "partially_paid", "overdue"].includes(invoice.status)).length, 0)}</strong></div>
             </div>
-            <div className="record-actions"><Link href="/admin/organizations">Open organizations</Link></div>
+            <div className="record-actions"><Link prefetch={false} href="/admin/organizations">Open organizations</Link></div>
           </section>
         </div></details>
-        <footer className="dashboard-footer"><div><strong>Storm or urgent call?</strong><p>Confirm the callback number, service address, hazard and crew availability before promising an arrival time.</p></div><Link href="/admin/schedule?new=1&event_type=emergency">Arrange a response <ArrowUpRight size={16} aria-hidden="true" /></Link>{hasAllowedRole(context.roles, platformRoleGroups.accessApproval) ? <Link href="/admin/settings/system-health">System health</Link> : null}</footer>
-      </div>
-    </PlatformFrame>
-  );
+        <footer className="dashboard-footer"><div><strong>Storm or urgent call?</strong><p>Confirm the callback number, service address, hazard and crew availability before promising an arrival time.</p></div><Link prefetch={false} href="/admin/schedule?new=1&event_type=emergency">Arrange a response <ArrowUpRight size={16} aria-hidden="true" /></Link>{hasAllowedRole(roles, platformRoleGroups.accessApproval) ? <Link prefetch={false} href="/admin/settings/system-health">System health</Link> : null}</footer>
+  </>;
+}
+
+function DashboardOperationsLoading() {
+  return <>
+    <aside className="dashboard-next-up dashboard-next-loading" aria-busy="true"><h2>Next up</h2><p className="dashboard-muted" role="status">Loading work priorities…</p></aside>
+    <section className="dashboard-daybook dashboard-operations-loading" aria-busy="true"><h2>The next two days</h2><p className="dashboard-muted" role="status">Loading your schedule and work queues…</p></section>
+  </>;
 }
 
 function PanelHeader({ detail, title }: { detail: string; title: string }) {
@@ -448,8 +464,8 @@ function WorkflowLane({
       </span>
       <b>{lane.items.length} in preview <ChevronDown aria-hidden="true" size={15} /></b>
     </summary>
-    <div className="workflow-list">{lane.items.map(item => <Link className="workflow-row" key={item.href} href={item.href}><span><strong>{item.title}</strong><small>{item.meta}</small></span></Link>)}</div>
-    <Link className="secondary-action" href={lane.href}>View all {lane.title.toLowerCase()}</Link>
+    <div className="workflow-list">{lane.items.map(item => <Link prefetch={false} className="workflow-row" key={item.href} href={item.href}><span><strong>{item.title}</strong><small>{item.meta}</small></span></Link>)}</div>
+    <Link prefetch={false} className="secondary-action" href={lane.href}>View all {lane.title.toLowerCase()}</Link>
     </details>
   );
 }

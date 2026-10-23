@@ -247,7 +247,8 @@ async function getCurrentRecipient(supabase: SupabaseClient, communication: Cust
       .select("id, name, billing_email, status")
       .eq("id", communication.organization_id)
       .maybeSingle();
-    if (error || !organization) return { customerName: null, email: null, error: error?.message ?? "Organization not found." };
+    if (error) throw Error("Organization lookup unavailable");
+    if (!organization) return { customerName: null, email: null, error: "Organization not found." };
     if (organization.status === "archived") return { customerName: null, email: null, error: "The organization is archived." };
     const selectedEmail = await getOrganizationWorkflowRecipient(supabase, communication, organization.id);
     const email = (selectedEmail ?? organization.billing_email)?.trim().toLowerCase() ?? "";
@@ -265,7 +266,8 @@ async function getCurrentRecipient(supabase: SupabaseClient, communication: Cust
     .eq("id", communication.customer_id)
     .maybeSingle();
 
-  if (error || !customer) return { customerName: null, email: null, error: error?.message ?? "Customer not found." };
+  if (error) throw Error("Customer lookup unavailable");
+  if (!customer) return { customerName: null, email: null, error: "Customer not found." };
   if (customer.status === "archived") return { customerName: null, email: null, error: "The customer is archived." };
 
   const email = customer.email?.trim().toLowerCase() ?? "";
@@ -328,7 +330,8 @@ async function prepareQuoteFollowUp(
     .eq("id", communication.quote_id)
     .maybeSingle();
 
-  if (error || !quote) return { action: "cancel", reason: error?.message ?? "The quote no longer exists." };
+  if (error) throw Error("Quote lookup unavailable");
+  if (!quote) return { action: "cancel", reason: "The quote no longer exists." };
   if (quote.status !== "sent") return { action: "cancel", reason: `The quote is ${String(quote.status).replaceAll("_", " ")}.` };
   if (communication.is_automatic && !quote.automatic_follow_ups_enabled) {
     return { action: "cancel", reason: "Automatic follow-ups are disabled for this quote." };
@@ -368,7 +371,8 @@ async function prepareInvoiceReminder(
     .eq("id", communication.invoice_id)
     .maybeSingle();
 
-  if (error || !invoice) return { action: "cancel", reason: error?.message ?? "The invoice no longer exists." };
+  if (error) throw Error("Invoice lookup unavailable");
+  if (!invoice) return { action: "cancel", reason: "The invoice no longer exists." };
   if (!["sent", "partially_paid", "overdue"].includes(invoice.status)) return { action: "cancel", reason: `The invoice is ${invoice.status}.` };
   if (communication.is_automatic && !invoice.automatic_reminders_enabled) {
     return { action: "cancel", reason: "Automatic reminders are disabled for this invoice." };
@@ -514,7 +518,8 @@ async function preparePaymentConfirmation(
     .eq("id", communication.payment_id)
     .maybeSingle();
 
-  if (error || !payment) return { action: "cancel", reason: error?.message ?? "The payment no longer exists." };
+  if (error) throw Error("Payment lookup unavailable");
+  if (!payment) return { action: "cancel", reason: "The payment no longer exists." };
   if (payment.status !== "succeeded") return { action: "cancel", reason: `The payment is ${payment.status}.` };
 
   const invoice = one<{ id: string; invoice_number: string | null; total_cents: number }>(payment.invoices);

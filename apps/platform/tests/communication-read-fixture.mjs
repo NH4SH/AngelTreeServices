@@ -1,0 +1,28 @@
+import assert from'node:assert/strict';
+import{load,memoryDB}from'./pr10-test-helpers.mjs';
+import{contextFixture}from'./portal-payment-context-fixture.mjs';
+import{callDeliveryCommand}from'../src/lib/email/delivery-commands.ts';
+import{emailDeliveryContext}from'../src/lib/email/delivery-context.ts';
+import{mapBounded,withDeadline}from'../src/lib/runtime/deadline.ts';
+import{formatBusinessDate}from'../src/lib/business-time.ts';
+import{companyBrand}from'../src/lib/company-brand.ts';
+import{renderCustomerReminderEmailHtml}from'../src/lib/email/customer-reminder-layout.ts';
+import{renderCustomerPaymentReceiptHtml}from'../src/lib/email/customer-payment-receipt-layout.ts';
+import{renderCustomerAppointmentEmail}from'../src/lib/email/customer-appointment-layout.ts';
+const templates=load('../src/lib/communications/templates.ts',{'server-only':{},'@/lib/business-time':{formatBusinessDate},'../company-brand.ts':{companyBrand},'../email/customer-reminder-layout.ts':{renderCustomerReminderEmailHtml},'../email/customer-payment-receipt-layout.ts':{renderCustomerPaymentReceiptHtml},'../email/customer-appointment-layout.ts':{renderCustomerAppointmentEmail}});
+export function communicationReadFixture(options={}){
+ const id='00000000-0000-4000-8000-000000000120',party='00000000-0000-4000-8000-000000000121',invoice='00000000-0000-4000-8000-000000000122',quote='00000000-0000-4000-8000-000000000123',payment='00000000-0000-4000-8000-000000000124',org='00000000-0000-4000-8000-000000000125';
+ const type=options.type??'invoice_payment_reminder',now=new Date().toISOString(),sent=[],reads=[];
+ const row={id,communication_type:type,customer_id:options.organization?null:party,organization_id:options.organization?org:null,invoice_id:type==='quote_follow_up'?null:invoice,quote_id:type==='quote_follow_up'?quote:null,payment_id:type==='payment_confirmation'?payment:null,job_id:null,schedule_event_id:null,appointment_id:null,recipient_email:'synthetic@example.invalid',is_automatic:false,status:'pending',attempt_count:0,scheduled_for:now,processing_started_at:null,cancelled_at:null,skip_reason:null,last_error:null};
+ const invoiceRow={id:invoice,customer_id:party,organization_id:options.organization?org:null,status:'sent',invoice_number:'SYNTHETIC-READ',total_cents:10000,due_at:null,automatic_reminders_enabled:true,jobs:null};
+ const tables={customer_communications:[row],customers:[{id:party,display_name:'Synthetic read customer',email:row.recipient_email,status:'active'}],organizations:[{id:org,name:'Synthetic organization',billing_email:row.recipient_email,status:'active'}],organization_contacts:[],invoices:[invoiceRow],quotes:[{id:quote,customer_id:party,status:'sent',quote_number:'SYNTHETIC-READ',automatic_follow_ups_enabled:true,quote_line_items:[]}],payments:[{id:payment,invoice_id:invoice,customer_id:party,amount_cents:1000,surcharge_cents:0,total_collected_cents:1000,paid_at:'2026-10-23',payment_method:'cash',provider:'manual',status:'succeeded',reference:null,invoices:{id:invoice,invoice_number:invoiceRow.invoice_number,total_cents:10000}}],email_events:[]};
+ if(options.tables)for(const [name,rows]of Object.entries(options.tables))tables[name]=structuredClone(rows);
+ if(options.row)Object.assign(row,options.row);
+ const db=memoryDB(tables,{zero:options.zeroUpdate?({table,operation})=>table==='customer_communications'&&operation==='update'&&row.status==='processing':undefined});
+ const from=db.from.bind(db),rpc=db.rpc.bind(db);
+ db.from=table=>{const q=from(table),read=q.maybeSingle.bind(q);q.maybeSingle=async()=>{reads.push(table);const result=await read();const fault=options.readFault;if(!fault||fault.table!==table)return result;if(fault.mode==='throw')throw Error('PRIVATE_SYNTHETIC_BACKEND_DIAGNOSTIC');if(fault.mode==='missing')return{data:null,error:null};return{data:fault.withData?result.data:null,error:{code:fault.code??'08006',message:fault.message??'PRIVATE_SYNTHETIC_BACKEND_DIAGNOSTIC'}};};return q;};
+ db.rpc=(name,args)=>{if(name!=='get_invoice_payment_principal')return rpc(name,args);const receipt=Promise.resolve(options.principal??{data:{invoice_id:row.invoice_id,successful_payment_count:type==='payment_confirmation'?1:0,paid_principal_cents:type==='payment_confirmation'?1000:0},error:null});receipt.abortSignal=()=>receipt;return receipt;};
+ const reconciliation=contextFixture({db}).reconciliation;
+ const processor=load(options.processorFile??'../src/lib/communications/processor.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'../quotes/proposal-number.ts':{formatProposalNumber:x=>x},'@/lib/payments/reconciliation':reconciliation,'@/lib/communications/portal-links':{getExistingCommunicationPortalUrl:async(_db,kind)=>({tokenId:id,url:'https://example.invalid/portal/'+kind+'/synthetic-read'})},'@/lib/communications/queue':{getCommunicationSettingsFromClient:async()=>({data:{automated_sending_enabled:false,business_timezone:'America/New_York',minimum_send_interval_hours:24},error:null})},'@/lib/communications/templates':templates,'@/lib/email/delivery-context':{emailDeliveryContext},'@/lib/email/send':{sendTransactionalEmail:()=>assert.fail('Real provider transport forbidden')},'@/lib/supabase/admin':{getServiceRoleClient:()=>assert.fail('Supply the controlled fixture')},'@/lib/runtime/deadline':{mapBounded,withDeadline}});
+ return{row,tables,reads,sent,run:()=>processor.processCommunicationById(row.id,{db,send:async input=>{sent.push(input);return options.unknown?{ok:false,outcome:'unknown',historyRecorded:true,retryable:false}:{ok:true,outcome:'accepted',historyRecorded:true,providerMessageId:'synthetic-acceptance',retryable:false};}})};
+}

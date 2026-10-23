@@ -1,0 +1,105 @@
+{
+  "observedAt": "2026-10-23T20:25:57.025000+00:00",
+  "status": "verified-local-candidate",
+  "branch": "codex/communication-source-read-safety",
+  "baseMain": "8422b3e8172dd9a7e2ed36af59b2435633bc551d",
+  "appointmentChangesPushedToMain": true,
+  "beforeReproduction": {
+    "actualPreChangeProcessor": true,
+    "controlledSourceReadErrors": 5,
+    "customerAndOrganizationOutcome": "skipped",
+    "quoteInvoicePaymentOutcome": "cancelled",
+    "diagnosticCopiedToQueue": true,
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2445,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 10
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "migrationCount": 105,
+    "sourceQueueAndAccessAssertions": 21,
+    "sourceFixtureCount": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndAllPublicPrivateAuthRowsUnchanged": true,
+    "applicationSchemaChanged": false,
+    "settingsChanged": false,
+    "realProviderCalls": 0
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 118,
+    "databaseAssertions": 21,
+    "sourceFixtureCount": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeInputWorkerAcceptance": {
+    "localCases": 30,
+    "stagingCases": 30,
+    "actualBeforeAndAfterProcessors": true,
+    "controlledReadFaultResponses": true,
+    "mockTransportOnly": true,
+    "allPassed": true,
+    "healthyPayloadsRecipientsAndKeysUnchanged": true,
+    "failedReadHasSafeFailedState": true,
+    "failedReadSendsNothing": true,
+    "noAutomaticRetry": true,
+    "successfulMissingReadBehaviorPreserved": true
+  },
+  "preservation": {
+    "claimCompareAndSetUnchanged": true,
+    "frozenDeliveryAndHistoryUnchanged": true,
+    "financialCalculationUnchanged": true,
+    "authorizationAndRLSUnchanged": true,
+    "newMigration": false,
+    "newRecoveryUI": false,
+    "sourceCopyParity": true,
+    "runtimeSecurityBranchPreservedAt": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sourceSha256": {
+    "apps/platform/src/lib/communications/processor.ts": "e66884c0f8e442a6c992474effea947617cb66110b6aa181b53f57cd54811f83",
+    "apps/platform/tests/communication-read-fixture.mjs": "140357e97882d572929d9a50f932517b13c23261199de7aacb686ea3851a73d4",
+    "apps/platform/tests/communication-source-read-safety.test.mjs": "6489e185d4dc86178abe9f7d08a2e6f5d7e5cc56955ff7cda436d4bcca5a3552",
+    "supabase/verification/communication_source_reads.sql": "9d813ab5fa1c192138f2df27a44913b073d11bb7174bb3f20584f11a9aed942b"
+  },
+  "boundaries": {
+    "newFeaturePushed": false,
+    "appDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "credentialsChanged": false,
+    "environmentValuesChanged": false,
+    "realEmailsSent": 0,
+    "realProviderCalls": 0,
+    "supportMessagesSent": 0,
+    "hostedOutageInduced": false
+  },
+  "limitations": [
+    "Worker faults use controlled response adapters, not a real staging outage or PostgREST HTTP failure.",
+    "Local native database is the preserved disposable 105 schema; exact current staging 118 is verified separately.",
+    "No deployed staging worker or real mailbox delivery is certified.",
+    "Failed pre-send preparation may have no frozen outbound request; no retry bypass or new recovery button is introduced."
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/communication-source-read-safety"
+}

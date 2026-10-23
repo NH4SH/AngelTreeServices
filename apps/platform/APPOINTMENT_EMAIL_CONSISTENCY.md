@@ -46,3 +46,7 @@ The mechanical design scan reported one intentional warning: the established Ari
 This completes the appointment branding/contact follow-up in the existing customer review. Remaining acceptance includes actual mailbox clients, physical devices and assistive technology. The unresolved owner business-policy/override decisions and separate Netlify runtime follow-up remain separate; this batch made no production Node verification or support contact.
 
 Sanitized receipt: `staging/APPOINTMENT_EMAIL_CONSISTENCY_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/appointment-email-consistency/`, including source preimages, build/test logs, native fingerprints and synthetic generated HTML. Representative screenshots: `before-desktop.png`, `before-mobile.png`, `after-estimate-confirmation-desktop.png`, `after-estimate-confirmation-mobile.png`, `after-job-cancelled-mobile.png`, `after-multi-day-desktop.png`. Raw database snapshots and logs remain outside Git. The temporary preview tab was closed, its owned loopback server stopped and viewport restored after acceptance.
+
+### Push follow-through — October 23, 2026
+
+The verified appointment batch is now pushed normally to `origin/main` as `8422b3e8172dd9a7e2ed36af59b2435633bc551d`, with CI/Netlify skip markers. The receipt above records the earlier local verification and is preserved as historical evidence. No application deployment or production change occurred. The next existing communications/recovery follow-up is recorded in `COMMUNICATION_SOURCE_READ_SAFETY.md`.

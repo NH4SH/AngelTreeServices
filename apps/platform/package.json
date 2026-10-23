@@ -26,7 +26,9 @@
     "schema:generate": "node scripts/schema/generate.mjs",
     "schema:check": "node scripts/schema/generate.mjs --check",
     "schema:check:offline": "node scripts/schema/generate.mjs --offline",
-    "prebuild": "node --experimental-strip-types scripts/check-node-runtime.mjs"
+    "prebuild": "node --experimental-strip-types scripts/check-node-runtime.mjs",
+    "predev": "node --experimental-strip-types scripts/check-node-runtime.mjs",
+    "prestart": "node --experimental-strip-types scripts/check-node-runtime.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

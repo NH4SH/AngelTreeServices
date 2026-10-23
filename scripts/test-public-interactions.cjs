@@ -491,6 +491,7 @@ for (const service of [
   { name: 'Reviews and recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
   { name: 'Credentials and safety', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
   { name: 'Service areas', file: 'service-areas-mobile.js', init: 'initServiceAreasActions', prefix: 'service-areas' },
+  { name: 'Case studies', file: 'case-studies-mobile.js', init: 'initCaseStudyActions', prefix: 'case-study' },
 ]) {
 test(`${service.name} bar yields independently to complete hero and final action pairs`, () => {
   const h = pageActionsHarness(service);
@@ -523,7 +524,7 @@ test(`${service.name} header and bar clearance grow with enlarged text without l
   assert.equal(h.observation[1].options.rootMargin, '-142px 0px 0px 0px');
   assert.equal(h.properties[`--ats-${service.prefix}-header-offset`], '162px');
   assert.equal(h.properties[`--ats-${service.prefix}-bar-space`], '148px');
-  if (['projects-library', 'recognition', 'credentials', 'service-areas'].includes(service.prefix)) {
+  if (['projects-library', 'recognition', 'credentials', 'service-areas', 'case-study'].includes(service.prefix)) {
     assert.equal(h.rootProperties[`--ats-${service.prefix}-header-offset`], '162px');
     assert.equal(h.rootProperties[`--ats-${service.prefix}-bar-space`], '148px', 'native viewport focus scrolling needs the measured clearance on the root');
   }
@@ -566,6 +567,7 @@ for (const service of [
   { name: 'Recognition', file: 'recognition-mobile.js', init: 'initRecognitionActions', prefix: 'recognition' },
   { name: 'Credentials', file: 'credentials-mobile.js', init: 'initCredentialsActions', prefix: 'credentials' },
   { name: 'Service areas', file: 'service-areas-mobile.js', init: 'initServiceAreasActions', prefix: 'service-areas', scrollingPosition: 'relative' },
+  { name: 'Case studies', file: 'case-studies-mobile.js', init: 'initCaseStudyActions', prefix: 'case-study', scrollingPosition: 'relative' },
 ]) {
 test(`${service.name} scrolling header reserves menu space while only sticky headers obscure actions`, () => {
   const h = pageActionsHarness(service);

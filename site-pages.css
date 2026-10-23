@@ -2115,7 +2115,7 @@ body.ats-gallery-open {
   display: none;
 }
 
-:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page, .ats-credentials-page, .ats-service-areas-page) .ats-mobile-actions[hidden] {
+:is(.ats-landscaping-page, .ats-services-overview-page, .ats-projects-library-page, .ats-recognition-page, .ats-credentials-page, .ats-service-areas-page, .ats-project-page) .ats-mobile-actions[hidden] {
   display: none;
 }
 
@@ -2130,6 +2130,7 @@ body.ats-gallery-open {
 
 .ats-service-choices,
 .ats-projects-browse,
+.ats-case-topics,
 .ats-credentials-topics,
 .ats-recognition-topics {
   display: none;
@@ -3151,5 +3152,98 @@ body.ats-gallery-open {
 
   .ats-page-footer li + li {
     margin-top: 0;
+  }
+}
+
+
+/* Documentary stories keep their complete photos and native reading order. */
+.ats-project-page .ats-mobile-actions {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+}
+
+@media (max-width: 700px) {
+  body.ats-project-page {
+    padding-bottom: calc(max(88px, var(--ats-case-study-bar-space, 88px)) + env(safe-area-inset-bottom));
+  }
+
+  .ats-project-page :is(.ats-consent, .ats-consent-feedback[data-warning]) {
+    --ats-case-study-notice-bottom: max(84px, calc(var(--ats-case-study-bar-space, 82px) + 2px));
+    bottom: calc(var(--ats-case-study-notice-bottom) + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--ats-case-study-notice-bottom) - 24px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .ats-project-page .ats-mobile-menu nav {
+    max-height: min(70dvh, calc(100dvh - var(--ats-case-study-menu-offset, 120px)));
+  }
+
+  .ats-project-page :is(#case-findings, #case-removal, #case-cleanup) {
+    scroll-margin-top: var(--ats-case-study-scroll-offset, var(--ats-case-study-header-offset, 120px));
+  }
+
+  @supports selector(html:has(body)) {
+    html:has(> body.ats-project-page) {
+      scroll-padding-top: var(--ats-case-study-header-offset, 120px);
+      scroll-padding-bottom: calc(max(88px, var(--ats-case-study-bar-space, 88px)) + env(safe-area-inset-bottom));
+    }
+
+    .ats-project-page :is(#case-findings, #case-removal, #case-cleanup) {
+      scroll-margin-top: 0;
+    }
+  }
+
+  .ats-project-page .ats-page-hero { padding-block: 36px 80px; }
+  .ats-project-page .ats-page-hero__inner { gap: 24px; }
+  .ats-project-page .ats-breadcrumbs { margin-bottom: 18px; }
+  .ats-project-page .ats-page-hero__lead { margin-top: 16px; }
+  .ats-project-page .ats-page-hero__trust { margin-top: 16px; }
+  .ats-project-page .ats-actions { margin-top: 24px; }
+
+  .ats-project-page .ats-case-topics { display: block; margin-top: 12px; }
+  .ats-case-topics ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ats-case-topics li { min-width: 0; max-width: 100%; }
+  .ats-case-topics a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    color: var(--ats-white);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-underline-offset: 4px;
+  }
+  .ats-case-topics a:focus-visible { outline-color: var(--ats-white); box-shadow: none; }
+
+  .ats-project-page .ats-content-section { padding-block: 48px; }
+  .ats-project-page .ats-case-copy { margin-bottom: 24px; }
+  .ats-project-page .ats-case-copy h2:not(:first-child) { margin-top: 36px; }
+  .ats-project-page .ats-case-section { margin-top: 32px; }
+  .ats-project-page .ats-case-pair { gap: 24px; }
+  .ats-project-page :is(.ats-case-pair, .ats-case-finish) { margin-top: 28px; }
+  .ats-project-page .ats-final-cta { padding: 48px 20px; }
+
+  .ats-project-page .ats-mobile-actions a {
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-height: 650px) {
+    body.ats-project-page { --ats-case-study-scroll-offset: 20px; }
+    .ats-project-page .ats-page-header { position: relative; }
+
+    @supports selector(html:has(body)) {
+      html:has(> body.ats-project-page) { scroll-padding-top: 20px; }
+    }
   }
 }

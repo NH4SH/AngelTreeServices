@@ -73,17 +73,16 @@ for (const kind of ['schedule_event','appointment']) {
     assert.equal(f.tables.customer_communications.length,count);
   });
 
-  test(kind + ': a later visit failure retains earlier cleanup but withholds the buffered family', async () => {
+  test(kind + ': a later batch failure retains earlier cleanup but withholds the buffered family', async () => {
     const f = appointmentQueueFixture({kind,fault:'error',failCleanupAt:2});
     const first = f.tables[f.sourceTable][0];
-    const second = {...first,id:'10000000-0000-4000-8000-000000000002',starts_at:new Date(Date.parse(first.starts_at) + 24 * 60 * 60_000).toISOString()};
-    f.tables[f.sourceTable].push(second);
+    for(let n=2;n<=201;n++)f.tables[f.sourceTable].push({...first,id:'10000000-0000-4000-8000-'+String(n).padStart(12,'0')});
     assert.ok((await f.run()).error);
     assert.equal(f.upserts.length,0);
     assert.equal(f.tables.customer_communications.find(r => r.id === 'obsolete').status,'cancelled');
     f.setFault(null);
     assert.equal((await f.run()).error,null);
-    assert.equal(f.upserts.length,4);
+    assert.equal(f.upserts.length,402);
     const count = f.tables.customer_communications.length;
     await f.run();
     assert.equal(f.tables.customer_communications.length,count);

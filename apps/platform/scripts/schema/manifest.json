@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "3fc18306ab6fdf4f6b4013e8b7e0113ecf8e6912e4bf180a36e1067e8728b3d2",
+  "typesSha256": "76acebf97c7d08db1f9250a1d1bae9682e53ce1c4f81e329b5eb071ba5675e79",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -481,6 +481,10 @@
     {
       "name": "20261023213240_scope_payment_receipts_to_payment.sql",
       "sha256": "7e9a472ae5acd99db72d80d6e377beb60c4674e4a01787be891be291f20f26b5"
+    },
+    {
+      "name": "20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
+      "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999"
     }
   ]
 }

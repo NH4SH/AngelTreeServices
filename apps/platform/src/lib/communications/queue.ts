@@ -343,6 +343,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
     }, Date.now() + 5_000);
 
     const queue: QueueInput[] = [];
+    const cleanup: { id: string; source_version: string }[] = [];
     const firstWorkEventByJob = new Map<string, string>();
     for (const event of [...(data ?? [])].filter((item) => item.event_type === "job" && item.job_id).sort((left, right) => left.starts_at.localeCompare(right.starts_at))) {
       if (!firstWorkEventByJob.has(event.job_id!)) firstWorkEventByJob.set(event.job_id!, event.id);
@@ -354,9 +355,7 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
       const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
       if (!job || !party) continue;
 
-      if (!await cancelObsoleteAppointmentVersion(supabase, "schedule_event_id", event.id, event.starts_at)) {
-        return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
-      }
+      cleanup.push({ id: event.id, source_version: event.starts_at });
       const isEstimate = event.event_type === "estimate";
       const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
       const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
@@ -391,6 +390,9 @@ async function syncScheduleEvents(supabase: SupabaseClient, settings: Communicat
       }
     }
 
+    if (!await cancelObsoleteVisitReminders(supabase, "schedule_event", cleanup)) {
+      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+    }
     return insertReminderRows(supabase, queue, Date.now() + 5_000, unavailable);
   } catch {
     return { created: 0, error: unavailable };
@@ -416,14 +418,13 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
     }, Date.now() + 5_000);
 
     const queue: QueueInput[] = [];
+    const cleanup: { id: string; source_version: string }[] = [];
     for (const appointment of data ?? []) {
       const job = one<any>(appointment.jobs);
       const party = getQueueableParty(job?.customers ?? null, job?.organizations ?? null, contactEmail(job?.onsite_contact, job?.property_contact));
       if (!job || !party) continue;
 
-      if (!await cancelObsoleteAppointmentVersion(supabase, "appointment_id", appointment.id, appointment.starts_at)) {
-        return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
-      }
+      cleanup.push({ id: appointment.id, source_version: appointment.starts_at });
       const isEstimate = appointment.appointment_type === "estimate";
       const confirmationEnabled = isEstimate ? settings.estimate_confirmation_enabled : settings.work_confirmation_enabled;
       const reminderEnabled = isEstimate ? settings.estimate_reminder_enabled : settings.work_reminder_enabled;
@@ -458,6 +459,9 @@ async function syncAppointments(supabase: SupabaseClient, settings: Communicatio
       }
     }
 
+    if (!await cancelObsoleteVisitReminders(supabase, "appointment", cleanup)) {
+      return { created: 0, error: "Appointment reminders could not be reconciled. Review the queue before retrying." };
+    }
     return insertReminderRows(supabase, queue, Date.now() + 5_000, unavailable);
   } catch {
     return { created: 0, error: unavailable };
@@ -528,24 +532,24 @@ async function syncPayments(supabase: SupabaseClient, settings: CommunicationSet
   }
 }
 
-async function cancelObsoleteAppointmentVersion(
+async function cancelObsoleteVisitReminders(
   supabase: SupabaseClient,
-  column: "appointment_id" | "schedule_event_id",
-  id: string,
-  sourceVersion: string,
+  sourceKind: "appointment" | "schedule_event",
+  sources: { id: string; source_version: string }[],
 ) {
+  const deadline = Date.now() + 5_000;
   try {
-    const { error } = await supabase
-      .from("customer_communications")
-      .update({
-        cancelled_at: new Date().toISOString(),
-        skip_reason: "The appointment was rescheduled. A current reminder replaces this one.",
-        status: "cancelled",
-      })
-      .eq(column, id)
-      .eq("status", "pending")
-      .or(`source_version.is.null,source_version.neq.${sourceVersion}`);
-    return !error;
+    for (let offset = 0; offset < sources.length; offset += 200) {
+      if (Date.now() >= deadline) return false;
+      const batch = sources.slice(offset, offset + 200);
+      const { data, error } = await supabase.rpc("cancel_obsolete_visit_reminders", {
+        p_source_kind: sourceKind,
+        p_sources: batch,
+      }).abortSignal(AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+      if (Date.now() >= deadline || error || !data || typeof data !== "object" || Array.isArray(data)
+        || data.processed !== batch.length || !Number.isSafeInteger(data.cancelled) || data.cancelled < 0) return false;
+    }
+    return true;
   } catch {
     return false;
   }

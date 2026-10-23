@@ -56,5 +56,5 @@ test('polling omits replaced confirmations and nearby reminders; coverage failur
  const held=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'10000000-0000-4000-8000-000000000001',suppress_reminder:true}]});assert.equal((await held.run()).error,null);assert.equal(held.inserted.length,0);
  const later=queueFixture({coverage:[{source_kind:'schedule_event',source_id:'10000000-0000-4000-8000-000000000001',suppress_reminder:false}]});await later.run();assert.deepEqual(later.inserted.map(r=>r.communication_type),['estimate_reminder']);
  const failed=queueFixture({failure:true});assert.ok((await failed.run()).error);assert.equal(failed.inserted.length,0);
- const disabled=queueFixture({enabled:false});await disabled.run();assert.equal(disabled.calls.some(c=>c.rpc),false);assert.equal(disabled.inserted.length,2);
+ const disabled=queueFixture({enabled:false});await disabled.run();assert.equal(disabled.calls.some(c=>c.rpc==='get_appointment_notice_coverage'),false);assert.equal(disabled.inserted.length,2);
 });

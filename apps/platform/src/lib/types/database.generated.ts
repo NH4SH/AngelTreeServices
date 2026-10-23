@@ -15067,6 +15067,13 @@ export type Database = {
                 };
                 Returns: undefined;
             };
+            "cancel_obsolete_visit_reminders": {
+                Args: {
+                    "p_source_kind": string;
+                    "p_sources": Json;
+                };
+                Returns: Json;
+            };
             "check_invoice_checkout_lease": {
                 Args: {
                     "p_invoice_id": string;

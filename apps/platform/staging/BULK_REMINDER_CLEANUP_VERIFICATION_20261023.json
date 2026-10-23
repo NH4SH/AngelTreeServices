@@ -1,0 +1,295 @@
+{
+  "date": "2026-10-23",
+  "mainThrough": "5fe849d",
+  "previousVerifiedVisitChangesPushed": true,
+  "featureBranch": "codex/bulk-reminder-cleanup",
+  "featurePushed": false,
+  "candidateMigration": "20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
+  "candidateMigrationNumber": 121,
+  "persistentStagingMigrationCount": 120,
+  "implementation": {
+    "maxSourcesPerCleanupRequest": 200,
+    "clientCleanupBudgetMs": 5000,
+    "perLockWaitLimitMs": 2000,
+    "sourceThenQueueLocksInIdOrder": true,
+    "currentSourceVersionsRechecked": true,
+    "explicitCompleteAcknowledgementRequired": true,
+    "securityInvokerAndServerRoleOnly": true,
+    "noDirectUpdateFallback": true,
+    "historyAndStableKeysPreserved": true
+  },
+  "regression": {
+    "passed": 2573,
+    "failed": 0,
+    "skipped": 0,
+    "newFocusedTests": 13
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "local": {
+    "migrationCount": 120,
+    "nativeAssertions": 43,
+    "syntheticSourcesPerFamily": 201,
+    "candidateMigration": 121,
+    "candidateDdlRolledBack": true,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false
+  },
+  "staging": {
+    "migrationCount": 120,
+    "nativeAssertions": 43,
+    "syntheticSourcesPerFamily": 201,
+    "candidateMigration": 121,
+    "candidateDdlRolledBack": true,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "observedAt": 1792798437154,
+    "catalogObjects": 5110,
+    "protectedRecordSets": 49,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "candidateCommandMetadataMatchesLocal": true,
+    "exact120MaintenanceVerifierPassed": true
+  },
+  "nativeInputScenarios": {
+    "scenarios": 32,
+    "results": [
+      {
+        "environment": "local",
+        "kind": "schedule_event",
+        "scenarios": 8,
+        "healthyPayloadsAndTimingIdentical": true,
+        "cleanupRequestsBefore": 201,
+        "cleanupRequestsAfter": 2,
+        "readFailurePreventsClaims": true,
+        "acceptedRecoveryPendingWithoutResend": true,
+        "lostOrPartialCleanupRecoversWithHistoryPreserved": true,
+        "staleVisitRefusesCleanup": true,
+        "concurrentStableKeysPreserved": true
+      },
+      {
+        "environment": "local",
+        "kind": "appointment",
+        "scenarios": 8,
+        "healthyPayloadsAndTimingIdentical": true,
+        "cleanupRequestsBefore": 201,
+        "cleanupRequestsAfter": 2,
+        "readFailurePreventsClaims": true,
+        "acceptedRecoveryPendingWithoutResend": true,
+        "lostOrPartialCleanupRecoversWithHistoryPreserved": true,
+        "staleVisitRefusesCleanup": true,
+        "concurrentStableKeysPreserved": true
+      },
+      {
+        "environment": "staging",
+        "kind": "schedule_event",
+        "scenarios": 8,
+        "healthyPayloadsAndTimingIdentical": true,
+        "cleanupRequestsBefore": 201,
+        "cleanupRequestsAfter": 2,
+        "readFailurePreventsClaims": true,
+        "acceptedRecoveryPendingWithoutResend": true,
+        "lostOrPartialCleanupRecoversWithHistoryPreserved": true,
+        "staleVisitRefusesCleanup": true,
+        "concurrentStableKeysPreserved": true
+      },
+      {
+        "environment": "staging",
+        "kind": "appointment",
+        "scenarios": 8,
+        "healthyPayloadsAndTimingIdentical": true,
+        "cleanupRequestsBefore": 201,
+        "cleanupRequestsAfter": 2,
+        "readFailurePreventsClaims": true,
+        "acceptedRecoveryPendingWithoutResend": true,
+        "lostOrPartialCleanupRecoversWithHistoryPreserved": true,
+        "staleVisitRefusesCleanup": true,
+        "concurrentStableKeysPreserved": true
+      }
+    ],
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "realLocalApi": {
+    "actualLocalSupabaseAndPostgrest": true,
+    "eligibleSourcesPerFamily": 1001,
+    "stableStages": 4004,
+    "cleanupRequestsBefore": 2002,
+    "cleanupRequestsAfter": 12,
+    "maxSourcesPerBatch": 200,
+    "completePassDurationMs": 139,
+    "historyAndStoredSettingsPreserved": true,
+    "lostAcknowledgementAfterRealCommitRecovers": true,
+    "anonymousRpcDenied": true,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "nativeConcurrency": {
+    "scenarios": 8,
+    "results": [
+      {
+        "kind": "schedule_event",
+        "scenario": "reschedule",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "overlap",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "processing",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "schedule_event",
+        "scenario": "timeout",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "reschedule",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "overlap",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "processing",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      },
+      {
+        "kind": "appointment",
+        "scenario": "timeout",
+        "nativeLockWaitObserved": true,
+        "passed": true
+      }
+    ],
+    "syntheticOnly": true,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "localPreservation": {
+    "localMigrationCount": 121,
+    "original120LedgerRowsIncludingStatementsPreserved": true,
+    "originalCatalogEntriesPreserved": true,
+    "newCatalogEntries": 1,
+    "newCommandOnly": true,
+    "commandSha256": "f02ad38a1cf8751618a2d9a64b12415aa63f19af80bc0eaf11524a4f5f4f4df1",
+    "localAdvisorsNoIssues": true,
+    "productionChanged": false
+  },
+  "preservation": {
+    "original120MigrationSourcesUnchanged": true,
+    "proposalInvoicePaymentAndNoticeCoverageCodeByteIdentical": true,
+    "financialCommandsAmountsRecipientsTimingAndProviderIdentitiesUnchanged": true,
+    "existingRlsPermissionsSnapshotsClaimsAndHistoryPreserved": true,
+    "employeeAndDashboardWorkPreserved": true,
+    "runtimeBranch": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "sources": [
+    {
+      "path": "apps/platform/src/lib/communications/queue.ts",
+      "sha256": "3cca6e6a0cb644dd9c32bdaddcddd78d8cb796910d974936e9e2be1b10c64323"
+    },
+    {
+      "path": "apps/platform/scripts/schema/generate.mjs",
+      "sha256": "1c2b191ab3ce0e1c157cafd6b9e44a147db5104c9921fbfe05062efe60fa9a12"
+    },
+    {
+      "path": "apps/platform/scripts/schema/manifest.json",
+      "sha256": "c512a1ba6da3af17e5ecc040fccb585c1f9a4d95379a38796ac2b78145ee49e5"
+    },
+    {
+      "path": "apps/platform/src/lib/types/database.generated.ts",
+      "sha256": "76acebf97c7d08db1f9250a1d1bae9682e53ce1c4f81e329b5eb071ba5675e79"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-fixture.mjs",
+      "sha256": "9754b0ee0f0bd2b8ed43acc42c610805eabd67257eb469035f9aaa3e35a19ba8"
+    },
+    {
+      "path": "apps/platform/tests/appointment-notices.test.mjs",
+      "sha256": "df4a8a293d443282a3b964302f9d6aac7cd01cad6f692ce1d7d0121dec3445dd"
+    },
+    {
+      "path": "apps/platform/tests/appointment-queue-sync-safety.test.mjs",
+      "sha256": "06dfdace508558d78f6446b2fa0154d9cd566bbf407e697937ef6a84817d585f"
+    },
+    {
+      "path": "apps/platform/tests/visit-reminder-planning.test.mjs",
+      "sha256": "6ca5534fa186e5046c40bf42286ba59f4e1e9282621e2f034b63b17726d36ae3"
+    },
+    {
+      "path": "apps/platform/tests/staging-appointment-candidate.test.mjs",
+      "sha256": "825a4466b15174c451c25c75635b69fc763b1bb314de8fb190c8de4ca8b0934c"
+    },
+    {
+      "path": "apps/platform/tests/bulk-reminder-cleanup.test.mjs",
+      "sha256": "8ff4149a3b903e50b37ba2a17dfa871189750eed76539b50ae61b870da613d2f"
+    },
+    {
+      "path": "supabase/migrations/20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
+      "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999"
+    },
+    {
+      "path": "supabase/verification/bulk_obsolete_visit_reminders.sql",
+      "sha256": "ece3e4072f97332c59a8190134ac7bbcec808063421f665127a0e4e015d8efd1"
+    },
+    {
+      "path": "supabase/staging/deferred-migrations.json",
+      "sha256": "6bed8c0be3d0bcd81ef320d6727940d6735e0be64a8cf044fb3cfc86da06a343"
+    }
+  ],
+  "boundaries": {
+    "applicationDeployed": false,
+    "productionQueried": false,
+    "productionChanged": false,
+    "hostedMigrationApplied": false,
+    "persistentHostedSettingChanged": false,
+    "customerEmails": 0,
+    "realProviderCalls": 0,
+    "keysRotated": false,
+    "productionReady": false
+  },
+  "nextStep": "Targeted staging reconciliation for migration 121 before any later app release.",
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-23/bulk-reminder-cleanup",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_bulkrem_6fd556f005e6",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  }
+}

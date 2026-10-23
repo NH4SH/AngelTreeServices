@@ -41,3 +41,5 @@ Staging fixtures and its temporary notice-switch change are isolated inside a ro
 Continue the same communications recovery work with bounded bulk reconciliation of obsolete visit reminders. The unchanged per-source cleanup calls are now the remaining scaling bottleneck; improve that step without weakening checked acknowledgements or changing delivery eligibility. Real mailbox/device/assistive-technology acceptance, owner terms-policy decisions and the separate managed-runtime issue stay on the existing roadmap.
 
 Sanitized receipt: `staging/VISIT_REMINDER_PLANNING_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/visit-reminder-planning/`. The new candidate remains local on `codex/visit-reminder-planning`; the separate runtime-security worktree remains at `06580f6`. Production readiness and deployment approval are outside this batch.
+
+October 23 follow-through: the verified visit-reminder batch is pushed to main as `5fe849d`. The next local candidate, including checked bulk cleanup and synthetic concurrency verification, is documented in `BULK_REMINDER_CLEANUP.md`.

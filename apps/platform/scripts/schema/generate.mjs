@@ -39,7 +39,9 @@ if (offline) {
   // Extensions can live in public or extensions depending on bootstrap version.
   // Their vendor APIs are not part of the application's public schema contract.
   const meta = JSON.parse(run(['db', 'query', "select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_depend d on d.objid=p.oid and d.classid='pg_proc'::regclass and d.deptype='e' where n.nspname='public' order by p.proname", '--db-url', url.href, '--output', 'json']));
-  const excluded = new Set(meta.rows.map(row => row.proname));
+  const metadataRows = Array.isArray(meta) ? meta : meta.rows;
+  if (!Array.isArray(metadataRows)) throw new Error('Invalid extension metadata response.');
+  const excluded = new Set(metadataRows.map(row => row.proname));
   const source = ts.createSourceFile('database.ts', raw, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   if (source.parseDiagnostics.length) throw new Error('Invalid generated TypeScript.');
   const database = source.statements.find(s => ts.isTypeAliasDeclaration(s) && s.name.text === 'Database');

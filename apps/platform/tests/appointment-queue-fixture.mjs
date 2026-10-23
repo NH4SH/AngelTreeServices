@@ -35,9 +35,29 @@ export function appointmentQueueFixture(options = {}) {
   const calls = [], upserts = [];
   const delivery = {id:crypto.randomUUID(), state:'accepted', repair_state:'complete', history_recorded:true, provider_message_id:'synthetic-accepted', followup_sync_pending:true};
   const db = {
-    rpc(name) {
+    rpc(name,args) {
       calls.push({rpc:name});
       if (name === 'claim_due_customer_communications') return {data:[], error:null};
+      if (name === 'cancel_obsolete_visit_reminders') {
+        const q={abortSignal(signal){assert.ok(signal instanceof AbortSignal);return q;},then(resolve,reject){return execute().then(resolve,reject);}};
+        async function execute(){
+          cleanupCalls++;const batch=args.p_sources,table=args.p_source_kind==='schedule_event'?'schedule_events':'appointments',key=args.p_source_kind==='schedule_event'?'schedule_event_id':'appointment_id';
+          assert.ok(batch.length>0&&batch.length<=200);calls.push({operation:'cleanup',kind:args.p_source_kind,batchSize:batch.length,cleanupCall:cleanupCalls});
+          options.onCleanupBatch?.({tables,batch,call:cleanupCalls});
+          const failing=fault&&(!options.failCleanupAt||cleanupCalls===options.failCleanupAt);
+          const fail=()=>{if(['throw','lost-throw'].includes(fault))throw Error('PRIVATE_SYNTHETIC_CLEANUP_DIAGNOSTIC');return{data:null,error:{code:'57014',message:'PRIVATE_SYNTHETIC_CLEANUP_DIAGNOSTIC'}};};
+          if(failing&&['error','throw'].includes(fault))return fail();
+          if(batch.some(x=>!tables[table].some(v=>v.id===x.id&&Date.parse(v.starts_at)===Date.parse(x.source_version))))return{data:null,error:{code:'40001',message:'PRIVATE_SYNTHETIC_SOURCE_CHANGED'}};
+          const targets=tables.customer_communications.filter(c=>c.status==='pending'&&batch.some(x=>c[key]===x.id&&(c.source_version==null||Date.parse(c.source_version)!==Date.parse(x.source_version))));
+          for(const c of targets)Object.assign(c,{status:'cancelled',cancelled_at:new Date().toISOString(),skip_reason:'The appointment was rescheduled. A current reminder replaces this one.'});
+          if(failing)return fail();
+          let data={processed:batch.length,cancelled:targets.length};
+          const bad=options.cleanupResponseFault?.at===cleanupCalls?options.cleanupResponseFault.mode:null;
+          if(bad==='null')data=null;if(bad==='short')data.processed--;if(bad==='array')data=[];if(bad==='negative')data.cancelled=-1;if(bad==='fraction')data.cancelled=0.5;
+          return{data,error:null};
+        }
+        return q;
+      }
       if (name === 'get_appointment_notice_coverage') {
         const filters=[],names=[];let cap=Infinity;
         const q={eq(k,v){names.push([k,v]);filters.push(r=>r[k]===v);return q;},gt(k,v){names.push([k,v]);filters.push(r=>r[k]>v);return q;},order(k){assert.equal(k,'source_id');return q;},limit(n){cap=n;return q;},abortSignal(s){assert.ok(s instanceof AbortSignal);return q;},then(resolve,reject){return execute().then(resolve,reject);}};

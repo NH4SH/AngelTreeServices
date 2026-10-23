@@ -1,6 +1,6 @@
 # Dashboard width and interaction fix
 
-October 22, 2026. Verified locally; no push, deployment or production business-data change.
+October 22, 2026. Verified locally and deployed as an isolated, owner-authorized dashboard hotfix. No production business-data or configuration change.
 
 ## Reproduced problems
 
@@ -35,7 +35,19 @@ All **2,370 CRM checks** passed, zero failures/skips. Five new regression checks
 
 Final typecheck, optimized isolated build and `git diff --check` passed. Preview/build application sources match the repository. One design detector pass reported 19 incumbent typography advisories, none on changed lines; this focused fix does not rewrite unrelated design tokens/context metadata. No staging app deployment or staging database mutation was needed for a UI scheduling/layout change.
 
-The three existing dashboard application files were byte-identical between the published production source `943f3e2f8ffd724029186d4a40c417fa8b150099` and this patch's pre-change base `ce14a26`. This keeps the dashboard change separable from pending customer-document branding and other unreleased work. A production release still requires the owner's deployment instruction and a release built from the intended source.
+The three existing dashboard application files were byte-identical between the published production source `943f3e2f8ffd724029186d4a40c417fa8b150099` and this patch's pre-change base `ce14a26`. This allowed an isolated release without pending customer-document branding or other unreleased work.
+
+## Production release and live acceptance
+
+The owner explicitly requested pushing and deploying this fix. Release source `8fa9df32c95a2e6d6a72c77422391ae7b9ca7528` applies only this seven-file patch to previously published source `943f3e2`. Published Netlify deploy: `6adab6d33b9c3096a37ad0a1`, at https://admin.angeltreeservices.org. The fix is also integrated into `main`, retaining concurrent website changes; future normal Git deployments will replace the manual artifact with a source that retains this fix. Customer-branding commit `ce14a26` remains preserved locally and unreleased.
+
+The isolated release passed its five regression checks, typecheck and Netlify production adapter build (Next 16.3.8, runtime 5.16.3, Node 22.23.3). Live health/login returned 200; all ten login CSS/JavaScript assets returned 200. Anonymous dashboard access still redirects to login. Existing scheduled function names and schedules, Netlify build settings and the staging deploy were preserved. No migrations, database writes, credential changes or customer-action endpoints were invoked by this release.
+
+Signed-in live acceptance reset browser zoom to 100% and checked widths 1920, 1280, 904 and 390px. The dark shell matched the viewport at every width, with no horizontal overflow or light side bar; CSS zoom and visual viewport scale were both 1. Month-to-date and 90-day navigation selected the correct routes and displayed the matching verified reporting windows. The 90-day selection committed in 911ms, showing a loading state while financial reads finished, then displayed July 25–October 22. This is one sampled live interaction, not a guaranteed response time. Browser error/warning logs were empty. Temporary viewport overrides were reset; the existing live tab remains on the 90-day dashboard.
+
+Release packaging incident: the first three upload attempts failed live acceptance, causing temporary server errors or missing styles between approximately 01:13 and 01:22 UTC on October 23. The online CLI build had substituted masked public configuration values; the no-build upload also needed the adapter's `.netlify/static` directory, and its two-minute function-manifest cache must remain fresh to preserve the adapter's unbundled handler. Corrected the release packaging using existing public values verified against production, the adapter static directory, and an immediate deploy after rebuilding. No application-code workaround or hosted-setting change was made. The final artifact passed server, asset and signed-in browser checks. Only those three invalid artifacts created during this release were retired after saving their diagnostics privately; the original production deploy and final verified deploy were retained.
+
+Sanitized production proof: `staging/DASHBOARD_PRODUCTION_RELEASE_20261022.json`. Private release logs, diagnostics and live screenshots are in `/Users/noelsierra/Documents/Codex/2026-10-22/dashboard-production-hotfix/` and are excluded from Git.
 
 ## Evidence and scope
 
@@ -43,4 +55,4 @@ Application files: `src/app/admin/page.tsx`, `src/app/admin/dashboard.css`, `src
 
 Private evidence is in `/Users/noelsierra/Documents/Codex/2026-10-22/dashboard-responsiveness/`: controlled before/after timings, browser geometry and interaction proofs, logs and synthetic local screenshots. Live CRM screenshots and synthetic actor credentials stay outside Git. The existing live tab is preserved at the owner's 90-day dashboard. Temporary local browser tabs, preview/proxy and the owned disposable stack were stopped after verification; retained data volumes and unrelated applications were preserved.
 
-The new changes remain local and preserve prior customer branding commit `ce14a26`. The live site will retain the old behavior until a reviewed deployment is authorized. This fix improves the dashboard's readiness and response feedback; it does not claim that every destination page or underlying operational query throughout the CRM is now faster.
+The fix is pushed and live; prior customer branding commit `ce14a26` is preserved locally. This fix improves the dashboard's readiness and response feedback; it does not claim that every destination page or underlying operational query throughout the CRM is now faster.

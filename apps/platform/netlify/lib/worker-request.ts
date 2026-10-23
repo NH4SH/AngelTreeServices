@@ -1,7 +1,9 @@
 import { withDeadline } from "../../src/lib/runtime/deadline.ts";
+import { logNodeRuntimeOnce } from "../../src/lib/security/node-runtime.ts";
 import targets from "../../staging/targets.json";
 import { isStagingDeployment, production } from "../../src/lib/security/staging-policy.mjs";
 export async function runScheduledWorker(path: string, secretName: string, label: string) {
+  logNodeRuntimeOnce(label);
   const appEnv = Netlify.env.get("APP_ENV");
   if (isStagingDeployment(targets, { APP_ENV: appEnv, STAGING_MODE: Netlify.env.get("STAGING_MODE") }) ||
     (appEnv && appEnv !== "production") || Netlify.env.get("SITE_ID") !== production.netlifySiteId) {

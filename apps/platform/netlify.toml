@@ -3,6 +3,7 @@
   publish = ".next"
 
 [build.environment]
+  NODE_VERSION = "22.23.4"
   NETLIFY_NEXT_SKEW_PROTECTION = "true"
 
 [functions]

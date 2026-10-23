@@ -569,7 +569,12 @@ async function getRecentMatchingDelivery(supabase: SupabaseClient, communication
     ? ["invoice", "invoice_payment_reminder", "overdue_invoice_reminder"]
     : communication.communication_type === "quote_follow_up" ? ["quote", "quote_follow_up"] : [communication.communication_type];
   let query = supabase.from("email_events").select("id").in("email_type", matchingTypes).eq("status", "sent").gte("sent_at", since);
-  if (communication.quote_id) query = query.eq("related_quote_id", communication.quote_id);
+  // Separate payments on one invoice each have a receipt. Preserve the hold for
+  // older invoice receipts that lack a payment ID and cannot be distinguished.
+  if (communication.communication_type === "payment_confirmation" && communication.payment_id) {
+    query = query.or(`related_payment_id.eq.${communication.payment_id},and(related_payment_id.is.null,related_invoice_id.eq.${communication.invoice_id})`);
+  }
+  else if (communication.quote_id) query = query.eq("related_quote_id", communication.quote_id);
   else if (communication.invoice_id) query = query.eq("related_invoice_id", communication.invoice_id);
   else if (communication.schedule_event_id) query = query.eq("related_schedule_event_id", communication.schedule_event_id);
   else if (communication.appointment_id) query = query.eq("related_appointment_id", communication.appointment_id);

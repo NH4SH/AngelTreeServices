@@ -40,3 +40,7 @@ Security-advisor observations are identical before/after at WARN level: 79 exist
 Main is included through `8fed532`, preserving the independent public-site tree-removal cost/scope update and all earlier CRM work. The separate runtime-security branch remains at `06580f6`. Reconciliation is saved locally on `codex/staging-proposal-followup-expiry`, pending a separate push request. No UI or application runtime code changed here, so no new browser/PDF/mailbox or optimized-build acceptance is claimed; the expiry feature's earlier build verification remains preserved.
 
 Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/staging-proposal-followup-119/`. Sanitized receipt: `staging/PROPOSAL_FOLLOWUP_RECONCILIATION_VERIFICATION_20261023.json`. Only the task-owned local project is stopped after acceptance, with its data retained; unrelated development services and Impeccable files are preserved. Staging migration reconciliation grants no app-hosting, production-release or automatic-sending readiness. Owner terms-policy decisions and actual mailbox/device/assistive-technology acceptance remain in the existing roadmap.
+
+### Push follow-through — October 23, 2026
+
+The verified reconciliation is pushed normally to `origin/main` as `ba4367c6cdb438ac0b9244935bb7748a0dc80f46`, with CI/Netlify skip markers. The next existing communications issue is documented in `PAYMENT_RECEIPT_IDENTITY.md`. Migration 119 and its historical receipts remain unchanged; no application deployment, production change or automatic sending was authorized by this push.

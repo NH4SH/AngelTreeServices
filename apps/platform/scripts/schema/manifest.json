@@ -477,6 +477,10 @@
     {
       "name": "20261023205744_guard_expired_proposal_followups.sql",
       "sha256": "e013c69ea6a39b0af8b8e2c45f8578efa54e3a3edace02e671fee278f092c076"
+    },
+    {
+      "name": "20261023213240_scope_payment_receipts_to_payment.sql",
+      "sha256": "7e9a472ae5acd99db72d80d6e377beb60c4674e4a01787be891be291f20f26b5"
     }
   ]
 }

@@ -453,7 +453,7 @@ def page_document(page: dict) -> str:
             <p>On this page</p>
             <ul>
               <li><a href="#service-project-example">Project example</a></li>
-              <li><a href="#removal-scope">Scope &amp; cleanup</a></li>
+              <li><a href="#removal-scope">Cost &amp; scope</a></li>
               <li><a href="#removal-process">Process</a></li>
               <li><a href="#removal-access">Site access</a></li>
               <li><a href="#removal-faq">FAQs</a></li>
@@ -690,7 +690,7 @@ def service_body(data: dict) -> str:
         </div>
         <aside class="ats-callout">
           <h2>{data['callout_heading']}</h2>
-          <p>{data['callout_copy']}</p>
+          <p>{data['callout_copy']}</p>{f"<p>{data['callout_note']}</p>" if data.get('callout_note') else ''}
         </aside>
       </div>
     </section>
@@ -734,10 +734,11 @@ SERVICE_PAGES = [
             ("Storm damage", "Broken, uprooted, or displaced trees can create urgent access and property concerns."),
             ("Conflicts with the property", "Trees may interfere with structures, access, planned work, or the reasonable use of a space."),
         ],
-        "scope_heading": "A clear removal scope before work begins",
-        "scope_copy": "<p>A proposal should identify the tree or trees included, the planned work, and the cleanup included in that scope. Wood, debris, and stump work should be discussed rather than assumed.</p><p>Where space is limited, a tree may need to be taken apart in controlled sections. The method and equipment depend on the tree, access, nearby property, and site conditions.</p>",
-        "callout_heading": "Stump work is a separate decision",
-        "callout_copy": "Removal of the standing tree does not mean the entire root system disappears. If the stump is part of your concern, include it in the estimate request so the written scope can address it clearly.",
+        "scope_heading": "What affects tree removal cost?",
+        "scope_copy": "<p>Tree removal is priced for the tree and the property. We review the site before providing a free written estimate.</p><ul><li><strong>Tree size and condition.</strong> The amount of wood and the condition of the trunk and branches affect the work plan.</li><li><strong>Nearby structures and utilities.</strong> Homes, fences and utility lines affect the available work area and removal method.</li><li><strong>Access and equipment.</strong> Gate width, slopes and ground conditions influence how the crew and equipment can reach the tree and move the wood.</li><li><strong>Wood, cleanup and stump work.</strong> Hauling logs and brush, agreed wood placement and any stump grinding affect the scope and price.</li></ul><p>Where space is limited, a tree may need to be taken apart in controlled sections. The method and equipment depend on the tree, access, nearby property, and site conditions.</p>",
+        "callout_heading": "What your written quote covers",
+        "callout_copy": "Your written quote identifies the trees and proposed work, and states how logs, brush, hauling and cleanup will be handled. Review any options or exclusions with us before approving the work.",
+        "callout_note": "Stump grinding is included only when listed in your quote. Tell us whether you want logs left in an agreed spot or hauled away.",
         "considerations": [
             ("Nearby structures and boundaries", "Homes, sheds, fences, driveways, neighboring property, and overhead utilities can affect the work plan."),
             ("Access and ground conditions", "Gate width, slopes, septic areas, underground utilities, and lawn conditions can influence equipment and movement."),
@@ -745,10 +746,12 @@ SERVICE_PAGES = [
             ("Method selection", "Rigging, climbing, ground-based work, or larger equipment may be considered only when appropriate for the actual site."),
         ],
         "faqs": [
-            ("Can you tell from a photo whether a tree must be removed?", "Photos can help explain the concern, but they do not replace an on-site review. A recommendation should account for the tree and the property around it."),
-            ("Does tree removal include stump grinding?", "Do not assume it does. Ask for stump grinding to be included so the written proposal can state whether it is part of the scope."),
-            ("Will every removal use the same equipment?", "No. Access, tree size, nearby property, ground conditions, and the approved scope determine the practical method."),
-            ("What should I point out during the estimate?", "Share access limitations, septic areas, underground utilities, property boundaries, desired wood placement, and anything else that may affect the plan."),
+            ("Are tree-removal estimates free?", "Yes. Share the property address, the tree that concerns you and a short description. We’ll follow up about a free estimate. A property visit lets us review the tree, access and your goals before providing a written proposal."),
+            ("Why can two tree-removal quotes be different?", "Compare the same work: the trees covered, the removal method and access needs, wood and brush handling, cleanup and any stump work. Ask us to explain options or exclusions before you approve our proposal."),
+            ("Can you tell from a photo whether a tree must be removed?", "Photos can help explain the concern, but they do not replace an on-site review of the tree and the property around it. Take photos only from a safe location; do not approach damaged limbs or utility lines for a closer picture."),
+            ("Does tree removal include stump grinding?", "Only when it is listed in your written quote. Grinding reduces the visible stump below ground level; it does not remove the entire root system. Ask for the quote to explain how the grindings will be handled, too."),
+            ("Do you haul away logs and brush?", "We carry out the wood handling, hauling and cleanup included in your written quote. Tell us whether you want wood left in an agreed spot or removed, and mention specific cleanup expectations during the property visit."),
+            ("What should I point out during the estimate?", "Share gate or access limitations, slopes, septic areas, underground utilities, property boundaries and desired wood placement. Point out nearby structures and ground conditions, too. Those details help us choose the equipment and method for your property."),
         ],
         "related": [("/services/tree-pruning/", "Professional tree pruning"), ("/services/stump-grinding/", "Stump grinding"), ("/services/emergency-tree-service/", "Storm and emergency guidance")],
         "cta_title": "Start with a thoughtful property review.",

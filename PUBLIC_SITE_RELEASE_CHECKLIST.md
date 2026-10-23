@@ -1,3 +1,54 @@
+## Tree Removal pricing guidance — release approved, October 23, 2026
+
+Owner approved commit, push and publication of the reviewed pricing/FAQ patch.
+Preserve origin/main through bf0d794 as parent and any subsequent repository work.
+Use [skip ci] [skip netlify] on the shared-repository push, then trigger only
+public website 86c48a95-ead4-4b15-8e57-fa827558b2f0. Keep analytics, consent and
+CRM code/settings unchanged. Re-run the public checks on the integrated parent,
+compare both projects before/after and run non-submitting production checks.
+Release evidence: this chat's outputs/removal-pricing-release/. Earlier hold
+notes below record the draft/review state before this publication approval.
+
+### Earlier draft and final review
+
+Owner approved the recommended public-page improvement. Commit, push, QA upload
+and publication remain held. Parent: 0a85e15; preserve newer work at any future
+approved release. Analytics, consent and CRM code/settings remain unchanged.
+
+- Final release-readiness review: no blocking regression; no additional copy or
+  application correction required. Fresh 248 tests, build and 18-page validation
+  pass. All content outside the approved scope section, FAQs and topic label is
+  byte-identical, including SEO head/schema, photos/captions, testimonial,
+  process/safety content and estimate destinations. Other 17 pages remain exact.
+  Fresh review covers all six FAQ disclosures at 320/701/1280px and doubled text
+  at 320px (24 open/close checks), keyboard focus and ~20px enlarged anchor
+  clearance. Exact synthetic draft retention, context and Clear pass again.
+  Final desktop screenshot reviewed; no commit, push, upload or deployment.
+  Evidence: outputs/removal-pricing-guidance/final-review-* and REVIEW.txt.
+- The existing scope section now explains four cost factors and how to read the
+  written quote. The mobile topic label is Cost & scope; its removal-scope anchor
+  is unchanged. No additional page band, CSS, script, price range or guarantee.
+- Six Tree Removal FAQs cover free estimates, comparing quote scope, safe photo
+  context, stump/root limits, wood handling/cleanup and details for the visit.
+  Original equipment/site-planning facts remain in the section and access FAQ.
+- Fresh 239 Node + 9 Python tests (248 total), build and 18-page validation pass.
+  Only services/tree-removal/index.html changes among all 293 generated files.
+  All 17 other pages, head/schema, photos/captions, estimate destinations,
+  stylesheet hashes and 13 protected source files remain exact.
+- Browser: 320/390/768/1280px plus synthetic full-page doubled text at 320/390px;
+  all six FAQs open/close at each size (36 checks), no measured text overflow.
+  Enter/Space and focus pass. Topic-link targets settle about 20px below the
+  header at normal and enlarged sizes. Desktop/mobile screenshots reviewed.
+- Exact synthetic name and multiline notes survive a Tree Removal visit and
+  contextual estimate return, selecting Tree Care / tree-removal. Clear draft
+  empties them afterward; no submissions, calls, emails or saved consent choice.
+- Local preview uses the established no-submission, outbound-blocked overlay;
+  no QA upload or production change. Native OS text settings and spoken screen
+  readers were not tested; synthetic enlargement is not a conformance claim.
+- Evidence: this chat's outputs/removal-pricing-guidance/. Before release obtain
+  owner review/publication approval, preserve the then-current repository parent,
+  rerun relevant checks and perform non-submitting production checks afterward.
+
 ## Homepage FAQ revision — release approved, October 23, 2026
 
 Owner approved commit, push and publication of the reviewed homepage FAQ revision.

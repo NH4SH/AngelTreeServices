@@ -85,19 +85,19 @@ export async function approveQuoteByPortalToken(
   const supabase = getServiceRoleClient();
 
   if (!supabase || lookup.status !== "ready" || !lookup.quote || !lookup.tokenId) {
-    return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available.") };
+    return { ok: false, status: "error", message: safeStaffMessage(lookup.message, "This quote link is not available."), requestRejected: Boolean(supabase) && lookup.status !== "configuration_required" };
   }
 
   if (!canCustomerRespondToQuote(lookup.quote.status) && lookup.quote.status !== "approved") {
-    return { ok: false, status: "error", message: "This quote is no longer open for approval." };
+    return { ok: false, status: "error", message: "This quote is no longer open for approval.", requestRejected: true };
   }
 
   const tokenHash = hashPortalToken(rawToken);
-  if (!tokenHash) return { ok: false, status: "error", message: "This quote link is unavailable." };
+  if (!tokenHash) return { ok: false, status: "error", message: "This quote link is unavailable.", requestRejected: true };
   const approvalResult = await approveQuoteWithPortalToken(supabase, tokenHash, Number(formData.get("expected_revision")));
 
   if (!approvalResult.ok) {
-    return { ok: false, status: "error", message: safeStaffMessage(approvalResult.message, "The quote could not be approved.") };
+    return { ok: false, status: "error", message: safeStaffMessage(approvalResult.message, "The quote could not be approved."), requestRejected: approvalResult.rejected === true };
   }
 
   await deliverCustomerSourceEvent({key: `quote:${lookup.quote.id}:portal-approved`});
@@ -125,7 +125,7 @@ export async function requestQuoteChangesByPortalToken(
   const receipt = result.receipt;
   await deliverCustomerSourceEvent({key: `quote:${receipt.quote_id}:change-request:${receipt.note_id}`});
   revalidatePortalQuote(rawToken, receipt.quote_id);
-  return { ok: true, status: "success", message: "Your change request has been sent. Angel Tree Services will review it and follow up." };
+  return { ok: true, status: "success", message: "Your change request is saved for our office to review. This does not approve the work. View the current proposal for its latest scope and status." };
 }
 
 function canCustomerRespondToQuote(status: QuoteStatus) {

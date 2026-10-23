@@ -1,0 +1,19 @@
+.customer-proposal-actions :is(button, textarea, summary),
+.customer-proposal-actions :is(.customer-proposal-help, .customer-quote-next-step, .customer-quote-waiting p, .customer-quote-confirmation p) { font-size: 1rem; line-height: 1.6; }
+.customer-proposal-actions button { min-height: 50px; height: auto; padding: 12px; white-space: normal; }
+.customer-proposal-actions button:disabled { cursor: wait; opacity: .65; }
+.customer-proposal-actions button svg { flex-shrink: 0; }
+.customer-proposal-actions .customer-change-form { margin-top: 24px; padding-top: 24px; gap: 10px; }
+.customer-proposal-actions .customer-proposal-help { margin: 0; color: var(--color-muted); }
+.customer-proposal-actions textarea { min-width: 0; width: 100%; caret-color: var(--color-forest); }
+.customer-proposal-actions :is(a, button, summary, textarea):focus-visible,
+.customer-proposal-actions :is(.customer-proposal-feedback, .customer-proposal-outcome):focus { outline: 3px solid var(--color-forest); outline-offset: 4px; }
+.customer-proposal-actions .customer-proposal-progress { margin: 12px 0 0; font-size: 1rem; line-height: 1.6; color: var(--color-muted); }
+.customer-proposal-actions .customer-proposal-progress:empty { display: none; }
+.customer-proposal-feedback { border-top: 1px solid var(--color-border); padding-top: 20px; margin-top: 20px; }
+.customer-proposal-feedback h2 { margin: 0; font-size: 1.15rem; line-height: 1.4; }
+.customer-proposal-feedback p { font-size: 1rem; line-height: 1.6; }
+.customer-proposal-feedback a, .customer-proposal-outcome a { display: inline-flex; align-items: center; min-height: 44px; padding-block: 8px; color: var(--color-forest); font-weight: 650; text-decoration: underline; text-underline-offset: 4px; }
+.customer-proposal-outcome { scroll-margin-block: 24px; }
+.customer-proposal-outcome > svg { flex-shrink: 0; }
+.customer-proposal-outcome > div { min-width: 0; overflow-wrap: anywhere; }

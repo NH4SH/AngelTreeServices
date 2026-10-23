@@ -152,3 +152,9 @@ The next customer follow-up is response acceptance, starting with additional-wor
 Customer entry recovery is now pushed to main through `d3d30da` (includes `72b2c21` and preserves the concurrent website work). Additional-work response outcomes and accessibility are verified locally and against rollback-only synthetic staging commands, pending push/release; see `CHANGE_ORDER_RESPONSE_OUTCOMES.md`. Approval/change/decline confirmations, stale and uncertain recovery, immediate saving controls and keyboard focus preserve the existing capability, transaction, receipt and email deduplication guarantees.
 
 Continue the original customer follow-up with proposal response outcomes/accessibility, then the outstanding contractual wording and real-device/screen-reader/mailbox acceptance. Historical findings and scores above remain historical; no competing roadmap or production release is introduced.
+
+## Proposal response follow-through — October 22, 2026
+
+Change-order response outcomes/accessibility (`946ae0b`) are pushed to main. Proposal approval/change-request outcomes and accessibility are now verified locally and against 14 rollback-only staging command scenarios, pending push/release; see `PROPOSAL_RESPONSE_OUTCOMES.md`. This preserves existing response capabilities and authorization while adding clear saved/uncertain/closed outcomes, exact-retry guidance, early-submission recovery, immediate saving controls, retained wording and keyboard focus.
+
+Next in the existing customer follow-up: reconcile document/email branding and contact sources, including the historical lawn-care tagline still visible on the actual proposal, then authoritative business wording and mailbox/screen-reader/device acceptance. Financial/contractual terms and production remain unchanged. Historical review findings and scores remain historical.

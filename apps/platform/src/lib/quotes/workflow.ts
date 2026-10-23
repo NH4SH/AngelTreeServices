@@ -6,7 +6,7 @@ import { safeStaffMessage } from "@/lib/security/errors";
 
 type QuoteWorkflowResult =
   | { ok: true; jobId: string; createdJob: boolean; replayed: boolean }
-  | { ok: false; message: string };
+  | { ok: false; message: string; rejected?: boolean };
 
 // The loaded page version is mandatory. Never fetch a newer revision here: it
 // would approve a proposal the person did not review. SQL owns all mutations.
@@ -24,9 +24,12 @@ export async function approveQuoteWithPortalToken(
 
 async function approve<Name extends "approve_quote" | "approve_quote_by_portal">(supabase: SupabaseClient<any, "public", any>, command: Name, input: RpcArgs<NoInfer<Name>>): Promise<QuoteWorkflowResult> {
   const revision = input.p_expected_revision;
-  if (!Number.isSafeInteger(revision) || Number(revision) < 1) return { ok: false, message: "Refresh and review the saved proposal before approving." };
+  if (!Number.isSafeInteger(revision) || Number(revision) < 1) return { ok: false, message: "Refresh and review the saved proposal before approving.", rejected: true };
   const { data, error } = await supabase.rpc(command, input);
-  if (error) return { ok: false, message: safeStaffMessage(error.message, "Approval could not be confirmed. Refresh the quote to review its saved status before trying again.") };
+  if (error) {
+    const rejected = ["22023", "PT409", "40001", "42501", "23514"].includes(error.code ?? "");
+    return { ok: false, rejected, message: rejected ? safeStaffMessage(error.message) : "Approval could not be confirmed. Refresh the quote to review its saved status before trying again." };
+  }
   if (!data || typeof data.job_id !== "string" || typeof data.created_job !== "boolean" || typeof data.replayed !== "boolean"
     || !Number.isSafeInteger(data.edit_revision) || data.edit_revision < 1 || typeof data.approved_at !== "string") {
     return { ok: false, message: "Approval could not be confirmed. Refresh the quote to review its saved status before trying again." };

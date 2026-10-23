@@ -1,0 +1,151 @@
+{
+  "date": "2026-10-22",
+  "status": "verified_local_and_staging_synthetic",
+  "previousBatchPushed": "946ae0b",
+  "branch": "codex/proposal-response-accessibility",
+  "includesOriginMain": "946ae0b",
+  "newBatchPushed": false,
+  "schemaChanges": false,
+  "migrationsRequired": false,
+  "checks": {
+    "crmPassed": 2359,
+    "crmFailed": 0,
+    "crmSkipped": 0,
+    "newOutcomeUnitChecks": 17,
+    "finalTypecheckPassed": true,
+    "finalIsolatedBuildPassed": true,
+    "source": {
+      "fileCount": 628,
+      "sha256": "21c4a38e247f3bf20d951b56ee211fccda4e4378c4fde9ab96333ce2a04fe157",
+      "previewMatches": true,
+      "buildMatches": true
+    },
+    "mechanicalDesignFindings": 0
+  },
+  "databaseVerification": {
+    "local": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 14,
+      "renderedCases": 14,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "staging": {
+      "passed": true,
+      "ledgerCount": 116,
+      "installedSqlCases": 14,
+      "renderedCases": 14,
+      "recordsUnchanged": true,
+      "authAndRoleRecordsUnchanged": true,
+      "settingsAndPrincipalRoutineUnchanged": true,
+      "rolledBack": true,
+      "appDeployed": false,
+      "realProviderCalls": 0
+    },
+    "productionChanged": false,
+    "sqlSha256": "e22c8bad9a4d5dd5d7d92acf9b4a96d6226e9fdafd3bb7f712b99f4dd6efd403"
+  },
+  "actualLocalBrowser": {
+    "actualLocalBrowser": true,
+    "syntheticRecords": 8,
+    "decisionRecordsHaveOneAuditAndSourceEvent": true,
+    "onlyApprovalCreatedWorkOrders": true,
+    "onlyChangeRequestsCreatedNotes": true,
+    "lostChangeRetryPreservedUuidRevisionAndMessage": true,
+    "lostApprovalRetryPreservedRevisionAndWorkOrder": true,
+    "temporaryFailureRetryPreservedIdentityAndWording": true,
+    "viewports": [
+      320,
+      390,
+      768,
+      1280
+    ],
+    "horizontalOverflow": false,
+    "visibleResponseControlMinimumHeightPx": 45.59,
+    "responseControlFontPx": 16,
+    "helperContrastRatio": 6.75,
+    "focusOutlineContrastRatio": 13.91,
+    "keyboardApprovalAndChangeRequestPassed": true,
+    "nativeDisclosureKeyboardPassed": true,
+    "outcomeAndErrorFocusPassed": true,
+    "freshClosedArrivalDoesNotStealFocus": true,
+    "staleApprovalAndChangesRejected": true,
+    "longMessageRetainedCharacters": 922,
+    "pendingButtonsDisabled": true,
+    "browserErrors": 0,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "stagingAppDeployed": false,
+  "stagingAcceptanceMethod": "Installed service-only RPCs with exact retries and post-approval replay in rollback-only synthetic transaction; actual action/workflow mapping and React renderer with controlled receipt adapters",
+  "hostingBefore": [
+    {
+      "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+      "deployId": "6ad95318d4baa154ecf3456a",
+      "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+      "stopBuilds": false,
+      "repoLinked": true
+    },
+    {
+      "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "deployId": "6ad93840ccebc7a5679b1b28",
+      "commit": null,
+      "repoLinked": false
+    }
+  ],
+  "hostingAfter": [
+    {
+      "id": "6fe7a9ca-878e-4b7b-bb4a-966efdc4d1a0",
+      "deployId": "6ad95318d4baa154ecf3456a",
+      "commit": "943f3e2f8ffd724029186d4a40c417fa8b150099",
+      "stopBuilds": false,
+      "repoLinked": true
+    },
+    {
+      "id": "d81d923d-6ccf-4c1e-87cc-263f3d51555d",
+      "deployId": "6ad93840ccebc7a5679b1b28",
+      "commit": null,
+      "repoLinked": false
+    }
+  ],
+  "productionChanged": false,
+  "realProviderCalls": 0,
+  "cleanup": {
+    "syntheticActorsDisabled": true,
+    "taskStackStopped": true,
+    "taskPreviewStopped": true,
+    "volumesRetained": true,
+    "existingDevelopmentDatabasesReset": false,
+    "primaryAppUnchanged": true,
+    "testProxyStopped": true
+  },
+  "evidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-22/proposal-response-accessibility",
+  "advisors": {
+    "unchanged": true,
+    "groups": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 33,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 79,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ]
+  }
+}

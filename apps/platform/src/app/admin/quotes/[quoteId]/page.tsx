@@ -24,6 +24,7 @@ import { PrintButton } from "@/components/documents/print-button";
 import { PortalEngagementPanel } from "@/components/portal-engagement";
 import { EmailDraftCard } from "@/components/email-draft-card";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
+import { recordEmailHistoryHref } from "@/lib/email/record-history-scope";
 import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
 import { SendQuoteEmailForm } from "@/components/send-email-action-form";
 import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
@@ -226,6 +227,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                   <PanelTitle icon={<Send size={18} />} title="Email delivery history" />
                   <p className="inline-empty">Provider accepted confirms the email service accepted the message. Customer opens are tracked separately through the secure link.</p>
                   <EmailHistoryList events={emailEvents.data} />
+                  <p><Link href={recordEmailHistoryHref({ recordType: "quote", recordId: quoteId })}>View all recorded emails</Link></p>
                 </section>
 
                 <section className="commerce-side-panel" id="quote-follow-up">

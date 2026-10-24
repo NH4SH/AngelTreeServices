@@ -22996,3 +22996,20 @@ body:has(.appointment-overlay) {
 .firewood-line details summary { cursor: pointer; color: var(--color-forest); padding-block: .5rem; }
 .firewood-line details label { margin-top: .75rem; }
 .firewood-page .quote-editor-section-header { flex-wrap: wrap; }
+
+/* Recorded email browsing inherits the existing communications layout. */
+.record-email-page { display: grid; gap: 1.25rem; min-width: 0; }
+.record-email-page .page-heading { margin-bottom: 0; }
+.record-email-page > .form-helper { max-width: 75ch; }
+.record-email-results .panel-heading-row .secondary-action { width: auto; flex: 0 0 auto; }
+.record-email-row > div { display: block; flex: 1; min-width: 0; }
+.record-email-row h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.record-email-row p, .record-email-row a, .record-email-row dd { overflow-wrap: anywhere; }
+.record-email-row p { margin-block: .45rem; }
+.record-email-details { margin-top: .75rem; }
+.record-email-details summary { width: fit-content; padding-block: .5rem; cursor: pointer; }
+@media (max-width: 600px) {
+  .record-email-page .filter-pills a, .record-email-page .list-pagination a,
+  .record-email-row a { min-height: 44px; display: inline-flex; align-items: center; }
+  .record-email-details summary { min-height: 44px; display: list-item; }
+}

@@ -51,3 +51,8 @@ The deferred inventory now records that migration 124 is reconciled in staging w
 Only this task's new loopback database is stopped after verification; its synthetic volumes are retained. Shared local stacks, the home scanner and existing worktrees are preserved. This documentation and checkpoint are saved locally, pending a later push instruction. Record-scoped document-email delivery/history browsing remains the next communications priority in the existing roadmap.
 
 Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-24/staging-firewood-124/`. Sanitized receipt: `staging/FIREWOOD_TERMS_RECONCILIATION_VERIFICATION_20261024.json`. Raw snapshots, identities, session credentials, connection details and logs remain outside Git.
+
+
+## Push and communications follow-through
+
+This verified reconciliation is pushed normally to main as `5cdc0b8`. `RECORD_DOCUMENT_EMAIL_HISTORY.md` records the subsequent local, read-only communications batch. Its 95 native assertions passed in each local/staging target with all synthetic fixtures rolled back and the exact 124 checkpoint preserved. No new migration or app deployment, production operation, automation activation or customer send accompanies that feature.

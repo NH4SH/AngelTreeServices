@@ -13,6 +13,7 @@ import { DuplicateRecordButton } from "@/components/duplicate-record-button";
 import { PrintButton } from "@/components/documents/print-button";
 import { PortalEngagementPanel } from "@/components/portal-engagement";
 import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
+import { recordEmailHistoryHref } from "@/lib/email/record-history-scope";
 import { InvoicePortalLinkPanel } from "@/components/invoice-portal-link-panel";
 import { ManualPaymentForm } from "@/components/manual-payment-form";
 import { ManualPaymentCorrectionForm, ManualPaymentRestoreForm } from "@/components/manual-payment-correction-form";
@@ -225,6 +226,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   <PanelTitle icon={<Send size={18} />} title="Email delivery history" />
                   <p className="inline-empty">Provider accepted confirms the email service accepted the message. Customer opens are tracked separately through the secure link.</p>
                   <EmailHistoryList events={emailEvents.data} />
+                  <p><Link href={recordEmailHistoryHref({ recordType: "invoice", recordId: invoiceId })}>View all recorded emails</Link></p>
                 </section>
 
                 <section className="commerce-side-panel">

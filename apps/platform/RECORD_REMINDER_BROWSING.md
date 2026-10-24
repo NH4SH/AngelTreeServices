@@ -39,3 +39,8 @@ Counts, source checks and summaries reflect live state, rather than one frozen t
 Staging acceptance is native rollback-only SQL with simulated caller claims, not a deployed staging app or hosted browser/Auth-session run. Browser keyboard/viewport checks do not replace real mailbox, physical-device or spoken screen-reader acceptance. No production query/change, provider send, key rotation or deployment occurred.
 
 The next focused PR14 follow-through is record-scoped document-email delivery/history browsing, so the separately retained provider outcomes can be reached beyond their recent previews without retrying old messages. Owner-policy decisions, real mailbox/device/accessibility acceptance and the separate managed-runtime work remain in the existing roadmap.
+
+
+## Recorded document-email follow-through
+
+`RECORD_DOCUMENT_EMAIL_HISTORY.md` documents the next verified local PR14 step. Proposal, invoice and change-order records now link to their full recorded `email_events` history, with All recorded emails by default, Needs attention, exact native paging and existing delivery-review links. All original reminder browsing/cancellation behavior remains unchanged. Staging stays at 124 after synthetic rollback-only verification, with no new migration, deployment, production change or customer email. Unrecorded prepared/uncertain requests remain explicitly separate and are the next scoped visibility follow-up.

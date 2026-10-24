@@ -1,0 +1,238 @@
+{
+  "observedAt": "2026-10-24T22:31:21.159Z",
+  "status": "verified-local-recorded-email-browser-not-pushed-or-deployed",
+  "verifiedStaging124ReconciliationPushedToMain": "5cdc0b8000d17e8fafdd44df9f8a1547a4370806",
+  "branch": "codex/record-document-email-browsing",
+  "defaultViewConfirmedByOwner": "all-recorded-outcomes",
+  "scope": {
+    "sources": [
+      "quote",
+      "invoice",
+      "change_order"
+    ],
+    "table": "public.email_events",
+    "pageSize": 30,
+    "callerRls": true,
+    "newMutationControls": false,
+    "newMigration": false,
+    "unrecordedDurableRequestsExplicitlySeparate": true
+  },
+  "tests": {
+    "regular": 3012,
+    "newFocused": 76,
+    "manualReminder": 21,
+    "localApi": {
+      "scenarios": 13,
+      "tapResults": 14,
+      "boundedScopedEmailReads": 423,
+      "headCountReads": 6,
+      "providerRequests": 0,
+      "customerEmailsSent": 0
+    },
+    "native": {
+      "local": {
+        "assertions": 95,
+        "rollbackOnly": true,
+        "fullBaselinePreserved": true,
+        "beforeObservedAt": "2026-10-24T22:09:37.174Z",
+        "afterObservedAt": "2026-10-24T22:09:41.208Z",
+        "snapshotSha256": "8c0689eb9897c1d4466c1331bc3517671d1147d666369b7b994ed81aadac541f"
+      },
+      "staging": {
+        "assertions": 95,
+        "rollbackOnly": true,
+        "fullBaselinePreserved": true,
+        "beforeObservedAt": "2026-10-24T21:59:55.474Z",
+        "afterObservedAt": "2026-10-24T22:00:14.695Z",
+        "snapshotSha256": "8f0b62cec2a4971f761e128fb4cd770579a8a7ad8c0e3daa80d856e7c88f3ef2"
+      }
+    },
+    "browser": {
+      "syntheticLocalApp": true,
+      "allOutcomesDefaultVerified": true,
+      "threeDocumentEntryLinksVerified": true,
+      "threeRecordCountsVerified": 2106,
+      "keyboardNextPageVerified": "Page 2 of 71",
+      "attentionResetsToFirstPage": true,
+      "attentionCountVerified": 1316,
+      "keyboardDetailsToggleVerified": true,
+      "longProviderReferenceWraps": true,
+      "privateEmailBodyWithheld": true,
+      "existingDeliveryReviewLinkVerified": true,
+      "emptyStateVerified": true,
+      "actualDeniedReadAlertVerified": true,
+      "deniedReadWithholdsRowsAndFalseEmpty": true,
+      "readPermissionExactlyRestored": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "height": 900,
+          "overflow": false
+        },
+        {
+          "width": 768,
+          "height": 1024,
+          "overflow": false
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "overflow": false
+        }
+      ],
+      "mobileDisclosureMarker": "disclosure-closed",
+      "mobileDisclosureMinHeight": 44,
+      "changeOrderSidebarOrder": [
+        "Workflow",
+        "Customer link",
+        "Email history"
+      ],
+      "newHistoryMutationForms": 0,
+      "productionVisited": false,
+      "customerEmailsSent": 0
+    },
+    "actualReadErrorRestoration": {
+      "onlyTaskOwnedLocalProject": true,
+      "originalFullAclExactlyRestored": true,
+      "emailRowsExactlyPreserved": true,
+      "productionChanged": false
+    },
+    "build": {
+      "node": "22.23.4",
+      "next": "16.4.2",
+      "react": "19.2.9",
+      "reactDom": "19.2.9",
+      "typegen": true,
+      "typecheck": true,
+      "optimizedBuild": true,
+      "environmentFilesCopied": false,
+      "providerCredentialsPresent": false,
+      "externalApplicationNetworkAttempts": 0
+    },
+    "freshNativeAndOfflineSchemaPassed": true,
+    "securityAdvisors": {
+      "local": 0,
+      "staging": 80,
+      "exactStaging124Baseline": true
+    },
+    "mechanicalDetectorFindings": 0,
+    "designReview": {
+      "initialDisposition": "fix",
+      "materialFixes": [
+        "Change-order operating hierarchy",
+        "Visible native mobile disclosure"
+      ],
+      "scores": [
+        "resolved",
+        "resolved"
+      ],
+      "finalDisposition": "ship",
+      "verdictScope": "two-listed-fixes-only"
+    },
+    "designDocumentation": {
+      "ordinaryIncumbentExtension": true,
+      "newBrief": ".impeccable/surfaces/record-email-history.md",
+      "systemFilesPreserved": true,
+      "existingCodeDefinedCommunicationsCoverageGapReportedWithoutRepair": true
+    }
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 124,
+    "latestVersion": "20261024190625",
+    "catalogObjects": 5113,
+    "protectedSetsPreserved": 49,
+    "documentBindingsAndNoSendGuardPreserved": true,
+    "sendingAndRecurringControlsStayedOff": true,
+    "appDeployed": false
+  },
+  "preservation": {
+    "priorImplementationHistoryPreserved": true,
+    "originalMigrationsAndPublicTypesUnchanged": true,
+    "rlsGrantsAndRoutineSignaturesUnchanged": true,
+    "financialLogicAndProviderCommandsUnchanged": true,
+    "existingRecordControlsAndPreviewsPreserved": true,
+    "productionQueried": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "keysRotated": false,
+    "customerEmailsSent": 0,
+    "applicationExternalNetworkAttempts": 0,
+    "developmentNpmChecksBlocked": 2,
+    "runtimeSecurityCheckpoint": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "limits": {
+    "hostedStagingAuthBrowserAcceptance": false,
+    "realMailboxOrPhysicalDeviceAcceptance": false,
+    "spokenScreenReaderAcceptance": false,
+    "livePagesAreNotOneFrozenTransaction": true,
+    "unrecordedDeliveryRequestsNotEnumerated": true
+  },
+  "testedSourceSha256": {
+    "apps/platform/src/app/admin/change-orders/[changeOrderId]/page.tsx": "ba02dc8b06c6c6224b50cb9e8264f005f4fe8e4808247985434f6cea85285d99",
+    "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx": "f611461454b24caa6e9937449ebf5c6629b110679049923acfa2c30ab19e51d3",
+    "apps/platform/src/app/admin/quotes/[quoteId]/page.tsx": "2837fac6089fedf9d44969faf04934565ccdc4279c7b9b610ead05c512b736c9",
+    "apps/platform/src/app/admin/communications/email/[recordType]/[recordId]/page.tsx": "0675124b6ecaa051603b1485a6a9b490ba9835c4e5a5c26bbe46319f6c3104dd",
+    "apps/platform/src/app/admin/communications/email/[recordType]/[recordId]/loading.tsx": "624cd98c7da581b21c97171e9f0d94cd327d73b54c0edab718342b1a39bef32d",
+    "apps/platform/src/components/record-email-history-browser.tsx": "f2ef6a295b67f5c7782641514d49b314560794231713bb3c9ea3647511a20cad",
+    "apps/platform/src/lib/email/record-history-scope.ts": "e98b520881a7006ff743103b9b40895b3ae2859bf6aa784150d83bf0dcf155e4",
+    "apps/platform/src/lib/email/record-history.ts": "3c63dcb9daf0941b59fe983e5285c27c86a02f8562869c0be9b2a41c7495f6a4",
+    "apps/platform/src/styles/globals.css": "fb8fddeda7fc6356d786623bf1eb25ef93538b5170faec2a009c300dbfce9196",
+    "apps/platform/tests/record-email-history-fixture.mjs": "e0ff57d8bc858fa23f8e80eeb06ee7fe0f2c422a4461ca4280815d871a72305f",
+    "apps/platform/tests/record-email-history.integration.test.mjs": "1d96712ba6e8c5ab207410090a45b8310e6bdb973377b8c91b5bf7abbf175b5a",
+    "apps/platform/tests/record-email-history.test.mjs": "2caea40c2b1b4142e749e827436c9c49360471fac667c0b37cb7c570da16bd92",
+    "supabase/verification/record_document_email_history.sql": "87ad55d9890b2c9fb4a4291701e84c1f315c804398fe347f90f3feced850f346"
+  },
+  "screenshots": {
+    "email-history-desktop.png": {
+      "sha256": "06d53edf085c927291e0c11f24f327ac9b19107e79e385e5ef52e80cdbba3f02",
+      "width": 1280,
+      "height": 900
+    },
+    "email-history-mobile.png": {
+      "sha256": "ff4ca0ea43e55d2d21c38824acb7f85da8cc78e229433af2b071b40cab56ed34",
+      "width": 390,
+      "height": 844
+    },
+    "email-history-tablet.png": {
+      "sha256": "d6bdb89a80d5731d53b9b37957ba99e5fd27b04680e26d4227c758272179f5c8",
+      "width": 768,
+      "height": 1024
+    },
+    "email-history-empty.png": {
+      "sha256": "4b1724b2ec5de6e0e6e37466b5d120ff534a8a4a58ea60029ecec4f6a94ed787",
+      "width": 1280,
+      "height": 900
+    },
+    "email-history-error.png": {
+      "sha256": "32df8671009c0c0806a0b1942e84f97e5ebe363b7028dcb109c812840f47f388",
+      "width": 1280,
+      "height": 900
+    },
+    "email-history-footer.png": {
+      "sha256": "f47a7a7a99cb9f1758993542e849181ad65d8fe295569363069241f9abc6f191",
+      "width": 1280,
+      "height": 900
+    },
+    "change-order-history-entry-top.png": {
+      "sha256": "ad18525add0bab0a878e56417cc16c871775ce50aa7eedccd6c3d9d9420de87d",
+      "width": 1280,
+      "height": 900
+    },
+    "change-order-history-context.png": {
+      "sha256": "d9c6dd52374639059ac6a9fd6638fadf3ef8262b5f40713cfa5fe691084aa9b3",
+      "width": 1280,
+      "height": 900
+    }
+  },
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-24/record-document-email-browsing",
+  "nextExistingRoadmapPriority": "Record-scoped prepared/unresolved delivery visibility using established review safeguards."
+}

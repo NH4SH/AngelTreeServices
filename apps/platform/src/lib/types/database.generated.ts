@@ -16296,6 +16296,15 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "set_record_reminder_automation": {
+                Args: {
+                    "p_enabled": boolean;
+                    "p_expected_updated_at": string;
+                    "p_record_id": string;
+                    "p_record_type": string;
+                };
+                Returns: Json;
+            };
             "staged_upload_info": {
                 Args: {
                     "p_actor": string;

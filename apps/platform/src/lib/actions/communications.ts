@@ -5,7 +5,6 @@ import { parseBusinessDateTime } from "@/lib/business-time";
 import { processCommunicationById, processDueCommunications } from "@/lib/communications/processor";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
-import { safeStaffMessage } from "@/lib/security/errors";
 import { isInvoiceReminderEligible } from "@/lib/payments/invoice-payment-state";
 import type {
   CommunicationRecipientSource,
@@ -69,41 +68,36 @@ export async function updateRecordAutomation(
   _previousState: CommunicationActionState,
   formData: FormData,
 ): Promise<CommunicationActionState> {
-  const auth = await requireStaff();
-  if (auth.error) return auth.error;
-
-  const recordType = text(formData, "record_type");
-  const recordId = text(formData, "record_id");
-  const enabled = formData.get("enabled") === "1";
-  if (!recordId || !["quote", "invoice"].includes(recordType)) {
-    return { status: "error", message: "Choose a quote or invoice automation setting." };
+  try {
+    const auth = await requireStaff();
+    if (auth.error) return auth.error;
+    const recordType = text(formData, "record_type");
+    const recordId = text(formData, "record_id");
+    const requested = formData.get("enabled");
+    const expected = text(formData, "expected_updated_at");
+    if (!["quote", "invoice"].includes(recordType) || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(recordId) || !["0", "1"].includes(String(requested))) {
+      return { status: "error", message: "Choose a valid quote or invoice automation setting." };
+    }
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(expected) || !Number.isFinite(Date.parse(expected))) {
+      return { status: "error", message: "Reload this record before changing automatic reminders." };
+    }
+    const enabled = requested === "1";
+    const { data, error } = await auth.supabase.rpc("set_record_reminder_automation", {
+      p_record_type: recordType, p_record_id: recordId, p_enabled: enabled, p_expected_updated_at: expected,
+    });
+    if (error?.code === "40001") return { status: "error", message: "This record changed or is unavailable. Reload it before changing automatic reminders." };
+    const acknowledgement = data && typeof data === "object" && !Array.isArray(data) ? data : null;
+    const cancelledCount = acknowledgement?.cancelled_count;
+    if (error || !acknowledgement || acknowledgement.record_type !== recordType || acknowledgement.record_id !== recordId.toLowerCase() || acknowledgement.enabled !== enabled
+      || typeof acknowledgement.updated_at !== "string" || !Number.isFinite(Date.parse(acknowledgement.updated_at))
+      || typeof cancelledCount !== "number" || !Number.isSafeInteger(cancelledCount) || cancelledCount < 0) {
+      return { status: "warning", message: "The reminder change could not be confirmed. Reload this record and review its reminders before trying again." };
+    }
+    revalidateCommunicationPaths(recordType, recordId);
+    return { status: "success", message: `Automatic ${recordType === "quote" ? "follow-ups" : "reminders"} ${enabled ? "enabled" : "disabled"}.` };
+  } catch {
+    return { status: "warning", message: "The reminder change could not be confirmed. Reload this record and review its reminders before trying again." };
   }
-
-  const table = recordType === "quote" ? "quotes" : "invoices";
-  const column = recordType === "quote" ? "automatic_follow_ups_enabled" : "automatic_reminders_enabled";
-  const { error } = await auth.supabase.from(table).update({ [column]: enabled }).eq("id", recordId);
-  if (error) return { status: "error", message: safeStaffMessage(error.message) };
-
-  if (!enabled) {
-    let query = auth.supabase
-      .from("customer_communications")
-      .update({
-        cancelled_at: new Date().toISOString(),
-        skip_reason: `Automatic ${recordType === "quote" ? "follow-ups" : "reminders"} disabled by staff.`,
-        status: "cancelled",
-      })
-      .eq("status", "pending")
-      .eq("is_automatic", true);
-    query = recordType === "quote" ? query.eq("quote_id", recordId) : query.eq("invoice_id", recordId);
-    const cancelled = await query;
-    if (cancelled.error) return { status: "warning", message: "Automation was disabled, but pending reminder cancellation needs review. Do not run the queue until it is checked." };
-  }
-
-  revalidateCommunicationPaths(recordType, recordId);
-  return {
-    status: "success",
-    message: `Automatic ${recordType === "quote" ? "follow-ups" : "reminders"} ${enabled ? "enabled" : "disabled"}.`,
-  };
 }
 
 export async function updateCommunicationSettings(

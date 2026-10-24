@@ -1,0 +1,217 @@
+{
+  "observedAt": "2026-10-24T02:12:27.934Z",
+  "status": "verified-local-candidate",
+  "branch": "codex/record-reminder-automation-safety",
+  "baseMain": "3d52b766ac469afd5054ce57ed72373558d77fe2",
+  "migration122ReconciliationPushedToMain": true,
+  "pushCommit": "3d52b76",
+  "beforeReproduction": {
+    "actualSavedOriginalAction": true,
+    "controlledSyntheticWriteAdapter": true,
+    "invoiceReminderDisableCancelledPendingReceipt": true,
+    "zeroRowUpdateReportedSuccess": true,
+    "cancellationFailureLeftPartialDisable": true,
+    "staleIntentCouldOverwriteNewerToggle": true,
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2653,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newFocusedActionTests": 8
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "candidateRehearsal": {
+      "migrationCount": 122,
+      "nativeAssertions": 58,
+      "syntheticIdentities": 10,
+      "onlyReviewedInvokerCommandAdded": true,
+      "candidateDdlAndFixturesRolledBack": true,
+      "exactLedgerCatalogAndProtectedStatePreserved": true,
+      "sendingSwitchesStayedOff": true,
+      "migrationsApplied": 0,
+      "providerCalls": 0,
+      "productionChanged": false
+    },
+    "installedVerification": {
+      "localOnly": true,
+      "migrationCount": 123,
+      "original122CompleteLedgerPreserved": true,
+      "installedCatalogMatchesReviewedCandidate": true,
+      "nativeAssertions": 58,
+      "installedFixturesRolledBack": true,
+      "exactBeforeAfterStatePreserved": true,
+      "localSecurityAdvisorsBeforeAndAfter": "No issues found",
+      "productionChanged": false
+    },
+    "schema": {
+      "freshOwnedLocal123": true,
+      "publicTypesMatchNativeGeneration": true,
+      "offlineOriginalMigrationFingerprints": true,
+      "onlyOneNewRpcInGeneratedTypes": true,
+      "productionQueried": false
+    },
+    "actualApiScenarios": 28,
+    "actualApiTapResults": 29,
+    "apiCasesAllPassed": true,
+    "actualAuthSdkAndAction": true,
+    "observedSourceParentQueueLockWaits": true,
+    "lostCommittedAcknowledgementVerified": true,
+    "processingClaimsRetained": true,
+    "standaloneAndOrganizationRecordsVerified": true,
+    "realProviderCalls": 0,
+    "sqlFixturesRolledBack": true,
+    "separateApiAndBrowserSyntheticFixturesRetained": true,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_recordauto_b5334caf61f0",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false,
+    "previewStopped": true
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 122,
+    "nativeAssertions": 58,
+    "syntheticIdentities": 10,
+    "onlyReviewedInvokerCommandAdded": true,
+    "candidateDdlAndFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "sendingSwitchesStayedOff": true,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "latestMigration": "20261024010036",
+    "catalogObjects": 5111,
+    "protectedRecordSets": 49,
+    "freshPinned122MaintenancePassed": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "prospectiveCommandMatchesLocalDefinitionRightsAndTimeout": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "browserAcceptance": {
+    "scope": "Actual local rendered CRM with synthetic owner",
+    "keyboardInvoiceDisableAndEnable": true,
+    "keyboardQuoteDisable": true,
+    "staleInvoiceIntentRefusedWithReloadGuidance": true,
+    "reloadPairsCurrentVersionWithCurrentState": true,
+    "receiptAndManualReminderRetained": true,
+    "invoiceFinancialSourceAndQueueByteIdenticalAfterOtherClientAndReload": true,
+    "existingHistoryPreserved": true,
+    "settingsAndOffSwitchesExact": true,
+    "browserErrorLogEmpty": true,
+    "screenshot": "invoice-reminders-local.jpg",
+    "screenshotWidth": 1280,
+    "screenshotHeight": 720,
+    "realProviderCalls": 0,
+    "productionChanged": false,
+    "limitations": [
+      "No physical-device, spoken screen-reader or hosted app acceptance claimed; layout and CSS unchanged."
+    ],
+    "screenshotSha256": "687fc37f2ff3a66a7e4ffc47ec2599075d44074dfd2ad28cbce1512190d12237"
+  },
+  "migration123": {
+    "name": "20261024014934_atomic_record_reminder_automation.sql",
+    "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920",
+    "installedOnlyOwnedLocal": true,
+    "stagingRehearsalRolledBack": true,
+    "deferredForSeparateStagingReconciliation": true,
+    "onlyOneInvokerCommandAdded": true,
+    "existingRlsTableColumnPrivilegesAndStaffRolesUnchanged": true,
+    "productionReady": false
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/lib/actions/communications.ts",
+        "sha256": "40207801a489bc53ac2056ab7d69a76465eed18a6aecfa127e88a51465dd1534"
+      },
+      {
+        "path": "apps/platform/src/components/communication-controls.tsx",
+        "sha256": "a874d9d0c176ccc0c56c0a0428e605101d268d07bd8ec04d8a83b45690e9fe2b"
+      },
+      {
+        "path": "apps/platform/src/app/admin/quotes/[quoteId]/page.tsx",
+        "sha256": "0a75e3b1b62399c5563d8da6ba1d609bc0c0108491a4e1c86c17a607bb59779e"
+      },
+      {
+        "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+        "sha256": "75eb778905662ebff366f9b3b0a15b4e310fa83eca897cafc10f22f89800a2a3"
+      },
+      {
+        "path": "apps/platform/src/lib/types/database.generated.ts",
+        "sha256": "cb303e02fe3fbeeca5da0f7798f54c15d4b5471d73ec94ff0b3f2d562eb97ff4"
+      },
+      {
+        "path": "apps/platform/scripts/schema/manifest.json",
+        "sha256": "e211301f57dce780f8590fffa5394de3d37b7401ce2620a0d1db69e1fd5409ec"
+      },
+      {
+        "path": "apps/platform/tests/staging-appointment-candidate.test.mjs",
+        "sha256": "5511f4db34777d5c77c681ffa11fb88025e6e1eb0ca8b21a2d4606fff318e0ca"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-automation.test.mjs",
+        "sha256": "1629ea233d7947f7418134642ad264d31d9324a772dc6e8beb141f2c9fae4052"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-automation.integration.test.mjs",
+        "sha256": "9ec806f89b5091c3ac0f39e86fca24a8c323568e2e11fba43e0a04a67665cd81"
+      },
+      {
+        "path": "supabase/migrations/20261024014934_atomic_record_reminder_automation.sql",
+        "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920"
+      },
+      {
+        "path": "supabase/verification/record_reminder_automation.sql",
+        "sha256": "25c5e41ca861b1fe47edd69fa4c80638e6edfdcf3391c4b23448abd7df5efec2"
+      },
+      {
+        "path": "supabase/staging/deferred-migrations.json",
+        "sha256": "daac86396a1e1f31853da097bad04801fb25b067ca71d7cccb96a2e73aeab359"
+      }
+    ],
+    "otherCommunicationActionsAndSettingsSaveUnchanged": true,
+    "onlyVersionWiringAddedToExistingControls": true,
+    "original122MigrationSourcesUnchanged": true,
+    "generatedTypesAddOnlyNewRpc": true,
+    "dependenciesUnchanged": true,
+    "financialRulesTemplatesWorkersClaimsAndPriorCrmWorkPreserved": true,
+    "manualReceiptsAndNonpendingHistoryPreserved": true,
+    "noHistoricalCleanupOrResend": true,
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Hosted candidate SQL uses rollback-only synthetic identities/session claims; no deployed staging app, hosted Auth-session or real-provider acceptance claimed.",
+    "Existing source-column rights remain; the command is the CRM toggle path, not a universal external-write boundary.",
+    "Already processing/dispatched emails cannot be unsent; existing eligibility and uncertain-result safeguards remain authoritative.",
+    "Earlier cancelled receipts are untouched; enabling does not resurrect old stages or create messages.",
+    "No physical-device, spoken screen-reader or hosted app acceptance claimed; layout and CSS unchanged."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false
+}

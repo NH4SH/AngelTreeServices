@@ -122,6 +122,12 @@
       "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70",
       "reason": "Candidate column-scoped owner/admin settings editing; local and rollback-only staging verification before separate permanent reconciliation.",
       "productionReady": false
+    },
+    {
+      "name": "20261024014934_atomic_record_reminder_automation.sql",
+      "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920",
+      "reason": "Candidate atomic record reminder toggle and matching pending reminder cancellation; local and rollback-only staging verification before separate permanent reconciliation.",
+      "productionReady": false
     }
   ]
 }

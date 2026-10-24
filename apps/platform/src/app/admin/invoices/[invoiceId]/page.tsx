@@ -228,6 +228,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   <CommunicationControls
                     actionsEnabled={isInvoiceReminderEligible(detail.data.status, detail.data.balance_due_cents)}
                     automaticEnabled={detail.data.automatic_reminders_enabled}
+                    automaticVersion={detail.data.updated_at}
                     communicationType={detail.data.due_at && new Date(detail.data.due_at).getTime() < Date.now() ? "overdue_invoice_reminder" : "invoice_payment_reminder"}
                     communications={communications.data}
                     recipientOptions={recipientOptions.data}

@@ -24,6 +24,7 @@ type RecipientOption = {
 export function CommunicationControls({
   actionsEnabled = true,
   automaticEnabled,
+  automaticVersion,
   communicationType,
   communications,
   recordId,
@@ -33,6 +34,7 @@ export function CommunicationControls({
 }: {
   actionsEnabled?: boolean;
   automaticEnabled?: boolean;
+  automaticVersion?: string;
   communicationType: CommunicationType;
   communications: CustomerCommunication[];
   recordId: string;
@@ -138,11 +140,12 @@ export function CommunicationControls({
           <input name="record_id" type="hidden" value={recordId} />
           <input name="record_type" type="hidden" value={recordType} />
           <input name="enabled" type="hidden" value={automaticEnabled ? "0" : "1"} />
+          <input name="expected_updated_at" type="hidden" value={automaticVersion ?? ""} />
           <div>
             <strong>Automatic {recordType === "quote" ? "quote follow-ups" : "invoice reminders"}</strong>
             <span>{automaticEnabled ? "Enabled for this record" : "Disabled for this record"}</span>
           </div>
-          <button className="secondary-action" disabled={changingAutomation} type="submit">
+          <button className="secondary-action" disabled={changingAutomation || !automaticVersion} type="submit">
             <PauseCircle aria-hidden="true" size={17} />
             {changingAutomation ? "Saving..." : automaticEnabled ? "Disable" : "Enable"}
           </button>

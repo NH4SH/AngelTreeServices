@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "76acebf97c7d08db1f9250a1d1bae9682e53ce1c4f81e329b5eb071ba5675e79",
+  "typesSha256": "cb303e02fe3fbeeca5da0f7798f54c15d4b5471d73ec94ff0b3f2d562eb97ff4",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -489,6 +489,10 @@
     {
       "name": "20261024010036_communication_settings_edit_permissions.sql",
       "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70"
+    },
+    {
+      "name": "20261024014934_atomic_record_reminder_automation.sql",
+      "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920"
     }
   ]
 }

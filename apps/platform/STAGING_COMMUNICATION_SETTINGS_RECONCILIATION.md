@@ -46,3 +46,7 @@ This completes only targeted staging database reconciliation. It does not author
 Only the newly owned loopback database was stopped after verification, retaining its data. Shared databases, the scanner and the separate runtime-security worktree at `06580f6` were untouched. Main is included through `d5a3940`; this reconciliation is saved locally on `codex/staging-settings-save-122`, pending a separate push request.
 
 Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/staging-settings-save-122/`. Sanitized receipt: `staging/COMMUNICATION_SETTINGS_RECONCILIATION_VERIFICATION_20261023.json`. Raw snapshots, identities, credentials and logs remain outside Git.
+
+## Push and next communications follow-through
+
+The verified reconciliation is pushed normally to main as `3d52b76`. `RECORD_REMINDER_AUTOMATION_SAFETY.md` documents the next verified local batch: atomic quote/invoice reminder toggles, stale-intent checks and preserving pending payment receipts when invoice reminders are disabled. Its candidate migration 123 remains deferred for separate targeted reconciliation; staging stays exactly at 122 after rollback-only tests. No app deployment, production change or historical resend occurred.

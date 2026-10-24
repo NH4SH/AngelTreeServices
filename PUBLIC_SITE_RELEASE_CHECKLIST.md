@@ -1,3 +1,52 @@
+## Landscaping pricing, scope and cleanup — local draft, October 23, 2026
+
+Owner approved implementation and local tests only. No commit, push, QA upload
+or deployment. Parent: 56caef4. Preserve/revalidate newer repository work before
+any approved release. Analytics, consent and CRM code/settings remain unchanged.
+
+- Final release-readiness review: no blocking regression; no application or copy
+  correction needed. Fresh 248 tests/18-page validation pass; all 293 shipping
+  hashes match the implementation draft. Fresh 20 FAQ keyboard/reflow cases at
+  320/650/1280px plus doubled text at 320px pass with visible focus and >=44px
+  targets. Tree care-to-Landscaping navigation, exact name/address/multiline draft,
+  reload and Clear pass. Three images load; console warnings/errors zero. Fresh
+  desktop/enlarged captures inspected; normal viewport/local preview restored.
+  Set mobile viewport before loading the synthetic text-size helper; an initial
+  desktop-size resize diagnostic is retained separately. Only review evidence
+  added to this checklist. Newer da5aef7 affects CRM paths only; preserve it at
+  release. REVIEW.txt, final-review-* and reviewed-manifest.json record evidence.
+- Expanded the existing request-guidance section with three estimate factors:
+  areas/condition, work requested and materials/access/cleanup. Retained the
+  written-scope, commercial-contact and project-link guidance. No rates, fees,
+  minimums, blanket debris-removal inclusion or new services are invented.
+- Five FAQs explain landscaping pricing, mulch/material inclusion, debris and
+  cleanup, confirmed services for existing beds, and combined tree/landscaping
+  requests. Mulch and cleanup remain tied to the written scope.
+- All 239 Node + 9 Python tests pass (248 total); 18 pages build and validate.
+  Only Landscaping HTML changes among 293 shipping files. Other 17 pages,
+  complete head/schema, photos/captions, all destinations and content outside
+  the guidance/new FAQ sections remain exact. No CSS/runtime/assets change.
+  Only the generator and this checklist change; all 49 unrelated reviews exact.
+- Normal 320/390/701/1280px and synthetic doubled text at 320/390px pass:
+  30 FAQ Enter/Space/open-answer reflow cases, mouse toggle, visible solid focus
+  and >=44px targets. New-text contrast minimum 5.226:1. Shortened the new
+  headings after the first visual pass to avoid splitting long words under
+  synthetic text enlargement; final desktop/mobile/enlarged captures inspected.
+  All page images load; zero console warnings/errors. Existing brand wrapping
+  under artificial text enlargement is outside this content-only change.
+- Exact synthetic name/address/multiline details survive the Landscaping page
+  visit, estimate return and reload with Landscaping selected. Clear draft
+  empties them. No leads, calls, email or saved consent choice. The local noindex
+  overlay blocks connections and forms; POST is refused with 405. No upload.
+- Four detector findings concern unchanged shared clipping/shadow styles;
+  working controls and new text were checked in browser. Native phone/OS text,
+  spoken screen readers, actual lead delivery and search outcomes are unverified
+  for this copy-only patch. Local Maps key unset; source/production setup exact.
+- Evidence: this chat's outputs/landscaping-pricing-guidance/ (REPORT.txt,
+  COPY.txt, complete.diff, local-manifest.json and browser/build records).
+  Ready for owner review; release remains held. Earlier draft holds below are
+  historical where publication has since been recorded in the maintained handoff.
+
 ## Commercial & HOA proposal guidance — local draft, October 23, 2026
 
 Owner approved implementation and local tests only. No commit, push, QA upload

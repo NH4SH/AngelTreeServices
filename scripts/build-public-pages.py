@@ -955,22 +955,31 @@ def landscaping_body() -> str:
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose">
-          <h2>Help us understand your project.</h2>
-          <p>A short description is enough to start your estimate request. Include:</p>
+          <h2>What affects the cost?</h2>
+          <p>Landscaping is quoted for the areas and work agreed for your property. Cost factors include:</p>
           <ul>
-            <li>The bushes, hedges or planting beds that need attention.</li>
-            <li>Your goals for trimming, weeding, edging or mulch.</li>
-            <li>The property address, access details and timing preferences.</li>
+            <li><strong>Areas and condition.</strong> The size of the beds and the number, size and condition of bushes or hedges.</li>
+            <li><strong>Work requested.</strong> Trimming, weeding, edging, mulch or a combination.</li>
+            <li><strong>Materials, access and cleanup.</strong> The mulch needed, access to the work areas and the handling of cuttings and debris.</li>
           </ul>
+          <p>Share the property address, the areas that need attention, access details and timing preferences with your request.</p>
         </div>
         <div class="ats-prose">
           <h2>A clear scope before work begins.</h2>
           <p>We’ll define the work areas, materials and cleanup in a written estimate, so you can review what is included before approving the work.</p>
+          <p>Confirm the mulch and materials included, how cuttings, weeds and other debris will be handled, and what cleanup is agreed. Ask us to explain any options or exclusions.</p>
           <p>For a commercial or managed property, include the site contact and anyone who needs to review the proposed work.</p>
           <p><a href="/projects/">See more Angel Tree Services project photos</a>.</p>
         </div>
       </div>
     </section>
+    {faq_section([
+        ('What affects the cost of landscaping?', 'The quote depends on the areas involved, the size and condition of bushes or beds, the trimming, weeding, edging or mulch requested, access and cleanup. We provide free estimates with the agreed work and materials in writing so you can compare the same scope.'),
+        ('Is mulch included in the landscaping estimate?', 'Mulch is included when it is part of the written scope. Tell us which beds need mulch and any material preferences. Confirm the material, amount and areas covered before approving the estimate.'),
+        ('What cleanup and debris removal is included?', 'Your written estimate should state how cuttings, weeds and other debris will be handled and what cleanup is included. Mention any material you want left in an agreed location.'),
+        ('What landscaping services can I request?', 'Bush and hedge trimming, weeding, edging and mulch for existing gardens and planting beds. Tell us which areas need attention and your goals for the finished work.'),
+        ('Can I request landscaping and tree work together?', 'Yes. Include both needs in your request, or choose “multiple services / not sure yet” in the estimate form. The office can clarify the services and work areas so the written estimate makes the agreed scope clear.'),
+    ], 'landscaping-faq', 'Before we start')}
     {final_cta('Tell us which areas need attention.', 'Share your landscaping goals and property address. We’ll follow up about the next step for your free estimate.', '/?service=Landscaping#contact', 'Request a landscaping estimate')}"""
 
 

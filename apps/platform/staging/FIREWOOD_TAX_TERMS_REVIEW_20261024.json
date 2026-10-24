@@ -141,10 +141,21 @@
     "agencyGuidance": "https://www.tax.virginia.gov/miscellaneous-taxes",
     "hardwoodFuelWoodCentsPerCord": 11.25,
     "isPercentageOfRetailPrice": false,
-    "atsProcessingAndTaxPaidSourcingFactsConfirmed": false,
     "atsRegistrationOrFilingStatusConfirmed": false,
-    "followUp": "owner sourcing facts and tax-preparer review",
+    "followUp": "tax-preparer confirmation of classification, registration, prior payment and filing route for ATS own cutting/splitting",
     "customerChargeAdded": false,
-    "filingOrRegistrationSubmitted": false
+    "filingOrRegistrationSubmitted": false,
+    "ownerClarificationObservedAt": "2026-10-24T19:00:05.952484+00:00",
+    "ownerConfirmedOperation": "ATS cuts/splits its own wood for sale",
+    "atsProcessingFactsConfirmed": true,
+    "virginiaCommercialSeveranceConfirmed": false,
+    "fixedProcessingLocationConfirmed": false,
+    "priorTaxPaymentStatusConfirmed": false,
+    "annualFuelWoodVolumeKnown": false,
+    "definitionsSource": "https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1601/",
+    "smallSevererElectionSource": "https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1606/",
+    "smallSevererAnnualElectionThresholdCords": 100,
+    "thresholdIsTaxExemption": false,
+    "annualFilingElectionApplied": false
   }
 }

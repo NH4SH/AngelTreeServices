@@ -178,7 +178,7 @@
       },
       {
         "path": "apps/platform/src/components/reminder-cancellation.tsx",
-        "sha256": "3eafaa17948063f8862790c5e554bc9104b690bd5023479af94b8bf8c3fa73d8"
+        "sha256": "65703993e29513054746f9042b4b4944a08378bef91bd487b16a6ccd8c92a852"
       },
       {
         "path": "apps/platform/src/lib/communications/record-browse.ts",
@@ -198,7 +198,7 @@
       },
       {
         "path": "supabase/verification/record_reminder_browsing.sql",
-        "sha256": "c25a8246d2820307aef646c0362f178e371cb4ae177b76450d7870a7a401efdc"
+        "sha256": "3bfb8b2a6d14f0aea57005462f09c922d17a469b35c0b5fb221a54eaf7eba7a0"
       }
     ],
     "sendingRetryManualRecoveryFinancialCommandsRlsAndGrantsUnchanged": true,

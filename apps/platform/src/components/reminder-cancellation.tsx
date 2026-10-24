@@ -29,4 +29,3 @@ export function ReminderCancellation({ communication, refreshAfter = false }: { 
     </form>
   );
 }
-

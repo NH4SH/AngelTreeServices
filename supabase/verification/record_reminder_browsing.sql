@@ -32,7 +32,7 @@ begin
   perform pg_temp.record_summary_check(selected=actual_sent,column_name||': microsecond comparison agrees with native coalesce order');
   execute format('select count(*)from(select status from public.customer_communications where %I=$1 order by created_at desc limit 30)c where status in(''pending'',''sent'')',column_name)into visible_count using target;
   perform pg_temp.record_summary_check(visible_count=0,column_name||': old capped preview falsely contains neither summary outcome');
-  
+
   -- Exercise all browse partitions independently of the recent preview.
   execute format('insert into public.customer_communications(communication_type,reminder_stage,customer_id,%I,recipient_email,scheduled_for,status,is_automatic,idempotency_key,created_at,updated_at)select ''work_reminder'',''synthetic_browse'',$1,$2,''browse@example.invalid'',''2099-12-02T17:00:00Z'',s,false,''browse:''||$2||'':''||s||'':''||n,''2026-10-11T12:00:00Z'',''2026-10-23T12:00:00Z''from unnest(array[''pending'',''failed'',''processing'',''skipped''])s cross join generate_series(1,37)n',column_name)using party,target;
   execute format('select count(*)from public.customer_communications where %I=$1 and status=''pending''',column_name)into visible_count using target;

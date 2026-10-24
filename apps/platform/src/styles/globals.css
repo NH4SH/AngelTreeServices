@@ -22968,3 +22968,18 @@ body:has(.appointment-overlay) {
 .communication-queue-panel { scroll-margin-block-start: 7rem; }
 
 .communication-queue-panel .communication-row { justify-content: flex-start; }
+
+/* Record browsing extends the communication list rather than introducing another panel system. */
+.reminder-browse-link { align-self: flex-start; }
+.record-reminder-page { display: grid; gap: 1.25rem; min-width: 0; }
+.record-reminder-page .page-heading { margin-bottom: 0; }
+.record-reminder-queue .panel-heading-row .secondary-action { width: auto; flex: 0 0 auto; }
+.record-reminder-queue .communication-row > div { flex: 1; min-width: 0; }
+.record-reminder-queue .communication-row form { flex-shrink: 0; max-width: 28rem; }
+.record-reminder-queue .communication-row small { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .record-reminder-queue .communication-row { flex-wrap: wrap; }
+  .record-reminder-queue .communication-row > div { flex-basis: calc(100% - 2rem); }
+  .record-reminder-queue .communication-row form { margin-left: 1.25rem; flex-basis: calc(100% - 1.25rem); min-width: 0; }
+  .record-reminder-queue .communication-row form button { width: auto; }
+}

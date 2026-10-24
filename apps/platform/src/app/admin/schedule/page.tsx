@@ -911,6 +911,7 @@ function ScheduleEventDetailPanel({
               communications={communications}
               summary={summary}
               recipientOptions={recipientOptions}
+              browseReturnTo={buildScheduleHref(current, { event: event.id })}
               recordId={event.id}
               recordType="schedule_event"
             />
@@ -1026,6 +1027,7 @@ function AppointmentDetailPanel({
               communications={communications}
               summary={summary}
               recipientOptions={recipientOptions}
+              browseReturnTo={buildScheduleHref(current, { appointment: appointment.id })}
               recordId={appointment.id}
               recordType="appointment"
             />

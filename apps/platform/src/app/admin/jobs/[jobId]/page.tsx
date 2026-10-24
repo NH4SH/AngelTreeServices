@@ -238,7 +238,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
           <summary><span><MessageSquare size={19} /><strong>Customer communication</strong><small>{communications.data.length ? `${communications.data.length} recent records` : "No communication history"}</small></span><ChevronDown size={19} /></summary>
           <div className="job-disclosure-content">
             <CommunicationControls
-                    actorId={context.user.id}
+              browseReturnTo={`/admin/jobs/${job.id}`}
+              actorId={context.user.id}
               communicationType={currentAppointment?.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications.data.filter((item) => currentAppointment ? item.appointment_id === currentAppointment.id : item.job_id === job.id)}
               summary={reminderSummary}

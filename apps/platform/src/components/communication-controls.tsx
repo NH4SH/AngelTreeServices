@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { ReminderCancellation } from "@/components/reminder-cancellation";
+import { reminderBrowseHref } from "@/lib/communications/record-browse";
 import { ManualReminderForm } from "@/components/manual-reminder-form";
 import { RecordReminderSummary } from "@/components/record-reminder-summary";
 import type { RecordReminderSummary as Summary } from "@/lib/communications/record-summary";
@@ -8,7 +11,6 @@ import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { useMemo, useState } from "react";
 import { PauseCircle } from "lucide-react";
 import {
-  cancelScheduledCommunication,
   updateRecordAutomation,
   type CommunicationActionState,
 } from "@/lib/actions/communications";
@@ -34,6 +36,7 @@ export function CommunicationControls({
   recordType,
   recipientOptions,
   unavailableMessage,
+  browseReturnTo,
 }: {
   actorId: string;
   actionsEnabled?: boolean;
@@ -46,6 +49,7 @@ export function CommunicationControls({
   recordType: "appointment" | "invoice" | "job" | "quote" | "schedule_event";
   recipientOptions: RecipientOption[];
   unavailableMessage?: string;
+  browseReturnTo?: string;
 }) {
   const [automationState, automationAction, changingAutomation] = useReliableActionState(updateRecordAutomation, initialState);
   const availableRecipients = useMemo(
@@ -60,6 +64,7 @@ export function CommunicationControls({
   return (
     <div className="communication-control-stack">
       <RecordReminderSummary summary={summary} />
+      <Link className="secondary-action reminder-browse-link" href={reminderBrowseHref({ recordType, recordId }, "scheduled", 1, browseReturnTo)}>View reminders &amp; history</Link>
 
       {!actionsEnabled && unavailableMessage ? (
         <p className="inline-empty">{unavailableMessage}</p>
@@ -135,23 +140,6 @@ export function CommunicationControls({
         )) : <p className="inline-empty">No reminder history yet.</p>}
       </div>
     </div>
-  );
-}
-
-function ReminderCancellation({ communication }: { communication: CustomerCommunication }) {
-  const [state, action, pending] = useReliableActionState(cancelScheduledCommunication, initialState);
-  return (
-    <form action={action}>
-      <input name="communication_id" type="hidden" value={communication.id} />
-      <input name="expected_updated_at" type="hidden" value={communication.updated_at} />
-      <button
-        aria-label={`Cancel ${formatType(communication.communication_type)} scheduled ${formatDateTime(communication.scheduled_for)}`}
-        className="secondary-action"
-        disabled={pending || !communication.updated_at}
-        type="submit"
-      >{pending ? "Cancelling..." : "Cancel"}</button>
-      <ActionMessage state={state} />
-    </form>
   );
 }
 

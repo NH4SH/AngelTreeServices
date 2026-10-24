@@ -231,6 +231,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                 <section className="commerce-side-panel" id="quote-follow-up">
                   <PanelTitle icon={<CalendarDays size={18} />} title="Quote follow-up" />
                   <CommunicationControls
+                    browseReturnTo={`/admin/quotes/${detail.data.id}`}
                     actorId={context.user.id}
                     automaticEnabled={detail.data.automatic_follow_ups_enabled}
                     automaticVersion={detail.data.updated_at}

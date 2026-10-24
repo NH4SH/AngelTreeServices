@@ -1,4 +1,5 @@
 import "server-only";
+import { reminderRecordColumns, reminderRecordScope, type ReminderBrowseScope } from "@/lib/communications/record-browse";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CustomerCommunication } from "@/lib/types/database";
 
@@ -24,15 +25,19 @@ export function communicationQueuePageNumber(value: unknown): number {
 // Caller-scoped reads only. Keep counts and rows under the same RLS, and recover
 // once when a stale URL points past a queue that has shrunk since it was viewed.
 export async function readCommunicationQueuePage(
-  supabase: SupabaseClient | null, view: CommunicationQueueView, requestedPage: unknown = 1,
+  supabase: SupabaseClient | null, view: CommunicationQueueView, requestedPage: unknown = 1, scope?: ReminderBrowseScope,
 ): Promise<CommunicationQueuePage> {
   const page = communicationQueuePageNumber(requestedPage);
   const unavailable = (): CommunicationQueuePage => ({ data: [], count: null, page, error: "Reminder records could not be loaded. Refresh this page before reviewing the queue." });
-  if (!supabase || !Object.hasOwn(views, view)) return unavailable();
+  const record = scope === undefined ? undefined : reminderRecordScope(scope?.recordType, scope?.recordId);
+  if (!supabase || !Object.hasOwn(views, view) || record === null) return unavailable();
   const spec = views[view];
   const signal = AbortSignal.timeout(5_000);
-  const query = (current: number) => supabase.from("customer_communications")
-    .select("*", { count: "exact" }).in("status", [...spec.statuses])
+  const scoped = (head = false) => {
+    const query = supabase.from("customer_communications").select(head ? "id" : "*", { count: "exact", ...(head ? { head: true } : {}) }).in("status", [...spec.statuses]);
+    return record ? query.eq(reminderRecordColumns[record.recordType], record.recordId) : query;
+  };
+  const query = (current: number) => scoped()
     .order(spec.order, { ascending: spec.ascending }).order("id", { ascending: true })
     .range((current - 1) * communicationQueuePageSize, current * communicationQueuePageSize - 1).abortSignal(signal);
   const countValid = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
@@ -40,8 +45,7 @@ export async function readCommunicationQueuePage(
     let current = page;
     let result = await query(current);
     if ((result.error?.code === "PGRST103" || (!result.error && countValid(result.count) && (current - 1) * communicationQueuePageSize >= result.count)) && current > 1) {
-      const total = await supabase.from("customer_communications").select("id", { count: "exact", head: true })
-        .in("status", [...spec.statuses]).abortSignal(signal);
+      const total = await scoped(true).abortSignal(signal);
       if (total.error || !countValid(total.count)) return unavailable();
       if (total.count === 0) return { data: [], count: 0, page: 1, error: null };
       current = Math.min(current, Math.ceil(total.count / communicationQueuePageSize));
@@ -51,6 +55,7 @@ export async function readCommunicationQueuePage(
       || result.data.length > communicationQueuePageSize
       || result.data.length !== Math.min(communicationQueuePageSize, Math.max(0, result.count - (current - 1) * communicationQueuePageSize))
       || result.data.some(row => !row || typeof row.id !== "string" || typeof row.communication_type !== "string"
+        || record && (row[reminderRecordColumns[record.recordType]] !== record.recordId || !Number.isFinite(Date.parse(row.updated_at)) || !Number.isFinite(Date.parse(row.created_at)))
         || !(spec.statuses as readonly string[]).includes(row.status) || typeof row.recipient_email !== "string"
         || !Number.isFinite(Date.parse(row.scheduled_for)) || row.sent_at !== null && !Number.isFinite(Date.parse(row.sent_at)))) return unavailable();
     return { data: result.data as CustomerCommunication[], count: result.count, page: current, error: null };

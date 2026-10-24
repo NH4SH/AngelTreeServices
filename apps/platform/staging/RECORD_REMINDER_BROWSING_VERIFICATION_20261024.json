@@ -1,0 +1,230 @@
+{
+  "observedAt": "2026-10-24T15:12:27.373Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/record-reminder-browsing",
+  "baseMain": "909b93f4e961701e3841a8ec2cf67d988734e953",
+  "recordSummaryFixPushedToMain": "40a2015",
+  "independentWebsiteUpdatePreserved": "909b93f",
+  "implementation": {
+    "recordTypes": [
+      "quote",
+      "invoice",
+      "job",
+      "schedule_event",
+      "appointment"
+    ],
+    "views": {
+      "scheduled": [
+        "pending"
+      ],
+      "failed": [
+        "failed"
+      ],
+      "history": [
+        "processing",
+        "sent",
+        "skipped",
+        "cancelled"
+      ]
+    },
+    "pageSize": 30,
+    "exactCallerScopedCounts": true,
+    "deadlineMilliseconds": 5000,
+    "sourceVerifiedUnderCallerRls": true,
+    "identicalRecordFilterAcrossPageCountAndRecovery": true,
+    "invalidScopesNeverGlobal": true,
+    "nativeUuidTieOrdering": true,
+    "oneOutOfRangeRecovery": true,
+    "legacyDateLabelPreserved": true,
+    "safeReturnContext": true,
+    "jobCurrentAppointmentScopePreserved": true,
+    "unchangedVersionCheckedCancellationActionReused": true,
+    "browserRefreshAfterActionResponse": true,
+    "newSendingOrRetryPaths": false,
+    "newMigration": false
+  },
+  "tests": {
+    "regressionPassed": 2823,
+    "newFocusedPassed": 56,
+    "combinedFocusedPassed": 129,
+    "priorManualRequestPassed": 21,
+    "actualLocalApiScenarios": 21,
+    "actualLocalApiTapResults": 22,
+    "boundedCallerScopedReads": 543,
+    "headCountReads": 1,
+    "rowsPerViewPerSourceOver": 1000,
+    "nativeAssertionsLocal": 80,
+    "nativeAssertionsStaging": 80,
+    "exactStateAfterRollback": true,
+    "freshNativeAndOfflineSchema": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "websiteNodePassed": 239,
+    "websitePythonPassed": 9,
+    "websiteBuildAndValidationPassed": true,
+    "websitePython": "3.13.16"
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "originalLedgerAndProtectedStatePreserved": true,
+    "recordAutomationCommandMatchesLocalRehearsal": true,
+    "priorFollowupExpiryPreserved": true,
+    "approvalExpiryAndTermsPreserved": true,
+    "readOnly": true,
+    "productionReady": false,
+    "protectedSets": 49,
+    "existingSecurityAdvisorCount": 80,
+    "existingAdvisorFindingsUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true
+  },
+  "browser": {
+    "allFiveCommunicationEntryContexts": true,
+    "jobAndCalendarReturnNavigation": true,
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    "tablet": {
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "controlsFit": true
+    },
+    "keyboardFocusAndEnterCancellation": true,
+    "actualCancellationAndStaleSecondTabRetry": true,
+    "originalRowHistoryAndOtherQueueRowsPreserved": true,
+    "readErrorDistinctFromEmpty": true,
+    "legacySentLabel": true,
+    "lastHistoryPageReachable": true,
+    "nonstaffAndAnonymousDenied": true,
+    "detectorFindings": 0,
+    "blockedFrameworkNpmLookups": 2,
+    "temporaryTabAndViewportCleanup": true,
+    "proofImages": [
+      "record-browse-desktop.png",
+      "record-browse-mobile.png",
+      "record-browse-error.png"
+    ]
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "sources": [
+      {
+        "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+        "sha256": "62824f194af075b564ddb20e7524b5c90fadd05f48894b61a88f7ab29bddae3c"
+      },
+      {
+        "path": "apps/platform/src/app/admin/jobs/[jobId]/page.tsx",
+        "sha256": "f9f192f49ad380462be615f67e224174540eca547611ea1cb9aab160ec654345"
+      },
+      {
+        "path": "apps/platform/src/app/admin/quotes/[quoteId]/page.tsx",
+        "sha256": "9a493cb837efd6c49e67d0df77a3d967eea9e6608d33f90a52dd09ad90749ba7"
+      },
+      {
+        "path": "apps/platform/src/app/admin/schedule/page.tsx",
+        "sha256": "008a3032fd61162bab4543796b4d0a1ca7a15f8dd61c369c695ffe41956b14e5"
+      },
+      {
+        "path": "apps/platform/src/components/communication-controls.tsx",
+        "sha256": "ac35e194c82e5b8c6cb2e5c0b9ae5e185dd4d21bc1ed8196bf0bf476b28f7d42"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/queue-page.ts",
+        "sha256": "d66f8dfdf58b70d849dbd4729f2500de19f17239aa82229ad5b08226505ddba3"
+      },
+      {
+        "path": "apps/platform/src/styles/globals.css",
+        "sha256": "610caeab93a062d099cc590a2e9e38c9be5c155c1d02ba9007d48e7d4b396d42"
+      },
+      {
+        "path": "apps/platform/tests/communication-queue-page.test.mjs",
+        "sha256": "8c0485a30e173a1505e198ada13c276ffba432c17bc6c5820aef1d53b0fe9aef"
+      },
+      {
+        "path": "apps/platform/tests/communication-queue.integration.test.mjs",
+        "sha256": "61c6ade64ce06c2b13581d43983f76e0db684b7800a6bec79a41a1624ffdd232"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-summary.test.mjs",
+        "sha256": "6932d10eec4885b4d8aa27e59f29e8a76c31ae5d4e783e7ec71b9ab09e912f5a"
+      },
+      {
+        "path": "apps/platform/src/app/admin/communications/record/[recordType]/[recordId]/page.tsx",
+        "sha256": "8b0167aab2b2fba968773ab35684c067c62ec0f25731a6572f70bfad62cbc1ad"
+      },
+      {
+        "path": "apps/platform/src/components/record-reminder-browser.tsx",
+        "sha256": "24cd154b9c6b32b77fbc1520eae6cdbdcb3f506609986f7869b179e96cb184a9"
+      },
+      {
+        "path": "apps/platform/src/components/reminder-cancellation.tsx",
+        "sha256": "3eafaa17948063f8862790c5e554bc9104b690bd5023479af94b8bf8c3fa73d8"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/record-browse.ts",
+        "sha256": "372127b99a4e26d8242bdfeecf8d7be9526949d4feea791dd5b490eb5616f3f7"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/record-browser.ts",
+        "sha256": "be60202ce07c8e82bb7fd54e9bee57f39a96ac4e5cc7488fec9e317c98069939"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-browsing.integration.test.mjs",
+        "sha256": "9c46b07d6ed3384702ff650cda28e3b4670cc600e5f747ecf256428125fe79af"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-browsing.test.mjs",
+        "sha256": "8619b1bab1fe1c2795e61b89a2f0027b59f5c1df83c35e80363d5e6d4c9fba0d"
+      },
+      {
+        "path": "supabase/verification/record_reminder_browsing.sql",
+        "sha256": "c25a8246d2820307aef646c0362f178e371cb4ae177b76450d7870a7a401efdc"
+      }
+    ],
+    "sendingRetryManualRecoveryFinancialCommandsRlsAndGrantsUnchanged": true,
+    "migrationsSchemaTypesDependenciesAndDeploymentConfigUnchanged": true,
+    "financialHistorySettingsAndDeliveryIdentitiesPreserved": true,
+    "separateRuntimeCheckpoint": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limitations": [
+    "Source checks, summaries, counts and navigation are live independent reads, not a frozen snapshot across requests.",
+    "History uses creation ordering; failed rows use latest update ordering. Known sent dates and legacy recorded-time fallback remain labelled.",
+    "Document email/provider history is separate; it is not merged with reminder outcomes.",
+    "Staging acceptance is native rollback-only synthetic SQL with simulated caller claims, not a deployed staging application or hosted browser/Auth-session run.",
+    "Viewport/keyboard checks are not physical-device, spoken screen-reader or real-mailbox acceptance."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalDeliveriesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

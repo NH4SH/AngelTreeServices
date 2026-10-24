@@ -1836,3 +1836,28 @@ ref refusal. It makes no hosted calls. The actual migration100 reconciliation
 also reruns the existing295 pgTAP assertions and47 request/creation SQL scenarios
 in separate disposable local databases. See STAGING_REQUEST_STATUS_RECONCILIATION.md
 for evidence and hosted-versus-local acceptance limits.
+
+## Record reminder browsing
+
+`tests/record-reminder-browsing.test.mjs` runs with the regular suite (56 new cases).
+It covers scoped page/count recovery, invalid scope refusal, source verification,
+safe return context, rendered paging/error/empty/legacy states and reuse of the
+version-checked cancellation form. Existing queue and record-summary tests retain
+their assertions and load the shared URL/form dependencies explicitly.
+
+`tests/record-reminder-browsing.integration.test.mjs` is separate. It requires
+`RECORD_BROWSE_DISPOSABLE=1` and private `RECORD_BROWSE_ENV_FILE`,
+`RECORD_BROWSE_STATUS_FILE`, `RECORD_BROWSE_BROWSER_FILE` and
+`RECORD_BROWSE_DOCKER_BIN`; optional `RECORD_BROWSE_RESULTS_FILE` stores results.
+It refuses any project outside this workflow's fresh `ats_browse_<12 hex>`
+loopback-only schema-123 stack (`127.0.0.1:61221`). Prepare synthetic sources with
+more than 1,000 rows per source/view and the private actor/target fixture mapping;
+never use hosted or production credentials. It uses actual Auth sessions and
+native SQL ordering, bounds and inspects every acceptance GET/HEAD, tests old
+revoked sessions and read faults, and fingerprints financial/history state.
+
+`supabase/verification/record_reminder_browsing.sql` contains 80 native assertions.
+Its caller must wrap it in BEGIN/ROLLBACK and verify exact native pre/post state.
+It creates synthetic fixtures and transaction-local assertions only; it does not
+install a migration, run a sender or authorize production testing. See
+`RECORD_REMINDER_BROWSING.md` for evidence and the local-versus-staging limits.

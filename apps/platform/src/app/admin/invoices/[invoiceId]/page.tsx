@@ -228,6 +228,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 <section className="commerce-side-panel">
                   <PanelTitle icon={<Send size={18} />} title="Payment reminders" />
                   <CommunicationControls
+                    browseReturnTo={`/admin/invoices/${detail.data.id}`}
                     actorId={context.user.id}
                     actionsEnabled={isInvoiceReminderEligible(detail.data.status, detail.data.balance_due_cents)}
                     automaticEnabled={detail.data.automatic_reminders_enabled}

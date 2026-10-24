@@ -49,3 +49,7 @@ Only this task's temporary preview/tab and newly owned loopback database were st
 The next focused communications follow-up is manual reminder scheduling/acknowledgement and retry-intent safety. Keep it within existing queue/delivery recovery; do not change recipients, resend old messages or add a competing automation system. Owner terms-policy, real mailbox/device/assistive-technology and managed-runtime work remains separate.
 
 Sanitized receipt: `staging/REMINDER_CANCELLATION_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/reminder-cancellation-safety/`, including original source/reproduction, SQL/API/build logs, exact native fingerprints and desktop stale/success images. Raw snapshots, Auth identities, synthetic credentials and diagnostics remain outside Git.
+
+## Push and manual-request follow-through
+
+The verified cancellation fix is pushed normally to main as `4c73280`. The next focused PR14 batch is documented in `MANUAL_REMINDER_RETRY_SAFETY.md`: device-persisted manual request identities, checked scheduling/replay acknowledgements, read-only status review and honest cancelled/uncertain outcomes, using the unchanged native unique index and delivery safeguards. It needs no migration. Local and rollback-only staging checks preserve the exact 123 staging baseline and OFF controls. No app deployment, production change, real customer email or historical resend occurred.

@@ -1,13 +1,12 @@
 "use client";
 
+import { ManualReminderForm } from "@/components/manual-reminder-form";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { useMemo, useState } from "react";
-import { CalendarClock, MailCheck, MailPlus, PauseCircle, Send } from "lucide-react";
+import { CalendarClock, MailCheck, PauseCircle } from "lucide-react";
 import {
   cancelScheduledCommunication,
-  scheduleCommunication,
-  sendCommunicationNow,
   updateRecordAutomation,
   type CommunicationActionState,
 } from "@/lib/actions/communications";
@@ -22,6 +21,7 @@ type RecipientOption = {
 };
 
 export function CommunicationControls({
+  actorId,
   actionsEnabled = true,
   automaticEnabled,
   automaticVersion,
@@ -32,6 +32,7 @@ export function CommunicationControls({
   recipientOptions,
   unavailableMessage,
 }: {
+  actorId: string;
   actionsEnabled?: boolean;
   automaticEnabled?: boolean;
   automaticVersion?: string;
@@ -42,8 +43,6 @@ export function CommunicationControls({
   recipientOptions: RecipientOption[];
   unavailableMessage?: string;
 }) {
-  const [sendState, sendAction, sending] = useReliableActionState(sendCommunicationNow, initialState);
-  const [scheduleState, scheduleAction, scheduling] = useReliableActionState(scheduleCommunication, initialState);
   const [automationState, automationAction, changingAutomation] = useReliableActionState(updateRecordAutomation, initialState);
   const availableRecipients = useMemo(
     () => recipientOptions.filter((option, index, all) => option.email && all.findIndex((candidate) => candidate.email === option.email) === index),
@@ -90,50 +89,13 @@ export function CommunicationControls({
         <p className="form-message error" role="status">Add a valid customer or organization email before sending reminders.</p>
       ) : null}
 
-      {actionsEnabled ? <div className="communication-action-grid">
-        <form
-          action={sendAction}
-          className="communication-action-card"
-          onSubmit={(event) => {
-            if (!window.confirm("Send this customer reminder now? The current record will be checked again before email is sent.")) {
-              event.preventDefault();
-            }
-          }}
-        >
-          <CommunicationHiddenFields
-            communicationType={communicationType}
-            recordId={recordId}
-            recordType={recordType}
-            recipient={selectedRecipient}
-          />
-          <strong>Send now</strong>
-          <p>Rechecks status, email, balance, schedule, and customer link before sending.</p>
-          <button disabled={!selectedRecipient || sending} type="submit">
-            <Send aria-hidden="true" size={17} />
-            {sending ? "Sending..." : "Send reminder now"}
-          </button>
-          <ActionMessage state={sendState} />
-        </form>
-
-        <form action={scheduleAction} className="communication-action-card">
-          <CommunicationHiddenFields
-            communicationType={communicationType}
-            recordId={recordId}
-            recordType={recordType}
-            recipient={selectedRecipient}
-          />
-          <strong>Schedule reminder</strong>
-          <label>
-            Date and time
-            <input name="scheduled_for" required type="datetime-local" />
-          </label>
-          <button disabled={!selectedRecipient || scheduling} type="submit">
-            <MailPlus aria-hidden="true" size={17} />
-            {scheduling ? "Scheduling..." : "Schedule reminder"}
-          </button>
-          <ActionMessage state={scheduleState} />
-        </form>
-      </div> : null}
+      <div className="communication-action-grid">
+        {(["send", "schedule"] as const).map(mode => <ManualReminderForm
+          actorId={actorId} communicationType={communicationType} enabled={actionsEnabled}
+          key={`${actorId}.${recordType}.${recordId}.${communicationType}.${mode}`} mode={mode}
+          recipient={selectedRecipient} recordId={recordId} recordType={recordType}
+        />)}
+      </div>
 
       {actionsEnabled && typeof automaticEnabled === "boolean" ? (
         <form action={automationAction} className="communication-automation-row">
@@ -198,28 +160,6 @@ function ReminderCancellation({ communication }: { communication: CustomerCommun
       >{pending ? "Cancelling..." : "Cancel"}</button>
       <ActionMessage state={state} />
     </form>
-  );
-}
-
-function CommunicationHiddenFields({
-  communicationType,
-  recipient,
-  recordId,
-  recordType,
-}: {
-  communicationType: CommunicationType;
-  recipient: RecipientOption | null;
-  recordId: string;
-  recordType: string;
-}) {
-  return (
-    <>
-      <input name="communication_type" type="hidden" value={communicationType} />
-      <input name="record_id" type="hidden" value={recordId} />
-      <input name="record_type" type="hidden" value={recordType} />
-      <input name="recipient_email" type="hidden" value={recipient?.email ?? ""} />
-      <input name="recipient_source" type="hidden" value={recipient?.source ?? "customer"} />
-    </>
   );
 }
 

@@ -332,6 +332,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
 
         {selectedEvent ? (
           <ScheduleEventDetailPanel
+            actorId={context.user.id}
             current={query}
             event={selectedEvent}
             jobs={jobs.data}
@@ -343,6 +344,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
 
         {selectedAppointment ? (
           <AppointmentDetailPanel
+            actorId={context.user.id}
             appointment={selectedAppointment}
             communications={selectedCommunications.data}
             current={query}
@@ -717,6 +719,7 @@ function ScheduleEventFormDrawer({
 }
 
 function ScheduleEventDetailPanel({
+  actorId,
   communications,
   current,
   event,
@@ -724,6 +727,7 @@ function ScheduleEventDetailPanel({
   recipientOptions,
   users,
 }: {
+  actorId: string;
   communications: import("@/lib/types/database").CustomerCommunication[];
   current: ScheduleQuery;
   event: ScheduleEventWithRelations;
@@ -895,6 +899,7 @@ function ScheduleEventDetailPanel({
             <h3>Customer reminder</h3>
             <p>Messages use the current appointment window and service address. Internal calendar, access, gate, crew, and service notes stay private.</p>
             <CommunicationControls
+              actorId={actorId}
               communicationType={event.event_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications}
               recipientOptions={recipientOptions}
@@ -914,12 +919,14 @@ function ScheduleEventDetailPanel({
 }
 
 function AppointmentDetailPanel({
+  actorId,
   appointment,
   communications,
   current,
   recipientOptions,
   users,
 }: {
+  actorId: string;
   appointment: AppointmentWithRelations;
   communications: import("@/lib/types/database").CustomerCommunication[];
   current: ScheduleQuery;
@@ -1004,6 +1011,7 @@ function AppointmentDetailPanel({
             <h3>Customer reminder</h3>
             <p>Messages use the current appointment window and service address. Internal calendar, access, gate, crew, and service notes stay private.</p>
             <CommunicationControls
+              actorId={actorId}
               communicationType={appointment.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications}
               recipientOptions={recipientOptions}

@@ -1743,6 +1743,15 @@
   background: var(--color-surface-subtle);
 }
 
+.communication-action-grid:has(.manual-reminder-form) { align-items: start; }
+.manual-reminder-form p { overflow-wrap: anywhere; }
+.manual-reminder-form button.secondary-action {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-forest);
+}
+.manual-reminder-form summary { cursor: pointer; color: var(--color-forest); }
+
 .communication-action-card > strong,
 .communication-list h3,
 .schedule-communication-panel h3 {

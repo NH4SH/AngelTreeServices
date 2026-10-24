@@ -18,10 +18,11 @@ export function settingsForm(settings=settingValues){
 export function settingsSaveActions(db,options={}) {
   const revalidated=[],roles=load('../src/lib/auth/roles.ts',{'@/lib/supabase/server':{createClient:async()=>db}});
   const actions=load(options.actionsFile??'../src/lib/actions/communications.ts',{
-    'next/cache':{revalidatePath:path=>revalidated.push(path)},'@/lib/business-time':{},
-    '@/lib/communications/processor':{processCommunicationById:()=>assert.fail('Settings cannot send'),processDueCommunications:()=>assert.fail('Settings cannot run workers')},
+    'next/cache':{revalidatePath:path=>revalidated.push(path)},'@/lib/business-time':load('../src/lib/business-time.ts'),
+    '@/lib/communications/manual-reminder-request':load('../src/lib/communications/manual-reminder-request.ts'),
+    '@/lib/communications/processor':options.processor??{processCommunicationById:()=>assert.fail('Settings cannot send'),processDueCommunications:()=>assert.fail('Settings cannot run workers')},
     '@/lib/auth/roles':roles,'@/lib/supabase/server':{createClient:async()=>{if(options.clientThrows)throw Error('PRIVATE_SYNTHETIC_CLIENT');return options.noClient?null:db;}},
-    '@/lib/security/errors':{safeStaffMessage:x=>x},'@/lib/payments/invoice-payment-state':{},
+    '@/lib/security/errors':{safeStaffMessage:x=>x},'@/lib/payments/invoice-payment-state':load('../src/lib/payments/invoice-payment-state.ts'),
   });
   return {actions,revalidated,save:form=>actions.updateCommunicationSettings({status:'idle',message:''},form)};
 }

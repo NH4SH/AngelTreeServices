@@ -1,0 +1,191 @@
+{
+  "observedAt": "2026-10-24T03:25:04.971Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/manual-reminder-retry-safety",
+  "baseMain": "4c73280531741a00939d7b655b1e949e25b7a608",
+  "reminderCancellationFixPushedToMain": true,
+  "pushCommit": "4c73280",
+  "implementation": {
+    "devicePersistedRequestIdentity": true,
+    "storageScopedByActorRecordTypeAndMode": true,
+    "authenticatedActorDerivedNativeKey": true,
+    "firstCommittedDetailsWin": true,
+    "uncertainEditsKeepIdentity": true,
+    "readErrorsNeverAuthorizeCreation": true,
+    "readOnlyStatusChecks": true,
+    "terminalAndUncertainOutcomesPreserved": true,
+    "pendingSendResumesSameProcessorAndProviderIdentity": true,
+    "newMigration": false
+  },
+  "tests": {
+    "unitPassed": 2694,
+    "unitFailed": 0,
+    "unitCancelled": 0,
+    "unitSkipped": 0,
+    "newActionAndStorageTests": 21,
+    "actualLocalApiScenarios": 24,
+    "actualLocalApiTapResults": 25,
+    "actualSdkAuthActionsProcessorAndNativeDurableCommands": true,
+    "originalCancelledDuplicateAndMinuteBoundaryDefectsReproduced": true,
+    "observedUniqueIndexWait": true,
+    "allFiveEntryPointsAndOrganizationBilling": true,
+    "sameAndDistinctRequestDuplicateHoldsVerified": true,
+    "uncertainDeliveryHeld": true,
+    "finalRunSyntheticTransportCalls": 4,
+    "realProviderCalls": 0,
+    "localNativeAssertions": 25,
+    "stagingNativeAssertions": 25,
+    "sqlFixturesFullyRolledBack": true,
+    "freshNativeAndOfflineSchemaChecks": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "concurrentBuildTimingFailureRecheckedUnchanged": true
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "protectedRecordSets": 49,
+    "fullLedgerCatalogAndProtectedStateUnchanged": true,
+    "noSendAuthGuardPreserved": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "existingSecurityAdvisorCount": 80,
+    "freshReadOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 123,
+      "latestMigration": "20261024014934",
+      "catalogObjects": 5112,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "recordAutomationCommandMatchesLocalRehearsal": true,
+      "priorFollowupExpiryPreserved": true,
+      "approvalExpiryAndTermsPreserved": true,
+      "readOnly": true,
+      "productionReady": false
+    }
+  },
+  "browser": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "keyboardSchedule": true,
+    "reloadRecovery": true,
+    "readOnlyStatusCheck": true,
+    "cancelledOutcomeAccurate": true,
+    "explicitSeparateReminder": true,
+    "priorHistoryPreserved": true,
+    "noHorizontalOverflow": true,
+    "browserErrors": [],
+    "mobileViewportAcceptance": false,
+    "spokenScreenReaderAcceptance": false,
+    "proofImages": [
+      "manual-request-cancelled.png",
+      "manual-request-confirmed.png"
+    ],
+    "designDetectorFindings": 0,
+    "blockedFrameworkNpmLookupAttempts": 2,
+    "externalRequestsDispatched": 0
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+        "sha256": "6f9078cb84e6baf598a7986151476fcd808dca51e745b06acad9c52eea7b8ee4"
+      },
+      {
+        "path": "apps/platform/src/app/admin/quotes/[quoteId]/page.tsx",
+        "sha256": "a8dcb342c15057d150f6df389681f3a4f79c44b0906426c7b0f66243c9719f2a"
+      },
+      {
+        "path": "apps/platform/src/app/admin/jobs/[jobId]/page.tsx",
+        "sha256": "b87b53a340006e6a82bddadd10ab9b29c8f01e03c71162973c408ff9e0449ddd"
+      },
+      {
+        "path": "apps/platform/src/app/admin/schedule/page.tsx",
+        "sha256": "ec2d68a5e56a72d28759e2d146aed5df00b356be0b52927652ee346a614a2bc9"
+      },
+      {
+        "path": "apps/platform/src/components/communication-controls.tsx",
+        "sha256": "5b52f9b2b3e0fb80423f3ce780722a2ee51a9ba937f2d4c78721b6c7b622efe9"
+      },
+      {
+        "path": "apps/platform/src/components/manual-reminder-form.tsx",
+        "sha256": "dc5a0b609e8454bd9940b2c100cdc581c2c5d7396f9551e4fd0d697ba8d96317"
+      },
+      {
+        "path": "apps/platform/src/lib/actions/communications.ts",
+        "sha256": "4db3d162c5a7e21625b389fce981779adf54456fc2e7d7b34b55acac9b0be967"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/manual-reminder-request.ts",
+        "sha256": "8cec075bd8730503be4b8970489fd1e01ad74fb5895efbab4da02ced13fbb41d"
+      },
+      {
+        "path": "apps/platform/src/styles/globals.css",
+        "sha256": "c992485a9bba2590e19075a5bdbfd1016eb341b6530198afa352801758f05240"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-save-fixture.mjs",
+        "sha256": "a8a30cbcb96901bc95def180930908b9252a6076e5e7f29666ea74ab7299cac7"
+      },
+      {
+        "path": "apps/platform/tests/manual-reminder-fixture.mjs",
+        "sha256": "06f08a5de6cd96cbb89b373d4a8a018074a1796e0f58c1c015b255c9f949fb58"
+      },
+      {
+        "path": "apps/platform/tests/manual-reminder-safety.test.mjs",
+        "sha256": "840b217b2cc24a1419d0a7794fa14244bdf9a96c479b5e7760d0c0e75fad479f"
+      },
+      {
+        "path": "apps/platform/tests/manual-reminder.integration.test.mjs",
+        "sha256": "04995bb9eb35cb7a3a16e6be61de4d3a6efccb73bd8531ebc6d5f34223efe60a"
+      },
+      {
+        "path": "supabase/verification/manual_reminder_requests.sql",
+        "sha256": "34b31032dcacfdaefdcfc0882ca60f6e29253ce1eae9ef8c6eb77e552a271149"
+      }
+    ],
+    "originalMigrationsSchemaTypesDependenciesAndDeploymentConfigUnchanged": true,
+    "processorQueueProviderAdaptersTemplatesAndFinancialCommandsUnchanged": true,
+    "pendingReceiptAndInvoiceMoneyPreserved": true,
+    "oldQueueHistoryAndProviderIdentitiesNotRewritten": true,
+    "existingRlsGrantsAndEffectiveAccessPreserved": true,
+    "separateRuntimeCheckpointPreserved": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limitations": [
+    "Hosted checks use rollback-only SQL with synthetic identities and simulated session claims; no deployed staging app or hosted Auth-session acceptance is claimed.",
+    "Recovery is device-local; erasing storage or changing devices does not restore a request inbox.",
+    "Request identity depends on retaining queue rows/keys; future purging must preserve equivalent tombstones. Existing direct database write permissions remain unchanged.",
+    "Separate explicit requests have separate queue identities; existing native send-time interval and accepted/uncertain holds remain authoritative.",
+    "Provider acceptance may still require source/history reconciliation; the UI retains a warning and does not start a new request.",
+    "Mobile viewport/device, real mailbox and spoken screen-reader acceptance remain unperformed.",
+    "Existing 80 hosted security-advisor findings are unchanged; one incumbent 1ms-budget worker test failed under concurrent build load, then passed unchanged in the focused and complete reruns."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "customerEmailsSent": 0,
+  "providerRequests": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

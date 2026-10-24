@@ -1,0 +1,147 @@
+{
+  "observedAt": "2026-10-24T02:54:09.285Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/reminder-cancellation-safety",
+  "baseMain": "cee29fc7118b7a47a52aea97261830e6750c4a08",
+  "migration123ReconciliationPushedToMain": true,
+  "pushCommit": "cee29fc",
+  "implementation": {
+    "displayedVersionRequired": true,
+    "atomicPendingAndVersionPredicate": true,
+    "checkedCancellationAcknowledgement": true,
+    "lostResponseDoesNotRepeatWrite": true,
+    "inlineRecoveryAndPendingButton": true,
+    "existingPermissionsRlsAndCapabilitiesPreserved": true,
+    "newMigration": false
+  },
+  "tests": {
+    "unitPassed": 2673,
+    "unitFailed": 0,
+    "unitCancelled": 0,
+    "unitSkipped": 0,
+    "newActionTests": 10,
+    "actualLocalApiScenarios": 17,
+    "actualLocalApiTapResults": 18,
+    "originalActionReproducedStaleCancellation": true,
+    "actualSdkAuthAndServerAction": true,
+    "observedWorkerRescheduleAndConcurrentStaffLockWaits": true,
+    "lostCommittedHttpAcknowledgementAndPreForwardFailure": true,
+    "localNativeAssertions": 36,
+    "stagingNativeAssertions": 36,
+    "sqlFixturesFullyRolledBack": true,
+    "freshNativeSchemaCheck": true,
+    "offlineSourceAndTypeFingerprints": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "protectedRecordSets": 49,
+    "fullLedgerCatalogAndProtectedStateUnchanged": true,
+    "noSendAuthGuardPreserved": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "existingSecurityAdvisorCount": 80,
+    "freshReadOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 123,
+      "latestMigration": "20261024014934",
+      "catalogObjects": 5112,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "recordAutomationCommandMatchesLocalRehearsal": true,
+      "priorFollowupExpiryPreserved": true,
+      "approvalExpiryAndTermsPreserved": true,
+      "readOnly": true,
+      "productionReady": false
+    }
+  },
+  "browser": {
+    "desktopViewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "keyboardStaleCancellationRefused": true,
+    "inlineReloadGuidanceObserved": true,
+    "nativeStaleStateUnchanged": true,
+    "keyboardFreshCancellationConfirmed": true,
+    "chosenReminderMovedToHistory": true,
+    "unrelatedReceiptRemainedPending": true,
+    "noHorizontalOverflow": true,
+    "browserErrors": [],
+    "mobileViewportAcceptance": false,
+    "spokenScreenReaderAcceptance": false,
+    "proofImages": [
+      "cancellation-stale-desktop.png",
+      "cancellation-confirmed-desktop.png"
+    ],
+    "designDetectorFindings": 0,
+    "blockedFrameworkNpmLookupAttempts": 2,
+    "externalRequestsDispatched": 0
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/lib/actions/communications.ts",
+        "sha256": "d13217a3ba1e41e7fc31657b67666d7e284d71cc5efcddd1e7e18afbf46c74cf"
+      },
+      {
+        "path": "apps/platform/src/components/communication-controls.tsx",
+        "sha256": "2aacd1fd48bdeb2400b0c2b0ea565c5dfe42e45d98f8c79225c58e0501a9d49e"
+      },
+      {
+        "path": "apps/platform/tests/reminder-cancellation.test.mjs",
+        "sha256": "6a26b6c92e3525ba2ccf60cf98d6d7a12298b36d63160a935cdcd5acfc6597b8"
+      },
+      {
+        "path": "apps/platform/tests/reminder-cancellation.integration.test.mjs",
+        "sha256": "3aa25f7a06379bb5224f6f61a8d7b801a955464dd142c5cbbe98e042fd7b8692"
+      },
+      {
+        "path": "supabase/verification/reminder_cancellation.sql",
+        "sha256": "ed6613d96a67ef91e8d7370aaa42bfa5564de2d2898fd92cd1526d842510a7b2"
+      }
+    ],
+    "originalMigrationSourcesSchemaTypesAndDependenciesUnchanged": true,
+    "noStyleOrLayoutChanges": true,
+    "financialDefaultsSourceAndDeliveryHistoryPreserved": true,
+    "manualAutomaticAndChosenReceiptCancellationPreserved": true,
+    "existingProcessingNonpendingAndDuplicateHoldsPreserved": true,
+    "unrelatedReviewFilesAndScannerUntouched": true,
+    "separateRuntimeCheckpointPreserved": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limitations": [
+    "Staging checks are rollback-only native SQL using synthetic identities and simulated session claims, not deployed-app or hosted Auth-session acceptance.",
+    "Rendered acceptance is at 1280x720; mobile viewport, physical-device and spoken screen-reader acceptance were not performed.",
+    "The development framework attempted two npm advisory/version lookups; both were blocked before dispatch. Build/unit/schema attempts were zero.",
+    "Existing 80 hosted security-advisor findings remain unchanged.",
+    "Existing direct database write rights remain; the reviewed-version predicate protects this CRM action rather than creating a universal write boundary."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "customerEmailsSent": 0,
+  "providerRequests": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

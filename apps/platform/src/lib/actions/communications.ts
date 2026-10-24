@@ -43,25 +43,48 @@ export async function scheduleCommunication(
   return queueCommunication(formData, false);
 }
 
-export async function cancelScheduledCommunication(formData: FormData) {
-  const auth = await requireStaff();
-  if (auth.error) return;
+export async function cancelScheduledCommunication(
+  _previousState: CommunicationActionState,
+  formData: FormData,
+): Promise<CommunicationActionState> {
+  const unconfirmed: CommunicationActionState = {
+    status: "warning",
+    message: "Cancellation could not be confirmed. Reload and review this reminder before trying again.",
+  };
+  try {
+    const auth = await requireStaff();
+    if (auth.error) return auth.error;
 
-  const communicationId = text(formData, "communication_id");
-  if (!communicationId) return;
+    const communicationId = text(formData, "communication_id");
+    const expectedVersion = text(formData, "expected_updated_at");
+    if (!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(communicationId)
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(expectedVersion)
+      || !Number.isFinite(Date.parse(expectedVersion))) {
+      return { status: "error", message: "Reload the reminder list before cancelling a reminder." };
+    }
 
-  const result = await auth.supabase
-    .from("customer_communications")
-    .update({
-      cancelled_at: new Date().toISOString(),
-      skip_reason: "Cancelled by staff.",
-      status: "cancelled",
-    })
-    .eq("id", communicationId)
-    .eq("status", "pending").select("id").maybeSingle();
-  if (result.error || !result.data) throw Error("Cancellation could not be confirmed. Refresh and review the reminder before retrying.");
+    const { data, error } = await auth.supabase
+      .from("customer_communications")
+      .update({
+        cancelled_at: new Date().toISOString(),
+        skip_reason: "Cancelled by staff.",
+        status: "cancelled",
+      })
+      .eq("id", communicationId)
+      .eq("status", "pending")
+      .eq("updated_at", expectedVersion)
+      .select("id, status, cancelled_at, updated_at").maybeSingle();
+    if (error) return unconfirmed;
+    if (!data) return { status: "error", message: "This reminder changed or is no longer pending. Reload the list to review its current status." };
+    if (data.id !== communicationId.toLowerCase() || data.status !== "cancelled"
+      || typeof data.cancelled_at !== "string" || !Number.isFinite(Date.parse(data.cancelled_at))
+      || typeof data.updated_at !== "string" || !Number.isFinite(Date.parse(data.updated_at))) return unconfirmed;
 
-  revalidateCommunicationPaths();
+    revalidateCommunicationPaths();
+    return { status: "success", message: "Reminder cancelled." };
+  } catch {
+    return unconfirmed;
+  }
 }
 
 export async function updateRecordAutomation(

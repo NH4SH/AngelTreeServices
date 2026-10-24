@@ -162,10 +162,7 @@ export function CommunicationControls({
                 <strong>{formatType(item.communication_type)}</strong>
                 <span>{formatDateTime(item.scheduled_for)} to {item.recipient_email}</span>
               </div>
-              <form action={cancelScheduledCommunication}>
-                <input name="communication_id" type="hidden" value={item.id} />
-                <button className="secondary-action" type="submit">Cancel</button>
-              </form>
+              <ReminderCancellation communication={item} />
             </article>
           ))}
         </div>
@@ -184,6 +181,23 @@ export function CommunicationControls({
         )) : <p className="inline-empty">No reminder history yet.</p>}
       </div>
     </div>
+  );
+}
+
+function ReminderCancellation({ communication }: { communication: CustomerCommunication }) {
+  const [state, action, pending] = useReliableActionState(cancelScheduledCommunication, initialState);
+  return (
+    <form action={action}>
+      <input name="communication_id" type="hidden" value={communication.id} />
+      <input name="expected_updated_at" type="hidden" value={communication.updated_at} />
+      <button
+        aria-label={`Cancel ${formatType(communication.communication_type)} scheduled ${formatDateTime(communication.scheduled_for)}`}
+        className="secondary-action"
+        disabled={pending || !communication.updated_at}
+        type="submit"
+      >{pending ? "Cancelling..." : "Cancel"}</button>
+      <ActionMessage state={state} />
+    </form>
   );
 }
 

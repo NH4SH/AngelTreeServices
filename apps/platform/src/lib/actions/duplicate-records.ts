@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { recordActivity } from "@/lib/activity-log";
 import { getBusinessDateKey } from "@/lib/business-time";
 import { getInvoiceDueAt } from "@/lib/invoices/due-date";
+import { FIREWOOD_TERMS_VERSION } from "../documents/terms/firewood-2026-10-24.ts";
 import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceLineItem, JobPriority, QuoteLineItem } from "@/lib/types/database";
@@ -138,6 +139,8 @@ export async function duplicateInvoice(
   const typedInvoice = invoice as typeof invoice & {
     invoice_line_items?: InvoiceLineItem[];
   };
+  const firewood = invoice.document_terms_version === FIREWOOD_TERMS_VERSION;
+  if (firewood && formData.get("firewood_domestic_use") !== "confirmed") return { status: "error", message: "Confirm household use for this new firewood purchase before copying it." };
   const invoiceContacts = await activeOrganizationContactIds(auth.supabase, typedInvoice.organization_id, [
     typedInvoice.billing_contact_id,
     typedInvoice.accounts_payable_contact_id,
@@ -154,6 +157,7 @@ export async function duplicateInvoice(
       payment_terms: typedInvoice.payment_terms,
       invoice_number: await getNextRecordNumber(auth.supabase, "invoices", "invoice_number", "INV", typedInvoice.invoice_number),
       tax_cents: typedInvoice.tax_cents, due_at: getInvoiceDueAt(),
+      ...(firewood ? { invoice_intent: "firewood_household", firewood_domestic_use: true } : {}),
     },
     p_lines: [...(typedInvoice.invoice_line_items ?? [])].sort((a,b) => a.sort_order - b.sort_order).map(item => ({
       name: item.name, description: item.description, service_category_id: item.service_category_id,

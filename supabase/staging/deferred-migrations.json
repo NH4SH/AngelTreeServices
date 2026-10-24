@@ -128,6 +128,12 @@
       "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920",
       "reason": "Candidate atomic record reminder toggle and matching pending reminder cancellation; local and rollback-only staging verification before separate permanent reconciliation.",
       "productionReady": false
+    },
+    {
+      "name": "20261024190625_firewood_invoice_terms.sql",
+      "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
+      "reason": "Candidate Firewood-specific immutable invoice terms and validated atomic creation; local and rollback-only staging verification before separate permanent reconciliation.",
+      "productionReady": false
     }
   ]
 }

@@ -28,6 +28,7 @@ import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getEmailEvents } from "@/lib/data/email-events";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getInvoiceDetail } from "@/lib/data/invoices";
+import { FIREWOOD_TERMS_VERSION } from "../../../../lib/documents/terms/firewood-2026-10-24.ts";
 import { getInvoicePortalTokens } from "@/lib/data/portal-invoice";
 import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
@@ -129,6 +130,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                 ) : null}
                 {detail.data.status === "paid" ? <Link className="primary-action" href="/admin/follow-ups">Create follow-up</Link> : null}
                 <DuplicateRecordButton
+                  firewood={detail.data.document_terms_version === FIREWOOD_TERMS_VERSION}
                   action={duplicateInvoice}
                   buttonClassName="secondary-action"
                   hiddenFieldName="invoice_id"

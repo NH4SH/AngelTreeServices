@@ -20,6 +20,7 @@ import {
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createFirewoodInvoice } from "@/lib/actions/firewood";
 import { firewoodLine, firewoodProducts, type FirewoodProduct } from "@/lib/firewood/catalog";
+import { FIREWOOD_TERMS_VERSION } from "../../../lib/documents/terms/firewood-2026-10-24.ts";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getDefaultInvoiceDueDate } from "@/lib/invoices/due-date";
@@ -379,7 +380,7 @@ export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }
             <p className="surface-label">Charges</p>
             <h3>Invoice line items</h3>
           </div>
-          <button
+          {invoice.document_terms_version === FIREWOOD_TERMS_VERSION ? <div className="record-actions" aria-label="Add firewood products">{(Object.keys(firewoodProducts) as FirewoodProduct[]).map(product => <button key={product} className="secondary-action" type="button" onClick={() => { setLineItems(items => [...items, { ...newInvoiceLine(), ...firewoodLine(product) }]); markDirty(); }}>{`Add ${product === "stacking" ? "stacking" : `${product} cord`}`}</button>)}</div> : <button
             className="secondary-action quote-line-helper-button"
             onClick={() => {
               setLineItems((items) => [...items, newInvoiceLine()]);
@@ -389,10 +390,11 @@ export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }
           >
             <Plus aria-hidden="true" size={16} />
             Add line item
-          </button>
+          </button>}
         </div>
 
         <InvoiceLineEditors
+          firewood={invoice.document_terms_version === FIREWOOD_TERMS_VERSION}
           lineItems={lineItems}
           onDirty={() => markDirty()}
           serviceCategories={serviceCategories}

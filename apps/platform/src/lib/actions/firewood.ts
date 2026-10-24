@@ -23,7 +23,7 @@ export async function createFirewoodInvoice(previous: InvoiceActionState, form: 
   }
   const prepared = prepareFirewoodInvoice(form, location);
   if (!prepared.ok) return { status: "error", message: prepared.message };
-  const result = await createInvoice(previous, prepared.form);
+  const result = await createInvoice(previous, prepared.form, "firewood_household");
   if (result.status === "success") revalidatePath("/admin/firewood");
   return result;
 }

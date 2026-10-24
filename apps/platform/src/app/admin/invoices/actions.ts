@@ -32,7 +32,9 @@ function toCents(value: FormDataEntryValue | null) {
 export async function createInvoice(
   _previousState: InvoiceActionState,
   formData: FormData,
+  intent: "standard" | "firewood_household" = "standard",
 ): Promise<InvoiceActionState> {
+  if (intent !== "standard" && intent !== "firewood_household") return { status: "error", message: "Review the invoice type before saving." };
   const supabase = await createClient();
 
   if (!supabase) {
@@ -53,6 +55,7 @@ export async function createInvoice(
   }
 
   const jobId = String(formData.get("job_id") ?? "").trim();
+  if (intent === "firewood_household" && jobId) return { status: "error", message: "Create firewood as a standalone invoice." };
   const partyValue = String(formData.get("contracting_party") ?? "");
   const newCustomerRequested = partyValue === "new_customer";
   let party = parseContractingParty(partyValue);
@@ -75,7 +78,8 @@ export async function createInvoice(
     const result = await createStandaloneInvoice({
       supabase, requestId: String(formData.get("request_id") ?? ""),
       header: { customer_id: party?.customerId ?? null, organization_id: party?.organizationId ?? null,
-        service_location_id: newCustomerRequested ? null : serviceLocationId, due_at: getInvoiceDueAt(dueDate) },
+        service_location_id: newCustomerRequested ? null : serviceLocationId, due_at: getInvoiceDueAt(dueDate),
+        ...(intent === "firewood_household" ? { invoice_intent: intent, firewood_domestic_use: formData.get("firewood_domestic_use") === "confirmed" } : {}) },
       lines: lineItems.map(invoiceLineCommand), notes,
       newCustomer: newCustomerRequested ? {
         name: String(formData.get("new_customer_name") ?? "").trim(),

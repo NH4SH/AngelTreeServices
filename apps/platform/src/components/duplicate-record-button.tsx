@@ -24,6 +24,7 @@ export function DuplicateRecordButton({
   hiddenFieldValue,
   label,
   pendingLabel = "Duplicating...",
+  firewood = false,
 }: {
   action: DuplicateAction;
   buttonClassName?: string;
@@ -31,6 +32,7 @@ export function DuplicateRecordButton({
   hiddenFieldValue: string;
   label: string;
   pendingLabel?: string;
+  firewood?: boolean;
 }) {
   const [state, formAction, pending] = useReliableActionState(action, initialState);
 
@@ -39,12 +41,13 @@ export function DuplicateRecordButton({
       action={formAction}
       className="inline-action-form duplicate-action-form"
       onSubmit={(event) => {
-        if (!window.confirm(confirmationCopy)) {
+        if (!window.confirm(confirmationCopy + (firewood ? " Confirm that this new purchase is primarily for domestic use at the customer's own home." : ""))) {
           event.preventDefault();
         }
       }}
     >
       <input name={hiddenFieldName} type="hidden" value={hiddenFieldValue} />
+      {firewood ? <input name="firewood_domestic_use" type="hidden" value="confirmed" /> : null}
       <button className={buttonClassName} disabled={pending} type="submit">
         <Copy aria-hidden="true" size={16} />
         {pending ? pendingLabel : label}

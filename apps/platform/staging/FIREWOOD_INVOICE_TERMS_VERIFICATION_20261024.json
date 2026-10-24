@@ -1,0 +1,167 @@
+{
+  "observedAt": "2026-10-24T20:17:08.359Z",
+  "status": "verified-local-implementation-staging-rollback-tested-not-deployed",
+  "previousReviewPushedToMain": "1f3c81fa8ce7f8555598eb3de0be5cd59a7c5804",
+  "implementationBranch": "codex/firewood-invoice-terms",
+  "termsVersion": "firewood-household-2026-10-24",
+  "termsClauses": 6,
+  "termsContentSha256": "f38706e7335148698c17957d58c4d49c51cd7aacafff8e4550a4686c1bfc34aa",
+  "legacyInvoiceClauses": 13,
+  "legacyContentSha256": "061f0675abd085dd1a583dbbfdaf87d263c2bc89c268e98954e5ede466469a6b",
+  "historicalInvoicesAndCommittedRequestsRelabeled": false,
+  "tests": {
+    "regular": 2923,
+    "manualReminder": 21,
+    "newTerms": 26,
+    "localApiScenarios": 19,
+    "localApiTapResults": 20,
+    "callerRequests": 250,
+    "invoiceCommandRequests": 22,
+    "native": {
+      "local": {
+        "beforeObservedAt": "2026-10-24T19:22:46.808Z",
+        "afterObservedAt": "2026-10-24T19:22:47.172Z",
+        "historicalEvidenceValidatedAtRecordedObservation": true,
+        "assertionsPassed": 87,
+        "candidateAndFixturesRolledBack": true,
+        "baselineExactlyPreserved": true,
+        "snapshotSha256": "e1080079720eed39a14212a8b391851f11bdf7cb220bc9f7769bdca07e4683a8"
+      },
+      "staging": {
+        "beforeObservedAt": "2026-10-24T19:36:25.254Z",
+        "afterObservedAt": "2026-10-24T19:36:58.400Z",
+        "historicalEvidenceValidatedAtRecordedObservation": true,
+        "assertionsPassed": 87,
+        "candidateAndFixturesRolledBack": true,
+        "baselineExactlyPreserved": true,
+        "snapshotSha256": "ee95ae162edaa91b1824ffc6849d37a904cc6877cb7a3ba7e01d4ad80721dea2"
+      }
+    },
+    "renderedNativeRecords": 4,
+    "browser": {
+      "customerInvoiceDesktop": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "customerInvoiceMobile": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "emailDesktopAndMobileInspected": true,
+      "emailMobile": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "nativeLocalStaffPage": true,
+      "mobileEditor": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "keyboardUnitPriceToDetails": true,
+      "copyDialogAutomationBlocked": true,
+      "noCopySubmitted": true,
+      "existingNativeConfirmationCoveredByActionAndUnitTests": true,
+      "realEmailSent": false,
+      "productionVisited": false
+    },
+    "build": {
+      "node": "22.23.4",
+      "next": "16.4.2",
+      "react": "19.2.9",
+      "reactDom": "19.2.9",
+      "typegen": true,
+      "typecheck": true,
+      "optimizedBuild": true,
+      "environmentFilesCopied": false,
+      "providerCredentialsPresent": false,
+      "externalApplicationNetworkAttempts": 0
+    },
+    "freshAndOfflineSchemaPassed": true,
+    "securityAdvisors": {
+      "local": 0,
+      "staging": 80,
+      "stagingMatchesExistingBaseline": true
+    },
+    "scopedDesignDetectorFindings": 0
+  },
+  "migration": {
+    "number": 124,
+    "file": "20261024190625_firewood_invoice_terms.sql",
+    "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
+    "installedOnlyInNewDisposableLocalDatabase": true,
+    "stagingInstalled": false,
+    "productionInstalled": false
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestVersion": "20261024014934",
+    "protectedSetsPreserved": 49,
+    "sendAndAutomationControlsStayedOff": true,
+    "appDeployed": false
+  },
+  "preservation": {
+    "legacyTermsUnchanged": true,
+    "existingMigrationFilesUnchanged": true,
+    "publicSignaturesAndRoleGrantsUnchanged": true,
+    "rlsUnchanged": true,
+    "paymentFormulasUnchanged": true,
+    "pricesAndDueDateStillEditable": true,
+    "noNewFeesTaxRatesOrRefundPromises": true,
+    "realProviderRequests": 0,
+    "customerEmailsSent": 0,
+    "productionChanged": false,
+    "productionDeployed": false,
+    "unreleasedRuntimeCheckpointPreserved": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "network": {
+    "applicationExternalAttempts": 0,
+    "developmentNpmUpdateChecksBlocked": 2
+  },
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false,
+    "syntheticEmailPreviewStopped": true,
+    "taskPortsClosed": true
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-24/firewood-invoice-terms",
+  "screenshots": [
+    "firewood-invoice-desktop.png",
+    "firewood-invoice-mobile.png",
+    "firewood-email-desktop.png",
+    "firewood-email-mobile.png",
+    "firewood-terms-proof.png"
+  ],
+  "testedSourceSha256": {
+    "apps/platform/scripts/schema/manifest.json": "7d3d9673c8c0a9dbbe6bda8344bf011a6ae4d3b3bd35ce0e01c5b05d7e841adf",
+    "apps/platform/src/app/admin/invoices/InvoiceForm.tsx": "f7e7e8d048da9cbff164f74f970c60ab702b941ac7dffed9a2f126fdfdc3618e",
+    "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx": "6d2ee7f8b222e8668f05f8654ac2c27b618f8deb778d3bd3ebcdff0b755240ee",
+    "apps/platform/src/app/admin/invoices/actions.ts": "602c5dca8c04cad30eb7e6889293dca462e2a6ad297939e326628965ba65689c",
+    "apps/platform/src/app/admin/invoices/page.tsx": "05348fb86ef919e833e8102b329d965153c13dc16f7f37828433a6ed1adea611",
+    "apps/platform/src/components/documents/invoice-document.tsx": "f71d2ce8df6b095926ff366ce749efbb56c2ef45fda9078128648c478f0ed71d",
+    "apps/platform/src/components/duplicate-record-button.tsx": "8e0fc0c2f8fa6662336ef0fec70ef12d91c76eb86b7bb9653c4816c0e64b5893",
+    "apps/platform/src/lib/actions/duplicate-records.ts": "b1b4c4c2c55795fd6ea2aaeaf4695a56c46ef75a89ef53645d97f5a58cb78d7a",
+    "apps/platform/src/lib/actions/firewood.ts": "01c909a81c2f1ef14c1c18a5ff94b5930fb6c69beaa171581d1badc9b71a1415",
+    "apps/platform/src/lib/documents/email-drafts.ts": "bc25b52d0c75ef467505035640e439b91314483c6c4e34458789278a436d6620",
+    "apps/platform/src/lib/documents/terms.ts": "6742b721fd2ae6ea5f072d5790cba9713dccbfd180642d07f09e5ed3b07eae78",
+    "apps/platform/src/lib/invoices/standalone-request.ts": "5315a4b0a62b92cb5bb6e4d14b6a3b7985ef429439765f7ec631c0ac1769367b",
+    "apps/platform/tests/customer-document-print-fixture.mjs": "360a2cf5d72c60515b5a7976725673ebca1c92f2907c4dbb613076a873566b89",
+    "apps/platform/tests/customer-invoice-fixture.mjs": "fb99de049022a912d024e37bae0e332967358e0eb1c833b475fe358e539731ec",
+    "apps/platform/tests/document-terms-preservation.test.mjs": "5d5d6e6874544b15a4487da0fe2771f9b49e26c87bba3971053b19ff6ee4979a",
+    "apps/platform/tests/firewood-sales.integration.test.mjs": "bd62e40b0953cd0843842e2828531ed1f710bd20fb3ecebc29e77856da2d6e91",
+    "apps/platform/tests/firewood-sales.test.mjs": "59edb8a4238a1fbd98f36a3e02f8ae693c6a47f7c00f5d0968e1da7159703811",
+    "apps/platform/tests/staging-appointment-candidate.test.mjs": "dd11d122e4c58a1cb87568e35466cf6be4bc76434ade52513393827da2dcc1ad",
+    "apps/platform/tests/standalone-invoice-fixture.mjs": "ce881d361de96505932e17d7fedfe83fd847db012b49a7913f668d42b26deeea",
+    "supabase/staging/deferred-migrations.json": "ec78240d408a0c04d78f5830d4919bf80e63a5cf1ebec03de2258d454b8fb905",
+    "apps/platform/src/lib/documents/terms/firewood-2026-10-24.ts": "6603934d201de9d6c6d4db915b8e3d3c5985de6649b9c9fad314165e82dce26c",
+    "apps/platform/tests/firewood-invoice-terms.test.mjs": "805d458d77769902e414e22f9b4fdca219742917640c57f3120c1744a2011a60",
+    "supabase/migrations/20261024190625_firewood_invoice_terms.sql": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
+    "supabase/verification/firewood_invoice_terms.sql": "b198fcce885ce307b3dadafa4edc24fca0164328257badc37cf7973392bba996",
+    "supabase/verification/firewood_terms_seed.sql": "53d562bb4724b34fa4b1fd820f576fb2c9345e78c7a661a59e3aabe876bd3d09"
+  },
+  "nextStep": "Push the verified batch when requested, then staging-only reconciliation of migration 124; no app deployment or production action."
+}

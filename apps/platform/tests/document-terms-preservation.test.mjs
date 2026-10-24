@@ -6,7 +6,7 @@ import * as legacy from '../src/lib/documents/terms/legacy-2026-10-22.ts';
 import {load,text} from './customer-invoice-fixture.mjs';
 import {renderPrintCase,expandPrintTree} from './customer-document-print-fixture.mjs';
 const baseline=JSON.parse(readFileSync(new URL('./document-terms-legacy-20261022.json',import.meta.url)));
-const terms=load('../src/lib/documents/terms.ts',{'./terms/legacy-2026-10-22.ts':legacy,'@/lib/business-time':load('../src/lib/business-time.ts')});
+const terms=load('../src/lib/documents/terms.ts',{'./terms/firewood-2026-10-24.ts':load('../src/lib/documents/terms/firewood-2026-10-24.ts'),'./terms/legacy-2026-10-22.ts':legacy,'@/lib/business-time':load('../src/lib/business-time.ts')});
 const hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 test('legacy quote and invoice clauses match the independently captured pre-change wording',()=>{
  for(const [family,list]of [['quote',legacy.legacyQuoteTerms],['invoice',legacy.legacyInvoiceTerms]]){assert.equal(list.length,baseline[family].count);assert.equal(hash(list),baseline[family].sha256);}

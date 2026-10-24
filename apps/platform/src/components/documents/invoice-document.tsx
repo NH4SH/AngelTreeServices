@@ -1,6 +1,7 @@
 import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { getInvoiceTerms } from "@/lib/documents/terms";
+import { FIREWOOD_TERMS_VERSION } from "../../lib/documents/terms/firewood-2026-10-24.ts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
@@ -10,6 +11,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   const lineItems = [...(invoice.invoice_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const paidCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
   const contactEmail = getEmailSetupState().replyTo;
+  const firewood = invoice.document_terms_version === FIREWOOD_TERMS_VERSION;
 
   return (
     <DocumentShell
@@ -24,13 +26,14 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         items={[
           { label: "Bill to", value: invoice.organizations?.name ?? invoice.customers?.display_name ?? "Contracting party not attached yet." },
           { label: "Contact", value: formatContact(invoice) },
-          { label: "Service location", value: formatLocation(invoice), wide: true },
+          { label: firewood ? "Delivery address" : "Service location", value: formatLocation(invoice), wide: true },
           { label: "Issue date", value: formatDate(invoice.created_at) },
           { label: "Due date", value: invoice.due_at ? formatDate(invoice.due_at) : "No due date set." },
         ]}
       />
 
       <InvoiceLineItems
+        firewood={firewood}
         fallbackScope={invoice.jobs?.requested_scope}
         items={lineItems}
         paidCents={paidCents}
@@ -42,7 +45,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
 
       <DocumentTerms
         terms={getInvoiceTerms(invoice.document_terms_version)}
-        title="Terms & Conditions - Invoices"
+        title={firewood ? "Firewood order terms" : "Terms & Conditions - Invoices"}
         variant="invoice"
       />
       <section className="business-document-payment-note">
@@ -57,6 +60,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
 function InvoiceLineItems({
   balanceDueCents,
   fallbackScope,
+  firewood,
   items,
   paidCents,
   subtotalCents,
@@ -65,6 +69,7 @@ function InvoiceLineItems({
 }: {
   balanceDueCents: number;
   fallbackScope?: string | null;
+  firewood: boolean;
   items: NonNullable<InvoiceDetail["invoice_line_items"]>;
   paidCents: number;
   subtotalCents: number;
@@ -75,8 +80,8 @@ function InvoiceLineItems({
     <section className="quote-proposal-scope invoice-document-lines">
       <div className="quote-proposal-section-heading">
         <div>
-          <span>Services and charges</span>
-          <h3>Invoice details</h3>
+          {!firewood ? <span>Services and charges</span> : null}
+          <h3>{firewood ? "Firewood and delivery" : "Invoice details"}</h3>
         </div>
         <span>{items.length} {items.length === 1 ? "item" : "items"}</span>
       </div>

@@ -4,8 +4,9 @@ import type { RpcArgs } from "../types/rpc-contracts";
 import type { Json } from "../types/database.generated";
 import { withDeadline } from "../runtime/deadline.ts";
 import { isGenerationRequestId } from "./generation-request.ts";
+import { FIREWOOD_TERMS_VERSION } from "../documents/terms/firewood-2026-10-24.ts";
 
-type Header = { customer_id: string | null; organization_id: string | null; service_location_id: string | null; due_at: string };
+type Header = { customer_id: string | null; organization_id: string | null; service_location_id: string | null; due_at: string; invoice_intent?: "firewood_household"; firewood_domestic_use?: boolean };
 type Input = { supabase: SupabaseClient; requestId: string; header: Header; lines: Json[]; notes: string; newCustomer: Json | null };
 type Result = { ok: false; message: string } | { ok: true; invoiceId: string; customerId: string | null;
   organizationId: string | null; replayed: boolean; invoiceStatus: string; noteWarning: boolean };
@@ -14,6 +15,11 @@ const nullableUuid = (v: unknown) => v === null || uuid(v);
 const record = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
 const uncertain = "The invoice result could not be confirmed. Keep this form and retry with the same details to check safely.";
 const knownMessages = new Set([
+  "Confirm a standalone household-use firewood purchase before saving.",
+  "Choose a complete Virginia delivery address for this customer.",
+  "Review the firewood products and quantities.",
+  "Use full-cord, half-cord or stacking lines with whole quantities from 1 to 100.",
+  "Add a full-cord or half-cord line before optional stacking.",
   "Only active office staff may create invoices.",
   "This saved request belongs to different details. Review the invoice already created before starting another request.",
   "The invoice from this saved request was deleted. Review its history before starting another request.",
@@ -49,7 +55,9 @@ export async function createStandaloneInvoice(input: Input): Promise<Result> {
       : row.customer_id === input.header.customer_id && row.organization_id === input.header.organization_id
         && row.service_location_id === input.header.service_location_id
         && (uuid(row.customer_id) && row.organization_id === null || row.customer_id === null && uuid(row.organization_id));
-    if (!partyConfirmed) return { ok: false, message: uncertain };
+    const firewoodConfirmed = input.header.invoice_intent !== "firewood_household" || row.document_terms_version === FIREWOOD_TERMS_VERSION
+      || row.replayed === true && row.legacy_firewood_request === true && row.document_terms_version === "legacy-2026-10-22";
+    if (!partyConfirmed || !firewoodConfirmed) return { ok: false, message: uncertain };
     return { ok: true, invoiceId: row.invoice_id, customerId: row.customer_id as string | null,
       organizationId: row.organization_id as string | null, replayed: row.replayed,
       invoiceStatus: row.invoice_status, noteWarning: row.note_warning };

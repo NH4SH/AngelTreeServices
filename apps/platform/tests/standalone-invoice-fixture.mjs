@@ -13,7 +13,7 @@ export const standaloneRow=(options={},changes={})=>({request_id:options.request
  service_location_id:options.newCustomer?locationId:options.locationId??null,replayed:false,invoice_status:'draft',note_warning:false,...changes});
 export function standaloneFixture(options={}){
  const calls=[],paths=[],redirects=[],signals=[];
- const helper=load('../src/lib/invoices/standalone-request.ts',{'server-only':{},'../runtime/deadline.ts':{
+ const helper=load('../src/lib/invoices/standalone-request.ts',{'../documents/terms/firewood-2026-10-24.ts':load('../src/lib/documents/terms/firewood-2026-10-24.ts'),'server-only':{},'../runtime/deadline.ts':{
   withDeadline:(work,ms)=>{assert.equal(ms,5000);return withDeadline(work,options.timeoutMs??ms);},
  },'./generation-request.ts':generation});
  const db={auth:{getUser:async()=>({data:{user:options.signedOut?null:{id:actorId}},error:null})},

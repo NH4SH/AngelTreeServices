@@ -12,6 +12,7 @@ import { AddInvoiceForm } from "./InvoiceForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
+import { FIREWOOD_TERMS_VERSION } from "../../../lib/documents/terms/firewood-2026-10-24.ts";
 import { getCustomerOptions } from "@/lib/data/customers";
 import { getServiceLocations } from "@/lib/data/customers";
 import { getInvoiceOutstandingTotal, getInvoiceStatusCounts, getInvoicesPage } from "@/lib/data/invoices";
@@ -148,6 +149,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                       Open
                     </Link>
                     <DuplicateRecordButton
+                      firewood={invoice.document_terms_version === FIREWOOD_TERMS_VERSION}
                       action={duplicateInvoice}
                       hiddenFieldName="invoice_id"
                       hiddenFieldValue={invoice.id}

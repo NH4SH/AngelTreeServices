@@ -1,6 +1,7 @@
 import { companyBrand, companyContactText, customerContactEmail } from "../company-brand.ts";
 import type { InvoiceDetail, InvoiceLineItem, JobDetail, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
 import { formatProposalReference } from "../quotes/proposal-number.ts";
+import { isFirewoodInvoiceTerms } from "./terms/firewood-2026-10-24.ts";
 
 export type EmailDraft = {
   subject: string;
@@ -115,6 +116,7 @@ export type QuoteEmailDraftInput = Pick<
 
 export type InvoiceEmailDraftInput = Pick<
   InvoiceDetail,
+  | "document_terms_version"
   | "accounts_payable_contact"
   | "balance_due_cents"
   | "billing_contact"
@@ -184,6 +186,7 @@ export function generateInvoiceEmailDraft(
       ?? (!invoice.organizations ? invoice.customers?.display_name : null),
   );
   const appliedCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
+  const firewood = isFirewoodInvoiceTerms(invoice.document_terms_version);
   const completedWork = invoice.jobs?.status
     ? ["completed_pending_review", "ready_to_invoice", "completed", "invoiced", "paid"].includes(invoice.jobs.status)
     : false;
@@ -191,9 +194,9 @@ export function generateInvoiceEmailDraft(
     documentType: "invoice",
     subject: `${companyName} Invoice – ${subjectLocation(propertyLabel)}`,
     greeting: `Hi ${firstName || "there"},`,
-    intro: `This invoice is for the ${completedWork ? "completed " : ""}work listed below at ${propertyLabel}.`,
+    intro: firewood ? `This invoice is for the firewood and any selected stacking listed below, for delivery to ${propertyLabel}. Please confirm delivery arrangements with our office.` : `This invoice is for the ${completedWork ? "completed " : ""}work listed below at ${propertyLabel}.`,
     propertyLabel,
-    scopeHeading: "Completed work",
+    scopeHeading: firewood ? "Firewood and delivery" : "Completed work",
     scopeText: formatLineItemScope(invoice.invoice_line_items, invoice.jobs?.requested_scope),
     customerNotes: uniqueSections([
       appliedCents ? `Payments or credits applied: ${formatCurrency(appliedCents)}.` : null,

@@ -1,0 +1,134 @@
+{
+  "observedAt": "2026-10-24T01:46:54.652Z",
+  "status": "staging-122-reconciled",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "branch": "codex/staging-settings-save-122",
+  "baseMain": "d5a3940319289177c6909a7fe3d5c6ca8c8a8559",
+  "settingsSaveFixPushedToMain": true,
+  "pushCommit": "d5a3940",
+  "concurrentWebsiteChangePreserved": "8158e7c",
+  "migrationCount": 122,
+  "latestMigration": "20261024010036",
+  "sourceMigration": {
+    "name": "20261024010036_communication_settings_edit_permissions.sql",
+    "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70",
+    "originalSourceUnchanged": true
+  },
+  "localVerification": {
+    "fresh121Replay": true,
+    "candidateRollbackAssertions": 47,
+    "failedNativeUpgradeRollsBackSchemaAndLedger": true,
+    "nativeUpgradeAndRepeat": true,
+    "installedAssertions": 47,
+    "migrationCount": 122,
+    "allOriginalLedgerRowsAndRecordsPreserved": true,
+    "onlyIntendedSettingsGrantsChanged": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "realProviderCalls": 0,
+    "freshNative122SchemaCheck": true,
+    "offlineMigrationAndPublicTypeFingerprints": true,
+    "typegen": true,
+    "typecheck": true,
+    "frameworkFloor": true,
+    "providerCredentialsCopied": false,
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRerun": false,
+    "applicationCodeUnchanged": true,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_stage122_d1ba1cf67167",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false,
+    "sqlFixturesRolledBack": true,
+    "observedNativePermissions": true,
+    "applicationProviderRequests": 0
+  },
+  "stagingVerification": {
+    "physicalIdentityPinned": true,
+    "original121CompleteLedgerRowsPreserved": true,
+    "nativeLastMigrationMatchesLocal": true,
+    "catalogObjects": 5111,
+    "only17EditableSettingsColumnGrantsChanged": true,
+    "existingRlsEffectiveAccessTableRightsAndOtherCatalogPreserved": true,
+    "protectedRecordSets": 49,
+    "protectedStateAndAuthEmailGuardByteIdentical": true,
+    "candidateAssertions": 47,
+    "installedAssertions": 47,
+    "syntheticIdentitiesPerSuite": 10,
+    "candidateDdlAndAllFixturesRolledBack": true,
+    "onlyOriginal122Installed": true,
+    "seedsImported": false,
+    "rolesImported": false,
+    "vaultSecretsImported": false,
+    "repeatDryRunUpToDate": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "securityAdvisorCount": 80,
+    "securityAdvisorNames": {
+      "authenticated_security_definer_function_executable": 79,
+      "auth_leaked_password_protection": 1
+    },
+    "freshReadOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 122,
+      "latestMigration": "20261024010036",
+      "catalogObjects": 5111,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "settingsPermissionsMatchLocalRehearsal": true,
+      "priorFollowupExpiryPreserved": true,
+      "approvalExpiryAndTermsPreserved": true,
+      "readOnly": true,
+      "productionReady": false
+    }
+  },
+  "unitSuite": {
+    "passed": 2645,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newMaintenanceTests": 10
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/scripts/release/verify-staging-communication-settings-candidate.mjs",
+        "sha256": "b7400c4a9ddfda057b16a1cef01abdfc972e94b2f1c9909b2d842a4bb1e81234"
+      },
+      {
+        "path": "apps/platform/tests/staging-communication-settings-candidate.test.mjs",
+        "sha256": "7f966ea47cd9f1ec3f5f6a443895681aeae0faebdd95d3136cb51452e3a72824"
+      },
+      {
+        "path": "supabase/staging/communication-settings-candidate-122.json",
+        "sha256": "c1fa1601a8080e9ed3f8182f52e190baf85fbd0cf3519eb56b6bac536790fa19"
+      },
+      {
+        "path": "supabase/staging/communication-settings-snapshot-122.sql",
+        "sha256": "b0c5530b712721e07c1d18c9729b52ef4f27eba30d6a2db38210d1026a69765f"
+      }
+    ],
+    "originalMigrationSourcesAndGeneratedTypesUnchanged": true,
+    "applicationSourceAndDependenciesUnchanged": true,
+    "financialRulesDeliveryHistoryAndPriorCrmWorkPreserved": true,
+    "historicalCandidatesAndReceiptsUnchanged": true,
+    "existingDeferredReleaseHoldPreserved": true,
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Native staging authorization checks use synthetic identities and simulated session claims inside rollback-only SQL, not a deployed app or hosted Auth-session acceptance.",
+    "Optimized build, rendered UI and mailbox acceptance were not repeated because application source is unchanged.",
+    "First repeat dry run had a transient CLI login failure; subsequent initialization succeeded without manual credential or setting changes.",
+    "Existing 80 hosted security-advisor findings are unchanged and remain outside this grants-only reconciliation."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

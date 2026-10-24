@@ -1,3 +1,4 @@
+import { getRecordReminderSummary } from "@/lib/data/record-reminder-summary";
 import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
@@ -59,13 +60,14 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
 
   const detail = await getInvoiceDetail(invoiceId);
   const canManageDelivery = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview, checkoutReview] = await Promise.all([
+  const [portalTokens, emailEvents, communications, recipientOptions, lifecyclePreview, checkoutReview, reminderSummary] = await Promise.all([
     detail.data && canManageDelivery ? getInvoicePortalTokens(invoiceId) : { data: [], error: null, linkVersion: null },
     detail.data ? getEmailEvents({ invoiceId, limit: 8 }) : { data: [], error: null },
     detail.data ? getCustomerCommunications({ invoiceId, limit: 20 }) : { data: [], error: null },
     detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
     detail.data && canManageDelivery ? getRecordLifecyclePreview("invoice", invoiceId) : null,
     detail.data && canManageDelivery ? context.supabase.rpc("get_invoice_checkout_review", { p_invoice_id: invoiceId }) : { data: [], error: null },
+    detail.data ? getRecordReminderSummary("invoice", invoiceId) : null,
   ]);
   const emailSetup = getEmailSetupState();
   const stripeSetup = getStripeServerConfig();
@@ -232,6 +234,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                     automaticVersion={detail.data.updated_at}
                     communicationType={detail.data.due_at && new Date(detail.data.due_at).getTime() < Date.now() ? "overdue_invoice_reminder" : "invoice_payment_reminder"}
                     communications={communications.data}
+                    summary={reminderSummary}
                     recipientOptions={recipientOptions.data}
                     recordId={detail.data.id}
                     recordType="invoice"

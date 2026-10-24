@@ -1,0 +1,178 @@
+{
+  "observedAt": "2026-10-24T04:29:06.013Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/record-reminder-summaries",
+  "baseMain": "d39e87c197a4ca2979ed66a853e22be5f0dc6a43",
+  "queueVisibilityPushedToMain": "d39e87c",
+  "implementation": {
+    "separateCompleteRecordSummaryReads": true,
+    "recordTypes": [
+      "quote",
+      "invoice",
+      "job",
+      "schedule_event",
+      "appointment"
+    ],
+    "candidateQueries": 3,
+    "maximumRowsPerQuery": 1,
+    "narrowColumnsOnly": true,
+    "deadlineMilliseconds": 5000,
+    "earliestPendingByNativeScheduleAndId": true,
+    "latestSentWithExistingRecordedTimeFallback": true,
+    "postgresMicrosecondComparison": true,
+    "legacyRecordedTimeExplicitlyLabelled": true,
+    "partialFailureIndependent": true,
+    "readErrorsNeverBecomeAbsence": true,
+    "jobCurrentAppointmentScopePreserved": true,
+    "calendarPanelsScopedIndependently": true,
+    "queueWritesAdded": false,
+    "newMigration": false
+  },
+  "tests": {
+    "regressionPassed": 2767,
+    "newFocusedPassed": 34,
+    "priorManualRequestPassed": 21,
+    "actualLocalApiScenarios": 14,
+    "actualLocalApiTapResults": 15,
+    "boundedCallerScopedGetRequests": 72,
+    "rowsPerRecordAtLeast": 1006,
+    "nativeAssertionsLocal": 50,
+    "nativeAssertionsStaging": 50,
+    "exactStateAfterRollback": true,
+    "freshNativeAndOfflineSchema": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "realProviderRequests": 0,
+    "sourceTypeAssertionOnlyBuildRepair": true
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "originalLedgerAndProtectedStatePreserved": true,
+    "recordAutomationCommandMatchesLocalRehearsal": true,
+    "priorFollowupExpiryPreserved": true,
+    "approvalExpiryAndTermsPreserved": true,
+    "readOnly": true,
+    "productionReady": false,
+    "protectedSets": 49,
+    "existingSecurityAdvisorCount": 80,
+    "existingAdvisorFindingsUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true
+  },
+  "browser": {
+    "allFiveRecordScreens": true,
+    "jobCommunicationSectionExpanded": true,
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "overflow": false
+    },
+    "partialReadFailure": true,
+    "genuineEmptyState": true,
+    "legacyRecordedTimeNote": true,
+    "existingFormControlsKeyboardReachable": true,
+    "consoleErrorsAndWarnings": 0,
+    "detectorFindings": 0,
+    "blockedFrameworkNpmLookups": 4,
+    "proofImages": [
+      "record-summary-before.png",
+      "record-summary-desktop.png",
+      "record-summary-mobile.png",
+      "record-summary-error.png",
+      "record-summary-job.png"
+    ]
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "sources": [
+      {
+        "path": "apps/platform/src/app/admin/quotes/[quoteId]/page.tsx",
+        "sha256": "7c927e0d6614b476f79f9d1e39dbeea33280d2a683b0d2b5f5807dd227e3fc48"
+      },
+      {
+        "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+        "sha256": "caddb1a65c8e46cbff23d12b5a6e05a8124797ae3c1c0831e65b64a127d46d62"
+      },
+      {
+        "path": "apps/platform/src/app/admin/jobs/[jobId]/page.tsx",
+        "sha256": "ad9552de67163ad66d8f6cfecc5b74a99354bcf4636e0849a479f6850517f0af"
+      },
+      {
+        "path": "apps/platform/src/app/admin/schedule/page.tsx",
+        "sha256": "44840ac35e1fe2ccfe9dd58c145130d2a12a0b118e6e716acd4ae2f2037c46e1"
+      },
+      {
+        "path": "apps/platform/src/components/communication-controls.tsx",
+        "sha256": "9a7f654fd41045209dd365dfb1cb2d28e21c11127bbc70115c05e2c3ba978379"
+      },
+      {
+        "path": "apps/platform/src/components/record-reminder-summary.tsx",
+        "sha256": "43cb8336484593942688d22987badbb04fb08ba3efaa5518722335685b1bf230"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/record-summary.ts",
+        "sha256": "4626e0908c181249e0cc14c7ce67c2aac0b650842ecaa04a019abf0cc69cd5bc"
+      },
+      {
+        "path": "apps/platform/src/lib/data/record-reminder-summary.ts",
+        "sha256": "87d746eb06879e9850d183f7000ee892a6f41e4e9be70e44440848e34b8201d8"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-summary.test.mjs",
+        "sha256": "93ff149fed866baccab7f22849ac9265c0cf909c5a20bfecd92e69c1d7654b52"
+      },
+      {
+        "path": "apps/platform/tests/record-reminder-summary.integration.test.mjs",
+        "sha256": "c1c07c5c7249db0c161280a78f0bf63992b09bd91f0fcafdc988c25f1df4f5cd"
+      },
+      {
+        "path": "supabase/verification/record_reminder_summaries.sql",
+        "sha256": "88d0debf078dfa59e31fe15e357d8aa93609e69b8aab3c641f568b6e76321194"
+      }
+    ],
+    "queueBrowsingManualRequestCancellationAndSendingLogicUnchanged": true,
+    "processorTemplatesFinancialCommandsRlsAndGrantsUnchanged": true,
+    "migrationsSchemaAndTypesUnchanged": true,
+    "dependenciesStylingAndDeploymentConfigUnchanged": true,
+    "financialRecordsHistoryAndDeliveryIdentitiesPreserved": true,
+    "separateRuntimeCheckpoint": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limitations": [
+    "Summary queries show live state, not one frozen transaction across all three reads or subsequent navigation.",
+    "Legacy sent entries without sent_at retain updated_at ordering, with an explicit recorded-time note; that fallback is not the actual unknown send date.",
+    "Record reminder/history lists remain bounded recent previews and may omit older rows identified by a summary.",
+    "Hosted acceptance uses rollback-only synthetic SQL with simulated session claims; no deployed staging app or hosted Auth-session acceptance is claimed.",
+    "Viewport and keyboard checks are not physical-device, real-mailbox or spoken screen-reader acceptance."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalDeliveriesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

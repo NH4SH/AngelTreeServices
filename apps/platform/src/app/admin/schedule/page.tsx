@@ -1,3 +1,4 @@
+import { getRecordReminderSummary } from "@/lib/data/record-reminder-summary";
 import Link from "next/link";
 import { PlatformModal } from "@/components/platform-modal";
 import {
@@ -141,7 +142,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     schedule.data.scheduleEvents.find((event) => event.id === params.event) ?? null;
   const selectedCustomerId = selectedEvent?.jobs?.customer_id ?? selectedEvent?.source_customer_id ?? selectedAppointment?.jobs?.customer_id ?? null;
   const selectedOrganizationId = selectedEvent?.jobs?.organization_id ?? selectedEvent?.source_organization_id ?? selectedAppointment?.jobs?.organization_id ?? null;
-  const [selectedCommunications, selectedRecipients] = await Promise.all([
+  const [selectedCommunications, selectedRecipients, selectedEventSummary, selectedAppointmentSummary] = await Promise.all([
     selectedEvent
       ? getCustomerCommunications({ scheduleEventId: selectedEvent.id, limit: 20 })
       : selectedAppointment
@@ -150,6 +151,8 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     selectedCustomerId || selectedOrganizationId
       ? getCommunicationRecipientOptions({ customerId: selectedCustomerId, organizationId: selectedOrganizationId })
       : Promise.resolve({ data: [], error: null }),
+    selectedEvent ? getRecordReminderSummary("schedule_event", selectedEvent.id) : null,
+    selectedAppointment ? getRecordReminderSummary("appointment", selectedAppointment.id) : null,
   ]);
   const query: ScheduleQuery = {
     assigned_user_id: assignedUserId,
@@ -337,6 +340,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             event={selectedEvent}
             jobs={jobs.data}
             communications={selectedCommunications.data}
+            summary={selectedEventSummary}
             recipientOptions={selectedRecipients.data}
             users={schedule.data.users}
           />
@@ -347,6 +351,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             actorId={context.user.id}
             appointment={selectedAppointment}
             communications={selectedCommunications.data}
+            summary={selectedAppointmentSummary}
             current={query}
             recipientOptions={selectedRecipients.data}
             users={schedule.data.users}
@@ -721,6 +726,7 @@ function ScheduleEventFormDrawer({
 function ScheduleEventDetailPanel({
   actorId,
   communications,
+  summary,
   current,
   event,
   jobs,
@@ -729,6 +735,7 @@ function ScheduleEventDetailPanel({
 }: {
   actorId: string;
   communications: import("@/lib/types/database").CustomerCommunication[];
+  summary: import("@/lib/communications/record-summary").RecordReminderSummary | null;
   current: ScheduleQuery;
   event: ScheduleEventWithRelations;
   jobs: ScheduleJobOption[];
@@ -902,6 +909,7 @@ function ScheduleEventDetailPanel({
               actorId={actorId}
               communicationType={event.event_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications}
+              summary={summary}
               recipientOptions={recipientOptions}
               recordId={event.id}
               recordType="schedule_event"
@@ -922,6 +930,7 @@ function AppointmentDetailPanel({
   actorId,
   appointment,
   communications,
+  summary,
   current,
   recipientOptions,
   users,
@@ -929,6 +938,7 @@ function AppointmentDetailPanel({
   actorId: string;
   appointment: AppointmentWithRelations;
   communications: import("@/lib/types/database").CustomerCommunication[];
+  summary: import("@/lib/communications/record-summary").RecordReminderSummary | null;
   current: ScheduleQuery;
   recipientOptions: { email: string; label: string; source: "customer" | "organization" }[];
   users: ScheduleUser[];
@@ -1014,6 +1024,7 @@ function AppointmentDetailPanel({
               actorId={actorId}
               communicationType={appointment.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications}
+              summary={summary}
               recipientOptions={recipientOptions}
               recordId={appointment.id}
               recordType="appointment"

@@ -1,3 +1,4 @@
+import { getRecordReminderSummary } from "@/lib/data/record-reminder-summary";
 import { JobCompletionControls } from "@/components/job-completion-controls";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
@@ -88,6 +89,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
   }
 
   const currentAppointment = getCurrentWorkAppointment(job.appointments ?? []);
+  const reminderSummary = await getRecordReminderSummary(currentAppointment ? "appointment" : "job", currentAppointment?.id ?? job.id);
   const currentWorkSession = getCurrentWorkSession(job.schedule_events ?? []);
   const operationalState = getJobOperationalState({ appointments: job.appointments, scheduleEvents: job.schedule_events, invoices: job.invoices, jobStatus: job.status });
   const operationalLabel = formatJobOperationalState(operationalState);
@@ -239,6 +241,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
                     actorId={context.user.id}
               communicationType={currentAppointment?.appointment_type === "estimate" ? "estimate_reminder" : "work_reminder"}
               communications={communications.data.filter((item) => currentAppointment ? item.appointment_id === currentAppointment.id : item.job_id === job.id)}
+              summary={reminderSummary}
               recipientOptions={recipientOptions.data}
               recordId={currentAppointment?.id ?? job.id}
               recordType={currentAppointment ? "appointment" : "job"}

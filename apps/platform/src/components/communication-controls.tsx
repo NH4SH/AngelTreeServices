@@ -1,10 +1,12 @@
 "use client";
 
 import { ManualReminderForm } from "@/components/manual-reminder-form";
+import { RecordReminderSummary } from "@/components/record-reminder-summary";
+import type { RecordReminderSummary as Summary } from "@/lib/communications/record-summary";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { useMemo, useState } from "react";
-import { CalendarClock, MailCheck, PauseCircle } from "lucide-react";
+import { PauseCircle } from "lucide-react";
 import {
   cancelScheduledCommunication,
   updateRecordAutomation,
@@ -27,6 +29,7 @@ export function CommunicationControls({
   automaticVersion,
   communicationType,
   communications,
+  summary,
   recordId,
   recordType,
   recipientOptions,
@@ -38,6 +41,7 @@ export function CommunicationControls({
   automaticVersion?: string;
   communicationType: CommunicationType;
   communications: CustomerCommunication[];
+  summary: Summary | null;
   recordId: string;
   recordType: "appointment" | "invoice" | "job" | "quote" | "schedule_event";
   recipientOptions: RecipientOption[];
@@ -52,22 +56,10 @@ export function CommunicationControls({
   const selectedRecipient = availableRecipients[Number(recipientKey)] ?? null;
   const pending = communications.filter((item) => item.status === "pending").sort(byScheduledDate);
   const history = communications.filter((item) => item.status !== "pending").slice(0, 8);
-  const lastSent = communications.find((item) => item.status === "sent");
 
   return (
     <div className="communication-control-stack">
-      <div className="communication-summary-row">
-        <span>
-          <MailCheck aria-hidden="true" size={17} />
-          <strong>Last sent</strong>
-          {lastSent ? formatDateTime(lastSent.sent_at ?? lastSent.updated_at) : "None yet"}
-        </span>
-        <span>
-          <CalendarClock aria-hidden="true" size={17} />
-          <strong>Next scheduled</strong>
-          {pending[0] ? formatDateTime(pending[0].scheduled_for) : "None"}
-        </span>
-      </div>
+      <RecordReminderSummary summary={summary} />
 
       {!actionsEnabled && unavailableMessage ? (
         <p className="inline-empty">{unavailableMessage}</p>

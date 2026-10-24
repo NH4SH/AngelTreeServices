@@ -1,3 +1,4 @@
+import { getRecordReminderSummary } from "@/lib/data/record-reminder-summary";
 import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
@@ -64,7 +65,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
 
   const detail = await getQuoteDetail(quoteId);
   const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const [approvalSource, portalTokens, emailEvents, communications, recipientOptions, assignedUsers, lifecyclePreview] = await Promise.all([
+  const [approvalSource, portalTokens, emailEvents, communications, recipientOptions, assignedUsers, lifecyclePreview, reminderSummary] = await Promise.all([
     detail.data?.status === "approved" ? getQuoteApprovalSource(quoteId) : { data: null, error: null },
     detail.data ? getQuotePortalTokens(quoteId) : { data: [], error: null, linkVersion: null },
     detail.data ? getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null },
@@ -72,6 +73,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
     detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
     getAssignableUsers(),
     detail.data && canManuallyMarkSent ? getRecordLifecyclePreview("quote", quoteId) : null,
+    detail.data ? getRecordReminderSummary("quote", quoteId) : null,
   ]);
   const emailSetup = getEmailSetupState();
   const recipient = detail.data
@@ -234,6 +236,7 @@ export default async function QuoteDetailPage({ params, searchParams }: QuoteDet
                     automaticVersion={detail.data.updated_at}
                     communicationType="quote_follow_up"
                     communications={communications.data}
+                    summary={reminderSummary}
                     recipientOptions={recipientOptions.data}
                     recordId={detail.data.id}
                     recordType="quote"

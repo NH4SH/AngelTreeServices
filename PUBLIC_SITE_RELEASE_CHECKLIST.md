@@ -1,3 +1,52 @@
+## Storm/emergency pricing and cleanup — local draft, October 23, 2026
+
+Owner approved implementation and local tests only. No commit, push, QA upload
+or deployment. Parent: 0921c20. Newer upstream CRM work is untouched; preserve
+and revalidate it at any approved release. Analytics, consent and CRM unchanged.
+
+- Final release-readiness review: no blocking regression found; no application
+  or copy correction needed. Fresh 248 tests and the 18-page build/validation
+  pass; all 293 shipping hashes match the implementation draft. Fresh 32 FAQ
+  keyboard/reflow cases at 320/650/1280px and synthetic doubled text at 320px
+  pass. Visible focus, enlarged topic clearance (~21px), call-first hero/bar
+  order, exact multiline draft/context recovery and Clear pass. Zero console
+  warnings/errors; final desktop capture inspected and viewport restored.
+  REVIEW.txt and final-review-* record the evidence. Only checklist review
+  evidence/contrast rounding changed; commit/push/upload/deployment remain held.
+- The existing scope section explains four cost factors: damage/tree position,
+  access/equipment, site hazards and cleanup/follow-up. Written-quote guidance
+  clarifies wood/brush handling and whether stump grinding or later tree work is
+  included or quoted separately. No rates, surcharges, arrival times, insurance
+  outcomes or extra services are invented.
+- All original safety guidance and the complete energized-line warning remain
+  exact. The 24/7 serious-damage/urgent-hazard response paragraph and its timing
+  conditions remain exact in the built page, as do all four original FAQ pairs.
+  The existing guarded availability transformation stays intact; its legacy
+  generator phrases must not be mistaken for the final public availability copy.
+- Four added FAQs cover cost, wood/brush cleanup, stump/follow-up inclusion and
+  what happens after calling, bringing the total to eight. Safety remains the
+  first mobile topic; Cost & cleanup retains the emergency-scope destination.
+- All 239 Node + 9 Python tests pass (248 total); 18 pages build and validate.
+  Only one of 293 shipping files changes: Emergency Tree Service HTML. Other
+  17 pages, SEO head/schema, all link destinations, photos and content outside
+  the scope/FAQ/topic-label sections remain exact. No CSS or runtime changes.
+- Browser: normal 320/390/701/1280px and synthetic doubled text at 320/390px;
+  48 FAQ open/close cases pass with Enter/Space, plus a settled mouse click.
+  Changed-content boxes/text reflow horizontally; FAQ targets >=44px, keyboard
+  focus visible. Normal topic clears header by ~20px; enlarged target stays
+  visible below it. New text contrast ~5.23:1. Captures visually inspected.
+- Exact synthetic name/multiline details survive the service visit and estimate
+  return with Storm Cleanup / emergency-tree-service selected. Clear draft works.
+  No leads, calls, email or saved consent choices. Zero console warnings/errors.
+- Local-only preview blocks external connections and submissions, and adds
+  noindex; no upload. Native phone/OS keyboard/autofill/text and spoken screen
+  readers were not tested. Artificial full-page font doubling retains inherited
+  brand wrapping; no full-site accessibility certification. Local Maps key is
+  unset, with its source and production setup unchanged. Lead delivery and
+  search/indexing/ranking/AI outcomes are not verified.
+- Evidence: this chat's outputs/emergency-pricing-guidance/. Ready for owner
+  review; separate approval is required for release and production smoke checks.
+
 ## Stump Grinding pricing and cleanup — local draft, October 23, 2026
 
 Owner approved implementation and local tests only. No commit, push, QA upload

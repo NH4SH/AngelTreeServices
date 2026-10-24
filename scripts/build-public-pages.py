@@ -17,10 +17,13 @@ TREE_PROJECT = json.loads((ROOT / "public-tree-removal-project.json").read_text(
 SITE_PHOTOGRAPHY = json.loads((ROOT / "public-site-photography.json").read_text(encoding="utf-8"))
 SITE_PHOTOGRAPHY.update(json.loads((ROOT / "public-drive-photography.json").read_text(encoding="utf-8")))
 LANDSCAPING_PROJECT = json.loads((ROOT / "public-landscaping-project.json").read_text(encoding="utf-8"))
+TRIMMING_PROJECT = json.loads((ROOT / "public-trimming-project.json").read_text(encoding="utf-8"))
 COVERAGE = json.loads((ROOT / "public-service-areas.json").read_text(encoding="utf-8"))
 FIREWOOD = json.loads((ROOT / "public-firewood.json").read_text(encoding="utf-8"))
 LANDSCAPING_PROJECT_PHOTOS = [dict(SITE_PHOTOGRAPHY[photo["key"]], caption=photo["caption"])
                               for photo in LANDSCAPING_PROJECT["photos"]]
+TRIMMING_PROJECT_PHOTOS = [dict(SITE_PHOTOGRAPHY[photo["key"]], caption=photo["caption"])
+                          for photo in TRIMMING_PROJECT["photos"]]
 PHONE_DISPLAY = "(540) 388-8715"
 PHONE_LINK = "+15403888715"
 INSTAGRAM_URL = "https://www.instagram.com/angeltreeservices/"
@@ -633,12 +636,15 @@ def service_project_example(data: dict) -> str:
     _, _, title, caption = next(item for item in FIELD_GALLERY_PROJECTS if item[0] == photo_key)
     photo = SITE_PHOTOGRAPHY[photo_key]
     gallery_href = f"/projects/#photo-{photo_key}"
+    project_href = TRIMMING_PROJECT['path'] if data['path'] == '/services/tree-pruning/' else gallery_href
+    project_label = 'View the holly-trimming project' if data['path'] == '/services/tree-pruning/' else 'See this work'
+    project_accessible_label = f'{project_label}: {title}' if data['path'] == '/services/tree-pruning/' else f'See this work in the gallery: {title}'
     project_focus = ' tabindex="-1"' if data['path'] in ('/services/tree-pruning/', '/services/stump-grinding/') else ''
     return f'''
     <section class="ats-content-section ats-content-section--white" id="service-project-example"{project_focus} data-service-project-example aria-labelledby="service-project-title">
       <div class="ats-section-inner ats-project-feature">
         <figure class="ats-case-photo">
-          <a href="{html_attr(gallery_href)}" aria-label="See this work in the gallery: {html_attr(title)}">
+          <a href="{html_attr(project_href)}" aria-label="{html_attr(project_accessible_label)}">
             <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], '(max-width: 760px) calc(100vw - 48px), 46vw')} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
           </a>
           <figcaption>{html_text(caption)}</figcaption>
@@ -647,7 +653,7 @@ def service_project_example(data: dict) -> str:
           <h2 id="service-project-title">{html_text(title)}</h2>
           <p>{html_text(data['cta_copy'])}</p>
           <div class="ats-actions">
-            <a class="ats-button ats-button--green" href="{html_attr(gallery_href)}">See this work</a>
+            <a class="ats-button ats-button--green" href="{html_attr(project_href)}">{html_text(project_label)}</a>
             <a class="ats-estimate-link" href="{html_attr(data['estimate_href'])}">{html_text(data['estimate_label'])}</a>
           </div>
         </div>
@@ -1190,6 +1196,29 @@ def landscaping_project_body() -> str:
     {final_cta('Bring out the best in your planting beds.', 'Share the areas you want us to care for. We’ll define the work, materials and cleanup in your written estimate.', LANDSCAPING_PROJECT['estimate_href'], 'Request a landscaping estimate')}"""
 
 
+def trimming_project_body() -> str:
+    photo = TRIMMING_PROJECT_PHOTOS[1]
+    return f"""
+    <section class="ats-content-section ats-content-section--white">
+      <div class="ats-section-inner ats-case-study">
+        <div class="ats-prose ats-case-copy">
+          <h2>Two views of a local trimming project.</h2>
+          <p>The work included the holly beside the tower and additional trimming at the gym. The closer view shows the planting along the red metal building; the wider photograph shows the surrounding setting after the work.</p>
+        </div>
+        <figure class="ats-case-photo">
+          <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], '(max-width: 760px) calc(100vw - 40px), min(1180px, calc(100vw - 48px))')} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
+          <figcaption>{html_text(photo['caption'])}</figcaption>
+        </figure>
+        <div class="ats-prose ats-case-copy ats-case-section">
+          <h2>Planning trimming at your property?</h2>
+          <p>Tell us which tree needs attention, the outcome you have in mind, and any nearby buildings or access considerations. We’ll review the property and provide a free written estimate for the proposed work.</p>
+          <p><a href="/services/tree-pruning/">Explore tree trimming and pruning</a> or <a href="/projects/">browse more projects</a>.</p>
+        </div>
+      </div>
+    </section>
+    {final_cta('Tell us about your trimming project.', 'Share the property address and the trees you would like us to review. We’ll follow up about the next step for your free estimate.', TRIMMING_PROJECT['estimate_href'], 'Request a trimming estimate')}"""
+
+
 def project_spotlights() -> str:
     examples = [
         (TREE_PROJECT, TREE_PROJECT["photos"][1], "primary",
@@ -1229,6 +1258,7 @@ def project_spotlights() -> str:
 
 def projects_body() -> str:
     landscaping_project_link = f'<p><a href="{html_attr(LANDSCAPING_PROJECT["path"])}">View the bush trimming and mulch project</a></p>'
+    trimming_project_link = f'<p><a href="{html_attr(TRIMMING_PROJECT["path"])}">View the holly-trimming project</a></p>'
     estimate_options = {
         "landscaping": ("/?service=Landscaping#contact", "Request a landscaping estimate"),
         "trimming": ("/?service=Tree%20Care&estimate_context=tree-pruning#contact", "Request a trimming estimate"),
@@ -1253,6 +1283,7 @@ def projects_body() -> str:
           <div class="ats-project-card__body">
             <p class="ats-project-card__type">{html_text(kind)}</p><h2>{html_text(title)}</h2><p data-gallery-caption>{html_text(copy)}</p>
             {landscaping_project_link if key == 'commercial-overview' else ''}
+            {trimming_project_link if key == 'fredericksburg-tower-trimming' else ''}
             <p><a class="ats-estimate-link" data-gallery-estimate href="{html_attr(estimate_href)}">{html_text(estimate_label)}</a></p>
           </div>
         </article>''')
@@ -1911,6 +1942,29 @@ PAGES = [
         "body": landscaping_project_body(),
     },
     {
+        "path": TRIMMING_PROJECT["path"],
+        "active": "projects",
+        "type": "project",
+        "schema_type": "CreativeWork",
+        "title": "Holly Tree Trimming in Fredericksburg | Angel Tree Services",
+        "description": "See Angel Tree Services’ holly trimming beside Fredericksburg’s Purina Tower and Green Fitness & Wellness in two real project photos.",
+        "h1": TRIMMING_PROJECT["title"],
+        "lead": TRIMMING_PROJECT["intro"],
+        "breadcrumbs": [("Home", "/"), ("Projects", "/projects/"), ("Holly trimming", TRIMMING_PROJECT["path"])],
+        "estimate_href": TRIMMING_PROJECT["estimate_href"],
+        "estimate_label": "Request a trimming estimate",
+        "hero_image": TRIMMING_PROJECT_PHOTOS[0]["src"],
+        "image_width": TRIMMING_PROJECT_PHOTOS[0]["width"],
+        "image_height": TRIMMING_PROJECT_PHOTOS[0]["height"],
+        "hero_alt": TRIMMING_PROJECT_PHOTOS[0]["alt"],
+        "hero_caption": TRIMMING_PROJECT_PHOTOS[0]["caption"],
+        "hero_landscape": True,
+        "social_image": f"{SITE}{TRIMMING_PROJECT_PHOTOS[0]['variants'][-1]['src']}",
+        "project_photos": TRIMMING_PROJECT_PHOTOS,
+        "project_service_id": f"{SITE}/services/tree-pruning/#service",
+        "body": trimming_project_body(),
+    },
+    {
         "path": "/about/",
         "active": "about",
         "type": "page",
@@ -2038,7 +2092,7 @@ The [Projects page]({SITE}/projects/) presents real Angel Tree Services work whe
 
 - [Hollow tree removal in Fredericksburg]({SITE}{TREE_PROJECT['path']}): Visible holes and rot identified during an ivy-removal visit led to an arborist assessment and tree removal beside a home. Six project photos document hollow cut wood, bucket access, chipping, loading and cleanup; the cut stump remains visible in the later yard view.
 
-Each property is different. Access, tree size and condition, structures, utilities, neighboring property, terrain, and the customer's intended outcome influence the practical method and written scope. The public project library does not disclose private customer identities, exact addresses, job values, or unsupported production statistics.
+Tree size and condition, access, structures, utilities, neighboring property, terrain and customer goals influence the method and written scope. Project examples omit private customer details, job values and unsupported statistics.
 
 ## Recognition and Community Reputation
 
@@ -2076,6 +2130,7 @@ Angel Tree Services does not position itself as the cheapest provider. It aims t
 - [Credentials and Safety]({SITE}/credentials-safety/): ISA credentials, insurance context, planning expectations, and safety guidance.
 - [Projects]({SITE}/projects/): Approved examples of real project work.
 - [Bush trimming and mulch]({SITE}{LANDSCAPING_PROJECT["path"]}): Finished commercial bush trimming, weeding, edging and mulch.
+- [Holly trimming]({SITE}{TRIMMING_PROJECT["path"]}): Two project views beside Fredericksburg’s Purina Tower and Green Fitness & Wellness.
 - [About]({SITE}/about/): Company history, family operation, experience, and community involvement.
 - [Recognition]({SITE}/recognition/): Reviews, ratings, finalist recognition, media coverage, professional affiliations, and community connections.
 """

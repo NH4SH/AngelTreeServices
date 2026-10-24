@@ -35,6 +35,7 @@ EXPECTED_PATHS = (
     "/projects/",
     "/projects/hollow-tree-removal/",
     "/projects/bush-trimming-mulch/",
+    "/projects/holly-tree-trimming/",
     "/about/",
     "/recognition/",
     "/privacy/",
@@ -42,6 +43,7 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
+    "/projects/holly-tree-trimming/": {"service": "Tree Care", "estimate_context": "tree-pruning"},
     "/projects/bush-trimming-mulch/": {"service": "Landscaping"},
     "/services/landscaping/": {"service": "Landscaping"},
     "/projects/hollow-tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
@@ -1488,6 +1490,50 @@ class Validator:
             if any(key in work for key in ("datePublished", "dateCreated", "review", "aggregateRating", "locationCreated")):
                 self.error(f"{route}: do not invent job dates, location or reviews")
 
+    def validate_trimming_case_study(self) -> None:
+        from html import escape
+        project = json.loads((ROOT / "public-trimming-project.json").read_text(encoding="utf-8"))
+        photography = json.loads((ROOT / "public-drive-photography.json").read_text(encoding="utf-8"))
+        route = project["path"]
+        page = self.pages.get(route)
+        if not page:
+            return
+        source = self.page_sources[route]
+        expected = [photography[item["key"]] for item in project["photos"]]
+        images = [image for image in page.images if image.get("src") in {photo["src"] for photo in expected}]
+        if [image.get("src") for image in images] != [photo["src"] for photo in expected]:
+            self.error(f"{route}: red-building photo must appear first and tower photo second, each once")
+        for index, (photo, content) in enumerate(zip(expected, project["photos"])):
+            matches = [image for image in images if image.get("src") == photo["src"]]
+            if len(matches) != 1:
+                continue
+            image = matches[0]
+            if image.get("alt") != photo["alt"] or image.get("width") != str(photo["width"]) or image.get("height") != str(photo["height"]):
+                self.error(f"{route}: approved photo needs its descriptive alt and intrinsic dimensions")
+            if any(f"{variant['src']} {variant['width']}w" not in image.get("srcset", "") for variant in photo["variants"]):
+                self.error(f"{route}: responsive photo variants are missing")
+            if escape(content["caption"]) not in source:
+                self.error(f"{route}: approved caption is missing")
+            if (index == 0 and image.get("fetchpriority") != "high") or (index == 1 and image.get("loading") != "lazy"):
+                self.error(f"{route}: prioritize the red-building photo and lazy-load the tower photo")
+        main = re.search(r'<main\b[^>]*>(.*?)</main>', source, re.DOTALL)
+        if not main or re.search(r'\b20\d{2}\b|before.and.after|Greenwell Fitness', main[1], re.IGNORECASE):
+            self.error(f"{route}: omit the job year, before/after claim and unverified business spelling")
+        for term in ("holly", "Purina Tower", "Green Fitness &amp; Wellness"):
+            if term not in source:
+                self.error(f"{route}: confirmed project detail is missing: {term}")
+        for entry in ("/projects/", "/services/tree-pruning/"):
+            if not any(link.get("href") == route for link in self.pages[entry].links):
+                self.error(f"{entry}: trimming case study must be discoverable")
+        for link in page.links:
+            if "ats-estimate-link" in link.get("class", "").split() and link.get("href") != project["estimate_href"]:
+                self.error(f"{route}: estimate action lost the existing pruning context")
+        works = [item for block in page.json_ld for item in json.loads(block).get("@graph", []) if item.get("@type") == "CreativeWork"]
+        if len(works) != 1 or works[0].get("image") != [f"{SITE}{photo['src']}" for photo in expected] or works[0].get("about") != {"@id": f"{SITE}/services/tree-pruning/#service"}:
+            self.error(f"{route}: project schema must describe its own two photos and pruning service")
+        elif any(key in works[0] for key in ("datePublished", "dateCreated", "review", "aggregateRating")):
+            self.error(f"{route}: do not invent project dates or customer-review schema")
+
     def validate_artifact_contents(self) -> None:
         # Every estimate action on the new service page must keep its category,
         # including shared footer and mobile actions; no new intent is needed.
@@ -1853,6 +1899,7 @@ class Validator:
             self.validate_about_page()
             self.validate_project_case_study()
             self.validate_landscaping_case_study()
+            self.validate_trimming_case_study()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
             self.validate_llms_document()

@@ -19,6 +19,14 @@ and a reasonable carrying distance from the truck. Show delivered prices and
 the optional stacking charge separately. Measured moisture,
 exact size tolerances, pickup, tax/payment and delivery-time terms remain unconfirmed.
 
+The October 24, 2026 trimming case-study draft uses the closer red-building
+photograph first and the tower sunset photograph second. The owner confirmed
+holly trimming beside the Fredericksburg tower and additional trimming at the
+neighboring gym; the sunset shows the setting after the work. The gym's official
+name is Green Fitness & Wellness. Omit the job year, pruning goals, methods and
+unspecified details of the additional work. These are two views, not a before/after
+sequence. The draft does not imply a testimonial, endorsement or current contract.
+
 ### Brand Personality
 The brand should feel confident, warm, and premium. The voice should be direct, trustworthy, and professional without feeling stiff or corporate. The interface should reduce hesitation, reinforce legitimacy, and make older homeowners feel comfortable moving forward.
 

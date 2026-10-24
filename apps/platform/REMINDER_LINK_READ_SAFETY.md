@@ -44,3 +44,7 @@ ATS CRM Staging (`gbyhdsuiqeslgjdnbqng`) remains at **121 migrations**, latest `
 Sanitized receipt: `staging/REMINDER_LINK_READ_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/reminder-link-read-safety/`, including saved original source, reproduction, clean test/build logs, native fingerprints, API results and synthetic ciphertext/key material. Raw snapshots, capabilities, credentials and diagnostics remain outside Git.
 
 This follows the existing communications source/settings-read safety work. It does not weaken link validation or reopen closed documents. Historical skipped messages are not reclassified or resent. No new timeout, retry policy, sender activation or customer UI is introduced. Existing owner terms-policy decisions, real mailbox/device/assistive-technology acceptance and the separate managed-runtime follow-up remain in the same roadmap. No app deployment, production query/change, customer email, key rotation or support contact occurred.
+
+## Push and next follow-through
+
+The verified reminder-link batch is pushed normally to main as `da5aef7`. The subsequent website-only main change `8158e7c` is preserved. `COMMUNICATION_SETTINGS_SAVE_SAFETY.md` records the next verified local candidate: checked saves, stale-draft protection and narrow existing owner/admin edit permissions. Its migration 122 remains deferred for separate targeted staging reconciliation. This push did not deploy the app, change production or resend historical messages.

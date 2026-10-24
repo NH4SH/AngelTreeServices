@@ -116,6 +116,12 @@
       "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999",
       "reason": "Candidate bulk obsolete-visit reminder cleanup; local and rollback-only staging verification before targeted permanent reconciliation.",
       "productionReady": false
+    },
+    {
+      "name": "20261024010036_communication_settings_edit_permissions.sql",
+      "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70",
+      "reason": "Candidate column-scoped owner/admin settings editing; local and rollback-only staging verification before separate permanent reconciliation.",
+      "productionReady": false
     }
   ]
 }

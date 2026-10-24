@@ -485,6 +485,10 @@
     {
       "name": "20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
       "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999"
+    },
+    {
+      "name": "20261024010036_communication_settings_edit_permissions.sql",
+      "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70"
     }
   ]
 }

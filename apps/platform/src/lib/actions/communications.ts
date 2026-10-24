@@ -16,6 +16,7 @@ import type {
 export type CommunicationActionState = {
   status: "idle" | "success" | "error" | "warning";
   message: string;
+  settingsVersion?: string;
 };
 
 const communicationTypes: CommunicationType[] = [
@@ -109,32 +110,33 @@ export async function updateCommunicationSettings(
   _previousState: CommunicationActionState,
   formData: FormData,
 ): Promise<CommunicationActionState> {
-  const auth = await requireStaff(true);
-  if (auth.error) return auth.error;
-
-  const timezone = text(formData, "business_timezone");
   try {
-    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
-  } catch {
-    return { status: "error", message: "Enter a valid IANA business timezone, such as America/New_York." };
-  }
+    const auth = await requireStaff(true);
+    if (auth.error) return auth.error;
 
-  const numberFields = {
-    minimum_send_interval_hours: integer(formData, "minimum_send_interval_hours", 1, 168),
-    estimate_reminder_hours_before: integer(formData, "estimate_reminder_hours_before", 1, 336),
-    work_reminder_hours_before: integer(formData, "work_reminder_hours_before", 1, 336),
-    quote_first_follow_up_days: integer(formData, "quote_first_follow_up_days", 1, 90),
-    quote_second_follow_up_days: integer(formData, "quote_second_follow_up_days", 1, 180),
-    invoice_first_reminder_days: integer(formData, "invoice_first_reminder_days", 0, 90),
-    invoice_second_reminder_days: integer(formData, "invoice_second_reminder_days", 1, 180),
-  };
-  if (Object.values(numberFields).some((value) => value === null)) {
-    return { status: "error", message: "Reminder offsets must be whole numbers inside the allowed ranges." };
-  }
-
-  const { error } = await auth.supabase
-    .from("communication_settings")
-    .update({
+    const expectedVersion = text(formData, "expected_updated_at");
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(expectedVersion) || !Number.isFinite(Date.parse(expectedVersion))) {
+      return { status: "error", message: "Reload communication defaults before saving." };
+    }
+    const timezone = text(formData, "business_timezone");
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
+    } catch {
+      return { status: "error", message: "Enter a valid IANA business timezone, such as America/New_York." };
+    }
+    const numberFields = {
+      minimum_send_interval_hours: integer(formData, "minimum_send_interval_hours", 1, 168),
+      estimate_reminder_hours_before: integer(formData, "estimate_reminder_hours_before", 1, 336),
+      work_reminder_hours_before: integer(formData, "work_reminder_hours_before", 1, 336),
+      quote_first_follow_up_days: integer(formData, "quote_first_follow_up_days", 1, 90),
+      quote_second_follow_up_days: integer(formData, "quote_second_follow_up_days", 1, 180),
+      invoice_first_reminder_days: integer(formData, "invoice_first_reminder_days", 0, 90),
+      invoice_second_reminder_days: integer(formData, "invoice_second_reminder_days", 1, 180),
+    };
+    if (Object.values(numberFields).some((value) => value === null)) {
+      return { status: "error", message: "Reminder offsets must be whole numbers inside the allowed ranges." };
+    }
+    const { data, error } = await auth.supabase.from("communication_settings").update({
       automated_sending_enabled: checked(formData, "automated_sending_enabled"),
       business_timezone: timezone,
       estimate_confirmation_enabled: checked(formData, "estimate_confirmation_enabled"),
@@ -146,12 +148,17 @@ export async function updateCommunicationSettings(
       appointment_change_notices_enabled: checked(formData, "appointment_change_notices_enabled"),
       payment_confirmation_enabled: checked(formData, "payment_confirmation_enabled"),
       ...numberFields,
-    })
-    .eq("singleton", true);
-
-  if (error) return { status: "error", message: safeStaffMessage(error.message) };
-  revalidateCommunicationPaths();
-  return { status: "success", message: "Communication defaults saved." };
+    }).eq("singleton", true).eq("updated_at", expectedVersion).select("singleton, updated_at").maybeSingle();
+    if (error) return { status: "warning", message: "The save could not be confirmed. Reload and review the current settings before saving again." };
+    if (!data) return { status: "error", message: "Communication defaults changed or are unavailable. Reload this page to review the latest settings before saving." };
+    if (data.singleton !== true || typeof data.updated_at !== "string" || !Number.isFinite(Date.parse(data.updated_at))) {
+      return { status: "warning", message: "The save could not be confirmed. Reload and review the current settings before saving again." };
+    }
+    revalidateCommunicationPaths();
+    return { status: "success", message: "Communication defaults saved.", settingsVersion: data.updated_at };
+  } catch {
+    return { status: "warning", message: "The save could not be confirmed. Reload and review the current settings before saving again." };
+  }
 }
 
 export async function runCommunicationWorkerNow(
@@ -372,7 +379,9 @@ function parseScheduledDate(value: FormDataEntryValue | null) {
 }
 
 function integer(formData: FormData, key: string, min: number, max: number) {
-  const value = Number(formData.get(key));
+  const raw = text(formData, key);
+  if (!/^\d+$/.test(raw)) return null;
+  const value = Number(raw);
   return Number.isInteger(value) && value >= min && value <= max ? value : null;
 }
 

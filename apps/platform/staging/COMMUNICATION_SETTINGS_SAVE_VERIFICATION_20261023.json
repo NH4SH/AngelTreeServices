@@ -1,0 +1,228 @@
+{
+  "observedAt": "2026-10-24T01:33:45.880Z",
+  "status": "verified-local-candidate",
+  "branch": "codex/communication-settings-save-safety",
+  "baseMain": "8158e7c9fa75f3d2bbe518b677a053734dacd697",
+  "reminderLinkSafetyPushedToMain": true,
+  "pushCommit": "da5aef7",
+  "concurrentWebsiteChangePreserved": "8158e7c",
+  "beforeReproduction": {
+    "actualSavedOriginalAction": true,
+    "controlledSyntheticWriteAdapter": true,
+    "zeroRowUpdateReportedSuccess": true,
+    "staleFormOverwroteNewerDisabledSwitch": true,
+    "realProviderCalls": 0,
+    "nativeStaging121OwnerUpdateDenied": true,
+    "nativeLocal121OwnerUpdateDenied": false,
+    "productionPermissionsNotInferred": true
+  },
+  "unitSuite": {
+    "passed": 2635,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newFocusedTests": 18
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "candidateRehearsal": {
+      "migrationCount": 121,
+      "nativeAssertions": 47,
+      "syntheticIdentities": 10,
+      "originalOwnerUpdateDenied": false,
+      "onlySettingsTableAnd17EditableColumnGrantsChanged": true,
+      "candidateDdlAndFixturesRolledBack": true,
+      "exactLedgerCatalogAndProtectedStatePreserved": true,
+      "sendingSwitchesStayedOff": true,
+      "migrationsApplied": 0,
+      "providerCalls": 0,
+      "productionChanged": false
+    },
+    "installedVerification": {
+      "localOnly": true,
+      "migrationCount": 122,
+      "original121CompleteLedgerPreserved": true,
+      "installedCatalogMatchesReviewedCandidate": true,
+      "nativeAssertions": 47,
+      "installedFixturesRolledBack": true,
+      "exactBeforeAfterStatePreserved": true,
+      "localSecurityAdvisorsBeforeAndAfter": "No issues found",
+      "productionChanged": false
+    },
+    "actualApiScenarios": 16,
+    "actualApiTapResults": 17,
+    "apiCasesAllPassed": true,
+    "actualSdkAndAction": true,
+    "realLockWaitsObserved": true,
+    "lostCommittedAcknowledgementVerified": true,
+    "realProviderCalls": 0,
+    "sqlVerificationFixturesRolledBack": true,
+    "separateApiAndBrowserSyntheticFixturesRetained": true,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_setsave_b03c39284414",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false,
+    "previewStopped": true
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 121,
+    "nativeAssertions": 47,
+    "syntheticIdentities": 10,
+    "originalOwnerUpdateDenied": true,
+    "onlySettingsTableAnd17EditableColumnGrantsChanged": true,
+    "candidateDdlAndFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "sendingSwitchesStayedOff": true,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "catalogObjects": 5111,
+    "protectedRecordSets": 49,
+    "latestMigration": "20261023232306",
+    "freshPinned121MaintenancePassed": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "browserAcceptance": {
+    "scope": "Actual local rendered CRM with synthetic owner; no hosted deployment",
+    "origin": "http://127.0.0.1:3188",
+    "checks": {
+      "all17EditableFieldsRendered": true,
+      "initialViewport": {
+        "width": 640,
+        "height": 360
+      },
+      "keyboardEnterSaveAndConfirmedValue": true,
+      "draftPreservedAcrossActualSearchRscRefresh": true,
+      "staleSaveRefusedWithDraftRetained": true,
+      "reloadShowsNewerStoredSettings": true,
+      "confirmedFollowupSaveRestoredOriginalOffset": true,
+      "automatedSendingStayedOff": true,
+      "appointmentNoticesStayedOff": true,
+      "browserErrorLogEmpty": true,
+      "taskOwnedBrowserTabClosed": true
+    },
+    "limitations": [
+      "Final screenshot unavailable after background app window collapsed to a zero-size viewport; no final image saved.",
+      "No full responsive, physical-device or screen-reader certification claimed."
+    ],
+    "providerCalls": 0,
+    "productionChanged": false
+  },
+  "migration122": {
+    "name": "20261024010036_communication_settings_edit_permissions.sql",
+    "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70",
+    "installedOnlyOwnedLocal": true,
+    "stagingRehearsalRolledBack": true,
+    "deferredForSeparateStagingReconciliation": true,
+    "only17EditableSettingsColumnsGranted": true,
+    "existingRlsAndEffectiveAccessPreserved": true,
+    "noTableWideWriteOrIdentityTimestampRights": true,
+    "productionReady": false
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/lib/actions/communications.ts",
+        "sha256": "1552aa55a1de64a229c81698fc8fc146ae15600edd4c983bc1e0689bed469114"
+      },
+      {
+        "path": "apps/platform/src/components/communication-settings-form.tsx",
+        "sha256": "5bc2665adfe25593fa17981d3bf1ba88235d19fbf663fd624fdf0b926dd95356"
+      },
+      {
+        "path": "apps/platform/scripts/schema/manifest.json",
+        "sha256": "9d9a886c1cae27cef360a6b1a09c9357d9702410aebabee9020991b5372f97bc"
+      },
+      {
+        "path": "apps/platform/tests/staging-appointment-candidate.test.mjs",
+        "sha256": "fe88509edba5cfd8451e720f5d8c270ba996fbacae511be3d5ff305e448b53d5"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-save-fixture.mjs",
+        "sha256": "e8c1fa498a39ee5f201d1391735b86d2951248c2778f67247a6d2476ee3f5d6a"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-save-safety.test.mjs",
+        "sha256": "248a40e5748feb4224ac29a7fca06c36fe823778fcd90966646200726ce63cb6"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-form.test.mjs",
+        "sha256": "7b9a1d5d0e85cc136ba04a16f08265b73735659cf51eb2e2fc43146030e00774"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-save.integration.test.mjs",
+        "sha256": "f0b202a9eaec5dfc9e4945af67bb0538d9ae509ffcd749725e13a7d06250d24d"
+      },
+      {
+        "path": "supabase/migrations/20261024010036_communication_settings_edit_permissions.sql",
+        "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70"
+      },
+      {
+        "path": "supabase/verification/communication_settings_saves.sql",
+        "sha256": "f393ba1d81af735b5e7c89bdba538fa057f3397629a8b3254981191360855be1"
+      },
+      {
+        "path": "supabase/staging/deferred-migrations.json",
+        "sha256": "e4e88f26f607260acc2f20fbd54b07db14c7eaec64809d0c69322dc0b5c773ea"
+      },
+      {
+        "path": "PUBLIC_SITE_RELEASE_CHECKLIST.md",
+        "sha256": "38e69a46e142ff1b40156c89e0667fab1dc2a3d8891ebfc0aaab7cae03e806be"
+      },
+      {
+        "path": "scripts/build-public-pages.py",
+        "sha256": "4b82a0da0916e58ea87402b790598bc6e8557ed97ed126f0c51a14eec625d6e9"
+      }
+    ],
+    "onlySettingsFormAndSaveActionChanged": true,
+    "original121MigrationSourcesUnchanged": true,
+    "generatedTypesAndDependenciesUnchanged": true,
+    "financialRulesAndDeliveryWorkerUnchanged": true,
+    "templatesPerRecordAutomationAndQueueCommandsUnchanged": true,
+    "existingHistoryAndPriorCrmWorkPreserved": true,
+    "concurrentWebsiteCompatibility": {
+      "nodeTests": 239,
+      "pythonTests": 9,
+      "publicBuild": true,
+      "pagesValidated": 18,
+      "python": "3.13.16",
+      "initialSystemPython39AttemptFailedExistingSyntax": true
+    },
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Final screenshot unavailable after background app window collapsed to a zero-size viewport; no final image saved.",
+    "No full responsive, physical-device or screen-reader certification claimed.",
+    "Hosted candidate grants and SQL assertions were rollback-only; migration 122 remains deferred on staging.",
+    "Actual HTTP fault/concurrency checks use an owned local database; no hosted app or real-provider acceptance claimed.",
+    "Production permissions were not inspected.",
+    "Existing financial rules, workers and historical communication recovery are unchanged."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false
+}

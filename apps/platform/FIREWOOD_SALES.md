@@ -1,6 +1,6 @@
 # Firewood sales
 
-Verified October 24, 2026. Local implementation on `codex/firewood-sales`; no production change or app deployment. The prior reminder-summary and record-history work is preserved. Main's independent homepage update `7386a9d` is included.
+Verified October 24, 2026. Implementation `fa84edf` was subsequently pushed to `main` at the owner's request; no production change or app deployment. The prior reminder-summary and record-history work is preserved. Main's independent homepage update `7386a9d` is included. Follow-through: `FIREWOOD_TAX_AND_TERMS_REVIEW.md` confirms the county exemption in the current published code and reviews the remaining terms work.
 
 ## Staff workflow
 
@@ -22,7 +22,7 @@ The owner confirmed that orders are taken at **5802 Ford Rd, Fredericksburg, VA 
 
 Primary sources reviewed:
 
-- [23VAC10-210-630](https://law.lis.virginia.gov/admincode/title23/agency10/chapter210/section630/) defines domestic consumption, the more-than-50% principal-use test, substantiation requirements and order-taking-place local sales-tax sourcing. Its published local-exemption list includes Spotsylvania; that list is expressly dated “as of 2014.” A current county ordinance was not independently retrieved. Reconfirm the county treatment before release and whenever the order-taking location changes.
+- [23VAC10-210-630](https://law.lis.virginia.gov/admincode/title23/agency10/chapter210/section630/) defines domestic consumption, the more-than-50% principal-use test, substantiation requirements and order-taking-place local sales-tax sourcing. Its published local-exemption list includes Spotsylvania and is expressly dated “as of 2014.” The initial implementation had not retrieved the county code. The follow-through review now confirms [current County Code §21-137](https://library.municode.com/va/spotsylvania_county/codes/code_of_ordinances?nodeId=COCO_CH21TA_ARTIVRESATA_S21-137EXCEENSO) in the August 28, 2026 publication; see `FIREWOOD_TAX_AND_TERMS_REVIEW.md` for evidence and scope. Recheck sourcing whenever the order-taking location changes.
 - [Virginia Code §58.1-609.13](https://law.lis.virginia.gov/vacode/title58.1/chapter6/section58.1-609.13/) leaves local tax applicable unless the locality adopted an exemption.
 - [Virginia Tax exemptions](https://www.tax.virginia.gov/sales-tax-exemptions) and [Form ST-15](https://www.tax.virginia.gov/node/408) provide the agency's domestic-fuel substantiation route. Staff confirmation is a sale record, not a signed ST-15. The dealer remains responsible for substantiating exempt sales.
 
@@ -59,4 +59,4 @@ Staging verification is native rollback-only SQL with simulated caller claims, n
 
 This owner-requested sales entry follows the completed PR14 reminder-browsing work. Record-scoped document-email delivery/history browsing remains the next communications priority. The separate managed-runtime security checkpoint is untouched.
 
-Before releasing Firewood, reconfirm the current county exemption and review the existing invoice terms for a delivered product. Existing immutable invoice terms—including labor warranty, payment timing and late-fee clauses—have been preserved exactly; no firewood-specific legal policy has been invented. Invoice-level terms, taxable sales, inventory and delivery fulfillment need separate decisions if requested. No production data, configuration, key or customer communication changed in this batch.
+The current published county exemption is now confirmed. Before releasing Firewood, approve a separate product-appropriate invoice-terms version and the matching unfulfilled-order email wording identified in `FIREWOOD_TAX_AND_TERMS_REVIEW.md`. That review also flags the separate seller-side Forest Products Tax classification/filing question; a qualifying customer's $0 sales tax does not resolve ATS's processing/sourcing tax obligations. Existing immutable invoice terms—including labor warranty, payment timing and late-fee clauses—have been preserved exactly; no firewood-specific legal policy has been invented. Taxable sales, inventory and delivery fulfillment remain separate decisions if requested. No production data, configuration, key or customer communication changed in this batch.

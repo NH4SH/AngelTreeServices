@@ -1,0 +1,95 @@
+# Firewood tax confirmation and invoice-terms review
+
+Reviewed October 24, 2026 against the actual CRM at `fa84edf15ba9eb9a9b4a46fc47a32a864f41ec14`. That verified Firewood commit and its preceding reminder-history work were pushed normally to `origin/main`; the remote hash was checked afterward. All four pushed commits carry `[skip ci] [skip netlify]`. No deployment command, production query, key change, customer send or hosted configuration change was made.
+
+## Decision
+
+**The county exemption is confirmed in the currently published county code. Keep the qualifying household-use $0 tax default. Before releasing Firewood, introduce a separately approved, immutable Firewood invoice-terms version and product-appropriate email/document labels.** Do not edit the legacy terms, relabel existing invoices, or infer fulfillment from invoice creation/payment.
+
+The old county-document lookup gap is closed. Invoice terms and the separate seller-side Forest Products Tax classification described below remain follow-ups. This review does not approve a new payment deadline, penalty, warranty, refund policy or liability waiver, and does not change the application. It continues the existing owner-requested Firewood work and the customer-terms roadmap; record-level document-email history remains the next separate PR14 communications item.
+
+## County tax evidence
+
+The actual rendered [Spotsylvania County Code §21-137](https://library.municode.com/va/spotsylvania_county/codes/code_of_ordinances?nodeId=COCO_CH21TA_ARTIVRESATA_S21-137EXCEENSO) expressly exempts domestic-consumption firewood from the local retail sales tax imposed by §21-136. Its ordinance history identifies January 12, 1982. The current publication is Supplement 137, Update 1, updated August 28, 2026 and codified through Ordinance 7-18, adopted May 26, 2026. The publication's four listed later ordinances concern animals, technology zones and Chesapeake Bay rules, not this exemption. This is current published-code confirmation, not a new written tax ruling or a claim that unpublished legislation was exhaustively checked.
+
+[23VAC10-210-630](https://law.lis.virginia.gov/admincode/title23/agency10/chapter210/section630/) supports the state exemption and sources local sales tax to the established business that first takes the order. The owner identified that location as 5802 Ford Rd, Fredericksburg, VA 22407, in Spotsylvania. Qualification depends on the individual's actual domestic use, including the more-than-50% dealer classification test; the address or customer category alone is insufficient. A tenant buying for their own residence differs from a landlord buying for a rental operation. Retain sale-specific substantiation; ST-15 is available, but clearly identifiable domestic-fuel sale records can substantiate individual transactions. Keep the existing unsupported-use hold and recheck sourcing if the order-taking location changes.
+
+[Virginia Code §58.1-609.13](https://law.lis.virginia.gov/vacode/title58.1/chapter6/section58.1-609.13/) explains why the county ordinance is needed in addition to the state exemption. The general agency exemptions page's local-tax statement is not a reason to override a locality's enacted exemption.
+
+**Stacking:** retain the current limited treatment as an incidental part of the qualifying delivered-firewood sale. [§58.1-602](https://law.lis.virginia.gov/vacode/title58.1/chapter6/section58.1-602/) includes services that form part of a sale in its sales-price definition. Applying the qualifying sale's treatment to its ancillary stacking charge is an inference from that rule, not a retrieved stacking-specific agency ruling. It does not approve standalone stacking, mixed taxable goods, commercial fuel sales or out-of-state orders. The existing form refuses stacking-only invoices; taxable sales would need consistent native create/edit support first.
+
+Evidence is retained privately in `/Users/noelsierra/Documents/Codex/2026-10-24/firewood-tax-terms-review/`: `county-retail-tax-current.txt/.png` and `county-publication-current.txt/.png`. Web text extraction could not retrieve this page; normal browser navigation successfully displayed the current county publication and exact section. No county message was sent.
+
+## Separate business-filing question: Forest Products Tax
+
+The sales-tax exemption does **not** determine every business tax. Virginia separately taxes forest products once, with liability assigned to the first manufacturer unless a severer has paid it; severers supplying an unregistered manufacturer can also be liable. Tax-paid purchases need the prescribed supporting documentation. This is a concrete sourcing/processing question for ATS, not a reason to add retail sales tax to a qualifying homeowner invoice. [§58.1-1602](https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1602/).
+
+The statute explicitly includes fuel wood and lists a hardwood/non-pine rate of **11.25 cents per standard cord**, with a permitted log-tonnage election. This is a unit-based business tax, not 11.25% of the customer's price. Do not round a half-cord assessment into a new per-invoice fee, assign a filing basis or assume a tax-paid credit without evidence. [§58.1-1604(5)](https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1604/).
+
+Virginia Tax's [Forest Products Tax guidance](https://www.tax.virginia.gov/miscellaneous-taxes) describes processing at a fixed business location and the normal quarterly return. Confirm whether ATS cuts/splits its own wood, buys documented tax-paid product, or does both, and have its tax preparer determine registration/filing treatment before live sales. Neither the CRM nor repository establishes ATS's actual registration or previously paid tax. No business account was opened, filing submitted, tax election chosen or customer charge added. This question does not invalidate the confirmed domestic-fuel sales-tax treatment.
+
+## What the actual Firewood customer sees
+
+The existing flow creates a standalone invoice and uses the common invoice document, portal, print view, email draft and payment chooser. It has no completed-delivery fact. Product/price facts are editable invoice line snapshots; prices are $450/full cord, $300/half cord and $150/stacking delivery as starting defaults. The delivered address now renders correctly.
+
+Every new invoice currently receives `legacy-2026-10-22`. The shared renderer always selects that saved version; thirteen clauses include tree-service labor warranty and site-work wording. A database check accepts only the legacy identifier, and a private invoker trigger refuses relabeling an existing record. This preservation is intentional and remains correct. Renaming a line or selecting a visual Firewood template is not authority to override those protections.
+
+The following issues were checked against source and, where indicated, reproduced with synthetic inputs:
+
+| Current clause / surface | Finding | Recommendation for future Firewood invoices |
+| --- | --- | --- |
+| Payment Due Date | Creation defaults to 15 days, but staff can choose a different due date. Email/header use that date while the clause always says 15 days. Reproduced with November 30, 2026. | Use the invoice's shown due date. Retain the existing editable/default behavior unless the owner separately chooses delivery/prepayment terms. |
+| Accepted Forms of Payment | Text always promises a 3% eligible-card surcharge; runtime can use another rate or disable it. Synthetic 250-bps/disabled settings leave the text at 3%. | Refer to available secure-checkout options and any fee disclosed before authorization. Preserve debit/prepaid exclusions and all actual eligibility/calculation rules. |
+| Late Fees & Interest | The 1.5%/$25 compounded clause is inherited; this review found no dedicated automatic assessment engine in the previously reviewed path. | Do not carry penalties into new Firewood wording without an explicit business/legal decision. Do not add a fee engine or alter existing balances. |
+| Returned / Declined Payments | Inherited $35 wording includes declined electronic payments. | Keep this out of the proposed new version pending an approved returned-payment policy; do not automatically penalize a declined card. |
+| Collection & Legal Costs | General collection promise, not specific to product sales. | Owner/legal review before reuse. No new collection workflow or charges. |
+| Disputes & Adjustments | Seven-day deemed-acceptance wording does not describe a practical delivery shortage/quality process. | Provide prompt office-contact and inspection guidance; do not invent forfeiture of all rights after seven days. |
+| Scope Confirmation | Refers to work orders/estimates; Firewood is standalone. | Identify the purchased wood, quantity/unit price, included delivery and separately selected stacking from invoice lines. |
+| Satisfaction & Warranty | Twelve-month workmanship coverage and watering/site-care conditions are not an appropriate description of the wood product. | Replace only in a new approved version with accurate product specifications and an approved correction process. No automatic “as-is”/no-refund disclaimer. |
+| Site Access & Safety | General work-area wording; existing Firewood facts already specify wheelbarrow access and reasonable stacking distance. | Reuse those confirmed access facts and agreed delivery location; do not invent a distance limit, redelivery fee or damage waiver. |
+| Force Majeure | General delay disclaimer does not confirm a delivery appointment. | Keep delivery arrangements separate and state that dates are coordinated with the office. Do not promise a new delivery window or blanket nonperformance waiver. |
+| Limitation of Liability | Broad invoice-amount cap and consequential-loss exclusion. | Do not automatically copy into consumer-product terms; obtain review for the actual goods/delivery policy. |
+| Governing Law & Venue | Existing Virginia/county wording. | Keep historical text; review the future clause with the other business terms rather than invent a new jurisdiction. |
+| Acceptance | Payment of any amount is said to accept all terms. | Do not treat prepayment as confirmation that the wood was delivered, inspected or accepted in its actual condition. |
+| Invoice email draft | `scopeHeading` is always **Completed work**, even for an unfulfilled standalone Firewood invoice. Confirmed with the real draft generator. | Use **Firewood and delivery** for the explicitly bound Firewood document family; make no completion claim. Preserve saved payloads and delivery identities. |
+| Document section | **Services and charges / Invoice details** uses service-oriented language. | A small family-specific heading change can follow the saved terms/purpose binding. Keep amounts, payment state and printing unchanged. |
+| Seller / delivery record | Buyer address is shown, but the footer has a region rather than a full seller address; issue date is not delivery date. | Approve the seller address for customer documents and provide a separate actual delivery confirmation where needed. Do not expose internal notes or substitute invoice creation for actual delivery. This is an operational recommendation, not a claim that the current invoice meets every delivery-ticket requirement. |
+
+Relevant source: `src/lib/documents/terms/legacy-2026-10-22.ts`, `src/lib/documents/terms.ts`, `src/lib/invoices/due-date.ts`, `src/lib/documents/email-drafts.ts`, `src/lib/payments/payment-options.ts`, `src/components/documents/invoice-document.tsx`, `src/components/documents/document-shell.tsx` and migration `20261023030829_preserve_customer_document_terms.sql`.
+
+## Product wording and consumer-sale boundaries
+
+Use full cords and half cords consistently. Virginia defines a cord as 128 cubic feet with the wood ranked and well stowed; half a cord is 64 cubic feet. The definition governs sales and price quotations. Fourteen-inch logs do not change the required volume. Do not replace the unit with a truckload or imply a full cord from an unmeasured pile. [§3.2-5600](https://law.lis.virginia.gov/vacode/title3.2/chapter56/section3.2-5600/), [§3.2-5641](https://law.lis.virginia.gov/vacode/title3.2/chapter56/section3.2-5641/).
+
+Retain the owner's existing red-oak/hickory/white-oak mix, at-least-12-month seasoning after splitting and approximate 14-inch length. These are product representations, not cosmetic copy. [§8.2-313](https://law.lis.virginia.gov/vacode/title8.2/part3/section8.2-313/) explains how descriptions/promises can form express warranties. Do not invent a moisture percentage, kiln-drying guarantee, equal species proportions or perfect-fit guarantee.
+
+Removing an irrelevant labor-warranty sentence is not a finding that no product warranties exist. Warranty exclusions have specific conditions under [§8.2-316](https://law.lis.virginia.gov/vacode/title8.2/part3/section8.2-316/); remedy limits also have boundaries under [§8.2-719](https://law.lis.virginia.gov/vacode/title8.2/part7/section8.2-719/). Acceptance of goods considers a reasonable inspection opportunity under [§8.2-606](https://law.lis.virginia.gov/vacode/title8.2/part6/section8.2-606/). These are reasons to review the proposed consumer wording, not a legal conclusion that each current clause is enforceable or invalid.
+
+## Concrete wording draft for review — not an active policy
+
+The following is a plain-language starting draft for a **new** Firewood version. It intentionally leaves unresolved penalties, refund/cancellation promises and liability restrictions out of the draft; omission here is not authorization to remove them from existing records.
+
+1. **Your order.** The invoice lists the firewood quantity, unit price, product description and any selected stacking service. One full cord is 128 cubic feet when properly stacked; one half cord is 64 cubic feet.
+2. **Product description.** Red oak, hickory and white oak, seasoned for at least 12 months after splitting. Logs are generally about 14 inches long. Any agreed changes should be shown in the invoice's product description.
+3. **Delivery and stacking.** Delivery is included in the wood price. Stacking is optional, charged per delivery as listed, and requires wheelbarrow access and a location within a reasonable distance of the truck. Confirm the delivery arrangements with our office.
+4. **Payment.** Pay the balance by the due date shown on this invoice. Available payment options and any eligible credit-card surcharge are disclosed in secure checkout before authorization. Debit/prepaid card payments are not subject to the eligible-credit-card surcharge.
+5. **Household-use tax basis.** This invoice records the household-use confirmation for the stated delivery address. Notify our office if the purchase is for business or other nonqualifying use so its tax treatment can be reviewed.
+6. **Questions about your delivery.** Check the delivered quantity and product against your order and contact Angel Tree Services at (540) 388-8715 with any concerns. The office will review the issue with you. Payment alone does not record delivery completion or an inspection result in the CRM.
+
+Before approval, the owner should choose: whether the existing 15-day default remains the Firewood default; the cancellation/refund/correction process and any permitted charges; whether stacking has a defined access limit; and which seller address is approved for customer documents. Confirm the separate wood-sourcing/Forest Products Tax filing facts above as well. No decision is required merely to finish this review, and no assumed answer has been implemented. Payment on/before delivery would be a separate business-policy change.
+
+## Next implementation in the existing roadmap
+
+Implement the approved Firewood terms/version and labels together in one small local/staging batch. Preserve the thirteen legacy clauses exactly and leave historical invoices/email payloads untouched. Add a new supported version through the existing schema/version system; bind it inside a validated, authorized atomic creation command, include the intended family/version in durable request identity, and retain existing committed-request recovery. Generic callers must not select arbitrary terms via browser fields. Keep the no-relabel trigger and existing financial/RLS boundaries.
+
+Use the saved immutable binding for future Firewood document/email selection; mutable line names alone must not decide contractual terms. Mixed tree-work/product invoices and taxable uses remain outside this dedicated flow. Existing legacy-bound drafts should be retained or replaced through an explicitly reviewed new-document workflow, not silently upgraded. Do not turn ordinary quantity/price edits into a delivery-completion or cancellation operation.
+
+Required acceptance: legacy/bound/pre-migration rendering equality; unsupported-version denial; generic/Firewood creation/replay/concurrency and changed-request behavior; ordinary edit preservation; caller permissions; consistent due date and checkout disclosure; unfulfilled-product email wording; saved-payload recovery with no duplicate sends; and local/staging synthetic portal/print coverage. No new approval, fee, payment-provider or scheduling architecture is needed for this batch. This review has not authored or applied that migration.
+
+## Verification and preservation
+
+**80 focused existing checks passed**: six immutable-terms tests plus 74 Firewood/address cases. Synthetic local renderer/draft checks reproduced the completed-work heading, editable-date/15-day clause difference and configured-rate/3% clause difference without network/provider I/O. Thirteen legacy invoice clauses still match the independently captured digest `061f0675abd085dd1a583dbbfdaf87d263c2bc89c268e98954e5ede466469a6b`; unsupported future identifiers fail closed.
+
+No application source, tests, migration, financial rule, RLS/grant, price, setting, secret or deployment configuration changed in this review. Existing full Firewood verification remains historical evidence: 2,897 regular checks, build/typecheck, 15 actual local API scenarios and 40 native assertions per local/staging target. Those expensive checks were not repeated for a documentation-only review, and no staging/production connection was opened in this batch. The separate runtime-security worktree remains at its original checkpoint.
+
+Sanitized receipt: `staging/FIREWOOD_TAX_TERMS_REVIEW_20261024.json`. Private review results and retained county evidence are in the directory above. No outside inquiry or customer communication was sent. The new review is saved locally; a later push/release remains separate from the completed Firewood push.

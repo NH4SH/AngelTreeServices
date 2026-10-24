@@ -1,0 +1,150 @@
+{
+  "observedAt": "2026-10-24T18:26:56.593539+00:00",
+  "status": "review-complete-documents-only-not-released",
+  "verifiedFirewoodPushedToMain": "fa84edf15ba9eb9a9b4a46fc47a32a864f41ec14",
+  "previousReminderBrowsingPreservedThrough": "194c1d1",
+  "branch": "codex/firewood-tax-terms-review",
+  "countyTax": {
+    "result": "domestic-firewood-local-sales-tax-exemption-confirmed-in-current-published-county-code",
+    "section": "21-137",
+    "url": "https://library.municode.com/va/spotsylvania_county/codes/code_of_ordinances?nodeId=COCO_CH21TA_ARTIVRESATA_S21-137EXCEENSO",
+    "publication": "Supplement 137 Update 1",
+    "publicationUpdated": "2026-08-28",
+    "codifiedThroughOrdinance": "7-18",
+    "codifiedThroughAdoption": "2026-05-26",
+    "ordinanceHistory": "1982-01-12",
+    "laterListedOrdinancesReviewed": [
+      "4-37",
+      "4-36",
+      "24-7",
+      "6A-7"
+    ],
+    "laterListedOrdinancesChangeFuelExemption": false,
+    "evidenceMethod": "actual-rendered-county-code-in-normal-browser",
+    "countyEmployeeContacted": false,
+    "bindingAgencyRulingObtained": false,
+    "stateRule": "23VAC10-210-630",
+    "confirmedOrderTakingLocality": "Spotsylvania County, Virginia",
+    "qualifyingCombinedTaxCents": 0,
+    "buyerUseQualificationAndSaleSubstantiationRequired": true,
+    "stackingTreatment": "limited-ancillary-sale-inference-not-a-stacking-specific-ruling",
+    "evidenceSha256": {
+      "county-retail-tax-current.txt": "2746c0f6d648cada5ce4f62e1b8690ab63f1dd1cdb77d675bd8bbe60a43241ef",
+      "county-retail-tax-current.png": "b6f833f8241b7b0cea47a6acc8e1b2684103be03e2afa008db8455a9ccac3046",
+      "county-publication-current.txt": "40ae9bfebb0c4c7ae2a5d7c19e86aa3fbae6e72e53f617420bf87cdcccdad649",
+      "county-publication-current.png": "37aad09b77043037639976a75ae3ecc26fd838881e6d7756f8c03cad31c0162b"
+    }
+  },
+  "termsReview": {
+    "existingVersion": "legacy-2026-10-22",
+    "existingInvoiceClausesReviewed": 13,
+    "legacyDigestVerified": "061f0675abd085dd1a583dbbfdaf87d263c2bc89c268e98954e5ede466469a6b",
+    "recommendedSeparateFutureFirewoodVersion": true,
+    "newWordingDraftIsActive": false,
+    "existingInvoiceRelabelingAllowed": false,
+    "unapprovedBusinessPoliciesNotChosen": true,
+    "reproduced": {
+      "unfulfilledStandaloneFirewoodEmailScopeHeading": "Completed work",
+      "customDueDateDisplay": "November 30, 2026",
+      "legacyDueClause": "Payment in full is due within 15 days of the invoice date.",
+      "syntheticSurchargeBps": 250,
+      "syntheticSurchargeEnabled": false,
+      "legacySurchargePercent": 3
+    },
+    "nextStep": "owner-approved immutable Firewood version, atomic creation binding and matching product/fulfillment-neutral email labels"
+  },
+  "checks": {
+    "focusedExistingTestsPassed": 80,
+    "failures": 0,
+    "skips": 0,
+    "sourceParityWithVerifiedFirewood": true,
+    "sources": [
+      {
+        "path": "apps/platform/src/lib/documents/terms.ts",
+        "sha256": "7859a33265033ed60a2a29dafc7b2a48b1a0d006a022d41d885897be21c25e6f"
+      },
+      {
+        "path": "apps/platform/src/lib/documents/terms/legacy-2026-10-22.ts",
+        "sha256": "f0e6882f618ac950f58eba12f572b2bfaf5b9f9dbff6bfe41aea99a09e51f107"
+      },
+      {
+        "path": "apps/platform/src/lib/documents/email-drafts.ts",
+        "sha256": "1cdc95bb39c2628f151ac380514d62e979625d550de4f8ea478af567420b6229"
+      },
+      {
+        "path": "apps/platform/src/lib/firewood/catalog.ts",
+        "sha256": "91a2359f417f2e1397a8246a87f7b1da87435601487007369ad6f898fc3a14f8"
+      },
+      {
+        "path": "apps/platform/src/lib/firewood/prepare-invoice.ts",
+        "sha256": "e919d08152026166326e0a931be1887574b4dc2e8edc81b83c1a143508fb37b4"
+      },
+      {
+        "path": "apps/platform/src/lib/invoices/due-date.ts",
+        "sha256": "ec6b4bd3c3e7c2710d093c5258376f9205a65321d7d4dfee08b197c331312850"
+      },
+      {
+        "path": "apps/platform/src/lib/payments/payment-options.ts",
+        "sha256": "4e5b6a91f693e1918115048554986f0d01f427ffec17ae91273c52715a9317a6"
+      },
+      {
+        "path": "apps/platform/src/components/documents/invoice-document.tsx",
+        "sha256": "b42dcac4c96af24eec5f1bd5ca1b7b6e1072a4a703c1639e1f885f6b5ab70a0a"
+      },
+      {
+        "path": "apps/platform/src/components/documents/document-shell.tsx",
+        "sha256": "c83bfbe71926a2c8f3fac490d1f38e5e5f129f081a28d977d3d497af51ad6cf4"
+      },
+      {
+        "path": "apps/platform/tests/document-terms-preservation.test.mjs",
+        "sha256": "c17a481691fd7e74fceb5c64830fafd4d7e6fd3eaa90fa363dbbb2af53c7ea86"
+      },
+      {
+        "path": "apps/platform/tests/document-terms-legacy-20261022.json",
+        "sha256": "2b64e7378cb1e04a0c8671b1cb013e4f7f8ddc0dd28a774beaac343f7956665a"
+      },
+      {
+        "path": "apps/platform/tests/firewood-sales.test.mjs",
+        "sha256": "70dda4a7c074eeb58ffa2485d98dc52888354f9bb4ccc3fc53fef125e45638a2"
+      },
+      {
+        "path": "apps/platform/tests/firewood-invoice-location.test.mjs",
+        "sha256": "25fa71a307154b73426d19f8f54ea2437746ba67368898d69c3167c7f64d3834"
+      }
+    ],
+    "runtimeCheckpointPreserved": "06580f6",
+    "whitespaceCheckRequired": true
+  },
+  "newMigration": false,
+  "applicationBehaviorChanged": false,
+  "databaseStarted": false,
+  "stagingQueried": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "outsideMessagesSent": 0,
+  "keysRotated": false,
+  "appDeployed": false,
+  "productionReady": false,
+  "limitations": [
+    "Published code includes its normal warning about later legislation; no binding written county/agency ruling was requested.",
+    "Stacking treatment is an inference for an ancillary part of this qualifying sale, not a new standalone-service exemption.",
+    "Business/legal approval of final terms remains before implementing a new version; no policy was activated.",
+    "Prior full local/staging Firewood evidence is retained; this documentation-only batch reran focused offline checks rather than hosted staging or production tests.",
+    "Forest Products Tax is a separate seller-side sourcing/processing and registration question; customer sales-tax exemption is not an exemption from all business taxes."
+  ],
+  "sellerForestProductsTaxReview": {
+    "distinctFromCustomerSalesTax": true,
+    "liabilitySource": "https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1602/",
+    "rateSource": "https://law.lis.virginia.gov/vacode/title58.1/chapter16/section58.1-1604/",
+    "agencyGuidance": "https://www.tax.virginia.gov/miscellaneous-taxes",
+    "hardwoodFuelWoodCentsPerCord": 11.25,
+    "isPercentageOfRetailPrice": false,
+    "atsProcessingAndTaxPaidSourcingFactsConfirmed": false,
+    "atsRegistrationOrFilingStatusConfirmed": false,
+    "followUp": "owner sourcing facts and tax-preparer review",
+    "customerChargeAdded": false,
+    "filingOrRegistrationSubmitted": false
+  }
+}

@@ -115,7 +115,7 @@ async function processClaimedCommunication(supabase: SupabaseClient, communicati
   let accepted = false;
   try {
     const settingsResult = await getCommunicationSettingsFromClient(supabase);
-    if (!settingsResult.data) throw Error("Settings unavailable");
+    if (settingsResult.error || !settingsResult.data) throw Error("Settings unavailable");
     if (communication.is_automatic && !settingsResult.data.automated_sending_enabled) {
       const recorded = await returnToPending(supabase, communication, "Automated sending is disabled.");
       return { status: "pending", outcome: "not_sent", recorded, message: "Automated sending is disabled. This reminder was not sent." };

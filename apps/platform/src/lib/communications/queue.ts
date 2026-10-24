@@ -49,16 +49,19 @@ type QueueInput = Pick<
 >;
 
 export async function getCommunicationSettingsFromClient(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("communication_settings")
-    .select("*")
-    .eq("singleton", true)
-    .maybeSingle();
-
-  return {
-    data: (data as CommunicationSettings | null) ?? null,
-    error: error?.message ?? null,
-  };
+  try {
+    const { data, error } = await supabase
+      .from("communication_settings")
+      .select("*")
+      .eq("singleton", true)
+      .maybeSingle();
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) {
+      return { data: null, error: "Communication settings are unavailable." };
+    }
+    return { data: data as CommunicationSettings, error: null };
+  } catch {
+    return { data: null, error: "Communication settings are unavailable." };
+  }
 }
 
 export async function syncAutomatedCommunications(supabase: SupabaseClient) {

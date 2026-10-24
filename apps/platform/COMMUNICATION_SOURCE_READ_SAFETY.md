@@ -44,3 +44,7 @@ This backend-only fix adds no UI and changes no templates, so browser/mailbox ac
 ### Push follow-through — October 23, 2026
 
 The verified source-read fix is pushed normally to `origin/main` as `1f1cfb79e386eb74a575217d612f5cda1d294078`, with CI/Netlify skip markers. The original receipt remains historical local-verification evidence. The next existing checked-update/recovery gap is documented in `APPOINTMENT_QUEUE_SYNC_SAFETY.md`. The concurrent website-only main update `0a85e15` is also preserved in that candidate. No deployment or production change occurred.
+
+### Settings-reader follow-through — October 23, 2026
+
+After the preserved reminder-planning, bulk-cleanup and staging-121 work, `COMMUNICATION_SETTINGS_READ_SAFETY.md` records the focused settings-reader follow-through. Both readers now withhold unsuccessful settings and raw diagnostics, and the processor explicitly checks the returned error before using settings. Existing preparation/claim and accepted-email recovery holds are reused. This is separately verified local work based on main `e89d3bb`; the original source-read report and receipt remain historical evidence. No migration, production change or customer email occurred.

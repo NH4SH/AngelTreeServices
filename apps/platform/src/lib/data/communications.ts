@@ -75,19 +75,21 @@ export async function getCustomerCommunications(
 }
 
 export async function getCommunicationSettings(): Promise<DataResult<CommunicationSettings | null>> {
-  const supabase = await createClient();
-  if (!supabase) return { data: null, error: "Supabase is not configured." };
-
-  const { data, error } = await supabase
-    .from("communication_settings")
-    .select("*")
-    .eq("singleton", true)
-    .maybeSingle();
-
-  return {
-    data: (data as CommunicationSettings | null) ?? null,
-    error: error?.message ?? null,
-  };
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { data: null, error: "Supabase is not configured." };
+    const { data, error } = await supabase
+      .from("communication_settings")
+      .select("*")
+      .eq("singleton", true)
+      .maybeSingle();
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) {
+      return { data: null, error: "Communication settings are unavailable." };
+    }
+    return { data: data as CommunicationSettings, error: null };
+  } catch {
+    return { data: null, error: "Communication settings are unavailable." };
+  }
 }
 
 export async function getCommunicationRecipientOptions({

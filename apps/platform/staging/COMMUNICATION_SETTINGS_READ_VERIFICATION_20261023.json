@@ -1,0 +1,148 @@
+{
+  "observedAt": "2026-10-24T00:19:26.593Z",
+  "status": "verified-local-candidate",
+  "branch": "codex/communication-settings-read-safety",
+  "baseMain": "e89d3bb602251d5587b6d67a3d88a65499a5c572",
+  "migration121ReconciliationPushedToMain": true,
+  "pushCommit": "e89d3bb",
+  "concurrentWebsiteChangePreserved": "a0506d1",
+  "beforeReproduction": {
+    "controlledSyntheticAdapter": true,
+    "workerAcceptedDataAlongsideSettingsError": true,
+    "settingsReaderReturnedRawDiagnostic": true,
+    "syntheticTransportCalls": 1,
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2598,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newFocusedTests": 15
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "migrationCount": 121,
+    "nativeAssertions": 26,
+    "syntheticSourceFixtures": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_comset_814ad78be238",
+    "dataRetained": true,
+    "noSharedReset": true
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 121,
+    "nativeAssertions": 26,
+    "syntheticSourceFixtures": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "catalogObjects": 5111,
+    "protectedRecordSets": 49,
+    "latestMigration": "20261023232306",
+    "freshPinned121MaintenancePassed": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeInputAcceptance": {
+    "localCases": 50,
+    "stagingCases": 50,
+    "actualBeforeAndAfterProcessors": true,
+    "controlledReadFaultResponses": true,
+    "mockTransportOnly": true,
+    "allPassed": true,
+    "healthyPayloadsRecipientsAndKeysUnchanged": true,
+    "settingsFailuresBlockPreparationAndClaims": true,
+    "acceptedEmailFollowupRemainsPendingWithoutResend": true,
+    "lostFailureWritesNotReportedAsRecorded": true,
+    "automaticOffHoldPreserved": true
+  },
+  "actualLocalApi": {
+    "actualLocalSupabaseClientAndPostgrest": true,
+    "healthySettingsPreserved": true,
+    "anonymousReadDenied": true,
+    "controlledReturnedAndThrownTransportErrorsSanitized": true,
+    "staffAndWorkerReadersMatch": true,
+    "readOnlyRequests": true,
+    "settingsChanged": false,
+    "realProviderCalls": 0,
+    "productionChanged": false
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/lib/communications/queue.ts",
+        "sha256": "b1d36b49146387bd3dcbbdfefd18e7f27efb51eea2e788677ff5f20a695df1d1"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/processor.ts",
+        "sha256": "84406a872f53bf1740faad72a7672ea3fe7d389eab13b64cc9d5bb495a92773b"
+      },
+      {
+        "path": "apps/platform/src/lib/data/communications.ts",
+        "sha256": "ea7d2ba9732fbcb2f0985d45a71b20d51a1bf6dd2141d9896fffa6337f5b1376"
+      },
+      {
+        "path": "apps/platform/tests/communication-read-fixture.mjs",
+        "sha256": "65f789c057bb3d1e257b66b0b0a83b6b356620aa319d91fe04d284cfd9ece5bf"
+      },
+      {
+        "path": "apps/platform/tests/communication-settings-read-safety.test.mjs",
+        "sha256": "31735427e30ca65a9b86013473bfbd12d57fe57370869ed3943c17901cfed015"
+      },
+      {
+        "path": "supabase/verification/communication_settings_reads.sql",
+        "sha256": "be79af168c8e9556cf23af60ae4196934ffba10fc3209743e1259340f9651633"
+      }
+    ],
+    "allQueuePlannersUnchanged": true,
+    "processorOnlySettingsConditionChanged": true,
+    "staffLoaderOnlySettingsFunctionChanged": true,
+    "originalMigrationSourcesUnchanged": true,
+    "generatedTypesAndDependenciesUnchanged": true,
+    "financialRulesAndAuthorizationUnchanged": true,
+    "templatesUnchanged": true,
+    "publicWebsiteCompatibilityPassed": true,
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Controlled read-fault adapters; not a real hosted outage or production incident.",
+    "No deployed staging-worker or real-provider/mailbox acceptance claimed.",
+    "Basic result/object guard; not full runtime settings-schema validation.",
+    "No new timeout, automatic retry or recovery UI."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false
+}

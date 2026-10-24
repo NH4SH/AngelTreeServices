@@ -118,7 +118,7 @@ export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<In
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select(
-      "*, jobs(*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(id, full_name, email, phone, is_active), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(id, full_name, email, phone, is_active), invoice_line_items(*), payments(*)",
+      "*, service_locations:service_locations!invoices_service_location_id_fkey(id, label, street, city, state, postal_code), jobs(*, customers:customers!jobs_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone), service_locations(id, label, street, city, state, postal_code, access_notes, service_notes)), customers:customers!invoices_customer_id_fkey(id, display_name, phone, email), organizations(id, name, billing_email, billing_phone, billing_address), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(id, full_name, email, phone, is_active), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(id, full_name, email, phone, is_active), invoice_line_items(*), payments(*)",
     )
     .eq("id", invoiceId)
     .single();

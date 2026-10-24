@@ -1,5 +1,29 @@
 # CRM Usability Regression Checks
 
+## Firewood sales
+
+`firewood-sales.test.mjs` and `firewood-invoice-location.test.mjs` run in the normal
+unit gate. They cover editable catalog defaults, qualifying-use preparation,
+address/role failures, exact paged counts and safe returns, plus the standalone
+invoice address in document/print/customer/email surfaces and capability checks.
+
+`firewood-sales.integration.test.mjs` is opt-in and accepts only a task-owned
+`ats_firewood_*` disposable stack at loopback port 61221. Supply private status,
+environment and result-file paths through `FIREWOOD_STATUS_FILE`,
+`FIREWOOD_ENV_FILE`, `FIREWOOD_RESULTS_FILE`, and the existing Docker executable
+through `FIREWOOD_DOCKER_BIN`, then run:
+
+```sh
+FIREWOOD_DISPOSABLE=1 node --experimental-strip-types --test tests/firewood-sales.integration.test.mjs
+```
+
+It creates synthetic actors/buyers and exercises the real action/Auth/RPC path.
+Fixtures remain in that disposable stack. It forbids provider/network destinations
+outside the owned API. Run `supabase/verification/firewood_invoice_sales.sql`
+inside an explicit BEGIN/ROLLBACK with target verification and exact protected
+state checks; never apply it as a migration. See `../FIREWOOD_SALES.md` for evidence
+and the household-use/tax and staging acceptance boundaries.
+
 ## Customer portal local acceptance
 
 `portal-view-input.test.mjs` and the portal header regression run in the ordinary

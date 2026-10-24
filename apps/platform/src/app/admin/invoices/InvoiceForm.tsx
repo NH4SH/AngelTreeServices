@@ -18,6 +18,8 @@ import {
   type SetStateAction,
 } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
+import { createFirewoodInvoice } from "@/lib/actions/firewood";
+import { firewoodLine, firewoodProducts, type FirewoodProduct } from "@/lib/firewood/catalog";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getDefaultInvoiceDueDate } from "@/lib/invoices/due-date";
@@ -29,7 +31,7 @@ const initialState: InvoiceActionState = {
 };
 
 export function AddInvoiceForm({
-  userId, returnTo,
+  userId, returnTo, firewood = false,
   customers,
   initialCustomerId,
   initialJobId,
@@ -38,7 +40,7 @@ export function AddInvoiceForm({
   serviceCategories,
   serviceLocations,
 }: {
-  userId: string; returnTo?: string;
+  userId: string; returnTo?: string; firewood?: boolean;
   customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
   initialCustomerId?: string;
   initialJobId?: string;
@@ -58,7 +60,7 @@ export function AddInvoiceForm({
     form.set("request_id", requestId.current);
     recovery.beforeSubmit(requestId.current, form);
     form.set("client_navigation", "1");
-    const result = await createInvoice(previous, form);
+    const result = await (firewood ? createFirewoodInvoice : createInvoice)(previous, form);
     if (result.status === "success" && !result.existingInvoice) {
       recovery.acknowledge(); setDirty(false);
       if (result.navigateTo) router.push(result.navigateTo);
@@ -70,7 +72,7 @@ export function AddInvoiceForm({
   const [customerSearch, setCustomerSearch] = useState("");
   const creatingCustomer = selectedPartyValue === "new_customer";
   const selectedParty = parseContractingParty(selectedPartyValue);
-  const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([newInvoiceLine("new-invoice-line-1")]);
+  const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([{ ...newInvoiceLine("new-invoice-line-1"), ...(firewood ? firewoodLine("full") : {}) }]);
   const matchingJobs = useMemo(
     () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
     [jobs, selectedParty],
@@ -88,9 +90,12 @@ export function AddInvoiceForm({
     if (!query) return customers;
     return customers.filter((customer) => [customer.display_name, customer.email, customer.phone, customer.billing_address].filter(Boolean).join(" ").toLowerCase().includes(query));
   }, [customerSearch, customers]);
+  function addFirewood(product: FirewoodProduct) {
+    setLineItems(items => [...items, { ...newInvoiceLine(), ...firewoodLine(product) }]); markDirty();
+  }
   const totalCents = lineItems.reduce((sum, item) => sum + invoiceLineTotal(item), 0);
   const recovery = useDocumentRecovery({
-    userId, kind: "invoice", recordKey: `new:${initialCustomerId ?? ""}:${initialJobId ?? ""}`, revision: "new", persistedIds: [],
+    userId, kind: "invoice", recordKey: `new:${firewood ? "firewood:" : ""}${initialCustomerId ?? ""}:${initialJobId ?? ""}`, revision: "new", persistedIds: [],
     dirty, pending, changeToken: lineItems,
     restore: copy => {
       setCustomerSearch(""); setSelectedPartyValue(copy.fields.contracting_party ?? "");
@@ -119,8 +124,8 @@ export function AddInvoiceForm({
 
       <section className="quote-editor-section">
         <div>
-          <p className="surface-label">New invoice</p>
-          <h3>Contracting party and billing details</h3>
+          {!firewood ? <p className="surface-label">New invoice</p> : null}
+          {firewood ? <h2>Customer and delivery</h2> : <h3>Contracting party and billing details</h3>}
         </div>
         <div className="form-grid-two">
           <label>
@@ -128,16 +133,16 @@ export function AddInvoiceForm({
             <input onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Name, phone, email, or address" type="search" value={customerSearch} />
           </label>
           <label>
-            Contracting party
+            {firewood ? "Customer" : "Contracting party"}
             <select
               name="contracting_party"
               onChange={(event) => setSelectedPartyValue(event.target.value)}
               value={selectedPartyValue}
             >
-              <option value="">Choose customer or organization</option>
+              <option value="">{firewood ? "Choose a customer" : "Choose customer or organization"}</option>
               <option value="new_customer">Create a new walk-in customer</option>
               <optgroup label="Individual customers">{visibleCustomers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}{customer.phone ? ` - ${customer.phone}` : ""}</option>)}</optgroup>
-              <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
+              {!firewood ? <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup> : null}
             </select>
           </label>
         </div>
@@ -166,13 +171,13 @@ export function AddInvoiceForm({
         ) : null}
         {!creatingCustomer ? <div className="form-grid-two">
           <label>
-            Service location (optional)
-            <select name="service_location_id">
-              <option value="">No property selected</option>
+            {firewood ? "Delivery address" : "Service location (optional)"}
+            <select name="service_location_id" required={firewood}>
+              <option value="">{firewood ? "Choose a delivery address" : "No property selected"}</option>
               {matchingLocations.map((location) => <option key={location.id} value={location.id}>{[location.label, location.street, location.city].filter(Boolean).join(" - ")}</option>)}
             </select>
           </label>
-          <label>
+          {!firewood ? <label>
             Work order (optional)
             <select defaultValue={initialJobId ?? ""} name="job_id">
               <option value="">Standalone invoice, no work order</option>
@@ -182,7 +187,7 @@ export function AddInvoiceForm({
                 </option>
               ))}
             </select>
-          </label>
+          </label> : <input name="job_id" type="hidden" value="" />}
         </div> : null}
         <label>
           Due date
@@ -198,10 +203,10 @@ export function AddInvoiceForm({
       <section className="quote-editor-section">
         <div className="quote-editor-section-header">
           <div>
-            <p className="surface-label">Charges</p>
-            <h3>Invoice line items</h3>
+            {!firewood ? <p className="surface-label">Charges</p> : null}
+            {firewood ? <h2>Firewood and stacking</h2> : <h3>Invoice line items</h3>}
           </div>
-          <button
+          {firewood ? <div className="record-actions" aria-label="Add firewood products">{(Object.keys(firewoodProducts) as FirewoodProduct[]).map(product => <button key={product} className="secondary-action" type="button" onClick={() => addFirewood(product)}>{`Add ${product === "stacking" ? "stacking" : `${product} cord`} · ${formatMoney(Math.round(Number(firewoodProducts[product].price) * 100))}${product === "stacking" ? " / delivery" : ""}`}</button>)}</div> : <button
             className="secondary-action quote-line-helper-button"
             onClick={() => {
               setLineItems((items) => [...items, newInvoiceLine()]);
@@ -211,10 +216,11 @@ export function AddInvoiceForm({
           >
             <Plus aria-hidden="true" size={16} />
             Add line item
-          </button>
+          </button>}
         </div>
 
         <InvoiceLineEditors
+          firewood={firewood}
           lineItems={lineItems}
           onDirty={() => markDirty()}
           serviceCategories={serviceCategories}
@@ -223,10 +229,17 @@ export function AddInvoiceForm({
 
         <dl className="quote-editor-totals" aria-label="Invoice totals">
           <div><dt>Subtotal</dt><dd>{formatMoney(totalCents)}</dd></div>
+          {firewood ? <div><dt>Sales tax · household-use exemption</dt><dd>$0.00</dd></div> : null}
           <div><dt>Total</dt><dd>{formatMoney(totalCents)}</dd></div>
         </dl>
       </section>
 
+      {firewood ? <section className="quote-editor-section">
+        <h2>Household-use confirmation</h2>
+        <label className="firewood-use-confirmation"><input type="checkbox" name="firewood_domestic_use" value="confirmed" required />The customer confirms this wood is for use at their own home, primarily for domestic use.</label>
+        <p className="form-help">Qualifying household-use firewood sold from Spotsylvania is exempt from state and local sales tax. Business, landlord and rental-property purchases need a separate tax review.</p>
+        <p className="form-help">Stacking is charged per delivery. Confirm wheelbarrow access and the delivery arrangements with the customer. Saving creates a draft invoice; it does not send email or take payment.</p>
+      </section> : null}
       </fieldset>
       <div className="quote-editor-action-bar">
         <button disabled={pending || recovery.blocked || (!selectedParty && !creatingCustomer)} type="submit">
@@ -416,17 +429,38 @@ export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }
 }
 
 function InvoiceLineEditors({
-  lineItems,
+  lineItems, firewood = false,
   onDirty,
   serviceCategories,
   setLineItems,
 }: {
-  lineItems: InvoiceLineDraft[];
+  lineItems: InvoiceLineDraft[]; firewood?: boolean;
   onDirty?: () => void;
   serviceCategories: ServiceCategory[];
   setLineItems: Dispatch<SetStateAction<InvoiceLineDraft[]>>;
 }) {
   const markDirty = () => onDirty?.();
+
+  if (firewood) return <div className="firewood-line-list">
+    {lineItems.map((item, index) => <article className="firewood-line" key={item.clientId}>
+      <input name="invoice_line_item_id" type="hidden" value={item.persistedId ?? ""} />
+      <input name="invoice_line_item_client_id" type="hidden" value={item.clientId} />
+      <input name="invoice_line_item_service_category_id" type="hidden" value={item.serviceCategoryId} />
+      <div className="firewood-line-heading">
+        {item.name === firewoodProducts.stacking.name ? <><strong>Optional stacking</strong><input name="invoice_line_item_name" type="hidden" value={item.name} /></> : <label>Cord size<select name="invoice_line_item_name" value={item.name} onChange={event => {
+          const product = event.target.value === firewoodProducts.half.name ? "half" : "full";
+          updateInvoiceLine(item.clientId, { ...firewoodLine(product), quantity: item.quantity }, setLineItems); markDirty();
+        }}><option value={firewoodProducts.full.name}>Full cord · delivered</option><option value={firewoodProducts.half.name}>Half cord · delivered</option></select></label>}
+        <button aria-label={`Remove firewood line ${index + 1}`} className="secondary-action" disabled={lineItems.length === 1} type="button" onClick={() => { setLineItems(items => items.filter(row => row.clientId !== item.clientId)); markDirty(); }}><Trash2 aria-hidden="true" size={16} />Remove</button>
+      </div>
+      <div className="quote-line-money-grid">
+        <label>{item.name === firewoodProducts.stacking.name ? "Deliveries to stack" : "Quantity"}<input inputMode="numeric" name="invoice_line_item_quantity" type="number" min="1" max="100" step="1" required value={item.quantity} onChange={event => { updateInvoiceLine(item.clientId, { quantity: event.target.value }, setLineItems); markDirty(); }} /></label>
+        <label>{item.name === firewoodProducts.stacking.name ? "Price per delivery" : "Unit price"}<input inputMode="decimal" name="invoice_line_item_unit_price" type="number" min="0" step="0.01" required value={item.unitPrice} onChange={event => { updateInvoiceLine(item.clientId, { unitPrice: event.target.value }, setLineItems); markDirty(); }} /></label>
+        <div className="quote-line-total" aria-label={`Line ${index + 1} total`}><span>Amount</span><strong>{formatMoney(invoiceLineTotal(item))}</strong></div>
+      </div>
+      <details><summary>Delivery and product details</summary><label>Description<textarea name="invoice_line_item_description" rows={3} value={item.description} onChange={event => { updateInvoiceLine(item.clientId, { description: event.target.value }, setLineItems); markDirty(); }} /></label></details>
+    </article>)}
+  </div>;
 
   return (
     <div className="quote-line-editor-list">
@@ -481,6 +515,7 @@ function InvoiceLineEditors({
           <label>
             Title
             <input
+              readOnly={firewood}
               name="invoice_line_item_name"
               onChange={(event) => updateInvoiceLine(item.clientId, { name: event.target.value }, setLineItems)}
               placeholder="Tree removal, deposit, cleanup"

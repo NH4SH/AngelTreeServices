@@ -22983,3 +22983,16 @@ body:has(.appointment-overlay) {
   .record-reminder-queue .communication-row form { margin-left: 1.25rem; flex-basis: calc(100% - 1.25rem); min-width: 0; }
   .record-reminder-queue .communication-row form button { width: auto; }
 }
+
+.firewood-page { max-width: 76rem; }
+.firewood-page .record-actions { flex-wrap: wrap; }
+.firewood-use-confirmation { display: flex !important; align-items: flex-start; gap: .75rem; }
+.firewood-use-confirmation input[type="checkbox"] { width: 1.25rem; height: 1.25rem; min-height: 1.25rem; flex: 0 0 1.25rem; margin-top: .15rem; accent-color: var(--color-forest); }
+
+.firewood-line { display: grid; gap: 1rem; border-top: 1px solid var(--color-border); padding-block: 1.25rem; }
+.firewood-line-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.firewood-line-heading > label { flex: 1; max-width: 28rem; }
+.firewood-line-heading > button { flex: 0 0 auto; width: auto; }
+.firewood-line details summary { cursor: pointer; color: var(--color-forest); padding-block: .5rem; }
+.firewood-line details label { margin-top: .75rem; }
+.firewood-page .quote-editor-section-header { flex-wrap: wrap; }

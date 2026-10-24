@@ -163,7 +163,7 @@ function PortalUnavailable({ message }: { message: string }) {
 function formatLocation(
   invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceByPortalToken>>["invoice"]>,
 ) {
-  const location = invoice.jobs?.service_locations;
+  const location = invoice.service_locations ?? invoice.jobs?.service_locations;
 
   if (!location) {
     return "Contact Angel Tree Services";

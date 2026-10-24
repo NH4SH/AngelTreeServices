@@ -1214,6 +1214,7 @@ export type QuoteWithRelations = Quote & {
 
 export type InvoiceWithRelations = Invoice & {
   jobs?: Pick<Job, "id" | "status" | "service_type" | "requested_scope"> | null;
+  service_locations?: Pick<ServiceLocation, "id" | "label" | "street" | "city" | "state" | "postal_code"> | null;
   customers?: Pick<Customer, "id" | "display_name" | "phone" | "email"> | null;
   organizations?: Pick<Organization, "id" | "name" | "billing_email" | "billing_phone" | "billing_address"> | null;
   billing_contact?: Pick<OrganizationContact, "id" | "full_name" | "email" | "phone" | "is_active"> | null;

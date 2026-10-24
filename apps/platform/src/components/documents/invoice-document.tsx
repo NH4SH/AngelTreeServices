@@ -116,7 +116,7 @@ function InvoiceLineItems({
 }
 
 function formatLocation(invoice: InvoiceDetail) {
-  const location = invoice.jobs?.service_locations;
+  const location = invoice.service_locations ?? invoice.jobs?.service_locations;
   if (!location) {
     return "No service location attached yet.";
   }

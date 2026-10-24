@@ -282,7 +282,9 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                           : detail.data.jobs.status.replace("_", " ")}
                       </span>
                     </Link>
-                  ) : <EmptyInline>No linked job available.</EmptyInline>}
+                  ) : detail.data.service_locations ? <dl className="record-details">
+                    <div><dt>Delivery address</dt><dd>{[detail.data.service_locations.street, detail.data.service_locations.city, detail.data.service_locations.state, detail.data.service_locations.postal_code].filter(Boolean).join(", ")}</dd></div>
+                  </dl> : <EmptyInline>No linked job available.</EmptyInline>}
                 </section>
 
                 <section className="commerce-side-panel">

@@ -1,0 +1,215 @@
+{
+  "observedAt": "2026-10-24T17:39:52.365Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/firewood-sales",
+  "baseCommit": "28a703a985fd134a15d0f445e4502cc72b1fea7b",
+  "alignedMain": "7386a9d694fbf39df8cfa196014d1391871047cd",
+  "priorReminderWorkPreservedThrough": "194c1d1",
+  "implementation": {
+    "route": "/admin/firewood",
+    "defaultCents": {
+      "fullCordDelivered": 45000,
+      "halfCordDelivered": 30000,
+      "stackingPerDelivery": 15000
+    },
+    "editableInvoicePricesAndWholeQuantities": true,
+    "independentStackingQuantity": true,
+    "explicitHouseholdUseConfirmation": true,
+    "virginiaDeliveryAddressRequired": true,
+    "orderTakingLocality": "Spotsylvania County, Virginia",
+    "taxCentsForQualifyingDomesticUse": 0,
+    "taxEvidenceRecorded": true,
+    "unsupportedTaxUseHeldForReview": true,
+    "existingAtomicInvoiceCommandReused": true,
+    "effectiveAccessAndCallerRlsPreserved": true,
+    "deterministicDurableRetryAndLostResponseRecovery": true,
+    "freshTabDraftRecoveryRequiresUseReconfirmation": true,
+    "invoiceOwnedAddressInStaffCustomerPrintAndEmailDraft": true,
+    "publicAddressFieldsOnlyInPortalJoin": true,
+    "parentInvoicePaging": {
+      "size": 20,
+      "count": "exact",
+      "deadlineMilliseconds": 5000,
+      "oneBoundedRecovery": true,
+      "nativeUuidTieOrdering": true
+    },
+    "newMigration": false
+  },
+  "tests": {
+    "regressionPassed": 2897,
+    "newFocusedPassed": 74,
+    "priorManualReminderSafetyPassed": 21,
+    "actualLocalAuthApiScenarios": 15,
+    "actualLocalApiTapResults": 16,
+    "callerApiRequests": 223,
+    "nativeInvoiceCommandRequests": 19,
+    "nativeAssertionsLocal": 40,
+    "nativeAssertionsStaging": 40,
+    "exactProtectedStateAfterRollback": true,
+    "freshNativeAndOfflineSchema": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "websiteNodePassed": 239,
+    "websitePythonPassed": 9,
+    "websiteBuildAndValidationPassed": true
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "originalLedgerAndProtectedStatePreserved": true,
+    "recordAutomationCommandMatchesLocalRehearsal": true,
+    "priorFollowupExpiryPreserved": true,
+    "approvalExpiryAndTermsPreserved": true,
+    "readOnly": true,
+    "productionReady": false,
+    "protectedSets": 49,
+    "existingSecurityAdvisorCount": 80,
+    "existingAdvisorFindingsUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true
+  },
+  "browser": {
+    "desktopWidth": 1440,
+    "tabletWidth": 768,
+    "mobileWidth": 390,
+    "horizontalOverflow": false,
+    "defaultsAndEditedTotals": true,
+    "requiredUseConfirmation": true,
+    "freshTabRecovery": true,
+    "keyboardFocusAndEnterSave": true,
+    "actualSavedInvoiceAddressVisible": true,
+    "changedLineDetectorFindings": 0,
+    "unrelatedExistingStylesheetFindings": 24,
+    "blockedFrameworkNpmLookups": 2,
+    "temporaryTabsAndViewportRestored": true,
+    "proofImages": [
+      "firewood-desktop-final.png",
+      "firewood-mobile-final.png"
+    ]
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "sources": [
+      {
+        "path": "apps/platform/src/app/admin/invoices/InvoiceForm.tsx",
+        "sha256": "2dc7f6577eef2d0f82d43ace49147a56531e9faeee13766f98ca15b52c607047"
+      },
+      {
+        "path": "apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+        "sha256": "4c2abf3dd93a97eb4b3796103d5a6082a91f449f828f0d069ce1e2ab6a2179ad"
+      },
+      {
+        "path": "apps/platform/src/app/portal/invoice/[token]/page.tsx",
+        "sha256": "8f62b8b802f2f47f3d1ac96cb2f303bef5cd41862a2e10dcc170832a196235dd"
+      },
+      {
+        "path": "apps/platform/src/components/PlatformFrame.tsx",
+        "sha256": "db13d7b0b0c370c999d370eca161a46eec993d586c017ddd5eedf37900332788"
+      },
+      {
+        "path": "apps/platform/src/components/documents/invoice-document.tsx",
+        "sha256": "b42dcac4c96af24eec5f1bd5ca1b7b6e1072a4a703c1639e1f885f6b5ab70a0a"
+      },
+      {
+        "path": "apps/platform/src/lib/data/invoices.ts",
+        "sha256": "afd3571d4320b178970e6ccdde40e0a9565f4838929f718b96ec0ebc90422d89"
+      },
+      {
+        "path": "apps/platform/src/lib/data/portal-invoice.ts",
+        "sha256": "158016b3aec5c013f0b033be0cc3e1f49aee283067d35bf47b48fb5e8421500d"
+      },
+      {
+        "path": "apps/platform/src/lib/documents/email-drafts.ts",
+        "sha256": "1cdc95bb39c2628f151ac380514d62e979625d550de4f8ea478af567420b6229"
+      },
+      {
+        "path": "apps/platform/src/lib/drafts/return-context.ts",
+        "sha256": "d6ce634c586c799a560827597988b17ca2d52332a223b5434945880ba942c78a"
+      },
+      {
+        "path": "apps/platform/src/lib/navigation.ts",
+        "sha256": "f36044367b512406bfbd34b79fe4969708685350aff82cf1fcb5f46b8c0d1d2c"
+      },
+      {
+        "path": "apps/platform/src/lib/types/database.ts",
+        "sha256": "ebfcb9b4732a1c0d8fb7707b0ffb374aee1432b47e37b9aae41e9864127bab5d"
+      },
+      {
+        "path": "apps/platform/src/styles/globals.css",
+        "sha256": "51dc8447b8231f5359fe2fff471e06eb2271fcc05c28369f2a76ef8dbed18c3d"
+      },
+      {
+        "path": "apps/platform/src/app/admin/firewood/page.tsx",
+        "sha256": "272bbb4b807f57fbe1c02a4551efcb2997329204255efc6e29dac97c28828ff0"
+      },
+      {
+        "path": "apps/platform/src/lib/actions/firewood.ts",
+        "sha256": "80a68ca4b96ccd9443eb4718139af2ab3eb49b8b952f44d9328c8800fe60ca80"
+      },
+      {
+        "path": "apps/platform/src/lib/firewood/catalog.ts",
+        "sha256": "91a2359f417f2e1397a8246a87f7b1da87435601487007369ad6f898fc3a14f8"
+      },
+      {
+        "path": "apps/platform/src/lib/firewood/invoices.ts",
+        "sha256": "cd8f10d59ab960a3720f3a43a29b9b9b324f28e463355fd977204419047cea52"
+      },
+      {
+        "path": "apps/platform/src/lib/firewood/prepare-invoice.ts",
+        "sha256": "e919d08152026166326e0a931be1887574b4dc2e8edc81b83c1a143508fb37b4"
+      },
+      {
+        "path": "apps/platform/tests/firewood-invoice-location.test.mjs",
+        "sha256": "25fa71a307154b73426d19f8f54ea2437746ba67368898d69c3167c7f64d3834"
+      },
+      {
+        "path": "apps/platform/tests/firewood-sales.integration.test.mjs",
+        "sha256": "08a76263b87cd7fa453840133efcba4e09d3b77b6d2ca6c8b0e03bbfd8f06dbb"
+      },
+      {
+        "path": "apps/platform/tests/firewood-sales.test.mjs",
+        "sha256": "70dda4a7c074eeb58ffa2485d98dc52888354f9bb4ccc3fc53fef125e45638a2"
+      },
+      {
+        "path": "supabase/verification/firewood_invoice_sales.sql",
+        "sha256": "ef84977308439462ad798fc8054aaeb74bd7c18d4976aeaec974e35df8e88686"
+      }
+    ],
+    "financialCommandsRlsGrantsPaymentAndSendingLogicUnchanged": true,
+    "migrationsDependenciesAndDeploymentConfigUnchanged": true,
+    "separateRuntimeCheckpoint": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limits": [
+    "Tax default is for qualifying individual domestic-use sales from the confirmed Spotsylvania order-taking location. The published state local-exemption list is dated as of 2014; current county confirmation remains a release follow-up.",
+    "Business/landlord/organization/out-of-state and stacking-only sales are held for separate tax review; taxable workflows have not been enabled.",
+    "Existing immutable invoice terms are unchanged; owner review for delivered products remains a release follow-up.",
+    "Firewood listing uses standard wood line names; renaming every such line removes an invoice from the specialized list, while All invoices retains it.",
+    "Staging acceptance is native rollback-only synthetic SQL with simulated caller claims, not a deployed staging app or hosted browser/Auth run.",
+    "Viewport/keyboard checks do not replace physical-device, spoken screen-reader or real-mailbox acceptance."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalDeliveriesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

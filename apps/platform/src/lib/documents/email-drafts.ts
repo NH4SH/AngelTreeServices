@@ -126,6 +126,7 @@ export type InvoiceEmailDraftInput = Pick<
   | "notes"
   | "organizations"
   | "payment_terms"
+  | "service_locations"
   | "total_cents"
 >;
 
@@ -293,7 +294,7 @@ function formatQuoteLocation(quote: QuoteEmailDraftInput) {
 }
 
 function formatInvoiceLocation(invoice: InvoiceEmailDraftInput) {
-  return formatCustomerFacingAddress(invoice.jobs?.service_locations)
+  return formatCustomerFacingAddress(invoice.service_locations ?? invoice.jobs?.service_locations)
     || "the service property";
 }
 

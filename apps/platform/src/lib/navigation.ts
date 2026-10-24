@@ -24,6 +24,7 @@ import {
   UserPlus,
   UsersRound,
   Workflow,
+  Logs,
 } from "lucide-react";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 
@@ -92,6 +93,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "jobs", label: "Jobs", href: "/admin/jobs", icon: Workflow, section: "workflow", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/jobs/*"], keywords: ["work orders", "closeouts", "field work"] },
   { id: "schedule", label: "Schedule", href: "/admin/schedule", icon: CalendarDays, section: "workflow", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/schedule/*"], keywords: ["calendar", "appointments", "crew"] },
   { id: "invoices", label: "Invoices", href: "/admin/invoices", icon: ReceiptText, section: "workflow", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/invoices/*"], keywords: ["billing", "payments", "accounts receivable"] },
+  { id: "firewood", label: "Firewood", href: "/admin/firewood", icon: Logs, section: "operations", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/firewood"], keywords: ["wood", "cord", "delivery", "stacking", "heating"] },
   { id: "follow-ups", label: "Follow-ups", href: "/admin/follow-ups", icon: ClipboardList, section: "workflow", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/follow-ups/*", "/admin/recurring/*"], keywords: ["callbacks", "reminders", "renewals", "recommendations", "recurring"] },
 
   { id: "customers", label: "Customers", href: "/admin/customers", icon: UsersRound, section: "records", audience: "admin", permission: "internalStaff", activePatterns: ["/admin/customers/*"], keywords: ["people", "homeowners", "contacts"] },

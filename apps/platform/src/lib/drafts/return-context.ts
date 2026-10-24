@@ -4,7 +4,7 @@ export function safeReturnTo(value: unknown, fallback = "/admin/quotes"): string
   if (typeof value !== "string" || value.length > 1800 || /[\\\x00-\x1f%#]/.test(value.split("?")[0]) || !value.startsWith("/admin/")) return fallback;
   try {
     const url = new URL(value, "https://crm.invalid");
-    if (url.origin !== "https://crm.invalid" || !["/admin/quotes", "/admin/invoices", "/admin/jobs", "/admin/communications"].includes(url.pathname)) return fallback;
+    if (url.origin !== "https://crm.invalid" || !["/admin/quotes", "/admin/invoices", "/admin/firewood", "/admin/jobs", "/admin/communications"].includes(url.pathname)) return fallback;
     const query = new URLSearchParams();
     for (const name of ["q", "status", "page", "archived", "view"]) {
       const item = url.searchParams.get(name);

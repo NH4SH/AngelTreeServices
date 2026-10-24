@@ -16,6 +16,7 @@ export type PlatformNavigationId =
   | "change-orders"
   | "recurring"
   | "invoices"
+  | "firewood"
   | "schedule"
   | "equipment"
   | "materials"

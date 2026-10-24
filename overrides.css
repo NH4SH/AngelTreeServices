@@ -1145,6 +1145,43 @@ body.ats-form-submitted .ats-form-success {
   outline-offset: 4px;
 }
 
+/* Direct service choices stay within the existing Tree Service card. */
+#about .ats-home-tree-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  min-width: 0;
+  margin: 20px 0 12px;
+  text-align: left;
+}
+
+#about .ats-home-tree-links a {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+
+#about .ats-home-tree-links a:hover {
+  color: var(--ats-green-soft);
+  text-decoration-thickness: 2px;
+}
+
+#about .ats-home-tree-links a:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html,
   html:focus-within {
@@ -2857,6 +2894,34 @@ body.ats-form-submitted .ats-form-success {
   #about .list-item-content__text-wrapper {
     min-width: 0;
     text-align: left;
+  }
+
+  /* Flatten only the generic tree-content wrapper so its links can use the
+     full row. The two existing Explore buttons keep matching column widths. */
+  #about .ats-home-tree-card .list-item-content {
+    display: contents;
+  }
+
+  #about .ats-home-tree-card .list-item-content__text-wrapper,
+  #about .ats-home-tree-card .list-item-content__button-wrapper {
+    grid-column: 2;
+  }
+
+  #about .ats-home-tree-links {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  #about .ats-home-tree-links a {
+    color: var(--ats-green-deep);
+  }
+
+  #about .ats-home-tree-links a:hover {
+    color: var(--ats-green);
+  }
+
+  #about .ats-home-tree-links a:focus-visible {
+    outline-color: var(--ats-green-deep);
   }
 
   #about .user-items-list-item-container .list-item-content__title {

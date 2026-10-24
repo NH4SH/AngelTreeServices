@@ -1,0 +1,158 @@
+{
+  "observedAt": "2026-10-24T03:46:10.997Z",
+  "status": "verified-local-and-rollback-only-staging",
+  "branch": "codex/reminder-queue-visibility",
+  "baseMain": "b184367f31d1d69905e382a5ef67f0907db6c0c4",
+  "manualReminderBatchPushedToMain": "2940f0e",
+  "concurrentMainIncluded": "b184367f31d1d69905e382a5ef67f0907db6c0c4",
+  "implementation": {
+    "allThreeQueueViewsPaged": true,
+    "nativeDueTimeOrderingBeforePagination": true,
+    "deterministicIdTieBreaker": true,
+    "exactCallerScopedCounts": true,
+    "readErrorsDistinctFromEmpty": true,
+    "boundedStaleRangeRecovery": true,
+    "deadlineMilliseconds": 5000,
+    "pageSize": 30,
+    "queueMutationsAdded": false,
+    "migrationRequired": false
+  },
+  "tests": {
+    "regressionPassed": 2733,
+    "newFocusedPassed": 39,
+    "priorManualRequestPassed": 21,
+    "actualLocalApiScenarios": 9,
+    "actualLocalApiTapResults": 10,
+    "readOnlyApiRequests": 135,
+    "recordsPerView": 1003,
+    "nativeAssertionsLocal": 31,
+    "nativeAssertionsStaging": 31,
+    "rollbackPreservedExactState": true,
+    "freshNativeAndOfflineSchema": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0,
+    "publicNodeTests": 239,
+    "publicPythonTests": 9,
+    "publicBuildAndValidation": true,
+    "publicPython": "3.13.16",
+    "realProviderCalls": 0
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 123,
+    "latestMigration": "20261024014934",
+    "catalogObjects": 5112,
+    "originalLedgerAndProtectedStatePreserved": true,
+    "recordAutomationCommandMatchesLocalRehearsal": true,
+    "priorFollowupExpiryPreserved": true,
+    "approvalExpiryAndTermsPreserved": true,
+    "readOnly": true,
+    "productionReady": false,
+    "protectedSets": 49,
+    "securityAdvisors": 80,
+    "existingAdvisorFindingsUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true
+  },
+  "browser": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "overflow": false
+    },
+    "keyboardPaging": true,
+    "independentPagesAndLeadFiltersPreserved": true,
+    "controlledReadFailure": true,
+    "controlledEmptyState": true,
+    "readFailureDoesNotMaskOtherQueues": true,
+    "anchorClearsMobileHeader": true,
+    "errors": 0,
+    "detectorFindings": 0,
+    "blockedFrameworkNpmLookups": 4,
+    "proofImages": [
+      "queue-before.png",
+      "queue-desktop.png",
+      "queue-mobile.png",
+      "queue-error.png"
+    ]
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "sources": [
+      {
+        "path": "apps/platform/src/app/admin/communications/page.tsx",
+        "sha256": "3bc0686f41413b5c2435a5a6dafdb2864b7eb235aefd8432587c15ae64ff6a8d"
+      },
+      {
+        "path": "apps/platform/src/components/communication-queue-section.tsx",
+        "sha256": "f8f0d00ec37e6ee5a1199e7e6bb477d154e6da18e92318f24306565c158eee6c"
+      },
+      {
+        "path": "apps/platform/src/lib/communications/queue-page.ts",
+        "sha256": "229fc8878bf519b9f650ea14433eca491755ce1bcd70c1732787b602e14a2dbe"
+      },
+      {
+        "path": "apps/platform/src/lib/data/communication-queue.ts",
+        "sha256": "a4abda7e20d03647a745fbe9191532cd62a9c267393156542cb1f9e271f5cf91"
+      },
+      {
+        "path": "apps/platform/src/styles/globals.css",
+        "sha256": "0d80f180f68b8811062fc9f5ae76c436acb556ee661dbfb126d8d43f369ab0e0"
+      },
+      {
+        "path": "apps/platform/tests/communication-queue-page.test.mjs",
+        "sha256": "164ed94271c98753c929519ab4f6616681c413456debcc0ed4fcd5fb2a4bd7a7"
+      },
+      {
+        "path": "apps/platform/tests/communication-queue.integration.test.mjs",
+        "sha256": "c2e1360e2e158068cb31787976b11710b36c4855a9c52d0cc2cd5dbe43e7f46b"
+      },
+      {
+        "path": "supabase/verification/communication_queue_visibility.sql",
+        "sha256": "91e5aa9d9f49a1dd5291dadc734a730e9cc80af3351634ccf8fb399676e81711"
+      }
+    ],
+    "priorReminderRequestAndCancellationLogicUnchanged": true,
+    "processorQueueTemplatesFinancialCommandsRlsAndGrantsUnchanged": true,
+    "migrationsAndSchemaSourceUnchanged": true,
+    "dependenciesAndDeploymentConfigUnchanged": true,
+    "financialHistoryAndDeliveryIdentitiesPreserved": true,
+    "separateRuntimeCheckpoint": "06580f6",
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "limitations": [
+    "Offset pages show a live queue, not one immutable snapshot across navigation; concurrent state changes may move rows between pages. Refresh to review current state.",
+    "Exact counts are bounded by the same five-second request deadline and caller RLS; failures show unavailable rather than zero.",
+    "Record-detail reminder previews, dashboard previews, website-lead context and latest document-email history remain their existing bounded views; this batch covers the three communications queue sections.",
+    "Hosted tests are native rollback-only synthetic SQL with simulated session claims, not a deployed staging application or hosted Auth-session acceptance.",
+    "Browser viewport checks are not physical-device, real-mailbox or spoken screen-reader acceptance.",
+    "Initial public compatibility build used macOS Python 3.9, which cannot parse existing f-string syntax; the unchanged build and validation passed with installed Python 3.13.16."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "customerEmailsSent": 0,
+  "providerRequests": 0,
+  "historicalDeliveriesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

@@ -56,3 +56,7 @@ ATS CRM Staging (`gbyhdsuiqeslgjdnbqng`) remains exactly at **123 migrations**, 
 Only this task's temporary preview/tab and newly owned loopback database are stopped; synthetic data is retained. Shared databases, scanner operations, unrelated review artifacts and runtime-security checkpoint `06580f6` are preserved. The batch is saved locally on `codex/manual-reminder-retry-safety`, containing current main `4c73280`, pending a separate push request. Existing owner-policy, real mailbox/device/accessibility and managed-runtime work stays in the existing roadmap.
 
 Sanitized receipt: `staging/MANUAL_REMINDER_RETRY_VERIFICATION_20261023.json`. Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/manual-reminder-retry-safety/`, including original source/reproduction, native fingerprints, SQL/API/build logs and the saved/cancelled request images. Raw snapshots, Auth identities, synthetic credentials and diagnostics remain outside Git.
+
+### Queue visibility follow-through
+
+This verified request/retry batch is pushed normally to main as `2940f0e`. `COMMUNICATION_QUEUE_VISIBILITY.md` records the next focused PR14 read-only follow-through: complete paged scheduled/failed/history queue sections, due-time ordering before pagination, exact caller-scoped totals and honest read-error/empty states. Stable manual request identities, cancellation, native sending safeguards and historical deliveries remain unchanged. The new batch stays local and undeployed.

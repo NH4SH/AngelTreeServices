@@ -13,17 +13,17 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import {
   getCommunicationSettings,
-  getCustomerCommunications,
   getWebsiteLeadInbox,
   type WebsiteLeadInboxItem,
 } from "@/lib/data/communications";
+import { getCommunicationQueuePage } from "@/lib/data/communication-queue";
 import { getEmailEvents } from "@/lib/data/email-events";
-import type { CustomerCommunication } from "@/lib/types/database";
+import { CommunicationQueueSection } from "@/components/communication-queue-section";
 import { LeadLifecycleActions } from "./LeadLifecycleActions";
 import { SenderBlockControls } from "./SenderBlockControls";
 import { getSenderBlockData, type SenderBlockData, type SenderControls } from "@/lib/leads/sender-blocks";
 
-export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ lead_view?: string; page?: string; q?: string; block_page?: string; block_history?: string }> }) {
+export default async function CommunicationsPage({ searchParams }: { searchParams: Promise<{ lead_view?: string; page?: string; q?: string; block_page?: string; block_history?: string; reminder_page?: string; failed_page?: string; history_page?: string }> }) {
   const params = await searchParams;
   const page = positivePage(params.page);
   const leadView = params.lead_view === "spam" || params.lead_view === "archived" ? params.lead_view : "active";
@@ -32,9 +32,9 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
 
   const [settings, pendingCommunications, failedCommunications, recentCommunications, websiteLeads, emailEvents] = await Promise.all([
     getCommunicationSettings(),
-    getCustomerCommunications({ statuses: ["pending"], limit: 30 }),
-    getCustomerCommunications({ statuses: ["failed"], limit: 20 }),
-    getCustomerCommunications({ statuses: ["processing", "sent", "skipped", "cancelled"], limit: 20 }),
+    getCommunicationQueuePage("scheduled", params.reminder_page),
+    getCommunicationQueuePage("failed", params.failed_page),
+    getCommunicationQueuePage("history", params.history_page),
     getWebsiteLeadInbox({ disposition: leadView, limit: 24, page, query: params.q }),
     getEmailEvents({ types: ["quote", "invoice", "change_order"], limit: 30 }),
   ]);
@@ -43,10 +43,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const blockPage = Math.min(10000, positivePage(params.block_page));
   const blockHistory = params.block_history === "1";
   const senderBlocks = canManageSettings && leadView === "spam" ? await getSenderBlockData(websiteLeads.data.map(lead => lead.jobId), blockPage, blockHistory) : null;
-  const pending = pendingCommunications.data.sort(byScheduledDate);
-  const failed = failedCommunications.data;
-  const recent = recentCommunications.data;
-  const communicationsError = pendingCommunications.error ?? failedCommunications.error ?? recentCommunications.error;
+  const queueParams = { ...params, reminder_page: String(pendingCommunications.page), failed_page: String(failedCommunications.page), history_page: String(recentCommunications.page) };
   const acceptedEmailCount = emailEvents.data.filter((item) => item.status === "sent").length;
   const failedEmailCount = emailEvents.data.filter((item) => item.status === "failed").length;
   const leadViewLabel = leadView === "active" ? "Active leads" : leadView === "spam" ? "Spam leads" : "Archived leads";
@@ -72,15 +69,14 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         </nav>
 
         {settings.error ? <Warning message={settings.error} /> : null}
-        {communicationsError ? <Warning message={communicationsError} /> : null}
         {websiteLeads.error ? <Warning message={websiteLeads.error} /> : null}
         {emailEvents.error ? <Warning message={`Email delivery history: ${emailEvents.error}`} /> : null}
 
         <dl aria-label="Communication summary" className="communication-summary-strip">
           <Metric icon={<Globe2 size={19} />} label={leadViewLabel} value={websiteLeads.count} />
-          <Metric icon={<CalendarClock size={19} />} label="Pending messages" value={pending.length} />
-          <Metric icon={<AlertTriangle size={19} />} label="Recent failures" value={failed.length + failedEmailCount} />
-          <Metric icon={<MailCheck size={19} />} label="Recent accepted" value={acceptedEmailCount} />
+          <Metric icon={<CalendarClock size={19} />} label="Pending messages" value={pendingCommunications.count ?? "Unavailable"} />
+          <Metric icon={<AlertTriangle size={19} />} label="Failed reminders" value={failedCommunications.count ?? "Unavailable"} />
+          <Metric icon={<MailCheck size={19} />} label="Recent accepted" value={emailEvents.error ? "Unavailable" : acceptedEmailCount} />
         </dl>
 
         <section className="website-lead-workspace" id="website-leads">
@@ -100,26 +96,18 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
           {leadView === "spam" ? <p className="muted">Marking a lead as spam hides this request. Use Block sender to stop future matching requests. Restoring a lead does not remove sender blocks.</p> : null}
           {senderBlocks?.error ? <Warning message={senderBlocks.error} /> : null}
           <WebsiteLeadRows canDelete={canDeleteLeads} canManage={canManageSettings} rows={websiteLeads.data} senderControls={senderBlocks?.controls ?? []} />
-          <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={{ lead_view: leadView === "active" ? undefined : leadView, q: params.q }} />
+          <ListPagination basePath="/admin/communications" count={websiteLeads.count} page={page} pageSize={24} params={queueParams} />
           {senderBlocks && !senderBlocks.error ? <SenderBlockRegister data={senderBlocks} page={blockPage} leadPage={page} query={params.q} history={blockHistory} expanded={Boolean(params.block_page)} /> : null}
         </section>
 
         <section className="detail-grid communication-page-grid" id="inbox">
-          <article className="detail-panel wide-detail-panel">
-            <h2 className="panel-title"><CalendarClock size={18} />Scheduled reminders</h2>
-            <CommunicationRows rows={pending} empty="No reminders are currently scheduled." />
-          </article>
-          <article className="detail-panel">
-            <h2 className="panel-title"><AlertTriangle size={18} />Failed communications</h2>
-            <CommunicationRows rows={failed} empty="No failed communications." />
-          </article>
-          <article className="detail-panel">
-            <h2 className="panel-title"><MailCheck size={18} />Recent history</h2>
-            <CommunicationRows rows={recent} empty="No communication history yet." />
-          </article>
+          <CommunicationQueueSection title="Scheduled reminders" icon={<CalendarClock size={18} />} result={pendingCommunications} empty="No reminders are currently scheduled." anchor="scheduled-reminders" pageParam="reminder_page" params={queueParams} wide />
+          <CommunicationQueueSection title="Failed communications" icon={<AlertTriangle size={18} />} result={failedCommunications} empty="No failed communications." anchor="failed-reminders" pageParam="failed_page" params={queueParams} />
+          <CommunicationQueueSection title="Recent history" icon={<MailCheck size={18} />} result={recentCommunications} empty="No communication history yet." anchor="reminder-history" pageParam="history_page" params={queueParams} />
           <article className="detail-panel wide-detail-panel" id="history">
             <h2 className="panel-title"><MailCheck size={18} />Quote and invoice email delivery</h2>
             <p className="inline-empty">Provider accepted means Resend accepted the message for delivery. It does not prove the recipient opened it or that every receiving mail server placed it in the inbox.</p>
+            {!emailEvents.error ? <p className="inline-empty">Latest email records: {acceptedEmailCount} accepted, {failedEmailCount} failed.</p> : null}
             <EmailHistoryList events={emailEvents.data} />
           </article>
         </section>
@@ -253,46 +241,12 @@ function formatPreferredContactMethod(value: string | null) {
   }
 }
 
-function CommunicationRows({ empty, rows }: { empty: string; rows: CustomerCommunication[] }) {
-  if (!rows.length) return <p className="inline-empty">{empty}</p>;
-
-  return (
-    <div className="communication-list">
-      {rows.map((item) => (
-        <Link className={`communication-row status-${item.status}`} href={recordHref(item)} key={item.id}>
-          <div>
-            <strong>{item.communication_type.replaceAll("_", " ")}</strong>
-            <span>{item.status} - {formatDateTime(item.sent_at ?? item.scheduled_for)}</span>
-            <small>{item.recipient_email}</small>
-            {item.skip_reason || item.last_error ? <small>{item.skip_reason || item.last_error}</small> : null}
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
+function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number | string }) {
   return <div><dt><span aria-hidden="true">{icon}</span>{label}</dt><dd>{value}</dd></div>;
 }
 
 function Warning({ message }: { message: string }) {
   return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
-}
-
-function recordHref(item: CustomerCommunication) {
-  if (item.quote_id) return `/admin/quotes/${item.quote_id}`;
-  if (item.invoice_id) return `/admin/invoices/${item.invoice_id}`;
-  if (item.schedule_event_id) return `/admin/schedule?event=${item.schedule_event_id}`;
-  if (item.appointment_id) return `/admin/schedule?appointment=${item.appointment_id}`;
-  if (item.job_id) return `/admin/jobs/${item.job_id}`;
-  return item.organization_id
-    ? `/admin/organizations/${item.organization_id}`
-    : `/admin/customers/${item.customer_id}`;
-}
-
-function byScheduledDate(left: CustomerCommunication, right: CustomerCommunication) {
-  return new Date(left.scheduled_for).getTime() - new Date(right.scheduled_for).getTime();
 }
 
 function formatDateTime(value: string) {

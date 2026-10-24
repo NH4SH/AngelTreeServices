@@ -22963,3 +22963,8 @@ body:has(.appointment-overlay) {
   .sender-block-dialog footer { flex-wrap: wrap; }
   .sender-block-dialog footer button { flex: 1 1 150px; }
 }
+
+/* Keep reminder page headings below the fixed mobile header. */
+.communication-queue-panel { scroll-margin-block-start: 7rem; }
+
+.communication-queue-panel .communication-row { justify-content: flex-start; }

@@ -1,0 +1,147 @@
+{
+  "observedAt": "2026-10-24T02:34:33.627Z",
+  "status": "staging-123-reconciled",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "branch": "codex/staging-record-automation-123",
+  "baseMain": "a0e2082087b37ed31a844dd4e3ecbb2f6aa6068e",
+  "atomicReminderToggleFixPushedToMain": true,
+  "pushCommit": "53307ec",
+  "concurrentWebsiteChangePreserved": "a0e2082",
+  "migrationCount": 123,
+  "latestMigration": "20261024014934",
+  "sourceMigration": {
+    "name": "20261024014934_atomic_record_reminder_automation.sql",
+    "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920",
+    "originalSourceUnchanged": true
+  },
+  "localVerification": {
+    "fresh122Replay": true,
+    "candidateRollbackAssertions": 58,
+    "failedNativeUpgradeRollsBackSchemaAndLedger": true,
+    "nativeUpgradeAndRepeat": true,
+    "installedAssertions": 58,
+    "migrationCount": 123,
+    "allOriginalLedgerRowsAndRecordsPreserved": true,
+    "onlyReviewedInvokerCommandAdded": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "realProviderCalls": 0,
+    "freshNative123SchemaCheck": true,
+    "offlineMigrationAndPublicTypeFingerprints": true,
+    "typegen": true,
+    "typecheck": true,
+    "frameworkFloor": true,
+    "providerCredentialsCopied": false,
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRerun": false,
+    "applicationCodeUnchanged": true,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_recordauto_d35b4867b02f",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false,
+    "sqlFixturesRolledBack": true,
+    "observedNativePermissions": true,
+    "actualAuthApiScenarios": 28,
+    "actualAuthApiTapResults": 29,
+    "realLockWaitsObserved": true,
+    "lostCommitAcknowledgementRecovery": true,
+    "queueTimeoutRollsBackSourceAndQueue": true,
+    "applicationProviderRequests": 0
+  },
+  "stagingVerification": {
+    "physicalIdentityPinned": true,
+    "original122CompleteLedgerRowsPreserved": true,
+    "nativeLastMigrationMatchesLocal": true,
+    "catalogObjects": 5112,
+    "onlyOneReviewedSecurityInvokerCommandAdded": true,
+    "allExistingCatalogRlsEffectiveAccessAndRightsPreserved": true,
+    "protectedRecordSets": 49,
+    "protectedStateAndAuthEmailGuardByteIdentical": true,
+    "candidateAssertions": 58,
+    "installedAssertions": 58,
+    "syntheticIdentitiesPerSuite": 10,
+    "candidateDdlAndAllFixturesRolledBack": true,
+    "onlyOriginal123Installed": true,
+    "seedsImported": false,
+    "rolesImported": false,
+    "vaultSecretsImported": false,
+    "repeatDryRunUpToDate": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "securityAdvisorFindingsUnchanged": true,
+    "securityAdvisorCount": 80,
+    "securityAdvisorNames": {
+      "authenticated_security_definer_function_executable": 79,
+      "auth_leaked_password_protection": 1
+    },
+    "freshReadOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 123,
+      "latestMigration": "20261024014934",
+      "catalogObjects": 5112,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "recordAutomationCommandMatchesLocalRehearsal": true,
+      "priorFollowupExpiryPreserved": true,
+      "approvalExpiryAndTermsPreserved": true,
+      "readOnly": true,
+      "productionReady": false
+    }
+  },
+  "unitSuite": {
+    "passed": 2663,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newMaintenanceTests": 10
+  },
+  "publicCompatibility": {
+    "javascriptTests": 239,
+    "pythonTests": 9,
+    "build": true,
+    "validatedPages": 18,
+    "pythonRuntime": "3.13.16",
+    "initialSystemPython39BuildFailureRecovered": true
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/scripts/release/verify-staging-record-automation-candidate.mjs",
+        "sha256": "29a380826f45bdb470d86ea52e4f449e1db74dc603b44ec3a2f9a376add16203"
+      },
+      {
+        "path": "apps/platform/tests/staging-record-automation-candidate.test.mjs",
+        "sha256": "e6f164cf7b9b3074070e063ed866866d713d2486384cf0de90bab1f9b4e8cd2e"
+      },
+      {
+        "path": "supabase/staging/record-automation-candidate-123.json",
+        "sha256": "a5891095038b8a3bdaaecaf5c7cc113fd93ff6a1d134496401f888a7d92a37ff"
+      },
+      {
+        "path": "supabase/staging/record-automation-snapshot-123.sql",
+        "sha256": "b0c5530b712721e07c1d18c9729b52ef4f27eba30d6a2db38210d1026a69765f"
+      }
+    ],
+    "originalMigrationSourcesAndGeneratedTypesUnchanged": true,
+    "applicationSourceAndDependenciesUnchanged": true,
+    "financialRulesDeliveryHistoryAndPriorCrmWorkPreserved": true,
+    "historicalCandidatesAndReceiptsUnchanged": true,
+    "existingDeferredReleaseHoldPreserved": true,
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Native staging authorization checks use synthetic identities and simulated session claims inside rollback-only SQL, not a deployed app or hosted Auth-session acceptance.",
+    "Optimized CRM build, rendered UI and mailbox acceptance were not repeated because application source is unchanged; prior implementation evidence remains intact.",
+    "Existing 80 hosted security-advisor findings are unchanged and remain outside this command-only reconciliation.",
+    "Public compatibility initially used system Python 3.9; the unchanged site built and validated using the existing Python 3.13 runtime."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false,
+  "productionReady": false
+}

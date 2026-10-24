@@ -1,0 +1,168 @@
+{
+  "observedAt": "2026-10-24T00:32:01.494Z",
+  "status": "verified-local-candidate",
+  "branch": "codex/reminder-link-read-safety",
+  "baseMain": "56caef49bcb314debbd01c093b9f58ac1383d021",
+  "settingsReadSafetyPushedToMain": true,
+  "pushCommit": "011f53f",
+  "concurrentWebsiteChangePreserved": "56caef4",
+  "beforeReproduction": {
+    "actualSavedPreChangeProcessorAndActualLinkReaders": true,
+    "controlledReadFaultResponses": true,
+    "results": [
+      {
+        "type": "quote_follow_up",
+        "returnedTokenReadErrorBecameSkipped": true,
+        "syntheticTransportCalls": 0
+      },
+      {
+        "type": "invoice_payment_reminder",
+        "returnedTokenReadErrorBecameSkipped": true,
+        "syntheticTransportCalls": 0
+      },
+      {
+        "type": "overdue_invoice_reminder",
+        "returnedTokenReadErrorBecameSkipped": true,
+        "syntheticTransportCalls": 0
+      }
+    ],
+    "realProviderCalls": 0
+  },
+  "unitSuite": {
+    "passed": 2617,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "newFocusedTests": 19
+  },
+  "build": {
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "reactDom": "19.2.9",
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "environmentFilesCopied": false,
+    "providerCredentialsPresent": false,
+    "externalApplicationNetworkAttempts": 0
+  },
+  "localDatabase": {
+    "loopbackDisposableOnly": true,
+    "migrationCount": 121,
+    "nativeAssertions": 34,
+    "syntheticSourceFixtures": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "nativeSqlStateComparisonScope": "Immediately before and after rollback-only SQL; separate API checks retain synthetic local fixtures.",
+    "actualApiScenarios": 21,
+    "actualApiTapResults": 22,
+    "apiCasesAllPassed": true,
+    "actualSdkAndDurableCommands": true,
+    "realProviderCalls": 0,
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_linkread_c9c47f6d3f63",
+    "dataRetained": true,
+    "noSharedReset": true
+  },
+  "stagingDatabase": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "migrationCount": 121,
+    "nativeAssertions": 34,
+    "syntheticSourceFixtures": 5,
+    "syntheticFixturesRolledBack": true,
+    "exactLedgerCatalogAndProtectedStatePreserved": true,
+    "storedSendingEnabled": false,
+    "migrationsApplied": 0,
+    "providerCalls": 0,
+    "productionChanged": false,
+    "catalogObjects": 5111,
+    "protectedRecordSets": 49,
+    "latestMigration": "20261023232306",
+    "freshPinned121MaintenancePassed": true,
+    "exactLedgerCatalogRecordsSettingsGuardUnchanged": true,
+    "automatedSendingOff": true,
+    "appointmentNoticesOff": true,
+    "recurringGenerationOff": true,
+    "applicationDeployed": false,
+    "productionReady": false
+  },
+  "nativeInputAcceptance": {
+    "localCases": 61,
+    "stagingCases": 61,
+    "actualBeforeAndAfterProcessorsAndLinkReaders": true,
+    "controlledReadFaultResponses": true,
+    "mockTransportOnly": true,
+    "allPassed": true,
+    "healthyPayloadsRecipientsAndKeysUnchanged": true,
+    "unverifiableLinksFailWithoutReplacementOrAutomaticRetry": true,
+    "paymentReceiptControlPreserved": true,
+    "lostFailureWriteNotReportedAsRecorded": true,
+    "uncertainResultHeld": true,
+    "automaticOffHoldPreserved": true
+  },
+  "preservation": {
+    "testedSourceParity": true,
+    "testedSources": [
+      {
+        "path": "apps/platform/src/lib/communications/processor.ts",
+        "sha256": "34e3c1953a2d8a1b5851042b94a919f4d2999f5c8aaa94ddc131c4a346ce50a6"
+      },
+      {
+        "path": "apps/platform/tests/communication-read-fixture.mjs",
+        "sha256": "916288b4c17e6f4b4df5015bb0deb1fe63b0e7d29699409f7039c3c578e7b8d4"
+      },
+      {
+        "path": "apps/platform/tests/reminder-link-read-fixture.mjs",
+        "sha256": "4d37c8b4e801cdfb3392321e15bc32f409601ea477ff58f6a2111c6276624d75"
+      },
+      {
+        "path": "apps/platform/tests/reminder-link-read-safety.test.mjs",
+        "sha256": "95bce0360a7ad729ca5f28ba4dde6b9617cbb0d24ba3cb6e921adb4ce8c97015"
+      },
+      {
+        "path": "apps/platform/tests/reminder-link-read.integration.test.mjs",
+        "sha256": "e621c4f280e25e564e3156dce1ed1b2bf1d600b4b199781db0f29ff53b03ea0a"
+      },
+      {
+        "path": "supabase/verification/reminder_link_reads.sql",
+        "sha256": "0f981b7e8cac9fc084f1f1af221bfe2cd678d14412e2d834931ee41042a0c4b1"
+      },
+      {
+        "path": "PUBLIC_SITE_RELEASE_CHECKLIST.md",
+        "sha256": "77b658326017e7d0005d215c2e74bcd300b2a452c86e28e17eeab52fe78f7708"
+      },
+      {
+        "path": "scripts/build-public-pages.py",
+        "sha256": "2f3dad6940c0617a20b38e4139c74ae36e96e258ad7f15a7ffe9179fad8425b0"
+      }
+    ],
+    "onlyTwoApplicationConditionsChanged": true,
+    "sharedTokenCryptoPartyExpiryRevocationAndUrlChecksUnchanged": true,
+    "queuePlannersAndDeliveryCommandsUnchanged": true,
+    "originalMigrationSourcesUnchanged": true,
+    "generatedTypesAndDependenciesUnchanged": true,
+    "financialRulesAndAuthorizationUnchanged": true,
+    "templatesUnchanged": true,
+    "priorWebsiteAndCrmWorkPreserved": true,
+    "publicCompatibilityTestsBuildAnd18PagesPassed": true,
+    "separateRuntimeCheckpointPreserved": "06580f6"
+  },
+  "limitations": [
+    "Hosted read faults are controlled response adapters, not a real staging outage.",
+    "Local API cases use actual SDK/native commands and injected HTTP read errors with synthetic transport.",
+    "No deployed staging-worker, real-provider or mailbox acceptance claimed.",
+    "Historical skipped messages are untouched; no replacement link, new timeout, automatic retry or recovery UI."
+  ],
+  "applicationDeployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "historicalMessagesRetried": false,
+  "keysRotated": false
+}

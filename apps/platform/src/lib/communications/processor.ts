@@ -341,7 +341,7 @@ async function prepareQuoteFollowUp(
   }
 
   const portal = await getExistingCommunicationPortalUrl(supabase, "quote", quote.id);
-  if (!portal.url || !portal.tokenId) return { action: "skip", reason: portal.error ?? "The active quote link is unavailable." };
+  if (portal.error || !portal.url || !portal.tokenId) throw Error("Customer link verification unavailable");
 
   const lineItems = ((quote.quote_line_items ?? []) as { name: string; description: string | null; sort_order: number }[])
     .sort((left, right) => left.sort_order - right.sort_order);
@@ -385,7 +385,7 @@ async function prepareInvoiceReminder(
   if (balanceDueCents <= 0) return { action: "cancel", reason: "The invoice no longer has a balance due." };
 
   const portal = await getExistingCommunicationPortalUrl(supabase, "invoice", invoice.id);
-  if (!portal.url || !portal.tokenId) return { action: "skip", reason: portal.error ?? "The active invoice link is unavailable." };
+  if (portal.error || !portal.url || !portal.tokenId) throw Error("Customer link verification unavailable");
 
   const job = one<{ service_locations: LocationRow | LocationRow[] | null }>(invoice.jobs);
   const location = one<LocationRow>(job?.service_locations ?? null);

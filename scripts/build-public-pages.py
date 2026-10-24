@@ -991,8 +991,8 @@ def commercial_body() -> str:
     </section>
     <section class="ats-content-section ats-content-section--white">
       <div class="ats-section-inner ats-two-column">
-        <div class="ats-prose"><p class="ats-eyebrow">A practical workflow</p><h2>Keep the property and the decision path clear.</h2><p>Angel Tree Services can record organization and property context with the estimate request, then provide a written scope for review. Digital quote, approval, and invoice tools support a cleaner handoff without exposing internal systems.</p><p>Angel Tree Services is insured. Certificates of insurance are available upon request; ask the office to coordinate current documentation for your organization.</p></div>
-        <aside class="ats-callout"><h2>No customer list without permission</h2><p>We do not publish organization names, partnerships, or property relationships without authorization. Project proof will be added only when the underlying facts and media are approved.</p></aside>
+        <div class="ats-prose"><p class="ats-eyebrow">A practical workflow</p><h2>What affects your tree-work estimate?</h2><p>Commercial and HOA tree work is quoted for the trees, the site and the agreed scope. Cost factors include:</p><ul><li><strong>Trees and work requested.</strong> The number, size and condition of the trees, and the pruning or removal needed.</li><li><strong>Access and equipment.</strong> Buildings, gates, parking, slopes and room for equipment can affect how the work is planned.</li><li><strong>Cleanup and phases.</strong> Wood and brush handling, stump grinding and any separately agreed phases affect the quote.</li></ul><p>Angel Tree Services is insured. Certificates of insurance are available upon request; ask the office to coordinate current documentation for your organization.</p></div>
+        <aside class="ats-callout"><h2>Know what your proposal includes.</h2><p>Your written proposal should identify:</p><ul><li>The trees or work areas and the pruning, removal or other agreed tree work.</li><li>Wood and brush handling, cleanup and whether stump grinding is included or separate.</li><li>Site access and resident or tenant coordination needs.</li><li>Who will review the proposal and any agreed phases or scheduling requirements.</li></ul><p>Share board dates, access limits and priorities when requesting your estimate.</p></aside>
       </div>
     </section>
     <section class="ats-content-section" aria-labelledby="commercial-review-title">
@@ -1017,10 +1017,14 @@ def commercial_body() -> str:
       </div>
     </section>
     {faq_section([
+        ('What affects commercial and HOA tree-work pricing?', 'The quote depends on the number, size and condition of the trees, the work requested, equipment access and the cleanup agreed. Share the property, priorities and any proposed phases so the written quote makes the scope clear.'),
+        ('What cleanup and stump work is included?', 'Your written proposal should state how wood and brush will be handled and what cleanup is included. Stump grinding is included only when it is listed; confirm whether it is part of the proposal or quoted separately.'),
         ('Can a manager submit for more than one property?', 'Yes. Choose commercial / property management and include the organization, properties, or phases involved. The office can clarify how to separate the scope.'),
         ('Can a board or owner review the proposal?', 'The written proposal provides a clear scope for the appropriate decision-makers to review before approval.'),
-        ('Can you coordinate certificates of insurance?', 'Describe the documentation your organization requires. The office will confirm what current documentation can be provided rather than making a blanket public claim.'),
-        ('Do you offer recurring maintenance?', 'Share the property and desired frequency. Angel Tree Services can confirm whether a recurring or phased approach fits the current services and property.'),
+        ('How do we plan around residents, tenants and site access?', 'Tell us about gates, parking, operating hours and resident or tenant constraints. Share who will coordinate site access and resident or tenant communication. The office can discuss those requirements before work is scheduled.'),
+        ('Can the work be planned in phases?', 'Include the trees or areas you want addressed first, any board dates and the phases you have in mind. The office can confirm whether a phased approach suits the property and document the agreed scope.'),
+        ('Can you coordinate certificates of insurance?', 'Yes. Certificates of insurance are available upon request. Share your organization’s documentation requirements so the office can coordinate the current documents and confirm what can be provided.'),
+        ('Do you offer recurring maintenance?', 'Share the property, work needed and desired frequency. The office can confirm whether a recurring arrangement fits the services and property.'),
     ], 'commercial-faq', 'Questions from property managers')}
     {final_cta('Start a property-management request.', 'Choose commercial / property management in the form and include the organization, property, and approval context.', '/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact', 'Request a property estimate')}"""
 

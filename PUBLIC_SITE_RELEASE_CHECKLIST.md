@@ -1,3 +1,52 @@
+## Commercial & HOA proposal guidance — local draft, October 23, 2026
+
+Owner approved implementation and local tests only. No commit, push, QA upload
+or deployment. Parent: a0506d1; preserve newer upstream CRM work at any approved
+release. Analytics, consent and CRM code/settings remain unchanged.
+
+- Final release-readiness review: no blocking regression found; no application
+  or copy correction needed. Fresh 248 tests and 18-page build/validation pass;
+  all 293 shipping hashes match the implementation draft. Fresh 32 FAQ keyboard/
+  open-answer reflow cases at 320/650/1280px plus synthetic doubled text at 320px
+  pass with visible focus and >=44px targets. Exact name/organization/property-
+  count/multiline draft recovery, commercial context and Clear pass. Both header
+  and hero images load; zero console warnings/errors. Final desktop capture
+  inspected and viewport restored. REVIEW.txt and final-review-* record evidence.
+  Only checklist review evidence changed; commit/push/upload/deploy remain held.
+- Replaced the internal customer-publication permissions callout with a practical
+  proposal checklist covering trees/work areas, cleanup and stumps, access and
+  resident/tenant needs, reviewers, phases and scheduling requirements.
+- Existing workflow prose now explains three estimate factors: trees/work,
+  access/equipment and cleanup/phases. The insured/COI-on-request paragraph is
+  exact. No prices, fees, policy details, documentation guarantees, new services
+  or guaranteed phased/recurring arrangements are invented.
+- Eight FAQs cover pricing, cleanup/stumps, multiple properties, board approval,
+  resident/site access coordination, phases, COI requests and recurring work.
+  Multi-property and board answers are retained exactly; COI wording uses the
+  existing availability statement and retains office confirmation. Phases and
+  recurring work remain subject to confirmation for the property/services.
+- All 239 Node + 9 Python tests pass (248 total); 18 pages build and validate.
+  Only Commercial & HOA HTML changes among 293 shipping files. Other 17 pages,
+  head/schema, all links, photos/captions, complete testimonial and content outside
+  the proposal/FAQ sections remain exact. No CSS, runtime, navigation or assets
+  change. All 49 unrelated review files remain untouched.
+- Browser: normal 320/390/701/1280px and synthetic doubled text at 320/390px;
+  48 FAQ Enter/Space/open-answer reflow cases, visible focus and a settled mouse
+  click pass. Targets >=44px; new-text contrast minimum 5.226:1. Desktop/mobile/
+  enlarged captures inspected. Early mobile logo captures preceded final image
+  loading; refreshed after confirming the same 512px asset loaded, without a
+  source change. Preserved hero photo loads. Zero console warnings/errors.
+- Synthetic name, organization, property count and exact multiline notes survive
+  a service-page visit and estimate return with commercial customer type,
+  Multiple Services / Not Sure Yet and commercial-hoa-tree-care selected. Clear
+  empties test text. No lead submission, call, email or saved consent choice.
+- Local noindex preview blocks external connections/submissions; no upload.
+  Native phone/OS text/keyboard/autofill, spoken screen readers, actual delivery
+  and search outcomes remain unverified. Artificial doubled text retains inherited
+  brand wrapping. Local Maps key is unset; code/production setup unchanged.
+- Evidence: this chat's outputs/commercial-proposal-guidance/. Ready for owner
+  review; release requires approval and non-submitting production checks.
+
 ## Storm/emergency pricing and cleanup — local draft, October 23, 2026
 
 Owner approved implementation and local tests only. No commit, push, QA upload

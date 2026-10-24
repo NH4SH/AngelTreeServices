@@ -1794,18 +1794,33 @@ class Validator:
         if len(rows) != 2:
             self.error('Firewood must show two clearly separated quantity/price rows')
         for row, item in zip(rows, data['quantities']):
-            total = item['wood_price'] + data['delivery_fee']
+            total = item['delivered_price'] + data['stacking_fee']
             if total != item['delivered_stacked_price']:
-                self.error('Firewood total must include the delivery fee exactly once')
-            for text in (item['label'], f'${total}', f"${item['wood_price']} firewood + ${data['delivery_fee']} delivery"):
+                self.error('Firewood stacked total must include the stacking fee exactly once')
+            for text in (item['label'], f"${item['delivered_price']}", f'With stacking: ${total}'):
                 if text not in row:
                     self.error(f'Firewood pricing row is missing {text}')
-        if not data['stacking_included'] or 'Delivered and stacked' not in source:
-            self.error('Firewood prices must clearly include stacking')
+        if not data['delivery_included'] or 'Delivered prices' not in source:
+            self.error('Firewood base prices must clearly include delivery')
+        if data['stacking_fee'] != 150 or data['stacking_fee_basis'] != 'per delivery':
+            self.error('Firewood must use the confirmed $150 stacking charge per delivery')
+        if 'Optional stacking: +$150 per delivery.' not in source or '$150 delivery' in source:
+            self.error('Firewood must separate optional stacking from the delivered price')
+        if [(x['label'], x['delivered_price'], x['delivered_stacked_price']) for x in data['quantities']] != [('Full cord', 450, 600), ('Half cord', 300, 450)]:
+            self.error('Firewood prices must match the owner-confirmed delivered and stacked totals')
         coverage = re.search(r'<ul class="ats-firewood-areas">(.*?)</ul>', source, re.DOTALL)
         if not coverage or re.findall(r'<li>(.*?)</li>', coverage[1]) != data['delivery_areas']:
             self.error('Firewood delivery must list only its confirmed areas')
-        if any(term in source.lower() for term in ('kiln-dried', 'seasoned firewood', 'ready to burn', 'free delivery', 'in stock')):
+        confirmed_terms = ('red oak', 'hickory', 'white oak', 'after splitting', '14 inches', 'wheelbarrow', 'reasonable distance')
+        for term in confirmed_terms:
+            if term not in source.lower():
+                self.error(f'Firewood buying guidance is missing its confirmed {term!r} detail')
+        if data.get('minimum_seasoning_months_after_splitting') != 12 or data.get('typical_log_length_inches') != 14:
+            self.error('Firewood seasoning and approximate length must match the owner-confirmed facts')
+        faq = re.search(r'<h2\b[^>]*id="firewood-faq"[^>]*>.*?</h2>(.*?)</section>', source, re.DOTALL)
+        if not faq or len(re.findall(r'<summary\b', faq[1])) != 5:
+            self.error('Firewood buying guidance must include five FAQs')
+        if any(term in source.lower() for term in ('kiln-dried', 'ready to burn', 'free delivery', 'in stock')):
             self.error('Firewood must not invent drying, stock or delivery claims')
         if '<form' in source or 'estimate_context=firewood' in source:
             self.error('Firewood must not introduce a form or unsupported CRM estimate category')

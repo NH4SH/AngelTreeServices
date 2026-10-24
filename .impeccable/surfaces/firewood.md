@@ -6,18 +6,18 @@ related_targets: ["scripts/build-public-pages.py", "site-pages.css", "public-fir
 ---
 
 Mode: Persuade. Code-led ordinary extension of the public static-page system.
-Scope: Local draft only; no commit, push or deploy. Preserve customer details,
+Scope: Owner-approved public website release. Preserve customer details,
 existing SEO/estimate destinations, analytics, consent and CRM.
 
 ## Direction contract
 
-THESIS: Explain the complete delivered-and-stacked price before the customer
-calls, using two clear price rows rather than a calculator or a card grid.
+THESIS: Explain delivered prices and the optional stacking charge before the
+customer calls, using two clear price rows rather than a calculator or a card grid.
 
 OWN-WORLD: Inherit Poppins, green/cream, existing wave, pill actions, header,
 footer and responsive service hero. No new visual identity or image generation.
 
-STORY: Understand full/half-cord totals and their wood/delivery components,
+STORY: Understand full/half-cord delivered prices and optional stacking totals,
 confirm the five delivery areas, and call about availability and delivery.
 
 FIRST VIEWPORT: Existing green two-column hero: short H1, delivery-area lead
@@ -30,12 +30,34 @@ mobile menu. No shopping cart or estimate-category/CRM change.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
-Confirmed owner facts: cord wood $450 + $150 delivery = $600 delivered and
-stacked; half cord wood $300 + $150 delivery = $450 delivered and stacked.
+Owner-clarified prices (October 23): full cord $450 delivered; half cord $300
+delivered. Stacking adds $150 per delivery: $600/full cord or $450/half cord
+with stacking. Show the delivered base price and optional stacking separately.
 Delivery throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George.
-No species, seasoning, moisture, log length, pickup, stock, taxes, scheduling
-or wider coverage claims are confirmed. No new raster ships; keep incumbent
+Species, seasoning after splitting, approximate log length and stacking access
+were subsequently confirmed on October 23 (see the update below). Pickup,
+stock, taxes, scheduling and wider coverage remain unconfirmed. Keep incumbent
 design files rather than inventing a new system.
+
+## Buying-information draft — October 23, 2026
+
+Local draft only. Add a quiet prose section and five native-details FAQs using
+the incumbent page styles. Confirmed: the mix is red oak, hickory and white oak;
+at least one year of seasoning after splitting; logs generally about 14 inches;
+wheelbarrow access and a reasonable carrying distance required for stacking.
+The owner confirmed delivery at $450/full cord and $300/half cord, with optional
+stacking at $150 per delivery. Preserve page head, URL,
+phone routing and all other pages. Search for authentic product photography;
+do not substitute tree-removal rounds for split firewood or ship a placeholder.
+No analytics, consent or CRM changes; no commit, push or deployment.
+
+Finish review: the inherited pricing panel and quiet prose/FAQ sections remain
+consistent with the incumbent page system. Desktop and 390/320px layouts,
+including synthetic doubled text at 320px, reflow without horizontal overflow.
+All five FAQ controls work by keyboard, show a focus outline and exceed 44px.
+The detector reports no findings. No new raster ships; a verified split/stacked
+firewood photograph remains the only photography gap. Local tests: 248 pass;
+18 pages build and validate. This draft is ready for owner review.
 
 ## Documentation outcome — 2026-10-21
 

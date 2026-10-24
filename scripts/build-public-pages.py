@@ -1700,20 +1700,40 @@ def service_areas_body() -> str:
 def firewood_prices() -> str:
     rows = "".join(f'''
           <article class="ats-firewood-price">
-            <div><h3>{html_text(item['label'])}</h3><p>${item['delivered_stacked_price']}</p></div>
-            <p>${item['wood_price']} firewood + ${FIREWOOD['delivery_fee']} delivery</p>
+            <div><h3>{html_text(item['label'])}</h3><p>${item['delivered_price']}</p></div>
+            <p>With stacking: ${item['delivered_stacked_price']}</p>
           </article>''' for item in FIREWOOD['quantities'])
     return f'''
         <aside class="ats-firewood-prices" aria-labelledby="firewood-prices" data-firewood-prices>
-          <h2 id="firewood-prices">Delivered and stacked</h2>
+          <h2 id="firewood-prices">Delivered prices</h2>
           {rows}
+          <p><strong>Optional stacking: +${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}.</strong></p>
           <div class="ats-actions"><a class="ats-button ats-button--green" href="tel:{PHONE_LINK}">Call about firewood</a><a class="ats-firewood-delivery-link" href="#firewood-delivery">Delivery areas</a></div>
         </aside>'''
 
 
 def firewood_body() -> str:
     places = "".join(f'<li>{html_text(place)}</li>' for place in FIREWOOD['delivery_areas'])
+    species = [wood.lower() for wood in FIREWOOD['wood_species']]
+    wood_mix = ', '.join(species[:-1]) + ' and ' + species[-1]
+    log_length = FIREWOOD['typical_log_length_inches']
+    seasoning_months = FIREWOOD['minimum_seasoning_months_after_splitting']
+    buying_faqs = [
+        ("What wood is included, and how long is it seasoned?", f"Our mix contains {html_text(wood_mix)}. We sell these three hardwoods rather than a general assortment of hardwood species. All of our firewood is seasoned for at least {seasoning_months} months after splitting."),
+        ("How long are the logs?", f"Logs are generally about {log_length} inches long. Lengths are approximate. Check the size your fireplace or wood stove takes, and mention any specific size requirement when you call."),
+        ("Where do you deliver firewood?", "We deliver throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George, including communities within those areas. Give us the delivery address when you call so we can arrange the delivery."),
+        ("Can you stack my firewood?", f"Yes. Stacking is optional and costs an additional ${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}. {html_text(FIREWOOD['stacking_access'])} Tell us about the route and preferred stacking spot when you order so we can confirm access before delivery."),
+        ("How do I order firewood?", f'Call <a href="tel:{PHONE_LINK}">{PHONE_DISPLAY}</a> with your address, whether you want a full cord or half cord, and whether you want delivery only or delivery with stacking. We’ll confirm availability and the arrangements for your order.'),
+    ]
     return f'''
+    <section class="ats-content-section" aria-labelledby="firewood-buying-title">
+      <div class="ats-section-inner ats-section-inner--narrow ats-prose">
+        <h2 id="firewood-buying-title">{html_text(wood_mix.capitalize())}.</h2>
+        <p>Our firewood is a specific mix of these three woods, rather than a general mixed-hardwood assortment.</p>
+        <p><strong>Seasoned after splitting.</strong> All of our firewood is seasoned for at least {seasoning_months} months after it is split.</p>
+        <p><strong>Logs around {log_length} inches long.</strong> Lengths are approximate. Mention any specific fireplace or wood-stove size requirement when you call.</p>
+      </div>
+    </section>
     <section class="ats-content-section ats-content-section--white" aria-labelledby="firewood-delivery">
       <div class="ats-section-inner ats-two-column">
         <div class="ats-prose">
@@ -1723,12 +1743,14 @@ def firewood_body() -> str:
         </div>
         <div class="ats-prose">
           <h2>Plan your delivery.</h2>
-          <p>Call with your delivery address and whether you would like a full cord or half cord. We’ll confirm availability and arrange your delivery and stacking.</p>
-          <p>A full cord is $600 delivered and stacked. A half cord is $450 delivered and stacked. Each total includes the $150 delivery fee.</p>
+          <p>Call with your delivery address, whether you would like a full cord or half cord, and whether you want stacking. We’ll confirm availability and arrange your order.</p>
+          <p>A full cord is ${FIREWOOD['quantities'][0]['delivered_price']} delivered. A half cord is ${FIREWOOD['quantities'][1]['delivered_price']} delivered. Optional stacking adds ${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}, bringing the totals to ${FIREWOOD['quantities'][0]['delivered_stacked_price']} for a full cord or ${FIREWOOD['quantities'][1]['delivered_stacked_price']} for a half cord with stacking.</p>
+          <p>{html_text(FIREWOOD['stacking_access'])} Describe the route and where you would like the wood stacked when you call.</p>
           <p><a class="ats-button ats-button--green" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a></p>
         </div>
       </div>
-    </section>'''
+    </section>
+    {faq_section(buying_faqs, 'firewood-faq', 'Before you order')}'''
 
 
 PAGES = [
@@ -1740,7 +1762,7 @@ PAGES = [
         "title": "Firewood Delivery in Fredericksburg, VA | Angel Tree Services",
         "description": "Firewood delivered and stacked: $600 per cord or $450 per half cord. Delivery throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George.",
         "h1": "Firewood delivery.",
-        "lead": "Delivered and stacked throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George.",
+        "lead": "Delivered throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George. Optional stacking is available.",
         "breadcrumbs": [("Home", "/"), ("Firewood", "/firewood/")],
         "estimate_href": "/#contact",
         "estimate_label": "Request a free estimate",

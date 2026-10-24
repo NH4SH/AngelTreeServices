@@ -5,13 +5,19 @@ Primary users are homeowners and commercial or property-management buyers in the
 
 The public website promotes tree care and landscaping. The owner removed lawn care from the public offering on October 16, 2026; do not reintroduce it in service copy, project showcases, metadata, or estimate choices.
 
-The owner also confirmed firewood sales on October 21, 2026: a full cord is $450
-for the wood plus $150 delivery, totaling $600 delivered and stacked. A half cord
-is $300 for the wood plus $150 delivery, totaling $450 delivered and stacked.
+The owner clarified firewood pricing on October 23, 2026: a full cord is $450
+delivered and a half cord is $300 delivered. Optional stacking is an additional
+$150 per delivery, totaling $600 for a full cord or $450 for a half cord with stacking.
 Firewood delivery covers Fredericksburg, Spotsylvania, Stafford, Caroline and King George,
 including communities within those areas. Do not infer wider firewood delivery
-from the tree/landscaping service-area directory. Wood species, seasoning,
-moisture, log lengths and pickup terms remain unconfirmed.
+from the tree/landscaping service-area directory.
+
+On October 23 the owner confirmed the firewood mix is limited to red oak,
+hickory and white oak; all is seasoned for at least a year after splitting.
+Logs are generally about 14 inches long. Stacking requires wheelbarrow access
+and a reasonable carrying distance from the truck. Show delivered prices and
+the optional stacking charge separately. Measured moisture,
+exact size tolerances, pickup, tax/payment and delivery-time terms remain unconfirmed.
 
 ### Brand Personality
 The brand should feel confident, warm, and premium. The voice should be direct, trustworthy, and professional without feeling stiff or corporate. The interface should reduce hesitation, reinforce legitimacy, and make older homeowners feel comfortable moving forward.

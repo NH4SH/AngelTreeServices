@@ -1,16 +1,21 @@
 {
   "path": "/firewood/",
-  "delivery_fee": 150,
-  "stacking_included": true,
+  "wood_species": ["Red oak", "Hickory", "White oak"],
+  "minimum_seasoning_months_after_splitting": 12,
+  "typical_log_length_inches": 14,
+  "stacking_access": "The stacking location must be accessible by wheelbarrow and within a reasonable distance of the truck.",
+  "delivery_included": true,
+  "stacking_fee": 150,
+  "stacking_fee_basis": "per delivery",
   "quantities": [
     {
       "label": "Full cord",
-      "wood_price": 450,
+      "delivered_price": 450,
       "delivered_stacked_price": 600
     },
     {
       "label": "Half cord",
-      "wood_price": 300,
+      "delivered_price": 300,
       "delivered_stacked_price": 450
     }
   ],

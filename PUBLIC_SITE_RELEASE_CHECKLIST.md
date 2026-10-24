@@ -1,3 +1,49 @@
+## Firewood buying information — approved release, October 23, 2026
+
+Owner approved commit, push and public-site publication after the final review.
+Reviewed base: a0e2082; release parent: 2940f0e, preserving three newer
+CRM/staging-only commits and their 29 paths. Push with [skip ci] [skip netlify],
+then trigger only the public Git build. Keep analytics, consent and CRM unchanged;
+do not submit leads. Final release identifiers and non-submitting smoke checks
+are recorded in this chat's outputs/firewood-buying-release/ after publication.
+
+- Added the confirmed three-wood mix (red oak, hickory and white oak), at least
+  12 months of seasoning after splitting and generally 14-inch logs. The
+  comparison describes Angel's specified mix without an unverified claim about
+  what most suppliers sell. Five FAQs cover the mix/seasoning, approximate
+  length, delivery areas, stacking access and ordering by phone.
+- Owner clarified prices: full cord $450 delivered, half cord $300 delivered;
+  optional stacking is +$150 per delivery, for stacked totals of $600/$450.
+  The hero now shows delivered prices first, the stacking totals beneath each
+  quantity and one separate optional-stacking line. Removed the old $150
+  delivery-fee wording. Stacking needs wheelbarrow access within a reasonable
+  distance of the truck; customers describe the route before arrangements are
+  confirmed. No numerical carrying limit, timing, pickup or tax/payment claim.
+- No suitable split/stacked product photo is verified. Drive searches across
+  Work, Work 2 and Personal found no firewood/wood matches or newer image
+  uploads; cached business contact sheets and the SD review log were checked.
+  Unprocessed removal logs and excluded client sequences are unsuitable. The
+  SD card is not mounted. No new photo or placeholder ships.
+- Preserve head/SEO, URL, existing phone/estimate destinations, all other pages,
+  analytics, consent, CRM and unrelated review files. Local results and pricing
+  status are recorded in this chat's outputs/firewood-buying-guidance/.
+- Final local checks: 239 Node + 9 Python tests pass (248 total); all 18 pages
+  build and validate. Keyboard checks pass for all five FAQs at 1280, 390 and
+  320px and at 320px with synthetic doubled text; controls exceed 44px and show
+  focus, with no document overflow. The design detector reports no findings.
+  Only Firewood HTML changes among 293 shipping files. Head/SEO, destinations,
+  all other pages and shared runtime remain exact. No release action taken.
+
+- Final release-readiness review: no blocking regression or copy correction
+  needed. Fresh 248 tests and the 18-page build/validation pass; all 293 generated
+  files match the implementation manifest. All five FAQs pass 25 keyboard
+  cases across desktop, intermediate/mobile and synthetic doubled text. Mobile
+  delivery target clears the sticky header. Head/SEO, destinations, other pages,
+  shared runtime, analytics, consent, CRM and unrelated review files remain exact.
+  Physical-iPhone testing was not repeated. A product photo is an optional
+  follow-up. Review evidence is in outputs/firewood-buying-guidance/final-review/.
+  That review changed release documentation only; publication is now approved.
+
 ## Tree trimming and pruning search wording — approved release, October 23, 2026
 
 Owner approved commit, push and public-site publication. Reviewed base: 8158e7c;

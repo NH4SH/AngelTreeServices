@@ -1,3 +1,46 @@
+## Tree trimming and pruning search wording — approved release, October 23, 2026
+
+Owner approved commit, push and public-site publication. Reviewed base: 8158e7c;
+release parent: 53307ec, preserving three newer CRM/staging-only commits. Push
+with [skip ci] [skip netlify], then trigger only the public Git build. Keep
+analytics, consent and CRM unchanged. Do not submit leads. Final production
+smoke checks and release identifiers are recorded in this chat's
+outputs/pruning-wording-release/ after publication.
+
+- Final release-readiness review: no blocking regression or copy correction
+  needed. Fresh 248 tests and 18-page build/validation pass; all 293 shipping
+  files match the implementation manifest. Fresh desktop/mobile/enlarged-text
+  heading checks and keyboard estimate navigation pass. Title/social metadata
+  and Service description agree; canonical and all other content remain exact.
+  Upstream 3d52b76 adds two CRM/staging-only commits with no public-site overlap;
+  preserve them at release. REVIEW.txt and final-review-* record the evidence.
+  That review changed only documentation; publication is now owner-approved.
+- Updated only the Tree Pruning generator's title, description and H1 to include
+  "tree trimming and pruning." Kept Fredericksburg, VA in the title, the region
+  in the description, and "with a clear purpose" in the heading. The existing
+  template also updates its matching social metadata and Service description.
+- All 239 Node + 9 Python tests pass (248 total); 18 pages build and validate.
+  Only Tree Pruning HTML changes among 293 shipping files. Its generated diff
+  consists exactly of the three field substitutions; canonical URL, schema
+  identity, photos/captions, safety guidance, FAQs, all destinations, estimate
+  context and runtime are preserved. Other 292 shipping files remain exact.
+- Desktop 1280px, intermediate 701px and mobile 390/320px checks show one H1,
+  no heading/document horizontal overflow and unchanged estimate destinations.
+  Synthetic doubled text at 320px reflows within the heading box. The unchanged
+  consent/floating UI can cover portions of that synthetic first viewport;
+  native OS text scaling and spoken screen-reader output were not tested.
+  The hero estimate link opens Tree Care with tree-pruning intent and no added
+  customer message. No lead was submitted; local connections/forms are blocked.
+- Mechanical design scan reports no findings. Analytics, consent and CRM source
+  are unchanged. Search Console evidence supports customer-language alignment,
+  not a promised ranking lift. Google may rewrite title links; index processing
+  and search effects remain unverified until Google processes the released copy.
+- Evidence: this chat's outputs/pruning-search-wording/ (local-tests.log,
+  regression-checks.json, browser-checks.json, screenshots and complete.diff).
+  Rollback before release: revert only these three generator strings. After an
+  approved release, recheck the live head/H1/canonical and estimate link before
+  requesting a recrawl; do not treat immediate search changes as proven effects.
+
 ## Landscaping pricing, scope and cleanup — local draft, October 23, 2026
 
 Owner approved implementation and local tests only. No commit, push, QA upload

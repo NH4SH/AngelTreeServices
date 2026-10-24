@@ -1,0 +1,213 @@
+{
+  "observedAt": "2026-10-24T21:32:39.968Z",
+  "status": "staging-124-reconciled-no-app-deployment",
+  "verifiedFirewoodPushedToMain": "90ac38e7c54f9cb47396fa73a4f9be0dd8e5bb61",
+  "localBranch": "codex/staging-firewood-124",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migration": {
+    "number": 124,
+    "version": "20261024190625",
+    "name": "20261024190625_firewood_invoice_terms.sql",
+    "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
+    "installedWithNativeCli": true,
+    "original123CompleteLedgerEntriesUnchanged": true,
+    "nativeEntryMatchesLocal": true,
+    "repeatPendingMigrations": 0,
+    "seedRoleVaultImports": false
+  },
+  "catalog": {
+    "before": 5112,
+    "after": 5113,
+    "added": [
+      {
+        "kind": "routine",
+        "key": "app_private.invoice_creation_terms(p_header jsonb, p_lines jsonb)"
+      }
+    ],
+    "modified": [
+      {
+        "kind": "constraint",
+        "key": "public.invoices.invoices_document_terms_version_known"
+      },
+      {
+        "kind": "routine",
+        "key": "public.create_invoice_draft(p_header jsonb, p_lines jsonb)"
+      },
+      {
+        "kind": "routine",
+        "key": "public.create_standalone_invoice(p_request_id uuid, p_header jsonb, p_lines jsonb, p_notes text, p_new_customer jsonb)"
+      },
+      {
+        "kind": "routine",
+        "key": "public.save_invoice_details(p_invoice_id uuid, p_expected_updated_at timestamp with time zone, p_due_at timestamp with time zone, p_lines jsonb)"
+      }
+    ],
+    "onlyExpectedChanges": true,
+    "fullInstalledCatalogSha256": "73dfc6b93d144f6738e8f443bbe988fb4e6bf8653b12273b212e759f439ba63b",
+    "existingRoutineOwnersAclsSignaturesSettingsUnchanged": true
+  },
+  "preservation": {
+    "protectedSets": 49,
+    "protectedStateExactlyEqual": true,
+    "individualInvoiceAndQuoteTermsBindingsExactlyEqual": true,
+    "physicalStagingIdentityPreserved": true,
+    "priorReminderControlsPreserved": true,
+    "approvalExpiryPreserved": true,
+    "legacyTermsAndHistoricalRequestsPreserved": true,
+    "rlsAndOtherPrivilegesUnchanged": true,
+    "noSendAuthGuardPreserved": true,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "customerEmailsSent": 0,
+    "providerRequests": 0,
+    "productionQueried": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "keysRotated": false,
+    "runtimeSecurityCheckpoint": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "verification": {
+    "localNative": {
+      "fresh123Replay": true,
+      "candidateAssertions": 87,
+      "installedAssertions": 87,
+      "failedNativeUpgradeRollsBackCatalogLedgerAndData": true,
+      "original123LedgerAndProtectedStatePreserved": true,
+      "onlyReviewedFiveCatalogChanges": true,
+      "native124Installation": true,
+      "repeatZeroPending": true,
+      "advisorsBefore": 0,
+      "advisorsAfter": 0,
+      "providerRequests": 0
+    },
+    "nativeSql": {
+      "local-candidate": {
+        "assertions": 87,
+        "fixturesRolledBack": true
+      },
+      "local-installed": {
+        "assertions": 87,
+        "fixturesRolledBack": true
+      },
+      "staging-candidate": {
+        "assertions": 87,
+        "fixturesRolledBack": true
+      },
+      "staging-installed": {
+        "assertions": 87,
+        "fixturesRolledBack": true
+      }
+    },
+    "api": {
+      "scenarios": 19,
+      "tapResults": 20,
+      "callerRequests": 250,
+      "invoiceCommandRequests": 22,
+      "providerRequests": 0
+    },
+    "nativeRecordRenders": [
+      {
+        "environment": "local",
+        "family": "firewood",
+        "databaseSavedVersion": "firewood-household-2026-10-24",
+        "realDocumentAndPortalRenderPassed": true,
+        "realEmailHtmlPassed": true,
+        "emailSent": false
+      },
+      {
+        "environment": "local",
+        "family": "legacy",
+        "databaseSavedVersion": "legacy-2026-10-22",
+        "realDocumentAndPortalRenderPassed": true,
+        "realEmailHtmlPassed": true,
+        "emailSent": false
+      },
+      {
+        "environment": "staging",
+        "family": "firewood",
+        "databaseSavedVersion": "firewood-household-2026-10-24",
+        "realDocumentAndPortalRenderPassed": true,
+        "realEmailHtmlPassed": true,
+        "emailSent": false
+      },
+      {
+        "environment": "staging",
+        "family": "legacy",
+        "databaseSavedVersion": "legacy-2026-10-22",
+        "realDocumentAndPortalRenderPassed": true,
+        "realEmailHtmlPassed": true,
+        "emailSent": false
+      }
+    ],
+    "crmRegression": 2936,
+    "manualReminderSafety": 21,
+    "maintenanceTests": 13,
+    "maintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 124,
+      "latestMigration": "20261024190625",
+      "catalogObjects": 5113,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "firewoodInvoiceCommandsMatchLocalRehearsal": true,
+      "priorRecordReminderControlsPreserved": true,
+      "priorFollowupExpiryPreserved": true,
+      "approvalExpiryAndTermsPreserved": true,
+      "readOnly": true,
+      "productionReady": false
+    },
+    "contracts": {
+      "freshNative124SchemaCheck": true,
+      "offlineMigrationAndPublicTypeFingerprints": true,
+      "typegen": true,
+      "typecheck": true,
+      "frameworkFloor": true,
+      "providerCredentialsCopied": false,
+      "externalApplicationNetworkAttempts": 0,
+      "optimizedBuildRerun": false,
+      "applicationCodeUnchanged": true
+    },
+    "securityAdvisors": {
+      "localBefore": 0,
+      "localAfter": 0,
+      "stagingBefore": 80,
+      "stagingAfter": 80,
+      "exactBeforeAfterEquality": true
+    },
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRepeated": false,
+    "priorVerifiedBuildCommit": "90ac38e",
+    "productionApplicationCodeChanged": false
+  },
+  "stagingSqlObservations": {
+    "before": "2026-10-24T21:27:23.001Z",
+    "afterTests": "2026-10-24T21:28:16.806Z",
+    "historicalEvidenceValidatedAtRecordedTime": true
+  },
+  "boundaries": {
+    "stagingSqlSyntheticIdentitiesAndSimulatedClaims": true,
+    "hostedAuthOrBrowserAcceptance": false,
+    "realMailboxAcceptance": false,
+    "physicalDeviceAndSpokenScreenReaderAcceptance": false,
+    "copyAncillaryActivityAdapterStubbed": true,
+    "taxPreparerAndWiderPolicyFollowupsStillOpen": true
+  },
+  "candidateSha256": "9d18b2bb9a8817dfbffc7aa5e8374153b5944b785d48ab424ac110c65550ce7b",
+  "snapshotSha256": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+  "testedSourceSha256": {
+    "apps/platform/scripts/release/verify-staging-firewood-terms-candidate.mjs": "bf6c22847ea253da84f005308193e16d1346b78c687e8cf46d73929f1212996b",
+    "apps/platform/tests/staging-firewood-terms-candidate.test.mjs": "c0cccbdd807d6fe64cc63ccd5ce3abda1a53d7572c93e4dc8fd8be36e5019931",
+    "apps/platform/tests/firewood-sales.integration.test.mjs": "2540a135a70104d9887ba34f2da2bb23555c1ccd27643edb727fcc43b6933f23",
+    "supabase/staging/firewood-terms-candidate-124.json": "9d18b2bb9a8817dfbffc7aa5e8374153b5944b785d48ab424ac110c65550ce7b",
+    "supabase/staging/firewood-terms-snapshot-124.sql": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+    "supabase/staging/deferred-migrations.json": "772281edcd60e99976e776ca0ec00016665048f01c956823f926271474e105a3"
+  },
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "projectId": "ats_fireterms124_d5bd10b6b5df",
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-24/staging-firewood-124"
+}

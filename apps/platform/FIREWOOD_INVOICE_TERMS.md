@@ -41,3 +41,8 @@ Private synthetic evidence: `/Users/noelsierra/Documents/Codex/2026-10-24/firewo
 ## Existing roadmap and next step
 
 Push this verified batch on the next instruction, then reconcile migration 124 into **staging only** using the existing candidate/snapshot workflow, protected-state comparison and synthetic acceptance. This preserves the established main/reconciliation sequence; it is not a parallel release plan. App deployment, production migration and actual sending remain separate later actions. Existing communications work resumes with record-scoped document-email delivery/history browsing after the Firewood follow-through. Existing tax-preparer, policy, real-mailbox/device and managed-runtime follow-ups remain recorded rather than invented or silently closed.
+
+
+## Push and staging reconciliation follow-through
+
+This verified implementation is pushed normally to main as `90ac38e`. `STAGING_FIREWOOD_TERMS_RECONCILIATION.md` documents the completed native installation of the unchanged migration 124 in ATS CRM Staging. All original 123 full ledger entries, protected records, saved terms bindings and OFF controls are preserved. Eighty-seven assertions passed in each candidate/installed local/staging phase, 19 actual local API scenarios / 20 TAP results passed, and the full suite now passes 2,936 checks plus 21 manual-reminder checks. The new read-only 124 checkpoint supersedes 123 for current staging maintenance. No app deployment, production change or customer send occurred; historical evidence above remains unchanged.

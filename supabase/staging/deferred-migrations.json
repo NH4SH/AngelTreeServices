@@ -132,7 +132,7 @@
     {
       "name": "20261024190625_firewood_invoice_terms.sql",
       "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
-      "reason": "Candidate Firewood-specific immutable invoice terms and validated atomic creation; local and rollback-only staging verification before separate permanent reconciliation.",
+      "reason": "Installed and verified natively on ATS CRM Staging as migration 124; remains deferred for a separately reviewed production release. No app deployment or production activation.",
       "productionReady": false
     }
   ]

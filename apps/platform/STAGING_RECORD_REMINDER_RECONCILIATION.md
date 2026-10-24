@@ -56,3 +56,8 @@ Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-23/staging-record-a
 ## Push and communications follow-through
 
 The verified reconciliation is pushed normally to main as `cee29fc`. `REMINDER_CANCELLATION_SAFETY.md` documents the next verified local batch: scheduled-reminder cancellation checks the displayed version, preserves worker/nonpending history and reports reviewable outcomes. It needs no migration. Local/staging synthetic checks preserve the exact 123 staging baseline, no-send Auth guard and OFF controls. No app deployment, production change, activation or historical resend occurred.
+
+
+## Migration 124 follow-through — October 24, 2026
+
+`STAGING_FIREWOOD_TERMS_RECONCILIATION.md` records the completed targeted Firewood terms reconciliation. All 123 complete ledger entries and record-reminder controls documented here are preserved. Current staging maintenance now uses `firewood-terms-candidate-124.json` and `verify-staging-firewood-terms-candidate.mjs`; the 123 candidate/verifier and receipts above remain historical checkpoints. No app release, activation, production change or customer resend accompanies this update.

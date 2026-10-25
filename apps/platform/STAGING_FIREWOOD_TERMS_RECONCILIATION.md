@@ -56,3 +56,10 @@ Private evidence: `/Users/noelsierra/Documents/Codex/2026-10-24/staging-firewood
 ## Push and communications follow-through
 
 This verified reconciliation is pushed normally to main as `5cdc0b8`. `RECORD_DOCUMENT_EMAIL_HISTORY.md` records the subsequent local, read-only communications batch. Its 95 native assertions passed in each local/staging target with all synthetic fixtures rolled back and the exact 124 checkpoint preserved. No new migration or app deployment, production operation, automation activation or customer send accompanies that feature.
+
+## October 25 — successor checkpoint 125
+
+The original migration-124 manifest/snapshot/verifier are preserved as a historical
+checkpoint. `STAGING_RECORD_DELIVERY_RECONCILIATION.md` documents the subsequent
+native staging-only installation of migration 125 and its new read-only maintenance
+checkpoint. All existing Firewood command/terms and protected records remain unchanged.

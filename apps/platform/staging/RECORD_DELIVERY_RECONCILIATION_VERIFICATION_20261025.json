@@ -1,0 +1,167 @@
+{
+  "observedAt": "2026-10-25T18:11:42.080Z",
+  "status": "staging-125-reconciled-no-app-deployment",
+  "priorVerifiedImplementationCommit": "8bf106f97e77ca29bf87877e05809ff0f11c2992",
+  "implementationPushedByThisContinuation": false,
+  "reconciliationPushed": false,
+  "mainBase": "a8a5481b9ac8f31904ae2afcd369266f29dff331",
+  "localBranch": "codex/staging-record-delivery-125",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migration": {
+    "number": 125,
+    "version": "20261025173049",
+    "name": "20261025173049_record_delivery_visibility.sql",
+    "sha256": "bda2637a3c08d96669ea0ee66cd2639f3880a0c8625f2bf9e1909827b0ef4c37",
+    "installedWithNativeCli": true,
+    "original124CompleteLedgerEntriesUnchanged": true,
+    "nativeEntryMatchesLocal": true,
+    "repeatPendingMigrations": 0,
+    "seedRoleVaultImports": false
+  },
+  "catalog": {
+    "before": 5113,
+    "after": 5116,
+    "added": [
+      {
+        "kind": "index",
+        "key": "app_private.outbound_deliveries_record_context"
+      },
+      {
+        "kind": "routine",
+        "key": "app_private.read_record_delivery_requests(p_record_type text, p_record_id uuid, p_page integer)"
+      },
+      {
+        "kind": "routine",
+        "key": "public.list_record_delivery_requests(p_record_type text, p_record_id uuid, p_page integer)"
+      }
+    ],
+    "modified": [],
+    "removed": [],
+    "onlyExpectedAdditions": true,
+    "fullInstalledCatalogSha256": "ffd9dec215c34ae065a0970a268862772b679b79d827a37fcff6d7f9dc63737d",
+    "existingRlsPrivilegesAndCommandsUnchanged": true,
+    "publicInvokerPrivateDefinerBoundaryPreserved": true
+  },
+  "preservation": {
+    "protectedSets": 49,
+    "protectedStateExactlyEqual": true,
+    "individualInvoiceAndQuoteTermsBindingsExactlyEqual": true,
+    "physicalStagingIdentityPreserved": true,
+    "originalDefaultsAndPermissionsPreserved": true,
+    "financialAndDispatchRetryGuaranteesPreserved": true,
+    "noSendAuthGuardPreserved": true,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "customerEmailsSent": 0,
+    "providerRequests": 0,
+    "productionQueried": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "keysRotated": false,
+    "runtimeSecurityCheckpoint": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "verification": {
+    "localNative": {
+      "fresh124Replay": true,
+      "candidateAssertions": 100,
+      "installedAssertions": 100,
+      "failedNativeUpgradeRollsBackCatalogLedgerAndData": true,
+      "original124LedgerAndProtectedStatePreserved": true,
+      "onlyThreeCatalogAdditions": true,
+      "native125Installation": true,
+      "repeatZeroPending": true,
+      "advisorsBefore": 0,
+      "advisorsAfter": 0,
+      "providerRequests": 0
+    },
+    "nativeSql": {
+      "local-candidate": {
+        "assertions": 100,
+        "fixturesRolledBack": true
+      },
+      "local-installed": {
+        "assertions": 100,
+        "fixturesRolledBack": true
+      },
+      "staging-candidate": {
+        "assertions": 100,
+        "fixturesRolledBack": true
+      },
+      "staging-installed": {
+        "assertions": 100,
+        "fixturesRolledBack": true
+      }
+    },
+    "localAuthApi": {
+      "scenarios": 9,
+      "tapResults": 10,
+      "scopedGetReads": 196,
+      "privateHelperApiDenied": true,
+      "providerRequests": 0
+    },
+    "crmRegression": 3090,
+    "manualReminderSafety": 21,
+    "maintenanceTests": 17,
+    "readOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 125,
+      "latestMigration": "20261025173049",
+      "catalogObjects": 5116,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "readOnlyRecordDeliveryBoundaryPreserved": true,
+      "priorTermsRemindersAndApprovalExpiryPreserved": true,
+      "readOnly": true,
+      "productionReady": false,
+      "evidenceDirectory": "/var/folders/bc/p9jx_ys9775b506gnzqv_x3h0000gn/T/ats-staging125-verify-ZZWQPQ"
+    },
+    "contracts": {
+      "freshNativeSchema": true,
+      "offlineSchemaFingerprints": true,
+      "frameworkFloor": true,
+      "typegen": true,
+      "typecheck": true,
+      "applicationSourceAndDependenciesUnchanged": true,
+      "node": "22.23.4",
+      "priorVerifiedOptimizedBuildCommit": "8bf106f",
+      "optimizedBuildRepeated": false,
+      "externalApplicationRequests": 0
+    },
+    "securityAdvisors": {
+      "localBefore": 0,
+      "localAfter": 0,
+      "stagingBefore": 80,
+      "stagingAfter": 80,
+      "exactBeforeAfterEquality": true
+    },
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRepeated": false,
+    "priorVerifiedBuildCommit": "8bf106f",
+    "productionApplicationCodeChanged": false
+  },
+  "boundaries": {
+    "stagingSqlSyntheticIdentitiesAndSimulatedClaims": true,
+    "hostedAuthOrBrowserAcceptance": false,
+    "realMailboxAcceptance": false,
+    "physicalDeviceAndSpokenScreenReaderAcceptance": false
+  },
+  "candidateSha256": "cd2314d70c0419da49d3721e77535c61a256f9ef6dfd1f13a542e63e360843c1",
+  "snapshotSha256": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+  "testedSourceSha256": {
+    "apps/platform/scripts/release/verify-staging-record-delivery-candidate.mjs": "67f2fa6b3215c01ddb42dd60529af47690976aa120633296597eedd1dc14c734",
+    "apps/platform/tests/staging-record-delivery-candidate.test.mjs": "9594a56ae1f06881abfe15584d16037e4040e3f9f3b59040d7f675540be4d2d9",
+    "apps/platform/tests/record-delivery-requests.integration.test.mjs": "d2429a91d76573186b82a3168aa3689115675dc7d79ffbab1292a2168a7826e9",
+    "supabase/staging/record-delivery-candidate-125.json": "cd2314d70c0419da49d3721e77535c61a256f9ef6dfd1f13a542e63e360843c1",
+    "supabase/staging/record-delivery-snapshot-125.sql": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+    "supabase/staging/deferred-migrations.json": "ca9d0da6bdfaaabea71b11963b4852fcab82d42cbae65f18114868cc55fdb488"
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-25/staging-record-delivery-125",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "homeScannerUntouched": true,
+    "userTabsUntouched": true,
+    "productionChanged": false
+  }
+}

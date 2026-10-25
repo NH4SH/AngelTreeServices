@@ -123,3 +123,12 @@ migration 125, with the existing baseline and no-send controls preserved, follow
 by a separately authorized application release. The deferred manifest keeps
 `productionReady: false` and `readyForHosting: false`. No production query/change,
 provider call, customer email, deployment or key rotation occurred.
+
+## Subsequent staging reconciliation — October 25
+
+Migration 125 is now installed and verified natively on ATS CRM Staging, with the
+original 124 history entries, protected state, guard and OFF automation settings
+preserved. The initial implementation evidence above records the earlier
+rollback-only verification; permanent reconciliation is documented in
+`STAGING_RECORD_DELIVERY_RECONCILIATION.md`. No application deployment or production
+change accompanies it. Implementation and checkpoint remain local pending push.

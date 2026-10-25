@@ -372,3 +372,12 @@ The recorded-history default and every prior workflow remain. See
 `RECORD_DELIVERY_VISIBILITY.md` for the read boundary, synthetic tests and limits.
 Candidate migration 125 is local and tested in staging rollback only. Next release
 step: targeted staging reconciliation for 125; deployment remains unapproved.
+
+### October 25 — staging reconciliation for record delivery visibility
+
+Migration 125 is installed natively on ATS CRM Staging and verified against fresh
+local rehearsal, candidate and installed synthetic tests. Existing history, RLS,
+immutable terms, financial/communication commands, no-send Auth guard and OFF staging
+automation are preserved. Current checkpoint and release limits are in
+`STAGING_RECORD_DELIVERY_RECONCILIATION.md`. No application deployment or production
+change occurred; the implementation and reconciliation remain local pending push.

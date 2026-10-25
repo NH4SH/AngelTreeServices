@@ -1,0 +1,556 @@
+{
+  "version": 1,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "previousMigrationCount": 124,
+  "expectedMigrationCount": 125,
+  "migrations": [
+    {
+      "name": "0001_initial_platform_schema.sql",
+      "sha256": "2bf4dd229cbe823078bd28b26b00ada14a0bf170c418fea455112e29e13e0390"
+    },
+    {
+      "name": "0002_add_job_priority.sql",
+      "sha256": "b67ab86c761629b6ffb3b4c56424fc19f89a28b1048e9af3ec9172ce0c9b2d92"
+    },
+    {
+      "name": "0003_quote_portal_tokens.sql",
+      "sha256": "8794596e87e856241d493c6355b5f97d1a529aaf85881b3d33071a4951f34f27"
+    },
+    {
+      "name": "0004_job_photo_storage.sql",
+      "sha256": "793f458a037c6e82dafc177f6efb9f598f426ba7f0fa4623197467bba0278392"
+    },
+    {
+      "name": "0005_service_role_and_staff_grants.sql",
+      "sha256": "31311dba0e79d8816f9c488807104b7369ad9b912b32f69fc8b8439b23e7c519"
+    },
+    {
+      "name": "0006_schedule_events_foundation.sql",
+      "sha256": "ab9f3c0c466cff2b1f108cd9ea50ed6512a3f9f51eeb81fddc76c59adc366b9f"
+    },
+    {
+      "name": "0007_role_controlled_time_clock.sql",
+      "sha256": "3aa937e45b899c48ee5d409ae85a3d9ee3341c7385c5bee49ca7fb38c60518ab"
+    },
+    {
+      "name": "0008_payroll_review_foundation.sql",
+      "sha256": "9cd6a6361b115b5c1807d9e55f8592085e5962feedf86da93b21a7f3efec2aaf"
+    },
+    {
+      "name": "0009_align_internal_staff_role_helpers.sql",
+      "sha256": "ca4f777dbbf8dc5828387d7d1ad60672248a9090c5281ab617894071f18027f2"
+    },
+    {
+      "name": "0010_time_clock_clock_out_policy_fix.sql",
+      "sha256": "25a08a5815e771d28eb6af624b0d96a3f502aebe257be1a9e17d5aae9eb3015f"
+    },
+    {
+      "name": "0011_employee_access_requests.sql",
+      "sha256": "83ecf3cfdce6d4090237f8e60e42f5cc67de8417df51f256f84f409f0cf6e843"
+    },
+    {
+      "name": "20260707000822_email_events_log.sql",
+      "sha256": "49acbea9bf9ea5c179040535a4feb64ab43eee8b090019e5615882c3020f6f46"
+    },
+    {
+      "name": "20260708004341_quote_first_workflow.sql",
+      "sha256": "411323a6f6c4df780f72ee708a881a268682deacda8d06673991f973a255cec8"
+    },
+    {
+      "name": "20260709122947_quote_sent_delivery_metadata.sql",
+      "sha256": "f598eb46c8c178102c54dcdf751271b2854a10b4d67f3d26c515444fefa067fd"
+    },
+    {
+      "name": "20260709132222_invoice_portal_tokens.sql",
+      "sha256": "729ab76ab4588ffaec1f3a6996b8d795bddf7a5e257503099937438c47398b93"
+    },
+    {
+      "name": "20260710150434_ensure_invoice_portal_tokens.sql",
+      "sha256": "f543e33990ff2d7c2b63084e61f2a010711dcee5a0a4f834ae4f0219296eb04c"
+    },
+    {
+      "name": "20260716165828_add_recoverable_portal_links.sql",
+      "sha256": "7a3ab1e5f466db6eb212ecc350db66edf42aec10658f88d53ec3417b61dd98c8"
+    },
+    {
+      "name": "20260716210754_stripe_invoice_payments.sql",
+      "sha256": "741792bc7586203329a3886ed8d96ddae3381b32eb5933a8fb6b4a968817cd45"
+    },
+    {
+      "name": "20260716212545_harden_security_definer_functions.sql",
+      "sha256": "c463bb9970f80f42b314a9b1257a7c74555a8999c50587a16b17f1f5a1d8d437"
+    },
+    {
+      "name": "20260716215149_automated_customer_communications.sql",
+      "sha256": "d39d95982bfd2651a637ca6badf14b2eda521a51b3be3d6793837b2019c46583"
+    },
+    {
+      "name": "20260716222258_crew_job_closeout_workflow.sql",
+      "sha256": "9943681f34b6b9be018634986469e32b98666a7f60ba0bf768f376bc7ff1a4a1"
+    },
+    {
+      "name": "20260716232544_equipment_fleet_management.sql",
+      "sha256": "ff86dab0f2b97b95a8b33d3b3a6f92be18143324d00e78b2eee7ad292e0d9157"
+    },
+    {
+      "name": "20260716235514_employee_onboarding_training_compliance.sql",
+      "sha256": "06fb93ae4e64cbf90c4ded97756206097a7cebb0c2b399bb8e44aaa7398bcb55"
+    },
+    {
+      "name": "20260717005036_business_reporting_profitability.sql",
+      "sha256": "f5f42faf187933cfa84defa606cdcbdd331c66f69ae5945eee78850f141537f4"
+    },
+    {
+      "name": "20260717012234_materials_inventory_operations.sql",
+      "sha256": "8270bc68c5ed5f57c0ba03ce1696a53af0f901655080e35597aca7002b805640"
+    },
+    {
+      "name": "20260717015652_change_orders_and_organization_parity.sql",
+      "sha256": "ec2265d736cae2b3c6b2ccd5e349fe67cf25527ecfdee3069b48266ef2009d72"
+    },
+    {
+      "name": "20260717022829_recurring_services_followups_and_renewals.sql",
+      "sha256": "7c7b7ffda33a6982282805ff14eb76ad53e08ec2b373da0ebca7f2b66fa098b4"
+    },
+    {
+      "name": "20260717032430_organization_contracting_parties.sql",
+      "sha256": "543965b82156755787599c935460ff19b1c25f4e6fa23425d6a4a5c291ec5a7f"
+    },
+    {
+      "name": "20260717040930_contracting_party_integrity_and_review.sql",
+      "sha256": "85d156483725bcc04926f35d877f2a7ff70a60ed86d26af771e06b7a524936d8"
+    },
+    {
+      "name": "20260717141937_document_library_stabilization.sql",
+      "sha256": "523dca9ad722342ffdd26f52c9d1d24ce1792ecc82e1a58a1da291036e07655d"
+    },
+    {
+      "name": "20260717160000_public_website_lead_intake_metadata.sql",
+      "sha256": "284b2241a35e4bdbf5acc9b88069227b96c7ecc0b4754d7d28d2b388d0928b19"
+    },
+    {
+      "name": "20260718171008_portal_view_tracking.sql",
+      "sha256": "47e2d81258f0bad4ead0bc155e92ed22499f4ee8ab221300bb42c73a52e6d76b"
+    },
+    {
+      "name": "20260718200940_invoice_payment_options.sql",
+      "sha256": "76350c10fec9cdc8f82e8a900de76adc2a88f263ce27f457aaf6ac598c6e89fe"
+    },
+    {
+      "name": "20260718210235_simplify_job_workflow.sql",
+      "sha256": "dd627fc74aa760297b7a0be51e49a71fc508ad53c0924a687e78770fb641e40c"
+    },
+    {
+      "name": "20260718214709_jobs_operations_index.sql",
+      "sha256": "4644eb6cb9e2da47ef3497d8bfcfc754608c365bc84d939df67e9f7195488c6b"
+    },
+    {
+      "name": "20260720001347_repair_production_function_sql_expressions.sql",
+      "sha256": "fafeb4e4038af10ae82febf89d266093fa9c9f8f2e4749d25da659c5b27ea372"
+    },
+    {
+      "name": "20260720005626_multi_day_job_work_sessions.sql",
+      "sha256": "80da0c7715fa01a203f9c8ec47b4ed2e70487f89cf3afaa7ba71bdf18039ab22"
+    },
+    {
+      "name": "20260720074140_stripe_card_confirmation_flow.sql",
+      "sha256": "7b331ed56e6990734dd2da1f1ed22fd5c69db7549215546b511478c740067b93"
+    },
+    {
+      "name": "20260720130614_payment_activation_blockers.sql",
+      "sha256": "5acec8a350bd28417d1114ccae79d9e7213aa8fe50e43b6e3bfb0f3a1679c442"
+    },
+    {
+      "name": "20260720130615_validate_contracting_party_constraints.sql",
+      "sha256": "3501d9dc71a86a2bc0928862c552c3539d2f3637d07a93fe5b4463a79fcd042a"
+    },
+    {
+      "name": "20260721002500_allow_standalone_invoices.sql",
+      "sha256": "549e6da7ff7927a8ae24e1128b841861df0ad2b878efa539cc667773e276e7c5"
+    },
+    {
+      "name": "20260721022350_crm_search_and_safe_delete.sql",
+      "sha256": "5bac7eda70f15febb48ac9225bfb6e08eeeace19ef00e0b72d4db8c3014a14f1"
+    },
+    {
+      "name": "20260723012429_security_authorization_boundaries.sql",
+      "sha256": "8c0273e53180ed60b65121683bff3e726ca1b74bc55536ee376307d984da0a22"
+    },
+    {
+      "name": "20260723013121_manage_private_job_photo_bucket.sql",
+      "sha256": "0a41904df8ad4510c14a986c2dc2ec60afa903d62ab88982cf8d9c8c91d3adb8"
+    },
+    {
+      "name": "20260723013504_durable_security_rate_limits.sql",
+      "sha256": "1bd5d4b8c9dbdab956d79592cc344ee3ed2d0dab81aa0ba015ae59d7e83d8773"
+    },
+    {
+      "name": "20260723013922_employee_pii_least_privilege.sql",
+      "sha256": "52e247e04b04a6a506908711ef1c4d22cc737c678eaf97aa29c09a545f982cc1"
+    },
+    {
+      "name": "20260723014156_least_privilege_public_grants.sql",
+      "sha256": "28668f3adac3fbfcd876ce51425389f53536998efb668635bc6d98f8d8d8db3c"
+    },
+    {
+      "name": "20260724010741_restore_cancelled_manual_payment.sql",
+      "sha256": "5b6abc240c092d4974a786708f390de200f55c9b7ba49719061f043c2ca77fe3"
+    },
+    {
+      "name": "20260724012434_restore_voided_invoice.sql",
+      "sha256": "8763a23f389d7470983658cbe6953bac8f1cfb8456f3d3cc73e090314fb0526a"
+    },
+    {
+      "name": "20260727030032_customer_activity_notifications_and_admin_log.sql",
+      "sha256": "b3ba3e637243c7057222586566b8576339a1a968032a15073ff1723423bb3aaa"
+    },
+    {
+      "name": "20260728012739_system_health_monitoring.sql",
+      "sha256": "48f61ae41c2373f79e41311e9e26e7ad4cf64a88107804c4ef3d2f3f640a498a"
+    },
+    {
+      "name": "20260728215005_lead_estimate_schedule_workflow.sql",
+      "sha256": "2f9b34de61bb3273f224ba4a0c12637bb33120af9f87302cb4cb791536808c38"
+    },
+    {
+      "name": "20260729165208_schedule_sources_and_lead_lifecycle.sql",
+      "sha256": "dbcc577d6eaca17ed9127f97cc56a1b28be4de222c068534b82fb76a5f572fc2"
+    },
+    {
+      "name": "20260805024208_employee_assignment_identity.sql",
+      "sha256": "ac823aa8abba6789409236481ca6f7cc1934f53fb10dff64f7d0e2867aae43bc"
+    },
+    {
+      "name": "20260810225226_align_employee_work_session_identifiers.sql",
+      "sha256": "8af3734237914a2a289b218cbadf24092185ec8ba1fe28a81495347e0a1252b6"
+    },
+    {
+      "name": "20260811185455_preserve_prepaid_invoice_delivery_state.sql",
+      "sha256": "39a6f55c5ebab6c28d196a958ce73d243b86a265daf420f82c060be2139c6d4c"
+    },
+    {
+      "name": "20260813000701_assign_quote_numbers_safely.sql",
+      "sha256": "32fed1830f3eaf4d49485e887f16b5a5849f12ba486e2f7af00783a67339429c"
+    },
+    {
+      "name": "20260813020719_google_calendar_one_way_sync.sql",
+      "sha256": "4496a5dd90e846e7e620c70aca9ef3c5e7f260aa5bd34a286fa9c8b27bfd676b"
+    },
+    {
+      "name": "20260813055901_capture_self_role_read_policies.sql",
+      "sha256": "c00c6d8c14fa34e2421af5bb9822b3c74b5a2fd21b2ba5cce0c6ba33e51a43b2"
+    },
+    {
+      "name": "20260831124158_align_assigned_employee_rls.sql",
+      "sha256": "f7a55c46c87c7909a0728ba449ae95883a352475aa49cb77f69ad6180556f55f"
+    },
+    {
+      "name": "20260831124222_repair_approved_quote_archived_lead_jobs.sql",
+      "sha256": "efedba02e51e5ef25f5fd681b9bd3f12f3df8f3e4a8717f9eb25e7719e5923af"
+    },
+    {
+      "name": "20260831124242_optimize_self_access_rls.sql",
+      "sha256": "5c39522ce2fdba30a8e76067ff5a719ad04c11404d1f55f811bb1ef152851ac8"
+    },
+    {
+      "name": "20260901175949_remove_unused_schedule_party_variable.sql",
+      "sha256": "729cca5446d349d683f7dff622aa3a72e6d69e378e204b006874cc1d41da87ea"
+    },
+    {
+      "name": "20260901175956_remove_redundant_role_read_policies.sql",
+      "sha256": "30425f1b1b09b86e4ce73b9b1dedf6bdc3682f142a1fadc97cfb8d215ae4276b"
+    },
+    {
+      "name": "20260908131758_manager_notification_emails.sql",
+      "sha256": "4a77266f272c2bc529f3312389f54b88ebbcbfcc856d9d1be250d2702fdb3c7f"
+    },
+    {
+      "name": "20261015040735_job_photo_category_parity.sql",
+      "sha256": "64c1329657ff51ddb7f96003b68a49e5e9ae079c8208d2b7c957442da6535e01"
+    },
+    {
+      "name": "20261015042649_reliable_employee_offboarding.sql",
+      "sha256": "b89ad9af0c1e5d6fb6b334413f44df545335cb778c5655583ff9b9bcfcbd09f0"
+    },
+    {
+      "name": "20261015050427_guard_service_recommendation_assignment.sql",
+      "sha256": "fc60c7fa6d1fb38fa3c474cedc0428013a0e8f3bcc221e2852019162d9b3bbf8"
+    },
+    {
+      "name": "20261016002812_guarded_invoice_void.sql",
+      "sha256": "41a3685d31aa2944601eb096e5b3b2056c47d19f4d3e5e7a225268fe639bb51a"
+    },
+    {
+      "name": "20261016010829_invoice_financial_write_boundary.sql",
+      "sha256": "c46f8a3c2c1fbcf3fd9d7d9408b389d98d79e394011457b9b2f41833e52389dc"
+    },
+    {
+      "name": "20261016012251_enforce_invoice_financial_write_boundary.sql",
+      "sha256": "40af7cf494dee26483979f8bb6b6a6eddc1335258e9afa6d98d49fa1450293b9"
+    },
+    {
+      "name": "20261016020444_recoverable_stripe_webhook_receipts.sql",
+      "sha256": "4755d337c605f99b5e33a4d84582cd758e979237779d16e288d6fe07ff59937a"
+    },
+    {
+      "name": "20261016032012_ordered_payment_reconciliation.sql",
+      "sha256": "b957c1a2e280bba74cf6b8ba6d288164ae063602ed774ddffa96623b7b075c29"
+    },
+    {
+      "name": "20261016040341_atomic_invoice_generation.sql",
+      "sha256": "ef4db63609d39a96aad6acfe93a3e2bee2bed4e07ec303e8969a31257ad521df"
+    },
+    {
+      "name": "20261016060143_atomic_quote_editing.sql",
+      "sha256": "aa4952b267a25631100c0423f97c4d1c8bdcff9635fe2a771664b978c0a08789"
+    },
+    {
+      "name": "20261016060503_enforce_quote_edit_boundary.sql",
+      "sha256": "5dfd4699900abfd5e377e655914ef62f1ba85960c010cda4caeb53f158c96ddc"
+    },
+    {
+      "name": "20261016064442_atomic_quote_approval.sql",
+      "sha256": "ceeb1c0c70191a48c9d74cf4dd84211c1f516bd2d839a71d223dec878143e671"
+    },
+    {
+      "name": "20261016080420_atomic_scheduling.sql",
+      "sha256": "a4df2ea4464073ce8295f3b7b3766b957dcf1863445460889f769ef704c4a9c5"
+    },
+    {
+      "name": "20261016130010_explicit_job_completion.sql",
+      "sha256": "4fa2f5d602982c5c40390fc842064a605b925d5a079583b2496068c3009baf48"
+    },
+    {
+      "name": "20261016134622_checked_photo_upload_and_communication_outcomes.sql",
+      "sha256": "9d1c9a426d4051d6a85fca8079a0b9f5d81e9f031aec15082508e25270a18feb"
+    },
+    {
+      "name": "20261016144647_crew_field_job_pages.sql",
+      "sha256": "df3ca8c1fe8339dca7be8fcd1ebc0bb85e4882af8baa9f71d3dd8e242060c0ae"
+    },
+    {
+      "name": "20261016162316_transactional_website_lead_intake.sql",
+      "sha256": "9ab65988ab4919b5db246e7cbba20e309cdbb2c734c371bd30bf733471fb9b8b"
+    },
+    {
+      "name": "20261016165057_durable_outbound_delivery.sql",
+      "sha256": "a07319a8f377ce375e68d17ee32b6b324d850a511020164d473b28a8fd87b7d0"
+    },
+    {
+      "name": "20261016182241_owned_scheduling_handoffs.sql",
+      "sha256": "cc4b66a4766e22744a7969f911a93274b67bf5db2dc5c8ff4d8164275505b293"
+    },
+    {
+      "name": "20261016192144_supervised_operations.sql",
+      "sha256": "d6af0834873738919c23abde68d8efffcbbbff12371d43c46d6feb599860cdf2"
+    },
+    {
+      "name": "20261016200200_trustworthy_report_reads.sql",
+      "sha256": "a425a88640374510ecda13b60359304b1407d6670cb7eaf08445d1a793d2ed22"
+    },
+    {
+      "name": "20261016210536_reversible_website_sender_blocks.sql",
+      "sha256": "552437cc25f52b4b44d6c8ed2ca4b90c02a96ceaef58abbbe27f790d0aadb80a"
+    },
+    {
+      "name": "20261016223056_measured_organization_location_lookup.sql",
+      "sha256": "65a25258f75489527887ef772b699b32cde7f60ee642d66fcdf5ba49595d1606"
+    },
+    {
+      "name": "20261016224352_private_document_scan_gate.sql",
+      "sha256": "01e811a46d1ed11cd3a0569c7bb5af3ebfd5f72a6154cac4ee8ac1e583a97d6f"
+    },
+    {
+      "name": "20261016225410_measured_document_quote_lookup.sql",
+      "sha256": "e1d80312a9f8e2ba3ee30526689e93cdd1f331c6de5c0def307d5a09cd7e2913"
+    },
+    {
+      "name": "20261016231215_remaining_attachment_scan_boundary.sql",
+      "sha256": "7b723414645a301e0e7243b1ae2692881492f45bf4f050e81cb127d2eaf1bc00"
+    },
+    {
+      "name": "20261017000918_private_upload_transport.sql",
+      "sha256": "076060a142794ae7476c7130f7876c2a01ec524eea3b046b80dca459eeed5aab"
+    },
+    {
+      "name": "20261018004943_atomic_legacy_appointments.sql",
+      "sha256": "d9fee0228be0cf8a2f85fb8cdef37a2aeb58013f74d815e2433354ef312cba6e"
+    },
+    {
+      "name": "20261020051222_atomic_customer_quote_changes.sql",
+      "sha256": "dc4f435281d7f24567e03dab42cf4c4e264a1e594770011ea3956f2da04d535e"
+    },
+    {
+      "name": "20261020060328_atomic_customer_activity_notifications.sql",
+      "sha256": "4cff8807d44a8c1d3cebff8aac399bf904916c78a5d93329fbda54d85cdc8935"
+    },
+    {
+      "name": "20261020064543_durable_customer_source_events.sql",
+      "sha256": "7f63ca4ac8f237412c5e6debd560a2ff3822e234f3897ab97121cdc9667a6006"
+    },
+    {
+      "name": "20261021012859_invoice_payment_principal_snapshot.sql",
+      "sha256": "f9d3e431e8fcdd7126489b2826a8fff5fd1c0b5c3138e19937c46ba70e7d1ac4"
+    },
+    {
+      "name": "20261021022314_standalone_invoice_requests.sql",
+      "sha256": "2a4ab5a6a913e0c861ca8ca05b2e674cde1dc544ffdcf982c770c5cf7e6a4c54"
+    },
+    {
+      "name": "20261021032121_quote_draft_requests.sql",
+      "sha256": "214054af2b942ffce39c773929eac572f9bcdedf6639369a33e30bc264c47b9c"
+    },
+    {
+      "name": "20261021060037_quote_request_status.sql",
+      "sha256": "b6f2491ce96ba44a8902bea1587978be5e2c1415594624a37a4ec31dbc0d1420"
+    },
+    {
+      "name": "20261021215535_business_conflict_responses.sql",
+      "sha256": "1cfe71caaf7ee6776a90b14b38111a913492ea411c8ee662b114af5ecc1eece8"
+    },
+    {
+      "name": "20261021233829_reminder_family_delivery_guard.sql",
+      "sha256": "6c1caeb2234043c0062f8f0de3880f4802e5d1e20d2983e3633ae51a7a47ba81"
+    },
+    {
+      "name": "20261022021634_appointment_change_notices.sql",
+      "sha256": "541d4003d712a1d070ff00873ea737675c8500a9e402e23d3ffeca73edf5fe83"
+    },
+    {
+      "name": "20261022024624_appointment_notice_snapshot_compatibility.sql",
+      "sha256": "b6a79a13f703cc5cadd50a9e6e6a2b05bb45c440b4a16e285ea5d2cf49f16bde"
+    },
+    {
+      "name": "20261022025337_appointment_notice_delivery_ordering.sql",
+      "sha256": "bd76821b9e89fa517112236c8a8ecb39c61ccec8b29ac8fe2093c1887fa46e49"
+    },
+    {
+      "name": "20261022030436_bound_change_order_portal_approval.sql",
+      "sha256": "e5f8391c93b649242b7327b7c05c55f4865b98e92364656a8eb6941a121ecbc7"
+    },
+    {
+      "name": "20261022124200_atomic_change_order_drafts.sql",
+      "sha256": "ee31e0a22adcea80b84c93548068a25c1228a181e09fff289ddb0bbe0c872f32"
+    },
+    {
+      "name": "20261022132724_atomic_change_order_copies.sql",
+      "sha256": "1f312f9e21f1b3f19e1b59f06b46756d9b9e547a4395281219a8e6eb87b78053"
+    },
+    {
+      "name": "20261022134716_bound_manual_change_order_approval.sql",
+      "sha256": "5ddf741a475e44f9c27c1589c5779e078c4c2eacd2b699db9254df506261ada7"
+    },
+    {
+      "name": "20261022143008_atomic_change_order_review_transitions.sql",
+      "sha256": "a08734c33832788e2b70ed9fad0c8956a4c405a16910056402288238da066d9c"
+    },
+    {
+      "name": "20261022153445_reviewed_change_order_sending.sql",
+      "sha256": "e603f476c5597eb4e06ba587abc6bb56a6bb7ae65a6a0996a0b4f3404d8dff21"
+    },
+    {
+      "name": "20261022162956_guard_pending_change_order_sends.sql",
+      "sha256": "21058e65ce2cc3eaf6551eaeaabf3f86e229ffd139ff44a37f047e3cd49f5c0e"
+    },
+    {
+      "name": "20261022170133_atomic_change_order_portal_links.sql",
+      "sha256": "04b491cc0cb828b1052911ea3d5bbe0ef02bf8119d7a617faef8037b04b50e15"
+    },
+    {
+      "name": "20261022183123_atomic_invoice_portal_links.sql",
+      "sha256": "2cd37902e08ebc6b8203ec3059a775cea6c45d51627b7ac7d880d0edda597840"
+    },
+    {
+      "name": "20261022185403_atomic_quote_portal_links.sql",
+      "sha256": "44649ff3f2459d9a3151fece1d8e02e4680de534cc9dc9b8846a50f760113609"
+    },
+    {
+      "name": "20261022194856_bind_document_email_capabilities.sql",
+      "sha256": "c0e9597766fe0404784d94b689e19e9c4fb679b795ba36c5d9d1dfe0526911a8"
+    },
+    {
+      "name": "20261023015338_enforce_proposal_expiry.sql",
+      "sha256": "4613dead83cc6e13bb08282043f3945f417880d661e7821410570e99eb7eb230"
+    },
+    {
+      "name": "20261023030829_preserve_customer_document_terms.sql",
+      "sha256": "89ea8e617f752360a0550ff12dc4fe4c1f7208c673ec978f74edb536996f345d"
+    },
+    {
+      "name": "20261023205744_guard_expired_proposal_followups.sql",
+      "sha256": "e013c69ea6a39b0af8b8e2c45f8578efa54e3a3edace02e671fee278f092c076"
+    },
+    {
+      "name": "20261023213240_scope_payment_receipts_to_payment.sql",
+      "sha256": "7e9a472ae5acd99db72d80d6e377beb60c4674e4a01787be891be291f20f26b5"
+    },
+    {
+      "name": "20261023232306_bulk_obsolete_visit_reminder_cleanup.sql",
+      "sha256": "cabc18a3ce460caae034c086a98bc853f1dbd2b3dafb3e6b7de23211611aa999"
+    },
+    {
+      "name": "20261024010036_communication_settings_edit_permissions.sql",
+      "sha256": "d8e646f27fe65db39ab3a0992ac15117f4428bd3a2c2cdbf9eaf051440009f70"
+    },
+    {
+      "name": "20261024014934_atomic_record_reminder_automation.sql",
+      "sha256": "7f4405c81e1829b446543763ce18aab7f9c2aef3511ae0b32bbc476489274920"
+    },
+    {
+      "name": "20261024190625_firewood_invoice_terms.sql",
+      "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c"
+    },
+    {
+      "name": "20261025173049_record_delivery_visibility.sql",
+      "sha256": "bda2637a3c08d96669ea0ee66cd2639f3880a0c8625f2bf9e1909827b0ef4c37"
+    }
+  ],
+  "identity": {
+    "database": "postgres",
+    "databaseOid": "5",
+    "serverVersionNum": "170011",
+    "systemIdentifier": "7692130048193495360"
+  },
+  "previousCandidateSha256": "9d18b2bb9a8817dfbffc7aa5e8374153b5944b785d48ab424ac110c65550ce7b",
+  "previousLedgerSha256": "940154fdb665d6120ceac1d403948e54aeb1d046eb4c7fc13f90afb77c3c404a",
+  "previousCatalog": {
+    "count": 5113,
+    "sha256": "73dfc6b93d144f6738e8f443bbe988fb4e6bf8653b12273b212e759f439ba63b"
+  },
+  "expectedLastMigration": {
+    "name": "record_delivery_visibility",
+    "version": "20261025173049",
+    "statements": [
+      "-- Read-only record visibility. Frozen bodies and delivery commands stay private.\nbegin",
+      "create index outbound_deliveries_record_context on app_private.outbound_deliveries using gin (context jsonb_path_ops)",
+      "-- Only this private, metadata-only reader crosses the existing private outbox\n-- boundary. Stored access is checked again here, never from editable JWT claims.\ncreate function app_private.read_record_delivery_requests(p_record_type text,p_record_id uuid,p_page integer)\nreturns jsonb language plpgsql stable security definer set search_path='' as $$\ndeclare scope jsonb; result jsonb;\nbegin\n if auth.uid() is null or not app_private.email_staff(auth.uid()) then\n  raise exception 'Delivery review is not available to this account' using errcode='42501';\n end if;\n if p_record_type is null or p_record_type not in ('quote','invoice','change_order') or p_record_id is null\n    or p_page is null or p_page<1 or p_page>71582788 then\n  raise exception 'Invalid record delivery scope or page' using errcode='22023';\n end if;\n if not (case p_record_type\n  when 'quote' then exists(select 1 from public.quotes where id=p_record_id)\n  when 'invoice' then exists(select 1 from public.invoices where id=p_record_id)\n  when 'change_order' then exists(select 1 from public.change_orders where id=p_record_id) end) then\n  raise exception 'Record is not available' using errcode='42501';\n end if;\n scope:=case p_record_type when 'quote' then jsonb_build_object('quote_ids',jsonb_build_array(p_record_id::text))\n  when 'invoice' then jsonb_build_object('invoice_id',p_record_id::text)\n  else jsonb_build_object('change_order_id',p_record_id::text) end;\n -- One statement/snapshot supplies exact count, clamped page and stable rows.\n -- Containment matches every quote in a multi-proposal request, not only [0].\n with scoped as materialized (\n  select d.id,d.payload->>'subject' subject,d.payload#>>'{to,0}' recipient,\n   d.state,d.delivery_status,d.repair_state,d.followup_sync_pending,\n   d.attempt_count,d.created_at,d.first_dispatched_at,d.last_dispatched_at,d.accepted_at,\n   d.provider_message_id\n  from app_private.outbound_deliveries d where d.context @> scope and (\n   d.state in ('prepared','dispatching','unknown') or d.followup_sync_pending or\n   (d.repair_state<>'acknowledged' and (d.repair_state<>'complete' or d.state in ('rejected','not_attempted')\n    or d.delivery_status in ('delayed','failed','bounced','complained','suppressed')))\n  )\n ), totals as (select count(*) total from scoped), position as (\n  select total,least(p_page,greatest(1,ceil(total::numeric/30)::integer)) page from totals\n )\n select jsonb_build_object('record_type',p_record_type,'record_id',p_record_id,'total',position.total,'page',position.page,\n  'deliveries',(select coalesce(jsonb_agg(to_jsonb(r) order by r.created_at desc,r.id asc),'[]'::jsonb) from (\n   select * from scoped order by created_at desc,id asc limit 30 offset (position.page-1)*30\n  )r)) into result from position;\n return result;\nend $$",
+      "revoke all on function app_private.read_record_delivery_requests(text,uuid,integer) from public,anon,authenticated,service_role",
+      "grant execute on function app_private.read_record_delivery_requests(text,uuid,integer) to authenticated",
+      "-- The exposed endpoint is invoker: source visibility is checked under the\n-- caller's actual RLS before invoking the narrowly projected private reader.\ncreate function public.list_record_delivery_requests(p_record_type text,p_record_id uuid,p_page integer default 1)\nreturns jsonb language plpgsql stable security invoker set search_path='' as $$\nbegin\n if p_record_type is null or p_record_type not in ('quote','invoice','change_order') or p_record_id is null\n    or p_page is null or p_page<1 or p_page>71582788 then\n  raise exception 'Invalid record delivery scope or page' using errcode='22023';\n end if;\n if not (case p_record_type\n  when 'quote' then exists(select 1 from public.quotes where id=p_record_id)\n  when 'invoice' then exists(select 1 from public.invoices where id=p_record_id)\n  when 'change_order' then exists(select 1 from public.change_orders where id=p_record_id) end) then\n  raise exception 'Record is not available' using errcode='42501';\n end if;\n return app_private.read_record_delivery_requests(p_record_type,p_record_id,p_page);\nend $$",
+      "revoke all on function public.list_record_delivery_requests(text,uuid,integer) from public,anon,authenticated,service_role",
+      "grant execute on function public.list_record_delivery_requests(text,uuid,integer) to authenticated",
+      "comment on function public.list_record_delivery_requests(text,uuid,integer) is 'Read-only staff metadata for one RLS-visible record; never prepares, sends or authorizes retry.'",
+      "commit"
+    ]
+  },
+  "expectedCatalog": {
+    "count": 5116,
+    "sha256": "ffd9dec215c34ae065a0970a268862772b679b79d827a37fcff6d7f9dc63737d"
+  },
+  "expectedApprovalSha256": "7a958f1e24fc415cf05adde8594369b15d130d3a6cdf80dcf9e84751ff4ae52f",
+  "expectedDocumentTerms": {
+    "columnCount": 2,
+    "comments": {
+      "invoices": "Immutable rendering baseline; legacy-2026-10-22 records current CRM wording, not reconstructed historic acceptance text.",
+      "quotes": "Immutable rendering baseline; legacy-2026-10-22 records current CRM wording, not reconstructed historic acceptance text."
+    },
+    "invalidInvoices": 0,
+    "invalidQuotes": 0,
+    "invoiceBindingsSha256": "b581832d603aab2f5247a0d8f6b6181ff39337f26aa4c5cdd2d3309feaf43590",
+    "quoteBindingsSha256": "ae199f063417322a40e258d13c297489987641efd79f4cfe818496b9d32f9946"
+  },
+  "protectedStateSha256": "0d18b75bc259208bbebfe6fb3825e71c253f60c7b0f2c11e56c2e4ce0704e2ea",
+  "snapshotSqlSha256": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+  "productionReady": false,
+  "deployed": false
+}

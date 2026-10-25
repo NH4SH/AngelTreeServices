@@ -1,0 +1,47 @@
+-- Caller-owned transaction, synthetic metadata only. No sender or recovery commands.
+set local lock_timeout='3s';set local statement_timeout='45s';
+create temporary table delivery_review_assertions(label text);
+create temporary table delivery_review_inputs(kind text,data jsonb);
+create function pg_temp.review_check(ok boolean,label text)returns void language plpgsql as $$begin
+ if ok is distinct from true then raise exception 'Delivery review assertion failed: %',label;end if;insert into pg_temp.delivery_review_assertions values(label);
+end$$;
+do $test$
+declare owner_id uuid:=gen_random_uuid();actor uuid;role_name text;delivery uuid:=gen_random_uuid();target uuid:=gen_random_uuid();r jsonb;s jsonb;baseline_total bigint;baseline_sources bigint;denied boolean;before_state jsonb;after_state jsonb;settings_before jsonb;
+begin
+ select to_jsonb(x)into settings_before from public.communication_settings x where singleton;
+ perform pg_temp.review_check((settings_before->>'automated_sending_enabled')::boolean=false and(settings_before->>'appointment_change_notices_enabled')::boolean=false,'Staging sending and notice switches remain OFF');
+ insert into public.roles(name)values('owner'),('admin'),('estimator'),('payroll_admin'),('crew'),('customer'),('property_manager')on conflict(name)do nothing;
+ insert into auth.users(id,email)values(owner_id,'review-reader-'||owner_id||'@example.invalid');insert into public.employee_records(auth_user_id,legal_name,is_active,employment_status)values(owner_id,'Synthetic review reader',true,'active');insert into public.user_roles(user_id,role_id)select owner_id,id from public.roles where name='owner';
+ select count(*) into baseline_total from app_private.outbound_deliveries;select count(*)into baseline_sources from app_private.customer_source_events where prepared_activity_id is null;
+ insert into app_private.outbound_deliveries(id,business_key,provider_key,payload,payload_hash,context,source_snapshot,state,delivery_status,repair_state,attempt_count,created_at)
+ values(delivery,'review-read:'||delivery,'review-read:'||delivery,'{"to":["review@example.invalid"],"subject":"Synthetic selected review","html":"PRIVATE_BODY_PORTAL_TOKEN"}',repeat('a',64),jsonb_build_object('kind','invoice','email_type','invoice','invoice_id',target),'{}','unknown','pending','needs_review',1,'2026-10-25T12:00:00Z');
+ insert into app_private.outbound_deliveries(business_key,provider_key,payload,payload_hash,context,source_snapshot,state,delivery_status,repair_state,created_at)
+ select 'review-bulk:'||target||':'||n,'review-bulk:'||target||':'||n,'{"to":["review@example.invalid"],"subject":"Synthetic review page","html":"PRIVATE_BULK_BODY"}',repeat('b',64),jsonb_build_object('kind','invoice','email_type','invoice','invoice_id',target),'{}','prepared','pending','pending','2026-10-25T12:00:00Z'::timestamptz+n*interval'1 microsecond'from generate_series(1,1201)n;
+ -- Explicit identity values avoid advancing a hosted sequence during rollback tests.
+ insert into app_private.customer_source_events(id,source_key,source_audit_id,event,event_hash,event_order) overriding system value
+ select gen_random_uuid(),'review-source:'||target||':'||n,gen_random_uuid(),jsonb_build_object('title','Synthetic customer activity','destination_path','/admin/invoices/'||target,'body','PRIVATE_SOURCE_BODY'),repeat('c',64),-1000000-n from generate_series(1,1101)n;
+ select jsonb_build_object('outbox',(select md5(string_agg(to_jsonb(x)::text,''order by id))from app_private.outbound_deliveries x),'sources',(select md5(string_agg(to_jsonb(x)::text,''order by id))from app_private.customer_source_events x),'history',(select md5(coalesce(string_agg(to_jsonb(x)::text,''order by id),''))from public.email_events x),'queue',(select count(*)from public.customer_communications),'payments',(select count(*)from public.payments),'audit',(select count(*)from public.activity_log))into before_state;
+ perform set_config('request.jwt.claim.sub',owner_id::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);perform set_config('role','authenticated',true);
+ r:=public.list_outbound_deliveries(true,delivery,1);s:=public.list_pending_customer_source_events(1);perform set_config('role','none',true);insert into pg_temp.delivery_review_inputs values('selected',r),('sources',s);
+ perform pg_temp.review_check(r->>'total'='1'and jsonb_array_length(r->'deliveries')=1 and r#>>'{deliveries,0,id}'=delivery::text,'Valid selected UUID returns only its native delivery');
+ perform pg_temp.review_check(r::text not like '%PRIVATE_%'and s::text not like '%PRIVATE_%','Native review readers expose metadata without frozen bodies');
+ perform pg_temp.review_check((s->>'total')::bigint=baseline_sources+1101 and jsonb_array_length(s->'events')=20,'Pending alert count and native page are complete beyond API cap');
+ perform set_config('role','authenticated',true);r:=public.list_outbound_deliveries(true,null,1);s:=public.list_pending_customer_source_events(55);perform set_config('role','none',true);insert into pg_temp.delivery_review_inputs values('global',r);
+ perform pg_temp.review_check((r->>'total')::bigint=baseline_total+1202 and jsonb_array_length(r->'deliveries')=50,'Recent delivery exact count and 50-row page beyond 1000');
+ perform pg_temp.review_check(jsonb_array_length(s->'events')=20,'Later pending-alert page remains available');
+ perform set_config('role','authenticated',true);r:=public.list_outbound_deliveries(false,gen_random_uuid(),1);s:=public.list_pending_customer_source_events(10000);perform set_config('role','none',true);
+ perform pg_temp.review_check(r->>'total'='0'and r->'deliveries'='[]'::jsonb,'Missing valid selected ID is not replaced with global delivery rows');
+ perform pg_temp.review_check((s->>'total')::bigint=baseline_sources+1101 and s->'events'='[]'::jsonb,'Exhausted page retains count for bounded application recovery');
+ foreach role_name in array array['owner','admin','estimator','payroll_admin','crew','customer','property_manager','none','disabled','separated','removed']loop
+  actor:=gen_random_uuid();insert into auth.users(id,email,raw_user_meta_data)values(actor,'review-reader-'||actor||'@example.invalid','{"role":"owner"}');update public.profiles set status=case when role_name='disabled'then'disabled'else'active'end where id=actor;insert into public.employee_records(auth_user_id,legal_name,is_active,employment_status)values(actor,'Synthetic review reader',true,'active');if role_name='separated'then update public.employee_records set is_active=false,employment_status='separated'where auth_user_id=actor;end if;
+  if role_name not in('none','removed')then insert into public.user_roles(user_id,role_id)select actor,id from public.roles where name=case when role_name in('disabled','separated')then'owner'else role_name end;end if;
+  perform set_config('request.jwt.claim.sub',actor::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'role','authenticated','user_metadata','{"role":"owner"}'::jsonb)::text,true);
+  denied:=false;perform set_config('role','authenticated',true);begin r:=public.list_outbound_deliveries(false,delivery,1);exception when insufficient_privilege then denied:=true;end;perform set_config('role','none',true);perform pg_temp.review_check(denied=(role_name not in('owner','admin','estimator','payroll_admin')),'Native review effective access '||role_name);
+  denied:=false;perform set_config('role','authenticated',true);begin s:=public.list_pending_customer_source_events(1);exception when insufficient_privilege then denied:=true;end;perform set_config('role','none',true);perform pg_temp.review_check(denied=(role_name not in('owner','admin')),'Native pending alerts require administrator '||role_name);
+ end loop;
+ perform set_config('request.jwt.claim.sub','',true);perform set_config('request.jwt.claims','{"role":"anon"}',true);denied:=false;perform set_config('role','anon',true);begin r:=public.list_outbound_deliveries(true,delivery,1);exception when insufficient_privilege then denied:=true;end;perform set_config('role','none',true);perform pg_temp.review_check(denied,'Anonymous native review denied');
+ perform pg_temp.review_check(not has_table_privilege('authenticated','app_private.outbound_deliveries','SELECT'),'No direct frozen outbox grant');
+ select jsonb_build_object('outbox',(select md5(string_agg(to_jsonb(x)::text,''order by id))from app_private.outbound_deliveries x),'sources',(select md5(string_agg(to_jsonb(x)::text,''order by id))from app_private.customer_source_events x),'history',(select md5(coalesce(string_agg(to_jsonb(x)::text,''order by id),''))from public.email_events x),'queue',(select count(*)from public.customer_communications),'payments',(select count(*)from public.payments),'audit',(select count(*)from public.activity_log))into after_state;
+ perform pg_temp.review_check(before_state=after_state,'Reviewing changes no requests, sources, history, queue, finances or audit');perform pg_temp.review_check(settings_before=(select to_jsonb(x)from public.communication_settings x where singleton),'All communication settings preserved');
+end$test$;
+select jsonb_build_object('nativeInputs',(select jsonb_object_agg(kind,data)from pg_temp.delivery_review_inputs),'assertions',(select jsonb_agg(label order by label)from pg_temp.delivery_review_assertions),'sendingSwitchesStayedOff',true)verification;

@@ -381,3 +381,21 @@ immutable terms, financial/communication commands, no-send Auth guard and OFF st
 automation are preserved. Current checkpoint and release limits are in
 `STAGING_RECORD_DELIVERY_RECONCILIATION.md`. No application deployment or production
 change occurred; the implementation and reconciliation remain local pending push.
+
+### October 25 — Delivery review read safety
+
+Migration 125 implementation/reconciliation is pushed normally to main through
+`dacc741`. The next focused PR14 read gap is fixed locally: invalid/missing
+selected delivery links cannot become a global recovery list, missing or malformed
+responses cannot claim empty success, and incomplete metadata cannot drive recovery
+controls. Partial supplementary errors preserve valid deliveries. Original action
+permissions, confirmations and native send/repair safeguards are unchanged.
+
+See `DELIVERY_REVIEW_READ_SAFETY.md` for 3,165 passing CRM checks, 21 manual-reminder
+checks, nine actual local Auth/API scenarios with 326 GETs, 34 native assertions
+per local/staging target, 18 native-input/fault cases, typecheck/build and rendered
+keyboard/responsive/error/empty acceptance. Staging remains exactly at 125 after
+rollback, with all protected state and OFF controls preserved. The batch remains
+local and undeployed with zero production changes or customer sends. Deterministic
+native global Delivery review paging is the next focused communications follow-up;
+existing policy, mailbox/device/accessibility and managed-runtime work stays separate.

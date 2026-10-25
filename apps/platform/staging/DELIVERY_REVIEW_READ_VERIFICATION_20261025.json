@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-25T23:55:03.860Z",
+  "priorVerifiedReconciliationPushedToMain": "dacc741458deb7827023a227d8039637bd73c04f",
+  "branch": "codex/delivery-review-read-safety",
+  "newWorkPushed": false,
+  "deployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "migrationAdded": false,
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "nativeMigrations": 125,
+    "latestMigration": "20261025173049",
+    "catalogObjects": 5116,
+    "protectedSets": 49,
+    "exactCheckpointPreserved": true,
+    "syntheticFixturesRolledBack": true,
+    "sqlAssertions": 34,
+    "authGuardAndOffAutomationPreserved": true
+  },
+  "verification": {
+    "regular": 3165,
+    "focused": 75,
+    "manualReminders": 21,
+    "localSqlAssertions": 34,
+    "stagingSqlAssertions": 34,
+    "nativeInputCases": 18,
+    "actualLocalApiScenarios": 9,
+    "apiTapResults": 10,
+    "readOnlyRpcGets": 326,
+    "selectedRpcReads": 18,
+    "freshSchema": true,
+    "offlineSchema": true,
+    "frameworkFloor": true,
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "cleanIsolatedBuildUsed": true,
+    "projectBuildSettingsChanged": false,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "localAdvisors": 0,
+    "stagingAdvisorBaseline": 80
+  },
+  "browser": {
+    "syntheticLocalOnly": true,
+    "beforeInvalidLinkCards": 50,
+    "beforeInvalidLinkReviewDisclosures": 70,
+    "invalidAndMissingZeroForms": true,
+    "realReadDenialNoFalseEmpty": true,
+    "partialAlertReadKeepsValidDeliveries": true,
+    "genuineEmptyVerified": true,
+    "allTemporaryFixtureAndAclChangesExactlyRestored": true,
+    "keyboardPagingAndReviewChoices": true,
+    "widths": [
+      1280,
+      768,
+      390
+    ],
+    "horizontalOverflow": false,
+    "detectorFindings": 0,
+    "independentDesignReview": false,
+    "shippingRasters": 0,
+    "recoveryFormsSubmitted": 0
+  },
+  "preserved": {
+    "nativeFunctionsAndRls": true,
+    "serverReviewAndDispatchCommands": true,
+    "roleAndRetryLeaseBoundaries": true,
+    "financialBehaviorAndImmutableTerms": true,
+    "recordHistoryAndMigration125Views": true,
+    "globalStylesAndDependencies": true,
+    "runtimeSecurityHead": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "limits": [
+    "Hosted staging Auth/browser and real mailbox/device/spoken-screen-reader acceptance not claimed.",
+    "Native global timestamp ordering and 10000-page limits unchanged.",
+    "Next focused PR14 step is deterministic native Delivery review paging."
+  ],
+  "files": [
+    {
+      "path": "apps/platform/src/lib/email/delivery-review-read.ts",
+      "sha256": "86824365c2bef5d5af1727b9ac6efeeaba148501aec1bb71c992f1096b3909cd"
+    },
+    {
+      "path": "apps/platform/src/app/admin/communications/delivery-review/page.tsx",
+      "sha256": "0e8130ee956a4be1f92013837e498311616519e92b8a8566d1e41f9ff6076e69"
+    },
+    {
+      "path": "apps/platform/tests/delivery-review-read.test.mjs",
+      "sha256": "dea6a7e6d4aeef5023d597e902928be74ebdd2c7cf0bd6cfb25bb8e88fdd6892"
+    },
+    {
+      "path": "apps/platform/tests/delivery-review-read.integration.test.mjs",
+      "sha256": "5bb0bfa662e7a838a571a04ad9bb07f7c46b877ccb6f87ffb26444aed4c0680a"
+    },
+    {
+      "path": "supabase/verification/delivery_review_read_safety.sql",
+      "sha256": "a5592764818f05ecd0230e11bc676caa6a1e91550f2bd25f582b018386d6deb0"
+    },
+    {
+      "path": "apps/platform/DELIVERY_REVIEW_READ_SAFETY.md",
+      "sha256": "c95495640d4a19c116e50d90ed6cab685994f01918eece1d6c3cf51f2e1b2bf8"
+    },
+    {
+      "path": "apps/platform/CUSTOMER_EXPERIENCE_REVIEW.md",
+      "sha256": "a629f3fe1d4ce0a7d04d188674934911f1f3f860858450ce6f3e002cd064d3e4"
+    },
+    {
+      "path": "apps/platform/STAGING_RECORD_DELIVERY_RECONCILIATION.md",
+      "sha256": "a86b187686b0e58dc8c592c223515275284249ce0bd365dbd414b5b669000959"
+    },
+    {
+      "path": ".impeccable/surfaces/delivery-review-read-safety.md",
+      "sha256": "cd530917e0b92a273d213119e8afbd1dd77d990695ca1376781ba52f41f2a6d1"
+    }
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-25/delivery-review-read-safety",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "onlyTaskOwnedPreviewStopped": true,
+    "taskTabClosed": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "productionChanged": false
+  }
+}

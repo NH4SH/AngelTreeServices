@@ -15698,6 +15698,14 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "list_record_delivery_requests": {
+                Args: {
+                    "p_page"?: number;
+                    "p_record_id": string;
+                    "p_record_type": string;
+                };
+                Returns: Json;
+            };
             "list_website_sender_blocks": {
                 Args: {
                     "p_all"?: boolean;

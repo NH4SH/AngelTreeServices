@@ -134,6 +134,12 @@
       "sha256": "57f9d84521046e3dd9db66f065bab00b65f22a8c4d2f76d4ceb6ab19ff07030c",
       "reason": "Installed and verified natively on ATS CRM Staging as migration 124; remains deferred for a separately reviewed production release. No app deployment or production activation.",
       "productionReady": false
+    },
+    {
+      "name": "20261025173049_record_delivery_visibility.sql",
+      "sha256": "bda2637a3c08d96669ea0ee66cd2639f3880a0c8625f2bf9e1909827b0ef4c37",
+      "reason": "Candidate read-only record-scoped prepared/unresolved delivery metadata. Local verification and rollback-only staging tests; permanent staging reconciliation remains separate.",
+      "productionReady": false
     }
   ]
 }

@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-25T17:52:36.695Z",
+  "priorVerifiedCommitPushedToMain": "a8a5481b9ac8f31904ae2afcd369266f29dff331",
+  "branch": "codex/record-delivery-visibility",
+  "newWorkPushed": false,
+  "deployed": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "local": {
+    "nativeMigrations": 125,
+    "latestMigration": "20261025173049",
+    "sqlAssertions": 100,
+    "apiScenarios": 9,
+    "apiTapResults": 10,
+    "scopedGetReads": 196,
+    "privateHelperApiDenied": true,
+    "browsingStatePreserved": true
+  },
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "nativeMigrations": 124,
+    "latestMigration": "20261024190625",
+    "candidate125PermanentlyInstalled": false,
+    "candidateDdlAndFixturesRolledBack": true,
+    "sqlAssertions": 100,
+    "catalogObjects": 5113,
+    "ledgerCatalogAndProtectedStatePreserved": true,
+    "automationRemainsOff": true,
+    "authEmailGuardPreserved": true
+  },
+  "checks": {
+    "focused": 137,
+    "regular": 3073,
+    "manualReminders": 21,
+    "freshSchema": true,
+    "offlineSchema": true,
+    "frameworkFloor": true,
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "localAdvisors": 0,
+    "stagingAdvisorBaseline": 80
+  },
+  "browser": {
+    "syntheticLocalOnly": true,
+    "widths": [
+      1280,
+      768,
+      390
+    ],
+    "horizontalOverflow": false,
+    "keyboardPagingAndDisclosure": true,
+    "allThreeSourceScopes": true,
+    "recordedDefaultPreserved": true,
+    "emptyAndRealReadErrorDistinct": true,
+    "privateMessageMarkersAbsent": true,
+    "existingDeliveryReviewLinkVerified": true,
+    "finishReviewerDisposition": "ship",
+    "materialFixes": 0,
+    "documenterCompleted": true,
+    "detectorFindings": 0,
+    "shippingRasters": 0
+  },
+  "limits": [
+    "No hosted browser/Auth-session or provider-mailbox acceptance claimed.",
+    "Migration 125 requires separate permanent staging reconciliation.",
+    "No production deployment or activation.",
+    "Pagination is stable per SQL statement, not frozen across multiple browsing requests."
+  ],
+  "files": [
+    {
+      "path": ".impeccable/surfaces/record-email-history.md",
+      "sha256": "a69122edc59b47b8d69fbffb81769608f95cb1a12e536d2ba68313266310db0e"
+    },
+    {
+      "path": "apps/platform/CUSTOMER_EXPERIENCE_REVIEW.md",
+      "sha256": "f5d9c6f7eb96d491f48400787c8f52fb0a5d368b1ea52ca04b30da06e61c54b4"
+    },
+    {
+      "path": "apps/platform/RECORD_DOCUMENT_EMAIL_HISTORY.md",
+      "sha256": "172b634212e846dd12b1408966f4a7b6b055ab7d2cbea5fbb5512938568cb315"
+    },
+    {
+      "path": "apps/platform/RECORD_DELIVERY_VISIBILITY.md",
+      "sha256": "65f59332bb2aba2eef3af89038ba0e239d6aafe668ba1a1c22d89eb799077a9a"
+    },
+    {
+      "path": "apps/platform/scripts/schema/manifest.json",
+      "sha256": "90ec2fc1ca5e4005e8547c8f7faadd4a5f457700e5654f4106a399500d8bffe9"
+    },
+    {
+      "path": "apps/platform/src/app/admin/communications/email/[recordType]/[recordId]/page.tsx",
+      "sha256": "f8c634a89e49c619a76de06aee9fa2709c4fb7b36a37294756a00dc87e2e055c"
+    },
+    {
+      "path": "apps/platform/src/components/record-email-history-browser.tsx",
+      "sha256": "813155eb37ee3aeadda575b32fd9f2de2de37e2257960aa23283751645098121"
+    },
+    {
+      "path": "apps/platform/src/components/record-delivery-requests-browser.tsx",
+      "sha256": "2f8d2fdcfca4a25c69240c790025cd70e38b6642a12f52c5edda69f01b511b99"
+    },
+    {
+      "path": "apps/platform/src/lib/email/record-history-scope.ts",
+      "sha256": "443c651ff95316358ab93e1e3cff61283b50987c6f7bcd80f05a62a5994f9a11"
+    },
+    {
+      "path": "apps/platform/src/lib/email/record-delivery-requests.ts",
+      "sha256": "9b724c7f639b84dd705397e2eb9863c80d360df58ce45f2b345756ae3e40ea68"
+    },
+    {
+      "path": "apps/platform/src/lib/types/database.generated.ts",
+      "sha256": "03c7f7c6684960c3847d77ccc7530e01f0175dea21d9ffa4378b7ddf47dbab1e"
+    },
+    {
+      "path": "apps/platform/tests/record-email-history.test.mjs",
+      "sha256": "339aae5b3c15cde625c5c45cdb82cf8a44dc435548a2db9538397469a4b00fab"
+    },
+    {
+      "path": "apps/platform/tests/record-delivery-requests.test.mjs",
+      "sha256": "9d29424a07c661e47b2af716aea7d17ac153c0ca7583491ca1ea5f794be44e89"
+    },
+    {
+      "path": "apps/platform/tests/record-delivery-requests.integration.test.mjs",
+      "sha256": "8381d7cc82132ac36524e5e18e3796a33cd3d183696808f7bde9dc82506d8906"
+    },
+    {
+      "path": "apps/platform/tests/staging-appointment-candidate.test.mjs",
+      "sha256": "d791fb7ace3af4a6ddea9ab99fe18414cf1fad1284f2ba222b7e38cc3ea22540"
+    },
+    {
+      "path": "supabase/staging/deferred-migrations.json",
+      "sha256": "91d728c50e87f88555346dda63d2e58b561c52a5afdc5d991d55538a9a568219"
+    },
+    {
+      "path": "supabase/migrations/20261025173049_record_delivery_visibility.sql",
+      "sha256": "bda2637a3c08d96669ea0ee66cd2639f3880a0c8625f2bf9e1909827b0ef4c37"
+    },
+    {
+      "path": "supabase/verification/record_delivery_visibility.sql",
+      "sha256": "1fa48cb40121616f0057cf312dec138089fab3b91a2d3354ca15a3089a4ec6bf"
+    }
+  ],
+  "runtimeSecurityHeadPreserved": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+}

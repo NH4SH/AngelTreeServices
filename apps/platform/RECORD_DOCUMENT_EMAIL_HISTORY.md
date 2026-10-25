@@ -47,3 +47,12 @@ Sanitized receipt: `staging/RECORD_DOCUMENT_EMAIL_HISTORY_VERIFICATION_20261024.
 Counts, source checks and navigation reflect live state rather than one frozen transaction. Concurrent external changes can move records between pages; refresh and bounded recovery handle stale positions. Unknown historical send times are not reconstructed. The original recent previews remain previews and are not relabelled as complete totals.
 
 This completes the recorded document-email browsing follow-through. The next focused PR14 step is record-scoped visibility of prepared/unresolved private delivery requests, using the established delivery commands and review safeguards; it must preserve recorded history and never turn viewing or recovery into a blind resend. Wider policy, tax-preparer, real-mailbox/device/accessibility and managed-runtime follow-ups remain in the existing roadmap. The separate runtime-security worktree stays at `06580f6c922fa6ab0ebaf229d27b1d30097f1b78`. No production query/change, deployment, key rotation or real customer communication occurred.
+
+## October 25 follow-through
+
+The recorded-history commit is pushed to main. The focused prepared/unresolved
+request view is implemented and verified separately in
+`RECORD_DELIVERY_VISIBILITY.md`. All recorded emails remains the default, and the
+original history/security/workflow boundaries remain. Candidate migration 125
+has local native and rollback-only staging verification; permanent staging
+reconciliation and release are still separate steps.

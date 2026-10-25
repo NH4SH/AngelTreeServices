@@ -13,7 +13,7 @@ export function RecordEmailHistoryBrowser({ scope, label, view, result }: { scop
     <Link href={recordEmailRecordHref(scope)}>Back to record</Link>
     <section className="page-heading"><div><h1>Email history</h1><p>{label}</p></div></section>
     <p className="form-helper">Provider accepted means the email service accepted the request. Delivery reported means the receiving mail server accepted it; neither proves the customer read it.</p>
-    <nav className="filter-pills" aria-label="Recorded email view">{(["all", "attention"] as const).map(tab => <Link key={tab} aria-current={view === tab ? "page" : undefined} className={view === tab ? "active" : ""} href={recordEmailHistoryHref(scope, tab)}>{tab === "all" ? "All recorded emails" : "Needs attention"}</Link>)}</nav>
+    <nav className="filter-pills" aria-label="Recorded email view">{(["all", "attention", "requests"] as const).map(tab => <Link key={tab} aria-current={view === tab ? "page" : undefined} className={view === tab ? "active" : ""} href={recordEmailHistoryHref(scope, tab)}>{tab === "all" ? "All recorded emails" : tab === "attention" ? "Needs attention" : "Prepared & unresolved"}</Link>)}</nav>
     <section className="detail-panel communication-queue-panel record-email-results" aria-labelledby="record-email-list-title">
       <div className="panel-heading-row"><h2 id="record-email-list-title">{view === "all" ? "Recorded emails" : "Emails needing attention"}</h2><a href={href} className="secondary-action compact-action">Refresh</a></div>
       {result.error ? <p className="form-message error" role="alert">Recorded emails could not be loaded. Refresh this page to try again.</p> : <>
@@ -44,6 +44,6 @@ export function RecordEmailHistoryBrowser({ scope, label, view, result }: { scop
         <Pages />
       </>}
     </section>
-    <p className="form-helper">Prepared or unresolved requests may not appear in recorded history yet. <Link href="/admin/communications/delivery-review">Open Delivery review</Link> to check those requests. Opening or paging this history sends no email.</p>
+    <p className="form-helper">Prepared or unresolved requests may not appear in recorded history yet. <Link href={recordEmailHistoryHref(scope, "requests")}>View this record’s delivery requests</Link> to check them. Opening or paging this history sends no email.</p>
   </>;
 }

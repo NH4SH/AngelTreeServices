@@ -362,3 +362,13 @@ The new read-only 124 checkpoint supersedes 123 for current staging maintenance;
 The migration-124 staging reconciliation is pushed normally to main as `5cdc0b8`. `RECORD_DOCUMENT_EMAIL_HISTORY.md` records the next verified local PR14 batch: full caller-scoped recorded email history from proposals, invoices and change orders, defaulting to all outcomes as the owner confirmed. Exact native 30-row paging, Needs attention and delivery-review links extend the existing previews without adding mutation controls. Uncertain outcomes, legacy send dates, missing sources, read failures and genuine emptiness remain explicit. A footer distinguishes unrecorded requests.
 
 All 3,012 CRM checks, 21 manual-reminder checks, 13 actual local API scenarios / 14 TAP results with 423 scoped reads, and 95 rollback-only native assertions per local/staging target passed. Fresh schema, final typecheck/build, rendered desktop/tablet/mobile/keyboard/error acceptance and the scoped reviewer fixes passed. Staging remains exactly at 124 with its catalog, protected state, document bindings, Auth guard and OFF controls unchanged. No migration, app deployment, production change or customer send occurred. The next focused PR14 step is record-scoped prepared/unresolved delivery visibility; policy, tax-preparer, mailbox/device/accessibility and managed-runtime follow-ups remain open.
+
+### October 25 — record-specific prepared and unresolved delivery requests
+
+Completed the next focused PR14 visibility step alongside the recorded-email
+browser: all three document types can review prepared, in-flight, uncertain and
+repair/follow-up/adverse-outcome requests without sending or authorizing retry.
+The recorded-history default and every prior workflow remain. See
+`RECORD_DELIVERY_VISIBILITY.md` for the read boundary, synthetic tests and limits.
+Candidate migration 125 is local and tested in staging rollback only. Next release
+step: targeted staging reconciliation for 125; deployment remains unapproved.

@@ -2,8 +2,10 @@
 
 Verified October 26, 2026. The preceding quote-save batch is pushed normally to
 `origin/main` as `a157152b8cfec08600646780e02ed0fb421d6145`, with CI/Netlify skip
-markers. This invoice batch remains local on `codex/invoice-save-performance`,
-based on that commit. Production and the home scanner are unchanged.
+markers. The verified invoice and change-order batches were subsequently pushed
+normally to main as `7d41729daec6df212c94aed51fa609ddac8a2640`, also with deployment
+skipped. This report records their pre-push verification. Production and the home
+scanner are unchanged.
 
 ## Result
 

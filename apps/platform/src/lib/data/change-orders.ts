@@ -8,6 +8,8 @@ import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { safeStaffMessage } from "@/lib/security/errors";
 import type {
   ChangeOrderPortalToken,
+  ChangeOrder,
+  ChangeOrderLineItem,
   ChangeOrderWithRelations,
   DataResult,
   Job,
@@ -53,6 +55,40 @@ export type ChangeOrderJobOption = {
   organizations: { name: string } | null;
   service_locations: { label: string | null; street: string; city: string } | null;
 };
+
+export type ChangeOrderEditorContact = Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "email" | "role_title" | "contact_roles" | "is_active">;
+export type ChangeOrderEditorRecord = ChangeOrder & { change_order_line_items: ChangeOrderLineItem[] };
+type ChangeOrderEditorData = DataResult<ChangeOrderEditorRecord | null> & { jobs: ChangeOrderJobOption[]; contacts: ChangeOrderEditorContact[] };
+
+/** The work order is immutable in this editor: load that parent, not every job. */
+export async function getChangeOrderForEditing(id: string): Promise<ChangeOrderEditorData> {
+  const empty = { data: null, jobs: [], contacts: [] };
+  const unavailable = "Change order details could not load. Reload before editing.";
+  const db = await createClient();
+  if (!db) return { ...empty, error: "Supabase is not configured." };
+  const { data, error } = await db.from("change_orders").select(`*, change_order_line_items(*),
+    editor_job:jobs!change_orders_job_id_fkey(id, customer_id, organization_id, service_location_id, source_quote_id, status, service_type, archived_at,
+      customers:customers!jobs_customer_id_fkey(display_name), organizations(name), service_locations(label, street, city))`).eq("id", id).maybeSingle();
+  if (error) return { ...empty, error: safeStaffMessage(error.message) };
+  if (!data) return { ...empty, error: null };
+  if (data.id !== id || !Array.isArray(data.change_order_line_items) || !Number.isSafeInteger(data.edit_revision)) return { ...empty, error: unavailable };
+  const { editor_job: parent, ...order } = data as ChangeOrderEditorRecord & { editor_job: (ChangeOrderJobOption & { archived_at: string | null }) | null };
+  if (!parent || parent.id !== order.job_id || parent.archived_at !== null) return { ...empty, error: "The linked work order is unavailable. Review it before editing this change order." };
+  const { archived_at: _archived, ...job } = parent;
+  const contacts: ChangeOrderEditorContact[] = [];
+  if (job.organization_id) {
+    // A stable, scoped read also avoids losing this organization's contacts to
+    // the global API row limit. Each request still uses the caller's RLS.
+    for (let offset = 0; ; offset += 1000) {
+      const page = await db.from("organization_contacts").select("id, organization_id, full_name, email, role_title, contact_roles, is_active")
+        .eq("organization_id", job.organization_id).eq("is_active", true).order("full_name").order("id").range(offset, offset + 999);
+      if (page.error || !Array.isArray(page.data)) return { ...empty, error: page.error ? safeStaffMessage(page.error.message) : unavailable };
+      contacts.push(...page.data as ChangeOrderEditorContact[]);
+      if (page.data.length < 1000) break;
+    }
+  }
+  return { data: order, jobs: [job], contacts, error: null };
+}
 
 export async function getChangeOrders(): Promise<DataResult<ChangeOrderWithRelations[]>> {
   const supabase = await createClient();

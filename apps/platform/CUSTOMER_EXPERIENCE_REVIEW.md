@@ -460,3 +460,19 @@ save batches remain local; quote-save commit `a157152` remains current main.
 Published apps, production and the scanner are unchanged. Next, measure editor
 entry/lookup reads; existing release, policy, mailbox/device/accessibility and
 managed-runtime follow-ups retain their separate scope.
+
+### October 26 — document-editor entry and lookup reads
+
+The verified invoice/change-order save batches are pushed normally to main as
+`7d41729`, with deployment skipped. `EDITOR_ENTRY_PERFORMANCE.md` records the next
+local batch: quote choices use narrow field projections, while change orders
+load their fixed parent and that organization's active contacts. All editable
+choices, save/retry behavior, financial scope and permissions are preserved.
+Incomplete change-order reads now show recovery instead of a partial save form.
+
+In paired synthetic staging samples, quote HTML fell 82% and change-order HTML
+89%; change-order entry median fell from 874 to 682.5 ms. Quote timing was
+essentially unchanged. Native/browser tests passed locally and in protected
+staging, alongside regression checks, typecheck/build and schema checks. The
+batch remains local; published apps, production and the scanner are unchanged.
+Searchable/paged quote lookups are the next focused scalability step.

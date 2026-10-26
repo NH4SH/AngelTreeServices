@@ -3,8 +3,10 @@
 Verified October 26, 2026. Quote-save responsiveness is already pushed normally to
 `origin/main` as `a157152b8cfec08600646780e02ed0fb421d6145`, with CI/Netlify skip
 markers. The preceding verified invoice-save batch and this change-order batch
-remain local and uncommitted on `codex/invoice-save-performance`, based on that
-commit. Production, the published staging app and the home scanner are unchanged.
+were subsequently pushed normally to main as
+`7d41729daec6df212c94aed51fa609ddac8a2640`, also with deployment skipped. This report
+records their pre-push verification. Production, the published staging app and the
+home scanner are unchanged.
 
 ## Measured result
 
@@ -106,7 +108,7 @@ was made.
 
 This batch needs no migration or new secret. A future authorized release must
 retain the configured `APP_BASE_URL` Origin binding. The invoice and change-order
-batches are ready for the next requested push; production release remains separate.
+batches are pushed as `7d41729`; production release remains separate.
 Next, measure document-editor entry and lookup loading before choosing another
 performance change. This save optimization intentionally leaves those reads and
 all existing business/communications work in place.

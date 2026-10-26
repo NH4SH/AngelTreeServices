@@ -27,7 +27,7 @@ import {
   initialChangeOrderActionState,
   type ChangeOrderActionState,
 } from "@/lib/action-states/change-orders";
-import type { ChangeOrderJobOption, ChangeOrderTokenSummary } from "@/lib/data/change-orders";
+import type { ChangeOrderEditorContact, ChangeOrderJobOption, ChangeOrderTokenSummary } from "@/lib/data/change-orders";
 import type { MaterialRecord } from "@/lib/data/materials";
 import type { ChangeOrderWithRelations, OrganizationContact, ServiceCategory } from "@/lib/types/database";
 
@@ -55,7 +55,7 @@ export function ChangeOrderEditor({
   sourceCloseoutId = "",
 }: {
   canViewCosts: boolean;
-  contacts: OrganizationContact[];
+  contacts: ChangeOrderEditorContact[];
   defaultJobId?: string;
   jobs: ChangeOrderJobOption[];
   materials: MaterialRecord[];
@@ -433,6 +433,6 @@ function patchLine(setLines: React.Dispatch<React.SetStateAction<LineDraft[]>>, 
 function lineTotal(line: LineDraft) { return Math.round(Math.round((Number.parseFloat(line.quantity) || 0) * 100) * Math.round((Number.parseFloat(line.rate) || 0) * 100) / 100); }
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100); }
 function formatStatus(status: string) { return status.replaceAll("_", " "); }
-function contactRole(contact: OrganizationContact) { return contact.contact_roles?.length ? contact.contact_roles.map(formatStatus).join(", ") : contact.role_title || "Contact"; }
+function contactRole(contact: Pick<OrganizationContact, "contact_roles" | "role_title">) { return contact.contact_roles?.length ? contact.contact_roles.map(formatStatus).join(", ") : contact.role_title || "Contact"; }
 function jobLabel(job: ChangeOrderJobOption) { const party = job.organizations?.name ?? job.customers?.display_name ?? "Unknown account"; const place = job.service_locations?.label || job.service_locations?.street || "No property label"; return `${party} - ${place} - ${formatStatus(job.service_type ?? "work order")}`; }
 const impactOptions = [["scheduled_date", "Scheduled date"], ["estimated_duration", "Estimated duration"], ["assigned_crew", "Assigned crew"], ["equipment", "Equipment"], ["materials", "Materials"], ["permits", "Permits"], ["subcontractors", "Subcontractors"]] as const;

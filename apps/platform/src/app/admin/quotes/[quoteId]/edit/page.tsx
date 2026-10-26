@@ -4,9 +4,8 @@ import { FileSignature } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
-import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
+import { getQuoteEditorLookups } from "@/lib/data/quote-editor";
 import { getQuoteForEditing } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions } from "@/lib/data/materials";
@@ -29,17 +28,15 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     return <SetupRequired title="Configure Supabase before editing quotes" />;
   }
 
-  const [detail, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [detail, lookups, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
     getQuoteForEditing(quoteId),
-    getCustomerOptions(),
-    getOrganizations(),
-    getActiveOrganizationContacts(),
-    getServiceLocations(),
+    getQuoteEditorLookups(),
     getJobOptions(),
     getEstimateScheduleEventOptions(),
     getServiceCategories(),
     getMaterialCatalogOptions(),
   ]);
+  const { customers, organizations, organizationContacts, serviceLocations } = lookups;
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>

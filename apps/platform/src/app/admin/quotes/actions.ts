@@ -305,28 +305,31 @@ export async function updateQuote(
     return { status: "error", message: "Approved, declined, expired, or cancelled quotes are locked from regular editing." };
   }
 
-  const { data: account, error: accountError } = await supabase
-    .from(party.kind === "customer" ? "customers" : "organizations")
-    .select("id, status")
-    .eq("id", party.customerId ?? party.organizationId)
-    .single();
+  // Independent caller-RLS preflight reads share one round trip window.
+  // Validation order below and the atomic command's live checks are unchanged.
+  const [accountResult, contactError, scheduleResult, locationResult, jobResult] = await Promise.all([
+    supabase.from(party.kind === "customer" ? "customers" : "organizations")
+      .select("id, status").eq("id", party.customerId ?? party.organizationId).single(),
+    validateOrganizationContacts(supabase, party, [recipientContactId, approvalContactId], [onsiteContactId, billingContactId]),
+    estimateScheduleEventId ? supabase.from("schedule_events").select("id, service_location_id")
+      .eq("id", estimateScheduleEventId).eq("event_type", "estimate").single() : null,
+    serviceLocationIdInput ? supabase.from("service_locations").select("id, customer_id, organization_id")
+      .eq("id", serviceLocationIdInput).single() : null,
+    jobId ? supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, website_submission_id")
+      .eq("id", jobId).single() : null,
+  ]);
+  const { data: account, error: accountError } = accountResult;
 
   if (accountError || !account || account.status !== "active") {
     return { status: "error", message: accountError?.message ?? "The selected contracting party is not active." };
   }
 
-  const contactError = await validateOrganizationContacts(supabase, party, [recipientContactId, approvalContactId], [onsiteContactId, billingContactId]);
   if (contactError) return { status: "error", message: contactError };
 
   let serviceLocationId = serviceLocationIdInput || null;
 
   if (estimateScheduleEventId) {
-    const { data: scheduleEvent, error: scheduleEventError } = await supabase
-      .from("schedule_events")
-      .select("id, service_location_id")
-      .eq("id", estimateScheduleEventId)
-      .eq("event_type", "estimate")
-      .single();
+    const { data: scheduleEvent, error: scheduleEventError } = scheduleResult!;
 
     if (scheduleEventError || !scheduleEvent) {
       return { status: "error", message: scheduleEventError?.message ?? "Could not find the selected estimate event." };
@@ -344,7 +347,7 @@ export async function updateQuote(
   }
 
   if (serviceLocationId) {
-    const { data: location, error: locationError } = await supabase
+    const { data: location, error: locationError } = locationResult ?? await supabase
       .from("service_locations")
       .select("id, customer_id, organization_id")
       .eq("id", serviceLocationId)
@@ -360,11 +363,7 @@ export async function updateQuote(
   }
 
   if (jobId) {
-    const { data: job, error: jobError } = await supabase
-      .from("jobs")
-      .select("id, customer_id, organization_id, service_location_id, website_submission_id")
-      .eq("id", jobId)
-      .single();
+    const { data: job, error: jobError } = jobResult!;
 
     if (jobError || !job) {
       return { status: "error", message: jobError?.message ?? "Could not find the selected job." };

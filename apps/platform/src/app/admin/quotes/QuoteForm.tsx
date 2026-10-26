@@ -12,8 +12,9 @@ import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
+import { submitQuoteEdit } from "@/lib/quotes/submit-edit";
 import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
-import type { Customer, Job, Organization, OrganizationContact, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { Customer, Job, Organization, OrganizationContact, QuoteEditorRecord, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
 import type { MaterialRecord } from "@/lib/data/materials";
 import type { QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
@@ -71,7 +72,7 @@ export function AddQuoteForm({
   materials: MaterialRecord[];
   organizations: Pick<Organization, "id" | "name">[];
   organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
-  quote?: QuoteDetail;
+  quote?: QuoteEditorRecord;
   serviceCategories: ServiceCategory[];
   serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
   sourceLeadJobId?: string;
@@ -89,11 +90,15 @@ export function AddQuoteForm({
     }
     recovery.beforeSubmit(isEditing ? "" : requestId.current!, form);
     form.set("client_navigation", "1");
-    const result = await action(previous, form);
+    const receiptOnly = isEditing && form.get("submit_intent") !== "save_close";
+    const result = receiptOnly ? await submitQuoteEdit(form) : await action(previous, form);
     if (result.status === "success") {
       recovery.acknowledge();
       confirmedReload.current = true;
       if (result.navigateTo) router.push(result.navigateTo);
+      // Clear stale router data without holding the confirmed-save button pending
+      // for another complete editor read. React preserves the current form state.
+      if (receiptOnly) router.refresh();
     }
     return result;
   }, initialState);

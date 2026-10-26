@@ -7,7 +7,7 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
 import { getJobOptions } from "@/lib/data/jobs";
 import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
-import { getQuoteDetail } from "@/lib/data/quotes";
+import { getQuoteForEditing } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions } from "@/lib/data/materials";
 import { getEstimateScheduleEventOptions } from "@/lib/data/schedule";
@@ -30,7 +30,7 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
   }
 
   const [detail, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
-    getQuoteDetail(quoteId),
+    getQuoteForEditing(quoteId),
     getCustomerOptions(),
     getOrganizations(),
     getActiveOrganizationContacts(),

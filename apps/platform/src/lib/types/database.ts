@@ -350,6 +350,8 @@ export type QuoteLineItem = {
   updated_at: string;
 };
 
+export type QuoteEditorRecord = Quote & { quote_line_items: QuoteLineItem[] };
+
 export type QuotePortalToken = {
   id: string;
   quote_id: string;

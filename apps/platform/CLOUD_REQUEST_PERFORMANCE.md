@@ -1,8 +1,9 @@
 # Cloud request and partial-load fixes
 
-Verified locally and in protected staging on October 26, 2026. These changes are
-local on `codex/cloud-request-performance`; nothing was committed or pushed and
-production was not deployed, reconfigured, or written to.
+Initially verified locally and in protected staging on October 26, 2026, before
+commit on `codex/cloud-request-performance`. The authorized batch
+was subsequently pushed to `main` as `3845305` with CI/Netlify skip markers.
+Production was not deployed, reconfigured, or written to.
 
 ## Outcome
 

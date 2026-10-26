@@ -8,7 +8,7 @@ import {captureDocument,readDocument} from '../src/lib/drafts/document-drafts.ts
 // Exercise the actual editor submission/restore callbacks with persistent hook
 // slots. This is not a visual browser or full React scheduling test.
 function editor(options={}){
- const slots=[],submissions=[],before=[],navigations=[];let index=0,callback,recoveryOptions,acknowledged=0,result={status:'error',message:'Uncertain'};
+ const slots=[],submissions=[],before=[],navigations=[],transports=[];let refreshes=0;let index=0,callback,recoveryOptions,acknowledged=0,result={status:'error',message:'Uncertain'};
  const recovery={blocked:false,requestId:{current:''},beforeSubmit:(id,form)=>{
   before.push({id,form});recovery.requestId.current=id;
  },acknowledge:()=>acknowledged++,changed(){}};
@@ -17,10 +17,11 @@ function editor(options={}){
  },useMemo:f=>f(),useEffect(){}};
  const deps={react,'react/jsx-runtime':{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props}),Fragment:'Fragment'},
   '@/lib/business-time':{},'@/hooks/use-reliable-action-state':{useReliableActionState:fn=>{callback=fn;return[{status:'idle',message:''},()=>{},false];}},
-  'next/link':{default:'Link'},'next/navigation':{useRouter:()=>({push:p=>navigations.push(p)})},
+  'next/link':{default:'Link'},'next/navigation':{useRouter:()=>({push:p=>navigations.push(p),refresh:()=>refreshes++})},
   '@/hooks/use-document-recovery':{useDocumentRecovery:o=>{recoveryOptions=o;return recovery;}},
   '@/components/document-recovery-panel':{},'@/components/saved-scope-wording':{},'@/lib/drafts/document-drafts':{},'@/lib/drafts/return-context':context,
   'lucide-react':{},'./actions':{createQuote:async(previous,form)=>{submissions.push(form);return result;},updateQuote:async(previous,form)=>{submissions.push(form);return result;}},
+  '@/lib/quotes/submit-edit':{submitQuoteEdit:async form=>{transports.push('receipt');submissions.push(form);return result;}},
   '@/lib/contracting-parties':parties};
  const source=ts.transpileModule(readFileSync(new URL('../src/app/admin/quotes/QuoteForm.tsx',import.meta.url),'utf8'),{
   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
@@ -29,8 +30,8 @@ function editor(options={}){
   ...(options.editing?{quote:{id:'a0000000-0000-4000-8000-000000000010',customer_id:'a0000000-0000-4000-8000-000000000011',organization_id:null,edit_revision:5,quote_line_items:[]}}:{})};
  function render(){index=0;return m.exports.AddQuoteForm(props);}
  render();
- return{before,submissions,navigations,recovery,render,get acknowledged(){return acknowledged;},setResult:v=>result=v,
-  restore:copy=>{recoveryOptions.restore(copy);render();},submit:async()=>{const f=new FormData();f.set('line_item_name','Synthetic scope');return callback({status:'idle',message:''},f);}};
+ return{before,submissions,navigations,transports,get refreshes(){return refreshes;},recovery,render,get acknowledged(){return acknowledged;},setResult:v=>result=v,
+  restore:copy=>{recoveryOptions.restore(copy);render();},submit:async(intent)=>{const f=new FormData();f.set('line_item_name','Synthetic scope');if(intent)f.set('submit_intent',intent);return callback({status:'idle',message:''},f);}};
 }
 test('uncertain creation retries preserve one ID and keep recovery',async()=>{
  const e=editor();await e.submit();const id=e.submissions[0].get('request_id');assert.match(id,/^[a-f0-9-]{36}$/i);
@@ -53,4 +54,10 @@ test('unreviewed recovery blocks creation before request preparation',async()=>{
 });
 test('existing edits retain their revision-based flow',async()=>{
  const e=editor({editing:true});await e.submit();assert.equal(e.submissions[0].get('request_id'),null);assert.equal(e.before[0].id,'');
+});
+
+test('ordinary edits refresh separately only after a confirmed receipt; save and close retains its Server Action',async()=>{
+ const e=editor({editing:true});await e.submit();assert.equal(e.acknowledged,0);assert.equal(e.refreshes,0);
+ e.setResult({status:'success',message:'Saved'});await e.submit();assert.equal(e.acknowledged,1);assert.equal(e.refreshes,1);assert.deepEqual(e.transports,['receipt','receipt']);
+ const close=editor({editing:true});close.setResult({status:'success',message:'Saved',navigateTo:'/admin/quotes/saved'});await close.submit('save_close');assert.deepEqual(close.transports,[]);assert.deepEqual(close.navigations,['/admin/quotes/saved']);assert.equal(close.refreshes,0);
 });

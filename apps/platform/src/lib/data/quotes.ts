@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
 import { safeStaffMessage } from "@/lib/security/errors";
-import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteWithRelations } from "@/lib/types/database";
+import type { DataResult, InvoiceWithRelations, JobWithRelations, Note, QuoteDetail, QuoteEditorRecord, QuoteWithRelations } from "@/lib/types/database";
 
 export type QuoteApprovalSource = "manual" | "portal";
 
@@ -163,6 +163,14 @@ export async function getQuotesByCustomerId(customerId: string): Promise<DataRes
   }
 
   return { data: (data ?? []) as QuoteWithRelations[], error: null };
+}
+
+/** The editor uses the saved header and lines; history and billing belong to the detail page. */
+export async function getQuoteForEditing(quoteId: string): Promise<DataResult<QuoteEditorRecord | null>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+  const { data, error } = await supabase.from("quotes").select("*, quote_line_items(*)").eq("id", quoteId).single();
+  return { data: data as QuoteEditorRecord | null, error: error?.message ?? (data ? null : "Quote not found or no access.") };
 }
 
 export async function getQuoteDetail(quoteId: string): Promise<DataResult<QuoteDetail | null>> {

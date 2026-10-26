@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-26T00:46:03.687Z",
+  "priorReadSafetyPushedToMain": "d17b4be4672e7e69913afd69682a4e42c56d93c0",
+  "branch": "codex/deterministic-delivery-queue",
+  "newWorkPushed": false,
+  "deployed": false,
+  "productionQueried": false,
+  "productionChanged": false,
+  "providerRequests": 0,
+  "customerEmailsSent": 0,
+  "candidateMigration": 126,
+  "migrationPath": "supabase/migrations/20261026003309_deterministic_delivery_review_paging.sql",
+  "permanentStagingInstallation": false,
+  "staging": {
+    "projectRef": "gbyhdsuiqeslgjdnbqng",
+    "nativeMigrations": 125,
+    "latestMigration": "20261025173049",
+    "catalogObjects": 5116,
+    "protectedSets": 49,
+    "exactCheckpointPreserved": true,
+    "onlyTwoReaderBodiesAndThreeIndexesInCandidate": true,
+    "fullFunctionAclsAndSecurityMetadataRetained": true,
+    "syntheticFixturesRolledBack": true,
+    "authGuardAndOffAutomationPreserved": true
+  },
+  "verification": {
+    "oldFirstTiedPageFailureReproduced": true,
+    "freshLocalMigrationReplay": 126,
+    "localNativePagingAssertions": 128,
+    "stagingNativePagingAssertions": 128,
+    "localNativeSecurityAssertions": 34,
+    "stagingNativeSecurityAssertions": 34,
+    "actualLocalApiScenarios": 10,
+    "apiTapResults": 11,
+    "readOnlyRpcGets": 151,
+    "selectedRpcReads": 18,
+    "regular": 3165,
+    "manualReminders": 21,
+    "freshNativeSchema": true,
+    "publicTypeContractUnchanged": true,
+    "offlineSchema": true,
+    "frameworkFloor": true,
+    "typegen": true,
+    "typecheck": true,
+    "optimizedBuild": true,
+    "node": "22.23.4",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "localAdvisors": 0,
+    "stagingAdvisorBaseline": 80,
+    "applicationExternalNetworkAttempts": 0,
+    "defaultPlannerPerformanceBenchmark": false
+  },
+  "preserved": {
+    "applicationUiAndReaders": true,
+    "selectedRequestAndErrorSafety": true,
+    "filtersCountsAndPageSizes": true,
+    "numberedPageContract": true,
+    "serverReviewAndDispatchCommands": true,
+    "roleAndRetryLeaseBoundaries": true,
+    "rlsAndTableGrants": true,
+    "financialBehaviorAndImmutableTerms": true,
+    "recordHistoryAndMigration125Views": true,
+    "dependenciesAndProductionConfiguration": true,
+    "runtimeSecurityHead": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "limits": [
+    "Numbered pages reflect current matching membership; no frozen session or cursor protocol.",
+    "Hosted staging tests were rollback SQL with synthetic fixtures; hosted browser/Auth and mailbox acceptance not claimed.",
+    "Transactional index builds require lock and target-size review before permanent reconciliation.",
+    "Permanent targeted migration 126 staging reconciliation remains the next separate step."
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261026003309_deterministic_delivery_review_paging.sql",
+      "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b"
+    },
+    {
+      "path": "supabase/verification/deterministic_delivery_queue.sql",
+      "sha256": "03beb6073015acd03491ae06be0c1e039b8d9299d0f6d6ff701efefcf1c43180"
+    },
+    {
+      "path": "apps/platform/tests/deterministic-delivery-queue.integration.test.mjs",
+      "sha256": "c0eb9685afc6040b79f3633890a8716ad70f7a1268f396a1dd599ce73a3b61d2"
+    },
+    {
+      "path": "apps/platform/tests/staging-appointment-candidate.test.mjs",
+      "sha256": "0405224480076af3642102c19f3b3eb853034f88dd5f8bae591d0d9d7391cba8"
+    },
+    {
+      "path": "apps/platform/scripts/schema/manifest.json",
+      "sha256": "350fa9509bb8888d95514e88f36f8e38ece10d37781f39529e6b3dd4f4219aa4"
+    },
+    {
+      "path": "supabase/staging/deferred-migrations.json",
+      "sha256": "2cad6d2ed9a70402a37811002e6b3e0b131d90921d4bbebacb593629fc3b225d"
+    },
+    {
+      "path": "apps/platform/DETERMINISTIC_DELIVERY_QUEUE_PAGING.md",
+      "sha256": "c9246b4a5c91b59a65ef791b60d78c91125630ab40bfd4e3407e1367d6ac7480"
+    },
+    {
+      "path": "apps/platform/CUSTOMER_EXPERIENCE_REVIEW.md",
+      "sha256": "2f1499f689065d93443207b7aa8e2e438ad37d5663f6254fcdf5e02f13624e2b"
+    },
+    {
+      "path": "apps/platform/STAGING_RECORD_DELIVERY_RECONCILIATION.md",
+      "sha256": "a93937cd94866714132e8acd6927bc59b414d7f1587c1aea53938b55e451f62f"
+    }
+  ],
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-25/deterministic-delivery-queue",
+  "cleanup": {
+    "onlyTaskOwnedProjectsStopped": true,
+    "baseline125AndFresh126Stopped": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "noPreviewCreated": true,
+    "userBrowserTabsUntouched": true,
+    "homeScannerUntouched": true,
+    "productionChanged": false
+  }
+}

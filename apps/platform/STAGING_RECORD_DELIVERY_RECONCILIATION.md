@@ -127,3 +127,19 @@ PR14 batch: fail-closed selected links and verified metadata before recovery
 controls, with isolated read errors and bounded page recovery. Its staging
 fixtures roll back against the unchanged 125 checkpoint. No new migration,
 application deployment, production change or customer send accompanies that batch.
+
+## Deterministic queue candidate after the read-safety push
+
+Delivery review read safety is pushed normally to main as `d17b4be`. Candidate
+migration 126 (`20261026003309_deterministic_delivery_review_paging.sql`) is tested
+on a fresh local replay and in rollback-only ATS CRM Staging transactions. The
+candidate changes two reader bodies and adds three indexes, retaining their full
+ACLs/security properties and every other catalog object. Tied queue traversal,
+effective-access boundaries and all 49 protected sets are preserved.
+
+The installed target remains **125 native migrations / 5,116 catalog objects**;
+the candidate is not permanently installed. Its source is fingerprinted in the
+deferred manifest with production readiness false. See
+`DETERMINISTIC_DELIVERY_QUEUE_PAGING.md` for evidence and limitations. The next
+separate step is targeted migration-126 staging reconciliation. No app deployment,
+production query/change, automatic send, backlog replay or key rotation occurred.

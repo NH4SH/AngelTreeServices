@@ -399,3 +399,21 @@ rollback, with all protected state and OFF controls preserved. The batch remains
 local and undeployed with zero production changes or customer sends. Deterministic
 native global Delivery review paging is the next focused communications follow-up;
 existing policy, mailbox/device/accessibility and managed-runtime work stays separate.
+
+### October 25 — deterministic Delivery review queue paging
+
+The verified read-safety batch is now pushed normally to main as `d17b4be`.
+The next PR14 candidate adds UUID tie-breakers to both native delivery queues,
+pending source activity and the two bounded previews, with matching delivery/source
+indexes. Existing filters, counts, numbered links, page sizes, redaction, role gates
+and recovery commands are preserved. No application UI or permission changes.
+
+`DETERMINISTIC_DELIVERY_QUEUE_PAGING.md` records the old-ordering reproduction,
+128 tied-paging plus 34 native security/read assertions on local and rollback-only
+staging targets, ten actual local Auth/API scenarios, 3,165 CRM checks, 21 manual
+checks, fresh 126-migration schema replay and passing typecheck/build. Staging's
+installed 125 checkpoint, history, protected state and OFF controls are unchanged.
+The new batch remains local; no production query/change, deployment or email send.
+The next existing-roadmap step is targeted staging reconciliation for migration
+126. Numbered pages still reflect live queue membership between requests; this is
+not a new cursor or frozen-session contract.

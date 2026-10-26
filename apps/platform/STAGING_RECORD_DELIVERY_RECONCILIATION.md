@@ -1,5 +1,9 @@
 # Staging migration 125 — record delivery visibility
 
+Historical checkpoint. The current installed staging target is migration 126;
+see `STAGING_DELIVERY_QUEUE_RECONCILIATION.md`. The original 125 evidence below is
+retained unchanged, and its read-only gate intentionally rejects a later target.
+
 October 25, 2026. Complete on **ATS CRM Staging only** (`gbyhdsuiqeslgjdnbqng`):
 **125 native migrations**, latest **`20261025173049`**. This reconciliation is local
 on `codex/staging-record-delivery-125`, preserving the verified record-delivery

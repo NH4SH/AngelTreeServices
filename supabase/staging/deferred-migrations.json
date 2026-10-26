@@ -144,7 +144,7 @@
     {
       "name": "20261026003309_deterministic_delivery_review_paging.sql",
       "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b",
-      "reason": "Candidate deterministic Delivery review queue ordering; local and rollback-only staging verification before separate targeted permanent reconciliation.",
+      "reason": "Installed and verified natively on ATS CRM Staging as migration 126; remains deferred for a separately reviewed production release. No application deployment or production activation.",
       "productionReady": false
     }
   ]

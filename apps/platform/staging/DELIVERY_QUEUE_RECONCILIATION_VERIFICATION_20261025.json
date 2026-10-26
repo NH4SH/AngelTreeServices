@@ -1,0 +1,206 @@
+{
+  "observedAt": "2026-10-26T01:09:11.890Z",
+  "status": "staging-126-reconciled-no-app-deployment",
+  "priorVerifiedImplementationCommit": "a7044a29d0ff10d2d78558d3195d3bf0b473d36a",
+  "implementationPushedToMain": true,
+  "reconciliationPushed": false,
+  "mainBase": "a7044a29d0ff10d2d78558d3195d3bf0b473d36a",
+  "localBranch": "codex/staging-delivery-queue-126",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "migration": {
+    "number": 126,
+    "version": "20261026003309",
+    "name": "20261026003309_deterministic_delivery_review_paging.sql",
+    "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b",
+    "installedWithNativeCli": true,
+    "original125CompleteLedgerEntriesUnchanged": true,
+    "nativeEntryMatchesLocal": true,
+    "repeatPendingMigrations": 0,
+    "seedRoleVaultImports": false,
+    "clientInterruptionObservation": {
+      "installedWithNativeCli": true,
+      "clientCommandTimedOut": true,
+      "serverCompletedAfterClientInterruption": true,
+      "requestedStartupLockTimeoutNotProven": true,
+      "applicationMigrationRetried": false,
+      "original125CompleteNativeHistoryPreserved": true,
+      "native126EntryMatchesLocal": true,
+      "fullCatalogAndProtectedStateMatchLocal": true,
+      "ownedLockReleased": true,
+      "noOtherLockSessions": true,
+      "productionChanged": false
+    },
+    "stagingServerLockTimeoutVerified": false,
+    "futureServerConfirmedLimitsRequired": true
+  },
+  "catalog": {
+    "before": 5116,
+    "after": 5119,
+    "added": [
+      {
+        "kind": "index",
+        "key": "app_private.customer_source_events_pending_order"
+      },
+      {
+        "kind": "index",
+        "key": "app_private.outbound_deliveries_attention_order"
+      },
+      {
+        "kind": "index",
+        "key": "app_private.outbound_deliveries_queue_order"
+      }
+    ],
+    "modified": [
+      {
+        "kind": "routine",
+        "key": "public.list_outbound_deliveries(p_all boolean, p_id uuid, p_page integer)",
+        "onlyBodyHashesChanged": true
+      },
+      {
+        "kind": "routine",
+        "key": "public.list_pending_customer_source_events(p_page integer)",
+        "onlyBodyHashesChanged": true
+      }
+    ],
+    "removed": [],
+    "onlyExpectedChanges": true,
+    "fullInstalledCatalogSha256": "299766f166158aa29a3ef59d0d55922955f6aa55bc7c01289911ed547527f173",
+    "existingRlsPrivilegesAndCommandsUnchanged": true
+  },
+  "preservation": {
+    "protectedSets": 49,
+    "protectedStateExactlyEqual": true,
+    "individualInvoiceAndQuoteTermsBindingsExactlyEqual": true,
+    "physicalStagingIdentityPreserved": true,
+    "originalPermissionsPreserved": true,
+    "financialAndDispatchRetryGuaranteesPreserved": true,
+    "noSendAuthGuardPreserved": true,
+    "automatedSending": false,
+    "appointmentNotices": false,
+    "recurringGeneration": false,
+    "customerEmailsSent": 0,
+    "providerRequests": 0,
+    "productionQueried": false,
+    "productionChanged": false,
+    "appDeployed": false,
+    "keysRotated": false,
+    "runtimeSecurityCheckpoint": "06580f6c922fa6ab0ebaf229d27b1d30097f1b78"
+  },
+  "verification": {
+    "localNative": {
+      "fresh125Replay": true,
+      "candidateAssertions": 128,
+      "installedPagingAssertions": 128,
+      "installedSecurityAssertions": 34,
+      "failedNativeUpgradeRollsBackCatalogLedgerAndData": true,
+      "original125LedgerAndProtectedStatePreserved": true,
+      "onlyTwoReaderBodiesAndThreeIndexes": true,
+      "native126Installation": true,
+      "connectionLockTimeout": "3s",
+      "connectionStatementTimeout": "90s",
+      "repeatZeroPending": true,
+      "advisorsBefore": 0,
+      "advisorsAfter": 0,
+      "providerRequests": 0
+    },
+    "nativeSql": {
+      "local-candidate": {
+        "assertions": 128,
+        "fixturesRolledBack": true
+      },
+      "local-installed-paging": {
+        "assertions": 128,
+        "fixturesRolledBack": true
+      },
+      "local-installed-security": {
+        "assertions": 34,
+        "fixturesRolledBack": true
+      },
+      "staging-candidate": {
+        "assertions": 128,
+        "fixturesRolledBack": true
+      },
+      "staging-candidate-security": {
+        "assertions": 34,
+        "fixturesRolledBack": true
+      },
+      "staging-installed-paging": {
+        "assertions": 128,
+        "fixturesRolledBack": true
+      },
+      "staging-installed-security": {
+        "assertions": 34,
+        "fixturesRolledBack": true
+      }
+    },
+    "localAuthApi": {
+      "scenarios": 10,
+      "tapResults": 11,
+      "readOnlyRpcGets": 151,
+      "selectedReads": 18,
+      "providerRequests": 0
+    },
+    "crmRegression": 3185,
+    "manualReminderSafety": 21,
+    "maintenanceTests": 20,
+    "readOnlyMaintenance": {
+      "projectRef": "gbyhdsuiqeslgjdnbqng",
+      "migrationCount": 126,
+      "latestMigration": "20261026003309",
+      "catalogObjects": 5119,
+      "originalLedgerAndProtectedStatePreserved": true,
+      "onlyTwoReaderBodiesAndThreeOrderedIndexes": true,
+      "readOnly": true,
+      "productionReady": false,
+      "evidenceDirectory": "/var/folders/bc/p9jx_ys9775b506gnzqv_x3h0000gn/T/ats-staging126-verify-d2o9Ox"
+    },
+    "contracts": {
+      "freshNativeSchema": true,
+      "offlineSchemaFingerprints": true,
+      "frameworkFloor": true,
+      "typegen": true,
+      "typecheck": true,
+      "applicationSourceAndDependenciesUnchanged": true,
+      "node": "22.23.4",
+      "optimizedBuildRepeated": false,
+      "externalApplicationRequests": 0,
+      "priorVerifiedOptimizedBuildCommit": "a7044a2"
+    },
+    "securityAdvisors": {
+      "localBefore": 0,
+      "localAfter": 0,
+      "stagingBefore": 80,
+      "stagingAfter": 80,
+      "exactBeforeAfterEquality": true
+    },
+    "externalApplicationNetworkAttempts": 0,
+    "optimizedBuildRepeated": false,
+    "priorVerifiedBuildCommit": "a7044a2",
+    "productionApplicationCodeChanged": false
+  },
+  "boundaries": {
+    "stagingSqlSyntheticIdentitiesAndSimulatedClaims": true,
+    "hostedAuthOrBrowserAcceptance": false,
+    "realMailboxAcceptance": false,
+    "physicalDeviceAndSpokenScreenReaderAcceptance": false
+  },
+  "candidateSha256": "6090153bd23d87c52bfb81226cb22e7d0be2f11745f868ba6df5d67593d3a436",
+  "snapshotSha256": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+  "testedSourceSha256": {
+    "apps/platform/scripts/release/verify-staging-delivery-queue-candidate.mjs": "151f13e74355264f0d2a2d207502fef4f4307080391f5c822010da7c45141be3",
+    "apps/platform/tests/staging-delivery-queue-candidate.test.mjs": "fd5777de4e10757ad4889d716ed231d8127f4d10cdeb34b82915d318e8567148",
+    "apps/platform/tests/deterministic-delivery-queue.integration.test.mjs": "29f2a7e0e82dc290d40268ad872d99eb7392887607086a67f0204548a938c93f",
+    "supabase/staging/delivery-queue-candidate-126.json": "6090153bd23d87c52bfb81226cb22e7d0be2f11745f868ba6df5d67593d3a436",
+    "supabase/staging/delivery-queue-snapshot-126.sql": "370792382bc34df7d96ac11973676ab3cc71a4643332f881600a00ed4b82625e",
+    "supabase/staging/deferred-migrations.json": "1be7a406b6b12826803ff0ee3d07c05f6c36bb31312748a75f26b0c838419d30"
+  },
+  "privateEvidenceDirectory": "/Users/noelsierra/Documents/Codex/2026-10-25/staging-delivery-queue-126",
+  "cleanup": {
+    "onlyTaskOwnedProjectStopped": true,
+    "dataRetained": true,
+    "noSharedReset": true,
+    "homeScannerUntouched": true,
+    "userTabsUntouched": true,
+    "productionChanged": false
+  }
+}

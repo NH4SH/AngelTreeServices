@@ -120,3 +120,12 @@ Supabase documents explicit privileged-function search paths and execution right
 in [Database functions](https://supabase.com/docs/guides/database/functions).
 The current Supabase changelog was reviewed; no relevant API, privilege or schema
 convention was changed for this candidate.
+
+## Subsequent staging reconciliation
+
+The verified implementation is pushed normally to main as `a7044a2`. Migration
+126 is now installed natively on ATS CRM Staging with exact prior history,
+permissions and protected state preserved. See `STAGING_DELIVERY_QUEUE_RECONCILIATION.md`
+for installed synthetic tests, the current 126 maintenance gate and the CLI
+interruption/cancellation limitation discovered during execution. No application
+deployment, production query/change or customer send accompanied reconciliation.

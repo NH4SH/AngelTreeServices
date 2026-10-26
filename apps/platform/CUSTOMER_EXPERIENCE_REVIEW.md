@@ -417,3 +417,15 @@ The new batch remains local; no production query/change, deployment or email sen
 The next existing-roadmap step is targeted staging reconciliation for migration
 126. Numbered pages still reflect live queue membership between requests; this is
 not a new cursor or frozen-session contract.
+
+### October 25 — staging reconciliation for deterministic queue paging
+
+The paging implementation is pushed to main as `a7044a2`. ATS CRM Staging is
+reconciled natively through migration 126, preserving all original 125 complete
+history entries, reader permissions, RLS, protected state, guard and OFF controls.
+See `STAGING_DELIVERY_QUEUE_RECONCILIATION.md` for local/staging synthetic checks,
+the new read-only maintenance gate and the observed CLI interruption limitation.
+The database commit was verified before any retry; no duplicate apply or history
+repair occurred. Server-confirmed execution/cancellation must be reviewed before
+production rollout. Existing record-return context and mailbox/device/accessibility
+follow-ups remain separate. No app deployment, production change or customer email.

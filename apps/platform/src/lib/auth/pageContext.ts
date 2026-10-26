@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUserRolesFromClient } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
-const loadPlatformContext = cache(async () => {
+// React cache lasts only for this render/request. Mutation commands continue
+// calling the live authorization functions directly; nothing persists between users.
+export const getPlatformReadContext = cache(async () => {
   const supabase = await createClient();
 
   if (!supabase) {
@@ -30,7 +32,7 @@ const loadPlatformContext = cache(async () => {
 });
 
 export async function getAuthenticatedPlatformContext(nextPath: string) {
-  const context = await loadPlatformContext();
+  const context = await getPlatformReadContext();
 
   if (!context.configured) {
     return context;

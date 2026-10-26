@@ -59,11 +59,11 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     getInvoicesPage({ archived, page, pageSize: 25, query: params.q, statuses: selectedStatus ? [selectedStatus] : undefined }),
     getInvoiceStatusCounts(params.q),
     getInvoiceOutstandingTotal(),
-    getCustomerOptions(),
-    getOrganizations(),
-    getJobOptions(),
-    getServiceCategories(),
-    getServiceLocations(),
+    params.new === "1" ? getCustomerOptions() : { data: [], error: null },
+    params.new === "1" ? getOrganizations() : { data: [], error: null },
+    params.new === "1" ? getJobOptions() : { data: [], error: null },
+    params.new === "1" ? getServiceCategories() : { data: [], error: null },
+    params.new === "1" ? getServiceLocations() : { data: [], error: null },
   ]);
   const summary = statusCounts.data;
   const listContext = safeReturnTo(listHref("/admin/invoices", params, { new: undefined }), "/admin/invoices");

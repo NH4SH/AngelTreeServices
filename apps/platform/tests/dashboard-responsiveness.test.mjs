@@ -18,7 +18,7 @@ function pageHarness({configured=true,denied=false}={}){
   '@/lib/auth/pageContext':{getAuthenticatedPlatformContext:async()=>{if(denied)throw Error('Signed out');return{configured,roles:['owner'],user:{id:'synthetic',email:'synthetic@example.invalid'}};}},
   '@/lib/auth/roles':{hasAllowedRole:(roles,allowed)=>roles.some(x=>allowed.includes(x)),platformRoleGroups:{financialReporting:['owner'],accessApproval:['owner']}},
   '@/lib/data/appointments':{getFollowUpsDue:slow},'@/lib/data/invoices':{getUnpaidInvoices:slow},'@/lib/data/jobs':{getDashboardJobSummaries:slow},'@/lib/data/organizations':{getOrganizationDashboardSummary:slow},'@/lib/data/quotes':{getQuoteDashboardSummaries:slow},'@/lib/data/schedule':{getScheduleDashboardSummary:slow},'@/lib/data/communications':{getCommunicationDashboardSummary:slow},'@/lib/data/equipment':{getEquipmentDashboardSummary:slow},'@/lib/data/employees':{getEmployeeDashboardSummary:slow},'@/lib/data/materials':{getMaterialsDashboardSummary:slow},'@/lib/data/workflow-pipeline':{getWorkflowPipelineStages:slow},
-  '@/components/dashboard/DashboardMoney':{DashboardMoney:Money,DashboardMoneyLoading:MoneyLoading},'@/components/dashboard/DashboardPeriodLinks':{DashboardPeriodLinks:Periods},'@/lib/dashboard/cash-series':series,'./dashboard.css':{},
+  '@/components/dashboard/DashboardMoney':{DashboardMoney:Money,DashboardMoneyLoading:MoneyLoading},'@/components/dashboard/DashboardMoneyController':{DashboardMoneyController:Periods},'@/lib/dashboard/cash-series':series,'./dashboard.css':{},
  };
  return{page:load('../src/app/admin/page.tsx',dependencies).default,reads:()=>reads};
 }
@@ -41,6 +41,6 @@ for(const pending of [false,true])test('reporting links retain real navigation w
  assert.equal(links.find(n=>n.props.href==='/admin?range=month').props['aria-current'],'page');
 });
 test('loading money never displays a stale value or waits to offer period navigation',()=>{
- const mod=load('../src/components/dashboard/DashboardMoney.tsx',{'react/jsx-runtime':jsx,'next/link':Link,'@/lib/data/dashboard-money':{},'@/lib/dashboard/cash-series':series,'./DashboardCashChart':{}});
+ const mod=load('../src/components/dashboard/DashboardMoneyView.tsx',{'react/jsx-runtime':jsx,'next/link':Link,'@/lib/dashboard/cash-series':series,'./DashboardCashChart':{}});
  const view=mod.DashboardMoneyLoading();assert.equal(String(view.props['aria-busy']),'true');assert.match(text(view),/Loading verified totals/);assert.doesNotMatch(text(view),/\$/);
 });

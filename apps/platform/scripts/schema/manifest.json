@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "03c7f7c6684960c3847d77ccc7530e01f0175dea21d9ffa4378b7ddf47dbab1e",
+  "typesSha256": "279f481036fd67dab4d25ecc6f941c7ad6d0323bb6521ccfe1765f424806ac11",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -505,6 +505,18 @@
     {
       "name": "20261026003309_deterministic_delivery_review_paging.sql",
       "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b"
+    },
+    {
+      "name": "20261026204224_lean_job_list_reads.sql",
+      "sha256": "30dabf2a4261f90c51005f399d4b1811fd5a6c6d7a7791e54c42a04de7d6bece"
+    },
+    {
+      "name": "20261026211223_batch_dashboard_money_reads.sql",
+      "sha256": "6a6b4b99cc87849a6856c65adf58b1744fd6c0b19844ff2d18bfe64a6a5343f9"
+    },
+    {
+      "name": "20261026212535_aggregate_job_index_metrics.sql",
+      "sha256": "07ddbef47a2b8ed640c7eaedced396116874d78ddf322b212efd89a6ad5d9963"
     }
   ]
 }

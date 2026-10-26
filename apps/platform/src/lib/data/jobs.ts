@@ -32,7 +32,7 @@ export async function getJobsOperationsPage(filters: JobsIndexFilters): Promise<
   if (!supabase) return { data: [], count: 0, error: "Supabase is not configured." };
 
   const crewJobIds = await getCrewFilteredJobIds(supabase, filters.assignedCrewId);
-  let query = supabase.from("job_operations_search_index").select("*", { count: "exact" });
+  let query = supabase.from(filters.search?.trim() ? "job_operations_search_index" : "job_operations_list_index").select("*", { count: "exact" });
   query = applyJobsIndexFilters(query, filters, true);
   if (crewJobIds) query = crewJobIds.length ? query.in("id", crewJobIds) : query.eq("id", "00000000-0000-0000-0000-000000000000");
 
@@ -78,33 +78,15 @@ export async function getJobsIndexMetrics(filters: JobsIndexFilters) {
   if (!supabase) return { data: { toBeScheduled: 0, today: 0, inProgress: 0, awaitingInvoice: 0, unpaidInvoices: 0 }, error: "Supabase is not configured." };
   const crewJobIds = await getCrewFilteredJobIds(supabase, filters.assignedCrewId);
 
-  const metricQuery = () => {
-    let query = applyJobsIndexFilters(
-    supabase.from("job_operations_search_index").select("id", { count: "exact", head: true }),
-    filters,
-    false,
-    );
-    if (crewJobIds) query = crewJobIds.length ? query.in("id", crewJobIds) : query.eq("id", "00000000-0000-0000-0000-000000000000");
-    return query;
+  const { data, error } = await supabase.rpc("get_job_index_metrics", { p_filters: {
+    archived: filters.archived, searchPattern: jobsSearchPattern(filters.search), city: filters.city,
+    priority: filters.priority, invoiceStatus: filters.invoiceStatus, scheduledDate: filters.scheduledDate,
+  }, p_crew_job_ids: crewJobIds });
+  const empty = { toBeScheduled: 0, today: 0, inProgress: 0, awaitingInvoice: 0, unpaidInvoices: 0 };
+  if (error || !data || !Object.keys(empty).every(key => Number.isSafeInteger(data[key]) && data[key] >= 0)) return {
+    data: empty, error: error ? safeStaffMessage(error.message) : "Job summaries could not be confirmed. Refresh before using these counts.",
   };
-  const [toBeScheduled, today, inProgress, awaitingInvoice, unpaidInvoices] = await Promise.all([
-    metricQuery().eq("job_status", "accepted").eq("operational_state", "to_be_scheduled"),
-    metricQuery().in("job_status", activeJobStatuses).eq("is_today", true),
-    metricQuery().in("job_status", activeJobStatuses).eq("operational_state", "in_progress"),
-    metricQuery().eq("awaiting_invoice", true),
-    metricQuery().in("invoice_status", ["draft", "sent", "partially_paid", "overdue"]),
-  ]);
-
-  return {
-    data: {
-      toBeScheduled: toBeScheduled.count ?? 0,
-      today: today.count ?? 0,
-      inProgress: inProgress.count ?? 0,
-      awaitingInvoice: awaitingInvoice.count ?? 0,
-      unpaidInvoices: unpaidInvoices.count ?? 0,
-    },
-    error: toBeScheduled.error?.message ?? today.error?.message ?? inProgress.error?.message ?? awaitingInvoice.error?.message ?? unpaidInvoices.error?.message ?? null,
-  };
+  return { data: data as typeof empty, error: null };
 }
 
 export async function getJobsIndexCities(): Promise<DataResult<string[]>> {
@@ -129,11 +111,8 @@ function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeVie
     if (filters.view === "needs_attention") query = query.eq("needs_attention", true);
   }
 
-  const search = filters.search?.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
-  if (search) {
-    const digits = search.replaceAll(/[^0-9]/g, "");
-    query = query.ilike("expanded_search_text", `%${digits.length >= 4 ? digits : search}%`);
-  }
+  const search = jobsSearchPattern(filters.search);
+  if (search) query = query.ilike("expanded_search_text", search);
   if (filters.city) query = query.eq("city", filters.city);
   if (filters.priority) query = query.eq("priority", filters.priority);
   if (filters.invoiceStatus === "none") query = query.is("invoice_id", null);
@@ -141,6 +120,13 @@ function applyJobsIndexFilters(query: any, filters: JobsIndexFilters, includeVie
   else if (filters.invoiceStatus) query = query.eq("invoice_status", filters.invoiceStatus);
   if (filters.scheduledDate) query = query.eq("appointment_local_date", filters.scheduledDate);
   return query;
+}
+
+function jobsSearchPattern(value?: string) {
+  const search = value?.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
+  if (!search) return null;
+  const digits = search.replaceAll(/[^0-9]/g, "");
+  return `%${digits.length >= 4 ? digits : search}%`;
 }
 
 async function getCrewFilteredJobIds(supabase: Awaited<ReturnType<typeof createClient>> & {}, assignedCrewId?: string) {

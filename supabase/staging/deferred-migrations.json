@@ -146,6 +146,24 @@
       "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b",
       "reason": "Installed and verified natively on ATS CRM Staging as migration 126; remains deferred for a separately reviewed production release. No application deployment or production activation.",
       "productionReady": false
+    },
+    {
+      "name": "20261026204224_lean_job_list_reads.sql",
+      "sha256": "30dabf2a4261f90c51005f399d4b1811fd5a6c6d7a7791e54c42a04de7d6bece",
+      "reason": "Candidate caller-RLS jobs list view removes expanded-search joins from ordinary paging and counts. Local and synthetic staging verification only; production release remains deferred.",
+      "productionReady": false
+    },
+    {
+      "name": "20261026211223_batch_dashboard_money_reads.sql",
+      "sha256": "6a6b4b99cc87849a6856c65adf58b1744fd6c0b19844ff2d18bfe64a6a5343f9",
+      "reason": "Candidate bounded caller-RLS dashboard summary/timeline request; canonical report and retained-payment views remain authoritative. Local and staging only, deferred from production.",
+      "productionReady": false
+    },
+    {
+      "name": "20261026212535_aggregate_job_index_metrics.sql",
+      "sha256": "07ddbef47a2b8ed640c7eaedced396116874d78ddf322b212efd89a6ad5d9963",
+      "reason": "Candidate single-scan caller-RLS job summaries preserving archive, search, crew, date and invoice filters. Local and staging verification only; production remains deferred.",
+      "productionReady": false
     }
   ]
 }

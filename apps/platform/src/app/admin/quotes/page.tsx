@@ -62,14 +62,14 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
   const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials, quoteLeadSource] = await Promise.all([
     getQuotesPage({ archived, page, pageSize: 25, query: params.q, statuses }),
     getQuoteStatusCounts(params.q),
-    getCustomerOptions(),
-    getOrganizations(),
-    getActiveOrganizationContacts(),
-    getServiceLocations(),
-    getJobOptions(),
-    getEstimateScheduleEventOptions(),
-    getServiceCategories(),
-    getMaterialCatalogOptions(),
+    params.new === "1" ? getCustomerOptions() : { data: [], error: null },
+    params.new === "1" ? getOrganizations() : { data: [], error: null },
+    params.new === "1" ? getActiveOrganizationContacts() : { data: [], error: null },
+    params.new === "1" ? getServiceLocations() : { data: [], error: null },
+    params.new === "1" ? getJobOptions() : { data: [], error: null },
+    params.new === "1" ? getEstimateScheduleEventOptions() : { data: [], error: null },
+    params.new === "1" ? getServiceCategories() : { data: [], error: null },
+    params.new === "1" ? getMaterialCatalogOptions() : { data: [], error: null },
     getQuoteLeadSource(params.new === "1" ? params.job_id : undefined),
   ]);
   const summary = statusCounts.data;

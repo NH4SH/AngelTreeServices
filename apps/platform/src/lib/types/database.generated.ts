@@ -459,6 +459,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "appointments_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -952,6 +963,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "change_orders_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -975,6 +997,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "change_orders_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -1052,6 +1085,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "change_orders_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -1414,6 +1458,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_communications_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -1437,6 +1492,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_communications_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -1502,6 +1568,17 @@ export type Database = {
                             "quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_communications_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -1525,6 +1602,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_communications_schedule_event_id_fkey";
+                        columns: [
+                            "schedule_event_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "appointment_id"
                         ];
@@ -1737,6 +1825,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_deliveries_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -1760,6 +1859,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_deliveries_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -1815,6 +1925,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "customer_deliveries_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -2174,6 +2295,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "disposal_records_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -2397,6 +2529,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "documents_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -2420,6 +2563,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "documents_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -2464,6 +2618,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "documents_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -2664,6 +2829,17 @@ export type Database = {
                             "related_invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "email_events_related_invoice_id_fkey";
+                        columns: [
+                            "related_invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -2687,6 +2863,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "email_events_related_job_id_fkey";
+                        columns: [
+                            "related_job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -2752,6 +2939,17 @@ export type Database = {
                             "related_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "email_events_related_quote_id_fkey";
+                        columns: [
+                            "related_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -2775,6 +2973,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "email_events_related_schedule_event_id_fkey";
+                        columns: [
+                            "related_schedule_event_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "appointment_id"
                         ];
@@ -4384,6 +4593,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "equipment_assignments_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -4429,6 +4649,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "equipment_assignments_schedule_event_id_fkey";
+                        columns: [
+                            "schedule_event_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "appointment_id"
                         ];
@@ -4651,6 +4882,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "equipment_inspections_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -4794,6 +5036,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "equipment_maintenance_records_schedule_event_id_fkey";
+                        columns: [
+                            "schedule_event_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "appointment_id"
                         ];
@@ -5028,6 +5281,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "equipment_problem_reports_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -5459,6 +5723,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -5482,6 +5757,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -5537,6 +5823,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -6025,6 +6322,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "inventory_reservations_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -6341,6 +6649,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "inventory_transactions_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -6568,6 +6887,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "invoice_checkout_sessions_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -6652,6 +6982,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "invoice_line_items_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "invoice_id"
                         ];
@@ -6801,6 +7142,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "invoice_portal_tokens_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "invoice_id"
                         ];
@@ -7020,6 +7372,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "invoices_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -7065,6 +7428,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "invoices_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -7209,6 +7583,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_change_order_scope_items_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -7290,6 +7675,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_closeout_checklist_items_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -7403,6 +7799,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_closeout_scope_items_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -7686,6 +8093,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: true;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_closeouts_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: true;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -7851,6 +8269,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_cost_entries_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -8043,6 +8472,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_equipment_usage_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -8156,6 +8596,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_material_requirements_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -8258,6 +8709,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "job_photos_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -8601,6 +9063,17 @@ export type Database = {
                             "duplicate_of_job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_duplicate_of_job_id_fkey";
+                        columns: [
+                            "duplicate_of_job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -8712,6 +9185,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -9131,6 +9615,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "material_loads_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -9479,6 +9974,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "notes_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -9949,6 +10455,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "payments_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "invoice_id"
                         ];
@@ -10515,6 +11032,17 @@ export type Database = {
                             "quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quote_line_items_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -10626,6 +11154,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quote_material_requirements_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -10764,6 +11303,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quote_portal_tokens_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -11014,6 +11564,17 @@ export type Database = {
                             "estimate_schedule_event_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quotes_estimate_schedule_event_id_fkey";
+                        columns: [
+                            "estimate_schedule_event_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "appointment_id"
@@ -11081,6 +11642,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quotes_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -11224,6 +11796,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "quotes_renewal_source_quote_id_fkey";
+                        columns: [
+                            "renewal_source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -11581,6 +12164,17 @@ export type Database = {
                             "prior_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_occurrences_prior_quote_id_fkey";
+                        columns: [
+                            "prior_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -11615,6 +12209,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_occurrences_prior_work_order_id_fkey";
+                        columns: [
+                            "prior_work_order_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -11691,6 +12296,17 @@ export type Database = {
                             "renewal_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_occurrences_renewal_quote_id_fkey";
+                        columns: [
+                            "renewal_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -11736,6 +12352,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_occurrences_work_order_id_fkey";
+                        columns: [
+                            "work_order_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -12042,6 +12669,17 @@ export type Database = {
                             "source_job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_plans_source_job_id_fkey";
+                        columns: [
+                            "source_job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -12065,6 +12703,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "recurring_service_plans_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -12522,6 +13171,17 @@ export type Database = {
                             "event_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "schedule_event_assignments_event_id_fkey";
+                        columns: [
+                            "event_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "appointment_id"
@@ -12696,6 +13356,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "schedule_events_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -12730,6 +13401,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "schedule_events_lead_intake_job_id_fkey";
+                        columns: [
+                            "lead_intake_job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -13138,6 +13820,17 @@ export type Database = {
                             "related_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "service_recommendations_related_quote_id_fkey";
+                        columns: [
+                            "related_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -13227,6 +13920,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "service_recommendations_source_job_id_fkey";
+                        columns: [
+                            "source_job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -13430,6 +14134,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "stripe_webhook_events_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "invoice_id"
                         ];
@@ -13762,6 +14477,17 @@ export type Database = {
                             "job_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "time_entries_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "id"
@@ -13785,6 +14511,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "appointment_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "time_entries_schedule_event_id_fkey";
+                        columns: [
+                            "schedule_event_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "appointment_id"
                         ];
@@ -14211,6 +14948,17 @@ export type Database = {
                             "source_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -14381,6 +15129,194 @@ export type Database = {
                             "source_quote_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_search_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "quotes";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    }
+                ];
+            };
+            "job_operations_list_index": {
+                Row: {
+                    "action_rank": number | null;
+                    "appointment_ends_at": string | null;
+                    "appointment_id": string | null;
+                    "appointment_local_date": string | null;
+                    "appointment_starts_at": string | null;
+                    "appointment_status": string | null;
+                    "approved_unbilled_change_order_count": number | null;
+                    "archived_at": string | null;
+                    "archived_by_user_id": string | null;
+                    "assigned_crew_email": string | null;
+                    "assigned_crew_name": string | null;
+                    "assigned_crew_user_id": string | null;
+                    "awaiting_invoice": boolean | null;
+                    "city": string | null;
+                    "contracting_party_name": string | null;
+                    "created_at": string | null;
+                    "customer_id": string | null;
+                    "customer_name": string | null;
+                    "display_title": string | null;
+                    "failed_communication_count": number | null;
+                    "has_cancelled_appointment": boolean | null;
+                    "id": string | null;
+                    "invoice_balance_due_cents": number | null;
+                    "invoice_due_at": string | null;
+                    "invoice_id": string | null;
+                    "invoice_number": string | null;
+                    "invoice_status": string | null;
+                    "invoice_total_cents": number | null;
+                    "is_billing": boolean | null;
+                    "is_today": boolean | null;
+                    "job_status": string | null;
+                    "needs_attention": boolean | null;
+                    "operational_state": string | null;
+                    "organization_id": string | null;
+                    "organization_name": string | null;
+                    "postal_code": string | null;
+                    "priority": string | null;
+                    "quote_id": string | null;
+                    "quote_number": string | null;
+                    "quote_status": string | null;
+                    "quote_total_cents": number | null;
+                    "requested_scope": string | null;
+                    "search_text": string | null;
+                    "service_location_id": string | null;
+                    "service_type": string | null;
+                    "source_quote_id": string | null;
+                    "state": string | null;
+                    "street": string | null;
+                    "updated_at": string | null;
+                };
+                ComputedFields: never;
+                Relationships: [
+                    {
+                        foreignKeyName: "jobs_archived_by_user_id_fkey";
+                        columns: [
+                            "archived_by_user_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "office_handoff_staff";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_archived_by_user_id_fkey";
+                        columns: [
+                            "archived_by_user_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "profiles";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_assigned_crew_user_id_fkey";
+                        columns: [
+                            "assigned_crew_user_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "office_handoff_staff";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_assigned_crew_user_id_fkey";
+                        columns: [
+                            "assigned_crew_user_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "profiles";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_customer_id_fkey";
+                        columns: [
+                            "customer_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "customers";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_organization_id_fkey";
+                        columns: [
+                            "organization_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "organizations";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_service_location_id_fkey";
+                        columns: [
+                            "service_location_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "service_locations";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "quote_id"
@@ -14538,6 +15474,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "jobs_source_quote_id_fkey";
+                        columns: [
+                            "source_quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -14731,6 +15678,17 @@ export type Database = {
                             "invoice_id"
                         ];
                         isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
+                        referencedColumns: [
+                            "invoice_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_invoice_id_fkey";
+                        columns: [
+                            "invoice_id"
+                        ];
+                        isOneToOne: false;
                         referencedRelation: "job_operations_search_index";
                         referencedColumns: [
                             "invoice_id"
@@ -14754,6 +15712,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_job_id_fkey";
+                        columns: [
+                            "job_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "id"
                         ];
@@ -14809,6 +15778,17 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "job_operations_index";
+                        referencedColumns: [
+                            "quote_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "follow_up_tasks_quote_id_fkey";
+                        columns: [
+                            "quote_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "job_operations_list_index";
                         referencedColumns: [
                             "quote_id"
                         ];
@@ -15529,6 +16509,13 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "get_dashboard_money_reports": {
+                Args: {
+                    "p_end": string;
+                    "p_start": string;
+                };
+                Returns: Json;
+            };
             "get_employee_operational_directory": {
                 Args: Record<PropertyKey, never>;
                 Returns: Json;
@@ -15569,6 +16556,13 @@ export type Database = {
             "get_job_completion_context": {
                 Args: {
                     "p_job_id": string;
+                };
+                Returns: Json;
+            };
+            "get_job_index_metrics": {
+                Args: {
+                    "p_crew_job_ids"?: (string)[];
+                    "p_filters": Json;
                 };
                 Returns: Json;
             };

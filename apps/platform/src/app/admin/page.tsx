@@ -33,7 +33,7 @@ import { getCommunicationDashboardSummary } from "@/lib/data/communications";
 import { getEquipmentDashboardSummary } from "@/lib/data/equipment";
 import { getEmployeeDashboardSummary } from "@/lib/data/employees";
 import { DashboardMoney, DashboardMoneyLoading } from "@/components/dashboard/DashboardMoney";
-import { DashboardPeriodLinks } from "@/components/dashboard/DashboardPeriodLinks";
+import { DashboardMoneyController } from "@/components/dashboard/DashboardMoneyController";
 import type { PlatformRoleName } from "@/lib/auth/roles";
 import { dashboardPeriod } from "@/lib/dashboard/cash-series";
 import "./dashboard.css";
@@ -58,9 +58,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <nav className="dashboard-jump-links" aria-label="Dashboard sections"><a href="#dashboard-money-title">Money</a><a href="#dashboard-next-title">Next up</a><a href="#dashboard-daybook-title">Today’s work</a></nav>
       <div className="dashboard-focus-grid">
         <section className="dashboard-money" aria-labelledby="dashboard-money-title">
-          <div className="dashboard-section-heading"><h2 id="dashboard-money-title">{hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "Money overview" : "Your sales"}</h2><Link prefetch={false} href={`/admin/reports?view=${hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "revenue" : "quotes"}&range=${period}`}>Open reports <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
-          <DashboardPeriodLinks period={period} />
-          <Suspense key={period} fallback={<DashboardMoneyLoading />}><DashboardMoney period={period} /></Suspense>
+          <DashboardMoneyController period={period} heading={hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "Money overview" : "Your sales"} reportView={hasAllowedRole(context.roles, platformRoleGroups.financialReporting) ? "revenue" : "quotes"}><Suspense key={period} fallback={<DashboardMoneyLoading />}><DashboardMoney period={period} /></Suspense></DashboardMoneyController>
         </section>
         <Suspense key={`work-${period}`} fallback={<DashboardOperationsLoading />}><DashboardOperations roles={context.roles} userId={context.user.id} /></Suspense>
       </div>

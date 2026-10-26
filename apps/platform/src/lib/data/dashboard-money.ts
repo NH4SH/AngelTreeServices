@@ -1,10 +1,10 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
-import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getPlatformReadContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getReportingSettings } from "@/lib/data/reports";
 import { resolveReportFilters } from "@/lib/reporting/definitions";
 import { validateBusinessReport, type BusinessReport } from "@/lib/reporting/model";
-import { mapBounded, withDeadline } from "@/lib/runtime/deadline";
+import { withDeadline } from "@/lib/runtime/deadline";
 import { cashBuckets, reconcileCashSeries, type CashPoint, type DashboardPeriod } from "@/lib/dashboard/cash-series";
 
 type Summary = NonNullable<BusinessReport["summary"]>;
@@ -22,30 +22,21 @@ function summaryOf(report: BusinessReport): Summary {
   return s;
 }
 
-/** Authenticated aggregate RPC only. At most eight reads, three in flight, one deadline. */
-export async function getDashboardMoney(period: DashboardPeriod): Promise<DashboardMoney> {
+/** One bounded caller-RLS aggregate request; never cache financial data across requests. */
+export async function getDashboardMoney(period: DashboardPeriod, context?: Awaited<ReturnType<typeof getPlatformReadContext>>, parent?: AbortSignal): Promise<DashboardMoney> {
   let dates = { start: "", end: "", timezone: "", generatedAt: "" };
   try {
     return await withDeadline(async signal => {
-      const db = await createClient();
+      const { supabase: db, user, roles } = context ?? await getPlatformReadContext();
       if (!db) throw Error("Unavailable");
-      const user = (await db.auth.getUser()).data.user;
-      const roles = user ? await getUserRoles(db, user.id) : [];
       if (!user || !hasAllowedRole(roles, platformRoleGroups.reporting)) throw Error("Unavailable");
       const settings = await getReportingSettings();
       if (settings.error) throw Error("Unavailable");
       const filters = resolveReportFilters({ range: period }, settings.data.business_timezone);
       dates = { start: filters.startDate, end: filters.endDate, timezone: filters.timezone, generatedAt: "" };
-      const read = async (start: string, end: string) => {
-        if (signal.aborted) throw Error("Cancelled");
-        const result = await db.rpc("get_business_report", {
-          p_view: "dashboard", p_start: start, p_end: end, p_filters: {},
-          p_pages: {}, p_versions: {}, p_page_size: 1, p_export: false,
-        }).abortSignal(signal);
-        if (result.error) throw Error("Unavailable");
-        return validateBusinessReport(result.data, "dashboard");
-      };
-      const report = await read(dates.start, dates.end);
+      const result = await db.rpc("get_dashboard_money_reports", { p_start: dates.start, p_end: dates.end }).abortSignal(signal);
+      if (result.error || !result.data || !Array.isArray(result.data.cash)) throw Error("Unavailable");
+      const report = validateBusinessReport(result.data.report, "dashboard");
       if (report.timezone !== filters.timezone) throw Error("Reporting timezone changed.");
       const canViewFinancials = hasAllowedRole(roles, platformRoleGroups.financialReporting);
       if (!canViewFinancials && report.scope !== "own") throw Error("Reporting scope changed.");
@@ -56,20 +47,17 @@ export async function getDashboardMoney(period: DashboardPeriod): Promise<Dashbo
         return { ...dates, kind: "sales", summary: { approvedQuoteCents: summary.approvedQuoteCents, quoteApprovalRate: summary.quoteApprovalRate } };
       }
       const buckets = cashBuckets(dates.start, dates.end);
-      const parts = await mapBounded(buckets, 3, async bucket => {
-        try { return await read(bucket.start, bucket.end); } catch { return null; }
-      });
-      // Finish every bounded read before returning; a changed access scope hides the whole panel.
-      const amounts = parts.map(part => {
-        if (!part || part.scope !== "company" || part.timezone !== report.timezone) throw Error("Reporting scope or completeness changed.");
-        return summaryOf(part).collectedCents;
+      if (result.data.cash.length !== buckets.length) throw Error("Incomplete cash series.");
+      const amounts = result.data.cash.map((part: { scope: string; timezone: string; start: string; end: string; collectedCents: number }, index: number) => {
+        if (!part || part.scope !== "company" || part.timezone !== report.timezone || part.start !== buckets[index].start || part.end !== buckets[index].end || !Number.isSafeInteger(part.collectedCents) || part.collectedCents < 0) throw Error("Reporting scope or completeness changed.");
+        return part.collectedCents;
       });
       try {
         return { ...dates, kind: "financial", summary, points: reconcileCashSeries(buckets, amounts, summary.collectedCents), seriesError: null };
       } catch {
         return { ...dates, kind: "financial", summary, points: [], seriesError: "Cash records changed while the timeline loaded. Refresh to try again; the summary above is a separate complete read." };
       }
-    }, 12000);
+    }, 12000, parent);
   } catch {
     return { ...dates, kind: "unavailable", error: "Financial totals could not be confirmed. Open Reports or refresh to try again." };
   }

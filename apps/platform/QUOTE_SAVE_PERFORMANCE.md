@@ -2,8 +2,8 @@
 
 Verified October 26, 2026. The preceding cloud-performance batch and its staging
 reconciliation were pushed to `origin/main` at `38453056ad87fb6da10e4827342b5767324173b3`
-with CI/Netlify skip markers. The new quote-save changes remain local on
-`codex/quote-save-performance`, based on that commit. Production was not deployed,
+with CI/Netlify skip markers. The verified quote-save batch was subsequently
+pushed to main as `a157152`, also with skip markers. Production was not deployed,
 reconfigured or written to; the home scanner was not touched.
 
 ## Measured result

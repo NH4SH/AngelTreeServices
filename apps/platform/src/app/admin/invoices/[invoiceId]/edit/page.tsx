@@ -4,7 +4,7 @@ import { ReceiptText } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getInvoiceDetail } from "@/lib/data/invoices";
+import { getInvoiceForEditing } from "@/lib/data/invoices";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { EditInvoiceForm } from "../../InvoiceForm";
@@ -24,7 +24,7 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
     return <SetupRequired title="Configure Supabase before editing invoices" />;
   }
 
-  const [detail, serviceCategories] = await Promise.all([getInvoiceDetail(invoiceId), getServiceCategories()]);
+  const [detail, serviceCategories] = await Promise.all([getInvoiceForEditing(invoiceId), getServiceCategories()]);
 
   return (
     <PlatformFrame active="invoices" roles={context.roles} userEmail={context.user.email}>

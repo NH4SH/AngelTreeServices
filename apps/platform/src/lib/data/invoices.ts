@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { countAdminSearchRecords, getAdminSearchPage } from "@/lib/data/admin-search";
 import { safeStaffMessage } from "@/lib/security/errors";
-import type { DataResult, InvoiceDetail, InvoiceWithRelations, JobWithRelations, Note } from "@/lib/types/database";
+import type { DataResult, InvoiceDetail, InvoiceEditorRecord, InvoiceWithRelations, JobWithRelations, Note } from "@/lib/types/database";
 
 export async function getInvoices(): Promise<DataResult<InvoiceWithRelations[]>> {
   const supabase = await createClient();
@@ -106,6 +106,16 @@ export async function getInvoicesByCustomerId(customerId: string): Promise<DataR
   }
 
   return { data: (data ?? []) as InvoiceWithRelations[], error: null };
+}
+
+/** The editor needs current balances and billing lines, not payment/history objects. */
+export async function getInvoiceForEditing(invoiceId: string): Promise<DataResult<InvoiceEditorRecord | null>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+  const { data, error } = await supabase.from("invoices")
+    .select("*, jobs(id, service_type), customers:customers!invoices_customer_id_fkey(id, display_name), organizations(id, name), invoice_line_items(*)")
+    .eq("id", invoiceId).single();
+  return { data: data as InvoiceEditorRecord | null, error: error ? safeStaffMessage(error.message, "Invoice not found or no access.") : data ? null : "Invoice not found or no access." };
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<InvoiceDetail | null>> {

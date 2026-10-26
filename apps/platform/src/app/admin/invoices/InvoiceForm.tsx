@@ -22,9 +22,10 @@ import { createFirewoodInvoice } from "@/lib/actions/firewood";
 import { firewoodLine, firewoodProducts, type FirewoodProduct } from "@/lib/firewood/catalog";
 import { FIREWOOD_TERMS_VERSION } from "../../../lib/documents/terms/firewood-2026-10-24.ts";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
+import { submitInvoiceEdit } from "@/lib/invoices/submit-edit";
 import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
 import { getDefaultInvoiceDueDate } from "@/lib/invoices/due-date";
-import type { Customer, InvoiceDetail, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { Customer, InvoiceEditorRecord, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
 
 const initialState: InvoiceActionState = {
   status: "idle",
@@ -270,16 +271,18 @@ type InvoiceLineDraft = {
   unitPrice: string;
 };
 
-export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }: { userId: string; returnTo?: string; invoice: InvoiceDetail; serviceCategories: ServiceCategory[] }) {
+export function EditInvoiceForm({ userId, returnTo, invoice, serviceCategories }: { userId: string; returnTo?: string; invoice: InvoiceEditorRecord; serviceCategories: ServiceCategory[] }) {
   const router = useRouter();
   const listHref = safeReturnTo(returnTo, "/admin/invoices");
   const [state, formAction, pending] = useReliableActionState(async (previous: InvoiceActionState, form: FormData) => {
     if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
     recovery.beforeSubmit("", form); form.set("client_navigation", "1");
-    const result = await updateInvoice(previous, form);
+    const receiptOnly = form.get("submit_intent") !== "save_close";
+    const result = receiptOnly ? await submitInvoiceEdit(form) : await updateInvoice(previous, form);
     if (result.status === "success") {
       recovery.acknowledge(); setDirty(false);
       if (result.navigateTo) router.push(result.navigateTo);
+      if (receiptOnly) router.refresh();
     }
     return result;
   }, initialState);

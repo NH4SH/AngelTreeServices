@@ -429,3 +429,34 @@ The database commit was verified before any retry; no duplicate apply or history
 repair occurred. Server-confirmed execution/cancellation must be reviewed before
 production rollout. Existing record-return context and mailbox/device/accessibility
 follow-ups remain separate. No app deployment, production change or customer email.
+
+### October 26 — confirmed-save responsiveness
+
+The measured cloud list/dashboard fixes are pushed to main as `3845305`, and the
+verified quote-save batch is pushed as `a157152`, with production deployment
+skipped. The next focused batch improves invoice acknowledgement from a 2.13-second
+to a 0.34-second median in six-before/six-after synthetic staging saves. It reuses
+the existing invoice action/transaction, keeps payment and checkout locks, and
+preserves creation, save-and-close, recovery and permissions.
+
+`INVOICE_SAVE_PERFORMANCE.md` records local/staging native and browser checks,
+3,214 passing unit checks, typecheck/build and the measured limits. The invoice
+batch remains local and production is unchanged. The next performance follow-up
+is to measure change-order saves; existing release, mailbox/device/accessibility
+and managed-runtime work retain their separate review boundaries.
+
+### October 26 — change-order save confirmation
+
+The follow-up measurement found a 2.28-second median change-order save
+acknowledgement. `CHANGE_ORDER_SAVE_PERFORMANCE.md` records the focused correction:
+the same existing atomic action returns a validated receipt before the page
+refresh, reducing the six-sample staging median to 0.35 seconds. Request identity,
+revision conflicts, approval boundaries, explicit replay, audit history, creation,
+save-and-close, active links and the incumbent UI are preserved.
+
+All 3,218 regression checks, typecheck/build, native local/staging tests and actual
+local/protected-staging browser checks passed. Both the invoice and change-order
+save batches remain local; quote-save commit `a157152` remains current main.
+Published apps, production and the scanner are unchanged. Next, measure editor
+entry/lookup reads; existing release, policy, mailbox/device/accessibility and
+managed-runtime follow-ups retain their separate scope.

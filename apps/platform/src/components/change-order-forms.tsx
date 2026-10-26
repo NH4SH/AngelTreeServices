@@ -9,6 +9,7 @@ import { readSendAttempt, prepareSendAttempt, forgetSendAttempt, type ChangeOrde
 import { readLinkAttempt, prepareLinkAttempt, forgetLinkAttempt, linkIntents, type ChangeOrderLinkAttempt, type LinkIntent } from "@/lib/change-orders/link-attempt";
 import { prepareCopyAttempt, forgetCopyAttempt, type ChangeOrderCopyAttempt } from "@/lib/change-orders/copy-attempt";
 import { prepareDraftAttempt, forgetDraftAttempt, type ChangeOrderDraftAttempt } from "@/lib/change-orders/draft-attempt";
+import { submitChangeOrderEdit } from "@/lib/change-orders/submit-edit";
 import { CheckCircle2, Copy, FilePlus2, Link2, Mail, Plus, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   createChangeOrder,
@@ -62,7 +63,13 @@ export function ChangeOrderEditor({
   serviceCategories: ServiceCategory[];
   sourceCloseoutId?: string;
 }) {
-  const action = order ? updateChangeOrder : createChangeOrder;
+  const router = useRouter();
+  const action = order ? async (previous: ChangeOrderActionState, form: FormData) => {
+    const receiptOnly = form.get("submit_intent") !== "save_close";
+    const result = receiptOnly ? await submitChangeOrderEdit(form) : await updateChangeOrder(previous, form);
+    if (receiptOnly && result.status === "success") router.refresh();
+    return result;
+  } : createChangeOrder;
   const [state, formAction, pending] = useDraftSave(action, order ? `edit:${order.id}` : `new:${defaultJobId}:${sourceCloseoutId}`, order?.edit_revision ?? null, (ids, submitted) => {
     setLines(current => current.map(line => {
       const index = submitted.indexOf(line.clientId);
@@ -93,7 +100,7 @@ export function ChangeOrderEditor({
   const closeHref = order ? `/admin/change-orders/${order.id}` : "/admin/change-orders";
 
   return (
-    <form action={formAction} className="crm-form change-order-editor" onSubmit={event => submitDraftForm(event, formAction)}>
+    <form action={formAction} aria-busy={pending} className="crm-form change-order-editor" onSubmit={event => submitDraftForm(event, formAction)}>
       {state.message ? <ActionMessage state={state} /> : null}
       {state.status === "error" || state.reviewRequired ? <p className="field-note">Your entries are kept in this form. {order ? <a href={closeHref} rel="noopener" target="_blank">Review the current record in another tab</a> : "Review the additional-work directory before starting another draft if the result is uncertain."}</p> : null}
       {order ? <input name="change_order_id" type="hidden" value={order.id} /> : null}

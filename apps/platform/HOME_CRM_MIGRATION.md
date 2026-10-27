@@ -5,11 +5,12 @@ Prepared October 27, 2026. **Production has not moved.** This work is isolated o
 their original worktree. No application features, production credentials, DNS,
 router rules, database settings, or scanner configuration were changed.
 
-**Latest verification:** [HOME_CRM_FAILOVER_VERIFICATION.md](HOME_CRM_FAILOVER_VERIFICATION.md)
-records the subsequent 102-migration native restore, managed Supabase recovery,
-hard-fence/transaction tests and the owner-approved temporary staging pause.
-Its findings supersede the earlier untested recovery gates below. Continuous
-backup/write-admission and production cutover remain unimplemented.
+**Latest verification:** [HOME_CRM_CONTINUOUS_BACKUPS.md](HOME_CRM_CONTINUOUS_BACKUPS.md)
+records the bounded continuous capture, offsite verification and independent
+deadline tests. [HOME_CRM_FAILOVER_VERIFICATION.md](HOME_CRM_FAILOVER_VERIFICATION.md)
+records the earlier native/managed restore and approved temporary staging pause.
+These findings supersede the earlier untested recovery gates below. Production
+backup activation and cutover remain unimplemented.
 
 ## Decision
 

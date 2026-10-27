@@ -1,5 +1,10 @@
 # Home CRM failover verification — October 27, 2026
 
+The later [continuous-backup rehearsal](HOME_CRM_CONTINUOUS_BACKUPS.md) passed its
+bounded two-minute cadence, independent deadline and last-checkpoint restore
+checks. That report supersedes the untested continuous-backup step below;
+production activation remains gated.
+
 ## Engineering decision
 
 The matched **production-feature, 102-migration** candidate can be recovered into

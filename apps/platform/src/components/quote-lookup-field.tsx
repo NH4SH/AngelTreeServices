@@ -6,7 +6,7 @@ import { draftPrivacyGeneration, draftSession } from "@/lib/drafts/browser-priva
 import { lookupParty, lookupUuid, quoteLookupKey, validLookupPage, type QuoteLookupKind, type QuoteLookupOption, type QuoteLookupPage } from "@/lib/quotes/lookup-contract";
 import "./quote-lookup-field.css";
 
-type Props = { userId: string; kind: QuoteLookupKind; name: string; label: string; placeholder: string; value: string; scope: string; seedScope: string; seed?: QuoteLookupOption; required?: boolean; disabled?: boolean; endpoint?: string; allowNewCustomer?: boolean; customerOnly?: boolean; onSelection?: (option: QuoteLookupOption | undefined) => void; validateOption?: (option: QuoteLookupOption) => boolean; onChange: (value: string) => void; onReady: (ready: boolean, key: string) => void };
+type Props = { userId: string; kind: QuoteLookupKind; name: string; label: string; placeholder: string; value: string; scope: string; seedScope: string; seed?: QuoteLookupOption; required?: boolean; disabled?: boolean; endpoint?: string; allowNewCustomer?: boolean; customerOnly?: boolean; organizationOnly?: boolean; onSelection?: (option: QuoteLookupOption | undefined) => void; validateOption?: (option: QuoteLookupOption) => boolean; onChange: (value: string) => void; onReady: (ready: boolean, key: string) => void };
 const validOption = (kind: QuoteLookupKind, option: QuoteLookupOption) => kind === "party" ? Boolean(lookupParty(option.value)) : lookupUuid(option.value);
 async function fetchPage(endpoint: string, params: URLSearchParams, signal: AbortSignal): Promise<QuoteLookupPage> {
   const response = await fetch(`${endpoint}?${params}`, { credentials: "same-origin", cache: "no-store", signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]) });
@@ -17,9 +17,11 @@ async function fetchPage(endpoint: string, params: URLSearchParams, signal: Abor
 }
 
 /** Native select semantics and stable form values; browsing never edits the quote. */
-export function QuoteLookupField({ userId, kind, name, label, placeholder, value, scope, seedScope, seed, required, disabled, endpoint = "/api/admin/quotes/lookups", allowNewCustomer = false, customerOnly = false, onSelection, validateOption, onChange, onReady }: Props) {
+export function QuoteLookupField({ userId, kind, name, label, placeholder, value, scope, seedScope, seed, required, disabled, endpoint = "/api/admin/quotes/lookups", allowNewCustomer = false, customerOnly = false, organizationOnly = false, onSelection, validateOption, onChange, onReady }: Props) {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const id = useId(), statusId = `${id}-status`, searchId = `${id}-search`, [open, setOpen] = useState(false), [query, setQuery] = useState(""), [page, setPage] = useState(1), [retry, setRetry] = useState(0);
-  const [partyType, setPartyType] = useState<"customer" | "organization">(() => lookupParty(value)?.kind ?? "customer");
+  const [partyType, setPartyType] = useState<"customer" | "organization">(() => organizationOnly ? "organization" : lookupParty(value)?.kind ?? "customer");
   const cache = useRef(new Map<string, QuoteLookupOption>()), readyRef = useRef(onReady); readyRef.current = onReady;
   const selectedRef = useRef(onSelection), validateRef = useRef(validateOption); selectedRef.current = onSelection; validateRef.current = validateOption;
   const seedUser = useRef(userId);
@@ -28,7 +30,7 @@ export function QuoteLookupField({ userId, kind, name, label, placeholder, value
   const [selection, setSelection] = useState<{ key: string; option?: QuoteLookupOption; status: "ready" | "loading" | "error" }>({ key, option: initial, status: !value || initial ? "ready" : "loading" });
   const [results, setResults] = useState<{ key: string; data?: QuoteLookupPage; error?: boolean; loading: boolean }>({ key: "", loading: false });
   useEffect(() => { setPage(1); setQuery(""); setOpen(false); }, [scope]);
-  useEffect(() => { if (!open && kind === "party") setPartyType(lookupParty(value)?.kind ?? "customer"); }, [value, kind, open]);
+  useEffect(() => { if (!open && kind === "party") setPartyType(organizationOnly ? "organization" : lookupParty(value)?.kind ?? "customer"); }, [value, kind, open, organizationOnly]);
 
   useEffect(() => {
     const controller = new AbortController(), epoch = draftPrivacyGeneration();
@@ -41,12 +43,12 @@ export function QuoteLookupField({ userId, kind, name, label, placeholder, value
     const params = new URLSearchParams({ kind, selected: value, ...(scope ? { party: scope } : {}) });
     void fetchPage(endpoint, params, controller.signal).then(data => {
       if (controller.signal.aborted || epoch !== draftPrivacyGeneration() || !draftSession(userId)) return;
-      const found = data.items.find(item => item.value === value && validOption(kind, item) && (!validateRef.current || validateRef.current(item)) && !(customerOnly && kind === "party" && lookupParty(item.value)?.kind !== "customer"));
+      const found = data.items.find(item => item.value === value && validOption(kind, item) && (!validateRef.current || validateRef.current(item)) && !(customerOnly && kind === "party" && lookupParty(item.value)?.kind !== "customer") && !(organizationOnly && kind === "party" && lookupParty(item.value)?.kind !== "organization"));
       if (!found) throw Error("Selection unavailable");
       selectedRef.current?.(found); cache.current.set(key, found); setSelection({ key, option: found, status: "ready" }); readyRef.current(true, key);
     }).catch(() => { if (!controller.signal.aborted) { setSelection({ key, status: "error" }); readyRef.current(false, key); } });
     return () => controller.abort();
-  }, [key, value, kind, scope, userId, disabled, seed?.value, seed?.label, seedScope, retry, endpoint, allowNewCustomer, customerOnly]);
+  }, [key, value, kind, scope, userId, disabled, seed?.value, seed?.label, seedScope, retry, endpoint, allowNewCustomer, customerOnly, organizationOnly]);
 
   useEffect(() => {
     if (!open || disabled) return;
@@ -70,10 +72,10 @@ export function QuoteLookupField({ userId, kind, name, label, placeholder, value
   return <div className="quote-lookup" data-lookup={name}>
     <div className="quote-lookup-heading">
       <label htmlFor={id}>{label}</label>
-      <button aria-expanded={open} aria-controls={searchId} className="quote-lookup-toggle" disabled={disabled} type="button" onClick={() => setOpen(!open)}><Search aria-hidden="true" size={14} />{open ? "Close search" : "Search or browse"}</button>
+      <button aria-expanded={open} aria-controls={searchId} className="quote-lookup-toggle" disabled={disabled || !hydrated} type="button" onClick={() => setOpen(!open)}><Search aria-hidden="true" size={14} />{open ? "Close search" : "Search or browse"}</button>
     </div>
     {open ? <div className="quote-lookup-search" id={searchId}>
-      {kind === "party" && !customerOnly ? <div aria-label="Search contracting party type" className="quote-lookup-types">{(["customer", "organization"] as const).map(type => <button aria-pressed={partyType === type} className="secondary-action" key={type} type="button" onClick={() => { setPartyType(type); setQuery(""); setPage(1); }}>{type === "customer" ? "Customers" : "Organizations"}</button>)}</div> : null}
+      {kind === "party" && !customerOnly && !organizationOnly ? <div aria-label="Search contracting party type" className="quote-lookup-types">{(["customer", "organization"] as const).map(type => <button aria-pressed={partyType === type} className="secondary-action" key={type} type="button" onClick={() => { setPartyType(type); setQuery(""); setPage(1); }}>{type === "customer" ? "Customers" : "Organizations"}</button>)}</div> : null}
       <label htmlFor={`${id}-query`}>Search {kind === "party" ? partyType === "customer" ? "customers" : "organizations" : kind === "location" ? "locations" : kind === "job" ? "work descriptions" : kind === "contact" ? "contacts" : "estimate events"}</label>
       <input autoComplete="off" id={`${id}-query`} maxLength={120} type="search" value={query} onChange={event => { event.stopPropagation(); setQuery(event.target.value); setPage(1); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); event.stopPropagation(); } }} />
     </div> : null}

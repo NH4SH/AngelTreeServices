@@ -1,5 +1,7 @@
 "use client";
 
+import { QuoteLookupField } from "@/components/quote-lookup-field";
+import { lookupParty, quoteLookupKey, type QuoteLookupOption } from "@/lib/quotes/lookup-contract";
 import { useReliableActionState } from "@/hooks/use-reliable-action-state";
 import { getBusinessDateKey } from "@/lib/business-time";
 import { useEffect, useState } from "react";
@@ -36,18 +38,20 @@ import type { MaterialPlanOption } from "@/lib/data/work-order-materials";
 const initialState: MaterialActionState = { status: "idle", message: "" };
 type BasicOption = { id: string; name?: string; display_name?: string; service_type?: string | null; status?: string; asset_number?: string };
 
-export function MaterialCatalogForm({ canViewCosts, internalCostCents, material, organizations }: { canViewCosts: boolean; internalCostCents?: number | null; material?: MaterialRecord; organizations: BasicOption[] }) {
+export function MaterialCatalogForm({ userId, canViewCosts, internalCostCents, material, organizations }: { userId: string; canViewCosts: boolean; internalCostCents?: number | null; material?: MaterialRecord; organizations: BasicOption[] }) {
   const [state, action, pending] = useReliableActionState(material ? updateMaterial : createMaterial, initialState);
-  return <form action={action} className="crm-form material-form"><FormMessage state={state} />
+  const savedVendor = organizations.find(row => row.id === material?.preferred_vendor_organization_id);
+  const vendor = useMaterialParty(userId, material?.preferred_vendor_organization_id ? `organization:${material.preferred_vendor_organization_id}` : "", savedVendor ? { value: `organization:${savedVendor.id}`, label: savedVendor.name! } : undefined);
+  return <form action={action} className="crm-form material-form" onReset={vendor.reset}><FormMessage state={state} />
     {material ? <input name="material_id" type="hidden" value={material.id} /> : null}
     <div className="form-grid-two"><label>Material name<input defaultValue={material?.name ?? ""} name="name" placeholder="Brown dyed mulch" required /></label><label>Category<select defaultValue={material?.category ?? "mulch"} name="category">{materialCategories.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label></div>
     <div className="form-grid-three"><label>SKU<input defaultValue={material?.sku ?? ""} name="sku" placeholder="MULCH-BROWN" /></label><label>Default unit<select defaultValue={material?.default_unit ?? "each"} name="default_unit">{materialUnits.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label><label>Reorder threshold<input defaultValue={material?.reorder_threshold ?? ""} min="0" name="reorder_threshold" step="0.001" type="number" /></label></div>
     <label>Description<textarea defaultValue={material?.description ?? ""} name="description" rows={3} /></label>
     <div className="form-grid-two"><label>Default customer price<input defaultValue={material?.default_price_cents == null ? "" : (material.default_price_cents / 100).toFixed(2)} min="0" name="default_price" step="0.01" type="number" /></label>{canViewCosts ? <label>Internal unit cost<input defaultValue={internalCostCents == null ? "" : (internalCostCents / 100).toFixed(2)} min="0" name="internal_unit_cost" step="0.01" type="number" /></label> : null}</div>
-    <label>Preferred vendor<select defaultValue={material?.preferred_vendor_organization_id ?? ""} name="preferred_vendor_organization_id"><option value="">Not selected</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label>
+    <MaterialVendorField label="Preferred vendor" name="preferred_vendor_organization_id" placeholder="Not selected" selection={vendor} />
     <div className="material-check-row"><label className="checkbox-field"><input defaultChecked={material?.stock_tracked ?? true} name="stock_tracked" type="checkbox" />Track stock</label><label className="checkbox-field"><input defaultChecked={material?.is_billable ?? false} name="is_billable" type="checkbox" />Billable to customer</label></div>
     <label>Internal notes<textarea defaultValue={material?.notes ?? ""} name="notes" rows={2} /></label>
-    <div className="action-row"><button disabled={pending} name="intent" type="submit" value="save"><Save size={18} />{pending ? "Saving..." : material ? "Save changes" : "Add material"}</button>{material ? <button className="secondary-action danger-action" disabled={pending} name="intent" type="submit" value="archive">Archive</button> : null}</div>
+    <div className="action-row"><button disabled={pending || !vendor.ready} name="intent" type="submit" value="save"><Save size={18} />{pending ? "Saving..." : material ? "Save changes" : "Add material"}</button>{material ? <button className="secondary-action danger-action" disabled={pending} name="intent" type="submit" value="archive">Archive</button> : null}</div>
   </form>;
 }
 
@@ -98,16 +102,17 @@ export function ReleaseReservationForm({ reservationId }: { reservationId: strin
   return <form action={action} className="inline-material-action"><input name="reservation_id" type="hidden" value={reservationId} /><input aria-label="Release reason" name="reason" placeholder="Release reason" required /><button className="secondary-action" disabled={pending} type="submit">{pending ? "Releasing..." : "Release"}</button><FormMessage state={state} /></form>;
 }
 
-export function PurchaseForm({ locations, materials, organizations }: { locations: InventoryLocationRecord[]; materials: MaterialRecord[]; organizations: BasicOption[] }) {
+export function PurchaseForm({ userId, locations, materials }: { userId: string; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
   const [state, action, pending] = useReliableActionState(recordMaterialPurchase, initialState);
-  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
+  const vendor = useMaterialParty(userId);
+  return <form onReset={vendor.reset} action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
     <div className="form-grid-two"><MaterialSelect materials={materials} /><LocationSelect label="Received at" locations={locations} name="received_location_id" required /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Unit cost<input min="0" name="unit_cost" required step="0.01" type="number" /></label></div>
     <div className="form-grid-three"><label>Purchase date<input defaultValue={getBusinessDateKey(new Date())} name="purchase_date" type="date" /></label><label>Taxes / fees<input min="0" name="taxes_fees" step="0.01" type="number" /></label><label>Delivery charge<input min="0" name="delivery_charge" step="0.01" type="number" /></label></div>
-    <label>Vendor<select name="vendor_organization_id"><option value="">Use typed vendor</option>{organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></label>
+    <MaterialVendorField label="Vendor" name="vendor_organization_id" placeholder="Use typed vendor" selection={vendor} />
     <div className="form-grid-two"><label>Vendor name<input name="vendor_name" /></label><label>PO / reference<input name="purchase_order_reference" /></label></div>
     <label>Private receipt<input accept="application/pdf,image/jpeg,image/png,image/webp" name="receipt" type="file" /></label><label>Notes<textarea name="notes" rows={2} /></label>
-    <button disabled={pending} type="submit"><ReceiptText size={18} />{pending ? "Receiving..." : "Record purchase and receive"}</button>
+    <button disabled={pending || !vendor.ready} type="submit"><ReceiptText size={18} />{pending ? "Receiving..." : "Record purchase and receive"}</button>
   </form>;
 }
 
@@ -138,16 +143,17 @@ export function ProductionBatchForm({ equipment, locations, materials }: { equip
   </form>;
 }
 
-export function DeliveryForm({ customers, equipment, jobs, locations, materials, organizations }: { customers: BasicOption[]; equipment: BasicOption[]; jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[]; organizations: BasicOption[] }) {
+export function DeliveryForm({ userId, equipment, jobs, locations, materials }: { userId: string; equipment: BasicOption[]; jobs: BasicOption[]; locations: InventoryLocationRecord[]; materials: MaterialRecord[] }) {
   const [state, action, pending] = useReliableActionState(recordCustomerDelivery, initialState);
-  return <form action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
-    <div className="form-grid-three"><label>Contracting party<select name="contracting_party" required><option value="">Choose customer or organization</option><optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup><optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup></select></label><MaterialSelect materials={materials} /><JobSelect jobs={jobs} /></div>
+  const party = useMaterialParty(userId);
+  return <form onReset={party.reset} action={action} className="crm-form material-form"><IdempotencyInput /><FormMessage state={state} />
+    <QuoteLookupField {...party.props} kind="party" name="contracting_party" label="Contracting party" placeholder="Choose customer or organization" endpoint="/api/admin/materials/lookups/delivery" required /><div className="form-grid-two"><MaterialSelect materials={materials} /><JobSelect jobs={jobs} /></div>
     <div className="form-grid-three"><label>Quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /><label>Status<select name="status"><option value="planned">Planned</option><option value="scheduled">Scheduled</option><option value="out_for_delivery">Out for delivery</option><option value="delivered">Delivered</option></select></label></div>
     <div className="form-grid-three"><LocationSelect label="Source location" locations={locations} name="source_location_id" /><EquipmentSelect equipment={equipment} label="Vehicle" name="vehicle_asset_id" /><EquipmentSelect equipment={equipment} label="Trailer" name="trailer_asset_id" /></div>
     <div className="form-grid-two"><label>Window starts<input name="delivery_window_start" type="datetime-local" /></label><label>Window ends<input name="delivery_window_end" type="datetime-local" /></label></div>
     <label>Delivery instructions<textarea name="delivery_instructions" rows={2} /></label><label>Customer-visible notes<textarea name="customer_visible_notes" rows={2} /></label><label>Internal notes<textarea name="internal_notes" rows={2} /></label>
     <div className="form-grid-two"><label>Acknowledged by<input name="acknowledgment_name" /></label><label>Private proof photo<input accept="image/jpeg,image/png,image/webp" name="proof" type="file" /></label></div>
-    <label className="checkbox-field"><input name="is_estimated" type="checkbox" />Quantity is estimated</label><button disabled={pending} type="submit"><Truck size={18} />{pending ? "Saving..." : "Save delivery"}</button>
+    <label className="checkbox-field"><input name="is_estimated" type="checkbox" />Quantity is estimated</label><button disabled={pending || !party.ready} type="submit"><Truck size={18} />{pending ? "Saving..." : "Save delivery"}</button>
   </form>;
 }
 
@@ -196,3 +202,14 @@ function LocationSelect({ label, locations, name, required = false }: { label: s
 function JobSelect({ jobs, required = false }: { jobs: BasicOption[]; required?: boolean }) { return <label>Work order<select name="job_id" required={required}><option value="">Not linked</option>{jobs.map((job) => <option key={job.id} value={job.id}>{materialLabel(job.service_type ?? "work order")} - {materialLabel(job.status ?? "open")}</option>)}</select></label>; }
 function EquipmentSelect({ equipment, label, name }: { equipment: BasicOption[]; label: string; name: string }) { return <label>{label}<select name={name}><option value="">Not selected</option>{equipment.map((asset) => <option key={asset.id} value={asset.id}>{asset.asset_number} - {asset.name}</option>)}</select></label>; }
 function crewActionLabel(value: string) { return ({ load: "Loaded onto truck or trailer", job_use: "Used on this job", return: "Returned unused material", delivery: "Delivered to customer", disposal: "Disposed / dumped", donation: "Donated / ChipDrop" } as Record<string, string>)[value] ?? materialLabel(value); }
+
+function useMaterialParty(userId: string, initialValue = "", seed?: QuoteLookupOption) {
+  const [value, onChange] = useState(initialValue);
+  const key = quoteLookupKey(userId, "party", "", value);
+  const [verification, setVerification] = useState({ key, ready: !value || seed?.value === value });
+  return { value, ready: verification.key === key && verification.ready, reset: () => onChange(initialValue),
+    props: { userId, value, onChange, seed, scope: "", seedScope: "", onReady: (ready: boolean, key: string) => setVerification({ key, ready }) } };
+}
+function MaterialVendorField({ label, name, placeholder, selection }: { label: string; name: string; placeholder: string; selection: ReturnType<typeof useMaterialParty> }) {
+  return <><input type="hidden" name={name} value={lookupParty(selection.value)?.kind === "organization" ? lookupParty(selection.value)!.id : ""} /><QuoteLookupField {...selection.props} kind="party" name={`lookup_${name}`} label={label} placeholder={placeholder} endpoint="/api/admin/materials/lookups/vendor" organizationOnly validateOption={option => lookupParty(option.value)?.kind === "organization"} /></>;
+}

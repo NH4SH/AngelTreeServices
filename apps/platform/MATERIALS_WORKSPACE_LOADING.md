@@ -2,8 +2,8 @@
 
 Verified October 26, 2026. The preceding materials/planning work is pushed normally
 to main as `00cbd0d73db5aa44c796c696a9960126af464d0c`, with CI/Netlify skip markers.
-This new batch is uncommitted on `codex/materials-workspace-loading`, based on that
-main commit. Production, published staging, the home Mac and scanner are unchanged.
+This workspace batch was subsequently pushed normally to main as
+`7220f3bfe4a5587c4efc3afa835271ae7972d65e`, with CI/Netlify skip markers. Production, published staging, the home Mac and scanner are unchanged.
 
 ## Result
 
@@ -99,7 +99,8 @@ other materials readers are unchanged.
 
 Private evidence and screenshots are outside Git at
 `/Users/noelsierra/Documents/Codex/2026-10-26/materials-workspace-loading/`.
-New workspace changes remain uncommitted and unpushed.
+This verified workspace batch is now pushed as `7220f3b`. The subsequent vendor/
+contact lookup work is documented in `MATERIALS_VENDOR_CONTACT_LOOKUPS.md`.
 
 ## Next focused priority and limits
 

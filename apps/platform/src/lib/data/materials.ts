@@ -103,8 +103,6 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[], requested
     if (view === "production") reads.productionBatches = supabase.from("production_batches").select("id, batch_number, product_material_id, status, color, estimated_output_quantity, output_unit").order("created_at", { ascending: false }).limit(60);
     if (needs("overview", "production")) reads.stockpileMeasurements = supabase.from("stockpile_measurements").select("id, material_id, location_id, measured_at, quantity, unit, measurement_method, is_estimated").order("measured_at", { ascending: false }).limit(100);
     if (needs("overview", "movements", "reservations", "disposal", "deliveries")) reads.jobs = supabase.from("jobs").select("id, service_type, status, customers:customers!jobs_customer_id_fkey(display_name)").is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200);
-    if (view === "deliveries") reads.customers = supabase.from("customers").select("id, display_name").is("archived_at", null).eq("status", "active").order("display_name");
-    if (needs("catalog", "purchases", "deliveries")) reads.organizations = supabase.from("organizations").select("id, name").is("archived_at", null).order("name");
     if (needs("catalog", "movements", "disposal", "production", "deliveries")) reads.equipment = supabase.from("equipment_assets").select("id, asset_number, name").eq("is_active", true).order("name");
     if (canViewCosts && needs("overview", "movements")) reads.transactionCosts = supabase.from("inventory_transaction_costs").select("transaction_id, direct_cost_cents, costing_status").order("created_at", { ascending: false }).limit(500);
     const entries = Object.entries(reads) as [Dataset, PromiseLike<Reply>][];
@@ -114,15 +112,34 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[], requested
       return [name, reply.data] as const;
     }));
     const data = { ...empty, ...Object.fromEntries(results), canViewCosts } as MaterialWorkspaceData;
+    const extra: Promise<void>[] = [];
     if (view === "catalog") {
       const catalog = materialCatalogPage(data.materials, filters);
       data.materials = catalog.data; data.catalogCount = catalog.count; data.catalogCategories = catalog.categories;
-      if (canViewCosts && data.materials.length) {
+      if (canViewCosts && data.materials.length) extra.push((async () => {
         const costs = await supabase.from("material_cost_settings").select("material_id, internal_unit_cost_cents").in("material_id", data.materials.map(row => row.id));
         if (costs.error || !Array.isArray(costs.data)) throw Error(unavailable);
         data.costs = costs.data;
-      }
+      })());
     }
+    // Hydrate labels only for displayed history or the single open editor.
+    // Browsing new vendor/customer choices happens through the paged lookup.
+    const selectedMaterial = view === "catalog" ? data.materials.find(row => row.id === filters.edit) : undefined;
+    const organizationIds = [...new Set((view === "catalog" ? [selectedMaterial?.preferred_vendor_organization_id]
+      : view === "purchases" ? data.purchases.filter(row => !row.vendor_name).map(row => row.vendor_organization_id)
+      : view === "deliveries" ? data.deliveries.map(row => row.organization_id) : []).filter((id): id is string => Boolean(id)))];
+    const customerIds = view === "deliveries" ? [...new Set(data.deliveries.filter(row => !row.organization_id).map(row => row.customer_id).filter(Boolean))] : [];
+    if (organizationIds.length) extra.push((async () => {
+      const result = await supabase.from("organizations").select("id, name").in("id", organizationIds).is("archived_at", null).order("name").order("id");
+      if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
+      data.organizations = result.data;
+    })());
+    if (customerIds.length) extra.push((async () => {
+      const result = await supabase.from("customers").select("id, display_name").in("id", customerIds).is("archived_at", null).eq("status", "active").order("display_name").order("id");
+      if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
+      data.customers = result.data;
+    })());
+    await Promise.all(extra);
     return data;
   } catch { return { ...empty, error: unavailable }; }
 }

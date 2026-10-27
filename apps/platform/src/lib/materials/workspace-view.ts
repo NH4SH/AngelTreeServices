@@ -2,7 +2,7 @@ import type { MaterialRecord } from "@/lib/data/materials";
 
 export const materialsViews = ["overview", "catalog", "movements", "reservations", "purchases", "disposal", "production", "deliveries"] as const;
 export type MaterialsView = typeof materialsViews[number];
-export type MaterialCatalogFilters = { q?: string; category?: string; page?: string };
+export type MaterialCatalogFilters = { q?: string; category?: string; page?: string; edit?: string };
 export const materialCatalogPageSize = 25;
 export function resolveMaterialsView(value?: string): MaterialsView {
   return materialsViews.includes(value as MaterialsView) ? value as MaterialsView : "overview";

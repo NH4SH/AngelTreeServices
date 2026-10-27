@@ -587,3 +587,20 @@ unpushed; production, published staging and the scanner are unchanged. Next boun
 remaining vendor/contact choices and histories while retaining financial and
 inventory boundaries; catalog matching and overview semantics still have explicit
 scaling limitations.
+
+### October 26 — materials vendor/contact lookup loading
+
+Verified workspace loading is pushed normally to main as `7220f3b`, with deployment
+skipped. `MATERIALS_VENDOR_CONTACT_LOOKUPS.md` records the new local batch: paged
+vendor and delivery-party choices, exact saved-vendor/history labels, recovery
+without losing selection, and a full-width delivery lookup. Existing server actions,
+stock rules, typed-vendor fallback, raw/prefixed submission identities and financial
+permissions remain intact.
+
+Paired synthetic HTML falls 17% for catalog editing, 4% for purchases and 11% for
+deliveries. Entry timing remains mixed, so the report claims bounded choices and
+smaller responses rather than a universal speedup. All 3,277 regression checks,
+typecheck/build, native local/staging checks and actual save/recovery workflows
+pass. New work remains local and unpushed; production, published staging and the
+scanner are unchanged. Next bound remaining material/equipment/work-order choices
+and operational history windows without changing transaction or access rules.

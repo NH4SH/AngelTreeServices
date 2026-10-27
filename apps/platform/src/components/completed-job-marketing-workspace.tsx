@@ -8,7 +8,8 @@ import {
   generateCompletedJobReviewRequest,
   generateCompletedJobSummaryDrafts,
 } from "@/lib/documents/marketing-drafts";
-import type { JobDetail, SignedJobPhoto } from "@/lib/types/database";
+import type { SignedJobPhoto } from "@/lib/types/database";
+import type { MarketingJob } from "@/lib/jobs/marketing-context";
 
 export function CompletedJobMarketingWorkspace({
   googleReviewUrl,
@@ -16,7 +17,7 @@ export function CompletedJobMarketingWorkspace({
   photos,
 }: {
   googleReviewUrl: string | null;
-  job: JobDetail;
+  job: MarketingJob;
   photos: SignedJobPhoto[];
 }) {
   const [completionNotes, setCompletionNotes] = useState("");

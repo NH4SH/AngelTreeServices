@@ -1,10 +1,10 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
-import type { Appointment, JobDetail, QuoteDetail } from "@/lib/types/database";
+import type { Appointment, JobWithRelations, QuoteDetail } from "@/lib/types/database";
 import type { EmailDraft } from "@/lib/documents/email-drafts";
 
 const companyName = "Angel Tree Services";
 
-export function generateEstimateScheduledMessage(job: JobDetail, appointment: Appointment): EmailDraft {
+export function generateEstimateScheduledMessage(job: JobWithRelations, appointment: Appointment): EmailDraft {
   return scheduledMessage(
     job,
     appointment,
@@ -13,7 +13,7 @@ export function generateEstimateScheduledMessage(job: JobDetail, appointment: Ap
   );
 }
 
-export function generateJobScheduledMessage(job: JobDetail, appointment: Appointment): EmailDraft {
+export function generateJobScheduledMessage(job: JobWithRelations, appointment: Appointment): EmailDraft {
   return scheduledMessage(
     job,
     appointment,
@@ -40,7 +40,7 @@ export function generateQuoteFollowUpMessage(quote: QuoteDetail): EmailDraft {
   };
 }
 
-export function generatePostJobFollowUpMessage(job: JobDetail): EmailDraft {
+export function generatePostJobFollowUpMessage(job: JobWithRelations): EmailDraft {
   const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
 
   return {
@@ -58,7 +58,7 @@ export function generatePostJobFollowUpMessage(job: JobDetail): EmailDraft {
   };
 }
 
-function scheduledMessage(job: JobDetail, appointment: Appointment, label: string, message: string): EmailDraft {
+function scheduledMessage(job: JobWithRelations, appointment: Appointment, label: string, message: string): EmailDraft {
   const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
   const address = job.service_locations
     ? [job.service_locations.street, job.service_locations.city, job.service_locations.state, job.service_locations.postal_code]

@@ -24,7 +24,7 @@ export function getCurrentWorkSession(events: ScheduleEventWithRelations[] = [],
 export function getJobOperationalState(input: {
   appointments?: AppointmentWithRelations[];
   scheduleEvents?: ScheduleEventWithRelations[];
-  invoices?: InvoiceWithRelations[];
+  invoices?: Pick<InvoiceWithRelations, "status">[];
   jobStatus: JobStatus;
   now?: Date;
 }): JobOperationalState {

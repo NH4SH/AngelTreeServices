@@ -538,3 +538,19 @@ local/staging tests and actual browser workflows passed. The new batch remains
 local and unpushed; published apps, production and the scanner are unchanged.
 The next focused performance candidate is work-order detail/coordination reads;
 existing release, policy and runtime-security priorities retain their scope.
+
+### October 26 — work-order detail loading
+
+Change-order contact loading is pushed normally to main as `c5bb0f4`, with
+deployment skipped. `WORK_ORDER_DETAIL_LOADING.md` records the next local batch:
+one narrow core request, a minimal marketing-draft context, parallel supporting
+reads and explicit recovery instead of partial work-order controls. Original
+scope, billing summaries, crew print notes, scheduling, additions, private files
+and all existing transaction/security boundaries remain intact.
+
+With synthetic billing history, core JSON fell 97% and detail HTML 53%. Entry
+median changed from 1,029.5 to 980 ms; the variation does not establish a large
+latency benefit. The 3,255-check suite, typecheck/build, native local/staging
+comparisons and browser workflows passed. New work remains local and unpushed;
+published apps, production and the scanner are unchanged. Next measure the
+supporting materials/planning reads without changing crew inventory workflows.

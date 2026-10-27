@@ -45,7 +45,8 @@ import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
 import { getAssignableUsers } from "@/lib/data/appointments";
 import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
 import { getJobPhotos } from "@/lib/data/job-photos";
-import { getJobDetail } from "@/lib/data/jobs";
+import { getWorkOrderDetail } from "@/lib/data/work-order-detail";
+import { marketingJobContext } from "@/lib/jobs/marketing-context";
 import { getJobMaterials } from "@/lib/data/materials";
 import { getJobCostEntries } from "@/lib/data/reports";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
@@ -67,29 +68,31 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
 
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening job details" />;
 
-  const [detail, assignedUsers, photos, communications, jobCosts, materials] = await Promise.all([
-    getJobDetail(jobId),
-    getAssignableUsers(),
-    getJobPhotos(jobId),
-    getCustomerCommunications({ jobId, limit: 30 }),
-    getJobCostEntries(jobId),
-    getJobMaterials(jobId, context.roles, context.user.id),
-  ]);
+  const detail = await getWorkOrderDetail(jobId);
   const job = detail.data;
-  const recipientOptions = job
-    ? await getCommunicationRecipientOptions({ customerId: job.customer_id, organizationId: job.organization_id })
-    : { data: [], error: null };
-
   if (!job) {
     return (
       <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
-        <div className="shell app-content"><EmptyState title="Job not found or no access" body="This record is unavailable to the current account." /></div>
+        <div className="shell app-content">{detail.error
+          ? <section className="empty-state" role="status"><h2>Work order unavailable</h2><p>{detail.error}</p><Link className="primary-action" href={`/admin/jobs/${jobId}`}>Reload work order</Link></section>
+          : <EmptyState title="Job not found or no access" body="This record is unavailable to the current account." />}</div>
       </PlatformFrame>
     );
   }
 
-  const currentAppointment = getCurrentWorkAppointment(job.appointments ?? []);
-  const reminderSummary = await getRecordReminderSummary(currentAppointment ? "appointment" : "job", currentAppointment?.id ?? job.id);
+  const currentAppointment = getCurrentWorkAppointment(job.appointments);
+  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
+  const [assignedUsers, photos, communications, jobCosts, materials, recipientOptions, reminderSummary, lifecyclePreview] = await Promise.all([
+    getAssignableUsers(),
+    getJobPhotos(jobId),
+    getCustomerCommunications({ jobId, limit: 30 }),
+    canViewFinancials ? getJobCostEntries(jobId) : { data: [], error: null },
+    getJobMaterials(jobId, context.roles, context.user.id),
+    getCommunicationRecipientOptions({ customerId: job.customer_id, organizationId: job.organization_id }),
+    getRecordReminderSummary(currentAppointment ? "appointment" : "job", currentAppointment?.id ?? job.id),
+    canArchive ? getRecordLifecyclePreview("job", job.id) : null,
+  ]);
   const currentWorkSession = getCurrentWorkSession(job.schedule_events ?? []);
   const operationalState = getJobOperationalState({ appointments: job.appointments, scheduleEvents: job.schedule_events, invoices: job.invoices, jobStatus: job.status });
   const operationalLabel = formatJobOperationalState(operationalState);
@@ -105,11 +108,8 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
       .map((line) => ({ line, order })));
   const unbilledChanges = approvedChanges.filter((order) => !order.invoice_id);
   const canManageBilling = hasAllowedRole(context.roles, platformRoleGroups.internalStaff);
-  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
-  const canViewFinancials = hasAllowedRole(context.roles, platformRoleGroups.financialReporting);
   const canCreateInvoice = canManageBilling && !invoice && ["accepted", "scheduled", "in_progress", "completed", "completed_pending_review", "ready_to_invoice"].includes(job.status);
   const directionsUrl = getDirectionsUrl(job.service_locations);
-  const lifecyclePreview = canArchive ? await getRecordLifecyclePreview("job", job.id) : null;
 
   return (
     <PlatformFrame active="jobs" roles={context.roles} userEmail={context.user.email}>
@@ -267,7 +267,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
           <div className="job-disclosure-content job-advanced-stack">
             <section className="document-workspace"><div className="document-workspace-heading print-hidden"><div><p className="surface-label"><Truck size={17} />Printable work order</p><h2>Crew work order preview</h2></div><PrintButton label="Print work order" /></div><WorkOrderDocument job={job} /></section>
             <section className="email-draft-grid">{(job.appointments ?? []).slice(0, 3).map((appointment) => <EmailDraftCard draft={appointment.appointment_type === "estimate" ? generateEstimateScheduledMessage(job, appointment) : appointment.appointment_type === "job" ? generateJobScheduledMessage(job, appointment) : generatePostJobFollowUpMessage(job)} key={appointment.id} label={`${title(appointment.appointment_type)} message draft`} />)}<EmailDraftCard draft={generateWorkOrderCrewMessage(job)} label="Crew message draft" /></section>
-            {operationalState === "work_complete" || operationalState === "invoiced" || operationalState === "paid" ? <CompletedJobMarketingWorkspace googleReviewUrl={getGoogleReviewUrl()} job={job} photos={photos.data} /> : null}
+            {operationalState === "work_complete" || operationalState === "invoiced" || operationalState === "paid" ? <CompletedJobMarketingWorkspace googleReviewUrl={getGoogleReviewUrl()} job={marketingJobContext(job)} photos={photos.data} /> : null}
             <div className="job-more-actions"><DuplicateRecordButton action={duplicateJob} buttonClassName="secondary-action" hiddenFieldName="job_id" hiddenFieldValue={job.id} label="Duplicate work order" pendingLabel="Copying work order..." /></div>
             {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/jobs" preview={lifecyclePreview} /> : null}
           </div>

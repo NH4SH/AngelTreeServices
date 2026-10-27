@@ -1,5 +1,5 @@
 import type { EmailDraft } from "@/lib/documents/email-drafts";
-import type { JobDetail } from "@/lib/types/database";
+import type { MarketingJob } from "@/lib/jobs/marketing-context";
 
 const companyName = "Angel Tree Services";
 
@@ -37,7 +37,7 @@ export function normalizeReviewUrl(value: string | null | undefined): string | n
 }
 
 export function generateCompletedJobReviewRequest(
-  job: JobDetail,
+  job: MarketingJob,
   reviewUrlInput: string | null,
 ): ReviewRequestDraft {
   const customerName = job.organizations?.name ?? job.customers?.display_name ?? "there";
@@ -76,7 +76,7 @@ export function generateCompletedJobSummaryDrafts({
   selectedPhotoCaptions,
 }: {
   completionNotes?: string;
-  job: JobDetail;
+  job: MarketingJob;
   selectedPhotoCaptions?: string[];
 }): CompletedJobSummaryDrafts {
   const city = publicSafeText(job.service_locations?.city || "the Fredericksburg area");

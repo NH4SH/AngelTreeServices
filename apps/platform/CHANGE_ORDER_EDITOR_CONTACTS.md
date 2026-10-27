@@ -2,9 +2,11 @@
 
 Verified October 26, 2026. The preceding change-order list/creation batch is
 pushed normally to main as `66dafd24e82a9a62a73b8b38e2e79150b126301c`, with
-CI/Netlify skip markers. This follow-up is uncommitted on
-`codex/change-order-editor-contacts`, based on that exact main commit.
-Production, published staging and the scanner remain unchanged.
+CI/Netlify skip markers. At verification this follow-up was uncommitted on
+`codex/change-order-editor-contacts`. It is now pushed normally to
+main as `c5bb0f4ca72ebaf0751e64819d5c0297c0d3a787`, with deployment skipped.
+Production, published staging and the scanner remain unchanged. The next local
+batch is recorded separately in `WORK_ORDER_DETAIL_LOADING.md`.
 
 ## Result
 
@@ -88,5 +90,5 @@ cellular, physical-device or concurrent-load performance guarantees.
 
 Evidence, metrics and screenshots are retained privately at
 `/Users/noelsierra/Documents/Codex/2026-10-26/change-order-editor-contacts/`.
-The new batch is not committed or pushed. Existing release, customer-experience,
+This verified batch is now pushed. Existing release, customer-experience,
 policy and runtime-security work keep their separate review boundaries.

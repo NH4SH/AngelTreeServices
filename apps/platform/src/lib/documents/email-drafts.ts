@@ -1,5 +1,5 @@
 import { companyBrand, companyContactText, customerContactEmail } from "../company-brand.ts";
-import type { InvoiceDetail, InvoiceLineItem, JobDetail, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
+import type { InvoiceDetail, InvoiceLineItem, JobWithRelations, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
 import { formatProposalReference } from "../quotes/proposal-number.ts";
 import { isFirewoodInvoiceTerms } from "./terms/firewood-2026-10-24.ts";
 
@@ -560,7 +560,7 @@ export function generateQuoteFollowUpDraft(quote: QuoteDetail): EmailDraft {
   };
 }
 
-export function generateWorkOrderCrewMessage(job: JobDetail): EmailDraft {
+export function generateWorkOrderCrewMessage(job: JobWithRelations): EmailDraft {
   return {
     subject: `${companyName} work order: ${job.service_type?.replace("_", " ") ?? "service job"}`,
     body: [

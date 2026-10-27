@@ -1,6 +1,6 @@
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { DocumentMeta, DocumentSection, DocumentShell } from "@/components/documents/document-shell";
-import type { JobDetail } from "@/lib/types/database";
+import type { WorkOrderDocumentData } from "@/lib/jobs/work-order-detail";
 
 const checklist = [
   "Before photos captured",
@@ -13,7 +13,7 @@ const checklist = [
   "Ready for invoice",
 ];
 
-export function WorkOrderDocument({ job }: { job: JobDetail }) {
+export function WorkOrderDocument({ job }: { job: WorkOrderDocumentData }) {
   const crewNotes = (job.notes ?? []).filter((note) => note.visibility === "crew_visible");
   const approvedQuote = (job.quotes ?? []).find((quote) => quote.status === "approved") ?? job.quotes?.[0] ?? null;
   const originalLines = [...(approvedQuote?.quote_line_items ?? [])].sort((left, right) => left.sort_order - right.sort_order);
@@ -64,7 +64,7 @@ export function WorkOrderDocument({ job }: { job: JobDetail }) {
   );
 }
 
-function formatLocation(job: JobDetail) {
+function formatLocation(job: WorkOrderDocumentData) {
   const location = job.service_locations;
   if (!location) {
     return "No service location attached yet.";

@@ -476,3 +476,19 @@ essentially unchanged. Native/browser tests passed locally and in protected
 staging, alongside regression checks, typecheck/build and schema checks. The
 batch remains local; published apps, production and the scanner are unchanged.
 Searchable/paged quote lookups are the next focused scalability step.
+
+### October 26 — searchable, paged quote lookups
+
+The preceding editor-loading batch is pushed normally to main as `30231a8`, with
+deployment skipped. `PAGED_QUOTE_LOOKUPS.md` records the next local batch: both
+quote editing and creation hydrate saved selections by ID and use searchable,
+20-row lookup pages. Scoped locations/jobs/contacts, pinned off-page selections,
+source-lead creation, recovery, keyboard saves and all financial boundaries are
+preserved. Read failures and late replies cannot silently blank selected IDs.
+
+All 3,232 regression checks, typecheck/build, native local/staging tests and actual
+local/protected-staging browser scenarios passed using synthetic directories
+beyond 1,000 rows. Published apps, production and the scanner remain unchanged;
+the new batch is uncommitted and unpushed. The next measured performance step is
+invoice editor/new-invoice lookup entry, retaining the existing payment locks
+and transaction commands. Other roadmap and release boundaries remain separate.

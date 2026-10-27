@@ -9,13 +9,14 @@ import { DocumentRecoveryPanel } from "@/components/document-recovery-panel";
 import { SavedScopeWording } from "@/components/saved-scope-wording";
 import { restoreDocumentFields } from "@/lib/drafts/document-drafts";
 import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
-import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
 import { createQuote, updateQuote, type QuoteActionState } from "./actions";
 import { submitQuoteEdit } from "@/lib/quotes/submit-edit";
-import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
-import type { Customer, Job, Organization, OrganizationContact, QuoteEditorRecord, ServiceCategory, ServiceLocation } from "@/lib/types/database";
-import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
+import { contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
+import type { QuoteEditorRecord, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import { QuoteLookupField } from "@/components/quote-lookup-field";
+import { initialQuoteLookupValues, emptyQuoteLookupValues, quoteLookupKey, quoteLookupKinds, quoteLookupNames, quoteLookupScope, quoteLookupValuesFrom, type QuoteLookupName, type QuoteLookupSeeds } from "@/lib/quotes/lookup-contract";
 import type { MaterialRecord } from "@/lib/data/materials";
 import type { QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
 
@@ -48,33 +49,23 @@ const initialLineItem = (id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()
 export function AddQuoteForm({
   userId, returnTo,
   createCloseHref,
-  customers,
   defaultCustomerId = "",
-  estimateScheduleEvents,
-  jobs,
+  lookupSeeds,
   leadPrefill,
   materials,
-  organizations,
-  organizationContacts,
   quote,
   serviceCategories,
-  serviceLocations,
   sourceLeadJobId,
 }: {
   userId: string;
   returnTo?: string;
   createCloseHref?: string;
-  customers: Pick<Customer, "id" | "display_name">[];
   defaultCustomerId?: string;
-  estimateScheduleEvents: EstimateScheduleEventOption[];
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  lookupSeeds: QuoteLookupSeeds;
   leadPrefill?: QuoteLeadPrefill | null;
   materials: MaterialRecord[];
-  organizations: Pick<Organization, "id" | "name">[];
-  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
   quote?: QuoteEditorRecord;
   serviceCategories: ServiceCategory[];
-  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
   sourceLeadJobId?: string;
 }) {
   const isEditing = Boolean(quote);
@@ -84,6 +75,7 @@ export function AddQuoteForm({
   const requestId = useRef<string | null>(null);
   const [state, formAction, pending] = useReliableActionState(async (previous: QuoteActionState, form: FormData) => {
     if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    if (!lookupReady) return { status: "error" as const, message: "Verify the selected quote details before saving." };
     if (!isEditing) {
       requestId.current ??= recovery.requestId.current || crypto.randomUUID();
       form.set("request_id", requestId.current);
@@ -105,11 +97,17 @@ export function AddQuoteForm({
   const [dirty, setDirty] = useState(false);
   const confirmedReload = useRef(false);
   const [expectedRevision, setExpectedRevision] = useState(quote?.edit_revision);
-  const [selectedPartyValue, setSelectedPartyValue] = useState(
-    quote
-      ? contractingPartyValue(quote)
-      : leadPrefill?.partyValue ?? (defaultCustomerId ? `customer:${defaultCustomerId}` : ""),
-  );
+  const [lookupValues, setLookupValues] = useState(() => initialQuoteLookupValues(quote, leadPrefill, defaultCustomerId));
+  const selectedPartyValue = lookupValues.contracting_party;
+  const initialParty = useRef(selectedPartyValue);
+  const [lookupStatus, setLookupStatus] = useState<Record<string, { key: string; ready: boolean }>>(() => Object.fromEntries(quoteLookupNames.map(name => {
+    const kind = quoteLookupKinds[name], value = lookupValues[name], scope = quoteLookupScope(kind, selectedPartyValue);
+    return [name, { key: quoteLookupKey(userId, kind, scope, value), ready: !value || lookupSeeds[name]?.value === value }];
+  })));
+  const lookupReady = quoteLookupNames.every(name => {
+    const kind = quoteLookupKinds[name], scope = quoteLookupScope(kind, selectedPartyValue), status = lookupStatus[name];
+    return !lookupValues[name] || status?.ready && status.key === quoteLookupKey(userId, kind, scope, lookupValues[name]);
+  });
   const selectedParty = parseContractingParty(selectedPartyValue);
   const [originalPartyValue, setOriginalPartyValue] = useState(quote ? contractingPartyValue(quote) : "");
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(
@@ -128,20 +126,6 @@ export function AddQuoteForm({
           }))
       : [initialLineItem("new-quote-line-1")],
   );
-  const matchingLocations = useMemo(
-    () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],
-    [selectedParty, serviceLocations],
-  );
-  const matchingJobs = useMemo(
-    () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
-    [selectedParty, jobs],
-  );
-  const matchingContacts = useMemo(
-    () => selectedParty?.kind === "organization"
-      ? organizationContacts.filter((contact) => contact.organization_id === selectedParty.organizationId)
-      : [],
-    [organizationContacts, selectedParty],
-  );
   const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
   const closeHref = quote ? withReturnTo(`/admin/quotes/${quote.id}`, listHref) : createCloseHref ?? listHref;
   const recovery = useDocumentRecovery({
@@ -150,12 +134,21 @@ export function AddQuoteForm({
     dirty, pending, changeToken: lineItems,
     restore: copy => {
       if (!isEditing) requestId.current = copy.requestId || null;
-      setSelectedPartyValue(copy.fields.contracting_party ?? "");
+      setLookupValues(quoteLookupValuesFrom(copy.fields));
       setLineItems(copy.lines.map(line => ({ ...line, id: crypto.randomUUID(), persistedId: line.persistedId || undefined })));
       markDirty();
     },
   });
   function markDirty() { recovery.changed(); confirmedReload.current = false; setDirty(true); }
+  function lookup(name: QuoteLookupName, label: string, placeholder: string, required = false) {
+    const kind = quoteLookupKinds[name], scope = quoteLookupScope(kind, selectedPartyValue);
+    return <QuoteLookupField userId={userId} name={name} kind={kind} label={label} placeholder={placeholder} required={required}
+      value={lookupValues[name]} scope={scope} seedScope={quoteLookupScope(kind, initialParty.current)} seed={lookupSeeds[name]}
+      disabled={!recovery.ready || (kind === "location" || kind === "job") && !selectedParty || kind === "contact" && selectedParty?.kind !== "organization"}
+      onReady={(ready, key) => setLookupStatus(current => current[name]?.key === key && current[name]?.ready === ready ? current : { ...current, [name]: { key, ready } })}
+      onChange={value => setLookupValues(current => name === "contracting_party" ? { ...emptyQuoteLookupValues(), contracting_party: value, estimate_schedule_event_id: current.estimate_schedule_event_id } : { ...current, [name]: value })} />;
+  }
+
 
   useEffect(() => {
     if (state.status === "success") {
@@ -230,33 +223,8 @@ export function AddQuoteForm({
           </p>
         ) : null}
         <div className="form-grid-two">
-          <label>
-            Contracting party
-            <select
-              name="contracting_party"
-              onChange={(event) => {
-                setSelectedPartyValue(event.target.value);
-                markDirty();
-              }}
-              required
-              value={selectedPartyValue}
-            >
-              <option value="">Choose customer or organization</option>
-              <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
-              <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
-            </select>
-          </label>
-          <label>
-            Service location
-            <select defaultValue={quote?.service_location_id ?? leadPrefill?.serviceLocationId ?? ""} name="service_location_id" required>
-              <option value="">Choose service location</option>
-              {matchingLocations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {formatLocation(location)}
-                </option>
-              ))}
-            </select>
-          </label>
+          {lookup("contracting_party", "Contracting party", "Choose customer or organization", true)}
+          {lookup("service_location_id", "Service location", "Choose service location", true)}
         </div>
         {quote && selectedPartyValue !== originalPartyValue ? (
           <label className="checkbox-field">
@@ -264,42 +232,16 @@ export function AddQuoteForm({
             I understand this changes the legal contracting party. Existing portal access remains attached to this quote.
           </label>
         ) : null}
-        {selectedParty?.kind === "organization" ? (
-          <>
+        {selectedParty?.kind === "organization" ? <>
           <div className="form-grid-two">
-            <label>
-              Quote recipient
-              <select defaultValue={quote?.recipient_contact_id ?? leadPrefill?.recipientContactId ?? ""} name="recipient_contact_id" required>
-                <option value="">Choose recipient</option>
-                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
-              </select>
-            </label>
-            <label>
-              Approval contact
-              <select defaultValue={quote?.approval_contact_id ?? leadPrefill?.approvalContactId ?? ""} name="approval_contact_id" required>
-                <option value="">Choose approval contact</option>
-                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.contact_roles?.length ? ` - ${contact.contact_roles.join(", ")}` : ""}</option>)}
-              </select>
-            </label>
+            {lookup("recipient_contact_id", "Quote recipient", "Choose recipient", true)}
+            {lookup("approval_contact_id", "Approval contact", "Choose approval contact", true)}
           </div>
           <div className="form-grid-two">
-            <label>
-              Onsite contact
-              <select defaultValue={quote?.onsite_contact_id ?? leadPrefill?.onsiteContactId ?? ""} name="onsite_contact_id">
-                <option value="">No onsite contact selected</option>
-                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}</option>)}
-              </select>
-            </label>
-            <label>
-              Billing contact
-              <select defaultValue={quote?.billing_contact_id ?? ""} name="billing_contact_id">
-                <option value="">Use approval contact</option>
-                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
-              </select>
-            </label>
+            {lookup("onsite_contact_id", "Onsite contact", "No onsite contact selected")}
+            {lookup("billing_contact_id", "Billing contact", "Use approval contact")}
           </div>
-          </>
-        ) : null}
+        </> : null}
         <div className="form-grid-two">
           <label>
             Purchase order / reference
@@ -311,28 +253,8 @@ export function AddQuoteForm({
           </label>
         </div>
         <div className="form-grid-two">
-          <label>
-            Estimate event
-            <select defaultValue={quote?.estimate_schedule_event_id ?? ""} name="estimate_schedule_event_id">
-              <option value="">No linked estimate event</option>
-              {estimateScheduleEvents.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.title} - {formatDateTime(event.starts_at)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Existing job / work order
-            <select defaultValue={quote?.job_id ?? leadPrefill?.sourceJobId ?? ""} name="job_id">
-              <option value="">No existing job yet</option>
-              {matchingJobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.service_type ?? "job"} - {job.status.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </label>
+          {lookup("estimate_schedule_event_id", "Estimate event", "No linked estimate event")}
+          {lookup("job_id", "Existing job / work order", "No existing job yet")}
         </div>
         <label>
           Customer notes
@@ -543,7 +465,7 @@ export function AddQuoteForm({
       <div className="quote-editor-action-bar">
         <div>
           <button
-            disabled={pending || recovery.blocked || customers.length === 0}
+            disabled={pending || recovery.blocked || !lookupReady || !lookupValues.contracting_party || !lookupValues.service_location_id}
             name="submit_intent"
             type="submit"
             value="save"
@@ -553,7 +475,7 @@ export function AddQuoteForm({
           </button>
           <button
             className="secondary-action"
-            disabled={pending || recovery.blocked || customers.length === 0}
+            disabled={pending || recovery.blocked || !lookupReady || !lookupValues.contracting_party || !lookupValues.service_location_id}
             name="submit_intent"
             type="submit"
             value="save_close"

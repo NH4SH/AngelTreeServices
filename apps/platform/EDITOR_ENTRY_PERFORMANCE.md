@@ -1,9 +1,10 @@
 # Document-editor entry and lookup reads
 
 Verified October 26, 2026. The invoice/change-order save batches are pushed normally
-to `origin/main` as `7d41729daec6df212c94aed51fa609ddac8a2640`, with CI/Netlify skip
-markers. This follow-up remains local on `codex/editor-entry-performance`, based
-on that commit. Published staging, production and the scanner are unchanged.
+to `origin/main` as `7d41729daec6df212c94aed51fa609ddac8a2640`. This editor-loading
+batch is now pushed normally as `30231a8d706cd336c3e8f5fb1d83baae8519a808`, with
+CI/Netlify skip markers. Published staging, production and the scanner are
+unchanged. The subsequent local lookup follow-up is in `PAGED_QUOTE_LOOKUPS.md`.
 
 ## Measured result
 

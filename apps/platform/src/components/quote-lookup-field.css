@@ -1,0 +1,15 @@
+.quote-lookup { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.quote-lookup-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+.quote-lookup-heading > label { font-weight: 650; }
+.quote-lookup select { width: 100%; min-width: 0; }
+.crm-form .quote-lookup-toggle { display: inline-flex; align-items: center; gap: 5px; width: auto; min-height: 32px; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: var(--color-forest); font-size: .85rem; font-weight: 650; box-shadow: none; }
+.crm-form .quote-lookup-toggle:hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.quote-lookup-search { display: grid; gap: 8px; padding: 8px 0; min-width: 0; }
+.quote-lookup-search > label { font-size: .85rem; font-weight: 600; }
+.quote-lookup-types, .quote-lookup-pages { display: flex; flex-wrap: wrap; gap: 8px; }
+.quote-lookup .secondary-action { min-height: 34px; padding: 5px 10px; font-size: .85rem; }
+.quote-lookup-types [aria-pressed="true"] { background: var(--color-forest); color: var(--color-surface); }
+.quote-lookup-status:empty { display: none; }
+.quote-lookup-status { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 700px) { .crm-form .quote-lookup-toggle, .quote-lookup .secondary-action { min-height: var(--control-touch-size); } }

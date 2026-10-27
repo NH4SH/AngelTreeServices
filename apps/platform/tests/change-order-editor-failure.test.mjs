@@ -3,10 +3,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url), ts = require('typescript'), id = 'a0000000-0000-4000-8000-000000000001';
 test('incomplete change-order reads show a recovery link and never expose a saveable partial form', async () => {
+  // The repository runner enables React Server Components. DOM's static renderer
+  // is intentionally tested in its supported React entry point in a child process.
+  if (process.execArgv.includes('--conditions=react-server')) {
+    const child = spawnSync(process.execPath, ['--experimental-strip-types', '--test', fileURLToPath(import.meta.url)], { encoding: 'utf8' });
+    assert.equal(child.status, 0, child.stdout + child.stderr); return;
+  }
+  const { renderToStaticMarkup } = await import('react-dom/server');
   for (const fault of ['detail', 'materials', 'categories']) {
     let mounted = 0;
     const deps = {

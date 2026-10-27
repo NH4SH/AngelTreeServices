@@ -4,12 +4,11 @@ import { FileSignature } from "lucide-react";
 import { PlatformFrame } from "@/components/PlatformFrame";
 import { SetupRequired } from "@/components/SetupRequired";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
-import { getJobOptions } from "@/lib/data/jobs";
-import { getQuoteEditorLookups } from "@/lib/data/quote-editor";
+import { getQuoteLookupSeeds } from "@/lib/data/quote-lookup-pages";
+import { initialQuoteLookupValues } from "@/lib/quotes/lookup-contract";
 import { getQuoteForEditing } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions } from "@/lib/data/materials";
-import { getEstimateScheduleEventOptions } from "@/lib/data/schedule";
 import type { QuoteStatus } from "@/lib/types/database";
 import { AddQuoteForm } from "../../QuoteForm";
 
@@ -28,21 +27,18 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
     return <SetupRequired title="Configure Supabase before editing quotes" />;
   }
 
-  const [detail, lookups, jobs, estimateScheduleEvents, serviceCategories, materials] = await Promise.all([
+  const [detail, serviceCategories, materials] = await Promise.all([
     getQuoteForEditing(quoteId),
-    getQuoteEditorLookups(),
-    getJobOptions(),
-    getEstimateScheduleEventOptions(),
     getServiceCategories(),
     getMaterialCatalogOptions(),
   ]);
-  const { customers, organizations, organizationContacts, serviceLocations } = lookups;
+  const lookupSeeds = detail.data && isEditable(detail.data.status) ? await getQuoteLookupSeeds(initialQuoteLookupValues(detail.data)) : { data: {}, error: null };
 
   return (
     <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
       <div className="shell app-content commerce-page commerce-editor-page">
         <Link className="crew-back-link" href={withReturnTo(`/admin/quotes/${quoteId}`, returnTo, "/admin/quotes")}>Back to quote</Link>
-        {[detail.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[detail.error, lookupSeeds.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => <DataWarning key={message} message={message ?? ""} />)}
 
@@ -91,17 +87,12 @@ export default async function QuoteEditPage({ params, searchParams }: QuoteEditP
             ) : null}
             <AddQuoteForm
               userId={context.user.id}
+              lookupSeeds={lookupSeeds.data}
               returnTo={returnTo}
               key={detail.data.id}
-              customers={customers.data}
-              estimateScheduleEvents={estimateScheduleEvents.data}
-              jobs={jobs.data}
               materials={materials.data}
-              organizations={organizations.data}
-              organizationContacts={organizationContacts.data}
               quote={detail.data}
               serviceCategories={serviceCategories.data}
-              serviceLocations={serviceLocations.data}
               sourceLeadJobId={query.source_lead_job_id}
             />
           </>

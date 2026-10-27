@@ -12,16 +12,15 @@ import { AddQuoteForm } from "./QuoteForm";
 import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { duplicateQuote } from "@/lib/actions/duplicate-records";
-import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
-import { getJobOptions, getQuoteLeadSource } from "@/lib/data/jobs";
-import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
+import { getQuoteLeadSource } from "@/lib/data/jobs";
+import { getQuoteLookupSeeds } from "@/lib/data/quote-lookup-pages";
+import { initialQuoteLookupValues, type QuoteLookupSeeds } from "@/lib/quotes/lookup-contract";
 import { getQuoteStatusCounts, getQuotesPage } from "@/lib/data/quotes";
 import { getServiceCategories } from "@/lib/data/reports";
 import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
-import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
 import { buildQuoteLeadPrefill, type QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
 import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
-import type { Customer, Job, Organization, OrganizationContact, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { QuoteStatus, QuoteWithRelations, ServiceCategory } from "@/lib/types/database";
 
 type QuotesPageProps = {
   searchParams: Promise<{
@@ -59,15 +58,9 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
   const page = positivePage(params.page);
   const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteSummaryKey : null;
   const statuses = selectedStatus === "awaiting" ? ["sent", "change_requested"] : selectedStatus === "expired" ? ["expired", "declined"] : selectedStatus ? [selectedStatus] : undefined;
-  const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials, quoteLeadSource] = await Promise.all([
+  const [quotes, statusCounts, serviceCategories, materials, quoteLeadSource] = await Promise.all([
     getQuotesPage({ archived, page, pageSize: 25, query: params.q, statuses }),
     getQuoteStatusCounts(params.q),
-    params.new === "1" ? getCustomerOptions() : { data: [], error: null },
-    params.new === "1" ? getOrganizations() : { data: [], error: null },
-    params.new === "1" ? getActiveOrganizationContacts() : { data: [], error: null },
-    params.new === "1" ? getServiceLocations() : { data: [], error: null },
-    params.new === "1" ? getJobOptions() : { data: [], error: null },
-    params.new === "1" ? getEstimateScheduleEventOptions() : { data: [], error: null },
     params.new === "1" ? getServiceCategories() : { data: [], error: null },
     params.new === "1" ? getMaterialCatalogOptions() : { data: [], error: null },
     getQuoteLeadSource(params.new === "1" ? params.job_id : undefined),
@@ -76,6 +69,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
   const listContext = safeReturnTo(listHref("/admin/quotes", params, { new: undefined }), "/admin/quotes");
   const returnTo = safeReturnTo(params.returnTo, listContext);
   const quoteLeadPrefill = quoteLeadSource.data ? buildQuoteLeadPrefill(quoteLeadSource.data) : null;
+  const lookupSeeds = params.new === "1" ? await getQuoteLookupSeeds(initialQuoteLookupValues(undefined, quoteLeadPrefill, params.customer_id)) : { data: {}, error: null };
   const quoteLeadWarning = quoteLeadSource.error
     ?? (params.new === "1" && params.job_id && !quoteLeadPrefill
       ? "The selected lead could not be loaded or you do not have access."
@@ -99,7 +93,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           </Link>
         </section>
 
-        {[quotes.error, statusCounts.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+        {[quotes.error, statusCounts.error, lookupSeeds.error, serviceCategories.error, materials.error]
           .filter(Boolean)
           .map((message) => (
             <DataWarning key={message} message={message ?? ""} />
@@ -202,17 +196,16 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
         {params.new === "1" ? (
           <QuoteCreateDrawer
             userId={context.user.id}
+            lookupSeeds={lookupSeeds.data}
             returnTo={returnTo}
-            customers={customers.data}
+
             defaultCustomerId={params.customer_id}
-            estimateScheduleEvents={estimateScheduleEvents.data}
-            jobs={jobs.data}
+
             materials={materials.data}
-            organizations={organizations.data}
-            organizationContacts={organizationContacts.data}
+
             prefill={quoteLeadPrefill}
             serviceCategories={serviceCategories.data}
-            serviceLocations={serviceLocations.data}
+
             sourceWarning={quoteLeadWarning}
           />
         ) : null}
@@ -223,29 +216,19 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
 
 function QuoteCreateDrawer({
   userId, returnTo,
-  customers,
+  lookupSeeds,
   defaultCustomerId,
-  estimateScheduleEvents,
-  jobs,
   materials,
-  organizations,
-  organizationContacts,
   prefill,
   serviceCategories,
-  serviceLocations,
   sourceWarning,
 }: {
   userId: string; returnTo: string;
-  customers: Pick<Customer, "id" | "display_name">[];
+  lookupSeeds: QuoteLookupSeeds;
   defaultCustomerId?: string;
-  estimateScheduleEvents: EstimateScheduleEventOption[];
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
   materials: MaterialRecord[];
-  organizations: Pick<Organization, "id" | "name">[];
-  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
   prefill: QuoteLeadPrefill | null;
   serviceCategories: ServiceCategory[];
-  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
   sourceWarning: string | null;
 }) {
   const closeHref = prefill || sourceWarning ? "/admin/communications#website-leads" : returnTo;
@@ -273,18 +256,17 @@ function QuoteCreateDrawer({
           <AddQuoteForm
             key={`${userId}:${defaultCustomerId ?? ""}:${prefill?.sourceJobId ?? ""}`}
             userId={userId}
+            lookupSeeds={lookupSeeds}
             returnTo={closeHref}
             createCloseHref={closeHref}
-            customers={customers}
+
             defaultCustomerId={defaultCustomerId}
-            estimateScheduleEvents={estimateScheduleEvents}
-            jobs={jobs}
+
             leadPrefill={prefill}
             materials={materials}
-            organizations={organizations}
-            organizationContacts={organizationContacts}
+
             serviceCategories={serviceCategories}
-            serviceLocations={serviceLocations}
+
           />
         )}
         <Link className="secondary-action commerce-cancel-link" href={closeHref}>

@@ -31,6 +31,7 @@ import {
   materialUnits,
 } from "@/lib/materials/definitions";
 import type { InventoryLocationRecord, MaterialRecord } from "@/lib/data/materials";
+import type { MaterialPlanOption } from "@/lib/data/work-order-materials";
 
 const initialState: MaterialActionState = { status: "idle", message: "" };
 type BasicOption = { id: string; name?: string; display_name?: string; service_type?: string | null; status?: string; asset_number?: string };
@@ -73,7 +74,7 @@ export function InventoryMovementForm({ equipment, jobs, locations, materials }:
   </form>;
 }
 
-export function JobMaterialPlanForm({ jobId, materials }: { jobId: string; materials: MaterialRecord[] }) {
+export function JobMaterialPlanForm({ jobId, materials }: { jobId: string; materials: MaterialPlanOption[] }) {
   const [state, action, pending] = useReliableActionState(addJobMaterialRequirement, initialState);
   return <form action={action} className="crm-form compact-material-form"><input name="job_id" type="hidden" value={jobId} /><FormMessage state={state} />
     <div className="form-grid-three"><MaterialSelect materials={materials} /><label>Planned quantity<input min="0.001" name="quantity" required step="0.001" type="number" /></label><UnitSelect /></div>
@@ -189,7 +190,7 @@ function IdempotencyInput() {
   return <input name="idempotency_key" type="hidden" value={value} />;
 }
 function FormMessage({ state }: { state: MaterialActionState }) { return state.message ? <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null; }
-function MaterialSelect({ materials, name = "material_id", optional = false }: { materials: MaterialRecord[]; name?: string; optional?: boolean }) { return <label>Material<select name={name} required={!optional}><option value="">{optional ? "No stock item" : "Choose material"}</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.name} ({materialLabel(material.default_unit)})</option>)}</select></label>; }
+function MaterialSelect({ materials, name = "material_id", optional = false }: { materials: MaterialPlanOption[]; name?: string; optional?: boolean }) { return <label>Material<select name={name} required={!optional}><option value="">{optional ? "No stock item" : "Choose material"}</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.name} ({materialLabel(material.default_unit)})</option>)}</select></label>; }
 function UnitSelect({ name = "unit", optional = false }: { name?: string; optional?: boolean }) { return <label>Unit<select name={name} required={!optional}><option value="">Choose unit</option>{materialUnits.map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label>; }
 function LocationSelect({ label, locations, name, required = false }: { label: string; locations: InventoryLocationRecord[]; name: string; required?: boolean }) { return <label>{label}<select name={name} required={required}><option value="">Not selected</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name} - {materialLabel(location.location_type)}</option>)}</select></label>; }
 function JobSelect({ jobs, required = false }: { jobs: BasicOption[]; required?: boolean }) { return <label>Work order<select name="job_id" required={required}><option value="">Not linked</option>{jobs.map((job) => <option key={job.id} value={job.id}>{materialLabel(job.service_type ?? "work order")} - {materialLabel(job.status ?? "open")}</option>)}</select></label>; }

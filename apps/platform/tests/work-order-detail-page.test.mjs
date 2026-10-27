@@ -10,7 +10,7 @@ const require=createRequire(import.meta.url),ts=require('typescript'),id='a00000
 test('work-order loading gates ancillary reads, parallelizes independent checks and preserves role-sensitive rendering',async()=>{
  if(process.execArgv.includes('--conditions=react-server')){const child=spawnSync(process.execPath,['--experimental-strip-types','--test',fileURLToPath(import.meta.url)],{encoding:'utf8'});assert.equal(child.status,0,child.stdout+child.stderr);return;}
  const {renderToStaticMarkup}=await import('react-dom/server');
- for(const mode of ['owner','estimator','error','missing','setup']){
+ for(const mode of ['owner','estimator','materials-error','error','missing','setup']){
   const calls=[],captures={},roles=mode==='estimator'?['estimator']:['owner'];let release;const hold=new Promise(r=>release=r),job={id,status:'completed_pending_review',service_type:'other',requested_scope:'Synthetic scope',customer_id:id,organization_id:null,service_location_id:id,customers:{display_name:'Synthetic customer'},service_locations:{city:'Test City',street:'100 Synthetic Lane',state:'VA'},notes:[],quotes:[],invoices:[],appointments:[],schedule_events:[],change_orders:[],equipment_assignments:[]};
   const read=(name,data=[],wait=false)=>async()=>{assert.ok(calls.includes('core'),name+' must follow a successful core read');calls.push(name);if(wait)await hold;return{data,error:null};};
   const deps={
@@ -22,7 +22,7 @@ test('work-order loading gates ancillary reads, parallelizes independent checks 
    '@/lib/data/jobs':new Proxy({},{get:()=>assert.fail('The legacy detail reader must remain unused here')}),
    '@/lib/data/appointments':{getAssignableUsers:read('users')},'@/lib/data/job-photos':{getJobPhotos:read('photos')},
    '@/lib/data/communications':{getCustomerCommunications:read('communications'),getCommunicationRecipientOptions:read('recipients',[],true)},
-   '@/lib/data/reports':{getJobCostEntries:read('costs')},'@/lib/data/materials':{getJobMaterials:read('materials',null)},
+   '@/lib/data/reports':{getJobCostEntries:read('costs')},'@/lib/data/work-order-materials':{getWorkOrderMaterialPlan:async()=>{calls.push('materials');return mode==='materials-error'?{data:null,error:'Material planning could not load completely.'}:{data:{materials:[{id,name:'Synthetic material',default_unit:'each'}],requirements:[]},error:null};}},
    '@/lib/data/record-reminder-summary':{getRecordReminderSummary:async()=>{calls.push('reminders');await hold;return{};}},
    '@/lib/actions/record-lifecycle':{getRecordLifecyclePreview:async()=>{calls.push('lifecycle');await hold;return{};}},
    '@/lib/actions/duplicate-records':{duplicateJob:()=>assert.fail('Render cannot mutate')},
@@ -36,9 +36,9 @@ test('work-order loading gates ancillary reads, parallelizes independent checks 
   const code=ts.transpileModule(readFileSync(new URL('../src/app/admin/jobs/[jobId]/page.tsx',import.meta.url),'utf8'),{fileName:'page.tsx',compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,target:ts.ScriptTarget.ES2022}}).outputText,m={exports:{}};
   new Function('require','module','exports',code)(name=>{if(name in deps)return deps[name];if(name.startsWith('@/components/'))return new Proxy({},{get:(_,component)=>props=>{captures[component]=props;return React.createElement('div',null,props.children);}});assert.fail('Unexpected import '+name);},m,m.exports);
   const pending=m.exports.default({params:Promise.resolve({jobId:id}),searchParams:Promise.resolve({})});await new Promise(setImmediate);
-  if(['owner','estimator'].includes(mode)){assert.ok(calls.includes('recipients')&&calls.includes('reminders'));assert.equal(calls.includes('lifecycle'),mode==='owner');assert.equal(calls.includes('costs'),mode==='owner');assert.equal(calls.filter(x=>x==='photos').length,1);}release();const html=renderToStaticMarkup(await pending);
+  if(['owner','estimator'].includes(mode)){assert.ok(calls.includes('recipients')&&calls.includes('reminders'));assert.equal(calls.includes('lifecycle'),mode!=='estimator');assert.equal(calls.includes('costs'),mode!=='estimator');assert.equal(calls.filter(x=>x==='photos').length,1);}release();const html=renderToStaticMarkup(await pending);
   if(['error','missing'].includes(mode)){assert.deepEqual(calls,['core']);assert.equal(captures.JobScheduleManager,undefined);assert.equal(captures.CreateInvoiceFromJobAction,undefined);assert.match(html,mode==='error'?/Reload work order/:/Job not found or no access/);}
   else if(mode==='setup')assert.deepEqual(calls,[]);
-  else{assert.ok(captures.JobScheduleManager);assert.ok(captures.WorkOrderDocument);assert.ok(captures.CompletedJobMarketingWorkspace);assert.equal('notes'in captures.CompletedJobMarketingWorkspace.job,false);assert.equal(captures.JobCostPanel!==undefined,mode==='owner');}
+  else{assert.ok(captures.JobScheduleManager);assert.ok(captures.WorkOrderDocument);assert.ok(captures.CompletedJobMarketingWorkspace);assert.equal('notes'in captures.CompletedJobMarketingWorkspace.job,false);assert.equal(captures.JobCostPanel!==undefined,mode!=='estimator');assert.equal(captures.JobMaterialPlanForm!==undefined,mode!=='materials-error');if(mode==='materials-error'){assert.match(html,/Material planning could not load completely/);assert.match(html,/Materials tracking is unavailable/);}}
  }
 });

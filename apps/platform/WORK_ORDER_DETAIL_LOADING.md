@@ -2,8 +2,9 @@
 
 Verified October 26, 2026. Change-order contact loading is pushed normally to main
 as `c5bb0f4ca72ebaf0751e64819d5c0297c0d3a787`, with CI/Netlify skip markers.
-This follow-up is uncommitted on `codex/work-order-detail-loading`, based on that
-exact main commit. Published staging, production and the scanner are unchanged.
+At verification this follow-up was uncommitted on `codex/work-order-detail-loading`.
+It is now pushed normally to main as `b115d55838faa3e622bc572fda143aa756367632`,
+with deployment skipped. Published staging, production and the scanner are unchanged.
 
 ## What changed
 
@@ -97,12 +98,11 @@ batch does not introduce full-history pagination for unusually large work orders
 
 Private evidence, metrics and screenshots are retained outside Git at
 `/Users/noelsierra/Documents/Codex/2026-10-26/work-order-detail-loading/`.
-The new batch remains uncommitted and unpushed.
+This verified batch is now pushed; see the commit in the introduction.
 
 ## Next focused priority
 
-Measure the supporting materials/planning reads on this page. Its existing shared
-material reader also retrieves inventory/disposal history that this office view
-does not consume. Narrow that path separately while preserving crew inventory
-workflows. Existing release, customer-experience and runtime-security priorities
-retain their separate review boundaries.
+The original next step was to narrow supporting materials/planning reads while
+preserving crew inventory workflows. That local follow-up is now verified in
+`WORK_ORDER_MATERIAL_PLANNING.md`. Existing release, customer-experience and
+runtime-security priorities retain their separate review boundaries.

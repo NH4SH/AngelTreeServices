@@ -554,3 +554,18 @@ latency benefit. The 3,255-check suite, typecheck/build, native local/staging
 comparisons and browser workflows passed. New work remains local and unpushed;
 published apps, production and the scanner are unchanged. Next measure the
 supporting materials/planning reads without changing crew inventory workflows.
+
+### October 26 — work-order materials and planning
+
+Work-order detail loading is pushed normally to main as `b115d55`, with deployment
+skipped. `WORK_ORDER_MATERIAL_PLANNING.md` records the next local batch: two normal
+office planning requests, narrow active choices, complete catalog-page traversal
+and explicit recovery instead of partial planning inputs. Existing crew inventory
+readers/actions and the emitted shared-form JavaScript are unchanged.
+
+With synthetic planning and inventory history, planning data fell 97%, page HTML
+6%, and observed entry median from 1,133 to 844 ms. The 3,259-check suite,
+typecheck/build, native local/staging comparisons and actual planning/crew browser
+checks passed. New work remains local and unpushed; published apps, production and
+scanner are unchanged. Next measure view-specific materials-workspace loading,
+retaining all existing inventory, financial and release boundaries.

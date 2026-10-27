@@ -47,7 +47,7 @@ import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/l
 import { getJobPhotos } from "@/lib/data/job-photos";
 import { getWorkOrderDetail } from "@/lib/data/work-order-detail";
 import { marketingJobContext } from "@/lib/jobs/marketing-context";
-import { getJobMaterials } from "@/lib/data/materials";
+import { getWorkOrderMaterialPlan } from "@/lib/data/work-order-materials";
 import { getJobCostEntries } from "@/lib/data/reports";
 import { generateWorkOrderCrewMessage } from "@/lib/documents/email-drafts";
 import { getGoogleReviewUrl } from "@/lib/documents/marketing-drafts";
@@ -88,7 +88,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
     getJobPhotos(jobId),
     getCustomerCommunications({ jobId, limit: 30 }),
     canViewFinancials ? getJobCostEntries(jobId) : { data: [], error: null },
-    getJobMaterials(jobId, context.roles, context.user.id),
+    getWorkOrderMaterialPlan(jobId, context.roles, context.user.id),
     getCommunicationRecipientOptions({ customerId: job.customer_id, organizationId: job.organization_id }),
     getRecordReminderSummary(currentAppointment ? "appointment" : "job", currentAppointment?.id ?? job.id),
     canArchive ? getRecordLifecyclePreview("job", job.id) : null,
@@ -256,7 +256,7 @@ export default async function JobDetailPage({ params, searchParams }: JobDetailP
             <section><h3>Crew work order</h3><p>Field scope, access notes, materials, and photos remain available to assigned crew.</p><Link className="secondary-action compact-action" href={`/crew/jobs/${job.id}`}>Open crew view</Link></section>
             <section><h3>Access</h3><p>{job.service_locations?.access_notes || job.service_locations?.service_notes || "No access instructions recorded."}</p>{directionsUrl ? <a className="secondary-action compact-action" href={directionsUrl} rel="noreferrer" target="_blank"><Navigation size={16} />Directions</a> : null}</section>
             <section><h3>Equipment</h3>{job.equipment_assignments?.length ? job.equipment_assignments.map((assignment) => <Link className="linked-record" href={`/admin/equipment/${assignment.asset_id}`} key={assignment.id}><strong>{assignment.equipment_assets?.name ?? "Equipment"}</strong><span>{assignment.equipment_assets?.asset_number ?? "No asset number"} · {title(assignment.equipment_assets?.status ?? "unknown")}</span></Link>) : <CompactEmpty>No equipment assigned.</CompactEmpty>}<Link className="secondary-action compact-action" href="/admin/equipment">Manage equipment</Link></section>
-            <section className="job-operations-wide"><h3>Materials</h3>{materials.data ? <><div className="job-material-comparison">{materials.data.requirements.length ? materials.data.requirements.map((requirement: any) => { const material = materials.data?.materials.find((item: any) => item.id === requirement.material_id); return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No planning notes"}</span></div><b>{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</b></article>; }) : <CompactEmpty>No materials planned.</CompactEmpty>}</div><JobMaterialPlanForm jobId={job.id} materials={materials.data.materials as any} /></> : <CompactEmpty>Materials tracking is unavailable.</CompactEmpty>}</section>
+            <section className="job-operations-wide"><h3>Materials</h3>{materials.data ? <><div className="job-material-comparison">{materials.data.requirements.length ? materials.data.requirements.map((requirement) => { const material = materials.data?.materials.find((item) => item.id === requirement.material_id); return <article key={requirement.id}><div><strong>{material?.name ?? "Material"}</strong><span>{requirement.notes || "No planning notes"}</span></div><b>{requirement.planned_quantity} {requirement.unit.replaceAll("_", " ")}</b></article>; }) : <CompactEmpty>No materials planned.</CompactEmpty>}</div><JobMaterialPlanForm jobId={job.id} materials={materials.data.materials} /></> : <CompactEmpty>Materials tracking is unavailable.</CompactEmpty>}</section>
           </div>
         </details>
 

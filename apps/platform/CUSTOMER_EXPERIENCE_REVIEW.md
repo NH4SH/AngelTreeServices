@@ -569,3 +569,21 @@ typecheck/build, native local/staging comparisons and actual planning/crew brows
 checks passed. New work remains local and unpushed; published apps, production and
 scanner are unchanged. Next measure view-specific materials-workspace loading,
 retaining all existing inventory, financial and release boundaries.
+
+### October 26 — materials workspace loading
+
+Verified materials/planning is pushed normally to main as `00cbd0d`, with deployment
+skipped. `MATERIALS_WORKSPACE_LOADING.md` records the next local batch: view-specific
+reads, 25-record catalog pages, one selected edit form and recovery without partial
+inputs. Existing stock, reservation, purchasing, disposal, production, delivery,
+private-file and financial commands remain intact.
+
+With 35 matching synthetic catalog records, catalog HTML fell 61% and observed
+entry median changed from 1,597.5 to 686.5 ms. Overview median changed from 1,367 to
+881 ms. These are six-sample staging observations, not production guarantees. All
+3,271 regression checks, typecheck/build, native local/staging comparisons and
+actual desktop/mobile inventory workflows passed. New work remains local and
+unpushed; production, published staging and the scanner are unchanged. Next bound
+remaining vendor/contact choices and histories while retaining financial and
+inventory boundaries; catalog matching and overview semantics still have explicit
+scaling limitations.

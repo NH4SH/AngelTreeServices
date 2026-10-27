@@ -2278,6 +2278,17 @@
   gap: 13px;
 }
 
+.materials-page .material-form label:has(input[type="datetime-local"]) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.materials-page .material-form input[type="datetime-local"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .material-check-row {
   display: flex;
   flex-wrap: wrap;
@@ -2349,8 +2360,14 @@
 }
 
 .transaction-list > article > div:last-child {
+  flex-shrink: 0;
+  max-width: 100%;
   justify-items: end;
   text-align: right;
+}
+
+.materials-page .transaction-list strong {
+  overflow-wrap: anywhere;
 }
 
 .inline-material-action {

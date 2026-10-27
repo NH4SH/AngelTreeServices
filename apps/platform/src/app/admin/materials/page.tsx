@@ -1,3 +1,5 @@
+import { ListPagination } from "@/components/list-pagination";
+import { materialsViews as views, resolveMaterialsView, materialCatalogPageNumber, materialCatalogPageSize } from "@/lib/materials/workspace-view";
 import { AttachmentCheckLink } from "@/components/AttachmentCheckLink";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import Link from "next/link";
@@ -22,30 +24,29 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { formatMaterialQuantity, materialLabel } from "@/lib/materials/definitions";
 import { getMaterialsWorkspace, type MaterialWorkspaceData } from "@/lib/data/materials";
 
-type MaterialsPageProps = { searchParams: Promise<{ view?: string; q?: string; category?: string; location?: string }> };
-const views = ["overview", "catalog", "movements", "reservations", "purchases", "disposal", "production", "deliveries"];
+type MaterialsPageProps = { searchParams: Promise<{ view?: string; q?: string; category?: string; location?: string; page?: string; edit?: string }> };
 
 export default async function MaterialsPage({ searchParams }: MaterialsPageProps) {
   const query = await searchParams;
   const context = await getAuthenticatedPlatformContext("/admin/materials");
   if (!context.configured) return <SetupRequired title="Configure Supabase before opening materials" />;
-  const data = await getMaterialsWorkspace(context.roles);
-  const view = views.includes(query.view ?? "") ? query.view! : "overview";
-  const filteredMaterials = data.materials.filter((material) => (!query.category || material.category === query.category) && (!query.q || [material.name, material.sku, material.description].some((value) => value?.toLowerCase().includes(query.q!.toLowerCase()))));
+  const view = resolveMaterialsView(query.view);
+  const data = await getMaterialsWorkspace(context.roles, view, query);
 
   return <PlatformFrame active="materials" roles={context.roles} userEmail={context.user.email}>
     <div className="shell app-content materials-page">
       <section className="page-heading commerce-heading"><div><p className="surface-label"><Boxes size={18} />Materials and inventory</p><h1>Materials</h1><AttachmentCheckLink bucket="material-files"/><p>Plan, reserve, receive, move, use, deliver, produce, and dispose of materials with an auditable stock history.</p></div><Link className="primary-action" href="/admin/materials?view=catalog#add-material"><Plus size={18} />Add material</Link></section>
-      {data.error ? <section className="data-warning"><strong>Materials database notice</strong><p>{data.error}</p></section> : null}
       <nav className="materials-tabs" aria-label="Materials views">{views.map((item) => <Link aria-current={view === item ? "page" : undefined} href={`/admin/materials?view=${item}`} key={item}>{tabIcon(item)}{materialLabel(item)}</Link>)}</nav>
+      {data.error ? <section className="data-warning" role="status"><strong>Materials unavailable</strong><p>{data.error}</p><Link className="secondary-action" href={materialsHref(view, query)}>Reload this view</Link></section> : <>
       {view === "overview" ? <Overview data={data} /> : null}
-      {view === "catalog" ? <Catalog data={data} filteredMaterials={filteredMaterials} query={query} /> : null}
+      {view === "catalog" ? <Catalog data={data} filteredMaterials={data.materials} query={query} /> : null}
       {view === "movements" ? <Movements data={data} /> : null}
       {view === "reservations" ? <Reservations data={data} /> : null}
       {view === "purchases" ? <Purchases data={data} /> : null}
       {view === "disposal" ? <Disposal data={data} /> : null}
       {view === "production" ? <Production data={data} /> : null}
       {view === "deliveries" ? <Deliveries data={data} /> : null}
+      </>}
     </div>
   </PlatformFrame>;
 }
@@ -60,9 +61,9 @@ function Overview({ data }: { data: MaterialWorkspaceData }) {
   </>;
 }
 
-function Catalog({ data, filteredMaterials, query }: { data: MaterialWorkspaceData; filteredMaterials: MaterialWorkspaceData["materials"]; query: { q?: string; category?: string } }) {
-  return <><form className="materials-filter-bar" method="get"><input name="view" type="hidden" value="catalog" /><label>Search<input defaultValue={query.q ?? ""} name="q" placeholder="Name, SKU, description" /></label><label>Category<select defaultValue={query.category ?? ""} name="category"><option value="">All categories</option>{Array.from(new Set(data.materials.map((material) => material.category))).map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label><button className="secondary-action" type="submit">Apply filters</button></form>
-    <section className="materials-catalog-layout"><section className="materials-section"><SectionHeading icon={<Boxes size={20} />} title="Material catalog" body="Stock-tracked and non-stock services use the same clear units without automatic conversions." /><div className="material-record-list">{filteredMaterials.length ? filteredMaterials.map((material) => { const balances = data.balances.filter((balance) => balance.material_id === material.id); const available = balances.reduce((sum, item) => sum + Number(item.available_quantity), 0); const cost = data.costs.find((item) => item.material_id === material.id); return <article className="material-record" key={material.id}><div><span className={`material-category category-${material.category}`}>{materialLabel(material.category)}</span><h2>{material.name}</h2><p>{material.description || "No description entered."}</p></div><dl><div><dt>Unit</dt><dd>{materialLabel(material.default_unit)}</dd></div><div><dt>Available</dt><dd>{material.stock_tracked ? formatMaterialQuantity(available, material.default_unit) : "Stock not tracked"}</dd></div><div><dt>Reorder at</dt><dd>{material.reorder_threshold == null ? "Not set" : formatMaterialQuantity(material.reorder_threshold, material.default_unit)}</dd></div>{data.canViewCosts ? <div><dt>Internal cost</dt><dd>{cost?.internal_unit_cost_cents == null ? "Not set" : money(cost.internal_unit_cost_cents)}</dd></div> : null}</dl><details className="material-edit-details"><summary>Edit material</summary><MaterialCatalogForm canViewCosts={data.canViewCosts} internalCostCents={cost?.internal_unit_cost_cents} material={material} organizations={data.organizations} /></details></article>; }) : <p className="inline-empty">No materials match these filters.</p>}</div></section><aside className="materials-side-stack"><section className="form-panel" id="add-material"><h2>Add material</h2><p>Choose the unit used in the field. The system will not make unsafe unit conversions.</p><MaterialCatalogForm canViewCosts={data.canViewCosts} organizations={data.organizations} /></section><section className="form-panel"><h2>Add inventory location</h2><InventoryLocationForm equipment={data.equipment} /></section></aside></section>
+function Catalog({ data, filteredMaterials, query }: { data: MaterialWorkspaceData; filteredMaterials: MaterialWorkspaceData["materials"]; query: { q?: string; category?: string; page?: string; edit?: string } }) {
+  return <><form className="materials-filter-bar" method="get"><input name="view" type="hidden" value="catalog" /><label>Search<input defaultValue={query.q ?? ""} name="q" placeholder="Name, SKU, description" /></label><label>Category<select defaultValue={query.category ?? ""} name="category"><option value="">All categories</option>{(data.catalogCategories ?? []).map((value) => <option key={value} value={value}>{materialLabel(value)}</option>)}</select></label><button className="secondary-action" type="submit">Apply filters</button></form>
+    <section className="materials-catalog-layout"><section className="materials-section"><SectionHeading icon={<Boxes size={20} />} title="Material catalog" body="Stock-tracked and non-stock services use the same clear units without automatic conversions." /><div className="material-record-list">{filteredMaterials.length ? filteredMaterials.map((material) => { const balances = data.balances.filter((balance) => balance.material_id === material.id); const available = balances.reduce((sum, item) => sum + Number(item.available_quantity), 0); const cost = data.costs.find((item) => item.material_id === material.id); return <article className="material-record" id={`material-${material.id}`} key={material.id}><div><span className={`material-category category-${material.category}`}>{materialLabel(material.category)}</span><h2>{material.name}</h2><p>{material.description || "No description entered."}</p></div><dl><div><dt>Unit</dt><dd>{materialLabel(material.default_unit)}</dd></div><div><dt>Available</dt><dd>{material.stock_tracked ? formatMaterialQuantity(available, material.default_unit) : "Stock not tracked"}</dd></div><div><dt>Reorder at</dt><dd>{material.reorder_threshold == null ? "Not set" : formatMaterialQuantity(material.reorder_threshold, material.default_unit)}</dd></div>{data.canViewCosts ? <div><dt>Internal cost</dt><dd>{cost?.internal_unit_cost_cents == null ? "Not set" : money(cost.internal_unit_cost_cents)}</dd></div> : null}</dl><div className="material-edit-details">{query.edit === material.id ? <><Link className="secondary-action" href={materialsHref("catalog", { ...query, edit: undefined }) + `#material-${material.id}`}>Close editor</Link><MaterialCatalogForm canViewCosts={data.canViewCosts} internalCostCents={cost?.internal_unit_cost_cents} material={material} organizations={data.organizations} /></> : <Link className="secondary-action" href={materialsHref("catalog", { ...query, edit: material.id }) + `#material-${material.id}`}>Edit material<span className="sr-only">: {material.name}</span></Link>}</div></article>; }) : <p className="inline-empty">No materials match these filters.</p>}</div><ListPagination basePath="/admin/materials" count={data.catalogCount ?? 0} page={materialCatalogPageNumber(query.page)} pageSize={materialCatalogPageSize} params={{ view: "catalog", q: query.q, category: query.category }} /></section><aside className="materials-side-stack"><section className="form-panel" id="add-material"><h2>Add material</h2><p>Choose the unit used in the field. The system will not make unsafe unit conversions.</p><MaterialCatalogForm canViewCosts={data.canViewCosts} organizations={data.organizations} /></section><section className="form-panel"><h2>Add inventory location</h2><InventoryLocationForm equipment={data.equipment} /></section></aside></section>
   </>;
 }
 
@@ -87,3 +88,9 @@ function customerName(data: MaterialWorkspaceData, id: string | null) { return d
 function money(cents: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents) / 100); }
 function formatDate(value: string) { return formatBusinessDateTime(new Date(value), { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }); }
 function tabIcon(view: string) { const Icon = view === "catalog" ? Boxes : view === "movements" || view === "disposal" || view === "deliveries" ? Truck : view === "production" ? Factory : view === "purchases" ? ReceiptText : view === "reservations" ? PackageCheck : Scale; return <Icon size={17} />; }
+
+function materialsHref(view: string, query: { q?: string; category?: string; page?: string; edit?: string }) {
+  const params = new URLSearchParams({ view });
+  for (const key of ["q", "category", "page", "edit"] as const) if (query[key]) params.set(key, query[key]);
+  return `/admin/materials?${params.toString()}`;
+}

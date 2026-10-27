@@ -2,6 +2,7 @@ import "server-only";
 
 import { hasAllowedRole, platformRoleGroups, type PlatformRoleName } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { materialCatalogPage, resolveMaterialsView, type MaterialsView, type MaterialCatalogFilters } from "@/lib/materials/workspace-view";
 
 export type MaterialRecord = {
   id: string;
@@ -61,54 +62,69 @@ export type MaterialWorkspaceData = {
   transactionCosts: any[];
   canViewCosts: boolean;
   error: string | null;
+  catalogCount?: number;
+  catalogCategories?: string[];
 };
 
-export async function getMaterialsWorkspace(roles: PlatformRoleName[]): Promise<MaterialWorkspaceData> {
-  const supabase = await createClient();
+export async function getMaterialsWorkspace(roles: PlatformRoleName[], requestedView: MaterialsView = "overview", filters: MaterialCatalogFilters = {}): Promise<MaterialWorkspaceData> {
   const empty: MaterialWorkspaceData = {
     materials: [], locations: [], balances: [], transactions: [], reservations: [], purchases: [],
     disposalRecords: [], loads: [], deliveries: [], productionBatches: [], stockpileMeasurements: [],
-    jobs: [], customers: [], organizations: [], equipment: [], costs: [],
-    transactionCosts: [], canViewCosts: false, error: "Supabase is not configured.",
+    jobs: [], customers: [], organizations: [], equipment: [], costs: [], transactionCosts: [],
+    canViewCosts: false, error: null,
   };
-  if (!supabase) return empty;
-
-  const canViewCosts = hasAllowedRole(roles, platformRoleGroups.financialReporting);
-  const results = await Promise.all([
-    supabase.from("material_catalog").select("*").is("archived_at", null).order("name"),
-    supabase.from("inventory_locations").select("*").is("archived_at", null).order("name"),
-    supabase.from("material_stock_balances").select("*").order("material_id"),
-    supabase.from("inventory_transactions").select("*").order("occurred_at", { ascending: false }).limit(150),
-    supabase.from("inventory_reservations").select("*").order("created_at", { ascending: false }).limit(100),
-    supabase.from("material_purchases").select("*").order("purchase_date", { ascending: false }).limit(60),
-    supabase.from("disposal_records").select("*").order("created_at", { ascending: false }).limit(100),
-    supabase.from("material_loads").select("*").order("created_at", { ascending: false }).limit(100),
-    supabase.from("customer_deliveries").select("*").order("delivery_window_start", { ascending: false, nullsFirst: false }).limit(100),
-    supabase.from("production_batches").select("*").order("created_at", { ascending: false }).limit(60),
-    supabase.from("stockpile_measurements").select("*").order("measured_at", { ascending: false }).limit(100),
-    supabase.from("jobs").select("id, customer_id, organization_id, service_location_id, service_type, status, scheduled_start_at, customers:customers!jobs_customer_id_fkey(display_name), organizations(name)").is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200),
-    supabase.from("customers").select("id, display_name, service_locations(id, label, street, city, state, postal_code)").is("archived_at", null).eq("status", "active").order("display_name"),
-    supabase.from("organizations").select("id, name, organization_type, billing_email, billing_phone").is("archived_at", null).order("name"),
-    supabase.from("equipment_assets").select("id, asset_number, name, category, status").eq("is_active", true).order("name"),
-    canViewCosts
-      ? supabase.from("material_cost_settings").select("*")
-      : Promise.resolve({ data: [], error: null }),
-    canViewCosts
-      ? supabase.from("inventory_transaction_costs").select("*").order("created_at", { ascending: false }).limit(500)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-
-  const firstError = results.find((result) => result.error)?.error?.message ?? null;
-  return {
-    materials: (results[0].data ?? []) as MaterialRecord[],
-    locations: (results[1].data ?? []) as InventoryLocationRecord[],
-    balances: (results[2].data ?? []) as StockBalanceRecord[],
-    transactions: results[3].data ?? [], reservations: results[4].data ?? [], purchases: results[5].data ?? [],
-    disposalRecords: results[6].data ?? [], loads: results[7].data ?? [], deliveries: results[8].data ?? [],
-    productionBatches: results[9].data ?? [], stockpileMeasurements: results[10].data ?? [],
-    jobs: results[11].data ?? [], customers: results[12].data ?? [], organizations: results[13].data ?? [],
-    equipment: results[14].data ?? [], costs: results[15].data ?? [], transactionCosts: results[16].data ?? [], canViewCosts, error: firstError,
-  };
+  const unavailable = "This materials view could not load completely. Reload before making changes.";
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { ...empty, error: "Supabase is not configured." };
+    const view = resolveMaterialsView(requestedView), needs = (...views: MaterialsView[]) => views.includes(view);
+    const canViewCosts = hasAllowedRole(roles, platformRoleGroups.financialReporting);
+    type Dataset = Exclude<keyof MaterialWorkspaceData, "error" | "canViewCosts" | "catalogCount" | "catalogCategories">;
+    type Reply = { data: unknown[] | null; error: { message: string } | null };
+    const reads: Partial<Record<Dataset, PromiseLike<Reply>>> = {};
+    // Every view uses material labels or choices. Read all unarchived choices in
+    // stable pages; only the catalog's current page reaches its edit/list surface.
+    reads.materials = (async () => {
+      const rows: MaterialRecord[] = [], ids = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const result = await supabase.from("material_catalog").select("*").is("archived_at", null).order("name").order("id").range(from, from + 999);
+        if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
+        for (const row of result.data) { if (!row || typeof row.id !== "string" || ids.has(row.id)) throw Error(unavailable); ids.add(row.id); rows.push(row as MaterialRecord); }
+        if (result.data.length < 1000) return { data: rows, error: null };
+      }
+    })();
+    if (view !== "catalog") reads.locations = supabase.from("inventory_locations").select("*").is("archived_at", null).order("name");
+    if (needs("overview", "catalog")) reads.balances = supabase.from("material_stock_balances").select("*").order("material_id");
+    if (needs("overview", "movements")) reads.transactions = supabase.from("inventory_transactions").select("id, material_id, transaction_type, quantity, unit, source_location_id, destination_location_id, job_id, occurred_at, is_estimated").order("occurred_at", { ascending: false }).limit(view === "overview" ? 8 : 150);
+    if (view === "reservations") reads.reservations = supabase.from("inventory_reservations").select("id, material_id, location_id, job_id, quantity, unit, status").order("created_at", { ascending: false }).limit(100);
+    if (view === "purchases") reads.purchases = supabase.from("material_purchases").select(`id, vendor_name, vendor_organization_id, purchase_date, received_location_id${canViewCosts ? ", total_cents" : ""}`).order("purchase_date", { ascending: false }).limit(60);
+    if (needs("overview", "disposal")) reads.disposalRecords = supabase.from("disposal_records").select("id, destination_name, destination_type, job_id, quantity, unit, is_estimated, status, fee_cents, receipt_storage_path").order("created_at", { ascending: false }).limit(100);
+    if (needs("overview", "deliveries")) reads.deliveries = supabase.from("customer_deliveries").select("id, material_id, customer_id, organization_id, quantity, unit, status, delivery_window_start").order("delivery_window_start", { ascending: false, nullsFirst: false }).limit(100);
+    if (view === "production") reads.productionBatches = supabase.from("production_batches").select("id, batch_number, product_material_id, status, color, estimated_output_quantity, output_unit").order("created_at", { ascending: false }).limit(60);
+    if (needs("overview", "production")) reads.stockpileMeasurements = supabase.from("stockpile_measurements").select("id, material_id, location_id, measured_at, quantity, unit, measurement_method, is_estimated").order("measured_at", { ascending: false }).limit(100);
+    if (needs("overview", "movements", "reservations", "disposal", "deliveries")) reads.jobs = supabase.from("jobs").select("id, service_type, status, customers:customers!jobs_customer_id_fkey(display_name)").is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200);
+    if (view === "deliveries") reads.customers = supabase.from("customers").select("id, display_name").is("archived_at", null).eq("status", "active").order("display_name");
+    if (needs("catalog", "purchases", "deliveries")) reads.organizations = supabase.from("organizations").select("id, name").is("archived_at", null).order("name");
+    if (needs("catalog", "movements", "disposal", "production", "deliveries")) reads.equipment = supabase.from("equipment_assets").select("id, asset_number, name").eq("is_active", true).order("name");
+    if (canViewCosts && needs("overview", "movements")) reads.transactionCosts = supabase.from("inventory_transaction_costs").select("transaction_id, direct_cost_cents, costing_status").order("created_at", { ascending: false }).limit(500);
+    const entries = Object.entries(reads) as [Dataset, PromiseLike<Reply>][];
+    const results = await Promise.all(entries.map(async ([name, request]) => {
+      const reply = await request;
+      if (reply.error || !Array.isArray(reply.data)) throw Error(unavailable);
+      return [name, reply.data] as const;
+    }));
+    const data = { ...empty, ...Object.fromEntries(results), canViewCosts } as MaterialWorkspaceData;
+    if (view === "catalog") {
+      const catalog = materialCatalogPage(data.materials, filters);
+      data.materials = catalog.data; data.catalogCount = catalog.count; data.catalogCategories = catalog.categories;
+      if (canViewCosts && data.materials.length) {
+        const costs = await supabase.from("material_cost_settings").select("material_id, internal_unit_cost_cents").in("material_id", data.materials.map(row => row.id));
+        if (costs.error || !Array.isArray(costs.data)) throw Error(unavailable);
+        data.costs = costs.data;
+      }
+    }
+    return data;
+  } catch { return { ...empty, error: unavailable }; }
 }
 
 export async function getMaterialCatalogOptions() {

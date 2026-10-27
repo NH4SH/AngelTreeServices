@@ -2,8 +2,9 @@
 
 Verified October 26, 2026. The preceding work-order detail batch is pushed normally
 to main as `b115d55838faa3e622bc572fda143aa756367632`, with CI/Netlify skip markers.
-This follow-up is uncommitted on `codex/work-order-material-planning`, based on
-that exact main commit. Production, published staging and the scanner are unchanged.
+This materials/planning batch was subsequently pushed normally to main as
+`00cbd0d73db5aa44c796c696a9960126af464d0c`, with CI/Netlify skip markers.
+Production, published staging and the scanner are unchanged.
 
 ## Result
 
@@ -90,7 +91,8 @@ guarantees. Both runs include slower samples around 1.67 seconds.
 
 Private evidence, metrics and screenshots are outside Git at
 `/Users/noelsierra/Documents/Codex/2026-10-26/work-order-material-planning/`.
-The new batch remains uncommitted and unpushed.
+This verified batch is now pushed as `00cbd0d`. The subsequent materials-workspace
+loading work is documented separately in `MATERIALS_WORKSPACE_LOADING.md`.
 
 ## Next focused priority
 

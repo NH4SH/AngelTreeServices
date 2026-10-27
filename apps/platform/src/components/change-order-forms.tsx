@@ -50,6 +50,7 @@ type LineDraft = {
 export function ChangeOrderEditor({
   canViewCosts,
   creation,
+  contactLookups,
   contacts,
   defaultJobId = "",
   jobs,
@@ -60,6 +61,7 @@ export function ChangeOrderEditor({
 }: {
   canViewCosts: boolean;
   creation?: { userId: string; seed?: ChangeOrderJobLookup };
+  contactLookups?: { userId: string };
   contacts: ChangeOrderEditorContact[];
   defaultJobId?: string;
   jobs: ChangeOrderJobOption[];
@@ -70,12 +72,13 @@ export function ChangeOrderEditor({
 }) {
   const router = useRouter();
   const action = order ? async (previous: ChangeOrderActionState, form: FormData) => {
+    if (contactLookups && !lookupReady) return { status: "error" as const, message: "Verify the selected contacts before saving." };
     const receiptOnly = form.get("submit_intent") !== "save_close";
     const result = receiptOnly ? await submitChangeOrderEdit(form) : await updateChangeOrder(previous, form);
     if (receiptOnly && result.status === "success") router.refresh();
     return result;
   } : async (previous: ChangeOrderActionState, form: FormData) => {
-    if (creation && !creationReady) return { status: "error" as const, message: "Verify the selected work order and contacts before saving." };
+    if (creation && !lookupReady) return { status: "error" as const, message: "Verify the selected work order and contacts before saving." };
     return createChangeOrder(previous, form);
   };
   const [state, formAction, pending] = useDraftSave(action, order ? `edit:${order.id}` : `new:${defaultJobId}:${sourceCloseoutId}`, order?.edit_revision ?? null, (ids, submitted) => {
@@ -100,24 +103,27 @@ export function ChangeOrderEditor({
       }))
     : [newLine()]);
   const [creationJob, setCreationJob] = useState<ChangeOrderJobOption | undefined>(creation?.seed?.job);
-  const [creationContacts, setCreationContacts] = useState({ requested_by_contact_id: "", approval_contact_id: "" });
+  const [contactValues, setContactValues] = useState({ requested_by_contact_id: order?.requested_by_contact_id ?? "", approval_contact_id: order?.approval_contact_id ?? "" });
+  const lookupUserId = creation?.userId ?? contactLookups?.userId;
   const [lookupStatus, setLookupStatus] = useState<Record<string, { key: string; ready: boolean }>>({});
   const selectedJob = creation ? creationJob?.id === selectedJobId ? creationJob : null : jobs.find((job) => job.id === selectedJobId) ?? null;
-  const creationReady = !creation || Boolean(selectedJob && ["job_id", "requested_by_contact_id", "approval_contact_id"].every(name => {
-    const value = name === "job_id" ? selectedJobId : creationContacts[name as keyof typeof creationContacts];
+  const lookupReady = !lookupUserId || Boolean(selectedJob && (creation ? ["job_id", "requested_by_contact_id", "approval_contact_id"] : ["requested_by_contact_id", "approval_contact_id"]).every(name => {
+    const value = name === "job_id" ? selectedJobId : contactValues[name as keyof typeof contactValues];
     const kind = name === "job_id" ? "job" : "contact", scope = kind === "job" ? "" : `job:${selectedJobId}`, status = lookupStatus[name];
-    return !value || status?.ready && status.key === quoteLookupKey(creation.userId, kind, scope, value);
+    return !value || status?.ready && status.key === quoteLookupKey(lookupUserId, kind, scope, value);
   }));
-  function creationField(name: "job_id" | "requested_by_contact_id" | "approval_contact_id", label: string, placeholder: string) {
-    if (!creation) return null;
+  function lookupField(name: "job_id" | "requested_by_contact_id" | "approval_contact_id", label: string, placeholder: string) {
+    if (!lookupUserId) return null;
     const kind = name === "job_id" ? "job" : "contact", scope = kind === "job" ? "" : `job:${selectedJobId}`;
-    return <QuoteLookupField userId={creation.userId} endpoint="/api/admin/change-orders/lookups" kind={kind} name={name} label={label} placeholder={placeholder}
-      value={name === "job_id" ? selectedJobId : creationContacts[name]} scope={scope} seedScope="" seed={name === "job_id" ? creation.seed : undefined}
-      required={name === "job_id"} disabled={pending || kind === "contact" && !selectedJob?.organization_id}
+    const selectedContact = name === "job_id" ? undefined : contacts.find(contact => contact.id === contactValues[name]);
+    const seed = name === "job_id" ? creation?.seed : selectedContact ? { value: selectedContact.id, label: `${selectedContact.full_name} - ${contactRole(selectedContact)}` } : undefined;
+    return <QuoteLookupField userId={lookupUserId} endpoint="/api/admin/change-orders/lookups" kind={kind} name={name} label={label} placeholder={placeholder}
+      value={name === "job_id" ? selectedJobId : contactValues[name]} scope={scope} seedScope={contactLookups && kind === "contact" ? `job:${order?.job_id ?? ""}` : ""} seed={seed}
+      required={name === "job_id"} disabled={pending || kind === "contact" && !selectedJob?.organization_id && !contactValues[name as keyof typeof contactValues]}
       validateOption={kind === "job" ? isChangeOrderJobLookup : undefined}
       onSelection={kind === "job" ? (option: QuoteLookupOption | undefined) => setCreationJob(option && isChangeOrderJobLookup(option) ? option.job : undefined) : undefined}
       onReady={(ready, key) => setLookupStatus(current => current[name]?.key === key && current[name]?.ready === ready ? current : { ...current, [name]: { key, ready } })}
-      onChange={value => { if (name === "job_id") { setSelectedJobId(value); setCreationContacts({ requested_by_contact_id: "", approval_contact_id: "" }); } else setCreationContacts(current => ({ ...current, [name]: value })); }} />;
+      onChange={value => { if (name === "job_id") { setSelectedJobId(value); setContactValues({ requested_by_contact_id: "", approval_contact_id: "" }); } else setContactValues(current => ({ ...current, [name]: value })); }} />;
   }
   const matchingContacts = useMemo(
     () => contacts.filter((contact) => selectedJob?.organization_id && contact.organization_id === selectedJob.organization_id && contact.is_active),
@@ -140,7 +146,7 @@ export function ChangeOrderEditor({
           <h2>{order ? `Edit ${order.change_order_number}` : "Create change order"}</h2>
           <p>Keep this separate from the original approved quote. Pricing reaches the customer only after office review.</p>
         </div>
-        {creation ? creationField("job_id", "Work order", "Choose work order") : <label>
+        {creation ? lookupField("job_id", "Work order", "Choose work order") : <label>
           Work order
           <select disabled={Boolean(order)} name="job_id" onChange={(event) => setSelectedJobId(event.target.value)} required value={selectedJobId}>
             <option value="">Choose work order</option>
@@ -164,9 +170,9 @@ export function ChangeOrderEditor({
           Customer-visible description
           <textarea defaultValue={order?.customer_description ?? ""} name="customer_description" placeholder="Explain why the additional work is needed and what will change." rows={5} />
         </label>
-        {creation ? <div className="form-grid-two">
-          {creationField("requested_by_contact_id", "Requested by", selectedJob?.organization_id ? "Choose organization contact" : "Individual customer / not specified")}
-          {creationField("approval_contact_id", "Approval contact", selectedJob?.organization_id ? "Choose approval contact" : "Customer on work order")}
+        {lookupUserId ? <div className="form-grid-two">
+          {lookupField("requested_by_contact_id", "Requested by", selectedJob?.organization_id ? "Choose organization contact" : "Individual customer / not specified")}
+          {lookupField("approval_contact_id", "Approval contact", selectedJob?.organization_id ? "Choose approval contact" : "Customer on work order")}
         </div> : <div className="form-grid-two">
           <label>
             Requested by
@@ -183,7 +189,7 @@ export function ChangeOrderEditor({
             </select>
           </label>
         </div>}
-        {!creation && selectedJob?.organization_id && matchingContacts.length === 0 ? <p className="form-message warning">This organization has no active contacts. Add an approval contact before sending.</p> : null}
+        {!lookupUserId && selectedJob?.organization_id && matchingContacts.length === 0 ? <p className="form-message warning">This organization has no active contacts. Add an approval contact before sending.</p> : null}
       </section>
 
       <section className="quote-editor-section">
@@ -229,8 +235,8 @@ export function ChangeOrderEditor({
       </section>
 
       <div className="quote-editor-action-bar">
-        <button disabled={pending || !creationReady || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value="save"><Save size={17} />{pending ? "Saving..." : order ? "Save changes" : "Save draft"}</button>
-        <button className="secondary-action" disabled={pending || !creationReady || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value={order ? "save_close" : "review"}><ShieldCheck size={17} />{order ? "Save and close" : "Save for review"}</button>
+        <button disabled={pending || !lookupReady || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value="save"><Save size={17} />{pending ? "Saving..." : order ? "Save changes" : "Save draft"}</button>
+        <button className="secondary-action" disabled={pending || !lookupReady || state.reviewRequired || Boolean(state.saveDestination)} name="submit_intent" type="submit" value={order ? "save_close" : "review"}><ShieldCheck size={17} />{order ? "Save and close" : "Save for review"}</button>
         <Link className="secondary-action" href={closeHref}><X size={17} /> Cancel</Link>
       </div>
     </form>

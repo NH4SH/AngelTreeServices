@@ -19,7 +19,7 @@ export default async function EditChangeOrderPage({ params }: { params: Promise<
       <Link className="crew-back-link" href={`/admin/change-orders/${changeOrderId}`}>Back to change order</Link>
       {errors.map(message => <section className="data-warning" key={message} role="status"><strong>Database notice</strong><p>{message}</p></section>)}
       {errors.length ? <section className="empty-state"><h1>Editor unavailable</h1><p>Some details could not load. Reload before editing.</p><Link className="primary-action" href={`/admin/change-orders/${changeOrderId}/edit`}>Reload editor</Link></section>
-        : detail.data ? <ChangeOrderEditor canViewCosts={hasAllowedRole(context.roles, platformRoleGroups.financialReporting)} contacts={detail.contacts} jobs={detail.jobs} materials={materials.data} order={detail.data} serviceCategories={categories.data} />
+        : detail.data ? <ChangeOrderEditor key={`${context.user.id}:${detail.data.id}`} contactLookups={{ userId: context.user.id }} canViewCosts={hasAllowedRole(context.roles, platformRoleGroups.financialReporting)} contacts={detail.contacts} jobs={detail.jobs} materials={materials.data} order={detail.data} serviceCategories={categories.data} />
         : <section className="empty-state"><h1>Change order unavailable</h1></section>}
     </div>
   </PlatformFrame>;

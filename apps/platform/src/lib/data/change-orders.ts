@@ -76,16 +76,17 @@ export async function getChangeOrderForEditing(id: string): Promise<ChangeOrderE
   if (!parent || parent.id !== order.job_id || parent.archived_at !== null) return { ...empty, error: "The linked work order is unavailable. Review it before editing this change order." };
   const { archived_at: _archived, ...job } = parent;
   const contacts: ChangeOrderEditorContact[] = [];
-  if (job.organization_id) {
-    // A stable, scoped read also avoids losing this organization's contacts to
-    // the global API row limit. Each request still uses the caller's RLS.
-    for (let offset = 0; ; offset += 1000) {
-      const page = await db.from("organization_contacts").select("id, organization_id, full_name, email, role_title, contact_roles, is_active")
-        .eq("organization_id", job.organization_id).eq("is_active", true).order("full_name").order("id").range(offset, offset + 999);
-      if (page.error || !Array.isArray(page.data)) return { ...empty, error: page.error ? safeStaffMessage(page.error.message) : unavailable };
-      contacts.push(...page.data as ChangeOrderEditorContact[]);
-      if (page.data.length < 1000) break;
-    }
+  const selectedIds = [...new Set([order.requested_by_contact_id, order.approval_contact_id].filter((value): value is string => Boolean(value)))];
+  if (job.organization_id && selectedIds.length) {
+    // Only hydrate saved selections. Browsing uses the existing caller-scoped
+    // paged endpoint; absent/inactive IDs remain in the header for explicit review.
+    const selected = await db.from("organization_contacts").select("id, organization_id, full_name, email, role_title, contact_roles, is_active")
+      .eq("organization_id", job.organization_id).eq("is_active", true).in("id", selectedIds)
+      .order("full_name").order("id").limit(selectedIds.length);
+    if (selected.error || !Array.isArray(selected.data)) return { ...empty, error: unavailable };
+    if (selected.data.length > selectedIds.length || new Set(selected.data.map(row => row.id)).size !== selected.data.length
+      || selected.data.some(row => !selectedIds.includes(row.id) || row.organization_id !== job.organization_id || row.is_active !== true || typeof row.full_name !== "string" || !row.full_name)) return { ...empty, error: unavailable };
+    contacts.push(...selected.data as ChangeOrderEditorContact[]);
   }
   return { data: order, jobs: [job], contacts, error: null };
 }

@@ -522,3 +522,19 @@ actual browser workflows passed. The report records before/after staging evidenc
 and limits. New work remains local and unpushed; published apps, production and
 scanner are unchanged. Next measure fixed-parent editing with large organization
 contact directories, keeping existing roadmap and release boundaries separate.
+
+### October 26 — change-order editor contact loading
+
+Change-order browsing/creation is pushed normally to main as `66dafd2`, with
+deployment skipped. `CHANGE_ORDER_EDITOR_CONTACTS.md` records the next local
+batch: exact saved-contact hydration and searchable, 20-row contact pages in the
+fixed-parent editor. Off-page choices stay pinned; unavailable saved IDs require
+explicit review rather than being silently cleared. Financial, approval, retry,
+audit and permission controls remain unchanged.
+
+With 1,105 synthetic contacts, paired staging HTML fell about 93% and editor entry
+median fell from 1,429 to 683 ms. The 3,251-check suite, typecheck/build, native
+local/staging tests and actual browser workflows passed. The new batch remains
+local and unpushed; published apps, production and the scanner are unchanged.
+The next focused performance candidate is work-order detail/coordination reads;
+existing release, policy and runtime-security priorities retain their scope.

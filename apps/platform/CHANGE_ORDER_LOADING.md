@@ -2,8 +2,11 @@
 
 Verified October 26, 2026. The invoice-loading batch is pushed normally to main
 as `a5dd8343d9179bd309d2a37a2e4b43c6a1057d7b`, with CI/Netlify skip markers.
-This change-order follow-up is uncommitted on `codex/change-order-loading`, based
-on that exact main commit. Published staging, production and scanner are unchanged.
+This verified change-order batch is now pushed normally to main as
+`66dafd24e82a9a62a73b8b38e2e79150b126301c`, with deployment skipped.
+Published staging, production and scanner are unchanged. The subsequent
+fixed-parent editor contact-loading work is recorded separately in
+`CHANGE_ORDER_EDITOR_CONTACTS.md`.
 
 ## Result
 
@@ -105,15 +108,15 @@ Numbered pages and counts reflect live records, not a frozen directory snapshot.
   runtime-security worktree commit are preserved. Protected unpublished drafts
   have one server function, no schedules/provider credentials and no private
   values embedded in public, edge or function artifacts. Published releases are
-  unchanged. New source remains uncommitted and unpushed.
+  unchanged. This verified batch is now pushed; see the commit in the introduction.
 
 Private evidence, measurements and screenshots are outside Git at
 `/Users/noelsierra/Documents/Codex/2026-10-26/change-order-loading`.
 
 ## Next focused priority
 
-Measure fixed-parent change-order editing for large organizations. That editor
-still intentionally loads the selected organization's entire active contact set;
-the bounded selector can be extended there if measurements justify it, preserving
+The original next step was to measure fixed-parent editing for large organizations
+and extend the bounded selector if warranted. That follow-up is now verified
+locally and in protected staging in `CHANGE_ORDER_EDITOR_CONTACTS.md`, preserving
 saved contacts and all edit/retry boundaries. Other release, policy, device/mailbox
 and runtime-security work retains its existing roadmap.

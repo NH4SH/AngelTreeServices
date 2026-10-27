@@ -1,0 +1,5 @@
+/* Creation lives inside the CRM sidebar layout, rather than the viewport. */
+.commerce-page .change-order-create-panel {
+  margin-inline: 0;
+  min-width: 0;
+}

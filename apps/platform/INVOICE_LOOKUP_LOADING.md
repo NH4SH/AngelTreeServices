@@ -2,8 +2,10 @@
 
 Verified October 26, 2026. Quote lookups are pushed normally to `origin/main` as
 `c53da30006e99205ad4ede983ce64c43b47c68de`, using CI/Netlify skip markers. This
-invoice follow-up is uncommitted on `codex/invoice-lookup-loading`, based on that
-exact main commit. Production and published staging are unchanged.
+invoice follow-up is now pushed normally as
+`a5dd8343d9179bd309d2a37a2e4b43c6a1057d7b`, also with deployment skipped.
+Production and published staging are unchanged. Its local change-order follow-up
+is documented in `CHANGE_ORDER_LOADING.md`.
 
 ## Result and measurement
 

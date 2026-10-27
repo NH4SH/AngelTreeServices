@@ -507,3 +507,18 @@ fell about 91% and its entry median from 1,477.5 to 764 ms. The existing editor'
 timing variation does not establish a latency benefit. New work remains local and
 unpushed; published apps, production and scanner are unchanged. Next measure
 change-order list/creation loading; existing roadmap/release boundaries remain.
+
+### October 26 — change-order list and creation loading
+
+Invoice loading is pushed normally to main as `a5dd834`, with deployment skipped.
+`CHANGE_ORDER_LOADING.md` records the local follow-up: narrow 25-row directory
+pages, full-accessible-set summary counts, conditional creation reads and paged
+work-order/contact choices. The creation form opens directly, keeps entered text
+while changing parents and blocks unresolved selections. Its existing desktop
+overflow is fixed within the route. All transaction and permission controls remain.
+
+The 3,249-check suite, typecheck/build, native local/staging transaction tests and
+actual browser workflows passed. The report records before/after staging evidence
+and limits. New work remains local and unpushed; published apps, production and
+scanner are unchanged. Next measure fixed-parent editing with large organization
+contact directories, keeping existing roadmap and release boundaries separate.

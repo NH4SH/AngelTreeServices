@@ -32,7 +32,13 @@ export default async function InvoiceEditPage({ params, searchParams }: InvoiceE
         <Link className="crew-back-link" href={withReturnTo(`/admin/invoices/${invoiceId}`, returnTo, "/admin/invoices")}>Back to invoice</Link>
         {detail.error ? <DataWarning message={detail.error} /> : null}
         {serviceCategories.error ? <DataWarning message={serviceCategories.error} /> : null}
-        {!detail.data ? (
+        {detail.error || serviceCategories.error ? (
+          <section className="empty-state">
+            <h2>Invoice editor unavailable</h2>
+            <p>The billing details could not load completely. Reload before editing.</p>
+            <Link className="primary-action" href={withReturnTo(`/admin/invoices/${invoiceId}/edit`, returnTo, "/admin/invoices")}>Reload editor</Link>
+          </section>
+        ) : !detail.data ? (
           <section className="empty-state">
             <h2>Invoice not found or no access</h2>
             <p>This invoice is unavailable to the current account.</p>

@@ -13,14 +13,12 @@ import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { duplicateInvoice } from "@/lib/actions/duplicate-records";
 import { FIREWOOD_TERMS_VERSION } from "../../../lib/documents/terms/firewood-2026-10-24.ts";
-import { getCustomerOptions } from "@/lib/data/customers";
-import { getServiceLocations } from "@/lib/data/customers";
+import { getInvoiceCreationLookups } from "@/lib/data/invoice-lookup-pages";
+import type { InvoiceLookupSeeds, InvoiceLookupValues } from "@/lib/invoices/lookup-contract";
 import { getInvoiceOutstandingTotal, getInvoiceStatusCounts, getInvoicesPage } from "@/lib/data/invoices";
-import { getJobOptions } from "@/lib/data/jobs";
-import { getOrganizations } from "@/lib/data/organizations";
 import { getServiceCategories } from "@/lib/data/reports";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
-import type { Customer, InvoiceStatus, InvoiceWithRelations, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { InvoiceStatus, InvoiceWithRelations, ServiceCategory } from "@/lib/types/database";
 
 type InvoicesPageProps = {
   searchParams: Promise<{
@@ -55,15 +53,12 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   const archived = params.archived === "1";
   const page = positivePage(params.page);
   const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as InvoiceStatus : null;
-  const [invoices, statusCounts, outstanding, customers, organizations, jobs, serviceCategories, serviceLocations] = await Promise.all([
+  const [invoices, statusCounts, outstanding, lookup, serviceCategories] = await Promise.all([
     getInvoicesPage({ archived, page, pageSize: 25, query: params.q, statuses: selectedStatus ? [selectedStatus] : undefined }),
     getInvoiceStatusCounts(params.q),
     getInvoiceOutstandingTotal(),
-    params.new === "1" ? getCustomerOptions() : { data: [], error: null },
-    params.new === "1" ? getOrganizations() : { data: [], error: null },
-    params.new === "1" ? getJobOptions() : { data: [], error: null },
+    params.new === "1" ? getInvoiceCreationLookups(params.customer_id, params.job_id) : { data: {}, values: { contracting_party: "", service_location_id: "", job_id: "" }, error: null },
     params.new === "1" ? getServiceCategories() : { data: [], error: null },
-    params.new === "1" ? getServiceLocations() : { data: [], error: null },
   ]);
   const summary = statusCounts.data;
   const listContext = safeReturnTo(listHref("/admin/invoices", params, { new: undefined }), "/admin/invoices");
@@ -87,7 +82,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           </Link>
         </section>
 
-        {[invoices.error, statusCounts.error, outstanding.error, customers.error, organizations.error, jobs.error, serviceCategories.error, serviceLocations.error].filter(Boolean).map((message) => (
+        {[invoices.error, statusCounts.error, outstanding.error, lookup.error, serviceCategories.error].filter(Boolean).map((message) => (
           <DataWarning key={message} message={message ?? ""} />
         ))}
 
@@ -174,7 +169,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <p>Eligible sent invoices can be paid through secure Stripe Checkout. Owners and admins can also record check, cash, ACH, or other manual payments.</p>
         </section>
 
-        {params.new === "1" ? <InvoiceCreateDrawer userId={context.user.id} returnTo={returnTo} customers={customers.data} initialCustomerId={params.customer_id} initialJobId={params.job_id} jobs={jobs.data} organizations={organizations.data} serviceCategories={serviceCategories.data} serviceLocations={serviceLocations.data} /> : null}
+        {params.new === "1" && !serviceCategories.error ? <InvoiceCreateDrawer userId={context.user.id} returnTo={returnTo} lookupSeeds={lookup.data} initialValues={lookup.values} initialCustomerId={params.customer_id} initialJobId={params.job_id} serviceCategories={serviceCategories.data} /> : null}
       </div>
     </PlatformFrame>
   );
@@ -182,22 +177,16 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
 function InvoiceCreateDrawer({
   userId, returnTo,
-  customers,
+  lookupSeeds, initialValues,
   initialCustomerId,
   initialJobId,
-  jobs,
-  organizations,
   serviceCategories,
-  serviceLocations,
 }: {
   userId: string; returnTo: string;
-  customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
+  lookupSeeds: InvoiceLookupSeeds; initialValues: InvoiceLookupValues;
   initialCustomerId?: string;
   initialJobId?: string;
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
-  organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
-  serviceLocations: ServiceLocation[];
 }) {
   return (
     <div aria-labelledby="new-invoice-title" className="commerce-drawer-overlay" role="dialog">
@@ -216,7 +205,7 @@ function InvoiceCreateDrawer({
             <X aria-hidden="true" size={18} />
           </Link>
         </div>
-        <AddInvoiceForm key={`${userId}:${initialCustomerId ?? ""}:${initialJobId ?? ""}`} userId={userId} returnTo={returnTo} customers={customers} initialCustomerId={initialCustomerId} initialJobId={initialJobId} jobs={jobs} organizations={organizations} serviceCategories={serviceCategories} serviceLocations={serviceLocations} />
+        <AddInvoiceForm key={`${userId}:${initialCustomerId ?? ""}:${initialJobId ?? ""}`} userId={userId} returnTo={returnTo} lookupSeeds={lookupSeeds} initialValues={initialValues} initialCustomerId={initialCustomerId} initialJobId={initialJobId} serviceCategories={serviceCategories} />
         <Link className="secondary-action commerce-cancel-link" href={returnTo}>
           Cancel
         </Link>

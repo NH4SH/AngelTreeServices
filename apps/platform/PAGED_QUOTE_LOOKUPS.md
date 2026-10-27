@@ -2,8 +2,10 @@
 
 Verified October 26, 2026. The preceding editor-loading batch is pushed normally
 to `origin/main` as `30231a8d706cd336c3e8f5fb1d83baae8519a808`, with CI/Netlify
-skip markers. This follow-up remains uncommitted on `codex/paged-quote-lookups`,
-based on that exact main commit. No production deployment or change occurred.
+skip markers. The quote-lookup follow-up is now pushed normally to main as
+`c53da30006e99205ad4ede983ce64c43b47c68de`, also with deployment skipped. No
+production deployment or change occurred. Its local invoice follow-up is
+documented in `INVOICE_LOOKUP_LOADING.md`.
 
 ## Result
 

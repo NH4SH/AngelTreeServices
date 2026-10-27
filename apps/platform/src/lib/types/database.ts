@@ -1214,7 +1214,7 @@ export type QuoteWithRelations = Quote & {
   quote_line_items?: QuoteLineItem[];
 };
 
-export type InvoiceEditorRecord = Invoice & {
+export type InvoiceEditorRecord = Pick<Invoice, "id" | "invoice_number" | "status" | "created_at" | "updated_at" | "due_at" | "total_cents" | "balance_due_cents" | "document_terms_version" | "customer_id" | "organization_id" | "job_id" | "quote_id" | "service_location_id"> & {
   jobs?: Pick<Job, "id" | "service_type"> | null;
   customers?: Pick<Customer, "id" | "display_name"> | null;
   organizations?: Pick<Organization, "id" | "name"> | null;

@@ -16,7 +16,7 @@ export function parseQuoteLookupRequest(params: URLSearchParams): QuoteLookupReq
 }
 
 /** All reads retain caller RLS. Input cannot provide table names, columns or operators. */
-export async function readQuoteLookupPage(db: SupabaseClient<any, "public", any>, input: QuoteLookupRequest): Promise<QuoteLookupPage> {
+export async function readQuoteLookupPage(db: SupabaseClient<any, "public", any>, input: QuoteLookupRequest, invoice = false): Promise<QuoteLookupPage> {
   const { kind, party, query, page, selected } = input, scope = lookupParty(party), selectedParty = kind === "party" && selected ? lookupParty(selected) : null;
   const empty = { items: [], page, pageSize: quoteLookupPageSize, total: 0 };
   if (["location", "job", "contact"].includes(kind)) {
@@ -27,7 +27,7 @@ export async function readQuoteLookupPage(db: SupabaseClient<any, "public", any>
   }
   const partyType = selectedParty?.kind ?? input.partyType;
   const settings = kind === "party" ? partyType === "customer"
-    ? { table: "customers", fields: "id, display_name", order: "display_name", search: ["display_name", "email", "phone"] }
+    ? { table: "customers", fields: invoice ? "id, display_name, phone" : "id, display_name", order: "display_name", search: invoice ? ["display_name", "email", "phone", "billing_address"] : ["display_name", "email", "phone"] }
     : { table: "organizations", fields: "id, name", order: "name", search: ["name", "billing_email", "billing_phone"] }
     : kind === "location" ? { table: "service_locations", fields: "id, label, street, city, state, postal_code", order: "created_at", search: ["label", "street", "city", "postal_code"] }
     : kind === "job" ? { table: "jobs", fields: "id, service_type, status, requested_scope", order: "created_at", search: ["requested_scope"] }
@@ -38,6 +38,7 @@ export async function readQuoteLookupPage(db: SupabaseClient<any, "public", any>
   else if (kind === "estimate") request = request.eq("event_type", "estimate");
   else request = request.is("archived_at", null);
   if (kind === "location" || kind === "job") request = scope!.kind === "customer" ? request.eq("customer_id", scope!.id).is("organization_id", null) : request.eq("organization_id", scope!.id).is("customer_id", null);
+  if (invoice && kind === "job") request = request.in("status", ["completed", "ready_to_invoice"]);
   if (selected) request = request.eq("id", selectedParty?.id ?? selected);
   if (query) {
     // Quote PostgREST values as well as escaping LIKE wildcards. Commas,
@@ -50,7 +51,7 @@ export async function readQuoteLookupPage(db: SupabaseClient<any, "public", any>
   if (response.error || !Array.isArray(response.data) || !Number.isSafeInteger(response.count) || response.count! < 0) throw Error("Lookup unavailable");
   const items = (response.data as unknown as Record<string, any>[]).map(row => {
     if (!lookupUuid(row.id)) throw Error("Invalid lookup row");
-    const label = kind === "party" ? row.display_name ?? row.name : kind === "location" ? [row.label, row.street, row.city, row.state, row.postal_code].filter(Boolean).join(", ")
+    const label = kind === "party" ? invoice && partyType === "customer" ? [row.display_name, row.phone].filter(Boolean).join(" — ") : row.display_name ?? row.name : kind === "location" ? [row.label, row.street, row.city, row.state, row.postal_code].filter(Boolean).join(", ")
       : kind === "contact" ? [row.full_name, row.email, row.contact_roles?.join(", ").replaceAll("_", " ")].filter(Boolean).join(" — ")
       : kind === "job" ? [row.service_type ?? "Work order", String(row.status).replaceAll("_", " "), row.requested_scope?.slice(0, 90)].filter(Boolean).join(" — ")
       : `${row.title} — ${formatBusinessDateTime(new Date(row.starts_at))}`;

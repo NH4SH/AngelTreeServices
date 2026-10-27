@@ -9,7 +9,6 @@ import { DocumentRecoveryPanel } from "@/components/document-recovery-panel";
 import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   type Dispatch,
@@ -23,9 +22,13 @@ import { firewoodLine, firewoodProducts, type FirewoodProduct } from "@/lib/fire
 import { FIREWOOD_TERMS_VERSION } from "../../../lib/documents/terms/firewood-2026-10-24.ts";
 import { createInvoice, updateInvoice, type InvoiceActionState } from "./actions";
 import { submitInvoiceEdit } from "@/lib/invoices/submit-edit";
-import { belongsToContractingParty, parseContractingParty } from "@/lib/contracting-parties";
+import { parseContractingParty } from "@/lib/contracting-parties";
 import { getDefaultInvoiceDueDate } from "@/lib/invoices/due-date";
-import type { Customer, InvoiceEditorRecord, Job, Organization, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { InvoiceEditorRecord, ServiceCategory } from "@/lib/types/database";
+
+import { QuoteLookupField } from "@/components/quote-lookup-field";
+import { quoteLookupKey, quoteLookupKinds, quoteLookupScope } from "@/lib/quotes/lookup-contract";
+import { invoiceLookupNames, invoiceLookupValuesFrom, type InvoiceLookupName, type InvoiceLookupSeeds, type InvoiceLookupValues } from "@/lib/invoices/lookup-contract";
 
 const initialState: InvoiceActionState = {
   status: "idle",
@@ -34,22 +37,18 @@ const initialState: InvoiceActionState = {
 
 export function AddInvoiceForm({
   userId, returnTo, firewood = false,
-  customers,
+  lookupSeeds,
+  initialValues,
   initialCustomerId,
   initialJobId,
-  jobs,
-  organizations,
   serviceCategories,
-  serviceLocations,
 }: {
   userId: string; returnTo?: string; firewood?: boolean;
-  customers: Pick<Customer, "id" | "display_name" | "email" | "phone" | "billing_address">[];
+  lookupSeeds: InvoiceLookupSeeds;
+  initialValues: InvoiceLookupValues;
   initialCustomerId?: string;
   initialJobId?: string;
-  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
-  organizations: Pick<Organization, "id" | "name">[];
   serviceCategories: ServiceCategory[];
-  serviceLocations: ServiceLocation[];
 }) {
   const router = useRouter();
   const listHref = safeReturnTo(returnTo, "/admin/invoices");
@@ -58,6 +57,7 @@ export function AddInvoiceForm({
     // The job lock also protects a reload/new form. Preserve this request identity
     // for an uncertain response without resetting the entered invoice details.
     if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    if (!lookupReady) return { status: "error" as const, message: "Verify the selected invoice details before saving." };
     requestId.current ??= recovery.requestId.current || crypto.randomUUID();
     form.set("request_id", requestId.current);
     recovery.beforeSubmit(requestId.current, form);
@@ -70,28 +70,20 @@ export function AddInvoiceForm({
     return result;
   }, initialState);
   const [dirty, setDirty] = useState(false);
-  const [selectedPartyValue, setSelectedPartyValue] = useState(initialCustomerId ? `customer:${initialCustomerId}` : "");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [lookupValues, setLookupValues] = useState(initialValues);
+  const selectedPartyValue = lookupValues.contracting_party;
+  const initialParty = useRef(initialValues.contracting_party);
   const creatingCustomer = selectedPartyValue === "new_customer";
   const selectedParty = parseContractingParty(selectedPartyValue);
+  const [lookupStatus, setLookupStatus] = useState<Record<string, { key: string; ready: boolean }>>(() => Object.fromEntries(invoiceLookupNames.map(name => {
+    const kind = quoteLookupKinds[name], value = initialValues[name], scope = quoteLookupScope(kind, selectedPartyValue);
+    return [name, { key: quoteLookupKey(userId, kind, scope, value), ready: !value || lookupSeeds[name]?.value === value }];
+  })));
+  const lookupReady = invoiceLookupNames.every(name => {
+    const value = lookupValues[name], kind = quoteLookupKinds[name], status = lookupStatus[name];
+    return !value || creatingCustomer || status?.ready && status.key === quoteLookupKey(userId, kind, quoteLookupScope(kind, selectedPartyValue), value);
+  });
   const [lineItems, setLineItems] = useState<InvoiceLineDraft[]>([{ ...newInvoiceLine("new-invoice-line-1"), ...(firewood ? firewoodLine("full") : {}) }]);
-  const matchingJobs = useMemo(
-    () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
-    [jobs, selectedParty],
-  );
-  const invoiceableJobs = useMemo(
-    () => matchingJobs.filter((job) => ["completed", "ready_to_invoice"].includes(job.status)),
-    [matchingJobs],
-  );
-  const matchingLocations = useMemo(
-    () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],
-    [selectedParty, serviceLocations],
-  );
-  const visibleCustomers = useMemo(() => {
-    const query = customerSearch.trim().toLowerCase();
-    if (!query) return customers;
-    return customers.filter((customer) => [customer.display_name, customer.email, customer.phone, customer.billing_address].filter(Boolean).join(" ").toLowerCase().includes(query));
-  }, [customerSearch, customers]);
   function addFirewood(product: FirewoodProduct) {
     setLineItems(items => [...items, { ...newInvoiceLine(), ...firewoodLine(product) }]); markDirty();
   }
@@ -100,12 +92,23 @@ export function AddInvoiceForm({
     userId, kind: "invoice", recordKey: `new:${firewood ? "firewood:" : ""}${initialCustomerId ?? ""}:${initialJobId ?? ""}`, revision: "new", persistedIds: [],
     dirty, pending, changeToken: lineItems,
     restore: copy => {
-      setCustomerSearch(""); setSelectedPartyValue(copy.fields.contracting_party ?? "");
+      const restored = invoiceLookupValuesFrom(copy.fields);
+      if (restored.contracting_party === "new_customer") { restored.service_location_id = ""; restored.job_id = ""; }
+      if (firewood) restored.job_id = "";
+      setLookupValues(restored);
       setLineItems(copy.lines.map(line => ({ ...line, clientId: crypto.randomUUID(), persistedId: undefined })));
       requestId.current = copy.requestId || null; markDirty();
     },
   });
   function markDirty() { recovery.changed(); setDirty(true); }
+  function lookup(name: InvoiceLookupName, label: string, placeholder: string, required = false) {
+    const kind = quoteLookupKinds[name], scope = quoteLookupScope(kind, selectedPartyValue);
+    return <QuoteLookupField userId={userId} endpoint="/api/admin/invoices/lookups" name={name} kind={kind} label={label} placeholder={placeholder} required={required}
+      allowNewCustomer={kind === "party"} customerOnly={firewood} value={lookupValues[name]} scope={scope}
+      seedScope={quoteLookupScope(kind, initialParty.current)} seed={lookupSeeds[name]} disabled={!recovery.ready || kind !== "party" && !selectedParty}
+      onReady={(ready, key) => setLookupStatus(current => current[name]?.key === key && current[name]?.ready === ready ? current : { ...current, [name]: { key, ready } })}
+      onChange={value => setLookupValues(current => name === "contracting_party" ? { contracting_party: value, service_location_id: "", job_id: "" } : { ...current, [name]: value })} />;
+  }
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
     window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn);
@@ -129,25 +132,7 @@ export function AddInvoiceForm({
           {!firewood ? <p className="surface-label">New invoice</p> : null}
           {firewood ? <h2>Customer and delivery</h2> : <h3>Contracting party and billing details</h3>}
         </div>
-        <div className="form-grid-two">
-          <label>
-            Find customer
-            <input onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Name, phone, email, or address" type="search" value={customerSearch} />
-          </label>
-          <label>
-            {firewood ? "Customer" : "Contracting party"}
-            <select
-              name="contracting_party"
-              onChange={(event) => setSelectedPartyValue(event.target.value)}
-              value={selectedPartyValue}
-            >
-              <option value="">{firewood ? "Choose a customer" : "Choose customer or organization"}</option>
-              <option value="new_customer">Create a new walk-in customer</option>
-              <optgroup label="Individual customers">{visibleCustomers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}{customer.phone ? ` - ${customer.phone}` : ""}</option>)}</optgroup>
-              {!firewood ? <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup> : null}
-            </select>
-          </label>
-        </div>
+        {lookup("contracting_party", firewood ? "Customer" : "Contracting party", firewood ? "Choose a customer" : "Choose customer or organization", true)}
         {creatingCustomer ? (
           <fieldset className="quick-customer-fields">
             <legend>New customer</legend>
@@ -172,24 +157,8 @@ export function AddInvoiceForm({
           </fieldset>
         ) : null}
         {!creatingCustomer ? <div className="form-grid-two">
-          <label>
-            {firewood ? "Delivery address" : "Service location (optional)"}
-            <select name="service_location_id" required={firewood}>
-              <option value="">{firewood ? "Choose a delivery address" : "No property selected"}</option>
-              {matchingLocations.map((location) => <option key={location.id} value={location.id}>{[location.label, location.street, location.city].filter(Boolean).join(" - ")}</option>)}
-            </select>
-          </label>
-          {!firewood ? <label>
-            Work order (optional)
-            <select defaultValue={initialJobId ?? ""} name="job_id">
-              <option value="">Standalone invoice, no work order</option>
-              {invoiceableJobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.service_type ?? "job"} - {job.status.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </label> : <input name="job_id" type="hidden" value="" />}
+          {lookup("service_location_id", firewood ? "Delivery address" : "Service location (optional)", firewood ? "Choose a delivery address" : "No property selected", firewood)}
+          {!firewood ? lookup("job_id", "Work order (optional)", "Standalone invoice, no work order") : <input name="job_id" type="hidden" value="" />}
         </div> : null}
         <label>
           Due date
@@ -244,7 +213,7 @@ export function AddInvoiceForm({
       </section> : null}
       </fieldset>
       <div className="quote-editor-action-bar">
-        <button disabled={pending || recovery.blocked || (!selectedParty && !creatingCustomer)} type="submit">
+        <button disabled={pending || recovery.blocked || !lookupReady || (!selectedParty && !creatingCustomer)} type="submit">
           <Save aria-hidden="true" size={17} />
           {pending ? "Saving..." : "Create invoice"}
         </button>

@@ -492,3 +492,18 @@ beyond 1,000 rows. Published apps, production and the scanner remain unchanged;
 the new batch is uncommitted and unpushed. The next measured performance step is
 invoice editor/new-invoice lookup entry, retaining the existing payment locks
 and transaction commands. Other roadmap and release boundaries remain separate.
+
+### October 26 — invoice editor and creation lookup loading
+
+Quote lookups are pushed normally to main as `c53da30`, with deployment skipped.
+`INVOICE_LOOKUP_LOADING.md` records the local invoice follow-up: bounded searchable
+creation lookups, exact work-order prefills and narrow fixed-record editor reads.
+Walk-in/Firewood creation, recovery, financial commands, terms and payment locks
+are preserved. Incomplete editor reads expose recovery instead of a partial form.
+
+All 3,240 regression checks, typecheck/build, native local/staging financial tests
+and actual browser workflows passed. In paired staging samples, new-invoice HTML
+fell about 91% and its entry median from 1,477.5 to 764 ms. The existing editor's
+timing variation does not establish a latency benefit. New work remains local and
+unpushed; published apps, production and scanner are unchanged. Next measure
+change-order list/creation loading; existing roadmap/release boundaries remain.

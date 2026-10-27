@@ -113,9 +113,10 @@ export async function getInvoiceForEditing(invoiceId: string): Promise<DataResul
   const supabase = await createClient();
   if (!supabase) return { data: null, error: "Supabase is not configured." };
   const { data, error } = await supabase.from("invoices")
-    .select("*, jobs(id, service_type), customers:customers!invoices_customer_id_fkey(id, display_name), organizations(id, name), invoice_line_items(*)")
+    .select("id, invoice_number, status, created_at, updated_at, due_at, total_cents, balance_due_cents, document_terms_version, customer_id, organization_id, job_id, quote_id, service_location_id, jobs(id, service_type), customers:customers!invoices_customer_id_fkey(id, display_name), organizations(id, name), invoice_line_items(*)")
     .eq("id", invoiceId).single();
-  return { data: data as InvoiceEditorRecord | null, error: error ? safeStaffMessage(error.message, "Invoice not found or no access.") : data ? null : "Invoice not found or no access." };
+  if (error || !data || data.id !== invoiceId || !Array.isArray(data.invoice_line_items)) return { data: null, error: "Invoice not found or no access." };
+  return { data: data as unknown as InvoiceEditorRecord, error: null };
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<DataResult<InvoiceDetail | null>> {

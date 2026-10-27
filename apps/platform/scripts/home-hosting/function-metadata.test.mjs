@@ -1,0 +1,6 @@
+import assert from'node:assert/strict';import test from'node:test';import{compareRecoveredManifest}from'./function-metadata.mjs';
+const source={tables:[{name:'public.fixture',n:1,digest:'a'}],policies:'p',permissions:'r',functions:'raw-source'},target={...source,functions:'raw-restored'};
+const f={schema:'public',name:'fixture',args:'',owner:'postgres',definition:'body-hash',raw_acl:'{=X/postgres,postgres=X/postgres}',grants:[['postgres','postgres','EXECUTE',false],['postgres','PUBLIC','EXECUTE',false]]};
+test('explicit versus implicit default ACL is accepted only with the same effective privileges',()=>assert.equal(compareRecoveredManifest(source,target,[f],[{...f,raw_acl:null}]).rawAclRepresentationChanged,true));
+test('changed function ownership, body or grant is rejected despite equivalent-looking raw ACLs',()=>{for(const change of[{owner:'other'},{definition:'other'},{grants:[...f.grants,['postgres','anon','EXECUTE',false]]}])assert.throws(()=>compareRecoveredManifest(source,target,[f],[{...f,raw_acl:null,...change}]));});
+test('function normalization cannot conceal changed rows, RLS or table grants',()=>{for(const change of[{tables:[]},{policies:'other'},{permissions:'other'}])assert.throws(()=>compareRecoveredManifest(source,{...target,...change},[f],[f]));});

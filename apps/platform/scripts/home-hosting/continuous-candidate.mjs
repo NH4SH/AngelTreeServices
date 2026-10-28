@@ -7,12 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { CandidateIO,digest,literal,identifier } from './candidate-io.mjs';
 import { captureManifestSql } from './capture-manifest.mjs';
 import { functionMetadataSql } from './function-metadata.mjs';
+import { createDatabaseParts } from './database-parts.mjs';
 import { continuousPolicy as policy,validateContinuousReceipt,acceptNextReceipt,clockIsSafe } from './continuous-policy.mjs';
 
 assert.equal(process.env.ATS_CONTINUOUS_REHEARSAL,'1');
 assert.equal(hostname(),'lima-ats-crm-candidate-20261027');
 assert.equal(process.platform,'linux');assert.equal(process.getuid(),501);process.umask(0o077);
 const [command,id,argument]=process.argv.slice(2);assert.match(id,/^[a-f0-9]{12}$/);
+const payloadLayout=process.env.ATS_BACKUP_PAYLOAD;assert.ok(payloadLayout===undefined||payloadLayout==='parts-v1');
 process.env.HOME_FAILOVER_REHEARSAL='1';process.env.ATS_FAILOVER_RUN_ID=id;
 const io=new CandidateIO();io.folder=io.root+'/continuous-'+id;io.namespace='ats-rehearsal-continuous-'+id;
 io.env.XDG_RUNTIME_DIR='/run/user/501';io.env.DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/501/bus';
@@ -84,7 +86,8 @@ if(command==='init'){
     io.sql("select pg_terminate_backend(pid) from pg_stat_activity where datname=current_database() and usename not in('postgres','supabase_admin') and pid<>pg_backend_pid();");
     assert.equal(Number(io.sql("select count(*) from pg_stat_activity where datname=current_database() and usename not in('postgres','supabase_admin');")),0);
     const before=JSON.parse(io.sql(captureManifestSql));
-    io.binary(['exec',io.db,'pg_dump','-U','supabase_admin','-d','postgres','-Fc'],out+'/database.dump',{timeout:20000});
+    io.binary(['exec',io.db,'pg_dump','-U','supabase_admin','-d','postgres','-Fc',...(payloadLayout?['--compress=none']:[])],out+'/database.dump',{timeout:20000});
+    const databaseParts=payloadLayout?createDatabaseParts(out+'/database.dump',out+'/database.parts'):undefined;
     const image='node:22.23.4-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d',volume=io.project+'_object-data';
     io.binary(['run','--rm','--network','none','--read-only','--user','1000:1000','--cap-drop','ALL','--memory','128m','--memory-swap','128m','--mount','type=volume,src='+volume+',dst=/objects,readonly','--entrypoint','tar',image,'-C','/objects','-cf','-','.'],out+'/objects.tar',{timeout:20000});
     const inventory=`const fs=require('fs'),p=require('path'),c=require('crypto'),out=[];function walk(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=p.join(d,e.name);if(e.isSymbolicLink())throw Error('Unexpected symlink');if(e.isDirectory())walk(f);else{const b=fs.readFileSync(f);out.push({path:p.relative('/objects',f),size:b.length,sha256:c.createHash('sha256').update(b).digest('hex')});}}}walk('/objects');console.log(JSON.stringify(out.sort((a,b)=>a.path.localeCompare(b.path))));`;
@@ -96,6 +99,7 @@ if(command==='init'){
     const sequenceOwnerPrivileges=JSON.parse(io.sql("select coalesce(jsonb_agg(to_jsonb(s) order by schema_name,sequence_name),'[]') from(select n.nspname schema_name,c.relname sequence_name,pg_get_userbyid(c.relowner) owner_name,array(select privilege_type from aclexplode(coalesce(c.relacl,acldefault('S',c.relowner)))a where a.grantee=c.relowner and a.grantor=c.relowner order by privilege_type) privileges from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relkind='S' and n.nspname in('public','app_private','auth','storage'))s;"));
     if(existsSync(io.folder+'/fixture.private.json'))copyFileSync(io.folder+'/fixture.private.json',out+'/fixture.private.json');
     const manifest={version:1,syntheticOnly:true,namespace:io.namespace,sequence,sourceMigrationCount:102,captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:new Date().toISOString(),binding:c,sourceDbImage:io.inspect(io.db).Image,roles,memberships,sequenceOwnerPrivileges,database:before,functions:JSON.parse(io.sql(functionMetadataSql)),objects,databaseSha256:digest(readFileSync(out+'/database.dump')),objectArchiveSha256:digest(readFileSync(out+'/objects.tar')),releaseSourceSha256:digest(readFileSync(out+'/release-source.tar.gz'))};
+    if(databaseParts)manifest.databaseParts=databaseParts;
     writeFileSync(out+'/manifest.private.json',JSON.stringify(manifest,null,2)+'\n',{mode:0o600});completed=true;
   }finally{
     if(completed){io.sql('update hosting_guard.state set capture_in_progress=false where singleton;');for(const container of paused)io.docker(['unpause',container],{timeout:5000});unlinkSync(io.folder+'/capture.lock');}
@@ -103,7 +107,7 @@ if(command==='init'){
   const pauseMs=monotonic()-startedBootMs,restic=io.root+'/recovery-tools/restic_0.19.1_linux_arm64';assert.equal(digest(readFileSync(restic)),'2fb45ac6f9071b6f20eb883953a188f9e7c7cb6bbe43c67a2e47ada4e85ee7f0');
   const repo=io.folder+'/encrypted-repository',backup=(...args)=>io.run(restic,['--repo',repo,'--password-file',io.folder+'/recovery-password.private','--no-cache',...args],{timeout:45000}).stdout;
   if(!existsSync(repo+'/config'))backup('init','--repository-version','2');
-  const result=backup('backup','--json','--pack-size','8','--tag','continuous-synthetic',out).trim().split('\n').map(s=>JSON.parse(s)).find(x=>x.message_type==='summary');backup('check','--read-data');
+  const result=backup('backup','--json','--pack-size','8','--tag','continuous-synthetic',...(payloadLayout?['--exclude',out+'/database.dump']:[]),out).trim().split('\n').map(s=>JSON.parse(s)).find(x=>x.message_type==='summary');backup('check','--read-data');
   function bytes(p){return readdirSync(p,{withFileTypes:true}).reduce((sum,e)=>sum+(e.isDirectory()?bytes(p+'/'+e.name):statSync(p+'/'+e.name).size),0);}assert.ok(bytes(repo)<128*1024*1024,'Synthetic archive budget exceeded');
   const manifest=JSON.parse(readFileSync(out+'/manifest.private.json'));
   const ticket={...c,sequence,captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:manifest.captureCompletedAt,manifestSha256:digest(readFileSync(out+'/manifest.private.json')),snapshotId:result.snapshot_id,capturePath:out,pausedMs:pauseMs,backupExitCode:0};atomic('ticket-'+sequence,ticket);console.log(JSON.stringify(ticket));

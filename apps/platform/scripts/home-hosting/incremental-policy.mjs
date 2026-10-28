@@ -1,10 +1,11 @@
 // Synthetic archive evidence only. These certificates NEVER authorize writes.
 import assert from 'node:assert/strict';import {verify} from 'node:crypto';
 import {sha256,validateInventory} from './cloud-policy.mjs';
+import {isDatabasePart} from './database-parts.mjs';
 export const incrementalLimits=Object.freeze({objects:96,catalogAgeMs:86400000,bodyBytes:65536,catalogBytes:40960});
 export const artifactNames=['manifest.private.json','database.dump','objects.tar','release-source.tar.gz','core.private.env','app.private.env','fixture.private.json','database.dump.private.log','objects.tar.private.log'];
 export function artifactFingerprint(node){
- assert.ok(node.type==='file'&&artifactNames.includes(node.name)&&Number.isSafeInteger(node.size)&&node.size>=0&&node.size<=192*1024*1024);
+ assert.ok(node.type==='file'&&(artifactNames.includes(node.name)||isDatabasePart(node.name))&&Number.isSafeInteger(node.size)&&node.size>=0&&node.size<=192*1024*1024);
  assert.ok(Array.isArray(node.content)&&node.content.length<=1024);for(const id of node.content)assert.match(id,/^[a-f0-9]{64}$/);
  const mode=node.mode??0;assert.ok(Number.isSafeInteger(mode)&&((mode&0o077)===0||node.name==='release-source.tar.gz'&&mode===0o644),'Private artifact permissions broadened');
  return sha256(JSON.stringify({size:node.size,content:node.content,mode,uid:node.uid??0,gid:node.gid??0}));
@@ -19,7 +20,8 @@ export function validateCatalog(envelope,publicKey,ticket,now=Date.now()){
  assert.ok(Number.isSafeInteger(c.sequence)&&c.sequence<ticket.sequence&&Date.parse(c.captureStartedAt)<Date.parse(ticket.captureStartedAt),'Checkpoint rollback');
  assert.ok(c.objects.length<=incrementalLimits.objects);validateInventory(c.objects);
  for(const o of c.objects){assert.match(o.sha256,/^[a-f0-9]{64}$/);assert.ok(typeof o.etag==='string'&&o.etag.length>0&&o.etag.length<256);}
- for(const name of artifactNames.slice(0,6)){assert.match(c.artifacts[name].sha256,/^[a-f0-9]{64}$/);assert.match(c.artifacts[name].fingerprint,/^[a-f0-9]{64}$/);}
+ for(const name of artifactNames.slice(0,6).filter(n=>n!=='database.dump'||!c.databaseParts)){assert.match(c.artifacts[name].sha256,/^[a-f0-9]{64}$/);assert.match(c.artifacts[name].fingerprint,/^[a-f0-9]{64}$/);}
+ if(c.databaseParts){assert.equal(c.databaseParts,true);assert.ok(Object.keys(c.artifacts).some(isDatabasePart));}
  assert.match(c.objectInventorySha256,/^[a-f0-9]{64}$/);return c;
 }
 export function compareCatalog(catalog,inventory){

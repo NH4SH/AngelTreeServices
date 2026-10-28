@@ -5,11 +5,13 @@ import {readFileSync,writeFileSync,mkdirSync,copyFileSync,existsSync} from 'node
 import {CandidateIO,digest,literal,identifier} from './candidate-io.mjs';
 import {captureManifestSql} from './capture-manifest.mjs';
 import {functionMetadataSql,compareRecoveredManifest} from './function-metadata.mjs';
+import {restoreDatabaseParts} from './database-parts.mjs';
 assert.equal(process.env.ATS_CONTINUOUS_REHEARSAL,'1');const id=process.argv[2];assert.match(id,/^[a-f0-9]{12}$/);
 process.env.HOME_FAILOVER_REHEARSAL='1';process.env.ATS_FAILOVER_RUN_ID=id;
 const io=new CandidateIO();io.folder=io.root+'/continuous-'+id;
 const from=io.folder+'/offsite-latest',manifestBytes=readFileSync(from+'/manifest.private.json'),manifest=JSON.parse(manifestBytes),receipt=JSON.parse(readFileSync(io.folder+'/last-receipt.private.json'));
 assert.equal(manifest.syntheticOnly,true);assert.equal(manifest.namespace,'ats-rehearsal-continuous-'+id);assert.equal(manifest.sourceMigrationCount,102);assert.equal(digest(manifestBytes),receipt.manifestSha256);assert.equal(manifest.sequence,receipt.sequence);
+if(manifest.databaseParts)restoreDatabaseParts(from,manifest.databaseParts);
 for(const[file,key]of[['database.dump','databaseSha256'],['objects.tar','objectArchiveSha256'],['release-source.tar.gz','releaseSourceSha256']])assert.equal(digest(readFileSync(from+'/'+file)),manifest[key]);
 const project='ats_crm_recovery_'+id,target=project+'-db-1',dir=io.folder+'/recovery-stack';assert.equal(existsSync(dir),false);mkdirSync(dir,{mode:0o700});
 const config=JSON.parse(readFileSync(io.root+'/selfhost/compose.json'));config.name=project;config.services={db:config.services.db};config.volumes={'pg-data':{},'db-config':{}};

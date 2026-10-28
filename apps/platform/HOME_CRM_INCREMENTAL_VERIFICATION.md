@@ -2,6 +2,10 @@
 
 Verified overnight October 27–28, 2026 (America/New_York).
 
+Subsequently pushed to main as `feba3e4`. The next opt-in payload reduction and
+native SQL recovery results are in [HOME_CRM_BACKUP_PAYLOAD.md](HOME_CRM_BACKUP_PAYLOAD.md);
+the remaining transfer/retention blockers keep automatic activation off.
+
 **Result:** independent incremental archive verification works locally and in the
 isolated Netlify/Supabase test environment, including a cold deployment. Readback
 fell from about 37 MB to 403–407 KB per checkpoint, with complete native checking
@@ -17,8 +21,8 @@ unattended backup activation.
 
 The previously verified cloud-verification phase was pushed atomically to main
 and codex/home-crm-hosting as `3132c19`, with CI/deploy skip markers. Its 64 tests
-were rechecked first. The new incremental code is saved locally, awaiting a later
-push. No application source, feature, financial behavior, credentials, production
+were rechecked first. The incremental code was subsequently pushed as `feba3e4`.
+No application source, feature, financial behavior, credentials, production
 configuration, DNS, router rules or scanner settings were changed.
 
 Both CRM app deploys remain unchanged: production

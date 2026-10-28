@@ -5,7 +5,11 @@ Prepared October 27, 2026. **Production has not moved.** This work is isolated o
 their original worktree. No application features, production credentials, DNS,
 router rules, database settings, or scanner configuration were changed.
 
-**Latest verification:** [HOME_CRM_INCREMENTAL_VERIFICATION.md](HOME_CRM_INCREMENTAL_VERIFICATION.md)
+**Latest verification:** [HOME_CRM_BACKUP_PAYLOAD.md](HOME_CRM_BACKUP_PAYLOAD.md)
+records opt-in native archive pieces, reduced churn, a 177-table/266-function
+recovery and the remaining verifier/retention budget blockers. No budget or write
+admission rule was relaxed. The prior incremental phase is pushed as `feba3e4`.
+[HOME_CRM_INCREMENTAL_VERIFICATION.md](HOME_CRM_INCREMENTAL_VERIFICATION.md)
 records cold incremental archive verification, full-restore agreement and the
 remaining producer-bandwidth blocker. Write admission remains unchanged. Staging
 retains 129 application entries plus three reviewed lab maintenance operations.

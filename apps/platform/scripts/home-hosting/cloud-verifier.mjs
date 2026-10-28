@@ -9,6 +9,7 @@ import {cloudLimits,sha256,validateInventory,inventoryIdentity,validateCloudRequ
 import {signProof} from './failover-proof.mjs';
 import {validateContinuousReceipt} from './continuous-policy.mjs';
 import {verifyPrivateArchive} from './cloud-archive.mjs';
+import {restoreDatabaseParts} from './database-parts.mjs';
 
 export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,password,privateKey,storage,ledger,onVerifiedRepository,now=()=>Date.now()}){
   const verifiedCache=new Map();let active=false;
@@ -79,6 +80,7 @@ export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,pas
       assert.equal(manifest.syntheticOnly,true);assert.equal(manifest.namespace,namespace);assert.equal(manifest.sequence,ticket.sequence);
       for(const key of ['captureStartedAt','captureStartedBootMs','captureCompletedAt'])assert.equal(manifest[key],ticket[key]);
       for(const key of ['sourceId','sourceBoot','databaseBoot','generation','topology'])assert.equal(manifest.binding[key],ticket[key]);
+      if(manifest.databaseParts)restoreDatabaseParts(recovered,manifest.databaseParts);
       for(const [file,key] of [['database.dump','databaseSha256'],['objects.tar','objectArchiveSha256'],['release-source.tar.gz','releaseSourceSha256']]){
         const path=join(recovered,file);assert.ok(lstatSync(path).isFile()&&!lstatSync(path).isSymbolicLink());assert.equal(sha256(readFileSync(path)),manifest[key]);
       }

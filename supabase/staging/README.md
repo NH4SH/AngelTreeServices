@@ -1,5 +1,25 @@
 # Staging permission reconciliation
 
+## Home recovery lab maintenance — October 27, 2026
+
+Staging retains its 129 application migration entries through `20261026212535`
+and additionally records two isolated infrastructure operations:
+`20261028022311_recovery_verifier_lab_controls` and
+`20261028022719_recovery_verifier_lab_bounded_metadata` (131 entries total).
+These install the private backup-verification ledger and service-role wrapper.
+They are staging-only maintenance, outside the production application stream.
+Preserve their recorded SQL/history; do not repair/delete entries or copy these
+operations into the application's migration directory.
+
+Run `apps/platform/scripts/home-hosting/verify-cloud-stage.mjs` from the repository
+root with the pinned CLI in `STAGING_SUPABASE_BIN`. It checks the complete 129-entry
+application ledger fingerprint, both exact maintenance statement hashes, wrapper
+definition/ACL/search path, deny-all private tables, Auth guard and business-policy
+count. Historical candidate checks below keep their own exact target expectations
+and intentionally reject newer state. See
+[the cloud verification report](../../apps/platform/HOME_CRM_CLOUD_VERIFICATION.md)
+for measurements, retained synthetic artifacts and the capacity blocker.
+
 ## Migration 117 maintenance target — October 22, 2026
 
 ATS CRM Staging is now verified at 117 migrations, latest

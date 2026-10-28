@@ -1,0 +1,17 @@
+{
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "applicationCount": 129,
+  "applicationVersionsMd5": "166e4aac5f22e788561f6acd61478441",
+  "applicationLedgerMd5": "42b9556b3e7f31050aa8a8c070cc8814",
+  "latestApplicationVersion": "20261026212535",
+  "maintenance": [
+    {"version":"20261028022311","name":"recovery_verifier_lab_controls","statementsMd5":"cea6aedb32c9ddacd0ff558b37c37be5"},
+    {"version":"20261028022719","name":"recovery_verifier_lab_bounded_metadata","statementsMd5":"e94f69c8dc2488504891fc001a351f9d"}
+  ],
+  "controlDefinitionMd5": "c789f6b03b07631ce1892adfe78c0e35",
+  "authGuardMd5": "c601aeb6c6c0ad4da79265034f84c1a6",
+  "businessPolicyCount": 303,
+  "authUsers": 49,
+  "labPermissionsClosed": true,
+  "labTablesClosed": true
+}

@@ -5,7 +5,12 @@ Prepared October 27, 2026. **Production has not moved.** This work is isolated o
 their original worktree. No application features, production credentials, DNS,
 router rules, database settings, or scanner configuration were changed.
 
-**Latest verification:** [HOME_CRM_CONTINUOUS_BACKUPS.md](HOME_CRM_CONTINUOUS_BACKUPS.md)
+**Latest verification:** [HOME_CRM_CLOUD_VERIFICATION.md](HOME_CRM_CLOUD_VERIFICATION.md)
+records the isolated cloud authority, transfer caps, retention dry run and measured
+free-budget blocker. Staging now has its original 129 application ledger entries
+plus two explicitly recorded lab maintenance entries; the historical starting
+state below predates that installation.
+[HOME_CRM_CONTINUOUS_BACKUPS.md](HOME_CRM_CONTINUOUS_BACKUPS.md)
 records the bounded continuous capture, offsite verification and independent
 deadline tests. [HOME_CRM_FAILOVER_VERIFICATION.md](HOME_CRM_FAILOVER_VERIFICATION.md)
 records the earlier native/managed restore and approved temporary staging pause.

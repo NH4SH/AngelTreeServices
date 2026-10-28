@@ -159,6 +159,11 @@ run/byte limits; do not turn the test flags or credentials into production ones.
 
 ## Next production-readiness step
 
+Update: [HOME_CRM_CLOUD_VERIFICATION.md](HOME_CRM_CLOUD_VERIFICATION.md) records
+the completed isolated cloud verification and transfer/retention controls. Measured
+traffic still exceeds the conservative free-budget limits; automatic activation
+remains off. The paragraph below describes the original next step.
+
 **Keep production where it is for now.** The next priority is an independent,
 unattended verifier/lease authority using the existing Netlify/Supabase accounts,
 with a measured incremental-verification and retention budget. This rehearsal's

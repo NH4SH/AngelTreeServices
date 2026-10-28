@@ -1,5 +1,9 @@
 # Home CRM cloud verification and transfer controls
 
+Later verification: [HOME_CRM_INCREMENTAL_VERIFICATION.md](HOME_CRM_INCREMENTAL_VERIFICATION.md)
+records the incremental archive protocol, cold cloud results and current staging
+maintenance profile. This report retains the original full-read phase evidence.
+
 Verified October 27, 2026 EDT (evidence timestamps October 28 UTC).
 
 **Decision: keep production on its existing Netlify/Supabase hosting.** Independent

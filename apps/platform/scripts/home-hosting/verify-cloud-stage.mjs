@@ -8,7 +8,7 @@ export function verifyCloudStage(actual,expected=JSON.parse(readFileSync(new URL
 function run(){
  const args=process.argv.slice(2),sql=readFileSync(new URL('./cloud-stage-snapshot.sql',import.meta.url),'utf8');
  if(args.length===1&&args[0]==='--print-sql'){console.log(sql);return;}
- if(args.length===1&&args[0]==='--help'){console.log('verify-cloud-stage.mjs [--print-sql]\nRead-only; hard-bound CRM Staging, exact 129 application entries plus the two reviewed lab entries. No keys, repair, install or deploy.');return;}
+ if(args.length===1&&args[0]==='--help'){console.log('verify-cloud-stage.mjs [--print-sql]\nRead-only; hard-bound CRM Staging, exact 129 application entries plus reviewed lab maintenance. No keys, repair, install or deploy.');return;}
  assert.equal(args.length,0);const folder=mkdtempSync(join(tmpdir(),'ats-cloud-stage-')),file=join(folder,'snapshot.sql');writeFileSync(file,sql,{mode:0o600});
  const r=spawnSync(process.env.STAGING_SUPABASE_BIN??'supabase',['db','query','--linked','--project-ref','gbyhdsuiqeslgjdnbqng','--workdir',folder,'--file',file,'--output','json'],{encoding:'utf8',timeout:60000,maxBuffer:1024*1024,stdio:['ignore','pipe','pipe']});
  writeFileSync(join(folder,'response.private.log'),(r.stdout??'')+'\n'+(r.stderr??''),{mode:0o600});assert.equal(r.status,0,'Read-only target query failed; inspect '+folder);

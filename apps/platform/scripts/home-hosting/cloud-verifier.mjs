@@ -10,7 +10,7 @@ import {signProof} from './failover-proof.mjs';
 import {validateContinuousReceipt} from './continuous-policy.mjs';
 import {verifyPrivateArchive} from './cloud-archive.mjs';
 
-export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,password,privateKey,storage,ledger,now=()=>Date.now()}){
+export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,password,privateKey,storage,ledger,onVerifiedRepository,now=()=>Date.now()}){
   const verifiedCache=new Map();let active=false;
   return async request=>{
     if(active)throw Error('Local verifier busy');active=true;
@@ -87,6 +87,7 @@ export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,pas
       assert.ok(Array.isArray(manifest.objects)&&manifest.objects.length<=512);
       assert.ok(manifest.objects.reduce((sum,o)=>sum+o.size,0)<=cloudLimits.restoredBytes,'Private file corpus exceeds scratch budget');
       await verifyPrivateArchive(createReadStream(join(recovered,'objects.tar')),manifest.objects,{deadline:began+45000});
+      const supplemental=onVerifiedRepository&&cacheBytes===0?await onVerifiedRepository({repo,recovered,inventory:initial.rows,ticket,manifest,execute}):undefined;
       assert.ok(now()-began<50000,'Cloud verification deadline exceeded');
       const verifiedAt=new Date(now()).toISOString(),claims={version:1,kind:request.mode==='continuous'?'continuous-backup':'archive-verification',
         ...Object.fromEntries(['namespace','generation','sourceId','sourceBoot','databaseBoot','topology','sequence','captureStartedAt','captureStartedBootMs','captureCompletedAt','manifestSha256','snapshotId'].map(k=>[k,ticket[k]])),
@@ -97,7 +98,7 @@ export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,pas
       const history=await ledger({action:'status',namespace}),verifiedRoots=new Set(history.roots.map(r=>r.snapshot_id));verifiedRoots.add(ticket.snapshotId);
       const report={mode:request.mode,objects:initial.rows.length,repositoryBytes:initial.total,downloadedBytes,cacheBytes,reservedBytes,
         durationMs:now()-began,privateFiles:manifest.objects.length,resticFullReadPassed:true,restored:true,receiptPermitsWrites:request.mode==='continuous',
-        retention:retentionPreview(snapshots.map(s=>({snapshotId:s.id,captureStartedAt:s.time,verified:verifiedRoots.has(s.id)})),{now:now()}),productionChanged:false};
+        retention:retentionPreview(snapshots.map(s=>({snapshotId:s.id,captureStartedAt:s.time,verified:verifiedRoots.has(s.id)})),{now:now()}),...(supplemental?{supplemental}:{}),productionChanged:false};
       phase='commit';const result=await ledger({action:'finish',namespace,requestId:request.requestId,bodySha,inventory:initial.rows,claims,report});
       for(const o of initial.rows)if(observed.has(o.name))verifiedCache.set(o.name,observed.get(o.name));
       return {envelope:signProof(result.claims,privateKey),report:result.report,replayed:false};

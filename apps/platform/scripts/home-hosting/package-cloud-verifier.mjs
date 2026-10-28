@@ -5,14 +5,14 @@ import {randomUUID} from 'node:crypto';
 const [binary,output,namespace]=process.argv.slice(2);assert.ok(binary&&output);assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);const destination=resolve(output);assert.equal(existsSync(destination),false);
 assert.equal(sha256(readFileSync(binary)),'20d4142678d0d95ec11a4759def1b73fd9190abc9ca19e4b62d067c0b387e639');
 mkdirSync(destination,{mode:0o700});for(const p of ['functions','lib','public'])mkdirSync(join(destination,p),{mode:0o700});
-for(const file of ['cloud-netlify.mjs','cloud-verifier.mjs','cloud-policy.mjs','cloud-archive.mjs','continuous-policy.mjs','failover-proof.mjs'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,'lib',file));
+for(const file of ['cloud-netlify.mjs','cloud-verifier.mjs','cloud-policy.mjs','cloud-archive.mjs','continuous-policy.mjs','failover-proof.mjs','incremental-netlify.mjs','incremental-verifier.mjs','incremental-policy.mjs','restic-read-proxy.mjs','native-restic-read.mjs'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,'lib',file));
 for(const file of ['package.json','package-lock.json'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,file));
 cpSync(new URL('./node_modules',import.meta.url),join(destination,'node_modules'),{recursive:true});
 copyFileSync(binary,join(destination,'restic'));chmodSync(join(destination,'restic'),0o700);
 // Bind each artifact to its namespace and give it distinct executable content.
 // A provider must not silently reuse another deploy's static secret environment.
 const artifact=randomUUID();
-writeFileSync(join(destination,'functions','verify.mjs'),`import handler from '../lib/cloud-netlify.mjs';
+for(const[name,source]of [['verify','cloud-netlify'],['verify-incremental','incremental-netlify']])writeFileSync(join(destination,'functions',name+'.mjs'),`import handler from '../lib/${source}.mjs';
 export default async request=>{
  if(process.env.ATS_LAB_NAMESPACE!==${JSON.stringify(namespace)})return Response.json({error:'Deployment binding mismatch'},{status:503,headers:{'cache-control':'no-store'}});
  const response=await handler(request);response.headers.set('x-ats-recovery-artifact',${JSON.stringify(artifact)});return response;

@@ -5,9 +5,13 @@ Prepared October 27, 2026. **Production has not moved.** This work is isolated o
 their original worktree. No application features, production credentials, DNS,
 router rules, database settings, or scanner configuration were changed.
 
-**Latest verification:** [HOME_CRM_CLOUD_VERIFICATION.md](HOME_CRM_CLOUD_VERIFICATION.md)
+**Latest verification:** [HOME_CRM_INCREMENTAL_VERIFICATION.md](HOME_CRM_INCREMENTAL_VERIFICATION.md)
+records cold incremental archive verification, full-restore agreement and the
+remaining producer-bandwidth blocker. Write admission remains unchanged. Staging
+retains 129 application entries plus three reviewed lab maintenance operations.
+[HOME_CRM_CLOUD_VERIFICATION.md](HOME_CRM_CLOUD_VERIFICATION.md)
 records the isolated cloud authority, transfer caps, retention dry run and measured
-free-budget blocker. Staging now has its original 129 application ledger entries
+free-budget blocker. At that full-read checkpoint, staging had its original 129 application ledger entries
 plus two explicitly recorded lab maintenance entries; the historical starting
 state below predates that installation.
 [HOME_CRM_CONTINUOUS_BACKUPS.md](HOME_CRM_CONTINUOUS_BACKUPS.md)

@@ -6,12 +6,16 @@
   "latestApplicationVersion": "20261026212535",
   "maintenance": [
     {"version":"20261028022311","name":"recovery_verifier_lab_controls","statementsMd5":"cea6aedb32c9ddacd0ff558b37c37be5"},
-    {"version":"20261028022719","name":"recovery_verifier_lab_bounded_metadata","statementsMd5":"e94f69c8dc2488504891fc001a351f9d"}
+    {"version":"20261028022719","name":"recovery_verifier_lab_bounded_metadata","statementsMd5":"e94f69c8dc2488504891fc001a351f9d"},
+    {"version":"20261028034426","name":"recovery_verifier_lab_incremental","statementsMd5":"5ae5a67e2decced39c7b0b6512143774"}
   ],
   "controlDefinitionMd5": "c789f6b03b07631ce1892adfe78c0e35",
   "authGuardMd5": "c601aeb6c6c0ad4da79265034f84c1a6",
   "businessPolicyCount": 303,
   "authUsers": 49,
   "labPermissionsClosed": true,
-  "labTablesClosed": true
+  "labTablesClosed": true,
+  "incrementalDefinitionMd5": "5998c3db0f26b78e9a172eac947b2cea",
+  "chargeDefinitionMd5": "48854ac9985a85ff71b2f47d1c4b5d9c",
+  "incrementalPermissionsClosed": true
 }

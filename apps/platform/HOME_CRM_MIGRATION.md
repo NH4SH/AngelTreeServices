@@ -5,7 +5,28 @@ Prepared October 27, 2026. **Production has not moved.** This work is isolated o
 their original worktree. No application features, production credentials, DNS,
 router rules, database settings, or scanner configuration were changed.
 
-**Latest verification:** [HOME_CRM_BACKUP_PAYLOAD.md](HOME_CRM_BACKUP_PAYLOAD.md)
+**Latest verification:** [HOME_CRM_CUTOVER_VERIFICATION.md](HOME_CRM_CUTOVER_VERIFICATION.md)
+records the isolated production-feature runtime, managed-standby fencing and
+permission restoration, online backup with a 278.39-second independent kernel
+fence, and separate-machine native WAL recovery of all 177 table fingerprints.
+The recovered online package also passed a clean managed-Supabase restore:
+158 selected tables, 90,563 rows, 102 original application migration entries and
+eight core API check groups, including payment replay, no resend and six private
+files. The managed Auth email probe was rate-limited before hook execution and
+is not claimed as an end-to-end pass. All 139 operations tests passed.
+
+Production remains Netlify/Supabase. Native-chain retention, a fresh real-data
+primary and protected ingress/provider handoff still precede live routing.
+Staging retains 129 application entries plus 12 separate recovery-lab entries.
+All production authorizations and the five-minute loss limit remain in effect;
+synthetic rehearsal evidence is not a production writer permit.
+
+[HOME_CRM_VERIFIER_ROTATION.md](HOME_CRM_VERIFIER_ROTATION.md)
+records the controlled overhead reduction, new-repository copy/readback/recovery,
+and held retirement gates. All original generations are preserved. The payload
+phase is pushed as `f79f875`; shared-object generations and integrity/admission
+review remain prerequisites for unattended operation within free capacity.
+[HOME_CRM_BACKUP_PAYLOAD.md](HOME_CRM_BACKUP_PAYLOAD.md)
 records opt-in native archive pieces, reduced churn, a 177-table/266-function
 recovery and the remaining verifier/retention budget blockers. No budget or write
 admission rule was relaxed. The prior incremental phase is pushed as `feba3e4`.

@@ -4,6 +4,12 @@ const now=Date.parse('2026-10-27T23:00:00Z'),namespace='ats-rehearsal-continuous
 const object={name:'config',id:'12345678-1234-1234-1234-123456789abc',version:'v1',size:100};
 const ticket={namespace,sourceId:'ats_crm_candidate_20261027',sequence:1,generation:1,snapshotId:'a'.repeat(64),manifestSha256:'b'.repeat(64),topology:'c'.repeat(64),sourceBoot:'boot1',databaseBoot:'boot2',capturePath:'/home/noelsierra.guest/candidate/continuous-abcdef123456/capture-1',captureStartedAt:new Date(now-30000).toISOString(),captureCompletedAt:new Date(now-29000).toISOString(),captureStartedBootMs:10000,backupExitCode:0};
 test('immutable version change invalidates cache identity even at equal size',()=>assert.notEqual(inventoryIdentity([object]),inventoryIdentity([{...object,version:'v2'}])));
+test('provider identity is stable across JSONB key order and separately signed ciphertext evidence',()=>{
+ const {id,name,size,version}=object;
+ assert.equal(inventoryIdentity([{name,id,version,size}]),inventoryIdentity([{id,name,size,version}]));
+ assert.equal(inventoryIdentity([object]),inventoryIdentity([{...object,sha256:'a'.repeat(64),etag:'"strong"'}]));
+ assert.notEqual(inventoryIdentity([object]),inventoryIdentity([{...object,id:'11111111-1111-4111-8111-111111111111'}]));
+});
 test('refuse missing version and path traversal before any storage I/O',()=>{for(const bad of [{...object,version:null},{...object,name:'../config'},{...object,name:'data/aa/'+'b'.repeat(63)}])assert.throws(()=>validateInventory([bad]));});
 test('repository caps reject duplicate, oversized and excessive objects',()=>{assert.throws(()=>validateInventory([object,object]));assert.throws(()=>validateInventory([{...object,size:cloudLimits.objectBytes+1}]));assert.throws(()=>validateInventory(Array(257).fill(object)));});
 test('continuous receipt request cannot relabel an old capture',()=>{const request={requestId:object.id,mode:'continuous',ticket:{...ticket,captureStartedAt:new Date(now-300000).toISOString()}};assert.throws(()=>validateCloudRequest(request,namespace,now));request.mode='archive';assert.doesNotThrow(()=>validateCloudRequest(request,namespace,now));});

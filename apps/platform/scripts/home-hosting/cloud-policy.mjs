@@ -17,7 +17,10 @@ export function validateInventory(rows){
   assert.ok(seen.has('config')&&total<=cloudLimits.repositoryBytes,'Repository exceeds storage cap');
   return {rows:[...rows].sort((a,b)=>a.name.localeCompare(b.name)),total};
 }
-export const inventoryIdentity=rows=>sha256(JSON.stringify(validateInventory(rows).rows));
+// PostgreSQL jsonb and JavaScript do not preserve the same object-key order.
+// Canonicalize the physical identity fields and keep ciphertext/ETag evidence
+// in its separately signed catalog. Extra fields never silently change this ID.
+export const inventoryIdentity=rows=>sha256(JSON.stringify(validateInventory(rows).rows.map(r=>({id:r.id,name:r.name,size:r.size,version:r.version}))));
 export function validateCloudRequest(request,namespace,now=Date.now()){
   assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);
   assert.match(request.requestId,/^[a-f0-9-]{36}$/);

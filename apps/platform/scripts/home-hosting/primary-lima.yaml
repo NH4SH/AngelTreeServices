@@ -1,0 +1,44 @@
+# Fresh destination for a future CRM primary. Creation does not activate it.
+# Scanner, benchmark and synthetic-candidate VMs remain separate.
+minimumLimaVersion: 2.2.1
+vmType: vz
+arch: aarch64
+cpus: 2
+memory: 4GiB
+disk: 64GiB
+images:
+- location: https://cloud-images.ubuntu.com/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-arm64.img
+  arch: aarch64
+  digest: sha256:1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55
+mounts: []
+networks: []
+propagateProxyEnv: false
+ssh:
+  loadDotSSHPubKeys: false
+  forwardAgent: false
+  forwardX11: false
+  forwardX11Trusted: false
+containerd:
+  system: false
+  user: false
+rosetta:
+  enabled: false
+  binfmt: false
+portForwards:
+- guestSocket: /run/user/{{.UID}}/docker.sock
+  hostSocket: '{{.Dir}}/sock/docker.sock'
+- guestIP: 127.0.0.1
+  guestPort: 3250
+  hostIP: 127.0.0.1
+  hostPort: 3250
+  proto: tcp
+- guestIP: 127.0.0.1
+  guestPort: 62432
+  hostIP: 127.0.0.1
+  hostPort: 62432
+  proto: tcp
+- guestIP: 0.0.0.0
+  guestIPMustBeZero: false
+  proto: any
+  guestPortRange: [1, 65535]
+  ignore: true

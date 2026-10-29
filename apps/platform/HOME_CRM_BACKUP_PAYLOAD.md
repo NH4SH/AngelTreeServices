@@ -2,6 +2,10 @@
 
 Verified October 28, 2026 (America/New_York).
 
+Subsequently pushed to main as `f79f875`. The next controlled verifier-overhead
+comparison and protected-repository rotation/recovery results are recorded in
+[HOME_CRM_VERIFIER_ROTATION.md](HOME_CRM_VERIFIER_ROTATION.md).
+
 **Decision:** keep the payload improvements as a locally verified, opt-in archive
 prototype. Do not activate unattended backups or move production. The payload is
 substantially smaller, but the complete verification path still fails the current
@@ -9,7 +13,7 @@ transfer budgets. No quota, full-scrub interval or five-minute write fence was r
 
 The previous incremental-verification work was pushed atomically to main and
 `codex/home-crm-hosting` as `feba3e4`, after all 80 existing tests passed. The new
-payload changes described here remain local, ready for review and a later push.
+payload changes described here were subsequently pushed as `f79f875`.
 
 ## What changed
 

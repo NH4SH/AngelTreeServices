@@ -2,6 +2,7 @@
 import {createPrivateKey,timingSafeEqual} from 'node:crypto';
 import {createCloudVerifier} from './cloud-verifier.mjs';
 import {cloudLimits} from './cloud-policy.mjs';
+import {approvedVerifierRuntime} from './verifier-runtime.mjs';
 const project='gbyhdsuiqeslgjdnbqng',origin='https://'+project+'.supabase.co';
 let verifier;
 const response=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -16,10 +17,8 @@ async function boundedBody(request){
 }
 export default async request=>{
   if(request.method!=='POST')return response({error:'Method not allowed'},405);
+  if(!approvedVerifierRuntime(process.versions.node,process.platform,process.arch))return response({error:'Runtime review required'},503);
   if(!authorized(request.headers.get('authorization'),env('ATS_LAB_REQUEST_TOKEN')))return response({error:'Unauthorized'},401);
-  // The actual cloud runtime is independently probed before installing secrets.
-  const [major,minor]=process.versions.node.split('.').map(Number);
-  if(process.platform!=='linux'||process.arch!=='x64'||major!==24||minor<21)return response({error:'Runtime review required'},503);
   try{
     if(!verifier){
       const namespace=env('ATS_LAB_NAMESPACE'),bucket='crm-cloud-lab-'+namespace.slice(-12),service=env('ATS_LAB_STAGING_SERVICE_KEY');

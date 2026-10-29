@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabasePublicConfig } from "./config";
+import { createSupabaseServerFetch } from "./server-transport.mjs";
 
 const protectedRoutePrefixes = ["/admin", "/crew", "/portal"];
 const authValidationTimeoutMs = 5_000;
 
 const timedAuthFetch: typeof fetch = (input, init = {}) =>
-  fetch(input, {
+  createSupabaseServerFetch(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_INTERNAL_URL)(input, {
     ...init,
     signal: init.signal ?? AbortSignal.timeout(authValidationTimeoutMs),
   });

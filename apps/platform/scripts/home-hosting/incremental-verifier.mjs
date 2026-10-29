@@ -5,12 +5,17 @@ import {signProof} from './failover-proof.mjs';import {sha256,validateCloudReque
 import {artifactNames,artifactFingerprint,validateCatalog,compareCatalog,inspectIndexDelta,requiredPackGroups,verifyPackReadCoverage,incrementalLimits} from './incremental-policy.mjs';
 import {verifyPrivateArchive} from './cloud-archive.mjs';import {startResticReadProxy} from './restic-read-proxy.mjs';import {nativeResticReader} from './native-restic-read.mjs';
 import {verifyDatabasePartArtifacts,isDatabasePart} from './database-parts.mjs';
+import {inspectIndexEvidence} from './index-evidence.mjs';
+import {schemaContentFingerprint} from './schema-fingerprint.mjs';
+import {staticBindingFromVerifiedArtifacts} from './static-identity.mjs';
+import {validateRuntimeBlueprint} from './runtime-blueprint.mjs';
 const binding=t=>Object.fromEntries(['namespace','generation','sourceId','sourceBoot','databaseBoot','topology'].map(k=>[k,t[k]]));
 const nodesFrom=(tree,parts)=>{
  assert.ok(Array.isArray(tree.nodes)&&tree.nodes.length<=32);const split=tree.nodes.find(n=>n.name==='database.parts');if(split){assert.equal(split.type,'dir');assert.equal((split.mode??0)&0o077,0);}
  const root=tree.nodes.filter(n=>n!==split);let extra=[];if(split){assert.ok(Array.isArray(parts?.nodes)&&parts.nodes.length>0&&parts.nodes.length<=2048);extra=parts.nodes.map(n=>({...n,name:'database.parts/'+n.name}));for(const n of extra)assert.ok(isDatabasePart(n.name));}else assert.equal(parts,undefined);
  const nodes=[...root,...extra].map(n=>({...n,size:n.size??0,content:n.content??[]})),seen=new Set();let size=0;for(const n of nodes){artifactFingerprint(n);assert.ok(!seen.has(n.name));seen.add(n.name);size+=n.size;}assert.ok(size<=192*1024*1024);for(const name of artifactNames.slice(0,6).filter(n=>n!=='database.dump'||!split))assert.ok(seen.has(name));if(split)assert.ok(!seen.has('database.dump'));return nodes;
 };
+export const snapshotArtifactNodes=nodesFrom;
 export function fullCatalogIssuer({storage,privateKey,now=()=>Date.now()}){
  return async({repo,recovered,inventory,ticket,manifest,execute})=>{
   assert.ok(inventory.length<=incrementalLimits.objects);const tree=JSON.parse(execute(['cat','tree',ticket.snapshotId+':'+ticket.capturePath])),parts=tree.nodes.some(n=>n.name==='database.parts')?JSON.parse(execute(['cat','tree',ticket.snapshotId+':'+ticket.capturePath+'/database.parts'])):undefined,nodes=nodesFrom(tree,parts);
@@ -18,14 +23,20 @@ export function fullCatalogIssuer({storage,privateKey,now=()=>Date.now()}){
    assert.equal(identity.size,o.size);assert.equal(identity.sha256,sha256(readFileSync(join(repo,o.name))));assert.equal(probe.etag,identity.etag,'Provider identity changed after full read');
    objects.push({...o,sha256:identity.sha256,etag:identity.etag});}
   const at=new Date(now()).toISOString(),catalog={version:1,kind:'restic-verified-catalog',writeAdmission:false,...binding(ticket),sequence:ticket.sequence,snapshotId:ticket.snapshotId,
-   captureStartedAt:ticket.captureStartedAt,fullVerifiedAt:at,issuedAt:at,expiresAt:new Date(Date.parse(at)+incrementalLimits.catalogAgeMs).toISOString(),
+   captureStartedAt:ticket.captureStartedAt,captureStartedBootMs:ticket.captureStartedBootMs,captureCompletedAt:ticket.captureCompletedAt,fullVerifiedAt:at,issuedAt:at,expiresAt:new Date(Date.parse(at)+incrementalLimits.catalogAgeMs).toISOString(),
    objects,artifacts:Object.fromEntries(nodes.map(n=>[n.name,{fingerprint:artifactFingerprint(n),size:n.size,sha256:sha256(readFileSync(join(recovered,n.name)))}])),objectInventorySha256:sha256(JSON.stringify(manifest.objects))};
   if(manifest.databaseParts){verifyDatabasePartArtifacts(manifest,catalog.artifacts);catalog.databaseParts=true;}
+  if(manifest.binding.sourceScope==='crm-v1'){
+   const runtime=manifest.runtimeFormat==='artifact-v1'?JSON.parse(readFileSync(join(recovered,'runtime.private.json'))):manifest.runtime;
+   catalog.runtimeManifestSha256=validateRuntimeBlueprint(runtime,{complete:true});assert.equal(catalog.runtimeManifestSha256,manifest.runtimeSha256);
+   if(manifest.runtimeFormat==='artifact-v1')assert.equal(catalog.artifacts['runtime.private.json'].sha256,catalog.runtimeManifestSha256);
+  }
+  if(manifest.backupLayout==='schema-base-v1')Object.assign(catalog,staticBindingFromVerifiedArtifacts(manifest,catalog.artifacts,schemaContentFingerprint(readFileSync(join(recovered,'database.dump')))));
   assert.ok(Buffer.byteLength(JSON.stringify(catalog))<=incrementalLimits.catalogBytes,'Catalog requires reviewed generation rotation');
   return {catalogCertificate:signProof(catalog,privateKey),writeAdmission:false};
  };
 }
-export function createIncrementalVerifier({namespace,scratchRoot,restic,resticSha256,password,privateKey,storage,ledger,now=()=>Date.now()}){
+export function createIncrementalVerifier({namespace,scratchRoot,restic,resticSha256,password,privateKey,storage,ledger,compactReads=false,now=()=>Date.now()}){
  let active=false;
  return async request=>{
   if(active)throw Error('Incremental verifier busy');active=true;let proxy,work,phase='policy',job;
@@ -35,14 +46,14 @@ export function createIncrementalVerifier({namespace,scratchRoot,restic,resticSh
    job={namespace,requestId:request.requestId,bodySha};const rpc=(action,fields={})=>ledger({...job,action,...fields});
    phase='reserve';const opened=await rpc('start');if(opened.completed)return {envelope:signProof(opened.claims,privateKey),report:opened.report,replayed:true};
    phase='base-inventory';const initial=validateInventory(await rpc('inventory')).rows,{added}=compareCatalog(parent,initial),identity=inventoryIdentity(initial);
-   const before=new Map(parent.objects.map(o=>[o.name,o])),cache=new Map(),observed=new Map();let downloadedBytes=0,retainedPackRangeBytes=0,storageReads=0;
+   const before=new Map(parent.objects.map(o=>[o.name,o])),cache=new Map(),observed=new Map(),physicallyRead=new Set();let downloadedBytes=0,retainedPackRangeBytes=0,storageReads=0;
    async function read(o,start,end){
     assert.ok(now()<deadline);const amount=end-start+1;await rpc('charge',{bytes:amount});
     const result=await storage.read(o,start,end);storageReads++;assert.equal(result.bytes.length,amount);assert.ok(result.etag);
-    if(before.has(o.name))assert.equal(result.etag,before.get(o.name).etag,'Verified base provider identity changed');downloadedBytes+=amount;return result;
+    if(before.has(o.name))assert.equal(result.etag,before.get(o.name).etag,'Verified base provider identity changed');physicallyRead.add(o.name);downloadedBytes+=amount;return result;
    }
    phase='base-probes';
-   for(const o of parent.objects)await read(o,0,0);
+   if(!compactReads)for(const o of parent.objects)await read(o,0,0);
    phase='new-objects';
    for(const o of initial){
     if(o.name.startsWith('data/')&&before.has(o.name))continue;
@@ -72,10 +83,11 @@ export function createIncrementalVerifier({namespace,scratchRoot,restic,resticSh
    checkingPacks=false;
    const snapshot=JSON.parse(await run(['cat','snapshot',ticket.snapshotId]));assert.deepEqual(snapshot.paths,[ticket.capturePath]);
    const indexes=[];
-   for(const index of initial.filter(o=>o.name.startsWith('index/'))){
+   for(const index of initial.filter(o=>o.name.startsWith('index/')&&(!compactReads||!parent.indexEvidence||!before.has(o.name)))){
     indexes.push({name:index.name,decoded:JSON.parse(await run(['cat','index',index.name.slice(6)]))});
    }
-   const novel=inspectIndexDelta(indexes,parent.objects,initial);
+   const checked=compactReads?inspectIndexEvidence(indexes,parent.objects,initial,parent.indexEvidence):undefined;
+   const novel=checked?checked.novel:inspectIndexDelta(indexes,parent.objects,initial);
    // Successful native full reads of every new pack authenticate all its blobs.
    // Index checks above additionally prevent reinterpretation of the base.
    const tree=JSON.parse(await run(['cat','tree',ticket.snapshotId+':'+ticket.capturePath])),parts=tree.nodes.some(n=>n.name==='database.parts')?JSON.parse(await run(['cat','tree',ticket.snapshotId+':'+ticket.capturePath+'/database.parts'])):undefined;
@@ -96,16 +108,32 @@ export function createIncrementalVerifier({namespace,scratchRoot,restic,resticSh
    for(const[file,key]of[['objects.tar','objectArchiveSha256'],['release-source.tar.gz','releaseSourceSha256']])assert.equal(artifacts[file].sha256,m[key]);
    const objectInventorySha256=sha256(JSON.stringify(m.objects));
    if(artifacts['objects.tar'].sha256!==parent.artifacts['objects.tar'].sha256||objectInventorySha256!==parent.objectInventorySha256)await verifyPrivateArchive(Readable.from([await materialize('objects.tar')]),m.objects,{deadline});
+   // Every retained object still gets a fresh physical ETag observation. Reads
+   // already needed for verification satisfy that requirement without a second GET.
+   phase='remaining-probes';if(compactReads){const pending=parent.objects.filter(o=>!physicallyRead.has(o.name));for(let n=0;n<pending.length;n+=4){const results=await Promise.allSettled(pending.slice(n,n+4).map(o=>read(o,0,0)));for(const r of results)if(r.status==='rejected')throw r.reason;}}
+   assert.ok(parent.objects.every(o=>physicallyRead.has(o.name)),'Retained provider identity was not observed');
    phase='final-inventory';assert.equal(inventoryIdentity(await rpc('inventory')),identity,'Repository changed during verification');assert.equal(await storage.publicDenied(),true);
    assert.ok(Date.parse(parent.expiresAt)>now(),'Full verification expired during this job');
-   const at=new Date(now()).toISOString(),catalog={...parent,sequence:ticket.sequence,snapshotId:ticket.snapshotId,captureStartedAt:ticket.captureStartedAt,issuedAt:at,
+   const at=new Date(now()).toISOString(),catalog={...parent,sequence:ticket.sequence,snapshotId:ticket.snapshotId,captureStartedAt:ticket.captureStartedAt,captureStartedBootMs:ticket.captureStartedBootMs,captureCompletedAt:ticket.captureCompletedAt,issuedAt:at,
     parentCertificateSha256:sha256(JSON.stringify(request.catalogCertificate)),objects:initial.map(o=>observed.get(o.name)??before.get(o.name)),artifacts,objectInventorySha256};
    if(m.databaseParts)catalog.databaseParts=true;else delete catalog.databaseParts;
+   if(m.binding.sourceScope==='crm-v1'){
+    const unchangedRuntime=m.runtimeFormat==='artifact-v1'&&parent.artifacts['runtime.private.json']?.fingerprint===artifacts['runtime.private.json']?.fingerprint;
+    catalog.runtimeManifestSha256=unchangedRuntime?parent.runtimeManifestSha256:validateRuntimeBlueprint(m.runtimeFormat==='artifact-v1'?JSON.parse(await materialize('runtime.private.json')):m.runtime,{complete:true});
+    assert.equal(catalog.runtimeManifestSha256,m.runtimeSha256);
+    if(m.runtimeFormat==='artifact-v1')assert.equal(artifacts['runtime.private.json'].sha256,catalog.runtimeManifestSha256);
+   }else delete catalog.runtimeManifestSha256;
+   if(checked)catalog.indexEvidence=checked.evidence;else delete catalog.indexEvidence;
+   if(m.backupLayout==='schema-base-v1'){
+    const unchangedSchema=parent.backupLayout==='schema-base-v1'&&parent.artifacts['database.dump'].fingerprint===artifacts['database.dump'].fingerprint;
+    Object.assign(catalog,staticBindingFromVerifiedArtifacts(m,artifacts,unchangedSchema?parent.staticBinding.schemaContentFingerprint:schemaContentFingerprint(await materialize('database.dump'))));
+   }else{delete catalog.backupLayout;delete catalog.staticBinding;delete catalog.staticIdentitySha256;}
    assert.ok(Buffer.byteLength(JSON.stringify(catalog))<=incrementalLimits.catalogBytes,'Catalog requires reviewed generation rotation');
    const certificate=signProof(catalog,privateKey),claims={version:1,kind:'archive-verification',...binding(ticket),sequence:ticket.sequence,snapshotId:ticket.snapshotId,
-    manifestSha256:ticket.manifestSha256,captureStartedAt:ticket.captureStartedAt,issuedAt:at,expiresAt:new Date(now()+60000).toISOString(),verificationMode:'incremental-verified-baseline',remoteBytesReadBack:false,writeAdmission:false,inventorySha256:identity};
+    manifestSha256:ticket.manifestSha256,captureStartedAt:ticket.captureStartedAt,captureStartedBootMs:ticket.captureStartedBootMs,captureCompletedAt:ticket.captureCompletedAt,issuedAt:at,expiresAt:new Date(now()+60000).toISOString(),verificationMode:'incremental-verified-baseline',remoteBytesReadBack:false,writeAdmission:false,inventorySha256:identity,
+    ...(catalog.runtimeManifestSha256?{runtimeManifestSha256:catalog.runtimeManifestSha256}:{})};
    const report={mode:'incremental',repositoryBytes:initial.reduce((s,o)=>s+o.size,0),downloadedBytes,retainedPackRangeBytes,newObjects:added.length,newBlobsAuthenticated:novel.length,newPacksFullyVerified:newData.length,nativePackGroups:groups.length,collisionScrubBytes,
-    reusedArtifacts,storageReads,durationMs:now()-started,resticStructuralCheckPassed:true,fullDataRead:false,receiptPermitsWrites:false,databaseVerification:m.databaseParts?'ordered-part-sha256':'whole-file-sha256',fullVerifiedAt:parent.fullVerifiedAt,catalogExpiresAt:parent.expiresAt,catalogCertificate:certificate,productionChanged:false};
+    reusedArtifacts,storageReads,compactReads,nativeIndexesDecoded:indexes.length,retainedObjectsPhysicallyObserved:parent.objects.filter(o=>physicallyRead.has(o.name)).length,durationMs:now()-started,resticStructuralCheckPassed:true,fullDataRead:false,receiptPermitsWrites:false,databaseVerification:m.databaseParts?'ordered-part-sha256':'whole-file-sha256',fullVerifiedAt:parent.fullVerifiedAt,catalogExpiresAt:parent.expiresAt,catalogCertificate:certificate,productionChanged:false};
    assert.ok(now()<deadline);phase='commit';const result=await rpc('finish',{inventory:initial,claims,report});return {envelope:signProof(result.claims,privateKey),report:result.report,replayed:false};
   }catch{if(job)try{await ledger({...job,action:'fail',phase});}catch{}throw Object.assign(Error('Incremental verification withheld'),{phase});}
   finally{if(proxy)await proxy.close();if(work)rmSync(work,{recursive:true,force:true});active=false;}

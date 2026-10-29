@@ -43,5 +43,7 @@ export function parseCopies(text) {
 }
 export function copyInsert(block) {
   if (!block.rows.length) return '';
-  return `insert into ${identifier(block.schema)}.${identifier(block.table)} (${block.columns.map(identifier).join(',')}) values\n` + block.rows.map(row => '(' + row.map(sqlValue).join(',') + ')').join(',\n') + ';';
+  // Archive recovery must retain original identity values and their references.
+  // PostgreSQL accepts this clause on ordinary tables as well as identity tables.
+  return `insert into ${identifier(block.schema)}.${identifier(block.table)} (${block.columns.map(identifier).join(',')}) overriding system value values\n` + block.rows.map(row => '(' + row.map(sqlValue).join(',') + ')').join(',\n') + ';';
 }

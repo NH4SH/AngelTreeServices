@@ -93,6 +93,8 @@ if(command==='init'){
     ...(nativeRequested?{admissionProtocol:'certified-native-wal-v1',sourceDbImage:io.inspect(io.db).Image,
       systemIdentifier:io.sql('select system_identifier::text from pg_control_system();',{user:'postgres'}),timeline:Number(io.sql('select timeline_id from pg_control_checkpoint();',{user:'postgres'}))}:{}),
     ...(process.env.ATS_BACKUP_SOURCE_SCOPE==='crm-v1'?{sourceScope:'crm-v1'}:{}),...(onlineRequested?{captureMode:'transaction-barrier'}:{})};
+  assert.ok(process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL===undefined||process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL==='1');
+  if(process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL==='1'){assert.equal(onlineRequested,true);binding.privateFileFormat='patch-v1';}
   atomic('binding',binding);writeFileSync(io.folder+'/recovery-password.private',randomBytes(48).toString('base64')+'\n',{mode:0o600,flag:'wx'});
   const testPassword=randomBytes(32).toString('hex');writeFileSync(io.folder+'/test-password.private',testPassword,{mode:0o600,flag:'wx'});io.sql('alter role candidate_fence_api password '+literal(testPassword)+';');
   console.log(JSON.stringify(binding));

@@ -7,6 +7,8 @@ assert.equal(sha256(readFileSync(binary)),'20d4142678d0d95ec11a4759def1b73fd9190
 mkdirSync(destination,{mode:0o700});for(const p of ['functions','lib','public'])mkdirSync(join(destination,p),{mode:0o700});
 copyFileSync(new URL('./object-file-metadata.mjs',import.meta.url),join(destination,'lib/object-file-metadata.mjs'));
 copyFileSync(new URL('./referenced-object-files.mjs',import.meta.url),join(destination,'lib/referenced-object-files.mjs'));
+copyFileSync(new URL('./native-file-patch.mjs',import.meta.url),join(destination,'lib/native-file-patch.mjs'));
+copyFileSync(new URL('./backup-source-scope.mjs',import.meta.url),join(destination,'lib/backup-source-scope.mjs'));
 for(const file of ['database-runtime.mjs','native-netlify.mjs','native-component-verifier.mjs','native-wal-checkpoint.mjs','wal-recovery-inspection.mjs','wal-cloud-verifier.mjs','wal-netlify.mjs','wal-pairing.mjs','wal-archive-policy.mjs','candidate-io.mjs','recovery-files.mjs','verifier-runtime.mjs','cloud-netlify.mjs','cloud-verifier.mjs','cloud-policy.mjs','cloud-archive.mjs','continuous-policy.mjs','paired-backup-policy.mjs','static-identity.mjs','schema-fingerprint.mjs','certified-checkpoint.mjs','runtime-blueprint.mjs','failover-proof.mjs','database-parts.mjs','index-evidence.mjs','incremental-netlify.mjs','incremental-verifier.mjs','incremental-policy.mjs','restic-read-proxy.mjs','native-restic-read.mjs'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,'lib',file));
 for(const file of ['package.json','package-lock.json'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,file));
 cpSync(new URL('./node_modules',import.meta.url),join(destination,'node_modules'),{recursive:true});

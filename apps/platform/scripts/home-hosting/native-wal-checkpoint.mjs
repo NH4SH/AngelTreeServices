@@ -5,8 +5,10 @@ import assert from 'node:assert/strict';
 import {signProof,verifyProof} from './failover-proof.mjs';
 import {sha256} from './cloud-policy.mjs';
 import {walLsn} from './wal-archive-policy.mjs';
+import {createHash} from 'node:crypto';
 
 export function validateNativeWalReceipt(envelope,key,binding,now=Date.now()){
+ assert.ok(binding.privateFileFormat===undefined||binding.privateFileFormat==='patch-v1');
  const c=verifyProof(envelope,key,{kind:'certified-native-wal-backup',namespace:binding.namespace,now});
  assert.equal(c.generation,binding.generation);
  assert.deepEqual(c.binding,binding,'Source, boot or recovery generation changed');
@@ -20,6 +22,11 @@ export function validateNativeWalReceipt(envelope,key,binding,now=Date.now()){
  assert.ok(times.fullVerifiedAt<=times.offsiteVerifiedAt&&times.fullExpiresAt===times.fullVerifiedAt+86400000);
  assert.equal(times.expiresAt,Math.min(times.captureStartedAt+280000,times.fullExpiresAt));assert.ok(now-times.captureStartedAt<280000);
  for(const name of ['completeRecoveryChain','allNewBytesReadBack','retainedProviderVersionsChecked','serializedByAuthority'])assert.equal(c[name],true);
+ if(binding.privateFileFormat==='patch-v1'){
+  assert.equal(c.privateFileStateVerified,true);for(const n of ['staticPairSha256','fileIndexSha256'])assert.match(c[n],/^[a-f0-9]{64}$/);
+  const identity=createHash('sha256').update(JSON.stringify({kind:'native-wal-file-state-v1',staticSha256:c.staticPairSha256,fileIndexSha256:c.fileIndexSha256})).digest('hex');
+  assert.equal(c.privatePairSha256,identity);
+ }
  assert.equal(typeof c.freshFullRemoteRead,'boolean');return c;
 }
 

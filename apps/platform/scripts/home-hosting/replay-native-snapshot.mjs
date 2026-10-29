@@ -2,14 +2,27 @@
 // exposed ports, existing-volume reuse, provider sends, or promotion command.
 import assert from 'node:assert/strict';import fs from 'node:fs';import {hostname} from 'node:os';import {spawnSync} from 'node:child_process';
 import {captureManifestSql} from './capture-manifest.mjs';import {validateDatabaseRuntime} from './database-runtime.mjs';
-assert.equal(process.env.ATS_SEPARATE_NATIVE_RECOVERY,'1');assert.equal(hostname(),'lima-pr02-disposable');
+import {createHash} from 'node:crypto';
+import {backupSourceScope} from './backup-source-scope.mjs';
+const primary=process.env.ATS_SEPARATE_PRIMARY_RECOVERY==='1';
+assert.ok(primary||process.env.ATS_SEPARATE_NATIVE_RECOVERY==='1');assert.equal(hostname(),'lima-pr02-disposable');
 assert.equal(process.platform,'linux');assert.equal(process.arch,'arm64');assert.equal(process.getuid(),501);process.umask(0o077);
 const [id]=process.argv.slice(2);assert.match(id,/^[a-f0-9]{12}$/);const folder=process.env.HOME+'/ats-native-recovery-'+id;
 assert.equal(fs.realpathSync(folder),folder);const input=folder+'/restored';assert.equal(fs.realpathSync(input),input);
 const base=JSON.parse(fs.readFileSync(input+'/checkpoint.private.json')),latest=JSON.parse(fs.readFileSync(input+'/latest.private.json'));
-assert.equal(base.syntheticOnly,true);assert.equal(latest.syntheticOnly,true);assert.equal(base.sourceId,'ats_crm_candidate_20261027');
+const expectedBinding=primary?JSON.parse(fs.readFileSync(folder+'/expected-binding.private.json')):undefined,scope=backupSourceScope(expectedBinding);
+assert.equal(base.syntheticOnly,scope.syntheticOnly);assert.equal(latest.syntheticOnly,scope.syntheticOnly);assert.equal(base.sourceId,scope.project);
+if(primary)assert.deepEqual(base.binding,expectedBinding);
 assert.deepEqual(latest.binding,base.binding);assert.equal(latest.sourceDbImage,base.sourceDbImage);
-assert.equal(latest.baseManifestSha256,base.baseManifestSha256);assert.equal(latest.privatePairSha256,base.privatePairSha256);
+assert.equal(latest.baseManifestSha256,base.baseManifestSha256);
+if(base.binding.privateFileFormat==='patch-v1'){
+ assert.equal(latest.staticPairSha256,base.staticPairSha256);
+ const assembly=JSON.parse(fs.readFileSync(input+'/assembled-files.private.json'));
+ const index=JSON.parse(fs.readFileSync(folder+'/file-assembly/file-index.private.json'));
+ assert.equal(createHash('sha256').update(JSON.stringify(index)).digest('hex'),assembly.fileIndexSha256);
+ assert.deepEqual(index,latest.filePatch?.current??latest.fileIndex);
+ assert.equal(assembly.sourceConnectionUsed,false);assert.equal(assembly.writeAdmission,false);
+}else assert.equal(latest.privatePairSha256,base.privatePairSha256);
 validateDatabaseRuntime(base.databaseRuntime,base.sourceDbImage);assert.match(latest.targetLsn,/^[A-F0-9]+\/[A-F0-9]+$/);
 const image='public.ecr.aws/supabase/postgres@'+base.sourceDbImage;assert.equal(image,'public.ecr.aws/supabase/postgres@sha256:b15d862126dd2dac02da524696ccfde2dcce2ceaee0a58973b2727befe492706');
 let step=0;const env={HOME:process.env.HOME,PATH:'/usr/bin:/bin',DOCKER_HOST:'unix:///run/user/501/docker.sock'};
@@ -43,7 +56,7 @@ chmod 700 /data /recovery
 chown -R ${uid}:${gid} /data /recovery /db-config
 `;
 docker(['run','--rm',...sandbox,'--user','0:0','--cap-add','CHOWN','--tmpfs','/tmp:size=16m,mode=0700','--mount','type=bind,src='+input+',dst=/read,readonly','--mount','type=volume,src='+data+',dst=/data','--mount','type=volume,src='+wal+',dst=/recovery','--mount','type=volume,src='+config+',dst=/db-config','--entrypoint','sh',image,'-c',prepare]);
-let created=false;let report={passed:false,syntheticOnly:true,productionChanged:false,sourceConnectionUsed:false};
+let created=false;let report={passed:false,syntheticOnly:scope.syntheticOnly,sourceId:scope.project,productionChanged:false,sourceConnectionUsed:false};
 try{
  docker(['run','--detach','--name',target,'--label','ats-purpose=separate-synthetic-native-recovery',...sandbox,'--user',uid+':'+gid,'--tmpfs','/tmp:size=16m,uid='+uid+',gid='+gid+',mode=0700','--mount','type=volume,src='+data+',dst=/var/lib/postgresql/data','--mount','type=volume,src='+wal+',dst=/recovery,readonly','--mount','type=volume,src='+config+',dst=/etc/postgresql-custom,readonly','--entrypoint','postgres',image,'-D','/var/lib/postgresql/data','-c','config_file=/recovery/postgresql.conf']);created=true;
  const query=sql=>execute(['exec','-i',target,'psql','-h','/tmp','-X','-Atq','-v','ON_ERROR_STOP=1','-U','supabase_admin','-d','postgres'],{input:sql}).stdout.trim();
@@ -56,7 +69,7 @@ try{
  const apiDenied=execute(['exec',target,'psql','-h','/tmp','-X','-Atq','-U','authenticator','-d','postgres','-c','select 1'],{allowFailure:true});
  assert.notEqual(apiDenied.status,0);assert.match(apiDenied.stderr,/pg_hba.conf rejects connection/);
  assert.equal(query('select database_started_at<>pg_postmaster_start_time() from hosting_guard.state;'),'t');
- const denied=execute(['exec','-i',target,'psql','-h','/tmp','-X','-Atq','-v','ON_ERROR_STOP=1','-U','supabase_admin','-d','postgres'],{input:'insert into public.candidate_fence_fixture values(990003);',allowFailure:true});assert.notEqual(denied.status,0);assert.match(denied.stderr,/read-only/);
+ const denied=execute(['exec','-i',target,'psql','-h','/tmp','-X','-Atq','-v','ON_ERROR_STOP=1','-U','supabase_admin','-d','postgres'],{input:'delete from public.activity_log where false;',allowFailure:true});assert.notEqual(denied.status,0);assert.match(denied.stderr,/read-only/);
  assert.deepEqual(JSON.parse(docker(['inspect',target]))[0].HostConfig.PortBindings??{},{});
  report={...report,passed:true,nativePgVerifyBackupPassed:true,recoverySettingsFromEncryptedPackage:true,tableFingerprintsMatched:actual.tables.length,rlsAndPermissionsMatched:true,functionFingerprintMatched:true,targetLsn:latest.targetLsn,replayPaused:true,coldWritesDenied:true,apiLoginsDisabled:apiLogins===0,apiConnectionsDenied:true,configurationVolumeRestored:true,managedRestoreVerified:false};
 }finally{

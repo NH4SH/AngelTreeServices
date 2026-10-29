@@ -18,6 +18,14 @@ select jsonb_build_object(
  'nativeInventoryDefinitionMd5',md5(pg_get_functiondef('ats_recovery_lab.native_inventory(text,uuid)'::regprocedure)),
  'nativeVerificationDefinitionMd5',md5(pg_get_functiondef('public.ats_recovery_native_verification(text,uuid,boolean)'::regprocedure)),
  'nativeAttemptTriggerDefinitionMd5',md5(pg_get_functiondef('ats_recovery_lab.require_native_verification()'::regprocedure)),
+ 'nativeRetentionDefinitionMd5',md5(pg_get_functiondef('public.ats_recovery_native_retention(jsonb)'::regprocedure)),
+ 'nativeRetentionSnapshotDefinitionMd5',md5(pg_get_functiondef('ats_recovery_lab.native_retention_snapshot(text)'::regprocedure)),
+ 'nativeRetentionPermissionsClosed',(select p.prosecdef and pg_get_userbyid(p.proowner)='postgres' and p.proconfig=array['search_path=pg_catalog, ats_recovery_lab']
+   and not has_function_privilege('anon',p.oid,'execute') and not has_function_privilege('authenticated',p.oid,'execute') and has_function_privilege('service_role',p.oid,'execute')
+   and not has_function_privilege('anon','ats_recovery_lab.native_retention_snapshot(text)','execute')
+   and not has_function_privilege('authenticated','ats_recovery_lab.native_retention_snapshot(text)','execute')
+   and not has_function_privilege('service_role','ats_recovery_lab.native_retention_snapshot(text)','execute')
+   from pg_proc p where p.oid='public.ats_recovery_native_retention(jsonb)'::regprocedure),
  'nativeVerificationPermissionsClosed',(select p.prosecdef and pg_get_userbyid(p.proowner)='postgres' and p.proconfig=array['search_path=pg_catalog, ats_recovery_lab']
    and not has_function_privilege('anon',p.oid,'execute') and not has_function_privilege('authenticated',p.oid,'execute') and has_function_privilege('service_role',p.oid,'execute')
    and not has_function_privilege('anon','ats_recovery_lab.require_native_verification()','execute')
@@ -46,7 +54,7 @@ select jsonb_build_object(
    and not has_function_privilege('anon',p.oid,'execute') and not has_function_privilege('authenticated',p.oid,'execute') and has_function_privilege('service_role',p.oid,'execute')
    and not has_function_privilege('anon','ats_recovery_lab.charge_bytes(text,bigint)','execute') and not has_function_privilege('authenticated','ats_recovery_lab.charge_bytes(text,bigint)','execute')
    and not has_function_privilege('service_role','ats_recovery_lab.charge_bytes(text,bigint)','execute') from pg_proc p where p.oid='public.ats_recovery_incremental_control(jsonb)'::regprocedure),
- 'labTablesClosed',(select count(*)=9 and bool_and(c.relrowsecurity and not has_schema_privilege('anon',n.oid,'usage') and not has_schema_privilege('authenticated',n.oid,'usage')
+ 'labTablesClosed',(select count(*)=11 and bool_and(c.relrowsecurity and not has_schema_privilege('anon',n.oid,'usage') and not has_schema_privilege('authenticated',n.oid,'usage')
    and not has_table_privilege('anon',c.oid,'select') and not has_table_privilege('authenticated',c.oid,'select') and not has_table_privilege('service_role',c.oid,'select'))
    from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='ats_recovery_lab' and c.relkind='r')
 ) evidence from supabase_migrations.schema_migrations where name not like 'recovery_verifier_lab%';

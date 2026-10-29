@@ -1,89 +1,107 @@
 {
-  "projectRef": "gbyhdsuiqeslgjdnbqng",
   "applicationCount": 129,
-  "applicationVersionsMd5": "166e4aac5f22e788561f6acd61478441",
   "applicationLedgerMd5": "42b9556b3e7f31050aa8a8c070cc8814",
+  "applicationVersionsMd5": "166e4aac5f22e788561f6acd61478441",
+  "authGuardMd5": "c601aeb6c6c0ad4da79265034f84c1a6",
+  "authUsers": 49,
+  "businessPolicyCount": 303,
+  "certifiedCheckpointClosed": true,
+  "certifiedCheckpointMd5": "ec637b340abc4698787c40200fb8d1c8",
+  "chargeDefinitionMd5": "48854ac9985a85ff71b2f47d1c4b5d9c",
+  "controlDefinitionMd5": "c789f6b03b07631ce1892adfe78c0e35",
+  "incrementalDefinitionMd5": "5998c3db0f26b78e9a172eac947b2cea",
+  "incrementalPermissionsClosed": true,
+  "labPermissionsClosed": true,
+  "labTablesClosed": true,
   "latestApplicationVersion": "20261026212535",
   "maintenance": [
     {
-      "version": "20261028022311",
       "name": "recovery_verifier_lab_controls",
-      "statementsMd5": "cea6aedb32c9ddacd0ff558b37c37be5"
+      "statementsMd5": "cea6aedb32c9ddacd0ff558b37c37be5",
+      "version": "20261028022311"
     },
     {
-      "version": "20261028022719",
       "name": "recovery_verifier_lab_bounded_metadata",
-      "statementsMd5": "e94f69c8dc2488504891fc001a351f9d"
+      "statementsMd5": "e94f69c8dc2488504891fc001a351f9d",
+      "version": "20261028022719"
     },
     {
-      "version": "20261028034426",
       "name": "recovery_verifier_lab_incremental",
-      "statementsMd5": "5ae5a67e2decced39c7b0b6512143774"
+      "statementsMd5": "5ae5a67e2decced39c7b0b6512143774",
+      "version": "20261028034426"
     },
     {
-      "version": "20261028153023",
       "name": "recovery_verifier_lab_standby_capability",
-      "statementsMd5": "532dacbc6cf241bfa3d11b323f31c96b"
+      "statementsMd5": "532dacbc6cf241bfa3d11b323f31c96b",
+      "version": "20261028153023"
     },
     {
-      "version": "20261028153416",
       "name": "recovery_verifier_lab_standby_fence_trial",
-      "statementsMd5": "b788be9966189cc2e734e4ff0c6cc0fe"
+      "statementsMd5": "b788be9966189cc2e734e4ff0c6cc0fe",
+      "version": "20261028153416"
     },
     {
-      "version": "20261028153419",
       "name": "recovery_verifier_lab_standby_fence_trial_restore",
-      "statementsMd5": "17d268f4e9307310b2eaeeb28c6d9410"
+      "statementsMd5": "17d268f4e9307310b2eaeeb28c6d9410",
+      "version": "20261028153419"
     },
     {
-      "version": "20261028164607",
       "name": "recovery_verifier_lab_standby_fence_verified_trial",
-      "statementsMd5": "3b74c5f13a274785edcc6dec117b41b6"
+      "statementsMd5": "3b74c5f13a274785edcc6dec117b41b6",
+      "version": "20261028164607"
     },
     {
-      "version": "20261028164611",
       "name": "recovery_verifier_lab_standby_fence_verified_restore",
-      "statementsMd5": "81c7cc8c8c4e8981ab44dbcba9fdf2ef"
+      "statementsMd5": "81c7cc8c8c4e8981ab44dbcba9fdf2ef",
+      "version": "20261028164611"
     },
     {
-      "version": "20261028194042",
       "name": "recovery_verifier_lab_certified_checkpoints",
-      "statementsMd5": "eaabde7f7aebdbdc866a86edd573d25b"
+      "statementsMd5": "eaabde7f7aebdbdc866a86edd573d25b",
+      "version": "20261028194042"
     },
     {
-      "version": "20261028215126",
       "name": "recovery_verifier_lab_native_wal_chain",
-      "statementsMd5": "95e40b14d6b4e27dac52d2d466de3b54"
+      "statementsMd5": "95e40b14d6b4e27dac52d2d466de3b54",
+      "version": "20261028215126"
     },
     {
-      "version": "20261028221640",
       "name": "recovery_verifier_lab_native_wal_verification_lease",
-      "statementsMd5": "fca314615467950ecaa2c5b9e4a613b2"
+      "statementsMd5": "fca314615467950ecaa2c5b9e4a613b2",
+      "version": "20261028221640"
     },
     {
-      "version": "20261028230705",
       "name": "recovery_verifier_lab_native_inventory_prefix",
-      "statementsMd5": "4c59197da9cf5d36a4274b2ea52272f0"
+      "statementsMd5": "4c59197da9cf5d36a4274b2ea52272f0",
+      "version": "20261028230705"
+    },
+    {
+      "name": "recovery_verifier_lab_native_file_patch",
+      "statementsMd5": "1edbb4100222723a46742e601b3ff74b",
+      "version": "20261029021917"
+    },
+    {
+      "name": "recovery_verifier_lab_native_chain_retirement",
+      "statementsMd5": "672df76e3d304a54f62454b32b4c64d3",
+      "version": "20261029030934"
+    },
+    {
+      "name": "recovery_verifier_lab_native_retirement_pin_safety",
+      "statementsMd5": "0612ba1d3afd5485d29ecbd284e1ad11",
+      "version": "20261029042757"
     }
   ],
-  "controlDefinitionMd5": "c789f6b03b07631ce1892adfe78c0e35",
-  "authGuardMd5": "c601aeb6c6c0ad4da79265034f84c1a6",
-  "standbyCapabilityMd5": "b42bb227446782e71c649296b41f03d5",
-  "standbyCapabilityClosed": true,
-  "certifiedCheckpointMd5": "ec637b340abc4698787c40200fb8d1c8",
-  "certifiedCheckpointClosed": true,
-  "businessPolicyCount": 303,
-  "authUsers": 49,
-  "labPermissionsClosed": true,
-  "labTablesClosed": true,
-  "incrementalDefinitionMd5": "5998c3db0f26b78e9a172eac947b2cea",
-  "chargeDefinitionMd5": "48854ac9985a85ff71b2f47d1c4b5d9c",
-  "incrementalPermissionsClosed": true,
-  "nativeControlDefinitionMd5": "ee585f4f9812e7fea62eb89ecdd635a7",
-  "nativeInventoryDefinitionMd5": "a18b10b07d0277266505b639cb4bf704",
-  "nativeAuthorityDisabled": true,
-  "nativePermissionsClosed": true,
-  "nativeVerificationDefinitionMd5": "85607e1ddc12edec71fae215498a58b6",
   "nativeAttemptTriggerDefinitionMd5": "49a3461763c7a05c92dab03f8ae5d68c",
-  "nativeVerificationPermissionsClosed": true
+  "nativeAuthorityDisabled": true,
+  "nativeControlDefinitionMd5": "22ba645b28655ec482fbc712b3584798",
+  "nativeInventoryDefinitionMd5": "a18b10b07d0277266505b639cb4bf704",
+  "nativePermissionsClosed": true,
+  "nativeRetentionDefinitionMd5": "c186b4e726767b272c4dce61d318e10a",
+  "nativeRetentionPermissionsClosed": true,
+  "nativeRetentionSnapshotDefinitionMd5": "a0b9e7e45449fca3912c7d9fb7a9f083",
+  "nativeVerificationDefinitionMd5": "85607e1ddc12edec71fae215498a58b6",
+  "nativeVerificationPermissionsClosed": true,
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "standbyCapabilityClosed": true,
+  "standbyCapabilityMd5": "b42bb227446782e71c649296b41f03d5"
 }

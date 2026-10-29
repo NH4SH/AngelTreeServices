@@ -1,0 +1,13 @@
+import{test}from'node:test';import assert from'node:assert/strict';import{createHash}from'node:crypto';import{primaryEdgeProxy}from'./primary-edge-proxy.mjs';
+const token='a'.repeat(64),origin='https://crm-home.angeltreeservices.org',url='https://admin.angeltreeservices.org';
+test('edge streams a 25 MiB private upload intact and replaces forged identity',async()=>{
+ const bytes=Buffer.alloc(25*1024*1024,67),hash=b=>createHash('sha256').update(b).digest('hex');let calls=0;
+ const proxy=primaryEdgeProxy({origin,token,fetchImpl:async(target,options)=>{
+  calls++;assert.equal(target.href,origin+'/api/files?name=a%2Fb');assert.equal(options.redirect,'manual');assert.equal(options.headers.get('x-ats-proxy-token'),token);assert.equal(options.headers.get('x-ats-original-client-ip'),'192.0.2.5');assert.equal(options.headers.get('x-forwarded-for'),null);assert.equal(options.headers.get('x-nf-client-connection-ip'),null);assert.equal(options.headers.get('cookie'),'session=synthetic');assert.equal(options.headers.get('stripe-signature'),'synthetic');assert.equal(hash(Buffer.from(await new Response(options.body).arrayBuffer())),hash(bytes));
+  return new Response(bytes,{headers:{'content-type':'application/octet-stream','x-ats-private':'hidden','cache-control':'public, max-age=300'}});
+ }});
+ const result=await proxy(new Request(url+'/api/files?name=a%2Fb',{method:'POST',headers:{cookie:'session=synthetic','stripe-signature':'synthetic','x-forwarded-for':'1.2.3.4','x-nf-client-connection-ip':'1.2.3.4','x-ats-original-client-ip':'1.2.3.4'},body:bytes}),{ip:'192.0.2.5'});
+ assert.equal(hash(Buffer.from(await result.arrayBuffer())),hash(bytes));assert.equal(result.headers.get('cache-control'),'private, no-store');assert.equal(result.headers.get('x-ats-private'),null);assert.equal(calls,1);
+});
+test('edge has no cloud fallback or mutation replay on failure',async()=>{let calls=0;const proxy=primaryEdgeProxy({origin,token,fetchImpl:async()=>{calls++;throw Error('network');}});assert.equal((await proxy(new Request(url+'/api/payments',{method:'POST',body:'synthetic'}),{ip:'2001:db8::1'})).status,503);assert.equal(calls,1);assert.equal((await proxy(new Request(url),{ip:''})).status,503);assert.equal(calls,1);});
+test('edge preserves cookie headers and rewrites only home-origin redirects',async()=>{const proxy=primaryEdgeProxy({origin,token,fetchImpl:async()=>new Response(null,{status:302,headers:{location:origin+'/login?next=%2Fadmin','set-cookie':'session=synthetic; Secure; HttpOnly; Path=/'}})});const r=await proxy(new Request(url+'/admin'),{ip:'192.0.2.1'});assert.equal(r.headers.get('location'),url+'/login?next=%2Fadmin');assert.match(r.headers.get('set-cookie'),/Secure; HttpOnly/);});

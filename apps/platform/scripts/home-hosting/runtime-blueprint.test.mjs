@@ -50,3 +50,9 @@ test('upstream SQL initialization templates are captured even with SELinux label
   config.services.db.volumes=['./volumes/db/roles.sql:/var/lib/postgresql/data/roles.sql:Z'];
   writeFileSync(join(core,'compose.json'),JSON.stringify(config));assert.throws(()=>runtimeBlueprint(core,ops),/Mutable bind/);
 });
+test('volatile public admission is excluded from recovery and cannot be app writable',t=>{
+ const root=mkdtempSync(join(tmpdir(),'ats-blueprint-admission-'));t.after(()=>rmSync(root,{recursive:true,force:true}));const core=join(root,'core'),ops=join(root,'ops');mkdirSync(core);mkdirSync(ops);writeFileSync(join(ops,'gateway.mjs'),'// source');
+ const config={services:{app:{volumes:['../admission-public:/admission:ro']}}};writeFileSync(join(core,'compose.json'),JSON.stringify(config));
+ assert.deepEqual(runtimeBlueprint(core,ops).blueprint.files.map(f=>f.path),['operations/gateway.mjs']);
+ config.services.app.volumes=['../admission-public:/admission:rw'];writeFileSync(join(core,'compose.json'),JSON.stringify(config));assert.throws(()=>runtimeBlueprint(core,ops),/cannot write/);
+});

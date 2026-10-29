@@ -3,23 +3,27 @@
 // complete inventory before marking/deleting anything from this exact scope.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {backupSourceScope} from './backup-source-scope.mjs';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const hash=/^[a-f0-9]{64}$/;
 const day=86400000;
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
-export function planNativeChainRetention({namespace,bindingSha256,headJobId,jobs,pinned=[],now=Date.now()}) {
-  assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);
+export function planNativeChainRetention({namespace,bindingSha256,headJobId,jobs,pinned=[],now=Date.now(),expectedBinding}) {
+  const production=expectedBinding?.environment==='home-primary-v1';
+  if(production){assert.equal(backupSourceScope(expectedBinding).syntheticOnly,false);assert.equal(namespace,expectedBinding.namespace);}
+  else assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);
+  const maximumJobs=production?65536:8192;
   assert.match(bindingSha256,hash);assert.ok(Number.isSafeInteger(now)&&now>0);
-  assert.ok(Array.isArray(jobs)&&jobs.length>0&&jobs.length<=8192);
-  assert.ok(Array.isArray(pinned)&&pinned.length<=8192);
+  assert.ok(Array.isArray(jobs)&&jobs.length>0&&jobs.length<=maximumJobs);
+  assert.ok(Array.isArray(pinned)&&pinned.length<=maximumJobs);
   const byId=new Map(),sequences=new Set();
   for(const j of jobs) {
     assert.match(j.id,uuid);assert.equal(j.namespace,namespace);
     assert.equal(j.bindingSha256,bindingSha256);assert.ok(!byId.has(j.id));
     // A failed upload and its retry can have separate IDs at the same sequence.
-    assert.ok(Number.isSafeInteger(j.sequence)&&j.sequence>0&&j.sequence<=8192);
+    assert.ok(Number.isSafeInteger(j.sequence)&&j.sequence>0&&j.sequence<=maximumJobs);
     sequences.add(j.sequence);assert.ok(['base','delta'].includes(j.kind));
     assert.ok(Number.isFinite(Date.parse(j.createdAt))&&Date.parse(j.createdAt)<=now);
     if(j.verifiedAt!==null) {

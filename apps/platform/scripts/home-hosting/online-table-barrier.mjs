@@ -3,9 +3,10 @@
 // PostgreSQL owns the timeout, so a dead coordinator cannot hold locks forever.
 import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import fs from 'node:fs';import {randomBytes} from 'node:crypto';
 import {captureManifestSql} from './capture-manifest.mjs';
+import {onlineBackupSourceScope} from './backup-source-scope.mjs';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 export async function openOnlineTableBarrier(io){
- assert.equal(process.env.ATS_TABLE_BARRIER_REHEARSAL,'1');assert.equal(io.project,'ats_crm_candidate_20261027');io.assertSource();
+ onlineBackupSourceScope(io);io.assertSource();
  const nonce=randomBytes(12).toString('hex'),started=Date.now(),child=spawn('/usr/bin/docker',['exec','--interactive','--env','PGAPPNAME=ATS_PAIR_BARRIER_'+io.id,io.db,'psql','-X','-Atq','-v','ON_ERROR_STOP=1','-U','supabase_admin','-d','postgres'],{env:io.env,stdio:['pipe','pipe','pipe']});
  let stdout='',stderr='',ended=false,exitCode;child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');
  child.stdout.on('data',data=>{stdout+=data;if(Buffer.byteLength(stdout)>1048576)child.kill();});

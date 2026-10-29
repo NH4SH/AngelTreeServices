@@ -474,3 +474,136 @@ checks. `git diff --check` passed. The original production Netlify deploy
 `ddvlnixdugcbnrewktes` is healthy on PostgreSQL 17.6.1.127. The Website chat was
 updated under the owner's explicit coordination authorization; no Firewood
 activation or production switch was implied.
+
+## October 29 — incremental files and production-adapter verification
+
+**The canonical production CRM has not moved.** Netlify still publishes deploy
+`6adab6d33b9c3096a37ad0a1`; managed project `ddvlnixdugcbnrewktes` remains its
+writer. The private Mac copy has no active write authority, no API login roles
+and no running CRM application. No customer emails or payments were initiated.
+
+Verified evidence:
+
+- File-aware native checkpoints `18294554e7af` restored 177 database table
+  fingerprints plus seven private files and 14 Linux attributes independently.
+- The actual production adapter trial `cc4b4c922baf` completed four certified
+  checkpoints. Suspending its watchdog and rootless Docker daemon still stopped
+  all seven services after **279,048 ms**; the long transaction rolled back and
+  a cold write was refused. The source authority was disabled after the trial.
+- Independent recovery `f07fc8d30b50` downloaded **9,385,632 bytes**, verified
+  ciphertext and native PostgreSQL backup/replay, matched 176 table fingerprints,
+  and recovered its private file, two attributes and actual Storage backend
+  headers. It used no connection to the home source and left recovery stopped.
+- A fresh, consistent **read-only** managed snapshot imported into a new private
+  Mac volume. All **172 imported table row counts and hashes** matched, including
+  three users, 54 invoices, 40 payments, delivery history and original migration
+  metadata. The source file inventory was zero.
+- Actual catalog reconciliation preserved the existing profile reset timestamp
+  and three newer migration-history columns absent from the recorded migration
+  files. All **265 business function definitions**, all row-security policies,
+  and **215 existing relation privilege/owner definitions** match. The reviewed
+  platform RLS helper has the required self-hosted superuser owner. Two empty
+  Storage-owned Iceberg tables are image internals, with no application activation.
+- Thin edge preview `6ae2e1b3c6b00dc6b1a96423` passed real **25 MiB upload and
+  download** hash checks, multiple cookies, unchanged webhook bytes/signatures,
+  canonical host, website Origin, forged-address stripping and private caching.
+  It contains the five existing scheduler entrypoints, held during verification;
+  it contains no second Next.js CRM server. The Next.js adapter is skipped for
+  this artifact only; existing site settings are preserved.
+- `crm-home.angeltreeservices.org` is a separate CNAME to the existing home
+  scanner address. Its vhost shares the original Caddy listener; scanner,
+  staging scanner and checkout routes remain intact. Seven scanner container IDs
+  were preserved and their existing responses rechecked. The canonical CRM
+  hostname has not changed routing.
+- Retention serializes against head/pin changes, retains dependency closures,
+  versions and audit rows, and meters transfers. A batch shares one catalog;
+  retirement observations store a compact digest rather than duplicating the
+  growing catalog for each retired component. Private production-authority
+  maintenance was installed only on Recovery Rehearsal WAL.
+
+### Credential gate — unresolved; do not cut over
+
+The bulk Netlify environment export contains masked production secrets. A
+length-only presence check was insufficient. The copied private app/SMTP
+configuration must not be treated as usable production configuration.
+
+Netlify's Secrets Controller makes production values write-only outside its
+runtime. Do not build an environment-dump endpoint or export protected values.
+A private, expiring comparison-only draft was tested; it returns equality flags,
+never values/hashes. Its unpublished context cannot see production-only values,
+so its matches **do not establish production equality**. No candidate is
+approved solely on that draft result.
+
+Original scanner and customer-email worker setup credentials are retained in the
+restricted October 21 activation workspace. Other already-held candidates need
+independent cryptographic/provider checks. The already-held portal encryption
+key now matches all 139 proposal and 41 invoice encrypted tokens and their stored
+hashes; the calendar encryption key decrypts the single saved connection. No
+plaintext was printed. The existing email-key candidate failed authentication
+and is not approved. The original CRM live Stripe API key
+and CRM signing secret were not found in the CRM/Website private files checked.
+The newer Firewood-only key is a separate service credential and must not be
+silently substituted. No existing key has been rotated or overwritten.
+
+If the original CRM key cannot be recovered, the proposed addition is a separate
+**CRM-only restricted live Stripe key**, retaining all existing keys. Scope it to
+existing code: Checkout Sessions write; Payment Intents write (including cancel);
+Confirmation Tokens, Charges, Refunds, Disputes, Balance/Balance Transactions and
+Events read. No refund, payout, transfer, account-settings or key-management write
+permission is needed. Retrieve the existing CRM endpoint signing secret privately;
+do not rotate it or create another webhook endpoint. Verify equivalent permissions
+in an isolated test environment and live account identity with read-only requests
+before enabling the Mac. This is a credential decision, not authority to alter
+payment behavior, replay events or charge customers.
+
+The connected live account `acct_1Tv92EI7tY6VHUvU` was independently matched by
+retrieving an existing CRM Checkout Session read-only. Its single existing live
+CRM webhook is enabled at the canonical `/api/stripe/webhook` URL. Neither its
+signing secret nor any new API key was obtained by that metadata check. The
+owner's decision about an additional restricted CRM key remains pending.
+
+### Final closed-state verification
+
+The final operations suite passed **185 tests, zero failures/skips**. An additional
+startup/admission guard refuses the current `precopy-readonly` approval even if a
+valid backup receipt exists. Admission and every subsequent lease renewal reread
+the private handoff record and require the correct published release, database
+and newer writer generation, managed API denial with no remaining API sessions,
+the final snapshot/history checks, usable integration credentials and both
+schedulers held. The actual private Mac pre-copy failed this gate as intended;
+only its internal database is running. No completed handoff record was fabricated.
+
+This operator record is an activation interlock, not independent proof that the
+cloud was fenced. The cutover operator must obtain and retain the real fence and
+drain evidence before writing it. It never replaces the signed backup receipt,
+short database lease, HTTP admission or independent kernel deadline.
+
+The temporary synthetic origin probe was stopped and its Caddy path removed via
+graceful reload. All seven scanner container identities remain unchanged. The
+separate inactive home-origin route remains prepared; scanner and staging-scanner
+unauthenticated access still returns 401, checkout and the current CRM login
+return 200. Production deploy `6adab6d33b9c3096a37ad0a1` is still current.
+
+Recovery Rehearsal WAL is paused after its authority was disabled. CRM Staging
+was resumed and its read-only profile matched exactly: 129 application entries,
+15 reviewed maintenance entries, unchanged business policies and Auth guard,
+disabled recovery authority and closed client permissions. No paid project or
+production change was required.
+
+### Capacity and final handoff gates
+
+The reviewed file protocol currently bounds the complete file inventory to
+512 files/64 MiB and each component to its reviewed transfer limits. The free
+account transfer reservation and retention/catalog bounds are finite. Reaching
+any bound closes writes; it must never silently skip a file or extend a permit.
+The current production inventory is empty and fits, but expansion must be reviewed
+before heavy photo/document use. There is no unlimited-storage or automatic
+failover claim.
+
+Before moving traffic: resolve usable credentials; refresh the final private
+runtime and configuration; recheck free capacity and independent recovery; hold
+all workers; positively fence/drain the managed writer; capture/import a fresh
+consistent final snapshot; establish the Mac's certified backup/watch/deadline;
+then publish the thin entry artifact. Release the single existing scheduler only
+after payment/delivery reconciliation. Retain the managed recovery target and
+all prior work. Resume CRM Staging after any approved free-project swap.

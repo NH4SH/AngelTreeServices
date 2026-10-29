@@ -2,6 +2,7 @@
 // validate identity, coverage and gzip integrity; they do not replace WAL replay.
 import assert from 'node:assert/strict';
 import {gunzipSync} from 'node:zlib';
+import {backupSourceScope} from './backup-source-scope.mjs';
 const segmentBytes=16*1024*1024;
 export function walLsn(value){assert.match(value,/^[0-9A-F]{1,8}\/[0-9A-F]{1,8}$/);const [a,b]=value.split('/');return(BigInt('0x'+a)<<32n)+BigInt('0x'+b);}
 export function walSegmentNumber(name,timeline){
@@ -27,9 +28,9 @@ export function validateWalCoverage(names,baseRange,checkpoint){
  assert.equal(walSegmentNumber(checkpoint.targetWalFile,checkpoint.timeline),last);
  return {segmentsRequired:Number(last-first+1n),targetLsn:checkpoint.targetLsn};
 }
-export function validateWalDelta(manifest){
- assert.equal(manifest.version,1);assert.equal(manifest.format,'native-wal-independent-archive-v1');
- assert.equal(manifest.syntheticOnly,true);assert.equal(manifest.writeAdmission,false);
+export function validateWalDelta(manifest,{expectedBinding}={}){
+ assert.equal(manifest.version,1);assert.equal(manifest.format,manifest.binding?.privateFileFormat==='patch-v1'?'native-wal-file-delta-v1':'native-wal-independent-archive-v1');
+ assert.equal(manifest.syntheticOnly,backupSourceScope(expectedBinding).syntheticOnly);assert.equal(manifest.writeAdmission,false);
  for(const name of ['previousManifestSha256','baseManifestSha256'])assert.match(manifest[name],/^[a-f0-9]{64}$/);
  assert.match(manifest.systemIdentifier,/^[0-9]{1,20}$/);assert.ok(Number.isSafeInteger(manifest.timeline)&&manifest.timeline>0);
  const previous=walLsn(manifest.previousTargetLsn),target=walLsn(manifest.targetLsn);assert.ok(previous>0n&&previous<target);

@@ -7,10 +7,13 @@ import {verifyPrivateArchive} from './cloud-archive.mjs';
 import {validateWalSegment,validateWalCoverage,validateWalDelta} from './wal-archive-policy.mjs';
 import {readRecoveryFile} from './recovery-files.mjs';
 import {validateDatabaseRuntime,nativeRecoveryIdentity} from './database-runtime.mjs';
+import {canonicalFileIndex,nativeFileIndexSha256,nativeFileStaticIdentity,nativeFileRecoveryIdentity,verifyNativeFilePatchArchive} from './native-file-patch.mjs';
+import {backupSourceScope} from './backup-source-scope.mjs';
 export async function inspectWalRecovery({restored,ticket:t,delta,began,expectedBinding,parentProof,onPhase=()=>{}}){
  let phase;
    phase='paired-recovery';onPhase(phase);const bytes=readRecoveryFile(restored,delta?'manifest.private.json':'checkpoint.private.json',2*1024*1024);assert.equal(sha256(bytes),t.manifestSha256);
-   const m=JSON.parse(bytes);assert.equal(m.version,1);assert.equal(m.syntheticOnly,true);assert.equal(m.sourceId,'ats_crm_candidate_20261027');
+   const m=JSON.parse(bytes),scope=backupSourceScope(expectedBinding);assert.equal(m.version,1);assert.equal(m.syntheticOnly,scope.syntheticOnly);assert.equal(m.sourceId,scope.project);
+   const fileMode=expectedBinding?.privateFileFormat==='patch-v1';assert.ok(m.binding?.privateFileFormat===undefined||fileMode,'Explicit expected file format required');
    assert.match(m.sourceDbImage,/^sha256:[a-f0-9]{64}$/);
    if(expectedBinding){
     assert.deepEqual(m.binding,expectedBinding);assert.equal(m.namespace,expectedBinding.namespace);assert.equal(m.sequence,t.sequence);
@@ -19,28 +22,37 @@ export async function inspectWalRecovery({restored,ticket:t,delta,began,expected
     if(delta){
      assert.ok(parentProof);assert.equal(m.previousManifestSha256,parentProof.manifestSha256);
      assert.equal(m.previousTargetLsn,parentProof.targetLsn);assert.equal(m.baseManifestSha256,parentProof.baseManifestSha256);
-     assert.equal(m.privatePairSha256,parentProof.privatePairSha256);
+     if(fileMode)assert.equal(m.staticPairSha256,parentProof.staticPairSha256);
+     else assert.equal(m.privatePairSha256,parentProof.privatePairSha256);
      assert.equal(m.databaseRuntimeSha256,parentProof.databaseRuntimeSha256);
     }
    }
 
-   let pairing,coverage,nativeBaseFilesVerified=0,walHeadersAndGzipVerified=0;
+   let pairing,coverage,nativeBaseFilesVerified=0,walHeadersAndGzipVerified=0,fileIndex;
    if(delta){
-    phase='delta-coverage';onPhase(phase);coverage=validateWalDelta(m);
+    phase='delta-coverage';onPhase(phase);coverage=validateWalDelta(m,{expectedBinding});
     const files=readdirSync(join(restored,'wal'));assert.deepEqual([...files].sort(),m.files.map(f=>f.name+'.gz').sort());
     for(const file of m.files){const path=join(restored,'wal',file.name+'.gz');assert.ok(lstatSync(path).isFile()&&!lstatSync(path).isSymbolicLink());
      const bytes=readRecoveryFile(restored,'wal/'+file.name+'.gz');assert.equal(bytes.length,file.size);assert.equal(sha256(bytes),file.sha256);validateWalSegment(bytes,file.name,m);}
     walHeadersAndGzipVerified=files.length;pairing={completeRecoveryPackage:false,parentRecoveryVerified:false};
+    if(fileMode){
+     assert.equal(nativeFileIndexSha256(parentProof.fileIndex),parentProof.fileIndexSha256);
+     const patchBytes=readRecoveryFile(restored,'objects.patch.tar');assert.equal(patchBytes.length,m.patchArchive.size);assert.equal(sha256(patchBytes),m.patchArchive.sha256);
+     await verifyNativeFilePatchArchive(createReadStream(join(restored,'objects.patch.tar')),parentProof.fileIndex,m.filePatch,{deadline:began+48000});
+     fileIndex=canonicalFileIndex(m.filePatch.current);assert.equal(nativeFileRecoveryIdentity(m.staticPairSha256,fileIndex),m.privatePairSha256);
+    }
    }else{
    assert.equal(m.sourceMigrationCount,102);assert.equal(m.privateFilesPaired,true);
    if(expectedBinding?.captureMode==='transaction-barrier'){
     assert.equal(m.pair.version,3);assert.equal(m.pair.captureMode,'transaction-barrier');assert.equal(m.writeAdmissionIssued,false);
     assert.equal(m.sourceWritesAdmitted,undefined);
    }else assert.equal(m.sourceWritesAdmitted,false);
-   pairing=await verifyWalPair(restored,m.pair);
+   if(fileMode){fileIndex=canonicalFileIndex(m.fileIndex);assert.equal(nativeFileStaticIdentity(m.pair,m.databaseRuntimeSha256),m.staticPairSha256);
+    assert.equal(nativeFileRecoveryIdentity(m.staticPairSha256,fileIndex),m.privatePairSha256);}
+   pairing=await verifyWalPair(restored,m.pair,{objectsIndex:fileIndex,expectedBinding});
    if(expectedBinding){
     assert.equal(validateDatabaseRuntime(m.databaseRuntime,m.sourceDbImage),m.databaseRuntimeSha256);
-    assert.equal(nativeRecoveryIdentity(m.pair.pairingSha256,m.databaseRuntimeSha256),m.privatePairSha256);
+    if(!fileMode)assert.equal(nativeRecoveryIdentity(m.pair.pairingSha256,m.databaseRuntimeSha256),m.privatePairSha256);
    }
    const manifestBytes=readRecoveryFile(restored,'base/backup_manifest',4*1024*1024);assert.equal(sha256(manifestBytes),m.baseManifestSha256);
    assert.equal(manifestBytes.toString().match(/"System-Identifier"\s*:\s*([0-9]+)/)?.[1],m.systemIdentifier);
@@ -55,6 +67,9 @@ export async function inspectWalRecovery({restored,ticket:t,delta,began,expected
    for(const name of names){validateWalSegment(readRecoveryFile(restored,'wal/'+name+'.gz'),name,m);}
    nativeBaseFilesVerified=expected.length;walHeadersAndGzipVerified=names.length;
    }
+ if(fileMode)assert.equal(Buffer.byteLength(JSON.stringify(fileIndex)),t.fileIndexBytes,'File index transfer was under-reserved');
  return {manifest:m,pairing,coverage,nativeBaseFilesVerified,walHeadersAndGzipVerified,
+ ...(fileMode?{fileIndex,fileIndexBytes:Buffer.byteLength(JSON.stringify(fileIndex)),fileIndexSha256:nativeFileIndexSha256(fileIndex),staticPairSha256:m.staticPairSha256,privateFileStateVerified:true,
+   ...(delta?{parentFileIndexSha256:parentProof.fileIndexSha256}:{})}:{}),
  privatePairSha256:expectedBinding?m.privatePairSha256:delta?m.privatePairSha256:m.pair.pairingSha256};
 }

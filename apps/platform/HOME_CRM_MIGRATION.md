@@ -1,9 +1,9 @@
 # Home Mac CRM migration
 
-Prepared October 27, 2026. **Production has not moved.** This work is isolated on
+Prepared October 27, 2026; status updated October 29. **Production has not moved.** This work is isolated on
 `codex/home-crm-hosting`; the pending materials lookup changes are preserved in
-their original worktree. No application features, production credentials, DNS,
-router rules, database settings, or scanner configuration were changed.
+their original worktree. The authorized separate home-origin DNS/Caddy route is
+prepared; canonical CRM routing and the existing scanner routes remain unchanged.
 
 **Latest verification:** [HOME_CRM_CUTOVER_VERIFICATION.md](HOME_CRM_CUTOVER_VERIFICATION.md)
 records the isolated production-feature runtime, managed-standby fencing and
@@ -13,11 +13,15 @@ The recovered online package also passed a clean managed-Supabase restore:
 158 selected tables, 90,563 rows, 102 original application migration entries and
 eight core API check groups, including payment replay, no resend and six private
 files. The managed Auth email probe was rate-limited before hook execution and
-is not claimed as an end-to-end pass. All 139 operations tests passed.
+is not claimed as an end-to-end pass. The latest suite passed **185 operations
+tests**, including the final single-writer handoff guard.
 
-Production remains Netlify/Supabase. Native-chain retention, a fresh real-data
-primary and protected ingress/provider handoff still precede live routing.
-Staging retains 129 application entries plus 12 separate recovery-lab entries.
+Production remains Netlify/Supabase. Incremental file recovery, guarded retention,
+a fenced private real-data pre-copy and a streaming edge preview are verified.
+Usable provider credentials and the final managed-writer handoff still precede
+live routing. Netlify's exported secret placeholders are unusable; no cutover
+has been attempted with them. Staging is restored and retains its exact original
+129 application entries plus 15 reviewed recovery-lab maintenance entries.
 All production authorizations and the five-minute loss limit remain in effect;
 synthetic rehearsal evidence is not a production writer permit.
 

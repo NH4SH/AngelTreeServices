@@ -6,6 +6,18 @@ import {validateObjectAttributes} from './object-file-metadata.mjs';
 import {verifyPrivateArchive} from './cloud-archive.mjs';
 const sha=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const compare=(a,b)=>Buffer.compare(Buffer.from(a),Buffer.from(b));
+export const nativeFileIndexSha256=index=>sha(canonicalFileIndex(index));
+export function nativeFileStaticIdentity(pair,databaseRuntimeSha256){
+  assert.match(databaseRuntimeSha256,/^[a-f0-9]{64}$/);assert.match(pair.runtimeSha256,/^[a-f0-9]{64}$/);
+  const names=['app.private.env','core.private.env','db-config.tar','release-source.tar.gz','runtime.private.json'];
+  const artifacts=Object.fromEntries(names.map(n=>{const a=pair.artifacts[n];assert.ok(a);assert.match(a.sha256,/^[a-f0-9]{64}$/);assert.ok(Number.isSafeInteger(a.size)&&a.size>=0);return[n,a];}));
+  assert.ok(Array.isArray(pair.collections['db-config']));
+  return sha({kind:'native-file-statics-v1',databaseRuntimeSha256,runtimeSha256:pair.runtimeSha256,dbConfig:pair.collections['db-config'],artifacts});
+}
+export function nativeFileRecoveryIdentity(staticSha256,index){
+  assert.match(staticSha256,/^[a-f0-9]{64}$/);
+  return sha({kind:'native-wal-file-state-v1',staticSha256,fileIndexSha256:nativeFileIndexSha256(index)});
+}
 
 export function canonicalFileIndex(input) {
   assert.ok(Array.isArray(input)&&input.length<=512);

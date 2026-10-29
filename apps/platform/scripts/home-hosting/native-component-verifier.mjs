@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,mkdirSync,rmSync} from 'node:fs';import {join} from 'node:path';import {spawnSync} from 'node:child_process';
 import {sha256,validateInventory,inventoryIdentity,cloudLimits} from './cloud-policy.mjs';
 import {inspectWalRecovery} from './wal-recovery-inspection.mjs';
+import {backupSourceScope} from './backup-source-scope.mjs';
 
 export function createNativeComponentVerifier({namespace,scratchRoot,restic,resticSha256,password,storage,ledger,beginVerification,now=()=>Date.now()}){
  let active=false;
@@ -13,11 +14,12 @@ export function createNativeComponentVerifier({namespace,scratchRoot,restic,rest
   let work,phase='verification-lease';const began=now();
   try{
    const job=await beginVerification(jobId,false);assert.equal(job.namespace,namespace);assert.equal(job.jobId,jobId);
-   assert.equal(job.bucket,'crm-native-lab-'+namespace.slice(-12));assert.equal(job.prefix,jobId+'/');
+   const scope=backupSourceScope(job.binding);
+   assert.equal(job.bucket,(scope.syntheticOnly?'crm-native-lab-':'crm-native-home-')+namespace.slice(-12));assert.equal(job.prefix,jobId+'/');
    if(job.completed)return {proof:job.proof,componentSha256:job.componentSha256,report:job.report,replayed:true};
    assert.equal(job.attempted,true);assert.ok(['base','delta'].includes(job.kind));const ticket=job.ticket;
    assert.equal(ticket.namespace,namespace);assert.deepEqual(ticket.binding,job.binding);assert.ok(Number.isSafeInteger(ticket.sequence)&&ticket.sequence>0);
-   assert.equal(ticket.capturePath,`/home/noelsierra.guest/candidate/native-${namespace.slice(-12)}/capture-${ticket.sequence}`);
+   assert.equal(ticket.capturePath,`${scope.root}/native-${namespace.slice(-12)}/capture-${ticket.sequence}`);
    assert.equal(sha256(readFileSync(restic)),resticSha256);
    const rpc=(action,fields={})=>ledger({action,namespace,jobId,bodySha:job.bodySha,...fields});
    phase='inventory';const inventory=validateInventory(await rpc('inventory'));assert.equal(inventory.rows.length,job.objects.length);
@@ -43,6 +45,8 @@ export function createNativeComponentVerifier({namespace,scratchRoot,restic,rest
    const proof={kind:'native-wal-component-v1',componentType:job.kind,jobId,binding:job.binding,snapshotId:ticket.snapshotId,manifestSha256:ticket.manifestSha256,
     targetLsn:m.targetLsn,baseManifestSha256:m.baseManifestSha256,databaseRuntimeSha256:m.databaseRuntimeSha256,privatePairSha256:inspected.privatePairSha256,
     completeRecoveryPackage:job.kind==='base',resticFullReadPassed:true,publicAccessDenied:true,writeAdmission:false,
+    ...(job.binding.privateFileFormat==='patch-v1'?{fileIndex:inspected.fileIndex,fileIndexBytes:inspected.fileIndexBytes,fileIndexSha256:inspected.fileIndexSha256,staticPairSha256:inspected.staticPairSha256,
+      privateFileStateVerified:true,...(job.kind==='delta'?{parentFileIndexSha256:inspected.parentFileIndexSha256}:{})}:{}),
     ...(job.kind==='delta'?{previousTargetLsn:m.previousTargetLsn,previousManifestSha256:m.previousManifestSha256}:{})};
    const report={downloadedBytes,durationMs:now()-began,nativeBaseFilesVerified:inspected.nativeBaseFilesVerified,walHeadersAndGzipVerified:inspected.walHeadersAndGzipVerified,
     receiptPermitsWrites:false,productionChanged:false};

@@ -1,18 +1,22 @@
 // Online synthetic candidate producer. Not a production installer. File and
 // database state share an explicit transaction barrier; no app session is killed.
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync,mkdirSync,existsSync,copyFileSync,renameSync,readdirSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,copyFileSync,renameSync,readdirSync,statSync,createReadStream} from 'node:fs';
 import {randomBytes} from 'node:crypto';
 import {digest,literal} from './candidate-io.mjs';
-import {captureWalStatic,captureOnlineWalPair,verifyWalPair} from './wal-pairing.mjs';
+import {captureWalStatic,captureOnlineWalPair,verifyWalPair,walStaticDescriptor} from './wal-pairing.mjs';
+import {captureReferencedObjectFilePatch,referencedObjectPaths,fileIndexFromInventory} from './referenced-object-files.mjs';
+import {canonicalFileIndex,nativeFileStaticIdentity,nativeFileRecoveryIdentity,verifyNativeFilePatchArchive} from './native-file-patch.mjs';
 import {captureDatabaseRuntime,nativeRecoveryIdentity,validateDatabaseRuntime} from './database-runtime.mjs';
 import {openOnlineTableBarrier} from './online-table-barrier.mjs';
 import {validateNativeWalReceipt} from './native-wal-checkpoint.mjs';import {walLsn,walSegmentNumber,validateWalSegment} from './wal-archive-policy.mjs';
+import {onlineBackupSourceScope} from './backup-source-scope.mjs';
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 export async function captureOnlineNativeCandidate(io,binding,sequence){
- assert.equal(process.env.ATS_TABLE_BARRIER_REHEARSAL,'1');assert.equal(binding.captureMode,'transaction-barrier');
+ const scope=onlineBackupSourceScope(io);assert.equal(binding.captureMode,'transaction-barrier');
  assert.equal(binding.admissionProtocol,'certified-native-wal-v1');assert.equal(binding.sourceScope,'crm-v1');
+ assert.ok(binding.privateFileFormat===undefined||binding.privateFileFormat==='patch-v1');const fileMode=binding.privateFileFormat==='patch-v1';
  assert.equal(io.folder,io.root+'/native-'+io.id);assert.ok(Number.isSafeInteger(sequence)&&sequence>0);
  io.assertSource();assert.equal(io.inspect(io.db).Image,binding.sourceDbImage);
  assert.equal(io.sql('select pg_postmaster_start_time()::text;'),binding.databaseBoot);
@@ -62,23 +66,34 @@ export async function captureOnlineNativeCandidate(io,binding,sequence){
   };
   let kind=!previous||Date.now()-Date.parse(previous.fullVerifiedAt)>=23*3600000?'base':'delta';
   if(kind==='base')takeBase();
+  const parentIndex=fileMode&&previousManifest?canonicalFileIndex(previousManifest.fileIndex??previousManifest.filePatch?.current):undefined;
+  const staticDescriptor=walStaticDescriptor(out,collections,runtimeSha256);
   const pairAtBarrier=async()=>{
    barrier=await openOnlineTableBarrier(io);const references=await barrier.objects();
+   if(fileMode&&kind==='delta'){
+    const {patch,index}=captureReferencedObjectFilePatch(io,out,references,parentIndex);
+    const staticPairSha256=nativeFileStaticIdentity(staticDescriptor,databaseRuntimeSha256);
+    return {patch,index,staticPairSha256,privatePairSha256:nativeFileRecoveryIdentity(staticPairSha256,index)};
+   }
    const pair=captureOnlineWalPair(io,out,references,staticState);
+   if(fileMode){const index=fileIndexFromInventory(pair.collections.objects,referencedObjectPaths(references,io.config.id,{expectedBinding:io.productionBinding}));
+    const staticPairSha256=nativeFileStaticIdentity(pair,databaseRuntimeSha256);
+    return {pair,index,staticPairSha256,privatePairSha256:nativeFileRecoveryIdentity(staticPairSha256,index)};}
    return {pair,privatePairSha256:nativeRecoveryIdentity(pair.pairingSha256,databaseRuntimeSha256)};
   };
-  let {pair,privatePairSha256}=await pairAtBarrier();
-  if(kind==='delta'&&privatePairSha256!==previous.privatePairSha256){
+  let {pair,index,patch,staticPairSha256,privatePairSha256}=await pairAtBarrier();
+  if(kind==='delta'&&(fileMode?staticPairSha256!==previousManifest.staticPairSha256:privatePairSha256!==previous.privatePairSha256)){
    await barrier.abort();barrier=undefined;
-   renameSync(out+'/objects.tar',evidence+'/probe-objects.tar');
-   if(existsSync(out+'/objects.tar.private.log'))renameSync(out+'/objects.tar.private.log',evidence+'/probe-objects.tar.private.log');
-   kind='base';takeBase();({pair,privatePairSha256}=await pairAtBarrier());
+   const name=fileMode?'objects.patch.tar':'objects.tar';renameSync(out+'/'+name,evidence+'/probe-'+name);
+   if(existsSync(out+'/'+name+'.private.log'))renameSync(out+'/'+name+'.private.log',evidence+'/probe-'+name+'.private.log');
+   kind='base';takeBase();({pair,index,patch,staticPairSha256,privatePairSha256}=await pairAtBarrier());
   }
   if(kind==='delta')firstSegment=walSegmentNumber(previousManifest.targetWalFile,binding.timeline)+1n;
   const cutoff=await barrier.capture(),barrierTimings=await barrier.finish();barrier=undefined;
   const {manifest:database,targetLsn,through,targetWalFile}=cutoff;
-  await verifyWalPair(out,pair);
-  for(const name of ['objects.tar','db-config.tar'])if(existsSync(out+'/'+name+'.private.log'))renameSync(out+'/'+name+'.private.log',evidence+'/'+name+'.private.log');
+  if(fileMode&&kind==='delta')await verifyNativeFilePatchArchive(createReadStream(out+'/objects.patch.tar'),parentIndex,patch);
+  else await verifyWalPair(out,pair,{objectsIndex:fileMode?index:undefined,expectedBinding:io.productionBinding});
+  for(const name of ['objects.tar','objects.patch.tar','db-config.tar'])if(existsSync(out+'/'+name+'.private.log'))renameSync(out+'/'+name+'.private.log',evidence+'/'+name+'.private.log');
   for(let n=0;;n++){assert.ok(n<80,'Completed native segment unavailable');const flushed=io.sql('select coalesce(bool_and(flush_lsn>='+literal(through)+'::pg_lsn),false) from pg_stat_replication where application_name='+literal('ATS_NATIVE_RECEIVER_'+io.id)+';');
    if(existsSync(walDir+'/'+targetWalFile+'.gz')&&flushed==='t')break;await sleep(100);}
   const lastSegment=walSegmentNumber(targetWalFile,binding.timeline);assert.ok(lastSegment>=firstSegment&&lastSegment-firstSegment<128n);
@@ -86,15 +101,17 @@ export async function captureOnlineNativeCandidate(io,binding,sequence){
   for(const file of readdirSync(walDir)){if(!/^[A-F0-9]{24}\.gz$/.test(file))continue;const name=file.slice(0,-3),number=walSegmentNumber(name,binding.timeline);if(number<firstSegment||number>lastSegment)continue;
    const bytes=readFileSync(walDir+'/'+file);validateWalSegment(bytes,name,binding);copyFileSync(walDir+'/'+file,out+'/wal/'+file);files.push({name,size:bytes.length,sha256:digest(bytes)});}
   assert.equal(files.length,Number(lastSegment-firstSegment+1n));assert.equal(io.sql('select hosting_guard.catalog_fingerprint();'),binding.topology);
-  const manifest={version:1,syntheticOnly:true,namespace:binding.namespace,binding,sequence,sourceId:binding.sourceId,sourceDbImage:binding.sourceDbImage,
+  const manifest={version:1,syntheticOnly:scope.syntheticOnly,namespace:binding.namespace,binding,sequence,sourceId:binding.sourceId,sourceDbImage:binding.sourceDbImage,
    sourceMigrationCount:102,systemIdentifier:binding.systemIdentifier,timeline:binding.timeline,databaseBoot:binding.databaseBoot,
    targetLsn,targetWalFile,baseManifestSha256,privatePairSha256,databaseRuntimeSha256,captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:new Date().toISOString(),database,barrierTimings,
    writeAdmissionIssued:false,
-   ...(kind==='base'?{pair,databaseRuntime,privateFilesPaired:true}:{format:'native-wal-independent-archive-v1',writeAdmission:false,previousTargetLsn:previous.targetLsn,previousManifestSha256:previous.manifestSha256,files})};
+   ...(fileMode?{staticPairSha256}:{}),
+   ...(kind==='base'?{pair,databaseRuntime,privateFilesPaired:true,...(fileMode?{fileIndex:index}:{})}:{format:fileMode?'native-wal-file-delta-v1':'native-wal-independent-archive-v1',writeAdmission:false,previousTargetLsn:previous.targetLsn,previousManifestSha256:previous.manifestSha256,files,
+    ...(fileMode?{filePatch:patch,patchArchive:{size:statSync(out+'/objects.patch.tar').size,sha256:digest(readFileSync(out+'/objects.patch.tar'))}}:{})})};
   if(kind==='delta'){
    // The independently certified base owns these unchanged inputs. Keep the
    // just-checked copies as evidence; the delta transports only new native WAL.
-   for(const name of Object.keys(pair.artifacts))renameSync(out+'/'+name,evidence+'/'+name);
+   for(const name of Object.keys(fileMode?staticDescriptor.artifacts:pair.artifacts))renameSync(out+'/'+name,evidence+'/'+name);
   }
   const manifestName=kind==='base'?'checkpoint.private.json':'manifest.private.json',bytes=Buffer.from(JSON.stringify(manifest));writeFileSync(out+'/'+manifestName,bytes,{mode:0o600});
   mkdirSync(io.folder+'/manifests',{recursive:true,mode:0o700});const manifestSha256=digest(bytes),saved=io.folder+'/manifests/'+manifestSha256+'.json';
@@ -110,7 +127,8 @@ export async function captureOnlineNativeCandidate(io,binding,sequence){
   run(['init','--repository-version','2']);const output=run(['backup','--json','--compression','max','--pack-size','8',out]);run(['check','--read-data']);
   const summary=output.trim().split('\n').map(s=>JSON.parse(s)).find(s=>s.message_type==='summary');
   const ticket={namespace:binding.namespace,binding,sequence,parentJobId:previous?.jobId??null,capturePath:out,snapshotId:summary.snapshot_id,manifestSha256,
-   captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:manifest.captureCompletedAt};
+   captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:manifest.captureCompletedAt,
+   ...(fileMode?{fileIndexBytes:Buffer.byteLength(JSON.stringify(index))}:{})};
   io.json('ticket-'+sequence+'.json',ticket);let encryptedBytes=0;function count(dir){for(const e of readdirSync(dir,{withFileTypes:true})){assert.ok(!e.isSymbolicLink());if(e.isDirectory())count(dir+'/'+e.name);else encryptedBytes+=statSync(dir+'/'+e.name).size;}}count(repo);
   return {kind,ticket,repository:repo,encryptedBytes,writeAdmissionIssued:false,barrierTimings,productionChanged:false};
  }finally{

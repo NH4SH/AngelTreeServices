@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, lstatSync, mkdirSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { resolve, relative, join } from 'node:path';
 import { sha256 } from './cloud-policy.mjs';
+import {backupSourceScope} from './backup-source-scope.mjs';
 
 export function runtimeBlueprint(configRoot, operationsRoot) {
   const root = resolve(configRoot), ops = resolve(operationsRoot);
@@ -19,6 +20,11 @@ export function runtimeBlueprint(configRoot, operationsRoot) {
       // inputs, not the live database directory. Include their exact bytes;
       // every other writable bind still needs a separate, reviewed capture.
       const destination = typeof mount === 'string' ? mount.split(':')[1] : mount.target;
+      // A restored/cold server must obtain a fresh signed permit. Never restore
+      // a saved public admission directory and accidentally revive old access.
+      if(service===compose.services.app&&source==='../admission-public'&&destination==='/admission'){
+        assert.equal(readonly,true,'The app cannot write its own admission');continue;
+      }
       const initializer = /^\.\/volumes\/db\/(realtime|webhooks|roles|jwt|_supabase|logs|pooler)\.sql$/.test(source) &&
         /^\/docker-entrypoint-initdb\.d\/(?:init-scripts|migrations)\/[0-9]{2}-[a-z_]+\.sql$/.test(destination ?? '');
       assert.ok(readonly === true || initializer, 'Mutable bind mounts need a separate recovery plan');
@@ -52,7 +58,7 @@ export function runtimeBlueprint(configRoot, operationsRoot) {
   return { blueprint, sha256: sha256(JSON.stringify(blueprint)), plaintextBytes: bytes };
 }
 
-export function validateRuntimeBlueprint(blueprint,{complete=false}={}){
+export function validateRuntimeBlueprint(blueprint,{complete=false,expectedBinding}={}){
   assert.equal(blueprint.version,1);assert.ok(blueprint.compose&&blueprint.compose.services);
   assert.ok(Array.isArray(blueprint.files)&&blueprint.files.length>0&&blueprint.files.length<=128);
   const seen=new Set();let total=0;
@@ -67,8 +73,9 @@ export function validateRuntimeBlueprint(blueprint,{complete=false}={}){
   assert.ok(total<=768*1024);
   if(complete){
     for(const name of ['db','app','api-gw','auth','rest','storage','imgproxy'])assert.ok(blueprint.compose.services[name]);
-    assert.ok(seen.has('selfhost/candidate-supervisor.mjs'));
-    for(const name of ['continuous-candidate.mjs','candidate-write-fence.sql','certified-checkpoint.mjs'])assert.ok(seen.has('operations/'+name));
+    const production=!backupSourceScope(expectedBinding).syntheticOnly;
+    assert.ok(seen.has(production?'selfhost/primary-supervisor.mjs':'selfhost/candidate-supervisor.mjs'));
+    for(const name of production?['primary-controller.mjs','primary-io.mjs','primary-write-fence.mjs','candidate-write-fence.sql','native-wal-checkpoint.mjs']:['continuous-candidate.mjs','candidate-write-fence.sql','certified-checkpoint.mjs'])assert.ok(seen.has('operations/'+name));
   }
   return sha256(JSON.stringify(blueprint));
 }

@@ -15,7 +15,7 @@ The recovered online package also passed a clean managed-Supabase restore:
 158 selected tables, 90,563 rows, 102 original application migration entries and
 eight core API check groups, including payment replay, no resend and six private
 files. The managed Auth email probe was rate-limited before hook execution and
-is not claimed as an end-to-end pass. The latest suite passed **185 operations
+is not claimed as an end-to-end pass. The latest suite passed **190 operations
 tests**, including the final single-writer handoff guard.
 
 The final managed-source copy matched 172 imported tables. New, explicitly
@@ -27,6 +27,11 @@ project is retained paused; the private recovery project stays active. CRM Stagi
 is restored and its exact profile verified after the approved free-slot swap,
 preserving 129 application entries plus 15 reviewed maintenance entries. The five-minute limit still closes
 writes when verification fails. Failover remains controlled and manual.
+
+The current backup file-inventory bound is **512 files/64 MiB total**; production
+had no stored objects at handoff. Review capacity before heavy attachment use.
+Exceeding a reviewed limit withholds the next receipt and closes CRM writes;
+there is no claim of unlimited free storage or unattended availability.
 
 [HOME_CRM_VERIFIER_ROTATION.md](HOME_CRM_VERIFIER_ROTATION.md)
 records the controlled overhead reduction, new-repository copy/readback/recovery,

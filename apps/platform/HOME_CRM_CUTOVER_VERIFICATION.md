@@ -1,9 +1,15 @@
 # Home-primary cutover verification
 
-October 28, 2026. **Production has not moved.** The owner authorized resolving the
-remaining gates and switching the CRM to the home Mac, with controlled manual
-Supabase recovery and up to five minutes of lost saved work. No paid change is
-authorized. This document continues the existing [migration roadmap](HOME_CRM_MIGRATION.md).
+Started October 28, 2026; live handoff October 29. **The CRM application and its
+database now run on the home Mac.** Netlify remains the canonical HTTPS entry and
+the single existing scheduler. Supabase holds independently verified encrypted
+recovery checkpoints, with controlled manual failover and a five-minute saved-work
+loss limit enforced by write fencing. The owner confirmed that the live dashboard
+opened after a fresh sign-in. No paid upgrade or unrelated feature release occurred.
+
+The earlier sections retain their historical pre-activation findings. The final
+live handoff below supersedes their statements that production had not moved.
+This document continues the existing [migration roadmap](HOME_CRM_MIGRATION.md).
 
 ## Completed checks
 
@@ -521,7 +527,7 @@ Verified evidence:
   growing catalog for each retired component. Private production-authority
   maintenance was installed only on Recovery Rehearsal WAL.
 
-### Credential gate — unresolved; do not cut over
+### Credential gate — resolved October 29; final handoff still required
 
 The bulk Netlify environment export contains masked production secrets. A
 length-only presence check was insufficient. The copied private app/SMTP
@@ -541,7 +547,7 @@ key now matches all 139 proposal and 41 invoice encrypted tokens and their store
 hashes; the calendar encryption key decrypts the single saved connection. No
 plaintext was printed. The existing email-key candidate failed authentication
 and is not approved. The original CRM live Stripe API key
-and CRM signing secret were not found in the CRM/Website private files checked.
+and CRM signing secret were not found in the CRM/Website private files initially checked.
 The newer Firewood-only key is a separate service credential and must not be
 silently substituted. No existing key has been rotated or overwritten.
 
@@ -560,7 +566,45 @@ The connected live account `acct_1Tv92EI7tY6VHUvU` was independently matched by
 retrieving an existing CRM Checkout Session read-only. Its single existing live
 CRM webhook is enabled at the canonical `/api/stripe/webhook` URL. Neither its
 signing secret nor any new API key was obtained by that metadata check. The
-owner's decision about an additional restricted CRM key remains pending.
+owner subsequently approved the additional restricted CRM key and completed
+Stripe's private passkey verification. The key was created in this matched CRM
+account. Its approved write scope is Checkout Sessions and Payment Intents;
+the other listed payment/recovery resources are read-only. Existing keys remain
+active. The existing canonical webhook signing secret was retrieved privately
+without rotation or a second endpoint.
+
+The owner also approved a new CRM Resend key in the original account containing
+the verified root sending domain. Resend offers sending-only or Full access;
+Full access was explicitly approved because delivery recovery retrieves existing
+messages, with its broader account-management capability disclosed. The old
+sending key, separate Firewood account, sender and reply-to settings were preserved.
+
+Nine Stripe checks passed using the runtime's Stripe SDK 22.3.2, including existing
+Checkout/PaymentIntent/charge/balance data, event recovery and offline webhook
+signature verification. Three email checks passed: original verified domain,
+existing CRM delivery receipt and TLS SMTP authentication. The actual Mac guest
+repeated the provider identity and SMTP checks successfully. No payment was
+created/cancelled/refunded and no email was sent; SMTP issued no mail commands.
+Live write permissions were checked against the approved form, not exercised on
+a customer's payment.
+
+The preserved portal keys were verified against 180 encrypted document tokens;
+the calendar key decrypted its existing connection and its unchanged OAuth grant
+refreshed successfully without calendar writes. Original scanner and worker
+credentials were copied from retained private activation artifacts. Other
+already-held settings were compared with visible production prefix/suffix
+metadata; this comparison alone does not establish full secret equality. Five
+known website origins passed read-only CORS checks and an unknown origin was denied.
+The actual managed Auth redirect list was retrieved read-only and preserved.
+New self-hosted Supabase keys and the canonical backend binding remain separate.
+
+All secrets are in restricted private files outside Git. Previous local settings
+were preserved. The refreshed native ARM64 runtime passed typecheck/build; stopped
+application/Auth containers were recreated with the verified settings. No API
+login was enabled, no application started, and the database container was retained.
+Credential verification does not authorize admission by itself: the final managed
+writer fence, fresh consistent snapshot, backup verification and single scheduler
+handoff are still required before routing production to the Mac.
 
 ### Final closed-state verification
 
@@ -600,10 +644,135 @@ The current production inventory is empty and fits, but expansion must be review
 before heavy photo/document use. There is no unlimited-storage or automatic
 failover claim.
 
-Before moving traffic: resolve usable credentials; refresh the final private
-runtime and configuration; recheck free capacity and independent recovery; hold
+Before moving traffic: recheck free capacity and independent recovery; hold
 all workers; positively fence/drain the managed writer; capture/import a fresh
 consistent final snapshot; establish the Mac's certified backup/watch/deadline;
 then publish the thin entry artifact. Release the single existing scheduler only
 after payment/delivery reconciliation. Retain the managed recovery target and
 all prior work. Resume CRM Staging after any approved free-project swap.
+
+## October 29 — live single-primary handoff
+
+The owner authorized resolving the remaining setup and moving the CRM after
+verification. Canonical maintenance began at 13:52 UTC. The managed writer was
+positively fenced/drained at 13:53; the final consistent copy matched at 13:55;
+the Mac started behind a certified checkpoint at 13:57. Login returned HTTP 200,
+the unauthenticated admin route redirected to login, and the owner subsequently
+confirmed successful live dashboard sign-in.
+
+| Component | Live state |
+| --- | --- |
+| Public CRM | `https://admin.angeltreeservices.org`, unchanged |
+| Application and database | Home VM `ats-crm-primary-20261029`, native ARM64 |
+| Production feature baseline | `8fa9df32`, 102 migrations, plus verified runtime/security transport |
+| Runtime | Node 22.23.4; Next 16.4.3; React 19.2.9; PostgreSQL 17.11 |
+| Netlify entry | `6ae35a9b14a56536ce2c9c1a`, published and locked |
+| Independent verifier | `6ae352aab706fe4dd95b0bd2`, published and locked, Node 22.23.4 |
+| Backup namespace | `ats-home-continuous-dbde68f901c7`, writer generation 2 |
+| Recovery provider | Private encrypted objects and independent authority in `nbsvdzscgfpabbbdwlob` |
+| Old managed project | `ddvlnixdugcbnrewktes`, original data retained, API writer fenced and project paused |
+
+The final snapshot matched all **172 imported table row counts and row hashes**,
+including all original user IDs, invoices, payments, delivery/provider IDs,
+idempotency keys, document tokens and migration history. The original 265 business
+function definitions, policies and relation privileges remained unchanged. Three
+Auth users, 54 invoices, 40 payments and all 76 accepted delivery records were
+preserved. The source private-file inventory was zero; no omitted object bytes
+were silently treated as recovered.
+
+Managed fencing preserved the original database ACL privately, retained only the
+existing temporary maintenance login needed for the final export, revoked API
+role/public CONNECT and terminated API sessions. Previously successful REST,
+Auth-admin and Storage requests then failed, with **zero remaining API sessions**.
+The final private handoff record was written only after this evidence and the
+matching final import existed. No synthetic rehearsal was relabeled as a live
+permit. The seven CRM services were started through the original admission,
+14-second SQL lease, separate watchdog and independent kernel deadline.
+
+The actual production backup loop has advanced beyond its first checkpoint using
+the permanently published verifier. New checkpoints remain on a two-minute
+schedule; a missed independent receipt closes admission rather than extending a
+stale lease. Source configuration, private environment files, runtime sources,
+database/WAL state and referenced file state are included in the encrypted
+recovery chain. Neither the cloud service key nor signing private key is installed
+on the home primary. The existing independent recovery/failure-drill evidence
+above still applies; no destructive outage drill was run against live customers.
+
+Payment/delivery reconciliation found **two legacy expired Stripe checkout links**
+that were still labeled open locally. Each matched its original invoice, amount,
+currency and provider identity; absent legacy reservation metadata was handled by
+the existing closure routine's reviewed compatibility rules. That unmodified
+routine verified expanded provider state and changed only each local checkout's
+terminal status to expired, with compare-and-set protection. No provider expiry,
+charge, cancellation, refund or email was issued. Records/history were retained.
+There were no CRM Stripe events during the handoff window requiring replay and
+no dispatching/unknown deliveries. A subsequent certified checkpoint includes
+the reconciled statuses.
+
+Only after reconciliation did the public worker gate and the five **existing**
+scheduler entrypoints resume. No additional timer or manual customer send was
+created. Originally unconfigured shared job/manager credentials remain
+unconfigured; this handoff does not silently activate additional automations.
+The deployment packager defaults to a held artifact; explicit release is bound
+to the reviewed artifact and still requires the independent home worker gate.
+The first per-deploy environment-based switch remained held in actual Netlify
+scheduled invocations, despite the requested release. That issue was caught in
+provider logs before any manual customer send. The replacement artifact's five
+behavior tests cover default denial before credential access, explicit release,
+the original canonical authenticated transport, foreign/staging/missing-credential
+denials, preservation of exactly the five original scheduler entrypoints, and
+an explicit `nodejs22.x` runtime on each timer. The platform default initially
+selected Node 24.21.0; source-bound runtime selection corrected that without
+changing account-wide settings. Actual 14:40 UTC invocations logged patched
+Node 22.23.4. Calendar and health scheduler wrappers completed with HTTP 204;
+their canonical Mac API calls returned HTTP 200. The optional shared-credential
+job/manager timers remain unconfigured and reject dispatch, as before.
+The full final operations suite passed **190 tests, zero failures/skips**.
+Netlify's publication lock
+was briefly released for the controlled scheduler-only publication, after checking
+that no other production build was running, then reapplied to the new entry.
+Future `main` pushes cannot silently replace this hosting entry.
+
+Live checks confirmed existing Auth users via the canonical backend, private
+business data denied to anonymous clients, successful allowed Website OPTIONS
+requests and denial of an unknown origin. Scanner and staging-scanner endpoints
+still require authentication. Website coordination confirmed no Website or
+Firewood runtime directly depends on the old managed database beyond canonical
+lead intake; Firewood contract/checkout-to-invoice work remains separate and is
+not claimed as implemented or deployed here. Unreleased CRM feature worktrees
+were preserved.
+
+CRM Staging was restored after the old managed project paused. Its exact read-only
+profile passed again: **129 original application migrations, 15 reviewed
+maintenance entries**, unchanged permissions and closed lab-client access.
+All 17 pending operational-work file hashes still match their pre-migration
+record; none were overwritten or bundled into this production feature baseline.
+
+### Capacity and operation after the move
+
+The refreshed ATS Free usage dashboard showed 0.885/5 GB uncached egress,
+0.404/5 GB cached egress and 0.037/1 GB average object storage. The private recovery
+authority retains its 1.1 GB carry-forward reservation plus its metered new
+traffic. Dashboard usage can lag by an hour; average storage is not a current
+inventory measurement. The recovery project's measured object inventory was
+28,080,313 bytes before the new live chain.
+
+Netlify's existing Free Legacy plan includes 100 function GB-hours and 125,000
+function calls. The account showed approximately 68 GB-hours and 162,000 calls
+for October, with no API usage-exceeded flag; the reported call count already
+exceeds the included figure and must not be treated as spare allowance. A
+two-minute, three-request backup cycle projects 66,960 calls per 31 days before
+retries/retention/other sites. Moving the CRM server off Netlify removes its old
+serverless page/API workload, but this is a measured capacity decision, not a
+guarantee of unlimited free operation. No card, paid service or plan was added.
+
+The reviewed 512-file/64 MiB inventory bound, component limits, metered provider
+budgets and retention bounds remain. Hitting a bound withholds the next receipt
+and closes the writer. Expansion requires review before heavy attachment use.
+Keep the home Mac plugged in with its lid open. FileVault remains enabled, so a
+cold reboot requires owner unlock. After a fence or restart, recovery/re-admission
+is controlled by an operator; there is no automatic cloud promotion or automatic
+replay of uncertain emails/payments. Cloud recovery must reconcile provider
+activity after its restore point before customer sending or financial operations
+resume. Existing provider keys were retained, as authorized; no existing key was
+rotated or deleted.

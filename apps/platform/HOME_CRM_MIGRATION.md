@@ -1,9 +1,11 @@
 # Home Mac CRM migration
 
-Prepared October 27, 2026; status updated October 29. **Production has not moved.** This work is isolated on
-`codex/home-crm-hosting`; the pending materials lookup changes are preserved in
-their original worktree. The authorized separate home-origin DNS/Caddy route is
-prepared; canonical CRM routing and the existing scanner routes remain unchanged.
+Prepared October 27, 2026; live handoff October 29. **The CRM application and
+database now run on the home Mac.** Netlify retains the unchanged public hostname
+and the existing scheduler; Supabase holds independently verified encrypted
+recovery checkpoints. The owner confirmed live dashboard sign-in. Hosting work
+is isolated on `codex/home-crm-hosting`; unreleased materials/CRM feature changes
+remain preserved in their original worktrees. Existing scanner routes are intact.
 
 **Latest verification:** [HOME_CRM_CUTOVER_VERIFICATION.md](HOME_CRM_CUTOVER_VERIFICATION.md)
 records the isolated production-feature runtime, managed-standby fencing and
@@ -16,14 +18,15 @@ files. The managed Auth email probe was rate-limited before hook execution and
 is not claimed as an end-to-end pass. The latest suite passed **185 operations
 tests**, including the final single-writer handoff guard.
 
-Production remains Netlify/Supabase. Incremental file recovery, guarded retention,
-a fenced private real-data pre-copy and a streaming edge preview are verified.
-Usable provider credentials and the final managed-writer handoff still precede
-live routing. Netlify's exported secret placeholders are unusable; no cutover
-has been attempted with them. Staging is restored and retains its exact original
-129 application entries plus 15 reviewed recovery-lab maintenance entries.
-All production authorizations and the five-minute loss limit remain in effect;
-synthetic rehearsal evidence is not a production writer permit.
+The final managed-source copy matched 172 imported tables. New, explicitly
+approved CRM Stripe/email credentials passed private provider checks; original
+encryption keys, sender identity and webhook signing secret were preserved.
+The old managed writer was fenced/drained before the Mac was admitted with a
+real independent checkpoint and a new writer generation. The original managed
+project is retained paused; the private recovery project stays active. CRM Staging
+is restored and its exact profile verified after the approved free-slot swap,
+preserving 129 application entries plus 15 reviewed maintenance entries. The five-minute limit still closes
+writes when verification fails. Failover remains controlled and manual.
 
 [HOME_CRM_VERIFIER_ROTATION.md](HOME_CRM_VERIFIER_ROTATION.md)
 records the controlled overhead reduction, new-repository copy/readback/recovery,
@@ -47,8 +50,9 @@ state below predates that installation.
 records the bounded continuous capture, offsite verification and independent
 deadline tests. [HOME_CRM_FAILOVER_VERIFICATION.md](HOME_CRM_FAILOVER_VERIFICATION.md)
 records the earlier native/managed restore and approved temporary staging pause.
-These findings supersede the earlier untested recovery gates below. Production
-backup activation and cutover remain unimplemented.
+These findings and the live handoff report supersede the historical untested
+recovery gates below. No automatic cloud promotion or unrelated feature release
+was introduced.
 
 ## Decision
 

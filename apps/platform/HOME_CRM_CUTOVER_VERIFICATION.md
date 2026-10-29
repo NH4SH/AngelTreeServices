@@ -698,6 +698,12 @@ recovery chain. Neither the cloud service key nor signing private key is install
 on the home primary. The existing independent recovery/failure-drill evidence
 above still applies; no destructive outage drill was run against live customers.
 
+At 14:49 UTC the live source had **27 certified checkpoints**, all seven services
+running and a current signed receipt. Strict proof-time validation rejected two
+initial replies; the same immutable requests recovered approximately five seconds
+later, preserving their original deadlines. The recovered error evidence remains
+in the private operator logs. No clock/admission check was relaxed to hide it.
+
 Payment/delivery reconciliation found **two legacy expired Stripe checkout links**
 that were still labeled open locally. Each matched its original invoice, amount,
 currency and provider identity; absent legacy reservation metadata was handled by
@@ -776,3 +782,9 @@ replay of uncertain emails/payments. Cloud recovery must reconcile provider
 activity after its restore point before customer sending or financial operations
 resume. Existing provider keys were retained, as authorized; no existing key was
 rotated or deleted.
+
+Local capture/operator evidence is also retained. At checkpoint 27 it occupied
+275,700 KiB and the guest had 51,680,028 KiB free. Cloud retirement does not prune
+those local files. A reviewed local evidence-retention routine remains a follow-up
+before long unattended operation; do not assume that a finite disk can grow
+without maintenance. No historical evidence was deleted during this handoff.

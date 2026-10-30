@@ -1,5 +1,36 @@
 # CRM Usability Regression Checks
 
+## Required local and CI baseline
+
+Run `npm ci`, `npm run test:unit`, `npm run typecheck`, and `npm run build` from
+`apps/platform`. The PR workflow tests Node 22.23.3 and 24.4.0 with no production
+secrets. `test:unit` includes every local `*.test.mjs` under `src/lib/` and
+`tests/`, including the manager-notification SQL and photo-storage SQL suites.
+`@electric-sql/pglite` is a pinned development dependency; the SQL tests do not
+silently skip when it is missing. `npm run test:photos` runs the photo suite alone.
+
+The photo fixture executes the actual repository authorization helpers and
+policies in isolated PostgreSQL, with minimal Supabase-owned auth/storage schema
+fixtures. It exercises the real server upload validator and database RLS but
+does not emulate Storage HTTP, image delivery or Auth sessions. It checks all
+six categories, metadata persistence, scoped retrieval and denied paths/users.
+The public bucket flag, MIME/size configuration and SELECT policy remain checked.
+
+## Separate infrastructure-dependent checks
+
+`npm run test:auth:integration` is the existing local Supabase Auth/Mailpit recovery
+test, excluded explicitly from ordinary CI. Provision an isolated local stack
+and set `SUPABASE_TEST_URL`, `SUPABASE_TEST_ANON_KEY`,
+`SUPABASE_TEST_SERVICE_ROLE_KEY`, and `SUPABASE_TEST_MAILPIT_URL` before invoking
+it. The test creates temporary users and sends recovery messages to Mailpit;
+**never point it at a production project or real mail service**. Without those
+values the existing test reports SKIP, which is not an integration-test pass.
+Browser fixtures below additionally require their documented tools/browsers.
+
+See `../DEVELOPMENT.md` for runtime and pending migration review notes.
+
+## Browser and detail-loading checks
+
 Run from `apps/platform`:
 
 ```sh

@@ -11,3 +11,10 @@ test('rejects changed, missing and truncated private file payloads',async()=>{
  const bytes=await archive([[{name:file.path},'hello']]);await assert.rejects(verifyPrivateArchive(input(bytes),[{...file,sha256:sha256('other')}]));
  await assert.rejects(verifyPrivateArchive(input(await archive([])),[file]));await assert.rejects(verifyPrivateArchive(input(bytes.subarray(0,700)),[file]));
 });
+test('native base inventory has an explicit bounded opt-in without broadening private-file defaults',async()=>{
+ const rows=Array.from({length:513},(_,i)=>({path:'base/'+i,size:0,sha256:sha256('')}));
+ const bytes=await archive(rows.map(o=>[{name:o.path},'']));
+ await assert.rejects(verifyPrivateArchive(input(bytes),rows));
+ assert.deepEqual(await verifyPrivateArchive(input(bytes),rows,{maximumFiles:4096}),{files:513,bytes:0});
+ await assert.rejects(verifyPrivateArchive(input(bytes),rows,{maximumFiles:4097}));
+});

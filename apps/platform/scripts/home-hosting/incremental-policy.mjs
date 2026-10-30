@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';import {verify} from 'node:crypto';
 import {sha256,validateInventory} from './cloud-policy.mjs';
 import {isDatabasePart} from './database-parts.mjs';
 export const incrementalLimits=Object.freeze({objects:96,catalogAgeMs:86400000,bodyBytes:65536,catalogBytes:40960});
-export const artifactNames=['manifest.private.json','database.dump','objects.tar','release-source.tar.gz','core.private.env','app.private.env','fixture.private.json','database.dump.private.log','objects.tar.private.log'];
+export const artifactNames=['manifest.private.json','database.dump','objects.tar','release-source.tar.gz','core.private.env','app.private.env','fixture.private.json','database.dump.private.log','objects.tar.private.log','runtime.private.json'];
 export function artifactFingerprint(node){
  assert.ok(node.type==='file'&&(artifactNames.includes(node.name)||isDatabasePart(node.name))&&Number.isSafeInteger(node.size)&&node.size>=0&&node.size<=192*1024*1024);
  assert.ok(Array.isArray(node.content)&&node.content.length<=1024);for(const id of node.content)assert.match(id,/^[a-f0-9]{64}$/);

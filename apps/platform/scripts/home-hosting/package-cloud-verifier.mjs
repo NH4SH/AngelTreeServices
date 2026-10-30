@@ -2,10 +2,14 @@
 import assert from 'node:assert/strict';import {readFileSync,mkdirSync,copyFileSync,writeFileSync,existsSync,chmodSync,cpSync} from 'node:fs';import {join,resolve} from 'node:path';
 import {sha256} from './cloud-policy.mjs';
 import {randomUUID} from 'node:crypto';
-const [binary,output,namespace]=process.argv.slice(2);assert.ok(binary&&output);assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);const destination=resolve(output);assert.equal(existsSync(destination),false);
+const [binary,output,namespace,protocol]=process.argv.slice(2);assert.ok(protocol===undefined||protocol==='native');assert.ok(binary&&output);assert.match(namespace,/^ats-rehearsal-continuous-[a-f0-9]{12}$/);const destination=resolve(output);assert.equal(existsSync(destination),false);
 assert.equal(sha256(readFileSync(binary)),'20d4142678d0d95ec11a4759def1b73fd9190abc9ca19e4b62d067c0b387e639');
 mkdirSync(destination,{mode:0o700});for(const p of ['functions','lib','public'])mkdirSync(join(destination,p),{mode:0o700});
-for(const file of ['cloud-netlify.mjs','cloud-verifier.mjs','cloud-policy.mjs','cloud-archive.mjs','continuous-policy.mjs','failover-proof.mjs','database-parts.mjs','incremental-netlify.mjs','incremental-verifier.mjs','incremental-policy.mjs','restic-read-proxy.mjs','native-restic-read.mjs'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,'lib',file));
+copyFileSync(new URL('./object-file-metadata.mjs',import.meta.url),join(destination,'lib/object-file-metadata.mjs'));
+copyFileSync(new URL('./referenced-object-files.mjs',import.meta.url),join(destination,'lib/referenced-object-files.mjs'));
+copyFileSync(new URL('./native-file-patch.mjs',import.meta.url),join(destination,'lib/native-file-patch.mjs'));
+copyFileSync(new URL('./backup-source-scope.mjs',import.meta.url),join(destination,'lib/backup-source-scope.mjs'));
+for(const file of ['database-runtime.mjs','native-netlify.mjs','native-component-verifier.mjs','native-wal-checkpoint.mjs','wal-recovery-inspection.mjs','wal-cloud-verifier.mjs','wal-netlify.mjs','wal-pairing.mjs','wal-archive-policy.mjs','candidate-io.mjs','recovery-files.mjs','verifier-runtime.mjs','cloud-netlify.mjs','cloud-verifier.mjs','cloud-policy.mjs','cloud-archive.mjs','continuous-policy.mjs','paired-backup-policy.mjs','static-identity.mjs','schema-fingerprint.mjs','certified-checkpoint.mjs','runtime-blueprint.mjs','failover-proof.mjs','database-parts.mjs','index-evidence.mjs','incremental-netlify.mjs','incremental-verifier.mjs','incremental-policy.mjs','restic-read-proxy.mjs','native-restic-read.mjs'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,'lib',file));
 for(const file of ['package.json','package-lock.json'])copyFileSync(new URL('./'+file,import.meta.url),join(destination,file));
 cpSync(new URL('./node_modules',import.meta.url),join(destination,'node_modules'),{recursive:true});
 copyFileSync(binary,join(destination,'restic'));chmodSync(join(destination,'restic'),0o700);
@@ -17,6 +21,7 @@ export default async request=>{
  if(process.env.ATS_LAB_NAMESPACE!==${JSON.stringify(namespace)})return Response.json({error:'Deployment binding mismatch'},{status:503,headers:{'cache-control':'no-store'}});
  const response=await handler(request);response.headers.set('x-ats-recovery-artifact',${JSON.stringify(artifact)});return response;
 };\n`);
+if(protocol==='native')writeFileSync(join(destination,'functions/native-recovery-node22.mjs'),`import handler from '../lib/native-netlify.mjs';\nexport default request=>{if(process.env.ATS_LAB_NAMESPACE!==${JSON.stringify(namespace)})return Response.json({error:'Deployment binding mismatch'},{status:503});return handler(request);};\n`);
 writeFileSync(join(destination,'public','index.html'),'<!doctype html><title>Recovery verification lab</title><p>Isolated synthetic test service. No CRM application.</p>\n');
 writeFileSync(join(destination,'netlify.toml'),'[build]\npublish = "public"\n[functions]\ndirectory = "functions"\nnode_bundler = "esbuild"\nincluded_files = ["restic"]\n');
 console.log(JSON.stringify({output:destination,artifact,namespace,credentialsIncluded:false,scheduled:false,productionChanged:false}));

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync, symlinkSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync, unlinkSync, symlinkSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { realpathSync } from 'node:fs';
@@ -60,7 +60,7 @@ test('unexpected secret files, altered bytes and missing files invalidate packet
 });
 test('symlinks and unlisted directories are refused without following them',t=>{
   const path=packet(t), external=join(dirname(path),'external');mkdirSync(external);
-  symlinkSync(external,join(path,'linked')); assert.throws(()=>verifyPacket(path),/symlinks/);rmSync(join(path,'linked'));
+  symlinkSync(external,join(path,'linked')); assert.throws(()=>verifyPacket(path),/symlinks/);unlinkSync(join(path,'linked'));
   mkdirSync(join(path,'unlisted'));assert.throws(()=>verifyPacket(path),/Unexpected/);rmSync(join(path,'unlisted'),{recursive:true});
   symlinkSync(path,join(dirname(path),'alias'));assert.throws(()=>verifyPacket(join(dirname(path),'alias')));
 });

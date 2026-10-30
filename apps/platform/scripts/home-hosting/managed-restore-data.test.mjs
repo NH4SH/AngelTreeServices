@@ -18,3 +18,15 @@ test('Malformed or unsupported COPY blocks are rejected before any import',()=>{
   assert.throws(()=>parseCopies('COPY public.example (id) FROM stdin;\n1\n'));
   assert.throws(()=>parseCopies('COPY "other schema".table (id) FROM stdin;\n\\.\n'));
 });
+test('recovery preserves GENERATED ALWAYS IDs and their foreign-key references',async()=>{
+  const {PGlite}=await import(process.env.HOME_HOSTING_PGLITE_MODULE??'@electric-sql/pglite');
+  const db=new PGlite();
+  try {
+    await db.exec('create table public.parent(id bigint generated always as identity primary key,label text); create table public.child(id bigint primary key,parent_id bigint references public.parent);');
+    const parent=parseCopies('COPY public.parent (id, label) FROM stdin;\n726\trestored\n\\.\n')[0];
+    const child=parseCopies('COPY public.child (id, parent_id) FROM stdin;\n19\t726\n\\.\n')[0];
+    await db.exec(copyInsert(parent));await db.exec(copyInsert(child));
+    assert.deepEqual((await db.query('select p.id,c.id child_id,p.label from public.parent p join public.child c on c.parent_id=p.id')).rows,[{id:726,child_id:19,label:'restored'}]);
+    await assert.rejects(db.exec(copyInsert(parent)),/duplicate key/);
+  } finally {await db.close();}
+});

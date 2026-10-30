@@ -1,7 +1,7 @@
 import { companyBrand, companyContactText, customerContactEmail } from "../company-brand.ts";
 import type { InvoiceDetail, InvoiceLineItem, JobDetail, QuoteDetail, QuoteLineItem } from "@/lib/types/database";
 import { formatProposalReference } from "../quotes/proposal-number.ts";
-import { isFirewoodInvoiceTerms } from "./terms/firewood-2026-10-24.ts";
+import { isFirewoodInvoiceTerms, isFirewoodCheckoutTestTerms } from "./terms/firewood-2026-10-24.ts";
 
 export type EmailDraft = {
   subject: string;
@@ -187,14 +187,15 @@ export function generateInvoiceEmailDraft(
   );
   const appliedCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
   const firewood = isFirewoodInvoiceTerms(invoice.document_terms_version);
+  const checkoutTest = isFirewoodCheckoutTestTerms(invoice.document_terms_version);
   const completedWork = invoice.jobs?.status
     ? ["completed_pending_review", "ready_to_invoice", "completed", "invoiced", "paid"].includes(invoice.jobs.status)
     : false;
   const draft: CustomerDocumentEmailDraft = {
     documentType: "invoice",
-    subject: `${companyName} Invoice – ${subjectLocation(propertyLabel)}`,
+    subject: `${checkoutTest ? "[TEST ONLY] " : ""}${companyName} Invoice – ${subjectLocation(propertyLabel)}`,
     greeting: `Hi ${firstName || "there"},`,
-    intro: firewood ? `This invoice is for the firewood and any selected stacking listed below, for delivery to ${propertyLabel}. Please confirm delivery arrangements with our office.` : `This invoice is for the ${completedWork ? "completed " : ""}work listed below at ${propertyLabel}.`,
+    intro: checkoutTest ? "This test-only invoice records an existing verified test checkout payment. It is not a live order, another payment request or confirmation of completed delivery." : firewood ? `This invoice is for the firewood and any selected stacking listed below, for delivery to ${propertyLabel}. Please confirm delivery arrangements with our office.` : `This invoice is for the ${completedWork ? "completed " : ""}work listed below at ${propertyLabel}.`,
     propertyLabel,
     scopeHeading: firewood ? "Firewood and delivery" : "Completed work",
     scopeText: formatLineItemScope(invoice.invoice_line_items, invoice.jobs?.requested_scope),
@@ -203,14 +204,14 @@ export function generateInvoiceEmailDraft(
       invoice.due_at && invoice.payment_terms ? `Payment terms: ${invoice.payment_terms.trim()}` : null,
       ...customerVisibleNotes(invoice.notes),
     ]).join("\n\n"),
-    closing: "Please reply to this email or call our office with any questions about this invoice or its payment options.",
-    summaryLabel: "Balance due",
+    closing: checkoutTest ? "Contact the office to review this test record. Refund or dispute changes must not trigger another charge or payment request." : "Please reply to this email or call our office with any questions about this invoice or its payment options.",
+    summaryLabel: checkoutTest ? "Test invoice balance" : "Balance due",
     summaryValue: formatCurrency(invoice.balance_due_cents),
-    timingLabel: invoice.due_at ? "Due date" : "Payment terms",
-    timingValue: invoice.due_at
+    timingLabel: checkoutTest ? "Test record" : invoice.due_at ? "Due date" : "Payment terms",
+    timingValue: checkoutTest ? "No payment request" : invoice.due_at
       ? formatDate(invoice.due_at)
       : invoice.payment_terms?.trim() || "See the invoice for payment terms",
-    ctaLabel: "Review and pay invoice",
+    ctaLabel: checkoutTest ? "Review test payment record" : "Review and pay invoice",
     portalUrl: options.portalUrl ?? "",
     contactEmail: customerContactEmail(options.contactEmail),
     body: "",

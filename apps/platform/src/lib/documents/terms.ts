@@ -2,6 +2,7 @@ import { formatBusinessDate } from "@/lib/business-time";
 import { DOCUMENT_TERMS_LEGACY_VERSION, legacyInvoiceTerms, legacyQuoteTerms } from "./terms/legacy-2026-10-22.ts";
 import type { DocumentTerm } from "./terms/legacy-2026-10-22.ts";
 import { isFirewoodInvoiceTerms, firewoodInvoiceTerms } from "./terms/firewood-2026-10-24.ts";
+import { FIREWOOD_CHECKOUT_TEST_TERMS_VERSION, firewoodCheckoutTestTerms } from "./terms/firewood-checkout-test-2026-10-25.ts";
 
 export { DOCUMENT_TERMS_LEGACY_VERSION };
 export type { DocumentTerm };
@@ -17,6 +18,7 @@ function requireSupportedVersion(version?: string | null) {
 }
 
 export function getInvoiceTerms(version?: string | null): readonly DocumentTerm[] {
+  if (version === FIREWOOD_CHECKOUT_TEST_TERMS_VERSION) return firewoodCheckoutTestTerms;
   if (isFirewoodInvoiceTerms(version)) return firewoodInvoiceTerms;
   requireSupportedVersion(version);
   return legacyInvoiceTerms;

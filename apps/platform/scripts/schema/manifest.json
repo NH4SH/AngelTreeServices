@@ -1,6 +1,6 @@
 {
   "cliVersion": "2.121.0",
-  "typesSha256": "03c7f7c6684960c3847d77ccc7530e01f0175dea21d9ffa4378b7ddf47dbab1e",
+  "typesSha256": "82e198a6c4c35f4626ff3198ec79b2e2add872a5053b0e83fd3356a47c6fe872",
   "migrations": [
     {
       "name": "0001_initial_platform_schema.sql",
@@ -505,6 +505,14 @@
     {
       "name": "20261026003309_deterministic_delivery_review_paging.sql",
       "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b"
+    },
+    {
+      "name": "20261026015704_firewood_test_paid_import.sql",
+      "sha256": "b4ce721835989dc5cde3712825aef4df2c7eeb3b72cfb49629cc83ddf7d6ca50"
+    },
+    {
+      "name": "20261026182017_firewood_test_dispute_ids.sql",
+      "sha256": "34248e5b7ac555d29515373376937b963b1578da0b83516ff343588aa5a32605"
     }
   ]
 }

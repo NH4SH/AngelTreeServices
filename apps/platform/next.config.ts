@@ -7,6 +7,7 @@ assertCurrentDeploymentIsolation();
 const appRoot = process.cwd();
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: [
     "http://192.168.1.161:3000",
     "192.168.1.161:3000",

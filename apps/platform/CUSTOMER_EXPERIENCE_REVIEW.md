@@ -604,3 +604,27 @@ typecheck/build, native local/staging checks and actual save/recovery workflows
 pass. New work remains local and unpushed; production, published staging and the
 scanner are unchanged. Next bound remaining material/equipment/work-order choices
 and operational history windows without changing transaction or access rules.
+
+### October 27 — materials operational lookups and release status
+
+Vendor/contact lookups are pushed normally to main as `36d90bb`, with deployment
+skipped. `MATERIALS_OPERATIONAL_LOOKUPS.md` records the next local batch: 20-row
+material/equipment/work-order choices, exact visible history labels, original
+field identities and independent production input/output selection. Crew disposal,
+crew material entry and office job planning retain their original forms/readers.
+All inventory and financial server actions remain unchanged.
+
+Synthetic initial HTML falls 37% for movements, 75% for purchases, 80% for production
+and 78% for deliveries. Timing is mixed; no universal latency claim is made. All
+3,283 regression checks, typecheck/build, native local/staging comparisons and
+actual receipt/reservation/purchase/planned-delivery/recovery workflows pass.
+New work stays local and unpushed; production, published staging and scanner remain
+unchanged.
+
+The next milestone is release readiness, rather than an automatic new feature
+batch: reverify the existing hosted-runtime security gate, rehearse the 27 staged
+migration versions beyond production's matching 102-version prefix, run combined
+release/device/mailbox acceptance and request explicit production rollout approval.
+The live application/database remain on Netlify/Supabase; the home laptop supplies
+the scanner only. Large history paging and any commercial multi-company work remain
+separate measured/product decisions.

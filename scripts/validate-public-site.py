@@ -1275,10 +1275,10 @@ class Validator:
                     self.error(f"{route}: new-tab link must use rel=\"noopener noreferrer\"")
 
         responsive_image_expectations = {
-            "/projects/": ("service-tree-320", "service-landscaping-320"),
+            "/projects/": ("photo-garden-path-480", "photo-flowering-tree-480", "photo-commercial-overview-480", "photo-commercial-detail-480"),
             "/about/": ("service-tree-320",),
             "/services/tree-removal/": ("service-tree-320",),
-            "/services/commercial-hoa-tree-care/": ("service-landscaping-320",),
+            "/services/commercial-hoa-tree-care/": ("photo-commercial-overview-480",),
         }
         for route, expected_assets in responsive_image_expectations.items():
             source = self.page_sources.get(route, "")

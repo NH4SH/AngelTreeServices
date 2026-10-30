@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://angeltreeservices.org"
 TRUST_DATA = json.loads((ROOT / "public-trust-data.json").read_text(encoding="utf-8"))
 TREE_PROJECT = json.loads((ROOT / "public-tree-removal-project.json").read_text(encoding="utf-8"))
+SITE_PHOTOGRAPHY = json.loads((ROOT / "public-site-photography.json").read_text(encoding="utf-8"))
 PHONE_DISPLAY = "(540) 388-8715"
 PHONE_LINK = "+15403888715"
 INSTAGRAM_URL = "https://www.instagram.com/angeltreeservices/"
@@ -293,6 +294,10 @@ RESPONSIVE_PUBLIC_IMAGES.update({
     photo["src"]: tuple(f"{variant['src']} {variant['width']}w" for variant in photo["variants"])
     for photo in TREE_PROJECT["photos"]
 })
+RESPONSIVE_PUBLIC_IMAGES.update({
+    photo["src"]: tuple(f"{variant['src']} {variant['width']}w" for variant in photo["variants"])
+    for photo in SITE_PHOTOGRAPHY.values()
+})
 
 
 def responsive_image_attributes(src: str, sizes: str) -> str:
@@ -309,8 +314,9 @@ def page_document(page: dict) -> str:
     hero_class = ""
     if page.get("hero_image"):
         caption = f'<figcaption>{html_text(page["hero_caption"])}</figcaption>' if page.get("hero_caption") else ""
+        media_class = " ats-page-hero__media--landscape" if page.get("hero_landscape") else ""
         hero_media = f"""
-        <figure class="ats-page-hero__media">
+        <figure class="ats-page-hero__media{media_class}">
           <img src="{html_attr(page['hero_image'])}"{responsive_image_attributes(page['hero_image'], '(max-width: 760px) calc(100vw - 40px), 42vw')} width="{int(page['image_width'])}" height="{int(page['image_height'])}" alt="{html_attr(page['hero_alt'])}" decoding="async" fetchpriority="high">
           {caption}
         </figure>"""
@@ -856,13 +862,16 @@ def tree_project_body() -> str:
 
 
 def projects_body() -> str:
-    projects = [
-        ("/assets/AngelChainsawSquooshed_008.jpg", 1080, 1080, "Angel Tree Services crew member during tree work", "Tree service", "Tree-service field imagery", "More field imagery from Angel Tree Services. Explore tree removal planning or describe your property when requesting an estimate."),
-        ("/assets/GardenLandscaping+(2)_008.jpg", 2500, 1407, "Landscaped garden and lawn", "Landscaping", "Landscaping imagery", "Garden and landscaping imagery from the Angel Tree Services gallery."),
+    selections = [
+        ("garden-path", "Landscaping", "Garden paths and planting beds", "Bush trimming, tree trimming and mulch around a residential garden and its gravel path."),
+        ("flowering-tree", "Tree trimming", "Ornamental trees", "Tree and bush trimming, with mulch around the planting beds at this residential property."),
+        ("commercial-overview", "Commercial landscaping", "Bush trimming and bed care", "Existing bushes trimmed, beds weeded and edges defined around this commercial property."),
+        ("commercial-detail", "Trimming, weeding and edging", "Hedges and neatly edged beds", "A closer view of the trimmed bushes and weeded, edged beds beside the walkway."),
     ]
     cards_html = "".join(
-        f'<article class="ats-project-card"><img src="{src}"{responsive_image_attributes(src, "(max-width: 760px) calc(100vw - 40px), 50vw")} width="{w}" height="{h}" alt="{alt}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{kind}</p><h2>{title}</h2><p>{copy}</p></div></article>'
-        for src, w, h, alt, kind, title, copy in projects
+        f'<article class="ats-project-card ats-project-card--photograph"><img src="{html_attr(photo["src"])}"{responsive_image_attributes(photo["src"], "(max-width: 700px) calc(100vw - 40px), (max-width: 1240px) calc(50vw - 51px), 559px")} width="{photo["width"]}" height="{photo["height"]}" alt="{html_attr(photo["alt"])}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{html_text(kind)}</p><h2>{html_text(title)}</h2><p>{html_text(copy)}</p></div></article>'
+        for key, kind, title, copy in selections
+        for photo in [SITE_PHOTOGRAPHY[key]]
     )
     return f"""
     {project_feature()}
@@ -1250,10 +1259,11 @@ PAGES = [
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Commercial and HOA", "/services/commercial-hoa-tree-care/")],
         "estimate_href": "/?service=Multiple%20Services%20%2F%20Not%20Sure%20Yet&customer_type=Commercial%20%2F%20Property%20Management&estimate_context=commercial-hoa-tree-care#contact",
         "estimate_label": "Request a property estimate",
-        "hero_image": "/assets/GardenLandscaping+(2)_008.jpg",
-        "image_width": 2500,
-        "image_height": 1407,
-        "hero_alt": "Landscaped garden and lawn",
+        "hero_image": SITE_PHOTOGRAPHY["commercial-overview"]["src"],
+        "image_width": SITE_PHOTOGRAPHY["commercial-overview"]["width"],
+        "image_height": SITE_PHOTOGRAPHY["commercial-overview"]["height"],
+        "hero_alt": SITE_PHOTOGRAPHY["commercial-overview"]["alt"],
+        "hero_landscape": True,
         "body": commercial_body(),
     },
     {

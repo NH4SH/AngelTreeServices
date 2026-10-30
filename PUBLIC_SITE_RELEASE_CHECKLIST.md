@@ -1,3 +1,36 @@
+## Homepage direct tree-service links — local draft, October 24, 2026
+
+Owner approved the recommended four direct service links within the existing
+Tree Service section. Local implementation/testing only; no commit, push or
+deployment. Base: 909b93f. Keep analytics, consent and CRM unchanged.
+
+- Final release-readiness review: no blocking regression or correction found.
+  Fresh 248 tests and 19-page build/validation pass; all 302 shipping files match
+  the implementation manifest. Keyboard destinations/focus, five responsive
+  widths, 800/801 breakpoint, synthetic doubled text and local draft recovery
+  were rechecked. Four links stay >=44px high and Explore controls remain equal.
+  No newer origin/main commits were present at review. Only this checklist changed
+  during review; no release action taken. Evidence and approval hashes:
+  chat outputs/home-tree-service-links/final-review/.
+- Adds Tree removal, Tree trimming & pruning, Stump grinding and Storm damage
+  links to the existing service pages, with descriptive text, keyboard focus and
+  at least 44px target height. Two columns within the current card; mobile links
+  span the photo/text row. Original photos, descriptions and both matching Explore
+  controls remain. No new section, script, estimate field, fact or SEO head change.
+- First batched review caught desktop contrast; corrected white links/focus on
+  the green desktop surface and dark-green links/focus on light mobile. Final
+  1280/801/800/390/320px and synthetic doubled-text checks pass without horizontal
+  overflow. Explore dimensions match; desktop actions remain aligned. All four
+  keyboard destinations and pruning estimate/draft recovery pass; local test
+  details were cleared without submission. Actual Poppins fonts load in preview.
+- Fresh 239 Node + 9 Python tests pass (248 total); all 19 pages build/validate.
+  The active design hook reports no deterministic issue. Only homepage HTML and
+  overrides CSS change among 302 shipping files. All other pages, photos, homepage
+  head/form, protected runtime, analytics/consent and 1420 CRM paths remain exact.
+  Physical-phone/spoken-reader checks were not repeated. Evidence and complete
+  diff: chat outputs/home-tree-service-links/. Publication requires approval and
+  revalidation over newer repository changes, followed by non-submitting smoke checks.
+
 ## Holly-trimming case study — approved release, October 24, 2026
 
 Owner approved commit, push and public-site publication after the final review.

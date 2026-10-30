@@ -21,10 +21,12 @@ function contextHarness(search) {
   const picker = { value: "", disabled: true, options: ["", ...contextCases.map(x => x[0])].map(value => ({ value })) };
   const panel = { hidden: true };
   const details = { value: "  My words stay intact.\n🌳 & <tags> are customer text.  ", getAttribute: () => "false" };
+  const guidance = { textContent: "" };
   const form = {
     dataset: { leadIntakeUrl: "https://local.test/__mock" },
     querySelector: s => ({ 'select[name="service"]': service, '[data-estimate-intent]': picker, '[data-estimate-context]': panel,
-      'textarea[name="message"]': details, 'input[name="customer_type"]:checked': customer.checked ? customer : { value: "Homeowner" } })[s] || null,
+      'textarea[name="message"]': details, '[data-estimate-guidance]': guidance,
+      'input[name="customer_type"]:checked': customer.checked ? customer : { value: "Homeowner" } })[s] || null,
     querySelectorAll: s => s === 'input[name="customer_type"]' ? [customer] : [],
   };
   const requests = [];
@@ -38,8 +40,62 @@ function contextHarness(search) {
     fetch: async (url, options) => { assert.equal(url, "https://local.test/__mock"); requests.push(options.body.fields); return response(true, '{"ok":true}'); },
   });
   helpers.applyEstimatePrefill(form);
-  return { helpers, form, service, customer, picker, panel, details, requests };
+  return { helpers, form, service, customer, picker, panel, details, guidance, requests };
 }
+
+test("service-specific guidance follows category and valid intent without editing customer details", () => {
+  const cases = [
+    ["", "", /short note/, /trees and garden beds/],
+    ["Landscaping", "", /bushes or beds/, /weed and edge/],
+    ["Tree Care", "", /nearby buildings/, /dead branches/],
+    ["Tree Care", "tree-removal", /assessed for removal/, /remove a large tree/],
+    ["Tree Care", "tree-pruning", /clearance or deadwood/, /branches over our driveway/],
+    ["Tree Care", "stump-grinding", /size if known/, /one stump about 2 feet/],
+    ["Storm Cleanup", "emergency-tree-service", /safe place/, /fallen limb/],
+    ["Multiple Services / Not Sure Yet", "commercial-hoa-tree-care", /properties/, /HOA entrance/],
+    ["Multiple Services / Not Sure Yet", "", /short note/, /trees and garden beds/],
+  ];
+  for (const [service, intent, help, example] of cases) {
+    const h = contextHarness("?" + new URLSearchParams({ service, estimate_context: intent, customer_type: "Commercial / Property Management" }));
+    assert.match(h.guidance.textContent, help);
+    assert.match(h.details.placeholder, example);
+    assert.equal(h.details.value, "  My words stay intact.\n🌳 & <tags> are customer text.  ");
+  }
+});
+
+test("guidance follows in-page estimate links, restored choices and clear/reset without changing the request identity", () => {
+  const h = contextHarness("?service=Tree%20Care&estimate_context=stump-grinding");
+  const text = h.details.value;
+  h.form.dataset.submissionId = "same-local-request";
+  h.helpers.applyEstimateService(h.form, "Landscaping");
+  assert.match(h.details.placeholder, /fresh mulch/);
+  h.helpers.applyEstimateService(h.form, "Tree Care", "tree-removal");
+  assert.match(h.guidance.textContent, /assessed for removal/);
+  h.picker.value = "tree-pruning";
+  h.helpers.syncEstimateContext(h.form);
+  assert.match(h.guidance.textContent, /clearance or deadwood/);
+  h.service.value = "Landscaping";
+  h.helpers.syncEstimateContext(h.form);
+  assert.match(h.details.placeholder, /fresh mulch/);
+  h.service.value = "";
+  h.helpers.clearEstimateContext(h.form);
+  assert.match(h.details.placeholder, /trees and garden beds/);
+  assert.equal(h.details.value, text);
+  assert.equal(h.form.dataset.submissionId, "same-local-request");
+});
+
+test("unknown and incompatible URL intent cannot inject guidance or an example into the outgoing message", async () => {
+  for (const intent of ["tree-removal", "__proto__", "constructor", "<img onerror=alert(1)>"]) {
+    const h = contextHarness("?" + new URLSearchParams({ service: "Landscaping", estimate_context: intent }));
+    assert.match(h.guidance.textContent, /bushes or beds/);
+    assert.match(h.details.placeholder, /fresh mulch/);
+    await h.helpers.submitLead(h.form);
+    assert.equal(h.requests[0].get("message"), h.details.value);
+    assert.equal(h.requests[0].get("service"), "Landscaping");
+  }
+  const h = contextHarness("?service=constructor&estimate_context=__proto__");
+  assert.match(h.guidance.textContent, /short note/);
+});
 
 for (const [slug, category, label] of contextCases) {
   test(`${slug}: allowlisted context preserves the broad contract and customer draft on repeated payloads`, async () => {

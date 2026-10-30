@@ -1,3 +1,30 @@
+## Service-specific estimate guidance — local, October 20, 2026
+
+Owner approved local implementation and tests only. Based on main170f55d;
+newer CRM alert-recipient work is preserved without edits. No new commit,
+push, merge to main, deployment, lead submission or calls for this patch.
+
+- Project-details help/example follows Landscaping, tree care, removal, pruning,
+  stump grinding, storm cleanup and compatible commercial tree context. Neutral
+  guidance remains for unselected/mixed services and JavaScript unavailable.
+- Updates display copy only; customer-entered values, draft recovery/expiry/clear,
+  retry identity, CRM payload and estimate URLs remain unchanged. aria-describedby
+  associates persistent help and retains it when validation adds an error.
+- Darker project-details placeholder fixes its inherited sub-AA contrast; uses
+  existing dark-green token. Homepage form/CSS cache keys advance to guidance1.
+  Public Maps script insertion follows the updated form-script key.
+- 158 tests pass; 16 pages validate. Only index.html, ats-form-enhancements.js and
+  overrides.css change in the250-file build;247 files match reviewed production
+  build. SEO metadata/schema and all homepage anchor links match their baseline.
+- Inert browser checks pass at1280px and mobile320/390: in-page estimate changes,
+  stump guidance, restored text/choices, explicit Landscaping override preserving
+  customer wording, Clear draft, help/error association and no horizontal overflow.
+  No external collection or actual form submissions. Analytics/consent and CRM
+  code/settings unchanged. Physical-device/spoken screen-reader checks unperformed.
+- Evidence: October16 chat outputs/estimate-guidance/ and work/estimate-guidance/.
+  Local preview60065, server session66764; stop with Ctrl-C through that session.
+  Service-area prompt was critiqued only; no coverage copy/pages added in this batch.
+
 ## Combined public website release approved — October 20, 2026
 
 Owner approved commit, push and publication of the reviewed FAQ, estimate-label

@@ -671,6 +671,11 @@ body.ats-form-submitted .ats-form-success {
   resize: vertical;
 }
 
+#contact .ats-contact-form .qj2U4ppWTRohr5rP::placeholder {
+  color: var(--ats-green-dark);
+  opacity: 1;
+}
+
 #contact .ats-contact-form .ats-select-input {
   appearance: none;
   background-image:

@@ -19,6 +19,7 @@ STATIC_FILES = (
     "index.html",
     "overrides.css",
     "ats-form-enhancements.js",
+    "ats-estimate-draft.js",
     "ats-address-autocomplete.js",
     "site-pages.css",
     "site-pages.js",

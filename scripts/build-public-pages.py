@@ -1201,7 +1201,7 @@ def privacy_body() -> str:
     <section class="ats-content-section ats-content-section--white" aria-labelledby="privacy-overview-title">
       <div class="ats-section-inner ats-privacy-layout">
         <aside class="ats-privacy-summary" aria-label="Privacy policy summary">
-          <p class="ats-eyebrow">Effective August 15, 2026</p>
+          <p class="ats-eyebrow">Last updated October 17, 2026</p>
           <h2 id="privacy-overview-title">Clear information about the data behind our service.</h2>
           <p>This policy explains how Angel Tree Services LLC handles information across our public website, estimate requests, customer portals, internal web platform, and employee iOS app.</p>
           <a class="ats-button ats-button--green" href="/privacy-request/">Make a privacy request</a>
@@ -1222,10 +1222,12 @@ def privacy_body() -> str:
           <p>Our web platform and iOS app use Supabase authentication. Necessary session credentials are stored using supported browser or device session mechanisms. The web platform also uses limited browser storage for interface preferences, temporary work drafts, and portal-view session identifiers.</p>
           <p>The iOS app may cache assigned schedules, customer or organization summaries, service locations, jobs, estimates, proposals, invoices, notes, and related field information on the device. A limited schedule snapshot may be stored in the shared App Group container for the Angel Tree widget. Signing out clears app-managed user caches and the widget snapshot.</p>
           <h2>Website forms and address suggestions</h2>
+          <p>When browser storage is available, the public estimate form keeps an unfinished draft in this tab’s session storage so you can browse our pages and return to your entries. It saves the contact and property details, project description, and service and contact choices you enter. Marketing opt-in is not restored. Saving a draft does not send an estimate request.</p>
+          <p>Draft recovery expires after 30 minutes without edits. If the browser pauses a page, removal of the expired copy may wait until the page resumes or you return; entries already visible in an open form remain. Use <strong>Clear draft</strong> to remove the saved copy and reset the form. The saved draft is also removed after a confirmed successful submission. If browser storage is unavailable, you can still complete and send the form, but draft recovery is unavailable.</p>
           <p>When address suggestions are enabled and a visitor types at least three characters in the property-address field, the browser requests suggestions from Google Maps Platform. Google may receive the typed address fragment, browser/network information, and a general Fredericksburg-area location bias. This assists typing only; it does not verify property ownership, service eligibility, or address accuracy. Manual entry remains available.</p>
           <h2>Automatically collected information</h2>
           <p>Our hosting, application, authentication, payment, and security providers may process IP address, request time, browser or device type, requested URL, response status, and similar operational logs. We use this to deliver and secure systems, diagnose failures, apply rate limits, prevent abuse, and maintain audit history.</p>
-          <p>The public website currently uses Google Analytics to understand aggregate website visits and interactions. This may use browser identifiers or cookies supplied by Google. We do not use the Angel Tree iOS app for advertising, and our application code contains no advertising SDK, IDFA integration, or data-broker integration.</p>
+          <p>Google Analytics collection is disabled on the public website. We do not load Google Analytics or send public-site analytics events while it is disabled. We do not use the Angel Tree iOS app for advertising, and our application code contains no advertising SDK, IDFA integration, or data-broker integration.</p>
           <h2>How we use information</h2>
           <ul>
             <li>Respond to requests and communicate about estimates, scheduling, work, proposals, invoices, and payments.</li>
@@ -1236,7 +1238,7 @@ def privacy_body() -> str:
             <li>Send optional seasonal tips, service reminders, or scheduling updates where consent or an existing service relationship supports them.</li>
           </ul>
           <h2>Service providers</h2>
-          <p>We use Supabase for authentication, database, and file storage; Netlify for hosting; Google for Maps/Places suggestions, staff-selected Calendar synchronization, and public-site analytics; Stripe for customer payment processing; Resend for transactional email; and Apple system services for the iOS app and widget.</p>
+          <p>We use Supabase for authentication, database, and file storage; Netlify for hosting; Google for Maps/Places suggestions and staff-selected Calendar synchronization; Stripe for customer payment processing; Resend for transactional email; and Apple system services for the iOS app and widget.</p>
           <p>Google Calendar receives only information needed for connected events, such as title, timing, location, status, and relevant work context. The iOS app contacts Supabase for authentication and the Angel Tree backend for operational data; it does not send customer records directly to Stripe, Resend, Google Calendar, or Google Analytics.</p>
           <h2>Customer portals and payments</h2>
           <p>Proposal, change-order, and invoice links use high-entropy tokens with expiration and revocation controls. A valid link may display a customer or organization name, service address, scope, pricing, approval or invoice status, and related documents. Portal-view security records may include a pseudonymous session identifier, document type, time, and technical request information. Recipients should protect portal links and avoid unnecessary forwarding.</p>

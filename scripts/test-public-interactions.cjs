@@ -376,7 +376,7 @@ test("optional measurement throwing cannot block a request", () => {
   assert.doesNotThrow(() => helpers.trackEvent("estimate_form_started", {}));
 });
 
-function formHarness() {
+function formHarness(draft) {
   const events = [], requests = [], fields = new Map(), listeners = {};
   const status = { classList: { toggle() {} }, focus() {} };
   const button = { dataset: {}, textContent: "Send", querySelector() { return null; }, setAttribute() {} };
@@ -403,6 +403,7 @@ function formHarness() {
   const helpers = loadScript("ats-form-enhancements.js", ["initForm"], {
     fetch: fakeFetch,
     window: { fetch: fakeFetch, FormData: class {}, addEventListener() {},
+      ATSEstimateDrafts: draft ? { create: () => draft } : undefined,
       location: { search: "", href: "https://local.test/" },
       crypto: { randomUUID: () => `local-${++sequence}` },
       ATSWebsite: { track: (...args) => events.push(args), getAttribution: () => ({ utm_source: "mock" }) },
@@ -442,6 +443,16 @@ test("lost acknowledgment retains submission ID and fields; replay retry emits n
   assert.equal(h.resets(), 1);
   assert.equal(h.events.filter(x => x[0] === "estimate_request_acknowledged").length, 0);
 });
+
+for (const [status, body, forgotten] of [[201, '{"ok":true}', 1], [200, '{"ok":true}', 1], [202, '{"ok":true}', 1], [500, '{"ok":false}', 0], [200, '<html>ambiguous</html>', 0]]) {
+  test(`draft cleanup follows a real verified acknowledgment (${status}/${body})`, async () => {
+    let forgets = 0;
+    const h = formHarness({ finishRestore() {}, setBusy() {}, forget() { forgets++; } });
+    assert.equal(h.requests.length, 0, "restoration never sends a request");
+    h.submit(); h.requests[0].resolve(response(status < 400, body, status)); await h.settle();
+    assert.equal(forgets, forgotten); assert.equal(h.resets(), forgotten);
+  });
+}
 
 test("malformed 2xx does not clear fields or rotate submission ID", async () => {
   const h = formHarness(); h.submit();

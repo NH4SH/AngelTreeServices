@@ -878,7 +878,7 @@ body.ats-form-submitted .ats-form-success {
 #contact .ats-form-secondary-action,
 #contact .ats-segmented-option span,
 #about .list-item-content__button,
-#about .user-items-list-section-button {
+#about .list-section-button {
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -894,7 +894,7 @@ body.ats-form-submitted .ats-form-success {
 #contact .ats-form-secondary-action::before,
 #contact .ats-segmented-option span::before,
 #about .list-item-content__button::before,
-#about .user-items-list-section-button::before {
+#about .list-section-button::before {
   content: none;
 }
 
@@ -908,8 +908,8 @@ body.ats-form-submitted .ats-form-success {
 #contact .ats-segmented-option input:focus-visible + span,
 #about .list-item-content__button:hover,
 #about .list-item-content__button:focus-visible,
-#about .user-items-list-section-button:hover,
-#about .user-items-list-section-button:focus-visible {
+#about .list-section-button:hover,
+#about .list-section-button:focus-visible {
   transition-duration: 220ms;
 }
 
@@ -954,7 +954,7 @@ body.ats-form-submitted .ats-form-success {
 }
 
 #about .list-item-content__button,
-#about .user-items-list-section-button {
+#about .list-section-button {
   background: var(--ats-green) !important;
   color: #fff !important;
   border: 2px solid rgba(47, 125, 50, 0.28) !important;
@@ -963,9 +963,9 @@ body.ats-form-submitted .ats-form-success {
 }
 
 #about .list-item-content__button:hover,
-#about .user-items-list-section-button:hover,
+#about .list-section-button:hover,
 #about .list-item-content__button:focus-visible,
-#about .user-items-list-section-button:focus-visible {
+#about .list-section-button:focus-visible {
   background: rgba(255, 255, 255, 0.97) !important;
   color: var(--ats-green) !important;
   border-color: var(--ats-green) !important;
@@ -995,7 +995,7 @@ body.ats-form-submitted .ats-form-success {
   #contact .ats-form-secondary-action,
   #contact .ats-segmented-option span,
   #about .list-item-content__button,
-  #about .user-items-list-section-button {
+  #about .list-section-button {
     transition-duration: 0.01ms !important;
   }
 
@@ -1004,7 +1004,7 @@ body.ats-form-submitted .ats-form-success {
   #contact .ats-form-secondary-action::before,
   #contact .ats-segmented-option span::before,
   #about .list-item-content__button::before,
-  #about .user-items-list-section-button::before {
+  #about .list-section-button::before {
     content: none;
   }
 }

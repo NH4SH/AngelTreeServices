@@ -1,5 +1,55 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Final homepage service-description review — local only
+
+Ready for owner release approval within this service-card patch scope. No commit,
+push or deploy authorized. Analytics disabled and CRM code/settings unchanged.
+No product edits were needed in this final review.
+
+- Fresh134tests pass and15approved pages validate. Fresh215-file build exactly
+  matches implemented/reviewed hashes. Onlyhomepage/CSS differ from4d7bb9e;
+ 213otherfiles, all15SEOheads, photos, buttons/styles/URLs, estimates, scripts,
+  privacy and crawlers preserved. Source reverse-replacement comparison passes.
+- Fresh browser at1440/1280/760/576/390/320: approvedcopyreadable/nooverflow,
+  side-by-sidebuttons align; exact existing56pxbuttons except natural two-line
+  labels at576where bothare72.796875px. No clipping or style changes.
+- Hover remains green text onwhite; focus3pxwhite/4pxoffset. BothExplore links
+  work with keyboard; Landscaping estimate stillselectsLandscaping with blank
+  details. No customerdataentered, formsubmission or productionlead.
+- Fresh full independent finish review: ship, no materialfixes, all9section/state
+  captures valid. Documentation comparison follows. No seconddetector because
+  exact unchangedproduct/build reuses prior single41inheritedfinding scan.
+- Read-only fetch found4newer main commits through26d1860, onlyapps/platform/no
+  publicoverlap. Preserve then-current sharedwork and recheck build inputs when
+  preparing an approved release. Publish publiconly with analyticsdisabled and
+  CRMunchanged; run non-submitting production smokeafterwards.
+- Evidence: October16chat work/service-descriptions-final-review/ and
+  .impeccable/review/service-descriptions-final-review/. Viewportreset. Physical-
+  device/spoken-screen-reader/production smoke/CRMdelivery not tested here.
+
+## Confirmed homepage service descriptions — local only
+
+Owner approved the two recommended descriptions with photos/buttons/SEO/estimate
+links preserved, analytics disabled and CRM unchanged. Local tests only; do not
+commit, push or deploy under earlier publication approvals.
+
+- Tree Service: Tree removal, pruning, stump grinding and storm cleanup.
+- Landscaping: Bush and hedge trimming, weeding, edging and mulch for existing
+  gardens and planting beds.
+- Changed visible paragraphs and duplicate legacy card configuration. Only added
+  a min-width576px card-container stretch rule because the longer Landscaping
+  copy otherwise lowered its button. Button styling, labels and URLs unchanged.
+- Fresh134tests and15-page validation pass. Reverse replacements reproduce the
+  old index exactly; removing the new container rule reproduces old CSS exactly.
+  Only2of215built files change;213unchanged. All15heads, real photos, estimate
+  links/context, scripts, privacy, crawlers, analytics and CRM unchanged.
+- Browser1440/1280/760/390/320: readable wrapping/nooverflow; actions remain
+  equal56px and align side-by-side. Both Explore destinations and Landscaping's
+  estimate selection pass. No customer data or form submission. Viewport reset.
+- Evidence: October16chat work/service-descriptions/ and7section captures under
+  .impeccable/review/service-descriptions/. One detector run:41exact inherited
+  findings, none new. Fresh finish review/documentation comparison follow.
+
 ## Approved navigation publication
 
 The owner explicitly approved commit, push and publication of the reviewed

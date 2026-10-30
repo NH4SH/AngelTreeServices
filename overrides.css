@@ -1024,6 +1024,13 @@ body.ats-form-submitted .ats-form-success {
   box-shadow: 0 12px 30px rgba(20, 50, 25, 0.12);
 }
 
+/* Keep service actions aligned when approved descriptions wrap differently. */
+@media (min-width: 576px) {
+  #about .user-items-list-item-container {
+    align-items: stretch;
+  }
+}
+
 #about .user-items-list-item-container .list-item-content {
   display: flex;
   flex: 1;

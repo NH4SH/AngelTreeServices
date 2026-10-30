@@ -1,0 +1,10 @@
+{
+  "name": "angel-firewood-local-checkout-test",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/database-dev": "1.0.1",
+    "pg": "8.23.1",
+    "stripe": "23.0.1"
+  }
+}

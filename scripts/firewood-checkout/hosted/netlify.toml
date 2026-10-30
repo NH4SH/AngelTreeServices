@@ -1,0 +1,13 @@
+[build]
+  publish = "scripts/firewood-checkout/hosted/public"
+
+[functions]
+  directory = "scripts/firewood-checkout/hosted/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+    Content-Security-Policy = "default-src 'none'; frame-ancestors 'none'"

@@ -48,3 +48,6 @@ apps/ios/.build/
 apps/ios/.swiftpm/
 **/xcuserdata/
 *.xcuserstate
+
+# Private local Firewood test orders and confirmation captures
+.firewood-test-data/

@@ -23030,3 +23030,17 @@ body:has(.appointment-overlay) {
   .record-email-row a { min-height: 44px; display: inline-flex; align-items: center; }
   .record-email-details summary { min-height: 44px; display: list-item; }
 }
+
+/* Operational lookups need a readable search row in the materials sidebar. */
+.materials-page .material-form .form-grid-two:has(> .quote-lookup),
+.materials-page .material-form .form-grid-three:has(> .quote-lookup) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.materials-page .material-form .form-grid-two > .quote-lookup,
+.materials-page .material-form .form-grid-three > .quote-lookup {
+  grid-column: 1 / -1;
+}
+@media (max-width: 680px) {
+  .materials-page .material-form .form-grid-two:has(> .quote-lookup),
+  .materials-page .material-form .form-grid-three:has(> .quote-lookup) { grid-template-columns: minmax(0, 1fr); }
+}

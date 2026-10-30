@@ -11,7 +11,7 @@ import * as closure from '../src/lib/payments/checkout-closure.ts';
 import * as budget from '../src/lib/payments/checkout-budget.ts';
 import * as policy from '../src/lib/payments/card-reservation-policy.ts';
 import * as surcharge from '../src/lib/payments/card-surcharge.ts';
-const {releaseStaleCardReservations}=load('../src/lib/stripe/card-payment.ts',{'server-only':{},
+const {releaseStaleCardReservations}=load('../src/lib/stripe/card-payment.ts',{'@/lib/firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),'server-only':{},
  '@/lib/payments/checkout-closure':closure,'@/lib/payments/checkout-budget':budget,'@/lib/payments/card-reservation-policy':policy,'@/lib/payments/card-surcharge':surcharge});
 const literal=v=>v===null?'null':"'"+String(v).replaceAll("'","''")+"'";
 test('portal payment context with installed reads and cleanup in one rollback; no provider calls',{

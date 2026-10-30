@@ -19,6 +19,7 @@ type CardReview = {
 export function InvoicePortalPaymentChooser({
   amountDueCents,
   cardEnabled,
+  firewoodHandoff = false,
   invoiceNumber,
   mailingAddress,
   onlinePaymentEnabled,
@@ -30,6 +31,7 @@ export function InvoicePortalPaymentChooser({
 }: {
   amountDueCents: number;
   cardEnabled: boolean;
+  firewoodHandoff?: boolean;
   invoiceNumber: string;
   mailingAddress: string | null;
   onlinePaymentEnabled: boolean;
@@ -180,11 +182,11 @@ export function InvoicePortalPaymentChooser({
             currency: "usd",
             mode: "payment",
             paymentMethodCreation: "manual",
-            paymentMethodTypes: ["card"],
+            ...(firewoodHandoff ? { allowedPaymentMethodTypes: ["card"] } : { paymentMethodTypes: ["card"] }),
           }}
           stripe={stripePromise}
         >
-          <CardPaymentFlow amountDueCents={amountDueCents} surchargeEnabled={surchargeEnabled} token={token} />
+          <CardPaymentFlow amountDueCents={amountDueCents} disableLink={firewoodHandoff} surchargeEnabled={surchargeEnabled} token={token} />
         </Elements>
       ) : (
         <button className="invoice-payment-continue" disabled={pending || onlineUnavailable} onClick={submitChoice} type="button">
@@ -204,7 +206,7 @@ export function InvoicePortalPaymentChooser({
   }
 }
 
-function CardPaymentFlow({ amountDueCents, surchargeEnabled, token }: { amountDueCents: number; surchargeEnabled: boolean; token: string }) {
+function CardPaymentFlow({ amountDueCents, disableLink = false, surchargeEnabled, token }: { amountDueCents: number; disableLink?: boolean; surchargeEnabled: boolean; token: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [review, setReview] = useState<CardReview | null>(null);
@@ -265,7 +267,7 @@ function CardPaymentFlow({ amountDueCents, surchargeEnabled, token }: { amountDu
       <h3 id="card-payment-heading">Secure card details</h3>
       {!review ? (
         <>
-          <PaymentElement options={{ layout: "tabs", wallets: { applePay: "never", googlePay: "never" } }} />
+          <PaymentElement options={{ layout: "tabs", wallets: { applePay: "never", googlePay: "never", ...(disableLink ? { link: "never" } : {}) } }} />
           <button className="invoice-payment-continue" disabled={!stripe || pending} onClick={reviewPayment} type="button">
             {pending ? "Reviewing card..." : "Review card payment"}
           </button>

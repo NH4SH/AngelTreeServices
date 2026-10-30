@@ -206,3 +206,7 @@ for(const [customerId,organizationId]of [[null,null],[customer,other]]){
     assert.equal((await f.run()).ok,false);assert.equal(f.provider.length,0);
   });
 }
+
+test('new Firewood source uses a stable dynamic ACH-only allowlist without changing generic requests',async()=>{
+ const f=fixture();f.input.firewoodPolicy={sourceId:'website_firewood_invoice_v2',orderId:other,accountId:'acct_1UU9U8RAZXGe6tX0',receiptAuthority:'crm',surchargeReporting:true};const r=await f.run();assert.equal(r.ok,true);const call=f.provider.find(x=>typeof x==='object'&&x.operation==='create');assert.ok(call);assert.equal(call.params.payment_method_types,undefined);assert.deepEqual(call.params.allowed_payment_method_types,['us_bank_account']);assert.match(call.params.integration_identifier,/^ats_firewood_v2_ach_[a-z]{8}$/);assert.equal(call.request.apiVersion,'2026-09-30.endive');assert.equal((await f.run()).url,r.url);assert.equal(f.provider.filter(x=>typeof x==='object'&&x.operation==='create').length,1);
+});

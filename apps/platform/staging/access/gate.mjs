@@ -44,7 +44,11 @@ export function validateConfig(config) {
 
 export function hostedConfig(manifest,env,siteId) {
   const staging=manifest?.staging;
-  if(env.APP_ENV!=='staging' || env.STAGING_MODE!=='core-no-providers' || siteId!==staging?.netlifySiteId ||
+  const profile=env.STAGING_MODE==='core-no-providers'||
+    env.STAGING_MODE==='firewood-sandbox-v2'&&manifest?.mode==='firewood-sandbox-v2'&&
+    staging?.supabaseProjectRef==='gbyhdsuiqeslgjdnbqng'&&staging?.netlifySiteId==='d81d923d-6ccf-4c1e-87cc-263f3d51555d'&&
+    staging?.appOrigin==='https://angel-tree-admin-staging.netlify.app';
+  if(env.APP_ENV!=='staging' || !profile || siteId!==staging?.netlifySiteId ||
     env.APP_BASE_URL!==staging?.appOrigin || Object.keys(env).some(k=>/^(?:NEXT_PUBLIC_|PUBLIC_|VITE_)STAGING_GATE_/.test(k) && env[k])) throw Error('binding');
   return validateConfig({origin:staging.appOrigin,siteId:staging.netlifySiteId,local:false,
     sessionKey:env.STAGING_GATE_KEY,passwordVerifier:env.STAGING_GATE_VERIFIER});

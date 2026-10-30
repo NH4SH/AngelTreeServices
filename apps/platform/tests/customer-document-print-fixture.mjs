@@ -1,3 +1,4 @@
+import {LIVE_TERMS_CLAUSES} from '../src/lib/firewood/handoff/live-terms.mjs';
 import * as branding from '../src/lib/company-brand.ts';
 import * as jsx from 'react/jsx-runtime';
 import {load,harness as invoiceHarness,elements,text} from './customer-invoice-fixture.mjs';
@@ -6,7 +7,7 @@ const PrintButton=load('../src/components/documents/print-button.tsx',{'react/js
 const business=load('../src/lib/business-time.ts'),numbers=load('../src/lib/quotes/proposal-number.ts');
 const drafts=load('../src/lib/documents/email-drafts.ts',{'./terms/firewood-2026-10-24.ts':load('../src/lib/documents/terms/firewood-2026-10-24.ts'),'../company-brand.ts':branding,'../quotes/proposal-number.ts':numbers});
 const shell=load('../src/components/documents/document-shell.tsx',{'../../lib/company-brand.ts':branding,'react/jsx-runtime':jsx,'lucide-react':{Leaf:icon}});
-const terms=load('../src/lib/documents/terms.ts',{'./terms/firewood-2026-10-24.ts':load('../src/lib/documents/terms/firewood-2026-10-24.ts'),'./terms/legacy-2026-10-22.ts':load('../src/lib/documents/terms/legacy-2026-10-22.ts'),'@/lib/business-time':business});
+const terms=load('../src/lib/documents/terms.ts',{'./terms/firewood-household-live-2026-10-29-v1.ts':{firewoodHouseholdLiveTerms:LIVE_TERMS_CLAUSES},'./terms/firewood-handoff-test-2026-10-29.ts':load('../src/lib/documents/terms/firewood-handoff-test-2026-10-29.ts'),'./terms/firewood-2026-10-24.ts':load('../src/lib/documents/terms/firewood-2026-10-24.ts'),'./terms/legacy-2026-10-22.ts':load('../src/lib/documents/terms/legacy-2026-10-22.ts'),'@/lib/business-time':business});
 const documentTerms=load('../src/components/documents/document-terms.tsx',{'react/jsx-runtime':jsx});
 const QuoteDocument=load('../src/components/documents/quote-document.tsx',{'react/jsx-runtime':jsx,'@/components/documents/document-shell':shell,'@/components/documents/document-terms':documentTerms,'@/lib/documents/terms':terms,'@/lib/documents/email-drafts':drafts,'@/lib/email/config':{getEmailSetupState:()=>({replyTo:'office@example.invalid'})},'@/lib/business-time':business,'../../lib/quotes/proposal-number.ts':numbers}).QuoteDocument;
 const states=load('../src/lib/portal/customer-states.ts'),presentation=load('../src/lib/portal/quote-presentation.ts');

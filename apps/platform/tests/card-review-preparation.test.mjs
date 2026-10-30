@@ -6,7 +6,7 @@ import * as closure from '../src/lib/payments/checkout-closure.ts';
 import * as budget from '../src/lib/payments/checkout-budget.ts';
 import * as policy from '../src/lib/payments/card-reservation-policy.ts';
 import * as surcharge from '../src/lib/payments/card-surcharge.ts';
-const payment=load('../src/lib/stripe/card-payment.ts',{'server-only':{},'@/lib/payments/checkout-closure':closure,
+const payment=load('../src/lib/stripe/card-payment.ts',{'@/lib/firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),'server-only':{},'@/lib/payments/checkout-closure':closure,
   '@/lib/payments/checkout-budget':budget,'@/lib/payments/card-reservation-policy':policy,'@/lib/payments/card-surcharge':surcharge});
 const invoice='00000000-0000-4000-8000-000000000001',customer='00000000-0000-4000-8000-000000000002';
 const id='00000000-0000-4000-8000-000000000003',other='00000000-0000-4000-8000-000000000004';

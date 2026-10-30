@@ -6,8 +6,12 @@ const { join } = require('node:path');
 // has finished and before Netlify bundles Edge functions. No generated handler
 // or authorization implementation is replaced.
 function installFirstGate(directory, env) {
-  const target = JSON.parse(readFileSync(join(directory, 'staging/targets.json'), 'utf8')).staging;
-  if (env.APP_ENV !== 'staging' || env.STAGING_MODE !== 'core-no-providers' ||
+  const configuration = JSON.parse(readFileSync(join(directory, 'staging/targets.json'), 'utf8'));
+  const target = configuration.staging;
+  const profile = env.STAGING_MODE === 'core-no-providers' ||
+    env.STAGING_MODE === 'firewood-sandbox-v2' && configuration.mode === 'firewood-sandbox-v2' &&
+    target.supabaseProjectRef === 'gbyhdsuiqeslgjdnbqng' && target.appOrigin === 'https://angel-tree-admin-staging.netlify.app';
+  if (env.APP_ENV !== 'staging' || !profile ||
       env.SITE_ID !== target.netlifySiteId || env.APP_BASE_URL !== target.appOrigin ||
       target.netlifySiteId !== 'd81d923d-6ccf-4c1e-87cc-263f3d51555d') {
     throw Error('Staging access ordering requires the assigned staging target.');

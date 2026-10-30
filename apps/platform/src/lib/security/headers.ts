@@ -1,7 +1,8 @@
 import { targets } from "./deployment.ts";
-import { isStagingDeployment } from "./staging-policy.mjs";
+import { isStagingDeployment, isFirewoodStagingCollectorDeployment } from "./staging-policy.mjs";
 
 const staging = isStagingDeployment(targets, process.env);
+const sandboxStripe = staging && isFirewoodStagingCollectorDeployment(targets, process.env);
 const stagingApi = `https://${targets.staging.supabaseProjectRef}.supabase.co`;
 const stagingRealtime = `wss://${targets.staging.supabaseProjectRef}.supabase.co`;
 
@@ -18,13 +19,13 @@ export const contentSecurityPolicy = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  staging ? "form-action 'self'" : "form-action 'self' https://checkout.stripe.com",
-  `script-src 'self' 'unsafe-inline'${scriptDevelopmentSources}${staging ? "" : " https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com"}`,
+  staging && !sandboxStripe ? "form-action 'self'" : "form-action 'self' https://checkout.stripe.com",
+  `script-src 'self' 'unsafe-inline'${scriptDevelopmentSources}${staging ? sandboxStripe ? " https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com" : "" : " https://js.stripe.com https://maps.googleapis.com https://maps.gstatic.com"}`,
   "style-src 'self' 'unsafe-inline'",
-  staging ? "img-src 'self' data: blob:" : "img-src 'self' data: blob: https://maps.gstatic.com",
+  staging ? `img-src 'self' data: blob:${sandboxStripe ? " https://*.stripe.com" : ""}` : "img-src 'self' data: blob: https://maps.gstatic.com",
   "font-src 'self' data:",
-  staging ? `connect-src 'self' ${stagingApi} ${stagingRealtime}` : `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com${localStorageSource}`,
-  staging ? "frame-src 'none'" : "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  staging ? `connect-src 'self' ${stagingApi} ${stagingRealtime}${sandboxStripe ? " https://api.stripe.com https://checkout.stripe.com" : ""}` : `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com https://places.googleapis.com${localStorageSource}`,
+  staging ? sandboxStripe ? "frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://checkout.stripe.com" : "frame-src 'none'" : "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
   "worker-src 'self' blob:",
 ].join("; ");
 

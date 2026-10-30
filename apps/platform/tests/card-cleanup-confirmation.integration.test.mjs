@@ -10,7 +10,7 @@ import * as budget from '../src/lib/payments/checkout-budget.ts';
 import * as policy from '../src/lib/payments/card-reservation-policy.ts';
 import * as surcharge from '../src/lib/payments/card-surcharge.ts';
 
-const { releaseStaleCardReservations } = load('../src/lib/stripe/card-payment.ts', {
+const { releaseStaleCardReservations } = load('../src/lib/stripe/card-payment.ts', {'@/lib/firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),
   'server-only': {}, '@/lib/payments/checkout-closure': closure,
   '@/lib/payments/checkout-budget': budget, '@/lib/payments/card-reservation-policy': policy, '@/lib/payments/card-surcharge': surcharge,
 });

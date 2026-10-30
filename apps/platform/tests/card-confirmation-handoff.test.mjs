@@ -6,7 +6,7 @@ import * as budget from '../src/lib/payments/checkout-budget.ts';
 import * as policy from '../src/lib/payments/card-reservation-policy.ts';
 import * as surcharge from '../src/lib/payments/card-surcharge.ts';
 
-const payment = load('../src/lib/stripe/card-payment.ts', {
+const payment = load('../src/lib/stripe/card-payment.ts', {'@/lib/firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),
   'server-only': {}, '@/lib/payments/checkout-closure': closure, '@/lib/payments/checkout-budget': budget,
   '@/lib/payments/card-reservation-policy': policy, '@/lib/payments/card-surcharge': surcharge,
 });
@@ -186,3 +186,11 @@ for(const party of [{customer_id:null,organization_id:null},{customer_id:custome
     const f=fixture({row:party});assert.equal((await f.run()).ok,false);assert.equal(f.provider.length,0);
   });
 }
+
+test('new Firewood source sends dedicated fee data, one principal line and one business receipt authority',async()=>{
+ const f=fixture({intent:{amount_details:{surcharge:{amount:30,status:"available",maximum_amount:30}}}});f.input.firewoodPolicy={sourceId:'website_firewood_invoice_v2',orderId:other,accountId:'acct_1UU9U8RAZXGe6tX0',receiptAuthority:'crm',surchargeReporting:true};f.input.billingEmail='test@example.invalid';
+ const r=await f.run();assert.equal(r.ok,true);const{params,request}=f.creates()[0];assert.deepEqual(params.amount_details.line_items.map(x=>x.unit_cost),[1000]);assert.deepEqual(params.amount_details.surcharge,{amount:30,enforce_validation:'enabled'});assert.equal(params.receipt_email,undefined);assert.equal(params.payment_method_types,undefined);assert.deepEqual(params.allowed_payment_method_types,['card']);assert.equal(params.metadata.receipt_authority,'crm');assert.equal(request.apiVersion,'2026-03-25.preview');
+});
+test('new Firewood source never releases confirmation when Stripe fails dedicated fee acknowledgement',async()=>{
+ const f=fixture();f.input.firewoodPolicy={sourceId:'website_firewood_invoice_v2',orderId:other,accountId:'acct_1UU9U8RAZXGe6tX0',receiptAuthority:'crm',surchargeReporting:true};const r=await f.run();assert.equal(r.ok,false);assert.equal(r.clientSecret,undefined);assert.equal(f.creates().length,1);
+});

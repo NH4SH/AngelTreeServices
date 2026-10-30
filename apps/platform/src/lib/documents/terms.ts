@@ -1,3 +1,5 @@
+import {firewoodHandoffTerms} from "./terms/firewood-handoff-test-2026-10-29.ts";
+import {firewoodHouseholdLiveTerms} from "./terms/firewood-household-live-2026-10-29-v1.ts";
 import { formatBusinessDate } from "@/lib/business-time";
 import { DOCUMENT_TERMS_LEGACY_VERSION, legacyInvoiceTerms, legacyQuoteTerms } from "./terms/legacy-2026-10-22.ts";
 import type { DocumentTerm } from "./terms/legacy-2026-10-22.ts";
@@ -17,6 +19,8 @@ function requireSupportedVersion(version?: string | null) {
 }
 
 export function getInvoiceTerms(version?: string | null): readonly DocumentTerm[] {
+  if(version==="firewood-household-live-2026-10-29-v1")return firewoodHouseholdLiveTerms;
+  if(version==="firewood-handoff-test-2026-10-29")return firewoodHandoffTerms;
   if (isFirewoodInvoiceTerms(version)) return firewoodInvoiceTerms;
   requireSupportedVersion(version);
   return legacyInvoiceTerms;

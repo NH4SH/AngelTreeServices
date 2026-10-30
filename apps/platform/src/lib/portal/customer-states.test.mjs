@@ -4,6 +4,12 @@ import {customerQuoteState,customerInvoiceState,initialCustomerPaymentPreference
 
 const state=(patch={})=>customerInvoiceState({status:'sent',amountDueCents:285000,payments:[],...patch});
 const pending=(method)=>({status:'pending',provider:'stripe',payment_method:method});
+test('cancellation credit is no further payment requested, never paid or refunded',()=>{
+ const credited=state({status:'credited',amountDueCents:60000,returnedPayment:'success'});
+ assert.equal(credited.kind,'credited');assert.equal(credited.canChoose,false);assert.equal(credited.refresh,false);
+ assert.match(credited.title,/No further payment/);assert.doesNotMatch(credited.title,/received|paid|refunded/i);
+ assert.match(credited.message,/separate from any payment or refund/);
+});
 test('only existing open quote states expose responses; unknown states fail closed',()=>{
  for(const status of ['draft','sent','change_requested'])assert.equal(customerQuoteState(status).canRespond,true,status);
  for(const status of ['approved','declined','cancelled','expired','unknown',''])assert.equal(customerQuoteState(status).canRespond,false,status);

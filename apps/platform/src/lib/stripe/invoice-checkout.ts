@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import type { FirewoodCollectorPolicy } from "@/lib/firewood/handoff/collector-policy";
 import { closeCheckoutReservation, classifyCheckoutForClosure, closableReservationColumns, isClosableReservation, isCheckoutContractingParty, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { achCheckoutPaymentMethodTypes } from "@/lib/payments/ach-checkout";
 
@@ -19,6 +20,7 @@ type CheckoutReservation = ClosableReservation & {
 };
 
 type CheckoutInput = {
+  firewoodPolicy?: FirewoodCollectorPolicy | null;
   amountCents: number;
   currency?: string;
   customerId: string | null;
@@ -38,6 +40,7 @@ type CheckoutResult =
   | { ok: false; message: string };
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt = 0): Promise<CheckoutResult> {
+  if (input.firewoodPolicy && (input.livemode || input.firewoodPolicy.accountId !== "acct_1UU9U8RAZXGe6tX0" || input.firewoodPolicy.sourceId !== "website_firewood_invoice_v2")) return { ok: false, message: "This Firewood checkout requires office review." };
   if (attempt >= 3) return { ok: false, message: "Payment state is changing. Please wait and try again." };
   const currency = (input.currency ?? "usd").toLowerCase();
   const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency).catch(() => {
@@ -112,11 +115,16 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
         ],
         metadata,
         mode: "payment",
-        payment_method_types: [...achCheckoutPaymentMethodTypes],
+        ...(input.firewoodPolicy ? {
+          allowed_payment_method_types: ["us_bank_account"],
+          // Derive the random-letter suffix from the already random reservation
+          // so a recovered request retains the exact provider parameters.
+          integration_identifier: `ats_firewood_v2_ach_${reservation.id.replaceAll("-", "").slice(0, 8).split("").map(c => String.fromCharCode(97 + Number.parseInt(c, 16))).join("")}`,
+        } : { payment_method_types: [...achCheckoutPaymentMethodTypes] }),
         payment_intent_data: { metadata },
         success_url: `${input.portalUrl}?payment=processing&session_id={CHECKOUT_SESSION_ID}`,
       },
-      { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}` },
+      { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}`, ...(input.firewoodPolicy ? { apiVersion: "2026-09-30.endive" as Stripe.LatestApiVersion } : {}) },
     );
 
     if (!matchesCreatedSession(session, reservation, input.livemode)) {

@@ -52,6 +52,7 @@ export async function POST(request: Request, { params }: CheckoutRouteProps) {
   const job = asOne(invoice.jobs) as { service_location_id?: string | null } | null;
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const checkout = await createOrReuseInvoiceCheckout({
+    firewoodPolicy: context.firewoodPolicy,
     amountCents,
     customerEmail: context.billingEmail,
     customerId: invoice.customer_id,

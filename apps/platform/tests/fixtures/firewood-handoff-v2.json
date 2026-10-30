@@ -1,0 +1,73 @@
+{
+  "testOnly": true,
+  "activationReady": false,
+  "request": {
+    "contract": "firewood-invoice-handoff-v2",
+    "source_id": "website_firewood_invoice_v2",
+    "account_id": "acct_1UU9U8RAZXGe6tX0",
+    "mode": "sandbox",
+    "order_id": "c5c08217-5112-4765-98c7-8b29a4d00002",
+    "reference": "FW-C5C08217",
+    "snapshot_hash": "1445c012f006478931aa5a5f2df287f1bd8733bf59229af32ff9706e18829e34",
+    "order": {
+      "quantity": "full",
+      "stacking": true,
+      "wood_cents": 45000,
+      "delivery_cents": 0,
+      "stacking_cents": 15000,
+      "principal_cents": 60000,
+      "currency": "usd",
+      "tax_cents": 0,
+      "tax_basis": "va_domestic_use_locality_exempt",
+      "terms": {
+        "version": "firewood-20261028-household-v2",
+        "currency": "usd",
+        "deliveryCents": 0,
+        "stackingCents": 15000,
+        "maximumCords": 2,
+        "notificationDays": 7,
+        "cancellationHours": 48,
+        "cutoff": "delivery-window-start",
+        "unscheduledRefund": "full",
+        "angelCancellationRefund": "full",
+        "declinedAngelRescheduleRefund": "full",
+        "lateCustomerCancellation": "non-refundable",
+        "taxBasisPoints": 0,
+        "purchaseUse": "personal-household-only",
+        "veterans": "Inform Angel before purchase; office-approved price; residential only; one discount.",
+        "timezone": "America/New_York",
+        "hash": "ecf0666b872db0a9a6b588ea25143887d51171a9606cda65d16ae792213a83a5",
+        "accepted": true,
+        "householdUseConfirmed": true
+      },
+      "payment_policy": {
+        "version": "firewood-payment-options-2026-10-29",
+        "channels": [
+          "card",
+          "ach",
+          "cash_check_pickup",
+          "check_mail"
+        ],
+        "credit_surcharge_bps": 300,
+        "credit_eligibility": "processor_confirmed_US_credit",
+        "fee_basis": "outstanding_principal",
+        "exact_fee_review_before_confirmation": true,
+        "receipt_authority": "crm",
+        "accepted": true
+      },
+      "accepted_at_ms": 1793289600000,
+      "office_approval": null,
+      "contact": {
+        "name": "Synthetic Firewood V2",
+        "email": "firewood-v2@example.invalid",
+        "phone": "2025550182",
+        "address": "123 Synthetic Lane",
+        "address2": "",
+        "city": "Fredericksburg",
+        "state": "VA",
+        "postal": "22407",
+        "notes": "Synthetic v2 test only"
+      }
+    }
+  }
+}

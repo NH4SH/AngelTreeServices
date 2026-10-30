@@ -1,3 +1,4 @@
+import {getFirewoodCollectorPolicy} from "../firewood/handoff/collector-policy";
 import "server-only";
 
 import type Stripe from "stripe";
@@ -23,7 +24,7 @@ export async function getPortalPaymentContext(rawToken: string, stripe: Stripe, 
 
     const invoiceResult = await withDeadline(signal => supabase
       .from("invoices")
-      .select("id, customer_id, organization_id, invoice_number, status, total_cents, customers:customers!invoices_customer_id_fkey(id, email), organizations(id, billing_email), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email), jobs(service_location_id)")
+      .select("id, customer_id, organization_id, invoice_number, document_terms_version, status, total_cents, customers:customers!invoices_customer_id_fkey(id, email), organizations(id, billing_email), billing_contact:organization_contacts!invoices_billing_contact_id_fkey(email), accounts_payable_contact:organization_contacts!invoices_accounts_payable_contact_id_fkey(email), jobs(service_location_id)")
       .eq("id", expectedInvoiceId)
       .abortSignal(signal)
       .single(), 5000);
@@ -32,6 +33,8 @@ export async function getPortalPaymentContext(rawToken: string, stripe: Stripe, 
       console.error("Portal payment lookup failed", { applicationErrorCode: "invoice_lookup_failed", route: "invoice_portal_payment" });
       return failure("This invoice is not available.", 404);
     }
+    const firewood=await getFirewoodCollectorPolicy(supabase,invoice,livemode);
+    if(!firewood.ok)return failure(firewood.message,firewood.status);
     if (!['sent', 'partially_paid', 'overdue'].includes(invoice.status)) {
       return failure("This invoice is not available for online payment.", 409);
     }
@@ -107,6 +110,7 @@ export async function getPortalPaymentContext(rawToken: string, stripe: Stripe, 
       ok: true as const,
       billingEmail: getBillingEmail(invoice),
       invoice,
+      firewoodPolicy:firewood.policy,
       invoicePrincipalCents,
       supabase,
     };
@@ -160,7 +164,8 @@ function relation(value: unknown): Record<string, unknown> | null | false {
 }
 type PaymentInvoice = {
   id: string; customer_id: string | null; organization_id: string | null;
-  invoice_number: string | null; status: string; total_cents: number;
+  invoice_number: string | null;
+  document_terms_version?:string|null; status: string; total_cents: number;
   customers: { id: string; email: string | null } | null;
   organizations: { id: string; billing_email: string | null } | null;
   billing_contact: { email: string | null } | null;

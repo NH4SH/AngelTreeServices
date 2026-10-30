@@ -1,3 +1,4 @@
+import {firewoodSurchargeFields,type FirewoodCollectorPolicy} from "@/lib/firewood/handoff/collector-policy";
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -181,6 +182,7 @@ type CardConfirmationInput = {
   supabase: SupabaseClient<any, "public", any>;
   surchargeBps: number;
   surchargeEnabled: boolean;
+  firewoodPolicy?:FirewoodCollectorPolicy|null;
 };
 type CardConfirmationResult = { ok: true; clientSecret: string | null; status: Stripe.PaymentIntent.Status } | { ok: false; message: string };
 type CardConfirmationReservation = ClosableReservation & {
@@ -215,6 +217,7 @@ async function confirmCardReviewCommand({
   supabase,
   surchargeBps,
   surchargeEnabled,
+  firewoodPolicy,
 }: CardConfirmationInput): Promise<CardConfirmationResult> {
   const reserved = await supabase
     .from("invoice_checkout_sessions")
@@ -291,6 +294,7 @@ async function confirmCardReviewCommand({
   }
 
   const metadata = compactMetadata({
+    ...(firewoodPolicy?{firewood_source_id:firewoodPolicy.sourceId,firewood_order_id:firewoodPolicy.orderId,receipt_authority:"crm"}:{}),
     checkout_reservation_id: reviewId,
     customer_id: review.customer_id ?? "",
     invoice_id: invoiceId,
@@ -304,28 +308,30 @@ async function confirmCardReviewCommand({
     const lineItems: Stripe.PaymentIntentCreateParams.AmountDetails.LineItem[] = [
       { product_name: `Invoice ${invoiceNumber ?? "payment"}`, quantity: 1, unit_cost: invoicePrincipalCents },
     ];
-    if (current.surchargeCents > 0) {
+    const dedicatedSurcharge=firewoodSurchargeFields(firewoodPolicy,current.surchargeCents);
+    if (current.surchargeCents > 0 && !dedicatedSurcharge) {
       lineItems.push({ product_name: "Credit-card surcharge", quantity: 1, unit_cost: current.surchargeCents });
     }
     const paymentIntent = await stripe.paymentIntents.create({
       amount: current.grossChargeCents,
-      amount_details: { enforce_arithmetic_validation: true, line_items: lineItems },
+      amount_details: { enforce_arithmetic_validation: true, line_items: lineItems,...(dedicatedSurcharge?{surcharge:dedicatedSurcharge}:{}) },
       confirm: true,
       confirmation_token: confirmationToken.id,
       currency: "usd",
       description: `Angel Tree Services invoice ${invoiceNumber ?? invoiceId}`,
       metadata,
-      payment_method_types: ["card"],
-      receipt_email: billingEmail || undefined,
+      ...(firewoodPolicy?{allowed_payment_method_types:["card"]}:{payment_method_types:["card"]}),
+      ...(firewoodPolicy?{}:{receipt_email:billingEmail||undefined}),
       return_url: `${portalUrl}?payment=processing`,
       use_stripe_sdk: true,
-    }, { idempotencyKey: `angel-tree-card-confirm-${reviewId}` });
+    }, { idempotencyKey: `angel-tree-card-confirm-${reviewId}`,...(firewoodPolicy?{apiVersion:"2026-03-25.preview" as Stripe.LatestApiVersion}:{}) });
 
     if (!paymentIntent || typeof paymentIntent.id !== "string" || !/^pi_[a-zA-Z0-9]+$/.test(paymentIntent.id)
       || !cardIntentMatches(paymentIntent, { ...review, stripe_payment_intent_id: paymentIntent.id }, livemode)) {
       throw new Error("card_intent_binding_unconfirmed");
     }
     knownPaymentIntentId = paymentIntent.id;
+    if(firewoodPolicy){const surcharge=(paymentIntent.amount_details as unknown as {surcharge?:{amount?:number;status?:string;maximum_amount?:number}})?.surcharge;if(current.surchargeCents>0?(surcharge?.amount!==current.surchargeCents||surcharge.status!=="available"||!Number.isSafeInteger(surcharge.maximum_amount)||surcharge.maximum_amount!<current.surchargeCents):(surcharge?.amount!=null&&surcharge.amount!==0))throw Error("firewood_surcharge_reporting_unconfirmed");}
     if (!["requires_payment_method", "requires_confirmation", "requires_action", "processing", "requires_capture", "succeeded", "canceled"].includes(paymentIntent.status)
       || !Number.isSafeInteger(paymentIntent.amount_received) || paymentIntent.amount_received < 0 || paymentIntent.amount_received > paymentIntent.amount
       || (paymentIntent.client_secret !== null && (typeof paymentIntent.client_secret !== "string"

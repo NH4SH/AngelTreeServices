@@ -37,3 +37,10 @@ test("development base URL permits loopback only", () => {
   assert.equal(normalizeAppBaseUrl("http://localhost:3000", "development"), "http://localhost:3000");
   assert.equal(normalizeAppBaseUrl("http://192.168.1.2:3000", "development"), null);
 });
+
+test('optimized Firewood QA requires a scoped test profile and a loopback backend',()=>{
+ const manifest={staging:null},env={FIREWOOD_HANDOFF_V2_COLLECTOR_TEST_ENABLED:'1',FIREWOOD_HANDOFF_V2_ENVIRONMENT_ID:'ats_fwhandoff_home_012345abcdef',STRIPE_SECRET_KEY:'rk_test_SYNTHETIC',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3230'};
+ assert.equal(normalizeAppBaseUrl('http://127.0.0.1:3228','production',{manifest,env}),'http://127.0.0.1:3228');
+ for(const patch of[{FIREWOOD_HANDOFF_V2_COLLECTOR_TEST_ENABLED:'0'},{FIREWOOD_HANDOFF_V2_ENVIRONMENT_ID:'production'},{STRIPE_SECRET_KEY:'rk_live_SYNTHETIC'},{NEXT_PUBLIC_SUPABASE_URL:'https://hosted.example.invalid'},{NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3230/path'},{APP_ENV:'staging'}])assert.equal(normalizeAppBaseUrl('http://127.0.0.1:3228','production',{manifest,env:{...env,...patch}}),null);
+ for(const origin of['http://192.168.1.170:3228','https://evil.invalid','http://127.0.0.1:3228/?token=foo'])assert.equal(normalizeAppBaseUrl(origin,'production',{manifest,env}),null);
+});

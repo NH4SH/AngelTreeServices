@@ -20,6 +20,12 @@ export function normalizeAppBaseUrl(
     if (url.username || url.password || url.pathname !== "/" || url.search || url.hash || /[\\\s]/.test(value)) return null;
 
     const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    // A dedicated, loopback-only Firewood QA profile may run the optimized build.
+    // This never permits a hosted backend, live Stripe key or unscoped flag.
+    const qa=deployment.env as Record<string,string|undefined>;
+    if(isLocal&&url.protocol==="http:"&&qa.FIREWOOD_HANDOFF_V2_COLLECTOR_TEST_ENABLED==="1"&&/^ats_fwhandoff_(home_)?[a-f0-9]{12}$/.test(qa.FIREWOOD_HANDOFF_V2_ENVIRONMENT_ID??"")&&/^(?:(?:sk|rk)_test_|rkcs_test_)[A-Za-z0-9]+$/.test(qa.STRIPE_SECRET_KEY??"")){
+      try{const backend=new URL(qa.NEXT_PUBLIC_SUPABASE_URL??"");if(backend.protocol==="http:"&&backend.hostname==="127.0.0.1"&&backend.port&&backend.pathname==="/"&&!backend.search&&!backend.hash&&!backend.username&&!backend.password)return url.origin;}catch{/* Keep normal strict rules below. */}
+    }
     if (environment === "production") {
       return url.origin === production.appOrigin ? url.origin : null;
     }

@@ -42,7 +42,7 @@ export function contextFixture(options={}){
  };
  const reconciliation=load('../src/lib/payments/reconciliation.ts',{'server-only':{},'../runtime/deadline.ts':{withDeadline:deadline},
   '@/lib/payments/payment-accounting':{netSuccessfulPaymentPrincipal},'@/lib/communications/queue':{},'@/lib/supabase/admin':{}});
- const context=load('../src/lib/payments/portal-card-context.ts',{'server-only':{},'../runtime/deadline.ts':{withDeadline:deadline},
+ const context=load('../src/lib/payments/portal-card-context.ts',{'../firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),'server-only':{},'../runtime/deadline.ts':{withDeadline:deadline},
   '@/lib/data/portal-invoice':{getInvoiceByPortalToken:async()=>{if(options.lookupThrows)throw Error('private lookup diagnostic');if(options.lookupHangs)return new Promise(()=>{});return options.lookup??{status:'ready',invoice:{id:options.expectedId??invoiceId}};}},
   '@/lib/payments/reconciliation':options.balanceHelper??reconciliation,'@/lib/payments/portal-ownership':{portalPaymentOwnershipIsValid},
   '@/lib/payments/checkout-closure':{isCheckoutContractingParty},'@/lib/portal/tokens':{hashPortalToken:()=>options.noHash?null:(options.tokenHash??tokenHash)},

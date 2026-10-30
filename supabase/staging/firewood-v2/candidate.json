@@ -1,0 +1,18 @@
+{
+  "kind": "staging-only-candidate",
+  "projectRef": "gbyhdsuiqeslgjdnbqng",
+  "sourceBase": "f79f875004bca20bb9a1cd0432871d4c0dbe1853",
+  "originalApplicationCount": 129,
+  "originalApplicationLedgerMd5": "42b9556b3e7f31050aa8a8c070cc8814",
+  "originalRecoveryMaintenanceCount": 15,
+  "candidateVersion": "20261030004004",
+  "candidateName": "firewood_v2_staging_boundary",
+  "files": {
+    "supabase/staging/firewood-v2/migrations/20261030004004_firewood_v2_staging_boundary.sql": "af8a897d0e98366be2bd61dcbe6c52ef577239efa8603ef89d7ad6493f801009",
+    "supabase/staging/firewood-v2/upgrade-native-prototype.sql": "7565db9c974058176270e25c2f64d757cec5abaa783787b4db6fc97b4b64df52"
+  },
+  "sourceRowsInstalled": 0,
+  "sourceEnabledByInstall": false,
+  "appliedToStaging": false,
+  "productionReady": false
+}

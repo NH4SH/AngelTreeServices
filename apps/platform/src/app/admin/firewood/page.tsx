@@ -33,6 +33,7 @@ export default async function FirewoodPage({ searchParams }: { searchParams: Pro
         <ListPagination basePath="/admin/firewood" count={invoices.count ?? 0} page={invoices.page} pageSize={firewoodInvoicePageSize} params={{}} />
       </> : null}
       <p><Link href="/admin/invoices">All invoices</Link></p>
+      {hasAllowedRole(context.roles, platformRoleGroups.accessApproval) ? <p><Link href="/admin/firewood/office">Website order approvals and cancellations</Link></p> : null}
     </div>
   </PlatformFrame>;
 }

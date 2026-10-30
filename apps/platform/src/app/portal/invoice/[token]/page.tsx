@@ -1,3 +1,5 @@
+import {getFirewoodCollectorPolicy,getFirewoodOrderReturnUrl,FIREWOOD_HANDOFF_TERMS} from "@/lib/firewood/handoff/collector-policy";
+import { PortalPaymentRefresh } from "@/components/portal-payment-refresh";
 import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from "lucide-react";
 import { InvoiceDocument } from "@/components/documents/invoice-document";
 import { PrintButton } from "@/components/documents/print-button";
@@ -36,6 +38,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
   }
 
   const invoice = lookup.invoice;
+  const firewoodReturnUrl=getFirewoodOrderReturnUrl(invoice);
   const scopeSummary = getInvoiceScopeSummary(invoice);
   // Token lookup above authorizes this invoice; reuse checkout's complete, read-only principal receipt.
   const paymentClient = getServiceRoleClient();
@@ -43,9 +46,13 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
   if (!principal || principal.error) return <PortalUnavailable message="The current invoice balance could not be confirmed. Please refresh this secure link or call our office before making a payment." />;
   const paymentTotalCents = principal.totalCents;
   const amountDueCents = Math.max(0, invoice.total_cents - paymentTotalCents);
-  const stripeConfigured = getStripeServerConfig().configured;
+  const stripeConfig=getStripeServerConfig();
+  const stripeConfigured = stripeConfig.configured;
+  const firewoodPolicy=paymentClient?await getFirewoodCollectorPolicy(paymentClient,invoice,stripeConfig.configured?stripeConfig.livemode:false):{ok:false as const,message:"Payment status is unavailable. Please contact our office.",status:503,reason:"setup" as const};
   const paymentConfig = getInvoicePaymentConfiguration();
-  const paymentState = customerInvoiceState({ status: invoice.status, amountDueCents, payments: invoice.payments ?? [], returnedPayment: payment });
+  const regularPaymentState = customerInvoiceState({ status: invoice.status, amountDueCents, payments: invoice.payments ?? [], returnedPayment: payment });
+  const paymentState=!firewoodPolicy.ok&&firewoodPolicy.reason!=="settled"&&regularPaymentState.kind!=="void"&&regularPaymentState.kind!=="credited"?{kind:"review" as const,label:"Office review",title:"Please contact our office",message:firewoodPolicy.message,canChoose:false,refresh:false}:regularPaymentState;
+  const firewoodReview=invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS&&paymentState.kind==="review";
   const refreshHref = `/portal/invoice/${encodeURIComponent(token)}${paymentState.kind === "confirming" ? "?payment=processing" : ""}#invoice-payment-status`;
 
 
@@ -73,12 +80,13 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
           <p>Check your balance and payment status here. The full invoice is below for your records.</p>
           <nav className="customer-invoice-shortcuts" aria-label="Invoice sections">{paymentState.canChoose ? <a className="customer-invoice-pay-link" href="#invoice-payment">Choose payment method</a> : <a href="#invoice-payment-status">View payment status</a>}<a href="#invoice-details">View full invoice</a></nav>
           <PrintButton label="Print or save invoice" showPrivacyHint />
+          {firewoodReturnUrl ? <p><a href={firewoodReturnUrl}>Return to Firewood order</a></p> : null}
         </div>
 
         <aside className="customer-portal-summary-card customer-invoice-summary">
           <div className="customer-quote-summary-total">
-            <span>{paymentState.kind === "processing" || paymentState.kind === "confirming" ? "Balance awaiting payment confirmation" : paymentState.kind === "void" ? "Invoice amount — not payable" : "Balance due"}</span>
-            <strong>{formatCurrency(amountDueCents)}</strong>
+            <span>{firewoodReview ? "Original Firewood order amount" : paymentState.kind === "processing" || paymentState.kind === "confirming" ? "Balance awaiting payment confirmation" : paymentState.kind === "void" ? "Invoice amount — not payable" : "Balance due"}</span>
+            <strong>{formatCurrency(paymentState.kind === "credited" ? 0 : firewoodReview ? invoice.total_cents : amountDueCents)}</strong>
           </div>
           <dl className="customer-quote-summary-list">
             <div>
@@ -94,7 +102,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
               <dd><CalendarDays aria-hidden="true" size={16} /> {formatDate(invoice.due_at)}</dd>
             </div>
           </dl>
-          <div id="invoice-payment-status" className={`customer-invoice-current-state ${paymentState.kind}`} role="status"><h2>{paymentState.title}</h2><p>{paymentState.message}</p>{paymentState.kind === "settled" && invoice.paid_at ? <p>Payment recorded {formatDate(invoice.paid_at)}. Thank you.</p> : null}{paymentState.refresh ? <a href={refreshHref}>Refresh payment status</a> : null}</div>
+          <div id="invoice-payment-status" className={`customer-invoice-current-state ${paymentState.kind}`} role="status"><h2>{paymentState.title}</h2><p>{paymentState.message}</p>{paymentState.kind === "settled" && invoice.paid_at ? <p>Payment recorded {formatDate(invoice.paid_at)}. Thank you.</p> : null}{paymentState.refresh ? invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS ? <PortalPaymentRefresh /> : <a href={refreshHref}>Refresh payment status</a> : null}</div>
         </aside>
       </section>
 
@@ -115,6 +123,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
         {paymentState.canChoose ? <InvoicePortalPaymentChooser
           amountDueCents={amountDueCents}
           cardEnabled={paymentConfig.cardEnabled}
+          firewoodHandoff={invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS}
           invoiceNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
           mailingAddress={paymentConfig.businessCheckMailingAddress}
           onlinePaymentEnabled={stripeConfigured}
@@ -134,7 +143,7 @@ export default async function CustomerInvoicePortalPage({ params, searchParams }
 
       <footer className="customer-portal-footer print-hidden">
         <strong>Angel Tree Services</strong>
-        <span>Keep your secure invoice email to return to this document.</span>
+        <span>{firewoodReturnUrl ? "Return to your Firewood order to review its latest payment and delivery status." : "Keep your secure invoice email to return to this document."}</span>
       </footer>
     </main>
   );

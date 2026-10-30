@@ -11,7 +11,7 @@ import * as policy from '../src/lib/payments/card-reservation-policy.ts';
 import * as surcharge from '../src/lib/payments/card-surcharge.ts';
 import { achCheckoutPaymentMethodTypes } from '../src/lib/payments/ach-checkout.ts';
 
-const { createCardReview, confirmCardReview } = load('../src/lib/stripe/card-payment.ts', {
+const { createCardReview, confirmCardReview } = load('../src/lib/stripe/card-payment.ts', {'@/lib/firewood/handoff/collector-policy':load('../src/lib/firewood/handoff/collector-policy.ts',{'server-only':{}}),
   'server-only': {}, '@/lib/payments/checkout-closure': closure,
   '@/lib/payments/checkout-budget': budget, '@/lib/payments/card-reservation-policy': policy, '@/lib/payments/card-surcharge': surcharge,
 });

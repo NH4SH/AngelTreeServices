@@ -225,6 +225,13 @@ export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<
     if (session.status === "expired" && (!intent || ["canceled", "requires_payment_method"].includes(intent.status))) return { ...common, operation: "expired" };
     if (checkout.payment_channel !== "ach") return { operation: "ignored" };
     if (intent?.status === "processing") return { ...common, operation: "pending" };
+    // A completed bank checkout can await microdeposit verification before the
+    // debit starts. Keep its existing payment guard; this is never paid evidence.
+    if (session.status === "complete" && session.payment_status === "unpaid"
+      && intent?.status === "requires_action" && intent.amount_received === 0
+      && intent.next_action?.type === "verify_with_microdeposits"
+      && Array.isArray(intent.payment_method_types) && intent.payment_method_types.length === 1
+      && intent.payment_method_types[0] === "us_bank_account") return { ...common, operation: "pending" };
     if (intent && ["requires_payment_method", "canceled"].includes(intent.status)) return { ...common, operation: "failed" };
     throw new WebhookProcessingError("checkout_state_unresolved", true);
   }
@@ -264,9 +271,57 @@ export async function normalizeStripeWebhook(event: WebhookEnvelope, deps: Pick<
     const chargeId = refund ? providerId(refund.charge) : id;
     if (!chargeId) throw new WebhookProcessingError("refund_binding_invalid", false);
     const charge = await budget.run(() => stripe.charges.retrieve(chargeId, {}, request()));
+    // Refund has no livemode field. Its re-fetched charge is the mode boundary;
+    // the early ACH ordering path additionally verifies the intent and session.
     requireMode(charge, deps.livemode);
-    if (charge.id !== chargeId || !charge.paid || !Number.isSafeInteger(charge.amount_refunded) || charge.amount_refunded < 0 || charge.amount_refunded > charge.amount) {
+    if (charge.id !== chargeId || !Number.isSafeInteger(charge.amount) || charge.amount <= 0
+      || !Number.isSafeInteger(charge.amount_refunded) || charge.amount_refunded < 0 || charge.amount_refunded > charge.amount) {
       throw new WebhookProcessingError("refund_amount_invalid", false);
+    }
+    if (!charge.paid) {
+      // ACH can queue a refund before the original debit settles. It is not a
+      // payment or a financial refund snapshot yet. Retry only that precisely
+      // bound ordering case; foreign, failed and contradictory objects still
+      // require review rather than being promoted to paid evidence.
+      const intentId = providerId(charge.payment_intent);
+      if (!refund || !["pending", "requires_action"].includes(refund.status ?? "") || charge.status !== "pending"
+        || charge.amount_refunded !== 0 || charge.payment_method_details?.type !== "us_bank_account" || !intentId
+        || providerId(refund.payment_intent) !== intentId || refund.currency.toLowerCase() !== charge.currency.toLowerCase()
+        || !Number.isSafeInteger(refund.amount) || refund.amount <= 0 || refund.amount > charge.amount) {
+        throw new WebhookProcessingError("refund_amount_invalid", false);
+      }
+      const intent = await budget.run(() => stripe.paymentIntents.retrieve(intentId, {}, request()));
+      requireMode(intent, deps.livemode);
+      const reservationId = intent.metadata?.checkout_reservation_id;
+      if (intent.id !== intentId || intent.status !== "processing" || intent.amount_received !== 0
+        || intent.amount !== charge.amount || intent.currency.toLowerCase() !== charge.currency.toLowerCase()
+        || providerId(intent.latest_charge) !== charge.id || !reservationId || !intent.metadata?.invoice_id
+        || !Array.isArray(intent.payment_method_types) || intent.payment_method_types.length !== 1
+        || intent.payment_method_types[0] !== "us_bank_account") {
+        throw new WebhookProcessingError("refund_binding_invalid", false);
+      }
+      const checkout = await lookup("id", reservationId);
+      if (!checkout || checkout.id !== reservationId || checkout.invoice_id !== intent.metadata.invoice_id
+        || checkout.payment_channel !== "ach" || !checkout.stripe_checkout_session_id || checkout.stripe_confirmation_token_id
+        || (checkout.stripe_payment_intent_id && checkout.stripe_payment_intent_id !== intentId)
+        || checkout.total_charge_cents !== charge.amount || checkout.currency.toLowerCase() !== charge.currency.toLowerCase()) {
+        throw new WebhookProcessingError("refund_binding_invalid", false);
+      }
+      const session = await budget.run(() => stripe.checkout.sessions.retrieve(checkout.stripe_checkout_session_id, {}, request()));
+      requireMode(session, deps.livemode);
+      if (session.id !== checkout.stripe_checkout_session_id || session.status !== "complete" || session.payment_status !== "unpaid"
+        || session.client_reference_id !== checkout.invoice_id || session.metadata?.invoice_id !== checkout.invoice_id
+        || session.metadata?.checkout_reservation_id !== checkout.id || providerId(session.payment_intent) !== intentId
+        || session.amount_total !== charge.amount || session.currency?.toLowerCase() !== charge.currency.toLowerCase()) {
+        throw new WebhookProcessingError("refund_binding_invalid", false);
+      }
+      const invoice = await budget.run(() => deps.supabase.from("invoices").select("id, status").eq("id", checkout.invoice_id)
+        .abortSignal(AbortSignal.timeout(request().timeout)).maybeSingle());
+      if (invoice.error) throw new WebhookProcessingError("invoice_read_failed", true);
+      if (!invoice.data || invoice.data.id !== checkout.invoice_id || invoice.data.status === "void") {
+        throw new WebhookProcessingError("refund_binding_invalid", false);
+      }
+      throw new WebhookProcessingError("refund_payment_not_ready", true);
     }
     return { operation: "refund", charge_id: charge.id, intent_id: providerId(charge.payment_intent),
       refund_id: refund?.id, amount_cents: charge.amount, currency: charge.currency,

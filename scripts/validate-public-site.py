@@ -29,6 +29,7 @@ EXPECTED_PATHS = (
     "/services/commercial-hoa-tree-care/",
     "/credentials-safety/",
     "/projects/",
+    "/projects/hollow-tree-removal/",
     "/about/",
     "/recognition/",
     "/privacy/",
@@ -36,6 +37,7 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
+    "/projects/hollow-tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
     "/services/tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
     "/services/tree-pruning/": {"service": "Tree Care", "estimate_context": "tree-pruning"},
     "/services/stump-grinding/": {"service": "Tree Care", "estimate_context": "stump-grinding"},
@@ -1000,7 +1002,8 @@ class Validator:
 
         required_homepage_terms = (
             "Certified Arborist-led &middot; Insured &middot; 30+ years of tree-industry experience",
-            "ISA Member and Certified Arborist",
+            "Saul Sierra Hernandez",
+            "ISA Certified Arborist&reg; &middot; MA-381822A",
             "angeltreeservices_backup_files/isamember1_004.jpg",
             'alt="ISA Certified Arborist"',
             "Insured &middot; 30+ years of tree-industry experience",
@@ -1216,6 +1219,50 @@ class Validator:
             re.IGNORECASE | re.DOTALL,
         ):
             self.error("/about/: former-employer wording implies a current affiliation or endorsement")
+
+    def validate_project_case_study(self) -> None:
+        route = "/projects/hollow-tree-removal/"
+        page = self.pages.get(route)
+        if not page:
+            return
+        project = json.loads((ROOT / "public-tree-removal-project.json").read_text(encoding="utf-8"))
+        source = self.page_sources[route]
+        photos = [image for image in page.images if image.get("src", "").startswith("/assets/versioned/project-")]
+        if len(photos) != 6:
+            self.error(f"{route}: expected all six approved project images")
+        from html import escape
+        for expected in project["photos"]:
+            matches = [image for image in photos if image.get("src") == expected["src"]]
+            if len(matches) != 1:
+                self.error(f"{route}: missing or duplicate project image {expected['key']}")
+                continue
+            image = matches[0]
+            if image.get("alt") != expected["alt"] or not image.get("width") or not image.get("height"):
+                self.error(f"{route}: project image {expected['key']} needs its approved alt and dimensions")
+            for variant in expected["variants"]:
+                if f"{variant['src']} {variant['width']}w" not in image.get("srcset", ""):
+                    self.error(f"{route}: responsive variant missing for {expected['key']}")
+            if escape(expected["caption"]) not in source:
+                self.error(f"{route}: approved caption missing for {expected['key']}")
+        if 'fetchpriority="high"' not in source or sum(image.get("loading") == "lazy" for image in photos) != 5:
+            self.error(f"{route}: prioritize the lead photo and lazy-load the five later photos")
+        for key in ("identification", "tree_risk"):
+            if escape(project[key]["body"]) not in source:
+                self.error(f"{route}: approved {key} wording is missing")
+        for private_note in ("Before publication", "Private case study draft", "Owner confirmed", "/Volumes/"):
+            if private_note in source:
+                self.error(f"{route}: private review notes must not enter the public artifact")
+        for entry in ("/projects/", "/services/tree-removal/"):
+            if not any(link.get("href") == route for link in self.pages[entry].links):
+                self.error(f"{entry}: case study is not linked")
+        for link in page.links:
+            if "ats-estimate-link" in link.get("class", "").split() and link.get("href") != project["estimate_href"]:
+                self.error(f"{route}: an estimate action lost the existing tree-removal context")
+        works = [item for block in page.json_ld for item in json.loads(block).get("@graph", []) if item.get("@type") == "CreativeWork"]
+        if len(works) != 1 or len(works[0].get("image", [])) != 6:
+            self.error(f"{route}: expected one CreativeWork with all six project images")
+        elif any(key in works[0] for key in ("datePublished", "dateCreated", "review", "aggregateRating")):
+            self.error(f"{route}: do not invent job dates or customer-review schema")
 
     def validate_artifact_contents(self) -> None:
         for route, page in self.pages.items():
@@ -1497,6 +1544,7 @@ class Validator:
             self.validate_homepage_faq()
             self.validate_recognition_layer()
             self.validate_about_page()
+            self.validate_project_case_study()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
             self.validate_llms_document()

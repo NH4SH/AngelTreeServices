@@ -9,14 +9,23 @@ import { captureManifestSql } from './capture-manifest.mjs';
 import { functionMetadataSql } from './function-metadata.mjs';
 import { createDatabaseParts } from './database-parts.mjs';
 import { continuousPolicy as policy,validateContinuousReceipt,acceptNextReceipt,clockIsSafe } from './continuous-policy.mjs';
+import { validateCertifiedCheckpoint } from './certified-checkpoint.mjs';
+import { validateNativeWalReceipt } from './native-wal-checkpoint.mjs';
+import { runtimeBlueprint } from './runtime-blueprint.mjs';
+import {assertNoForeignDeadline} from './deadline-scope.mjs';
+import { dirname } from 'node:path';
 
 assert.equal(process.env.ATS_CONTINUOUS_REHEARSAL,'1');
 assert.equal(hostname(),'lima-ats-crm-candidate-20261027');
 assert.equal(process.platform,'linux');assert.equal(process.getuid(),501);process.umask(0o077);
 const [command,id,argument]=process.argv.slice(2);assert.match(id,/^[a-f0-9]{12}$/);
-const payloadLayout=process.env.ATS_BACKUP_PAYLOAD;assert.ok(payloadLayout===undefined||payloadLayout==='parts-v1');
+const payloadLayout=process.env.ATS_BACKUP_PAYLOAD;assert.ok(payloadLayout===undefined||['parts-v1','parts-v2','parts-v3'].includes(payloadLayout));
 process.env.HOME_FAILOVER_REHEARSAL='1';process.env.ATS_FAILOVER_RUN_ID=id;
-const io=new CandidateIO();io.folder=io.root+'/continuous-'+id;io.namespace='ats-rehearsal-continuous-'+id;
+const nativeRequested=process.env.ATS_NATIVE_WAL_BACKUP_REHEARSAL==='1';
+const onlineRequested=process.env.ATS_NATIVE_ONLINE_REHEARSAL==='1';
+assert.ok(process.env.ATS_NATIVE_ONLINE_REHEARSAL===undefined||onlineRequested);assert.ok(!onlineRequested||nativeRequested);
+assert.ok(process.env.ATS_NATIVE_WAL_BACKUP_REHEARSAL===undefined||nativeRequested);
+const io=new CandidateIO();io.folder=io.root+((nativeRequested||existsSync(io.root+'/native-'+id))?'/native-':'/continuous-')+id;io.namespace='ats-rehearsal-continuous-'+id;
 io.env.XDG_RUNTIME_DIR='/run/user/501';io.env.DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/501/bus';
 const self=fileURLToPath(import.meta.url),node=process.execPath,services=['db','app','api-gw','auth','rest','storage','imgproxy'];
 const allowedRoles=['authenticator','supabase_auth_admin','supabase_storage_admin','candidate_fence_api'];
@@ -27,7 +36,12 @@ const monotonic=()=>Number(readFileSync('/proc/uptime','utf8').split(' ')[0])*10
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function run(program,args,options={}){return io.run(program,args,{timeout:5000,...options});}
 function config(){const c=json('binding');assert.equal(c.namespace,io.namespace);assert.equal(c.sourceId,io.project);assert.equal(c.sourceBoot,boot());return c;}
-function receipt(){const c=config(),active=json('active');const claims=validateContinuousReceipt(active.envelope,readFileSync(io.folder+'/authority-public.pem'),c);assert.ok(monotonic()<active.deadlineBootMs);return{active,claims};}
+function validateReceipt(envelope,key,c){
+  if(c.admissionProtocol==='certified-native-wal-v1')return validateNativeWalReceipt(envelope,key,c);
+  if(c.admissionProtocol==='certified-incremental-v1')return validateCertifiedCheckpoint(envelope,key,c);
+  assert.equal(c.admissionProtocol,undefined);return validateContinuousReceipt(envelope,key,c);
+}
+function receipt(){const c=config(),active=json('active');const claims=validateReceipt(active.envelope,readFileSync(io.folder+'/authority-public.pem'),c);assert.ok(monotonic()<active.deadlineBootMs);return{active,claims};}
 function cgroupPath(containerId){assert.match(containerId,/^[a-f0-9]{64}$/);return '/sys/fs/cgroup/user.slice/user-501.slice/user@501.service/user.slice/docker-'+containerId+'.scope';}
 async function fence(reason){
   const c=config(),startedAt=new Date().toISOString(),startedBootMs=monotonic();
@@ -42,7 +56,8 @@ async function fence(reason){
     }killed.push(service);
   }
   const result={reason,startedAt,completedAt:new Date().toISOString(),startedBootMs,completedBootMs:monotonic(),sourceBoot:c.sourceBoot,services:killed,kernelFence:true,productionChanged:false};
-  atomic('fence-result',result);return result;
+  writeFileSync(io.folder+'/fence-events.ndjson',JSON.stringify(result)+'\n',{flag:'a',mode:0o600});
+  if(!existsSync(io.folder+'/fence-result.json'))atomic('fence-result',result);return result;
 }
 function timerActive(unit){const r=run('/usr/bin/systemctl',['--user','show',unit+'.timer','--property=ActiveState','--value']);return r.stdout.trim()==='active';}
 function renewedLease(){
@@ -70,12 +85,32 @@ if(command==='init'){
   io.sql('alter table hosting_guard.state add column if not exists capture_in_progress boolean not null default true;update hosting_guard.state set capture_in_progress=true,expires_at=clock_timestamp()-interval \'1 second\';');
   const workloadStart=Number(io.sql('select coalesce(max(id),799999)+1 from public.candidate_fence_fixture where id>=800000 and id<900000;'));
   assert.ok(Number.isSafeInteger(workloadStart)&&workloadStart>=800000&&workloadStart+399<900000,'Synthetic fixture range is exhausted');
-  const binding={version:1,namespace:io.namespace,generation:current+1,sourceId:io.project,sourceBoot:boot(),databaseBoot:io.sql('select pg_postmaster_start_time()::text;'),topology:io.sql('select hosting_guard.catalog_fingerprint();'),workloadStart,containers};
+  assert.ok(process.env.ATS_CERTIFIED_BACKUP_REHEARSAL===undefined||process.env.ATS_CERTIFIED_BACKUP_REHEARSAL==='1');
+  assert.ok(!nativeRequested||process.env.ATS_CERTIFIED_BACKUP_REHEARSAL===undefined);
+  assert.ok(process.env.ATS_BACKUP_SOURCE_SCOPE===undefined||process.env.ATS_BACKUP_SOURCE_SCOPE==='crm-v1');
+  const binding={version:1,namespace:io.namespace,generation:current+1,sourceId:io.project,sourceBoot:boot(),databaseBoot:io.sql('select pg_postmaster_start_time()::text;'),topology:io.sql('select hosting_guard.catalog_fingerprint();'),workloadStart,containers,
+    ...(process.env.ATS_CERTIFIED_BACKUP_REHEARSAL==='1'?{admissionProtocol:'certified-incremental-v1'}:{}),
+    ...(nativeRequested?{admissionProtocol:'certified-native-wal-v1',sourceDbImage:io.inspect(io.db).Image,
+      systemIdentifier:io.sql('select system_identifier::text from pg_control_system();',{user:'postgres'}),timeline:Number(io.sql('select timeline_id from pg_control_checkpoint();',{user:'postgres'}))}:{}),
+    ...(process.env.ATS_BACKUP_SOURCE_SCOPE==='crm-v1'?{sourceScope:'crm-v1'}:{}),...(onlineRequested?{captureMode:'transaction-barrier'}:{})};
+  assert.ok(process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL===undefined||process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL==='1');
+  if(process.env.ATS_NATIVE_FILE_PATCH_REHEARSAL==='1'){assert.equal(onlineRequested,true);binding.privateFileFormat='patch-v1';}
   atomic('binding',binding);writeFileSync(io.folder+'/recovery-password.private',randomBytes(48).toString('base64')+'\n',{mode:0o600,flag:'wx'});
   const testPassword=randomBytes(32).toString('hex');writeFileSync(io.folder+'/test-password.private',testPassword,{mode:0o600,flag:'wx'});io.sql('alter role candidate_fence_api password '+literal(testPassword)+';');
   console.log(JSON.stringify(binding));
+}else if(command==='native-online-capture'){
+  const c=config();verifySourceIds(c);assert.equal(c.admissionProtocol,'certified-native-wal-v1');assert.equal(c.captureMode,'transaction-barrier');
+  assert.equal(existsSync(io.folder+'/fenced.latch'),false);process.env.ATS_TABLE_BARRIER_REHEARSAL='1';
+  const {captureOnlineNativeCandidate}=await import('./native-online-candidate.mjs');
+  console.log(JSON.stringify(await captureOnlineNativeCandidate(io,c,Number(argument))));
+}else if(command==='native-capture'){
+  const c=config();verifySourceIds(c);assert.equal(c.admissionProtocol,'certified-native-wal-v1');
+  assert.equal(existsSync(io.folder+'/fenced.latch'),false);
+  const {captureNativeCandidate}=await import('./native-candidate-capture.mjs');
+  console.log(JSON.stringify(await captureNativeCandidate(io,c,Number(argument))));
 }else if(command==='capture'){
   const c=config();verifySourceIds(c);assert.equal(existsSync(io.folder+'/fenced.latch'),false);
+  assert.notEqual(c.admissionProtocol,'certified-native-wal-v1','Use the explicit native capture command');
   const sequence=Number(argument);assert.ok(Number.isSafeInteger(sequence)&&sequence>=1&&sequence<=8);
   const out=io.folder+'/capture-'+sequence;mkdirSync(out,{mode:0o700});
   writeFileSync(io.folder+'/capture.lock',String(sequence),{flag:'wx',mode:0o600});
@@ -87,19 +122,25 @@ if(command==='init'){
     assert.equal(Number(io.sql("select count(*) from pg_stat_activity where datname=current_database() and usename not in('postgres','supabase_admin');")),0);
     const before=JSON.parse(io.sql(captureManifestSql));
     io.binary(['exec',io.db,'pg_dump','-U','supabase_admin','-d','postgres','-Fc',...(payloadLayout?['--compress=none']:[])],out+'/database.dump',{timeout:20000});
-    const databaseParts=payloadLayout?createDatabaseParts(out+'/database.dump',out+'/database.parts'):undefined;
+    const databaseParts=payloadLayout?createDatabaseParts(out+'/database.dump',out+'/database.parts',{partBytes:{'parts-v1':65536,'parts-v2':131072,'parts-v3':262144}[payloadLayout]}):undefined;
     const image='node:22.23.4-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d',volume=io.project+'_object-data';
     io.binary(['run','--rm','--network','none','--read-only','--user','1000:1000','--cap-drop','ALL','--memory','128m','--memory-swap','128m','--mount','type=volume,src='+volume+',dst=/objects,readonly','--entrypoint','tar',image,'-C','/objects','-cf','-','.'],out+'/objects.tar',{timeout:20000});
     const inventory=`const fs=require('fs'),p=require('path'),c=require('crypto'),out=[];function walk(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=p.join(d,e.name);if(e.isSymbolicLink())throw Error('Unexpected symlink');if(e.isDirectory())walk(f);else{const b=fs.readFileSync(f);out.push({path:p.relative('/objects',f),size:b.length,sha256:c.createHash('sha256').update(b).digest('hex')});}}}walk('/objects');console.log(JSON.stringify(out.sort((a,b)=>a.path.localeCompare(b.path))));`;
     const objects=JSON.parse(io.docker(['run','--rm','--network','none','--read-only','--user','1000:1000','--cap-drop','ALL','--memory','128m','--memory-swap','128m','--mount','type=volume,src='+volume+',dst=/objects,readonly',image,'node','-e',inventory]));
     assert.deepEqual(JSON.parse(io.sql(captureManifestSql)),before);
-    for(const [from,to] of [['selfhost/core.private.env','core.private.env'],['selfhost/app.private.env','app.private.env'],['release-source.tar.gz','release-source.tar.gz']])copyFileSync(io.root+'/'+from,out+'/'+to);
+    for(const [from,to] of [['selfhost/core.private.env','core.private.env'],['selfhost/app.private.env','app.private.env']])copyFileSync(io.root+'/'+from,out+'/'+to);
+    assert.ok(c.sourceScope===undefined||c.sourceScope==='crm-v1');
+    copyFileSync(c.sourceScope==='crm-v1'?io.folder+'/release-source-scoped.tar.gz':io.root+'/release-source.tar.gz',out+'/release-source.tar.gz');
     const roles=JSON.parse(io.sql("select jsonb_agg(to_jsonb(r) order by rolname) from(select rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolbypassrls from pg_roles where rolname !~ '^pg_')r;"));
     const memberships=JSON.parse(io.sql("select coalesce(jsonb_agg(to_jsonb(m) order by role_name,member_name),'[]') from(select r.rolname role_name,u.rolname member_name,a.admin_option,a.inherit_option,a.set_option from pg_auth_members a join pg_roles r on r.oid=a.roleid join pg_roles u on u.oid=a.member)m;"));
     const sequenceOwnerPrivileges=JSON.parse(io.sql("select coalesce(jsonb_agg(to_jsonb(s) order by schema_name,sequence_name),'[]') from(select n.nspname schema_name,c.relname sequence_name,pg_get_userbyid(c.relowner) owner_name,array(select privilege_type from aclexplode(coalesce(c.relacl,acldefault('S',c.relowner)))a where a.grantee=c.relowner and a.grantor=c.relowner order by privilege_type) privileges from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relkind='S' and n.nspname in('public','app_private','auth','storage'))s;"));
     if(existsSync(io.folder+'/fixture.private.json'))copyFileSync(io.folder+'/fixture.private.json',out+'/fixture.private.json');
     const manifest={version:1,syntheticOnly:true,namespace:io.namespace,sequence,sourceMigrationCount:102,captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:new Date().toISOString(),binding:c,sourceDbImage:io.inspect(io.db).Image,roles,memberships,sequenceOwnerPrivileges,database:before,functions:JSON.parse(io.sql(functionMetadataSql)),objects,databaseSha256:digest(readFileSync(out+'/database.dump')),objectArchiveSha256:digest(readFileSync(out+'/objects.tar')),releaseSourceSha256:digest(readFileSync(out+'/release-source.tar.gz'))};
     if(databaseParts)manifest.databaseParts=databaseParts;
+    if(c.sourceScope==='crm-v1'){
+      const runtime=runtimeBlueprint(io.root+'/selfhost',dirname(self));manifest.runtimeFormat='artifact-v1';manifest.runtimeSha256=runtime.sha256;
+      writeFileSync(out+'/runtime.private.json',JSON.stringify(runtime.blueprint),{mode:0o600,flag:'wx'});
+    }
     writeFileSync(out+'/manifest.private.json',JSON.stringify(manifest,null,2)+'\n',{mode:0o600});completed=true;
   }finally{
     if(completed){io.sql('update hosting_guard.state set capture_in_progress=false where singleton;');for(const container of paused)io.docker(['unpause',container],{timeout:5000});unlinkSync(io.folder+'/capture.lock');}
@@ -113,7 +154,8 @@ if(command==='init'){
   const ticket={...c,sequence,captureStartedAt:startedAt,captureStartedBootMs:startedBootMs,captureCompletedAt:manifest.captureCompletedAt,manifestSha256:digest(readFileSync(out+'/manifest.private.json')),snapshotId:result.snapshot_id,capturePath:out,pausedMs:pauseMs,backupExitCode:0};atomic('ticket-'+sequence,ticket);console.log(JSON.stringify(ticket));
 }else if(command==='admit'){
   const c=config();verifySourceIds(c);assert.equal(existsSync(io.folder+'/fenced.latch'),false);
-  const sequence=Number(argument),envelope=json('receipt-'+sequence),claims=validateContinuousReceipt(envelope,readFileSync(io.folder+'/authority-public.pem'),c);
+  assertNoForeignDeadline(run('/usr/bin/systemctl',['--user','list-units','--state=active','--plain','--no-legend','ats-crm-deadline-*.timer','ats-crm-watch-*.service']).stdout,id);
+  const sequence=Number(argument),envelope=json('receipt-'+sequence),claims=validateReceipt(envelope,readFileSync(io.folder+'/authority-public.pem'),c);
   assert.equal(claims.sequence,sequence);const old=existsSync(io.folder+'/active.json')?json('active'):null;
   if(old)acceptNextReceipt(old.claims,claims);
   const remaining=Math.min(Date.parse(claims.expiresAt)-Date.now(),claims.captureStartedBootMs+280000-monotonic());assert.ok(remaining>20000);
@@ -138,7 +180,7 @@ if(command==='init'){
 }else if(command==='seed'){
   config();renewedLease();
   for(let n=0;n<40;n++){
-    const r=io.run('/usr/bin/docker',['exec',io.app,'node','--input-type=module','-e',"const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/auth/v1/health',{headers:{apikey:process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY},signal:AbortSignal.timeout(1000)});if(r.status!==200)process.exit(1);"],{timeout:2000,allowFailure:true});
+    const r=io.run('/usr/bin/docker',['exec',io.app,'node','--input-type=module','-e',"for(const path of ['/auth/v1/health','/storage/v1/status']){const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+path,{headers:{apikey:process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY},signal:AbortSignal.timeout(1000)});await r.body?.cancel();if(r.status!==200)process.exit(1);}"],{timeout:3000,allowFailure:true});
     if(r.status===0)break;if(n===39)throw Error('Synthetic API did not become ready');await sleep(1000);
   }
   io.docker(['exec','-i','-e','HOME_FAILOVER_REHEARSAL=1',io.app,'node','--input-type=module','-'],{input:readFileSync(new URL('./recovery-fixture.mjs',import.meta.url)),timeout:20000});
@@ -182,5 +224,16 @@ if(command==='init'){
   io.sql('update hosting_guard.state set expires_at=clock_timestamp()-interval \'1 second\',capture_in_progress=true;'+logins.map(r=>'alter role '+identifier(r)+' nologin;').join(''));
   io.docker(['stop','--time','3',io.db]);
   const report={passed:true,sourceBoot:c.sourceBoot,lastVerifiedSequence:active.claims.sequence,lossWindowAtHardFenceMs:result.completedBootMs-active.claims.captureStartedBootMs,faults:['failed offsite transport','suspended JavaScript watchdog','suspended rootless Docker daemon','early constraint evaluation in long transaction'],longTransactionRolledBack:true,coldDatabaseRestartRefusedWrite:true,successfulSyntheticWorkloadWrites:writes,allSourceContainersStopped:true,syntheticUsersRetired:true,productionChanged:false};atomic('runtime-result',report);console.log(JSON.stringify(report));
+}else if(command==='cleanup-timers'){
+  const c=config();assert.equal(existsSync(io.folder+'/fenced.latch'),true,'Fence this rehearsal before retiring its deadline');
+  for(const service of services){const events=cgroupPath(c.containers[service])+'/cgroup.events';assert.ok(!existsSync(events)||!/populated 1/.test(readFileSync(events,'utf8')),'A source process is still running');}
+  // Retire ONLY this completed run's units. A later rehearsal must never be
+  // stopped because an old run left an otherwise correct deadline armed.
+  const listed=run('/usr/bin/systemctl',['--user','list-units','--all','--plain','--no-legend','ats-crm-deadline-'+id+'-*']).stdout;
+  const units=listed.split('\n').map(s=>s.trim().split(/\s+/)[0]).filter(Boolean);
+  for(const unit of units){assert.match(unit,new RegExp('^ats-crm-deadline-'+id+'-[1-9][0-9]*\\.(timer|service)$'));run('/usr/bin/systemctl',['--user','stop',unit],{allowFailure:true});}
+  if(existsSync(io.folder+'/watch.pid')){const pid=Number(readFileSync(io.folder+'/watch.pid','utf8'));try{assert.ok(readFileSync('/proc/'+pid+'/cmdline','utf8').includes('watch\u0000'+id));process.kill(pid,'SIGCONT');}catch(error){if(error.code!=='ENOENT'&&error.code!=='ESRCH')throw error;}}
+  run('/usr/bin/systemctl',['--user','stop','ats-crm-watch-'+id+'.service'],{allowFailure:true});
+  console.log(JSON.stringify({ownDeadlinesRetired:units.length,sourceProcessesStopped:true,syntheticOnly:true,productionChanged:false}));
 }else if(command==='fence'){console.log(JSON.stringify(await fence('operator-end-of-rehearsal')));
 }else{throw Error('Unknown synthetic rehearsal command');}

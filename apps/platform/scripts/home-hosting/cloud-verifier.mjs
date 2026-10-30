@@ -10,6 +10,7 @@ import {signProof} from './failover-proof.mjs';
 import {validateContinuousReceipt} from './continuous-policy.mjs';
 import {verifyPrivateArchive} from './cloud-archive.mjs';
 import {restoreDatabaseParts} from './database-parts.mjs';
+import {validateRuntimeBlueprint} from './runtime-blueprint.mjs';
 
 export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,password,privateKey,storage,ledger,onVerifiedRepository,now=()=>Date.now()}){
   const verifiedCache=new Map();let active=false;
@@ -78,8 +79,13 @@ export function createCloudVerifier({namespace,cacheRoot,restic,resticSha256,pas
       phase='paired-manifest';const manifestBytes=readFileSync(join(recovered,'manifest.private.json'));assert.ok(manifestBytes.length<=1024*1024);
       assert.equal(sha256(manifestBytes),ticket.manifestSha256);const manifest=JSON.parse(manifestBytes);
       assert.equal(manifest.syntheticOnly,true);assert.equal(manifest.namespace,namespace);assert.equal(manifest.sequence,ticket.sequence);
+      assert.ok(request.mode==='archive'||manifest.backupLayout===undefined,'A split recovery component cannot issue a legacy write receipt');
       for(const key of ['captureStartedAt','captureStartedBootMs','captureCompletedAt'])assert.equal(manifest[key],ticket[key]);
       for(const key of ['sourceId','sourceBoot','databaseBoot','generation','topology'])assert.equal(manifest.binding[key],ticket[key]);
+      if(manifest.binding.sourceScope==='crm-v1'){
+        const runtime=manifest.runtimeFormat==='artifact-v1'?JSON.parse(readFileSync(join(recovered,'runtime.private.json'))):manifest.runtime;
+        assert.equal(validateRuntimeBlueprint(runtime,{complete:true}),manifest.runtimeSha256);
+      }
       if(manifest.databaseParts)restoreDatabaseParts(recovered,manifest.databaseParts);
       for(const [file,key] of [['database.dump','databaseSha256'],['objects.tar','objectArchiveSha256'],['release-source.tar.gz','releaseSourceSha256']]){
         const path=join(recovered,file);assert.ok(lstatSync(path).isFile()&&!lstatSync(path).isSymbolicLink());assert.equal(sha256(readFileSync(path)),manifest[key]);

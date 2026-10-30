@@ -1,17 +1,21 @@
-// Isolated, manual archive-only endpoint. No production or write-admission path.
+// Isolated, manual synthetic endpoint. The explicit certify operation uses a
+// separate admission authority; archive/incremental results remain non-writable.
 import {createPrivateKey,timingSafeEqual} from 'node:crypto';
 import {createCloudVerifier} from './cloud-verifier.mjs';import {createIncrementalVerifier,fullCatalogIssuer} from './incremental-verifier.mjs';import {incrementalLimits} from './incremental-policy.mjs';
 import {sha256} from './cloud-policy.mjs';
+import {createCheckpointAuthority} from './certified-checkpoint.mjs';
+import {approvedVerifierRuntime} from './verifier-runtime.mjs';
 const origin='https://gbyhdsuiqeslgjdnbqng.supabase.co',env=n=>process.env[n]??globalThis.Netlify?.env?.get(n);
-const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});let baseline,incremental;
+const reply=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});let baseline,incremental,authority;
 export default async request=>{
  if(request.method!=='POST')return reply({error:'Method not allowed'},405);
+ if(!approvedVerifierRuntime(process.versions.node,process.platform,process.arch))return reply({error:'Runtime review required'},503);
  const expected=env('ATS_LAB_REQUEST_TOKEN'),actual=request.headers.get('authorization'),a=Buffer.from(actual??''),b=Buffer.from('Bearer '+expected);
  if(typeof expected!=='string'||expected.length<43||a.length!==b.length||!timingSafeEqual(a,b))return reply({error:'Unauthorized'},401);
- const [major,minor]=process.versions.node.split('.').map(Number);if(process.platform!=='linux'||process.arch!=='x64'||major!==24||minor<21)return reply({error:'Runtime review required'},503);
  try{
   if(Number(request.headers.get('content-length')??0)>incrementalLimits.bodyBytes)throw Error('Request too large');
   const chunks=[];let length=0;for await(const chunk of request.body??[]){length+=chunk.length;if(length>incrementalLimits.bodyBytes)throw Error('Request too large');chunks.push(chunk);}const body=JSON.parse(Buffer.concat(chunks));
+  if(body.operation==='runtime')return reply({node:process.versions.node,platform:process.platform,architecture:process.arch,authorized:true,productionChanged:false});
   if(!baseline){
    const namespace=env('ATS_LAB_NAMESPACE'),bucket='crm-cloud-lab-'+namespace.slice(-12),key=env('ATS_LAB_STAGING_SERVICE_KEY');
    if(JSON.parse(Buffer.from(key.split('.')[1],'base64url')).ref!=='gbyhdsuiqeslgjdnbqng')throw Error('Staging credential required');
@@ -30,10 +34,12 @@ export default async request=>{
    };
    const privateKey=createPrivateKey({key:Buffer.from(env('ATS_LAB_SIGNING_DER'),'base64'),format:'der',type:'pkcs8'}),common={namespace,restic:process.cwd()+'/restic',resticSha256:'20d4142678d0d95ec11a4759def1b73fd9190abc9ca19e4b62d067c0b387e639',password:env('ATS_LAB_RESTIC_PASSWORD'),privateKey,storage};
    baseline=createCloudVerifier({...common,cacheRoot:'/tmp/full-'+namespace,ledger:rpc('ats_recovery_lab_control'),onVerifiedRepository:fullCatalogIssuer({storage,privateKey})});
-   incremental=createIncrementalVerifier({...common,scratchRoot:'/tmp/range-'+namespace,ledger:rpc('ats_recovery_incremental_control')});
+   incremental=createIncrementalVerifier({...common,scratchRoot:'/tmp/range-'+namespace,ledger:rpc('ats_recovery_incremental_control'),compactReads:env('ATS_LAB_COMPACT_READS')==='1'});
+   authority=createCheckpointAuthority({namespace,privateKey,ledger:rpc('ats_recovery_certify_checkpoint')});
   }
   if(body.operation==='baseline')return reply(await baseline({requestId:body.requestId,mode:'archive',forceRemoteRead:true,ticket:body.ticket}));
   if(body.operation==='incremental')return reply(await incremental(body));
+  if(body.operation==='certify')return reply(await authority(body));
   return reply({error:'Unsupported operation'},400);
  }catch(error){return reply({error:'Archive verification withheld. No write permission issued.',phase:error.phase??'request'},409);}
 };

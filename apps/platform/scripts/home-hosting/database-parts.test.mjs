@@ -23,3 +23,19 @@ test('missing, corrupted, linked and contradictory pieces cannot produce a valid
   const incomplete=structuredClone(d);incomplete.parts.pop();assert.throws(()=>validateDatabaseParts(incomplete));
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+test('explicit 128 KiB layout reduces larger catalogs while preserving the original native archive',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'ats-parts-v2-'));try{
+  const bytes=Buffer.concat([Buffer.from('PGDMP'),randomBytes(400000)]),file=join(dir,'native');writeFileSync(file,bytes,{mode:0o600});
+  const d=createDatabaseParts(file,join(dir,'database.parts'),{partBytes:131072});assert.equal(d.version,2);assert.equal(d.parts.length,4);
+  assert.deepEqual(readFileSync(restoreDatabaseParts(dir,d)),bytes);
+  assert.throws(()=>validateDatabaseParts({...d,version:1}));assert.throws(()=>validateDatabaseParts({...d,partBytes:262144}));
+  assert.throws(()=>createDatabaseParts(file,join(dir,'bad'),{partBytes:524288}));
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+test('256 KiB layout fits larger native database catalogs without changing bytes or accepting unknown formats',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'ats-parts-v3-'));try{
+  const bytes=Buffer.concat([Buffer.from('PGDMP'),randomBytes(900000)]),file=join(dir,'native');writeFileSync(file,bytes,{mode:0o600});
+  const d=createDatabaseParts(file,join(dir,'database.parts'),{partBytes:262144});assert.equal(d.version,3);assert.equal(d.parts.length,4);
+  assert.deepEqual(readFileSync(restoreDatabaseParts(dir,d)),bytes);assert.throws(()=>validateDatabaseParts({...d,version:2}));
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

@@ -146,6 +146,18 @@
       "sha256": "d5748b99f83f58b1666f5f621cc7d894b6c783b6eefed699b538c1acb20e3a5b",
       "reason": "Installed and verified natively on ATS CRM Staging as migration 126; remains deferred for a separately reviewed production release. No application deployment or production activation.",
       "productionReady": false
+    },
+    {
+      "name": "20261026015704_firewood_test_paid_import.sql",
+      "sha256": "b4ce721835989dc5cde3712825aef4df2c7eeb3b72cfb49629cc83ddf7d6ca50",
+      "reason": "Candidate test-only Firewood paid import; disposable local verification only. Not installed on staging or production. Website adapter and live tax policy remain separate release requirements.",
+      "productionReady": false
+    },
+    {
+      "name": "20261026182017_firewood_test_dispute_ids.sql",
+      "sha256": "34248e5b7ac555d29515373376937b963b1578da0b83516ff343588aa5a32605",
+      "reason": "Test-only correction for actual du_ Stripe dispute IDs, preserving dp_ compatibility and all existing guards. Isolated local verification only; not installed on hosted staging or production.",
+      "productionReady": false
     }
   ]
 }

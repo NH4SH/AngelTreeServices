@@ -1,7 +1,7 @@
 import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { getInvoiceTerms } from "@/lib/documents/terms";
-import { FIREWOOD_TERMS_VERSION } from "../../lib/documents/terms/firewood-2026-10-24.ts";
+import { isFirewoodInvoiceTerms, isFirewoodCheckoutTestTerms } from "../../lib/documents/terms/firewood-2026-10-24.ts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
@@ -11,7 +11,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
   const lineItems = [...(invoice.invoice_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
   const paidCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
   const contactEmail = getEmailSetupState().replyTo;
-  const firewood = invoice.document_terms_version === FIREWOOD_TERMS_VERSION;
+  const firewood = isFirewoodInvoiceTerms(invoice.document_terms_version);
+  const checkoutTest = isFirewoodCheckoutTestTerms(invoice.document_terms_version);
 
   return (
     <DocumentShell
@@ -49,9 +50,14 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         variant="invoice"
       />
       <section className="business-document-payment-note">
-        <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
-        <p>Pay securely online by bank account or card. Eligible credit-card payments may include a disclosed card-processing surcharge. Debit cards, checks, and bank payments are not subject to the credit-card surcharge.</p>
-        <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
+        {checkoutTest ? <>
+          <strong>Test invoice balance: {formatCurrency(invoice.balance_due_cents)}</strong>
+          <p>The test checkout payment is already recorded. This is not a request for another payment or confirmation of completed delivery. Refunds or disputes require office review.</p>
+        </> : <>
+          <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
+          <p>Pay securely online by bank account or card. Eligible credit-card payments may include a disclosed card-processing surcharge. Debit cards, checks, and bank payments are not subject to the credit-card surcharge.</p>
+          <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
+        </>}
       </section>
     </DocumentShell>
   );

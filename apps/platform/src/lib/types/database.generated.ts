@@ -15139,6 +15139,13 @@ export type Database = {
                     isSetofReturn: true;
                 };
             };
+            "claim_firewood_test_import": {
+                Args: {
+                    "p_request": Json;
+                    "p_source": string;
+                };
+                Returns: Json;
+            };
             "claim_google_calendar_sync_tasks": {
                 Args: {
                     "p_limit"?: number;
@@ -15379,6 +15386,15 @@ export type Database = {
                 };
                 Returns: boolean;
             };
+            "finish_firewood_test_import": {
+                Args: {
+                    "p_lease": string;
+                    "p_order": string;
+                    "p_proof": Json;
+                    "p_source": string;
+                };
+                Returns: Json;
+            };
             "finish_outbound_delivery": {
                 Args: {
                     "p_attempt_id": string;
@@ -15531,6 +15547,12 @@ export type Database = {
             };
             "get_employee_operational_directory": {
                 Args: Record<PropertyKey, never>;
+                Returns: Json;
+            };
+            "get_firewood_test_source_context": {
+                Args: {
+                    "p_source": string;
+                };
                 Returns: Json;
             };
             "get_invoice_checkout_review": {
@@ -15969,6 +15991,15 @@ export type Database = {
                     "p_request_id": string;
                 };
                 Returns: Json;
+            };
+            "release_firewood_test_import": {
+                Args: {
+                    "p_code": string;
+                    "p_lease": string;
+                    "p_order": string;
+                    "p_source": string;
+                };
+                Returns: boolean;
             };
             "release_invoice_void": {
                 Args: {

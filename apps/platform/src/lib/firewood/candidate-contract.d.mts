@@ -1,0 +1,15 @@
+export const CRM_CANDIDATE_CONTRACT: 'firewood-paid-order-v1';
+export const CRM_CANDIDATE_PATH: '/api/integrations/firewood/candidate-import';
+export const SANDBOX_ACCOUNT: 'acct_1UU9U8RAZXGe6tX0';
+export const policy: Readonly<Record<string, unknown>>;
+export const policyHash: string;
+export type CandidateOrder={quantity:'half'|'full'|'two';stacking:boolean;wood_cents:number;delivery_cents:0;stacking_cents:number;total_cents:number;currency:'usd';tax_cents:0;tax_basis:'va_domestic_use_locality_exempt';terms:Record<string,unknown>;accepted_at_ms:number;office_approval:null|{approval_id:string;approved_at_ms:number;residential:true;single_discount_confirmed:true};contact:{name:string;email:string;phone:string;address:string;address2:string;city:string;state:string;postal:string;notes:string}};
+export type CandidateRequest={contract:'firewood-paid-order-v1';source_id:string;account_id:string;mode:'sandbox';order_id:string;attempt_id:string;reference:string;session_id:string;snapshot_hash:string;order:CandidateOrder};
+export type CandidateReceipt=Record<string,unknown>&{replayed:boolean;payment_intent_id:string;invoice_id:string;invoice_number:string;payment_id:string;invoice_status:string;balance_due_cents:number;refund_cents:number;refund_pending:boolean;refund_review_required:boolean;review_required:boolean;refresh_required:boolean};
+export function canonicalCandidate(value:unknown):string;
+export function candidateDigest(value:unknown):string;
+export function parseCandidateRequest(value:unknown):CandidateRequest;
+export function createCandidateBinding(row:unknown,scope:unknown):Omit<CandidateRequest,'session_id'>;
+export function candidateMetadata(value:CandidateRequest):Record<string,string>;
+export function signCandidateRequest(raw:string,timestamp:string,secret:string):string;
+export function validateCandidateReceipt(value:unknown,request:CandidateRequest,previous:CandidateReceipt|undefined,intent:string):CandidateReceipt;

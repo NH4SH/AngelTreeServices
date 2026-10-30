@@ -1000,7 +1000,8 @@ class Validator:
 
         required_homepage_terms = (
             "Certified Arborist-led &middot; Insured &middot; 30+ years of tree-industry experience",
-            "ISA Member and Certified Arborist",
+            "Saul Sierra Hernandez",
+            "ISA Certified Arborist&reg; &middot; MA-381822A",
             "angeltreeservices_backup_files/isamember1_004.jpg",
             'alt="ISA Certified Arborist"',
             "Insured &middot; 30+ years of tree-industry experience",

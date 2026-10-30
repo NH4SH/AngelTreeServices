@@ -236,6 +236,28 @@ def schema_for_page(page: dict) -> dict:
             }
         )
 
+    if page["path"] == "/credentials-safety/":
+        person_id = f"{url}#saul-sierra-hernandez"
+        # Describe the named credential holder without inferring a company role.
+        graph[-1]["mentions"] = {"@id": person_id}
+        graph.append({
+            "@type": "Person",
+            "@id": person_id,
+            "name": "Saul Sierra Hernandez",
+            "hasCredential": {
+                "@type": "EducationalOccupationalCredential",
+                "name": "ISA Certified Arborist®",
+                "credentialCategory": "Certification",
+                "identifier": "MA-381822A",
+                "url": "https://certificates.isa-arbor.com/7f935149-a9ba-4691-bfbb-351ceb50a416",
+                "recognizedBy": {
+                    "@type": "Organization",
+                    "name": "International Society of Arboriculture",
+                    "url": "https://www.isa-arbor.com/",
+                },
+            },
+        })
+
     return {"@context": "https://schema.org", "@graph": graph}
 
 
@@ -529,7 +551,7 @@ SERVICE_PAGES = [
             ("Do you recommend topping?", "No. A recommendation should use purposeful pruning rather than indiscriminate topping."),
             ("How do I know how much should be removed?", "That depends on the goal, tree, condition, and site. An on-site review is more reliable than choosing a percentage without context."),
         ],
-        "related": [("/services/tree-removal/", "Tree removal planning"), ("/services/emergency-tree-service/", "Storm and emergency guidance")],
+        "related": [("/services/tree-removal/", "Tree removal planning"), ("/services/emergency-tree-service/", "Storm and emergency guidance"), ("/credentials-safety/#saul-sierra-hernandez", "Saul Sierra Hernandez’s arborist credential")],
         "cta_title": "Tell us what you want the pruning to accomplish.",
         "cta_copy": "Share the tree, property address, and your clearance, deadwood, structure, or storm-cleanup concern.",
     },
@@ -701,8 +723,11 @@ def credentials_body() -> str:
       <div class="ats-section-inner ats-credential-panel">
         <div class="ats-prose">
           <p class="ats-eyebrow">Verified public credentials</p>
-          <h2>ISA member and ISA Certified Arborist</h2>
-          <p>Angel Tree Services publicly identifies an active ISA membership and an ISA Certified Arborist credential. Certification belongs to the credentialed individual; it does not imply that every employee holds the same credential.</p>
+          <h2 id="saul-sierra-hernandez">Saul Sierra Hernandez</h2>
+          <p><strong>ISA Certified Arborist&reg; &middot; MA-381822A</strong><br>Issued by the International Society of Arboriculture.</p>
+          <p>Certificate issued: <time datetime="2026-04-27">April 27, 2026</time><br>Certificate expiration date: <time datetime="2029-06-30">June 30, 2029</time></p>
+          <p><a href="https://certificates.isa-arbor.com/7f935149-a9ba-4691-bfbb-351ceb50a416">Check credential status with ISA</a></p>
+          <p>Certification belongs to Saul Sierra Hernandez, not to the company or every member of the crew. ISA membership is separate from certification.</p>
           <p>Angel Tree Services was founded in 2015 after its founder had already spent more than 20 years in the tree industry. Together with the company’s local service since 2015, that continuous history represents {COMPANY_EXPERIENCE_PROOF}. No additional qualification should be inferred from these badges.</p>
           <p><strong>Angel Tree Services is insured.</strong> Certificates of insurance are available upon request. Specific policy details remain available directly from the office rather than being published as a blanket guarantee.</p>
         </div>

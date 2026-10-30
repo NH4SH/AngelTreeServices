@@ -762,6 +762,10 @@ img {
   color: var(--ats-muted);
 }
 
+#saul-sierra-hernandez {
+  scroll-margin-top: 120px;
+}
+
 .ats-credential-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -122,5 +122,36 @@
         "height": 914
       }
     ]
+  },
+  "fredericksburg-holly-trimming": {
+    "alt": "A closer view of a tree beside the red metal gym building in downtown Fredericksburg.",
+    "source_filename": "SideGreenwell.jpg",
+    "source_sha256": "439e1d410b39b45b7050fa1b5578767634fd379c93162dcfb9f1020ba32761a2",
+    "crop": null,
+    "src": "/assets/versioned/photo-fredericksburg-holly-trimming-1280.da3099d118.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-fredericksburg-holly-trimming-480.367ebd0087.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-holly-trimming-840.b550d5ad7c.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-holly-trimming-1280.da3099d118.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-holly-trimming-1600.4be1218420.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
   }
 }

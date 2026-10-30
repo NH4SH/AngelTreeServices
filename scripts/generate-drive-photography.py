@@ -19,17 +19,22 @@ SELECTIONS = (
     ("stump-grinding-operator", "0270.jpg", "DSC02540.JPG", "c73c726b4117044a3dd6c55394dd58e818cad69211ff5d0e7d8de1ade9364e3d", "An Angel Tree Services operator using a yellow stump grinder, with cut logs behind the machine."),
     ("tree-job-cleanup", "0373.jpg", "DSC02650.JPG", "b90791cf3a7661c352ac7b3a63273a9fa39fee01c629f12a0acc1d30b66a30c9", "Angel Tree Services crew using a leaf blower beside a stump grinder in a wooded yard."),
     ("fredericksburg-tower-trimming", "0017.jpg", "SquooshedTowerSunset.jpg", "e3787ef2fc91081276bd33a1b71daaf6df517ea2662bcfbcba4873f20061a81c", "The Fredericksburg tower at sunset, with trees and shrubs beside the adjoining building."),
+    ("fredericksburg-holly-trimming", "0016.jpg", "SideGreenwell.jpg", "439e1d410b39b45b7050fa1b5578767634fd379c93162dcfb9f1020ba32761a2", "A closer view of a tree beside the red metal gym building in downtown Fredericksburg."),
 )
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dir", type=Path, required=True)
+    parser.add_argument("--only", choices=[item[0] for item in SELECTIONS], help="Generate one selection while preserving the existing manifest and assets")
     args = parser.parse_args()
     output = ROOT / "assets/versioned"
     output.mkdir(parents=True, exist_ok=True)
-    manifest = {}
+    manifest_path = ROOT / "public-drive-photography.json"
+    manifest = json.loads(manifest_path.read_text()) if args.only and manifest_path.exists() else {}
     for key, local_name, source_name, expected_hash, alt in SELECTIONS:
+        if args.only and key != args.only:
+            continue
         source = args.source_dir / local_name
         source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
         if source_hash != expected_hash:
@@ -47,8 +52,10 @@ def main():
                 temporary.replace(destination)
                 destination.with_suffix(".webp.json").write_text(json.dumps({"prompt": (
                     "Origin: original photograph supplied by Angel Tree Services, "
-                    f"{source_name}, original SHA-256 {source_hash}. "
-                    "Owner cleared website use on October 20, 2026. Complete original frame; "
+                    f"{source_name}, original SHA-256 {source_hash}. " +
+                    ("Owner approved use in the trimming case-study draft on October 24, 2026. "
+                     if key == "fredericksburg-holly-trimming" else "Owner cleared website use on October 20, 2026. ") +
+                    "Complete original frame; "
                     "resized and encoded only, without retouching or generative alteration. "
                     "EXIF and location metadata omitted from derivative."
                 )}, indent=2) + "\n")
@@ -57,7 +64,7 @@ def main():
         manifest[key] = {"alt": alt, "source_filename": source_name, "source_sha256": source_hash,
                          "crop": None, **selected, "variants": variants}
         print(f"{key}: {len(variants)} responsive WebP derivatives")
-    (ROOT / "public-drive-photography.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
 if __name__ == "__main__":

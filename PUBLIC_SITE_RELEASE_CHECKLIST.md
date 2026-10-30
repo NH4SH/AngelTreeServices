@@ -1,3 +1,46 @@
+## Holly-trimming case study — local draft, October 24, 2026
+
+Owner approved a local draft only: no commit, push, QA upload or deployment.
+Reviewed base: b184367. Keep analytics, consent and CRM unchanged; do not submit
+leads or place calls. The new route is /projects/holly-tree-trimming/.
+
+- Final release-readiness review: no blocking regression or correction found.
+  Fresh 248 tests and 19-page build/validation pass. All 302 shipping files match
+  the finished implementation manifest. Desktop/mobile, synthetic doubled text,
+  short-screen keyboard menu, gallery filter/lightbox, both discovery paths and
+  estimate/draft recovery were rechecked. Contact bar and cookie panel do not
+  overlap. Review changes release documentation only. No release action taken;
+  physical-phone/spoken-reader checks were not repeated. Evidence:
+  chat outputs/tower-trimming-draft/final-review/.
+
+- Red-building photo first, tower sunset second, complete framing and approved
+  captions. New responsive WebPs are resized/encoded from the hash-checked
+  SideGreenwell.jpg original; existing tower derivatives remain exact. The owner
+  confirmed holly trimming beside the tower and additional gym trimming. Omit
+  the year and unspecified goal/method/scope. Official gym and city sources
+  verify Green Fitness & Wellness beside the Purina Tower. No before/after,
+  endorsement, customer-review or current-contract claim.
+- Reuse the existing project layout and estimate-first bar. Add discovery from
+  the tower gallery card and Tree Pruning example; retain the eight gallery
+  photos, controls, captions and tree-first spotlights. Add canonical metadata,
+  breadcrumbs, CreativeWork images/service reference, sitemap and llms link.
+  Existing Projects/Pruning heads and other existing pages remain exact.
+- Fresh local suite: 239 Node + 9 Python tests pass (248 total), with 19 pages
+  built and validated. The mechanical design detector reports no findings.
+  Desktop 1280, intermediate 701, mobile 390/320, short-screen 390x450 and
+  synthetic doubled text at 320 show no horizontal heading/document overflow.
+  Keyboard menu, contact bar, gallery filter and both discovery paths checked.
+- New estimate links select Tree Care/tree-pruning and preserve the exact local
+  synthetic name, address and multiline details on return. Clear draft removes
+  the test data. Local preview blocks outbound connections/forms; no submission
+  or phone action. Shared CSS/JS, analytics, consent, draft runtime, CRM paths
+  and unrelated review files remain exact. No physical-phone or spoken-reader
+  check this round. Evidence and complete diff: chat outputs/tower-trimming-draft/.
+- Pending release steps: owner review and explicit release approval, preserve
+  newer repository changes, publish only the public site, then GET-only smoke
+  checks. Search indexing can be checked after an approved publication. No extra
+  job facts are required for this deliberately limited draft.
+
 ## Firewood buying information — approved release, October 23, 2026
 
 Owner approved commit, push and public-site publication after the final review.

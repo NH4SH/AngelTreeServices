@@ -1,0 +1,342 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { recordActivity } from "@/lib/activity-log";
+import { getBusinessDateKey } from "@/lib/business-time";
+import { getInvoiceDueAt } from "@/lib/invoices/due-date";
+import { getUserRoles, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { createClient } from "@/lib/supabase/server";
+import type { InvoiceLineItem, JobPriority, QuoteLineItem } from "@/lib/types/database";
+
+export type DuplicateRecordActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+export async function duplicateQuote(
+  _previousState: DuplicateRecordActionState,
+  formData: FormData,
+): Promise<DuplicateRecordActionState> {
+  const auth = await requireInternalStaff();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
+  const quoteId = getString(formData, "quote_id");
+
+  if (!quoteId) {
+    return { status: "error", message: "Choose a quote to duplicate." };
+  }
+
+  const { data: quote, error: quoteError } = await auth.supabase
+    .from("quotes")
+    .select("*, jobs:jobs!quotes_job_id_fkey(id, service_location_id), quote_line_items(*)")
+    .eq("id", quoteId)
+    .single();
+
+  if (quoteError || !quote) {
+    return { status: "error", message: quoteError?.message ?? "Quote not found or no access." };
+  }
+
+  const typedQuote = quote as typeof quote & {
+    jobs?: { service_location_id: string | null } | null;
+    quote_line_items?: QuoteLineItem[];
+  };
+  const serviceLocationId = typedQuote.service_location_id ?? typedQuote.jobs?.service_location_id ?? null;
+  const quoteContacts = await activeOrganizationContactIds(auth.supabase, typedQuote.organization_id, [
+    typedQuote.recipient_contact_id,
+    typedQuote.approval_contact_id,
+    typedQuote.onsite_contact_id,
+    typedQuote.billing_contact_id,
+  ]);
+
+  if (!serviceLocationId) {
+    return {
+      status: "error",
+      message: "This quote needs a service location before it can be duplicated as a draft.",
+    };
+  }
+
+  const { data: newQuote, error: createError } = await auth.supabase.rpc("create_quote_draft", {
+    p_header: {
+      job_id: null,
+      customer_id: typedQuote.customer_id,
+      organization_id: typedQuote.organization_id,
+      service_location_id: serviceLocationId,
+      estimate_schedule_event_id: null,
+      estimator_user_id: auth.userId,
+      recipient_contact_id: quoteContacts.ids.has(typedQuote.recipient_contact_id) ? typedQuote.recipient_contact_id : null,
+      approval_contact_id: quoteContacts.ids.has(typedQuote.approval_contact_id) ? typedQuote.approval_contact_id : null,
+      onsite_contact_id: quoteContacts.ids.has(typedQuote.onsite_contact_id) ? typedQuote.onsite_contact_id : null,
+      billing_contact_id: quoteContacts.ids.has(typedQuote.billing_contact_id) ? typedQuote.billing_contact_id : null,
+      purchase_order_reference: typedQuote.purchase_order_reference,
+      payment_terms: typedQuote.payment_terms,
+      status: "draft",
+      subtotal_cents: typedQuote.subtotal_cents,
+      tax_cents: typedQuote.tax_cents,
+      total_cents: typedQuote.total_cents,
+      customer_message: typedQuote.customer_message,
+      debris_handling: typedQuote.debris_handling,
+      debris_handling_notes: typedQuote.debris_handling_notes,
+      sent_at: null,
+      sent_method: null,
+      sent_by_user_id: null,
+      approved_at: null,
+      expires_at: getFreshFutureDate(typedQuote.expires_at),
+    },
+    p_lines: [...(typedQuote.quote_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order).map(item => ({
+      name: item.name, description: item.description, service_category_id: item.service_category_id, material_id: item.material_id,
+      quantity: item.quantity, unit_price_cents: item.unit_price_cents, total_cents: item.total_cents,
+    })),
+  });
+  if (createError || !newQuote?.id) return { status: "error", message: createError?.message ?? "Could not duplicate quote." };
+
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "quote_duplicated",
+    metadata: { source_quote_id: quoteId },
+    subjectId: newQuote.id,
+    subjectType: "quote",
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${quoteId}`);
+  if (typedQuote.customer_id) revalidatePath(`/admin/customers/${typedQuote.customer_id}`);
+  if (typedQuote.organization_id) revalidatePath(`/admin/organizations/${typedQuote.organization_id}`);
+  redirect(`/admin/quotes/${newQuote.id}/edit?duplicated=quote${quoteContacts.warning ? "&contact_warning=1" : ""}`);
+}
+
+export async function duplicateInvoice(
+  _previousState: DuplicateRecordActionState,
+  formData: FormData,
+): Promise<DuplicateRecordActionState> {
+  const auth = await requireInternalStaff();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
+  const invoiceId = getString(formData, "invoice_id");
+
+  if (!invoiceId) {
+    return { status: "error", message: "Choose an invoice to duplicate." };
+  }
+
+  const { data: invoice, error: invoiceError } = await auth.supabase
+    .from("invoices")
+    .select("*, invoice_line_items(*)")
+    .eq("id", invoiceId)
+    .single();
+
+  if (invoiceError || !invoice) {
+    return { status: "error", message: invoiceError?.message ?? "Invoice not found or no access." };
+  }
+
+  const typedInvoice = invoice as typeof invoice & {
+    invoice_line_items?: InvoiceLineItem[];
+  };
+  const invoiceContacts = await activeOrganizationContactIds(auth.supabase, typedInvoice.organization_id, [
+    typedInvoice.billing_contact_id,
+    typedInvoice.accounts_payable_contact_id,
+  ]);
+
+  const { data: newInvoice, error: createError } = await auth.supabase.rpc("create_invoice_draft", {
+    p_header: {
+      job_id: typedInvoice.job_id, quote_id: null,
+      customer_id: typedInvoice.customer_id, organization_id: typedInvoice.organization_id,
+      service_location_id: typedInvoice.service_location_id,
+      billing_contact_id: invoiceContacts.ids.has(typedInvoice.billing_contact_id) ? typedInvoice.billing_contact_id : null,
+      accounts_payable_contact_id: invoiceContacts.ids.has(typedInvoice.accounts_payable_contact_id) ? typedInvoice.accounts_payable_contact_id : null,
+      purchase_order_reference: typedInvoice.purchase_order_reference,
+      payment_terms: typedInvoice.payment_terms,
+      invoice_number: await getNextRecordNumber(auth.supabase, "invoices", "invoice_number", "INV", typedInvoice.invoice_number),
+      tax_cents: typedInvoice.tax_cents, due_at: getInvoiceDueAt(),
+    },
+    p_lines: [...(typedInvoice.invoice_line_items ?? [])].sort((a,b) => a.sort_order - b.sort_order).map(item => ({
+      name: item.name, description: item.description, service_category_id: item.service_category_id,
+      material_id: item.material_id, quantity: item.quantity, unit_price_cents: item.unit_price_cents, total_cents: item.total_cents,
+    })),
+  });
+  if (createError || !newInvoice) {
+    return { status: "error", message: createError?.message ?? "Could not duplicate invoice." };
+  }
+
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "invoice_duplicated",
+    metadata: { source_invoice_id: invoiceId },
+    subjectId: newInvoice.id,
+    subjectType: "invoice",
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${invoiceId}`);
+  if (typedInvoice.customer_id) revalidatePath(`/admin/customers/${typedInvoice.customer_id}`);
+  if (typedInvoice.organization_id) revalidatePath(`/admin/organizations/${typedInvoice.organization_id}`);
+  redirect(`/admin/invoices/${newInvoice.id}/edit?duplicated=invoice${invoiceContacts.warning ? "&contact_warning=1" : ""}`);
+}
+
+export async function duplicateJob(
+  _previousState: DuplicateRecordActionState,
+  formData: FormData,
+): Promise<DuplicateRecordActionState> {
+  const auth = await requireInternalStaff();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
+  const jobId = getString(formData, "job_id");
+
+  if (!jobId) {
+    return { status: "error", message: "Choose a work order to duplicate." };
+  }
+
+  const { data: job, error: jobError } = await auth.supabase
+    .from("jobs")
+    .select("id, customer_id, organization_id, service_location_id, onsite_contact_id, property_manager_contact_id, service_type, priority, requested_scope, debris_handling, debris_handling_notes")
+    .eq("id", jobId)
+    .single();
+
+  if (jobError || !job) {
+    return { status: "error", message: jobError?.message ?? "Work order not found or no access." };
+  }
+  const jobContacts = await activeOrganizationContactIds(auth.supabase, job.organization_id, [
+    job.onsite_contact_id,
+    job.property_manager_contact_id,
+  ]);
+
+  const { data: newJob, error: createError } = await auth.supabase
+    .from("jobs")
+    .insert({
+      customer_id: job.customer_id,
+      organization_id: job.organization_id,
+      service_location_id: job.service_location_id,
+      onsite_contact_id: jobContacts.ids.has(job.onsite_contact_id) ? job.onsite_contact_id : null,
+      property_manager_contact_id: jobContacts.ids.has(job.property_manager_contact_id) ? job.property_manager_contact_id : null,
+      source_quote_id: null,
+      lead_source_id: null,
+      assigned_crew_user_id: null,
+      status: "new_lead",
+      service_type: job.service_type,
+      priority: (job.priority ?? "normal") as JobPriority,
+      requested_scope: job.requested_scope,
+      debris_handling: job.debris_handling,
+      debris_handling_notes: job.debris_handling_notes,
+      internal_notes: null,
+      scheduled_start_at: null,
+      scheduled_end_at: null,
+      completed_at: null,
+      lost_reason: null,
+    })
+    .select("id")
+    .single();
+
+  if (createError || !newJob) {
+    return { status: "error", message: createError?.message ?? "Could not duplicate work order." };
+  }
+
+  await recordActivity(auth.supabase, {
+    actorUserId: auth.userId,
+    eventType: "work_order_duplicated",
+    metadata: { source_job_id: jobId },
+    subjectId: newJob.id,
+    subjectType: "job",
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/jobs");
+  revalidatePath("/admin/schedule");
+  revalidatePath(`/admin/jobs/${jobId}`);
+  if (job.customer_id) revalidatePath(`/admin/customers/${job.customer_id}`);
+  if (job.organization_id) revalidatePath(`/admin/organizations/${job.organization_id}`);
+  redirect(`/admin/jobs/${newJob.id}?duplicated=job${jobContacts.warning ? "&contact_warning=1" : ""}`);
+}
+
+async function activeOrganizationContactIds(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  organizationId: string | null,
+  selectedIds: Array<string | null>,
+) {
+  const requested = selectedIds.filter((id): id is string => Boolean(id));
+  if (!organizationId || requested.length === 0) return { ids: new Set<string>(), warning: false };
+  const { data, error } = await supabase
+    .from("organization_contacts")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("is_active", true)
+    .in("id", requested);
+  const ids = new Set((data ?? []).map((contact) => contact.id));
+  return { ids, warning: Boolean(error) || ids.size !== new Set(requested).size };
+}
+
+async function requireInternalStaff() {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { error: { status: "error" as const, message: "Supabase is not configured." } };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: { status: "error" as const, message: "Sign in before duplicating CRM records." } };
+  }
+
+  const roles = await getUserRoles(supabase, user.id);
+
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { error: { status: "error" as const, message: "Only internal staff can duplicate CRM records." } };
+  }
+
+  return { error: null, supabase, userId: user.id };
+}
+
+function getFreshFutureDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Date(value).getTime() > Date.now() ? value : null;
+}
+
+async function getNextRecordNumber(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  table: "quotes" | "invoices",
+  column: "quote_number" | "invoice_number",
+  fallbackPrefix: "Q" | "INV",
+  currentNumber: string | null,
+) {
+  const existingPattern = currentNumber?.match(/^(.*?)(\d+)$/);
+  const dateStamp = getBusinessDateKey(new Date()).replaceAll("-", "");
+  const prefix = existingPattern ? existingPattern[1] : `${fallbackPrefix}-${dateStamp}-`;
+  const width = existingPattern ? existingPattern[2].length : 3;
+  const matcher = new RegExp(`^${escapeRegExp(prefix)}(\\d+)$`);
+
+  const { data } = await supabase
+    .from(table)
+    .select(column)
+    .like(column, `${prefix}%`);
+  const maxNumber = ((data ?? []) as Array<Record<string, string | null>>).reduce((max, row) => {
+    const value = row[column];
+    const match = value?.match(matcher);
+    const parsed = match ? Number.parseInt(match[1], 10) : 0;
+    return Number.isFinite(parsed) && parsed > max ? parsed : max;
+  }, 0);
+
+  return `${prefix}${String(maxNumber + 1).padStart(width, "0")}`;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getString(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim();
+}

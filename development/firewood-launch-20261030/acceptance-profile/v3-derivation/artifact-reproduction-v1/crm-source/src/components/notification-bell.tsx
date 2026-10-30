@@ -1,0 +1,291 @@
+"use client";
+
+import Link from "next/link";
+import { Bell, Check, LoaderCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { formatBusinessDateTime } from "@/lib/business-time";
+import type { AdminNotification } from "@/lib/data/notifications";
+import { persistNotificationRead } from "@/lib/notifications/mark-read";
+import {
+  isSystemHealthNotification,
+  type NotificationInboxTab,
+} from "@/lib/notifications/scope";
+import {
+  getNotificationPopoverLayout,
+  type NotificationPopoverLayout,
+} from "@/lib/notifications/popover-position";
+
+type NotificationCountPayload = {
+  error?: string;
+  systemUnreadCount?: number;
+  unreadCount?: number;
+};
+
+let pendingNotificationCount: Promise<NotificationCountPayload> | null = null;
+let cachedNotificationCount: { expiresAt: number; payload: NotificationCountPayload } | null = null;
+const notificationCountCacheMs = 30_000;
+
+async function fetchNotificationCount() {
+  if (cachedNotificationCount && cachedNotificationCount.expiresAt > Date.now()) {
+    return cachedNotificationCount.payload;
+  }
+
+  if (!pendingNotificationCount) {
+    pendingNotificationCount = fetch("/api/admin/notifications?mode=count", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json() as NotificationCountPayload;
+        if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+        cachedNotificationCount = { expiresAt: Date.now() + notificationCountCacheMs, payload };
+        return payload;
+      })
+      .finally(() => {
+        pendingNotificationCount = null;
+      });
+  }
+
+  return pendingNotificationCount;
+}
+
+export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<NotificationInboxTab>("activity");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [systemUnreadCount, setSystemUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<AdminNotification[] | null>(null);
+  const [error, setError] = useState("");
+  const [failedRead, setFailedRead] = useState<AdminNotification | null>(null);
+  const pendingReads = useRef(new Set<string>());
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const [popoverLayout, setPopoverLayout] = useState<NotificationPopoverLayout | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setPortalHost(document.body);
+    void fetchNotifications("count");
+  }, []);
+
+  const updatePopoverLayout = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    setPopoverLayout(getNotificationPopoverLayout({
+      mobile,
+      trigger: trigger.getBoundingClientRect(),
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+    }));
+  }, [mobile]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !popoverRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    const reposition = () => updatePopoverLayout();
+
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", closeWithEscape);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    requestAnimationFrame(() => popoverRef.current?.focus());
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", closeWithEscape);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open, updatePopoverLayout]);
+
+  async function fetchNotifications(mode: "count" | "recent", tab: NotificationInboxTab = activeTab) {
+    try {
+      if (mode === "count") {
+        const payload = await fetchNotificationCount();
+        setUnreadCount(payload.unreadCount ?? 0);
+        setSystemUnreadCount(payload.systemUnreadCount ?? 0);
+        setError("");
+        return;
+      }
+
+      const response = await fetch(`/api/admin/notifications?mode=recent&tab=${tab}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+      setUnreadCount(payload.unreadCount ?? 0);
+      setSystemUnreadCount(payload.systemUnreadCount ?? 0);
+      cachedNotificationCount = {
+        expiresAt: Date.now() + notificationCountCacheMs,
+        payload: {
+          systemUnreadCount: payload.systemUnreadCount ?? 0,
+          unreadCount: payload.unreadCount ?? 0,
+        },
+      };
+      setNotifications(payload.notifications ?? []);
+      setError("");
+    } catch (fetchError) {
+      if (mode === "recent") setError(fetchError instanceof Error ? fetchError.message : "Notifications are unavailable.");
+    }
+  }
+
+  async function toggle() {
+    const next = !open;
+    if (next) updatePopoverLayout();
+    setOpen(next);
+    if (next) {
+      setNotifications(null);
+      await fetchNotifications("recent", activeTab);
+    }
+  }
+
+  async function selectTab(tab: NotificationInboxTab) {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setNotifications(null);
+    setError("");
+    await fetchNotifications("recent", tab);
+  }
+
+  async function markRead(notification: AdminNotification, close = true) {
+    if (close) setOpen(false);
+    if (!notification.read_at && !pendingReads.current.has(notification.id)) {
+      const systemNotification = isSystemHealthNotification(notification);
+      pendingReads.current.add(notification.id);
+      setFailedRead(null);
+      if (systemNotification) setSystemUnreadCount((count) => Math.max(0, count - 1));
+      else setUnreadCount((count) => Math.max(0, count - 1));
+      if (cachedNotificationCount) {
+        cachedNotificationCount = {
+          expiresAt: cachedNotificationCount.expiresAt,
+          payload: {
+            ...cachedNotificationCount.payload,
+            systemUnreadCount: systemNotification
+              ? Math.max(0, (cachedNotificationCount.payload.systemUnreadCount ?? 0) - 1)
+              : cachedNotificationCount.payload.systemUnreadCount ?? 0,
+            unreadCount: systemNotification
+              ? cachedNotificationCount.payload.unreadCount ?? 0
+              : Math.max(0, (cachedNotificationCount.payload.unreadCount ?? 0) - 1),
+          },
+        };
+      }
+      setNotifications((rows) => rows?.map((row) => row.id === notification.id
+        ? { ...row, read_at: new Date().toISOString() }
+        : row) ?? null);
+      try {
+        await persistNotificationRead(notification.id);
+      } catch {
+        cachedNotificationCount = null;
+        setNotifications((rows) => rows?.map((row) => row.id === notification.id ? notification : row) ?? null);
+        setFailedRead(notification);
+        if (systemNotification) setSystemUnreadCount((count) => count + 1);
+        else setUnreadCount((count) => count + 1);
+        await fetchNotifications("count");
+      } finally {
+        pendingReads.current.delete(notification.id);
+      }
+    }
+  }
+
+  const activeUnreadCount = activeTab === "system" ? systemUnreadCount : unreadCount;
+
+  return (
+    <div className={`notification-bell ${mobile ? "is-mobile" : ""}`} ref={rootRef}>
+      <button
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={unreadCount ? `Notifications, ${unreadCount} unread activity notifications` : "Notifications"}
+        className="notification-bell-trigger"
+        onClick={toggle}
+        ref={triggerRef}
+        type="button"
+      >
+        <Bell aria-hidden="true" size={mobile ? 19 : 18} />
+        {unreadCount ? <span>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+      </button>
+      {open && portalHost && popoverLayout ? createPortal(
+        <section
+          aria-label="Recent notifications"
+          className={`notification-popover ${mobile ? "is-mobile" : ""}`}
+          ref={popoverRef}
+          role="dialog"
+          style={{
+            left: popoverLayout.left,
+            maxHeight: popoverLayout.maxHeight,
+            top: popoverLayout.top,
+            width: popoverLayout.width,
+          }}
+          tabIndex={-1}
+        >
+          <header>
+            <div><strong>Notifications</strong><span>{activeUnreadCount} unread in this tab</span></div>
+            <Link href={`/admin/notifications?tab=${activeTab}`} onClick={() => setOpen(false)}>View all</Link>
+          </header>
+          <nav aria-label="Notification type" className="notification-tabs notification-popover-tabs">
+            <button
+              aria-selected={activeTab === "activity"}
+              className={activeTab === "activity" ? "is-active" : ""}
+              onClick={() => { void selectTab("activity"); }}
+              role="tab"
+              type="button"
+            >
+              Activity{unreadCount ? <span>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+            </button>
+            <button
+              aria-selected={activeTab === "system"}
+              className={activeTab === "system" ? "is-active" : ""}
+              onClick={() => { void selectTab("system"); }}
+              role="tab"
+              type="button"
+            >
+              System status{systemUnreadCount ? <span>{systemUnreadCount > 99 ? "99+" : systemUnreadCount}</span> : null}
+            </button>
+          </nav>
+          <div aria-busy={!error && notifications === null} aria-live="polite" className="notification-popover-list">
+            {failedRead ? <div className="notification-popover-state" role="status">
+              <p>That notification could not be marked as read. Your destination link is unchanged.</p>
+              <button onClick={() => { void markRead(failedRead, false); }} type="button">Retry marking as read</button>
+            </div> : null}
+            {error ? (
+              <div className="notification-popover-state notification-popover-error" role="alert">
+                <p>{error}</p>
+                <button onClick={() => { setNotifications(null); void fetchNotifications("recent", activeTab); }} type="button">Try again</button>
+              </div>
+            ) : null}
+            {!error && notifications === null ? <p className="notification-popover-state"><LoaderCircle aria-hidden="true" className="spin" size={18} />Loading notifications</p> : null}
+            {!error && notifications?.length === 0 ? (
+              <p className="notification-popover-state"><Check aria-hidden="true" size={18} />{activeTab === "system" ? "No system status alerts." : "No customer activity yet."}</p>
+            ) : null}
+            {notifications?.map((notification) => (
+              <Link
+                className={notification.read_at ? "" : "is-unread"}
+                href={notification.destination_path ?? "/admin/notifications"}
+                key={notification.id}
+                onClick={() => markRead(notification)}
+              >
+                <span aria-hidden="true" className={`notification-category-dot ${isSystemHealthNotification(notification) ? "system_health" : notification.category}`} />
+                <span><strong>{notification.title}</strong><small>{notification.body}</small><time>{relativeTime(notification.created_at)}</time></span>
+              </Link>
+            ))}
+          </div>
+        </section>,
+        portalHost,
+      ) : null}
+    </div>
+  );
+}
+
+function relativeTime(value: string) {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60_000));
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return formatBusinessDateTime(value, { dateStyle: "medium" });
+}

@@ -1,0 +1,180 @@
+import { isLiveFirewoodInvoice, type FirewoodDocumentAccounting } from "@/lib/documents/firewood-invoice-accounting.mjs";
+import { getFirewoodInvoiceDocumentAccounting } from "@/lib/documents/firewood-invoice-accounting-server";
+import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
+import { DocumentTerms } from "@/components/documents/document-terms";
+import { getInvoiceTerms } from "@/lib/documents/terms";
+import { getEmailSetupState } from "@/lib/email/config";
+import { formatBusinessDateTime } from "@/lib/business-time";
+import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
+import type { InvoiceDetail } from "@/lib/types/database";
+
+export async function InvoiceDocument({ invoice, firewoodAccounting: suppliedFirewoodAccounting }: { invoice: InvoiceDetail; firewoodAccounting?: FirewoodDocumentAccounting | null }) {
+  const firewoodAccounting = isLiveFirewoodInvoice(invoice) ? suppliedFirewoodAccounting === undefined ? await getFirewoodInvoiceDocumentAccounting(invoice) : suppliedFirewoodAccounting : null;
+  const lineItems = [...(invoice.invoice_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const paidCents = firewoodAccounting ? firewoodAccounting.paidCents : Math.max(0, invoice.total_cents - invoice.balance_due_cents);
+  const contactEmail = getEmailSetupState().replyTo;
+
+  return (
+    <DocumentShell
+      brandLogoSrc="/angel-tree-services-logo.jpg"
+      className={`quote-proposal-document invoice-customer-document${firewoodAccounting ? " invoice-live-accounting" : ""}`}
+      documentLabel="Invoice"
+      documentNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
+      footerDetails={
+        <>
+          <div>
+            <strong>Angel Tree Services</strong>
+            <span>Fredericksburg, Virginia region</span>
+          </div>
+          <div>
+            <span>(540) 388-8715</span>
+            <span>{contactEmail}</span>
+            <span>angeltreeservices.org</span>
+          </div>
+        </>
+      }
+      statusLabel={firewoodAccounting?.statusLabel ?? formatInvoiceStatus(invoice.status, "customer")}
+    >
+      <DocumentMeta
+        items={[
+          { label: "Bill to", value: invoice.organizations?.name ?? invoice.customers?.display_name ?? "Contracting party not attached yet." },
+          { label: "Contact", value: formatContact(invoice) },
+          { label: "Service location", value: formatLocation(invoice), wide: true },
+          { label: "Issue date", value: formatDate(invoice.created_at) },
+          { label: "Due date", value: invoice.due_at ? formatDate(invoice.due_at) : "No due date set." },
+        ]}
+      />
+
+      <InvoiceLineItems
+        fallbackScope={invoice.jobs?.requested_scope}
+        items={lineItems}
+        paidCents={paidCents}
+        subtotalCents={invoice.subtotal_cents}
+        taxCents={invoice.tax_cents}
+        totalCents={invoice.total_cents}
+        balanceDueCents={firewoodAccounting ? firewoodAccounting.balanceDueCents : invoice.balance_due_cents}
+        creditCents={firewoodAccounting?.creditCents}
+      />
+
+      <DocumentTerms
+        terms={getInvoiceTerms(invoice.document_terms_version)}
+        title="Terms & Conditions - Invoices"
+        variant="invoice"
+      />
+      {firewoodAccounting ? (
+        <section className="business-document-payment-note">
+          <strong>{firewoodAccounting.balanceDueCents === null ? "Current balance not confirmed" : `Balance due: ${formatCurrency(firewoodAccounting.balanceDueCents)}`}</strong>
+          {firewoodAccounting.kind === "credited" ? <>
+            <p>A cancellation credit closed this invoice balance. No further payment is requested. A credit is recorded separately from a payment or refund.</p>
+            {firewoodAccounting.retainedCents ? <p>Payment applied to invoice: {formatCurrency(firewoodAccounting.retainedCents)}. Please contact our office to review this payment. Card fees and refund history are recorded separately.</p> : <p>No payment is currently applied to this invoice. Card fees and payment or refund history are recorded separately.</p>}
+          </> : firewoodAccounting.kind === "unconfirmed" ? (
+            <p>The current credit and payment balance could not be confirmed. Please refresh this secure invoice or contact our office before paying. The original invoice details remain available for your records.</p>
+          ) : firewoodAccounting.canRequestPayment ? (
+            <p>Use your secure payment page to review the current payment options. Please include the invoice number with payment and contact our office with any billing questions.</p>
+          ) : <p>No further payment is requested on this document. Please contact our office with any billing questions. Payment and refund history are retained separately.</p>}
+        </section>
+      ) : (
+      <section className="business-document-payment-note">
+        <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
+        <p>Pay securely online by bank account or card. Eligible credit-card payments may include a disclosed card-processing surcharge. Debit cards, checks, and bank payments are not subject to the credit-card surcharge.</p>
+        <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
+      </section>
+      )}
+    </DocumentShell>
+  );
+}
+
+function InvoiceLineItems({
+  balanceDueCents,
+  creditCents,
+  fallbackScope,
+  items,
+  paidCents,
+  subtotalCents,
+  taxCents,
+  totalCents,
+}: {
+  balanceDueCents: number | null;
+  creditCents?: number;
+  fallbackScope?: string | null;
+  items: NonNullable<InvoiceDetail["invoice_line_items"]>;
+  paidCents: number;
+  subtotalCents: number;
+  taxCents: number;
+  totalCents: number;
+}) {
+  return (
+    <section className="quote-proposal-scope invoice-document-lines">
+      <div className="quote-proposal-section-heading">
+        <div>
+          <span>Services and charges</span>
+          <h3>Invoice details</h3>
+        </div>
+        <span>{items.length} {items.length === 1 ? "item" : "items"}</span>
+      </div>
+
+      <div className="quote-proposal-line-list">
+        {items.length ? (
+          items.map((item, index) => (
+            <article className="quote-proposal-line" key={item.id || `${item.name}-${index}`}>
+              <div className="quote-proposal-line-heading">
+                <strong>{item.name}</strong>
+                <strong>{formatCurrency(item.total_cents)}</strong>
+              </div>
+              {item.description ? <p className="business-document-preformatted">{item.description}</p> : null}
+              <dl className="quote-proposal-line-pricing">
+                <div><dt>Qty</dt><dd>{formatQuantity(item.quantity)}</dd></div>
+                <div><dt>Unit price</dt><dd>{formatCurrency(item.unit_price_cents)}</dd></div>
+                <div><dt>Line total</dt><dd>{formatCurrency(item.total_cents)}</dd></div>
+              </dl>
+            </article>
+          ))
+        ) : (
+          <p className="business-document-empty">
+            {fallbackScope || "Invoice details will be provided by Angel Tree Services."}
+          </p>
+        )}
+      </div>
+
+      <dl className="quote-proposal-totals invoice-document-totals">
+        <div><dt>Subtotal</dt><dd>{formatCurrency(subtotalCents)}</dd></div>
+        {taxCents ? <div><dt>Tax / fees</dt><dd>{formatCurrency(taxCents)}</dd></div> : null}
+        <div><dt>Total</dt><dd>{formatCurrency(totalCents)}</dd></div>
+        {creditCents ? <div><dt>Cancellation credit</dt><dd>-{formatCurrency(creditCents)}</dd></div> : null}
+        {paidCents ? <div><dt>Paid</dt><dd>-{formatCurrency(paidCents)}</dd></div> : null}
+        <div><dt>Balance due</dt><dd>{balanceDueCents === null ? "Not confirmed" : formatCurrency(balanceDueCents)}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
+function formatLocation(invoice: InvoiceDetail) {
+  const location = invoice.jobs?.service_locations;
+  if (!location) {
+    return "No service location attached yet.";
+  }
+
+  return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
+}
+
+function formatContact(invoice: InvoiceDetail) {
+  const contact = invoice.organizations
+    ? [invoice.organizations.billing_phone, invoice.organizations.billing_email].filter(Boolean)
+    : [invoice.customers?.phone, invoice.customers?.email].filter(Boolean);
+  return contact.length ? contact.join("\n") : "Contact information available through our office";
+}
+
+function formatQuantity(value: number) {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+}
+
+function formatDate(value: string) {
+  return formatBusinessDateTime(value, { dateStyle: "long" });
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}

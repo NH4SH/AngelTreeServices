@@ -1,0 +1,61 @@
+{
+  "name": "@angel-tree/platform",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "dev:lan": "next dev --webpack --hostname 0.0.0.0 --port 3000",
+    "build": "node scripts/release/verify-framework-security.mjs --installed && next build",
+    "start": "next start",
+    "start:lan": "next start --hostname 0.0.0.0 --port 3000",
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
+    "test:unit": "node scripts/run-unit-tests.mjs",
+    "test:photos": "node --conditions=react-server --experimental-strip-types --test tests/job-photo-storage.test.mjs",
+    "test:auth:integration": "node --test src/lib/security/password-recovery.integration.test.mjs",
+    "test:payments": "node --test --experimental-strip-types src/lib/payments/*.test.mjs",
+    "test:schedule": "node --test --experimental-strip-types src/lib/schedule/*.test.mjs",
+    "test:security": "node --test --experimental-strip-types src/lib/security/*.test.mjs",
+    "test:health": "node --test --experimental-strip-types src/lib/system-health/*.test.mjs",
+    "test:mobile": "node --test --experimental-strip-types src/lib/api/mobile-contract.test.mjs src/lib/api/mobile-field-contract.test.mjs",
+    "test:google-calendar": "NODE_OPTIONS=--conditions=react-server node --test --experimental-strip-types src/lib/integrations/google-calendar/*.test.mjs",
+    "test:email": "node --test --experimental-strip-types src/lib/email/*.test.mjs",
+    "test:notifications": "node --test --experimental-strip-types src/lib/notifications/*.test.mjs",
+    "test:address": "node --test --experimental-strip-types src/lib/address/*.test.mjs",
+    "test:portal": "node --test --experimental-strip-types src/lib/portal/*.test.mjs",
+    "test:quotes": "node --test --experimental-strip-types src/lib/quotes/*.test.mjs",
+    "schema:generate": "node scripts/schema/generate.mjs",
+    "schema:check": "node scripts/schema/generate.mjs --check",
+    "schema:check:offline": "node scripts/schema/generate.mjs --offline",
+    "prebuild": "node --experimental-strip-types scripts/check-node-runtime.mjs",
+    "predev": "node --experimental-strip-types scripts/check-node-runtime.mjs",
+    "prestart": "node --experimental-strip-types scripts/check-node-runtime.mjs"
+  },
+  "dependencies": {
+    "@stripe/react-stripe-js": "^6.8.0",
+    "@stripe/stripe-js": "^9.10.0",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "lucide-react": "^1.22.0",
+    "next": "16.4.3",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "server-only": "0.0.1",
+    "sharp": "0.35.5",
+    "stripe": "^22.3.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@netlify/functions": "^5.3.0",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  },
+  "overrides": {
+    "postcss": "^8.5.10",
+    "sharp": "$sharp"
+  },
+  "engines": {
+    "node": "^22.23.4 || ^24.22.1"
+  }
+}

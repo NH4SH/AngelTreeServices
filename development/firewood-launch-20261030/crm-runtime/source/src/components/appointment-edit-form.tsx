@@ -1,0 +1,77 @@
+"use client";
+
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
+import { updateAppointmentDetails, type AppointmentActionState } from "@/app/admin/schedule/actions";
+import type { AppointmentWithRelations, AssignableUser } from "@/lib/types/database";
+import { toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
+
+const initialState: AppointmentActionState = {
+  status: "idle",
+  message: "",
+};
+
+export function AppointmentEditForm({
+  appointment,
+  assignedUsers,
+}: {
+  appointment: AppointmentWithRelations;
+  assignedUsers: AssignableUser[];
+}) {
+  const [state, formAction, pending] = useReliableActionState(updateAppointmentDetails, initialState);
+  const [revision, setRevision] = useState(appointment.edit_revision);
+  const router = useRouter();
+  useEffect(() => { if (state.appointmentId && state.revision) { setRevision(state.revision); router.refresh(); } }, [state, router]);
+
+  return (
+    <form onSubmit={event => { event.preventDefault(); void formAction(new FormData(event.currentTarget)); }} className="appointment-edit-form">
+      <input name="appointment_id" type="hidden" value={appointment.id} />
+      <input name="job_id" type="hidden" value={appointment.job_id} />
+      <input name="expected_revision" type="hidden" value={revision} />
+      <input name="appointment_type" type="hidden" value={appointment.appointment_type} />
+      <div className="form-grid-two">
+        <label>
+          <span>Start time</span>
+          <input defaultValue={toScheduleDateTimeLocal(appointment.starts_at)} name="starts_at" required type="datetime-local" />
+        </label>
+        <label>
+          <span>End time</span>
+          <input defaultValue={appointment.ends_at ? toScheduleDateTimeLocal(appointment.ends_at) : ""} name="ends_at" type="datetime-local" />
+        </label>
+      </div>
+      <label>
+        <span>Assign staff</span>
+        <select defaultValue={appointment.assigned_employee_id ?? ""} name="assigned_user_id">
+          <option value="">Unassigned</option>
+          {assignedUsers.map((user) => (
+            <option key={user.id} value={user.id}>{user.full_name || user.email || "Unnamed staff user"}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span>Calendar notes</span>
+        <textarea defaultValue={appointment.calendar_notes ?? ""} maxLength={1000} name="calendar_notes" rows={3} />
+      </label>
+      <label>
+        <span>Owner/admin override reason</span>
+        <textarea
+          maxLength={600}
+          name="eligibility_override_reason"
+          placeholder="Only needed if the assigned employee has a qualification warning"
+          rows={2}
+        />
+      </label>
+      <button disabled={pending} type="submit">
+        <Save aria-hidden="true" size={17} />
+        {pending ? "Saving..." : "Save changes"}
+      </button>
+      {state.message ? (
+        <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
+          {state.message}
+        </p>
+      ) : null}
+    </form>
+  );
+}

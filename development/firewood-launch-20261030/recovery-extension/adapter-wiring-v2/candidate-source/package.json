@@ -1,0 +1,10 @@
+{
+  "name": "@angel-tree/home-recovery-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated synthetic recovery tooling; not the CRM runtime",
+  "dependencies": {
+    "tar-stream": "3.2.2"
+  }
+}

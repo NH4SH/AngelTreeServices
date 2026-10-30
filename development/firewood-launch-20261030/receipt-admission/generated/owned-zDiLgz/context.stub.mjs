@@ -1,0 +1,1 @@
+export function readReleasedContext(mode){return globalThis.ATS_RECEIPT_FIXTURE.readContext(mode);}

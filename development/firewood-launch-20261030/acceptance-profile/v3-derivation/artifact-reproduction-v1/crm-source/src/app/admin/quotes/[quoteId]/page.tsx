@@ -1,0 +1,465 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
+import { formatBusinessDateTime } from "@/lib/business-time";
+import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
+import type { ReactNode } from "react";
+import {
+  CalendarDays,
+  ClipboardCheck,
+  FileSignature,
+  MapPin,
+  Pencil,
+  ReceiptText,
+  Send,
+  StickyNote,
+  UsersRound,
+} from "lucide-react";
+import { AddAppointmentForm } from "@/app/admin/schedule/AppointmentForm";
+import { CommunicationControls } from "@/components/communication-controls";
+import { QuoteDocument } from "@/components/documents/quote-document";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { PrintButton } from "@/components/documents/print-button";
+import { PortalEngagementPanel } from "@/components/portal-engagement";
+import { EmailDraftCard } from "@/components/email-draft-card";
+import { EmailHistoryList, EmailSetupNotice } from "@/components/email-history";
+import { QuotePortalLinkPanel } from "@/components/quote-portal-link-panel";
+import { SendQuoteEmailForm } from "@/components/send-email-action-form";
+import { CreateInvoiceFromQuoteAction, ManualQuoteSentAction, QuoteStatusActions } from "@/components/workflow-actions";
+import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
+import { SetupRequired } from "@/components/SetupRequired";
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { duplicateQuote } from "@/lib/actions/duplicate-records";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getAssignableUsers } from "@/lib/data/appointments";
+import { getEmailEvents } from "@/lib/data/email-events";
+import { getCommunicationRecipientOptions, getCustomerCommunications } from "@/lib/data/communications";
+import { getQuotePortalTokens } from "@/lib/data/portal-quote";
+import { getQuoteEmailPortalLinkState } from "@/lib/portal/quote-email-link-state";
+import { getQuoteApprovalSource, getQuoteDetail } from "@/lib/data/quotes";
+import { generateQuoteEmailDraft } from "@/lib/documents/email-drafts";
+import { generateQuoteFollowUpMessage } from "@/lib/documents/scheduling-drafts";
+import { getEmailSetupState } from "@/lib/email/config";
+import { formatInvoiceStatus } from "@/lib/invoices/status";
+import type { QuoteStatus } from "@/lib/types/database";
+
+type QuoteDetailPageProps = {
+  params: Promise<{
+    quoteId: string;
+  }>;
+  searchParams: Promise<{ returnTo?: string; lead_archive_warning?: string }>;
+};
+
+export default async function QuoteDetailPage({ params, searchParams }: QuoteDetailPageProps) {
+  const { quoteId } = await params;
+  const query = await searchParams;
+  const returnTo = safeReturnTo(query.returnTo, "/admin/quotes");
+  const context = await getAuthenticatedPlatformContext(`/admin/quotes/${quoteId}`);
+
+  if (!context.configured) {
+    return <SetupRequired title="Configure Supabase before opening quote details" />;
+  }
+
+  const detail = await getQuoteDetail(quoteId);
+  const canManuallyMarkSent = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const [approvalSource, portalTokens, emailEvents, communications, recipientOptions, assignedUsers, lifecyclePreview] = await Promise.all([
+    detail.data?.status === "approved" ? getQuoteApprovalSource(quoteId) : { data: null, error: null },
+    detail.data ? getQuotePortalTokens(quoteId) : { data: [], error: null },
+    detail.data ? getEmailEvents({ quoteId, limit: 8 }) : { data: [], error: null },
+    detail.data ? getCustomerCommunications({ quoteId, limit: 20 }) : { data: [], error: null },
+    detail.data ? getCommunicationRecipientOptions({ customerId: detail.data.customer_id, organizationId: detail.data.organization_id }) : { data: [], error: null },
+    getAssignableUsers(),
+    detail.data && canManuallyMarkSent ? getRecordLifecyclePreview("quote", quoteId) : null,
+  ]);
+  const emailSetup = getEmailSetupState();
+  const recipient = detail.data
+    ? detail.data.approval_contact?.email
+      ?? detail.data.recipient_contact?.email
+      ?? detail.data.customers?.email
+      ?? detail.data.organizations?.billing_email
+      ?? ""
+    : "";
+  const activePortalUrl = portalTokens.data.find((token) => token.portalUrl)?.portalUrl ?? undefined;
+  const emailPortalLinkState = getQuoteEmailPortalLinkState(portalTokens.data);
+
+  return (
+    <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content commerce-page">
+        <Link className="crew-back-link" href={returnTo}>Back to quotes</Link>
+        {detail.error ? <DataWarning message={detail.error} /> : null}
+        {approvalSource.error ? <DataWarning message={`Approval history: ${approvalSource.error}`} /> : null}
+        {assignedUsers.error ? <DataWarning message={assignedUsers.error} /> : null}
+        {emailEvents.error ? <DataWarning message={emailEvents.error} /> : null}
+        {communications.error ? <DataWarning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recipientOptions.error ? <DataWarning message={`Reminder recipients: ${recipientOptions.error}`} /> : null}
+        {query.lead_archive_warning === "1" ? <DataWarning message="The quote was created, but its website lead could not be archived automatically. Archive the lead manually from Leads and Communications." /> : null}
+        {!detail.data ? (
+          <EmptyState title="Quote not found or no access" body="This record is unavailable to the current account." />
+        ) : (
+          <>
+            <section className="commerce-detail-header">
+              <div>
+                <p className="surface-label">
+                  <FileSignature aria-hidden="true" size={18} />
+                  Quote file
+                </p>
+                <h1>{detail.data.quote_number || `Quote for ${detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "customer"}`}</h1>
+                <p>{detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "Unknown contracting party"} - {formatProposalLabel(detail.data)}</p>
+              </div>
+              <div className="commerce-header-aside">
+                <span className={`status-pill quote-status ${detail.data.status}`}>
+                  {formatQuoteStatus(detail.data.status)}
+                </span>
+                {approvalSource.data ? (
+                  <span className={`status-pill approval-source ${approvalSource.data}`}>
+                    <ClipboardCheck aria-hidden="true" size={15} />
+                    {approvalSource.data === "manual" ? "Manually approved" : "Portal approved"}
+                  </span>
+                ) : null}
+                <strong>{formatCurrency(detail.data.total_cents)}</strong>
+                {isQuoteEditable(detail.data.status) ? (
+                  <Link className="primary-action" href={withReturnTo(`/admin/quotes/${detail.data.id}/edit`, returnTo, "/admin/quotes")}>
+                    <Pencil aria-hidden="true" size={17} />
+                    Edit quote
+                  </Link>
+                ) : null}
+                <Link
+                  className="secondary-action"
+                  href={detail.data.organization_id
+                    ? `/admin/organizations/${detail.data.organization_id}`
+                    : `/admin/customers/${detail.data.customer_id}`}
+                >
+                  <UsersRound aria-hidden="true" size={17} />
+                  {detail.data.organization_id ? "Open organization" : "Open customer"}
+                </Link>
+                {["sent", "change_requested"].includes(detail.data.status) ? (
+                  <a className="primary-action" href="#quote-follow-up">Follow up</a>
+                ) : null}
+                {detail.data.status === "approved" && detail.data.jobs ? (
+                  <Link className="primary-action" href={`/admin/jobs/${detail.data.jobs.id}`}>Open work order</Link>
+                ) : null}
+                <DuplicateRecordButton
+                  action={duplicateQuote}
+                  buttonClassName="secondary-action"
+                  hiddenFieldName="quote_id"
+                  hiddenFieldValue={detail.data.id}
+                  label="Duplicate quote"
+                  pendingLabel="Copying quote..."
+                />
+              </div>
+            </section>
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="quote_id" id={quoteId} /></Suspense>
+
+            <section className="commerce-side-panel quote-email-workspace">
+              <PanelTitle icon={<Send size={18} />} title="Proposal email" />
+              <p className="inline-empty">Review the customer-facing message and branded preview before sending. Delivery reuses the active secure link when available.</p>
+              <EmailSetupNotice configured={emailSetup.configured} />
+              <SendQuoteEmailForm
+                disabled={!emailSetup.configured || !recipient || isQuoteClosedForSending(detail.data.status)}
+                documentHref={`/admin/quotes/${detail.data.id}/print`}
+                draft={generateQuoteEmailDraft(detail.data, { portalUrl: activePortalUrl })}
+                portalLinkState={emailPortalLinkState}
+                portalUrl={activePortalUrl}
+                quoteId={detail.data.id}
+                recipient={recipient}
+              />
+              {!recipient ? (
+                <p className="inline-empty">Add a billing email address for the contracting party before sending.</p>
+              ) : null}
+              {isQuoteClosedForSending(detail.data.status) ? (
+                <p className="inline-empty">This quote is closed, so it cannot be sent again from the main workflow.</p>
+              ) : null}
+            </section>
+
+            <section className="commerce-detail-layout">
+              <main className="commerce-document-column">
+                <section className="commerce-document-panel">
+                  <div className="document-workspace-heading print-hidden">
+                    <div>
+                      <p className="surface-label">
+                        <FileSignature aria-hidden="true" size={18} />
+                        Printable quote
+                      </p>
+                      <h2>Quote document preview</h2>
+                    </div>
+                    <PrintButton href={`/admin/quotes/${detail.data.id}/print`} label="Print or save PDF" />
+                  </div>
+                  <QuoteDocument quote={detail.data} showInternalPreview={detail.data.status === "draft"} />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<ReceiptText size={18} />} title="Line items" />
+                  {detail.data.quote_line_items?.length ? (
+                    <div className="line-items-preview commerce-line-items">
+                      {detail.data.quote_line_items.map((item) => (
+                        <div className="line-item-row" key={item.id}>
+                          <span className="formatted-line-description">
+                            <strong>{item.name}</strong>
+                            {item.description ? <span>{item.description}</span> : null}
+                          </span>
+                          <span>{item.quantity}</span>
+                          <span>{formatCurrency(item.unit_price_cents)}</span>
+                          <strong>{formatCurrency(item.total_cents)}</strong>
+                        </div>
+                      ))}
+                      <div className="line-item-total">
+                        <span>Total</span>
+                        <strong>{formatCurrency(detail.data.total_cents)}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <EmptyInline>No line items yet.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="email-draft-grid commerce-email-grid">
+                  <EmailDraftCard draft={generateQuoteFollowUpMessage(detail.data)} label="Quote follow-up draft" />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Email delivery history" />
+                  <p className="inline-empty">Provider accepted confirms the email service accepted the message. Customer opens are tracked separately through the secure link.</p>
+                  <EmailHistoryList events={emailEvents.data} />
+                </section>
+
+                <section className="commerce-side-panel" id="quote-follow-up">
+                  <PanelTitle icon={<CalendarDays size={18} />} title="Quote follow-up" />
+                  <CommunicationControls
+                    automaticEnabled={detail.data.automatic_follow_ups_enabled}
+                    communicationType="quote_follow_up"
+                    communications={communications.data}
+                    recipientOptions={recipientOptions.data}
+                    recordId={detail.data.id}
+                    recordType="quote"
+                  />
+                </section>
+              </main>
+
+              <aside className="commerce-detail-sidebar">
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<ClipboardCheck size={18} />} title="Workflow actions" />
+                  <span className={`status-pill quote-status ${detail.data.status}`}>
+                    {formatQuoteStatus(detail.data.status)}
+                  </span>
+                  {approvalSource.data ? (
+                    <p className="quote-delivery-note">
+                      <ClipboardCheck aria-hidden="true" size={16} />
+                      {approvalSource.data === "manual"
+                        ? "Approved manually by staff."
+                        : "Approved through the secure customer portal."}
+                    </p>
+                  ) : null}
+                  <p className="inline-empty">Sending the quote marks it sent. Approval creates or links the work order.</p>
+                  {detail.data.sent_at ? (
+                    <p className="quote-delivery-note">
+                      <Send aria-hidden="true" size={16} />
+                      {formatSentActivity(detail.data.sent_method, detail.data.sent_at)}
+                    </p>
+                  ) : null}
+                  <QuoteStatusActions expectedRevision={detail.data.edit_revision} quoteId={detail.data.id} status={detail.data.status} />
+                  {canManuallyMarkSent ? (
+                    <ManualQuoteSentAction quoteId={detail.data.id} status={detail.data.status} />
+                  ) : null}
+                  {detail.data.status === "approved" && detail.data.jobs ? (
+                    <Link className="secondary-action" href={`/admin/jobs/${detail.data.jobs.id}`}>
+                      Open work order
+                    </Link>
+                  ) : null}
+                  {detail.data.status === "approved" && !detail.data.invoices?.length ? (
+                    <CreateInvoiceFromQuoteAction actorId={context.user.id} quoteId={detail.data.id} />
+                  ) : null}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<UsersRound size={18} />} title="Contracting party" />
+                  <Link className="linked-record" href={detail.data.organization_id ? `/admin/organizations/${detail.data.organization_id}` : `/admin/customers/${detail.data.customer_id}`}>
+                    <strong>{detail.data.organizations?.name ?? detail.data.customers?.display_name ?? "Unknown contracting party"}</strong>
+                    <span>{detail.data.organizations?.billing_phone || detail.data.organizations?.billing_email || detail.data.customers?.phone || detail.data.customers?.email || "No contact set"}</span>
+                  </Link>
+                </section>
+
+                {detail.data.organization_id ? (
+                  <section className="commerce-side-panel">
+                    <PanelTitle icon={<UsersRound size={18} />} title="Organization contacts" />
+                    <div className="linked-record-list">
+                      <ContactLine label="Attention" contact={detail.data.recipient_contact} />
+                      <ContactLine label="Approval" contact={detail.data.approval_contact} />
+                      <ContactLine label="Onsite" contact={detail.data.onsite_contact} />
+                      <ContactLine label="Billing" contact={detail.data.billing_contact} />
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<MapPin size={18} />} title="Service location" />
+                  {detail.data.service_locations ? (
+                    <article className="linked-record">
+                      <strong>{detail.data.service_locations.label || "Service location"}</strong>
+                      <span>
+                        {detail.data.service_locations.street}, {detail.data.service_locations.city}
+                      </span>
+                    </article>
+                  ) : (
+                    <EmptyInline>No service location attached.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<MapPin size={18} />} title="Linked work order" />
+                  {detail.data.jobs ? (
+                    <Link className="linked-record" href={`/admin/jobs/${detail.data.jobs.id}`}>
+                      <strong>{formatJobLabel(detail.data.jobs.service_type)}</strong>
+                      <span>
+                        {detail.data.jobs.service_locations
+                          ? `${detail.data.jobs.service_locations.street}, ${detail.data.jobs.service_locations.city}`
+                          : detail.data.jobs.status.replace("_", " ")}
+                      </span>
+                    </Link>
+                  ) : (
+                    <EmptyInline>A work order will be created when this quote is approved.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<ReceiptText size={18} />} title="Invoices from this quote" />
+                  {detail.data.invoices?.length ? (
+                    detail.data.invoices.map((invoice) => (
+                      <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
+                        <strong>{invoice.invoice_number || "Invoice"}</strong>
+                        <span>{formatInvoiceStatus(invoice.status)} - {formatCurrency(invoice.balance_due_cents)} due</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <EmptyInline>No invoices created from this quote yet.</EmptyInline>
+                  )}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<ReceiptText size={18} />} title="Totals" />
+                  <dl className="record-details">
+                    <div><dt>Subtotal</dt><dd>{formatCurrency(detail.data.subtotal_cents)}</dd></div>
+                    <div><dt>Total</dt><dd>{formatCurrency(detail.data.total_cents)}</dd></div>
+                    <div><dt>Expires</dt><dd>{formatDate(detail.data.expires_at)}</dd></div>
+                  </dl>
+                </section>
+
+                <section className="commerce-side-panel" id="portal-link">
+                  {portalTokens.error ? <DataWarning message={`Customer portal links: ${portalTokens.error}`} /> : null}
+                  <QuotePortalLinkPanel
+                    quoteId={detail.data.id}
+                    tokens={portalTokens.data}
+                  />
+                </section>
+
+                <PortalEngagementPanel engagement={detail.data} />
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<CalendarDays size={18} />} title="Follow-up" />
+                  <AddAppointmentForm
+                    assignedUsers={assignedUsers.data}
+                    defaultAppointmentType="follow_up"
+                    jobId={detail.data.job_id ?? undefined}
+                    jobs={[]}
+                    lockedAppointmentType="follow_up"
+                  />
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<StickyNote size={18} />} title="Internal notes" />
+                  {detail.data.notes?.length ? detail.data.notes.map((note) => (
+                    <article className="linked-record" key={note.id}>
+                      <strong>{note.visibility.replace("_", " ")}</strong>
+                      <span>{note.body}</span>
+                    </article>
+                  )) : <EmptyInline>No notes yet.</EmptyInline>}
+                </section>
+
+                <section className="commerce-side-panel">
+                  <PanelTitle icon={<Send size={18} />} title="Email drafts" />
+                  <p className="inline-empty">Draft copy is still available below. Use the send button only when the customer email is ready.</p>
+                </section>
+              </aside>
+            </section>
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canManuallyMarkSent} canPermanentlyDelete={context.roles.includes("owner")} listHref="/admin/quotes" preview={lifecyclePreview} /> : null}
+          </>
+        )}
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
+  return <h2 className="panel-title">{icon}{title}</h2>;
+}
+
+function EmptyInline({ children }: { children: ReactNode }) {
+  return <p className="inline-empty">{children}</p>;
+}
+
+function ContactLine({ contact, label }: { contact?: { full_name: string; email?: string | null; phone?: string | null; is_active: boolean } | null; label: string }) {
+  return <article className="linked-record"><strong>{label}: {contact?.full_name ?? "Not selected"}</strong><span>{contact ? (contact.email || contact.phone || "No contact details") : "Choose an organization contact while editing."}</span>{contact && !contact.is_active ? <span className="status-pill attention">Inactive</span> : null}</article>;
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return <section className="empty-state"><h2>{title}</h2><p>{body}</p></section>;
+}
+
+function DataWarning({ message }: { message: string }) {
+  return <section className="data-warning" role="status"><strong>Database notice</strong><p>{message}</p></section>;
+}
+
+function formatQuoteStatus(status: QuoteStatus) {
+  return status === "approved" ? "accepted" : status.replace("_", " ");
+}
+
+function formatSentActivity(method: string | null, sentAt: string) {
+  const date = formatBusinessDateTime(new Date(sentAt), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  if (method === "manual") {
+    return `Marked as sent manually on ${date}`;
+  }
+
+  if (method === "crm_email") {
+    return `Sent via CRM email on ${date}`;
+  }
+
+  return `Sent status recorded on ${date}`;
+}
+
+function isQuoteClosedForSending(status: QuoteStatus) {
+  return ["approved", "declined", "expired", "cancelled"].includes(status);
+}
+
+function isQuoteEditable(status: QuoteStatus) {
+  return ["draft", "sent", "change_requested"].includes(status);
+}
+
+function formatJobLabel(serviceType?: string | null) {
+  return serviceType ? serviceType.replace("_", " ") : "Linked job";
+}
+
+function formatProposalLabel(quote: { jobs?: { service_type?: string | null } | null; service_locations?: { street?: string | null; city?: string | null } | null }) {
+  if (quote.jobs?.service_type) {
+    return quote.jobs.service_type.replace("_", " ");
+  }
+
+  if (quote.service_locations) {
+    return [quote.service_locations.street, quote.service_locations.city].filter(Boolean).join(", ");
+  }
+
+  return "Draft proposal";
+}
+
+function formatDate(value?: string | null) {
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "Not set";
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}

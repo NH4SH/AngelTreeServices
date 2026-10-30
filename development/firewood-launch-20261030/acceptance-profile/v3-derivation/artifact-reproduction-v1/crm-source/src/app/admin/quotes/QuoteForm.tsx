@@ -1,0 +1,719 @@
+"use client";
+
+import { formatBusinessDateTime } from "@/lib/business-time";
+import { useReliableActionState } from "@/hooks/use-reliable-action-state";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useDocumentRecovery } from "@/hooks/use-document-recovery";
+import { DocumentRecoveryPanel } from "@/components/document-recovery-panel";
+import { SavedScopeWording } from "@/components/saved-scope-wording";
+import { restoreDocumentFields } from "@/lib/drafts/document-drafts";
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from "react";
+import { ArrowDown, ArrowUp, Copy, IndentIncrease, Plus, Save, Trash2, X } from "lucide-react";
+import { createQuote, updateQuote, type QuoteActionState } from "./actions";
+import { belongsToContractingParty, contractingPartyValue, parseContractingParty } from "@/lib/contracting-parties";
+import type { Customer, Job, Organization, OrganizationContact, QuoteDetail, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+import type { EstimateScheduleEventOption } from "@/lib/data/schedule";
+import type { MaterialRecord } from "@/lib/data/materials";
+import type { QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
+
+const initialState: QuoteActionState = {
+  status: "idle",
+  message: "",
+};
+
+type LineItemDraft = {
+  id: string;
+  persistedId?: string;
+  name: string;
+  description: string;
+  serviceCategoryId: string;
+  materialId: string;
+  quantity: string;
+  unitPrice: string;
+};
+
+const initialLineItem = (id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`): LineItemDraft => ({
+  id,
+  name: "",
+  description: "",
+  serviceCategoryId: "",
+  materialId: "",
+  quantity: "1",
+  unitPrice: "",
+});
+
+export function AddQuoteForm({
+  userId, returnTo,
+  createCloseHref,
+  customers,
+  defaultCustomerId = "",
+  estimateScheduleEvents,
+  jobs,
+  leadPrefill,
+  materials,
+  organizations,
+  organizationContacts,
+  quote,
+  serviceCategories,
+  serviceLocations,
+  sourceLeadJobId,
+}: {
+  userId: string;
+  returnTo?: string;
+  createCloseHref?: string;
+  customers: Pick<Customer, "id" | "display_name">[];
+  defaultCustomerId?: string;
+  estimateScheduleEvents: EstimateScheduleEventOption[];
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  leadPrefill?: QuoteLeadPrefill | null;
+  materials: MaterialRecord[];
+  organizations: Pick<Organization, "id" | "name">[];
+  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
+  quote?: QuoteDetail;
+  serviceCategories: ServiceCategory[];
+  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
+  sourceLeadJobId?: string;
+}) {
+  const isEditing = Boolean(quote);
+  const action = isEditing ? updateQuote : createQuote;
+  const router = useRouter();
+  const listHref = safeReturnTo(returnTo, "/admin/quotes");
+  const requestId = useRef<string | null>(null);
+  const [state, formAction, pending] = useReliableActionState(async (previous: QuoteActionState, form: FormData) => {
+    if (recovery.blocked) return { status: "error" as const, message: "Review or discard the recovery copy before saving." };
+    if (!isEditing) {
+      requestId.current ??= recovery.requestId.current || crypto.randomUUID();
+      form.set("request_id", requestId.current);
+    }
+    recovery.beforeSubmit(isEditing ? "" : requestId.current!, form);
+    form.set("client_navigation", "1");
+    const result = await action(previous, form);
+    if (result.status === "success") {
+      recovery.acknowledge();
+      confirmedReload.current = true;
+      if (result.navigateTo) router.push(result.navigateTo);
+    }
+    return result;
+  }, initialState);
+  const [dirty, setDirty] = useState(false);
+  const confirmedReload = useRef(false);
+  const [expectedRevision, setExpectedRevision] = useState(quote?.edit_revision);
+  const [selectedPartyValue, setSelectedPartyValue] = useState(
+    quote
+      ? contractingPartyValue(quote)
+      : leadPrefill?.partyValue ?? (defaultCustomerId ? `customer:${defaultCustomerId}` : ""),
+  );
+  const selectedParty = parseContractingParty(selectedPartyValue);
+  const [originalPartyValue, setOriginalPartyValue] = useState(quote ? contractingPartyValue(quote) : "");
+  const [lineItems, setLineItems] = useState<LineItemDraft[]>(
+    quote?.quote_line_items?.length
+      ? [...quote.quote_line_items]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((item) => ({
+            id: item.id,
+            persistedId: item.id,
+            name: item.name,
+            description: item.description ?? "",
+            serviceCategoryId: item.service_category_id ?? "",
+            materialId: item.material_id ?? "",
+            quantity: String(item.quantity),
+            unitPrice: (item.unit_price_cents / 100).toFixed(2),
+          }))
+      : [initialLineItem("new-quote-line-1")],
+  );
+  const matchingLocations = useMemo(
+    () => selectedParty ? serviceLocations.filter((location) => belongsToContractingParty(location, selectedParty)) : [],
+    [selectedParty, serviceLocations],
+  );
+  const matchingJobs = useMemo(
+    () => selectedParty ? jobs.filter((job) => belongsToContractingParty(job, selectedParty)) : [],
+    [selectedParty, jobs],
+  );
+  const matchingContacts = useMemo(
+    () => selectedParty?.kind === "organization"
+      ? organizationContacts.filter((contact) => contact.organization_id === selectedParty.organizationId)
+      : [],
+    [organizationContacts, selectedParty],
+  );
+  const subtotalCents = lineItems.reduce((sum, item) => sum + getLineItemTotalCents(item), 0);
+  const closeHref = quote ? withReturnTo(`/admin/quotes/${quote.id}`, listHref) : createCloseHref ?? listHref;
+  const recovery = useDocumentRecovery({
+    userId, kind: "quote", recordKey: quote?.id ?? `new:${defaultCustomerId}:${leadPrefill?.sourceJobId ?? sourceLeadJobId ?? ""}`,
+    revision: String(expectedRevision ?? "new"), persistedIds: lineItems.flatMap(line => line.persistedId ? [line.persistedId] : []),
+    dirty, pending, changeToken: lineItems,
+    restore: copy => {
+      if (!isEditing) requestId.current = copy.requestId || null;
+      setSelectedPartyValue(copy.fields.contracting_party ?? "");
+      setLineItems(copy.lines.map(line => ({ ...line, id: crypto.randomUUID(), persistedId: line.persistedId || undefined })));
+      markDirty();
+    },
+  });
+  function markDirty() { recovery.changed(); confirmedReload.current = false; setDirty(true); }
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setDirty(false);
+      if (state.savedRevision) setExpectedRevision(state.savedRevision);
+      if (state.savedLineIds) setLineItems(current => current.map(line => ({ ...line, persistedId: state.savedLineIds?.[line.id] ?? line.persistedId })));
+      setOriginalPartyValue(selectedPartyValue);
+    }
+  }, [state]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirty || confirmedReload.current) {
+        return;
+      }
+      event.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [dirty]);
+
+  return (
+    <form
+      ref={recovery.formRef}
+      action={formAction}
+      className="crm-form quote-editor-form"
+      aria-busy={pending}
+      onChange={() => markDirty()}
+      // React resets uncontrolled fields when a form action resolves, including
+      // validation/conflict results. Keep the editor intact until explicit reload.
+      onReset={(event) => event.preventDefault()}
+    >
+      <input name="returnTo" type="hidden" value={listHref} />
+      <DocumentRecoveryPanel recovery={recovery} listHref={listHref} />
+      {quote ? <><input name="quote_id" type="hidden" value={quote.id} /><input name="expected_revision" type="hidden" value={expectedRevision ?? ""} /></> : null}
+      {leadPrefill?.sourceJobId || sourceLeadJobId ? <input name="source_lead_job_id" type="hidden" value={leadPrefill?.sourceJobId ?? sourceLeadJobId} /> : null}
+      {state.message ? (
+        <p className={`form-message ${state.status}`} role={state.status === "error" ? "alert" : "status"}>
+          {state.message}
+        </p>
+      ) : null}
+      {state.existingQuoteId ? <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${state.existingQuoteId}`, listHref)}>Open saved quote</Link> : null}
+
+      {state.conflict && quote ? (
+        <section className="quote-edit-conflict" aria-label="Saved quote changed">
+          <p><strong>{state.conflict.changedBy}</strong>{state.conflict.changedAt ? ` saved a change ${formatBusinessDateTime(new Date(state.conflict.changedAt))}` : " changed the saved quote"}. The saved total is {formatCurrency(state.conflict.currentTotalCents)} ({state.conflict.currentStatus.replaceAll("_", " ")}).</p>
+          <div className="workflow-button-row">
+            <Link className="secondary-action" href={`/admin/quotes/${quote.id}`} target="_blank" rel="noopener noreferrer">Compare saved quote in a new tab</Link>
+            <button className="secondary-action" type="button" onClick={() => {
+              if (window.confirm("Reload the saved quote? Your unsaved edits on this page will be discarded.")) {
+                recovery.acknowledge();
+                confirmedReload.current = true;
+                window.location.reload();
+              }
+            }}>Reload saved quote</button>
+          </div>
+        </section>
+      ) : null}
+
+      <fieldset className="quote-editor-fields" disabled={pending}>
+      {!quote && leadPrefill ? <LeadRequestContext prefill={leadPrefill} /> : null}
+
+      <section className="quote-editor-section">
+        <div>
+          <p className="surface-label">{isEditing ? "Edit quote" : "Draft quote"}</p>
+          <h3>Contracting party and proposed work</h3>
+        </div>
+        {quote && ["sent", "change_requested"].includes(quote.status) ? (
+          <p className="form-guidance warning">
+            Saving changes keeps this quote in its current workflow status. Editing this quote updates the customer's existing link without revoking it.
+          </p>
+        ) : null}
+        <div className="form-grid-two">
+          <label>
+            Contracting party
+            <select
+              name="contracting_party"
+              onChange={(event) => {
+                setSelectedPartyValue(event.target.value);
+                markDirty();
+              }}
+              required
+              value={selectedPartyValue}
+            >
+              <option value="">Choose customer or organization</option>
+              <optgroup label="Individual customers">{customers.map((customer) => <option key={customer.id} value={`customer:${customer.id}`}>{customer.display_name}</option>)}</optgroup>
+              <optgroup label="Organizations">{organizations.map((organization) => <option key={organization.id} value={`organization:${organization.id}`}>{organization.name}</option>)}</optgroup>
+            </select>
+          </label>
+          <label>
+            Service location
+            <select defaultValue={quote?.service_location_id ?? leadPrefill?.serviceLocationId ?? ""} name="service_location_id" required>
+              <option value="">Choose service location</option>
+              {matchingLocations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {formatLocation(location)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {quote && selectedPartyValue !== originalPartyValue ? (
+          <label className="checkbox-field">
+            <input name="confirm_contracting_party_change" required type="checkbox" />
+            I understand this changes the legal contracting party. Existing portal access remains attached to this quote.
+          </label>
+        ) : null}
+        {selectedParty?.kind === "organization" ? (
+          <>
+          <div className="form-grid-two">
+            <label>
+              Quote recipient
+              <select defaultValue={quote?.recipient_contact_id ?? leadPrefill?.recipientContactId ?? ""} name="recipient_contact_id" required>
+                <option value="">Choose recipient</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
+              </select>
+            </label>
+            <label>
+              Approval contact
+              <select defaultValue={quote?.approval_contact_id ?? leadPrefill?.approvalContactId ?? ""} name="approval_contact_id" required>
+                <option value="">Choose approval contact</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.contact_roles?.length ? ` - ${contact.contact_roles.join(", ")}` : ""}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="form-grid-two">
+            <label>
+              Onsite contact
+              <select defaultValue={quote?.onsite_contact_id ?? leadPrefill?.onsiteContactId ?? ""} name="onsite_contact_id">
+                <option value="">No onsite contact selected</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}</option>)}
+              </select>
+            </label>
+            <label>
+              Billing contact
+              <select defaultValue={quote?.billing_contact_id ?? ""} name="billing_contact_id">
+                <option value="">Use approval contact</option>
+                {matchingContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.full_name}{contact.email ? ` - ${contact.email}` : ""}</option>)}
+              </select>
+            </label>
+          </div>
+          </>
+        ) : null}
+        <div className="form-grid-two">
+          <label>
+            Purchase order / reference
+            <input defaultValue={quote?.purchase_order_reference ?? ""} name="purchase_order_reference" />
+          </label>
+          <label>
+            Payment terms
+            <input defaultValue={quote?.payment_terms ?? ""} name="payment_terms" placeholder="Net 30" />
+          </label>
+        </div>
+        <div className="form-grid-two">
+          <label>
+            Estimate event
+            <select defaultValue={quote?.estimate_schedule_event_id ?? ""} name="estimate_schedule_event_id">
+              <option value="">No linked estimate event</option>
+              {estimateScheduleEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title} - {formatDateTime(event.starts_at)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Existing job / work order
+            <select defaultValue={quote?.job_id ?? leadPrefill?.sourceJobId ?? ""} name="job_id">
+              <option value="">No existing job yet</option>
+              {matchingJobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.service_type ?? "job"} - {job.status.replace("_", " ")}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label>
+          Customer notes
+          <textarea
+            defaultValue={quote?.customer_message ?? ""}
+            name="customer_message"
+            placeholder="Customer-facing quote notes or proposal introduction"
+            rows={4}
+          />
+        </label>
+        <div className="form-grid-two">
+          <label>
+            Wood and chips plan
+            <select defaultValue={quote?.debris_handling ?? ""} name="debris_handling">
+              <option value="">Not decided</option>
+              <option value="haul_all">Haul all wood and chips</option>
+              <option value="leave_wood">Leave wood onsite</option>
+              <option value="leave_chips">Leave chips onsite</option>
+              <option value="leave_wood_and_chips">Leave wood and chips onsite</option>
+              <option value="partial_haul">Partial haul</option>
+              <option value="other">Other arrangement</option>
+            </select>
+          </label>
+          <label>
+            Wood / chips instructions
+            <textarea defaultValue={quote?.debris_handling_notes ?? ""} name="debris_handling_notes" placeholder="Stack logs by rear fence; leave one chip load near garden." rows={3} />
+          </label>
+        </div>
+        <label>
+          Expiration date
+          <input defaultValue={toDateInputValue(quote?.expires_at)} name="expires_at" type="date" />
+        </label>
+      </section>
+
+      <section className="quote-editor-section">
+        <div className="quote-editor-section-header">
+          <div>
+            <p className="surface-label">Proposal lines</p>
+            <h3>Line items</h3>
+          </div>
+          <button
+            className="secondary-action quote-line-helper-button"
+            onClick={() => {
+              setLineItems((items) => [...items, initialLineItem()]);
+              markDirty();
+            }}
+            type="button"
+          >
+            <Plus aria-hidden="true" size={16} />
+            Add line item
+          </button>
+        </div>
+
+        <SavedScopeWording userId={userId} lines={lineItems} getDebris={() => {
+          const form = recovery.formRef.current;
+          const data = form ? new FormData(form) : new FormData();
+          return { debrisHandling: String(data.get("debris_handling") ?? ""), description: String(data.get("debris_handling_notes") ?? "") };
+        }} insert={preset => {
+          if (preset.kind === "scope") setLineItems(items => [...items, { ...initialLineItem(), name: preset.name, description: preset.description }]);
+          else if (recovery.formRef.current) {
+            const data = new FormData(recovery.formRef.current);
+            if ((data.get("debris_handling") || data.get("debris_handling_notes")) && !window.confirm("Replace the current wood and chips plan with this wording?")) return;
+            restoreDocumentFields(recovery.formRef.current, { debris_handling: preset.debrisHandling, debris_handling_notes: preset.description });
+          }
+          markDirty();
+        }} />
+        <div className="quote-line-editor-list">
+          {lineItems.map((item, index) => (
+            <article className="quote-line-editor" key={item.id}>
+              <div className="quote-line-editor-top">
+                <strong>Line {index + 1}</strong>
+                <div className="quote-line-controls">
+                  <IconButton
+                    disabled={index === 0}
+                    label="Move line item up"
+                    onClick={() => {
+                      moveLineItem(index, index - 1, setLineItems);
+                      markDirty();
+                    }}
+                  >
+                    <ArrowUp aria-hidden="true" size={15} />
+                  </IconButton>
+                  <IconButton
+                    disabled={index === lineItems.length - 1}
+                    label="Move line item down"
+                    onClick={() => {
+                      moveLineItem(index, index + 1, setLineItems);
+                      markDirty();
+                    }}
+                  >
+                    <ArrowDown aria-hidden="true" size={15} />
+                  </IconButton>
+                  <IconButton label="Duplicate line item" onClick={() => {
+                    duplicateLineItem(index, setLineItems);
+                    markDirty();
+                  }}>
+                    <Copy aria-hidden="true" size={15} />
+                  </IconButton>
+                  <IconButton
+                    disabled={lineItems.length === 1}
+                    label="Remove line item"
+                    onClick={() => {
+                      setLineItems((items) => items.filter((candidate) => candidate.id !== item.id));
+                      markDirty();
+                    }}
+                  >
+                    <Trash2 aria-hidden="true" size={15} />
+                  </IconButton>
+                </div>
+              </div>
+
+              <label>
+                Title
+                <input name="line_item_id" type="hidden" value={item.persistedId ?? ""} />
+                <input name="line_item_client_id" type="hidden" value={item.id} />
+                <input
+                  name="line_item_name"
+                  onChange={(event) => updateLineItem(item.id, { name: event.target.value }, setLineItems)}
+                  placeholder="Tree removal, canopy raising, stump grinding"
+                  value={item.name}
+                />
+              </label>
+              <div className="quote-description-heading">
+                <label htmlFor={`line-item-description-${item.id}`}>Description / scope</label>
+                <button
+                  className="quote-indent-button"
+                  onClick={() => {
+                    indentLineItemDescription(item.id, setLineItems);
+                    markDirty();
+                  }}
+                  type="button"
+                >
+                  <IndentIncrease aria-hidden="true" size={15} />
+                  Indent line
+                </button>
+              </div>
+              <textarea
+                id={`line-item-description-${item.id}`}
+                name="line_item_description"
+                onChange={(event) => updateLineItem(item.id, { description: event.target.value }, setLineItems)}
+                placeholder={"Describe the work included in this line item. Use Shift+Enter for a new line.\n- Remove deadwood over driveway\n  - Haul away debris\n  - Leave logs stacked by fence"}
+                rows={7}
+                value={item.description}
+              />
+              <label>
+                Service category
+                <select
+                  name="line_item_service_category_id"
+                  onChange={(event) => updateLineItem(item.id, { serviceCategoryId: event.target.value }, setLineItems)}
+                  value={item.serviceCategoryId}
+                >
+                  <option value="">Uncategorized</option>
+                  {serviceCategories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+                </select>
+              </label>
+              <label>
+                Linked material (internal planning)
+                <select
+                  name="line_item_material_id"
+                  onChange={(event) => updateLineItem(item.id, { materialId: event.target.value }, setLineItems)}
+                  value={item.materialId}
+                >
+                  <option value="">No inventory item</option>
+                  {materials.map((material) => <option key={material.id} value={material.id}>{material.name} ({material.default_unit.replaceAll("_", " ")})</option>)}
+                </select>
+              </label>
+              <div className="quote-line-money-grid">
+                <label>
+                  Quantity
+                  <input
+                    inputMode="decimal"
+                    name="line_item_quantity"
+                    onChange={(event) => updateLineItem(item.id, { quantity: event.target.value }, setLineItems)}
+                    value={item.quantity}
+                  />
+                </label>
+                <label>
+                  Unit price
+                  <input
+                    inputMode="decimal"
+                    name="line_item_unit_price"
+                    onChange={(event) => updateLineItem(item.id, { unitPrice: event.target.value }, setLineItems)}
+                    placeholder="0.00"
+                    value={item.unitPrice}
+                  />
+                </label>
+                <div className="quote-line-total" aria-label={`Line ${index + 1} total`}>
+                  <span>Amount</span>
+                  <strong>{formatCurrency(getLineItemTotalCents(item))}</strong>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <dl className="quote-editor-totals" aria-label="Quote totals">
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{formatCurrency(subtotalCents)}</dd>
+          </div>
+          <div>
+            <dt>Total</dt>
+            <dd>{formatCurrency(subtotalCents)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div className="quote-editor-action-bar">
+        <div>
+          <button
+            disabled={pending || recovery.blocked || customers.length === 0}
+            name="submit_intent"
+            type="submit"
+            value="save"
+          >
+            <Save aria-hidden="true" size={17} />
+            {pending ? "Saving..." : isEditing ? "Save changes" : "Save draft"}
+          </button>
+          <button
+            className="secondary-action"
+            disabled={pending || recovery.blocked || customers.length === 0}
+            name="submit_intent"
+            type="submit"
+            value="save_close"
+          >
+            {pending ? "Saving..." : isEditing ? "Save and close" : "Save draft and close"}
+          </button>
+        </div>
+        <Link
+          className="secondary-action"
+          href={closeHref}
+          onClick={(event) => { if (pending) event.preventDefault(); else confirmClose(event, dirty); }}
+        >
+          <X aria-hidden="true" size={17} />
+          Close
+        </Link>
+      </div>
+      </fieldset>
+    </form>
+  );
+}
+
+function LeadRequestContext({ prefill }: { prefill: QuoteLeadPrefill }) {
+  return (
+    <aside className="quote-lead-context" aria-labelledby="quote-lead-context-title">
+      <div className="quote-lead-context-header">
+        <p className="surface-label">{prefill.sourceLabel}</p>
+        <h3 id="quote-lead-context-title">Creating quote for {prefill.partyName}</h3>
+        <p>{prefill.serviceLocation}</p>
+      </div>
+      <dl className="quote-lead-context-grid">
+        <div>
+          <dt>Phone</dt>
+          <dd>{prefill.phone || "Not provided"}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{prefill.email || "Not provided"}</dd>
+        </div>
+        <div>
+          <dt>Requested service</dt>
+          <dd>{prefill.requestedService}</dd>
+        </div>
+      </dl>
+      <div className="quote-lead-project-details">
+        <strong>Customer-submitted project details</strong>
+        <p>{prefill.projectDetails || "No project details were provided."}</p>
+      </div>
+      {prefill.propertyNotes ? (
+        <div className="quote-lead-project-details">
+          <strong>Property and access notes</strong>
+          <p>{prefill.propertyNotes}</p>
+        </div>
+      ) : null}
+      <p className="quote-lead-context-note">Use this request as reference. Write the proposed scope in the line items below.</p>
+    </aside>
+  );
+}
+
+function confirmClose(event: MouseEvent<HTMLAnchorElement>, dirty: boolean) {
+  if (dirty && !window.confirm("Close without saving your changes?")) {
+    event.preventDefault();
+  }
+}
+
+function IconButton({
+  children,
+  disabled,
+  label,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button aria-label={label} disabled={disabled} onClick={onClick} title={label} type="button">
+      {children}
+    </button>
+  );
+}
+
+function updateLineItem(
+  id: string,
+  patch: Partial<Omit<LineItemDraft, "id">>,
+  setLineItems: Dispatch<SetStateAction<LineItemDraft[]>>,
+) {
+  setLineItems((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+}
+
+function duplicateLineItem(index: number, setLineItems: Dispatch<SetStateAction<LineItemDraft[]>>) {
+  setLineItems((items) => [
+    ...items.slice(0, index + 1),
+    { ...items[index], id: initialLineItem().id },
+    ...items.slice(index + 1),
+  ]);
+}
+
+function moveLineItem(
+  fromIndex: number,
+  toIndex: number,
+  setLineItems: Dispatch<SetStateAction<LineItemDraft[]>>,
+) {
+  setLineItems((items) => {
+    if (toIndex < 0 || toIndex >= items.length) {
+      return items;
+    }
+
+    const next = [...items];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    return next;
+  });
+}
+
+function indentLineItemDescription(
+  id: string,
+  setLineItems: Dispatch<SetStateAction<LineItemDraft[]>>,
+) {
+  setLineItems((items) =>
+    items.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
+
+      const prefix = item.description && !item.description.endsWith("\n") ? "\n" : "";
+      return { ...item, description: `${item.description}${prefix}  ` };
+    }),
+  );
+}
+
+function getLineItemTotalCents(item: LineItemDraft) {
+  const quantity = Number.parseFloat(item.quantity || "0");
+  const unitPrice = Number.parseFloat(item.unitPrice || "0");
+
+  if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(quantity * unitPrice * 100));
+}
+
+function formatLocation(location: Pick<ServiceLocation, "label" | "street" | "city" | "state" | "postal_code">) {
+  return [
+    location.label,
+    [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", "),
+  ].filter(Boolean).join(" - ");
+}
+
+function formatDateTime(value: string) {
+  return formatBusinessDateTime(new Date(value), {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function toDateInputValue(value?: string | null) {
+  return value ? value.slice(0, 10) : "";
+}

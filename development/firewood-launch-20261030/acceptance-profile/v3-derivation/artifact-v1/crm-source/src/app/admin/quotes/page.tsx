@@ -1,0 +1,373 @@
+import { safeReturnTo, withReturnTo } from "@/lib/drafts/return-context";
+import { FileSignature, Link2, Plus, ReceiptText, X } from "lucide-react";
+import Link from "next/link";
+import { DuplicateRecordButton } from "@/components/duplicate-record-button";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
+import { PortalViewStatus } from "@/components/portal-engagement";
+import { QuoteListEmailToolbar } from "@/components/quote-list-email-toolbar";
+import { PlatformFrame } from "@/components/PlatformFrame";
+import { SetupRequired } from "@/components/SetupRequired";
+import { AddQuoteForm } from "./QuoteForm";
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { formatBusinessDateTime } from "@/lib/business-time";
+import { duplicateQuote } from "@/lib/actions/duplicate-records";
+import { getCustomerOptions, getServiceLocations } from "@/lib/data/customers";
+import { getJobOptions, getQuoteLeadSource } from "@/lib/data/jobs";
+import { getActiveOrganizationContacts, getOrganizations } from "@/lib/data/organizations";
+import { getQuoteStatusCounts, getQuotesPage } from "@/lib/data/quotes";
+import { getServiceCategories } from "@/lib/data/reports";
+import { getMaterialCatalogOptions, type MaterialRecord } from "@/lib/data/materials";
+import { getEstimateScheduleEventOptions, type EstimateScheduleEventOption } from "@/lib/data/schedule";
+import { buildQuoteLeadPrefill, type QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
+import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
+import type { Customer, Job, Organization, OrganizationContact, QuoteStatus, QuoteWithRelations, ServiceCategory, ServiceLocation } from "@/lib/types/database";
+
+type QuotesPageProps = {
+  searchParams: Promise<{
+    customer_id?: string;
+    job_id?: string;
+    new?: string;
+    returnTo?: string;
+    archived?: string;
+    page?: string;
+    q?: string;
+    status?: string;
+  }>;
+};
+
+type QuoteSummaryKey = "draft" | "awaiting" | "approved" | "change_requested" | "expired";
+const quoteListEmailFormId = "quote-list-combined-email";
+
+const summaryOrder: { key: QuoteSummaryKey; label: string }[] = [
+  { key: "draft", label: "Draft" },
+  { key: "awaiting", label: "Sent / awaiting response" },
+  { key: "approved", label: "Accepted" },
+  { key: "change_requested", label: "Change requested" },
+  { key: "expired", label: "Expired / declined" },
+];
+
+export default async function QuotesPage({ searchParams }: QuotesPageProps) {
+  const params = await searchParams;
+  const context = await getAuthenticatedPlatformContext("/admin/quotes");
+
+  if (!context.configured) {
+    return <SetupRequired title="Configure Supabase before opening quotes" />;
+  }
+
+  const archived = params.archived === "1";
+  const page = positivePage(params.page);
+  const selectedStatus = summaryOrder.some((item) => item.key === params.status) ? params.status as QuoteSummaryKey : null;
+  const statuses = selectedStatus === "awaiting" ? ["sent", "change_requested"] : selectedStatus === "expired" ? ["expired", "declined"] : selectedStatus ? [selectedStatus] : undefined;
+  const [quotes, statusCounts, customers, organizations, organizationContacts, serviceLocations, jobs, estimateScheduleEvents, serviceCategories, materials, quoteLeadSource] = await Promise.all([
+    getQuotesPage({ archived, page, pageSize: 25, query: params.q, statuses }),
+    getQuoteStatusCounts(params.q),
+    getCustomerOptions(),
+    getOrganizations(),
+    getActiveOrganizationContacts(),
+    getServiceLocations(),
+    getJobOptions(),
+    getEstimateScheduleEventOptions(),
+    getServiceCategories(),
+    getMaterialCatalogOptions(),
+    getQuoteLeadSource(params.new === "1" ? params.job_id : undefined),
+  ]);
+  const summary = statusCounts.data;
+  const listContext = safeReturnTo(listHref("/admin/quotes", params, { new: undefined }), "/admin/quotes");
+  const returnTo = safeReturnTo(params.returnTo, listContext);
+  const quoteLeadPrefill = quoteLeadSource.data ? buildQuoteLeadPrefill(quoteLeadSource.data) : null;
+  const quoteLeadWarning = quoteLeadSource.error
+    ?? (params.new === "1" && params.job_id && !quoteLeadPrefill
+      ? "The selected lead could not be loaded or you do not have access."
+      : null);
+
+  return (
+    <PlatformFrame active="quotes" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content commerce-page">
+        <section className="page-heading commerce-heading">
+          <div>
+            <p className="surface-label">
+              <FileSignature aria-hidden="true" size={18} />
+              Quotes
+            </p>
+            <h1>Quotes</h1>
+            <p>Build, send, follow up, and convert estimates.</p>
+          </div>
+          <Link className="primary-action" href={withReturnTo("/admin/quotes?new=1", listContext, "/admin/quotes")}>
+            <Plus aria-hidden="true" size={18} />
+            New quote
+          </Link>
+        </section>
+
+        {[quotes.error, statusCounts.error, customers.error, organizations.error, organizationContacts.error, serviceLocations.error, jobs.error, estimateScheduleEvents.error, serviceCategories.error, materials.error]
+          .filter(Boolean)
+          .map((message) => (
+            <DataWarning key={message} message={message ?? ""} />
+          ))}
+
+        <section className="list-toolbar" aria-label="Quote search and views">
+          <ListSearch initialValue={params.q} label="Search quotes" placeholder="Search quote, customer, phone, address, status, amount, or job" />
+          <nav className="list-view-toggle" aria-label="Quote record state">
+            <Link aria-current={!archived && params.q !== "test" ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: undefined, q: params.q === "test" ? undefined : params.q, page: undefined })}>Active</Link>
+            <Link aria-current={archived ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: "1", page: undefined })}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!archived && params.q === "test" ? "page" : undefined} href={listHref("/admin/quotes", params, { archived: undefined, q: "test", page: undefined, status: undefined })}>Test review</Link> : null}
+          </nav>
+        </section>
+
+        {!archived ? <section className="commerce-summary-strip" aria-label="Quote workflow summary">
+          {summaryOrder.map((item) => (
+            <SummaryChip active={selectedStatus === item.key} href={listHref("/admin/quotes", params, { status: item.key, page: undefined })} key={item.key} label={item.label} value={summary[item.key]} />
+          ))}
+        </section> : null}
+
+        {quotes.data.length === 0 ? (
+          <EmptyState title={params.q ? "No matching quotes" : archived ? "No archived quotes" : selectedStatus ? `No ${selectedStatus.replaceAll("_", " ")} quotes` : "No quotes yet"} body={params.q ? "Try another quote number, customer, phone, address, amount, or job reference." : archived ? "Archived quotes will appear here." : selectedStatus ? "Choose another workflow status to continue." : "Create the first draft quote from a customer and service location."} />
+        ) : (
+          <>
+          {!archived ? <QuoteListEmailToolbar /> : null}
+          <section className="commerce-table-shell" aria-label="Quotes">
+            <div className="commerce-table-header quote-grid" aria-hidden="true">
+              <span>Quote</span>
+              <span>Customer / job</span>
+              <span>Status</span>
+              <span>Total</span>
+              <span>Dates</span>
+              <span>Actions</span>
+            </div>
+            <div className="commerce-row-list">
+              {quotes.data.map((quote) => (
+                <article className="commerce-row quote-grid" key={quote.id}>
+                  <div className="commerce-record-title">
+                    <div className="quote-list-select-title">
+                      <input
+                        aria-label={`Select ${getQuoteDisplayLabel(quote)} for combined email`}
+                        disabled={Boolean(getMultiQuoteEmailIneligibility(quote))}
+                        form={quoteListEmailFormId}
+                        name="quote_id"
+                        title={getMultiQuoteEmailIneligibility(quote) ?? "Select for combined email"}
+                        type="checkbox"
+                        value={quote.id}
+                      />
+                      <span>
+                        <Link href={withReturnTo(`/admin/quotes/${quote.id}`, listContext, "/admin/quotes")}>{getQuoteDisplayLabel(quote)}</Link>
+                        <small>{quote.quote_line_items?.length ?? 0} line items</small>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="commerce-cell">
+                    <strong>{quote.organizations?.name ?? quote.customers?.display_name ?? "Unknown contracting party"}</strong>
+                    <span>{formatServiceType(quote.jobs?.service_type) || formatLocation(quote.service_locations) || "Proposed work"}</span>
+                  </div>
+                  <div className="commerce-cell">
+                    <span className={`status-pill quote-status ${quote.status}`}>
+                      {formatQuoteStatus(quote.status)}
+                    </span>
+                  </div>
+                  <div className="commerce-money">{formatCurrency(quote.total_cents)}</div>
+                  <div className="commerce-cell">
+                    <span>Created {formatDate(quote.created_at)}</span>
+                    <span>Expires {formatDate(quote.expires_at)}</span>
+                    <PortalViewStatus engagement={quote} />
+                  </div>
+                  <div className="commerce-actions">
+                    <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${quote.id}`, listContext, "/admin/quotes")}>
+                      Open
+                    </Link>
+                    <DuplicateRecordButton
+                      action={duplicateQuote}
+                      hiddenFieldName="quote_id"
+                      hiddenFieldValue={quote.id}
+                      label="Duplicate"
+                      pendingLabel="Copying..."
+                    />
+                    <Link className="secondary-action" href={withReturnTo(`/admin/quotes/${quote.id}#portal-link`, listContext)}>
+                      <Link2 aria-hidden="true" size={16} />
+                      Portal
+                    </Link>
+                    {quote.status === "approved" && quote.jobs ? (
+                      <Link className="secondary-action" href={`/admin/jobs/${quote.jobs.id}`}>
+                        Work order
+                      </Link>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+          </>
+        )}
+
+        <ListPagination basePath="/admin/quotes" count={quotes.count} page={page} pageSize={25} params={{ archived: archived ? "1" : undefined, q: params.q, status: selectedStatus ?? undefined }} />
+
+        {params.new === "1" ? (
+          <QuoteCreateDrawer
+            userId={context.user.id}
+            returnTo={returnTo}
+            customers={customers.data}
+            defaultCustomerId={params.customer_id}
+            estimateScheduleEvents={estimateScheduleEvents.data}
+            jobs={jobs.data}
+            materials={materials.data}
+            organizations={organizations.data}
+            organizationContacts={organizationContacts.data}
+            prefill={quoteLeadPrefill}
+            serviceCategories={serviceCategories.data}
+            serviceLocations={serviceLocations.data}
+            sourceWarning={quoteLeadWarning}
+          />
+        ) : null}
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function QuoteCreateDrawer({
+  userId, returnTo,
+  customers,
+  defaultCustomerId,
+  estimateScheduleEvents,
+  jobs,
+  materials,
+  organizations,
+  organizationContacts,
+  prefill,
+  serviceCategories,
+  serviceLocations,
+  sourceWarning,
+}: {
+  userId: string; returnTo: string;
+  customers: Pick<Customer, "id" | "display_name">[];
+  defaultCustomerId?: string;
+  estimateScheduleEvents: EstimateScheduleEventOption[];
+  jobs: Pick<Job, "id" | "status" | "service_type" | "customer_id" | "organization_id" | "service_location_id">[];
+  materials: MaterialRecord[];
+  organizations: Pick<Organization, "id" | "name">[];
+  organizationContacts: Pick<OrganizationContact, "id" | "organization_id" | "full_name" | "contact_roles" | "email">[];
+  prefill: QuoteLeadPrefill | null;
+  serviceCategories: ServiceCategory[];
+  serviceLocations: Pick<ServiceLocation, "id" | "customer_id" | "organization_id" | "label" | "street" | "city" | "state" | "postal_code">[];
+  sourceWarning: string | null;
+}) {
+  const closeHref = prefill || sourceWarning ? "/admin/communications#website-leads" : returnTo;
+
+  return (
+    <div aria-labelledby="new-quote-title" className="commerce-drawer-overlay" role="dialog">
+      <Link aria-label="Close new quote panel" className="commerce-drawer-backdrop" href={closeHref} />
+      <aside className="commerce-drawer">
+        <div className="commerce-drawer-header">
+          <div>
+            <p className="surface-label">
+              <ReceiptText aria-hidden="true" size={18} />
+              Quote builder
+            </p>
+            <h2 id="new-quote-title">New quote</h2>
+            <p>{prefill ? `Continue the lead for ${prefill.partyName}.` : "Start a draft proposal from the customer, service location, and proposed work."}</p>
+          </div>
+          <Link aria-label="Close new quote panel" className="secondary-action icon-action" href={closeHref}>
+            <X aria-hidden="true" size={18} />
+          </Link>
+        </div>
+        {sourceWarning ? (
+          <DataWarning message={sourceWarning} />
+        ) : (
+          <AddQuoteForm
+            key={`${userId}:${defaultCustomerId ?? ""}:${prefill?.sourceJobId ?? ""}`}
+            userId={userId}
+            returnTo={closeHref}
+            createCloseHref={closeHref}
+            customers={customers}
+            defaultCustomerId={defaultCustomerId}
+            estimateScheduleEvents={estimateScheduleEvents}
+            jobs={jobs}
+            leadPrefill={prefill}
+            materials={materials}
+            organizations={organizations}
+            organizationContacts={organizationContacts}
+            serviceCategories={serviceCategories}
+            serviceLocations={serviceLocations}
+          />
+        )}
+        <Link className="secondary-action commerce-cancel-link" href={closeHref}>
+          Cancel
+        </Link>
+      </aside>
+    </div>
+  );
+}
+
+function SummaryChip({ active, href, label, value }: { active: boolean; href: string; label: string; value: number }) {
+  return (
+    <Link aria-current={active ? "page" : undefined} className="commerce-summary-chip" href={href}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </Link>
+  );
+}
+
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function listHref(basePath: string, current: Record<string, string | undefined>, updates: Record<string, string | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(current).forEach(([key, value]) => { if (value && key !== "new") query.set(key, value); });
+  Object.entries(updates).forEach(([key, value]) => value ? query.set(key, value) : query.delete(key));
+  const value = query.toString();
+  return value ? `${basePath}?${value}` : basePath;
+}
+
+function formatQuoteStatus(status: QuoteStatus) {
+  return status === "approved" ? "accepted" : status.replace("_", " ");
+}
+
+function formatServiceType(serviceType?: string | null) {
+  return serviceType ? serviceType.replace("_", " ") : "";
+}
+
+function formatLocation(location?: QuoteWithRelations["service_locations"]) {
+  if (!location) {
+    return "";
+  }
+
+  return [location.street, location.city, location.state].filter(Boolean).join(", ");
+}
+
+function formatDate(value?: string | null) {
+  return value ? formatBusinessDateTime(value, { dateStyle: "medium" }) : "not set";
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <section className="empty-state commerce-empty-state">
+      <h2>{title}</h2>
+      <p>{body}</p>
+      <Link className="primary-action" href="/admin/quotes?new=1">
+        <Plus aria-hidden="true" size={18} />
+        New quote
+      </Link>
+    </section>
+  );
+}
+
+function DataWarning({ message }: { message: string }) {
+  return (
+    <section className="data-warning" role="status">
+      <strong>Database notice</strong>
+      <p>{message}</p>
+    </section>
+  );
+}
+
+function getQuoteDisplayLabel(quote: QuoteWithRelations) {
+  if (quote.quote_number) return quote.quote_number;
+  const party = quote.organizations?.name ?? quote.customers?.display_name;
+  return party ? `Quote for ${party}` : "Untitled quote";
+}

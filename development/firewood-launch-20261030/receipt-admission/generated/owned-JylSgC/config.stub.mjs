@@ -1,0 +1,1 @@
+export function getEmailProviderConfig(){return {apiKey:"synthetic_unit_key_not_real",from:"ATS <test@fixture.invalid>",replyTo:"office@fixture.invalid"};}export function getEmailSetupState(){return {configured:true,from:"ATS <test@fixture.invalid>",replyTo:"office@fixture.invalid"};}

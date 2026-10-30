@@ -1,0 +1,172 @@
+import type { JobStatus } from "@/lib/types/database";
+
+export type LeadEstimatePrefill = {
+  accessNotes: string;
+  assignedUserId: string;
+  calendarNotes: string;
+  city: string;
+  contactName: string;
+  email: string;
+  eventId: string | null;
+  expectedRevision: number | null;
+  eventTitle: string;
+  existingStartsAt: string;
+  internalNotes: string;
+  leadJobId: string;
+  leadSource: string;
+  organizationName: string;
+  partyType: "customer" | "organization";
+  phone: string;
+  postalCode: string;
+  preferredContactMethod: string;
+  preferredTiming: string;
+  requestedScope: string;
+  serviceNotes: string;
+  serviceType: string;
+  state: string;
+  status: JobStatus;
+  street: string;
+  submittedAt: string;
+};
+
+export type LeadEstimateSourceRecord = {
+  id: string;
+  status: JobStatus;
+  service_type: string | null;
+  requested_scope: string | null;
+  internal_notes: string | null;
+  preferred_contact_method: string | null;
+  preferred_appointment_timing: string | null;
+  source_detail: string | null;
+  submitted_at: string;
+  customers?: {
+    display_name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  organizations?: {
+    name: string;
+    billing_email: string | null;
+    billing_phone: string | null;
+  } | null;
+  onsite_contact?: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  property_contact?: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  service_locations?: {
+    street: string;
+    city: string;
+    state: string;
+    postal_code: string | null;
+    access_notes: string | null;
+    service_notes: string | null;
+  } | null;
+  lead_sources?: { name: string } | null;
+  lead_estimate?: {
+    id: string;
+    edit_revision?: number;
+    title: string;
+    starts_at: string;
+    calendar_notes: string | null;
+    schedule_event_assignments?: { employee_id: string | null; user_id: string | null }[];
+  }[] | null;
+};
+
+export function buildLeadEstimatePrefill(record: LeadEstimateSourceRecord): LeadEstimatePrefill {
+  const customer = record.customers ?? null;
+  const organization = record.organizations ?? null;
+  const organizationContact = record.onsite_contact ?? record.property_contact ?? null;
+  const event = record.lead_estimate?.[0] ?? null;
+  const contactName = customer?.display_name
+    || organizationContact?.full_name
+    || organization?.name
+    || "Website lead";
+  const phone = customer?.phone
+    || organizationContact?.phone
+    || organization?.billing_phone
+    || "";
+  const email = customer?.email
+    || organizationContact?.email
+    || organization?.billing_email
+    || "";
+  const location = record.service_locations;
+
+  return {
+    accessNotes: location?.access_notes ?? "",
+    assignedUserId: event?.schedule_event_assignments?.[0]?.employee_id ?? "",
+    calendarNotes: event?.calendar_notes ?? buildCalendarNotes({
+      accessNotes: location?.access_notes,
+      preferredTiming: record.preferred_appointment_timing,
+      serviceNotes: location?.service_notes,
+    }),
+    city: location?.city ?? "",
+    contactName,
+    email,
+    eventId: event?.id ?? null,
+    expectedRevision: event?.edit_revision ?? null,
+    eventTitle: event?.title ?? `Estimate - ${organization?.name || contactName}`,
+    existingStartsAt: event?.starts_at ?? "",
+    internalNotes: record.internal_notes ?? "",
+    leadJobId: record.id,
+    leadSource: record.lead_sources?.name || record.source_detail || "Website",
+    organizationName: organization?.name ?? "",
+    partyType: organization ? "organization" : "customer",
+    phone,
+    postalCode: location?.postal_code ?? "",
+    preferredContactMethod: record.preferred_contact_method ?? "",
+    preferredTiming: record.preferred_appointment_timing ?? "",
+    requestedScope: record.requested_scope ?? "",
+    serviceNotes: location?.service_notes ?? "",
+    serviceType: record.service_type ?? "other",
+    state: location?.state ?? "VA",
+    status: record.status,
+    street: location?.street ?? "",
+    submittedAt: record.submitted_at,
+  };
+}
+
+export function defaultEstimateStart(existingStartsAt: string, drawerDefault: string) {
+  return existingStartsAt ? toEasternDateTimeLocal(existingStartsAt) : drawerDefault;
+}
+
+function toEasternDateTimeLocal(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "America/New_York",
+    year: "numeric",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+export function isLeadEstimateSchedulable(status: JobStatus) {
+  return status === "new_lead" || status === "estimate_scheduled";
+}
+
+function buildCalendarNotes({
+  accessNotes,
+  preferredTiming,
+  serviceNotes,
+}: {
+  accessNotes?: string | null;
+  preferredTiming?: string | null;
+  serviceNotes?: string | null;
+}) {
+  return [
+    preferredTiming ? `Customer preferred timing: ${preferredTiming}` : "",
+    accessNotes ? `Access: ${accessNotes}` : "",
+    serviceNotes ? `Property notes: ${serviceNotes}` : "",
+  ].filter(Boolean).join("\n");
+}

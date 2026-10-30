@@ -1,0 +1,276 @@
+import { formatBusinessDateTime } from "@/lib/business-time";
+import Link from "next/link";
+import { Suspense } from "react";
+import { NextActionsPanel } from "@/components/NextActionsPanel";
+import type { ReactNode } from "react";
+import { Activity, Building2, CalendarClock, CircleDollarSign, ClipboardList, FilePlus2, FileSignature, MailCheck, MapPin, Pencil, ReceiptText, Sprout, UsersRound, Workflow } from "lucide-react";
+import { AddOrganizationContactForm, AddOrganizationPropertyForm } from "../OrganizationForms";
+import { CommunicationHistoryList } from "@/components/communication-history";
+import { EmailHistoryList } from "@/components/email-history";
+import { MultiQuoteEmailSelection } from "@/components/multi-quote-email-selection";
+import { PlatformFrame } from "@/components/PlatformFrame";
+import { RecordLifecyclePanel } from "@/components/record-lifecycle-panel";
+import { SetupRequired } from "@/components/SetupRequired";
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getRecordLifecyclePreview } from "@/lib/actions/record-lifecycle";
+import { getOrganizationDetail } from "@/lib/data/organizations";
+import { getCustomerCommunications } from "@/lib/data/communications";
+import { getEmailEvents } from "@/lib/data/email-events";
+import { formatInvoiceStatus } from "@/lib/invoices/status";
+import { getRecurringSummaryForOrganization } from "@/lib/data/recurring";
+import { formatCustomerFacingAddress } from "@/lib/documents/email-drafts";
+import { getMultiQuoteEmailIneligibility } from "@/lib/quotes/multi-email";
+
+type OrganizationDetailPageProps = {
+  params: Promise<{
+    organizationId: string;
+  }>;
+  searchParams: Promise<{
+    updated?: string;
+  }>;
+};
+
+export default async function OrganizationDetailPage({ params, searchParams }: OrganizationDetailPageProps) {
+  const { organizationId } = await params;
+  const query = await searchParams;
+  const context = await getAuthenticatedPlatformContext(`/admin/organizations/${organizationId}`);
+
+  if (!context.configured) {
+    return <SetupRequired title="Configure Supabase before opening organization details" />;
+  }
+
+  const [detail, recurring] = await Promise.all([getOrganizationDetail(organizationId), getRecurringSummaryForOrganization(organizationId)]);
+  const org = detail.data;
+  const emailEvents = org ? await getEmailEvents({ organizationId, limit: 15 }) : { data: [], error: null };
+  const communications = org ? await getCustomerCommunications({ organizationId, limit: 25 }) : { data: [], error: null };
+  const canArchive = hasAllowedRole(context.roles, platformRoleGroups.accessApproval);
+  const lifecyclePreview = org && canArchive ? await getRecordLifecyclePreview("organization", organizationId) : null;
+
+  return (
+    <PlatformFrame active="organizations" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content">
+        <Link className="crew-back-link" href="/admin/organizations">
+          Back to organizations
+        </Link>
+        {detail.error ? <Warning message={detail.error} /> : null}
+        {emailEvents.error ? <Warning message={emailEvents.error} /> : null}
+        {communications.error ? <Warning message={`Customer reminders: ${communications.error}`} /> : null}
+        {recurring.error ? <Warning message={`Recurring services: ${recurring.error}`} /> : null}
+        {query.updated === "1" ? <SuccessNotice message="Organization changes saved." /> : null}
+        {!org ? (
+          <section className="empty-state">
+            <h2>Organization not found or no access</h2>
+          </section>
+        ) : (
+          <>
+            <section className="page-heading">
+              <div>
+                <p className="surface-label">
+                  <Building2 aria-hidden="true" size={18} />
+                  Organization file
+                </p>
+                <h1>{org.organization.name}</h1>
+                <p>{org.organization.organization_type.replace("_", " ")} account with repeat-property workflow scaffolding.</p>
+              </div>
+              <div className="page-heading-actions">
+                <Link className="secondary-action" href={`/admin/schedule?new=1&organization=${org.organization.id}`}>
+                  Schedule estimate
+                </Link>
+                <Link className="primary-action" href={`/admin/organizations/${org.organization.id}/edit`}>
+                  <Pencil aria-hidden="true" size={17} />
+                  Edit
+                </Link>
+              </div>
+            </section>
+            {org.organization.archived_at ? <section className="data-warning" role="status"><strong>Archived organization</strong><p>This account is retained for history and is unavailable for new work until restored.</p></section> : null}
+
+            <Suspense fallback={<p role="status">Loading next actions...</p>}><NextActionsPanel subject="organization_id" id={organizationId} /></Suspense>
+
+            <section className="detail-grid">
+              <Panel icon={<Building2 size={18} />} title="Billing">
+                <p>{org.organization.billing_email || "No billing email"}</p>
+                <p>{org.organization.billing_phone || "No billing phone"}</p>
+                <p>{org.organization.billing_address || "No billing address"}</p>
+                <p>Updated {formatDateTime(org.organization.updated_at)}</p>
+              </Panel>
+
+              <Panel icon={<UsersRound size={18} />} title="Contacts">
+                {org.contacts.length ? (
+                  org.contacts.map((contact) => (
+                    <article className="linked-record" key={contact.id}>
+                      <strong>{contact.full_name}</strong>
+                      <span>{contact.contact_roles?.length ? contact.contact_roles.map((role) => role.replaceAll("_", " ")).join(", ") : contact.role_title || "Contact"} - {contact.email || contact.phone || "No contact details"}</span>
+                      <span>{contact.receives_invoices ? "Invoices" : "No invoices"} - {contact.receives_job_updates ? "Job updates" : "No job updates"}</span>
+                      {!contact.is_active ? <span className="status-pill attention">Inactive</span> : null}
+                    </article>
+                  ))
+                ) : (
+                  <p>No organization contacts yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<MapPin size={18} />} title="Properties">
+                {org.serviceLocations.length ? (
+                  org.serviceLocations.map((location) => (
+                    <article className="linked-record" key={location.id}>
+                      <strong>{location.label || "Property"}</strong>
+                      <span>{location.street}, {location.city}, {location.state}</span>
+                    </article>
+                  ))
+                ) : (
+                  <p>No linked properties yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<UsersRound size={18} />} title="Linked customers">
+                {org.customers.length ? (
+                  org.customers.map((customer) => (
+                    <Link className="linked-record" href={`/admin/customers/${customer.id}`} key={customer.id}>
+                      <strong>{customer.display_name}</strong>
+                      <span>{customer.customer_type.replace("_", " ")}</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No linked customers yet. Link customers from the customer edit page.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<Workflow size={18} />} title="Jobs">
+                {org.jobs.length ? (
+                  org.jobs.map((job) => (
+                    <Link className="linked-record" href={`/admin/jobs/${job.id}`} key={job.id}>
+                      <strong>{job.service_type?.replace("_", " ") || "Job"}</strong>
+                      <span>{job.status.replace("_", " ")}</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No organization jobs yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<CalendarClock size={18} />} title="Estimate appointments">
+                {org.scheduleEvents.length ? org.scheduleEvents.map((event) => (
+                  <Link className="linked-record" href={`/admin/schedule?event=${event.id}`} key={event.id}>
+                    <strong>{event.title}</strong>
+                    <span>{formatDateTime(event.starts_at)} - {event.status.replaceAll("_", " ")}</span>
+                  </Link>
+                )) : <p>No estimates scheduled directly from this organization record.</p>}
+              </Panel>
+
+              <Panel icon={<FileSignature size={18} />} title="Quotes">
+                {org.quotes.length ? (
+                  <MultiQuoteEmailSelection quotes={org.quotes.map((quote) => {
+                    const ineligibility = getMultiQuoteEmailIneligibility(quote);
+                    return {
+                      id: quote.id,
+                      label: quote.quote_number ? `Quote ${quote.quote_number}` : "Quote",
+                      locationLabel: formatCustomerFacingAddress(quote.service_locations) || "Service location not set",
+                      statusLabel: quote.status.replaceAll("_", " "),
+                      totalLabel: money(quote.total_cents),
+                      eligible: !ineligibility,
+                      ineligibleReason: ineligibility ?? undefined,
+                    };
+                  })} />
+                ) : (
+                  <p>No organization quotes yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<ReceiptText size={18} />} title="Invoices">
+                <article className="linked-record"><strong>{money(org.outstandingBalanceCents)}</strong><span>Outstanding organization balance</span></article>
+                {org.invoices.length ? (
+                  org.invoices.map((invoice) => (
+                    <Link className="linked-record" href={`/admin/invoices/${invoice.id}`} key={invoice.id}>
+                      <strong>{invoice.invoice_number || "Invoice"}</strong>
+                      <span>{formatInvoiceStatus(invoice.status)} - {money(invoice.balance_due_cents)} due</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>No organization invoices yet.</p>
+                )}
+              </Panel>
+
+              <Panel icon={<CircleDollarSign size={18} />} title="Payments">
+                {org.payments.length ? org.payments.map((payment) => <Link className="linked-record" href={`/admin/invoices/${payment.invoice_id}`} key={payment.id}><strong>{money(payment.amount_cents)}</strong><span>{payment.status.replaceAll("_", " ")} - {formatDateTime(payment.paid_at ?? payment.created_at)}</span></Link>) : <p>No organization payments yet.</p>}
+              </Panel>
+
+              <Panel icon={<FilePlus2 size={18} />} title="Change orders">
+                {org.changeOrders.length ? org.changeOrders.map((order) => <Link className="linked-record" href={`/admin/change-orders/${order.id}`} key={order.id}><strong>{order.change_order_number} - {order.title}</strong><span>{order.status.replaceAll("_", " ")} - {money(order.total_cents)}</span></Link>) : <p>No organization change orders yet.</p>}
+                <Link className="secondary-action compact-action" href="/admin/change-orders?new=1">Create change order</Link>
+              </Panel>
+
+              <Panel icon={<MailCheck size={18} />} title="Communication history">
+                <EmailHistoryList events={emailEvents.data} />
+                <CommunicationHistoryList communications={communications.data} />
+              </Panel>
+
+              <Panel icon={<ClipboardList size={18} />} title="Open follow-ups">
+                {recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).length ? recurring.tasks.filter((task) => !["completed", "cancelled"].includes(task.status)).map((task) => <Link className="linked-record" href="/admin/recurring" key={task.id}><strong>{task.title}</strong><span>{task.service_locations?.label || task.service_locations?.street || "Organization-wide"} - due {formatDateTime(task.due_at)}</span></Link>) : <p>No open follow-ups.</p>}
+              </Panel>
+
+              <Panel icon={<Sprout size={18} />} title="Recurring property portfolio">
+                {recurring.plans.length ? recurring.plans.map((plan) => <Link className="linked-record" href={`/admin/recurring/${plan.id}`} key={plan.id}><strong>{plan.plan_name}</strong><span>{plan.state} - {plan.recurring_plan_locations?.length ?? 0} selected propert{plan.recurring_plan_locations?.length === 1 ? "y" : "ies"}</span></Link>) : <p>No recurring service plans.</p>}
+                <Link className="secondary-action compact-action" href={`/admin/recurring?new_plan=1&organization_id=${organizationId}`}>Create service plan</Link>
+              </Panel>
+
+              <Panel icon={<Sprout size={18} />} title="Recommended future work">
+                {recurring.recommendations.length ? recurring.recommendations.map((item) => <Link className="linked-record" href="/admin/recurring" key={item.id}><strong>{item.title}</strong><span>{item.service_locations?.label || item.service_locations?.street} - {item.status.replaceAll("_", " ")}</span></Link>) : <p>No recommendations awaiting action.</p>}
+              </Panel>
+
+              <Panel icon={<Activity size={18} />} title="Activity history">
+                {org.activity.length ? org.activity.map((item) => <article className="linked-record" key={item.id}><strong>{item.event_type.replaceAll("_", " ")}</strong><span>{item.subject_type.replaceAll("_", " ")} - {formatDateTime(item.created_at)}</span></article>) : <p>No recorded organization activity yet.</p>}
+              </Panel>
+            </section>
+
+            {!org.organization.archived_at ? <section className="crm-layout">
+              <aside className="crm-side">
+                <section className="form-panel">
+                  <h2>Add contact</h2>
+                  <AddOrganizationContactForm organizationId={organizationId} serviceLocations={org.serviceLocations} />
+                </section>
+              </aside>
+              <aside className="crm-side">
+                <section className="form-panel">
+                  <h2>Add property</h2>
+                  <AddOrganizationPropertyForm customers={org.customers} organizationId={organizationId} />
+                </section>
+              </aside>
+            </section> : null}
+
+            {lifecyclePreview ? <RecordLifecyclePanel canArchive={canArchive} canPermanentlyDelete={false} listHref="/admin/organizations" preview={lifecyclePreview} /> : null}
+
+          </>
+        )}
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function Panel({ children, icon, title }: { children: ReactNode; icon: ReactNode; title: string }) {
+  return (
+    <article className="detail-panel">
+      <h2 className="panel-title">{icon}{title}</h2>
+      <div className="linked-record-list">{children}</div>
+    </article>
+  );
+}
+
+function Warning({ message }: { message: string }) {
+  return <section className="data-warning"><strong>Database notice</strong><p>{message}</p></section>;
+}
+
+function SuccessNotice({ message }: { message: string }) {
+  return <section className="form-message success record-save-notice" role="status">{message}</section>;
+}
+
+function money(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function formatDateTime(value: string) {
+  return formatBusinessDateTime(new Date(value), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}

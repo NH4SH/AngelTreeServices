@@ -1,0 +1,14 @@
+export const OFFICE_CONTRACT: 'firewood-office-acceptance-v2';
+export const OFFICE_PRICE_REQUEST_PATH: string;
+export const OFFICE_PRICE_STATUS_PATH: string;
+export const OFFICE_ORDER_STATUS_PATH: string;
+export const OFFICE_BASE_KEYS: readonly string[];
+export const OFFICE_ORDER_STATUS_KEYS: readonly string[];
+export function officeBinding(orderId: string): any;
+export function parseOfficePriceRequest(value: unknown, options?: {allowSyntheticContacts?: boolean}): any;
+export function parseOfficePriceStatusRequest(value: unknown): any;
+export function parseOfficeOrderStatusRequest(value: unknown): any;
+export function validateOfficePriceReceipt(value: unknown, input: any): any;
+export function validateOfficeOrderStatus(value: unknown, input: any, previous?: any): any;
+export function signOfficeRequest(raw: string, timestamp: string, secret: string, path: string): string;
+export function verifyOfficeSignature(options: {raw: string; timestamp: string; secret: string; path: string; signature: string; nowMs?: number}): boolean;

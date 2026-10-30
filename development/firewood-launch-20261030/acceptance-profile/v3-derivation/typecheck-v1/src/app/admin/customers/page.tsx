@@ -1,0 +1,127 @@
+import { MapPin, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
+import { PlatformFrame } from "@/components/PlatformFrame";
+import { SetupRequired } from "@/components/SetupRequired";
+import { CustomerCreationTools } from "./CustomerCreationTools";
+import { getAuthenticatedPlatformContext } from "@/lib/auth/pageContext";
+import { getCustomersPage } from "@/lib/data/customers";
+import type { CustomerWithLocations, Note } from "@/lib/types/database";
+
+const pageSize = 25;
+
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ archived?: string; page?: string; q?: string }> }) {
+  const params = await searchParams;
+  const context = await getAuthenticatedPlatformContext("/admin/customers");
+
+  if (!context.configured) {
+    return <SetupRequired title="Configure Supabase before opening customers" />;
+  }
+
+  const page = positivePage(params.page);
+  const archived = params.archived === "1";
+  const customers = await getCustomersPage({ archived, page, pageSize, query: params.q });
+  const customerRecords = customers.data as Array<CustomerWithLocations & { notes?: Note[] }>;
+
+  return (
+    <PlatformFrame active="customers" roles={context.roles} userEmail={context.user.email}>
+      <div className="shell app-content">
+        <section className="page-heading">
+          <p className="surface-label">
+            <UsersRound aria-hidden="true" size={18} />
+            Customers
+          </p>
+          <h1>Customers</h1>
+          <p>Contact details, service locations, and first notes for every account.</p>
+        </section>
+
+        <section className="list-toolbar" aria-label="Customer search and views">
+          <ListSearch initialValue={params.q} label="Search customers" placeholder="Search name, phone, email, address, city, or customer ID" />
+          <nav className="list-view-toggle" aria-label="Customer record state">
+            <Link aria-current={!archived && params.q !== "test" ? "page" : undefined} href={params.q && params.q !== "test" ? `/admin/customers?q=${encodeURIComponent(params.q)}` : "/admin/customers"}>Active</Link>
+            <Link aria-current={archived ? "page" : undefined} href={`/admin/customers?archived=1${params.q ? `&q=${encodeURIComponent(params.q)}` : ""}`}>Archived</Link>
+            {context.roles.includes("owner") ? <Link aria-current={!archived && params.q === "test" ? "page" : undefined} href="/admin/customers?q=test">Test review</Link> : null}
+          </nav>
+        </section>
+
+        {customers.error ? <DataWarning message={customers.error} /> : null}
+
+        <section className="crm-layout customers-crm-layout">
+          {!archived ? <CustomerCreationTools customers={customerRecords} /> : null}
+          <div className="crm-main">
+            {customerRecords.length === 0 ? (
+              <EmptyState title={params.q ? "No matching customers" : archived ? "No archived customers" : "No customers yet"} body={params.q ? "Try another name, phone number, email, or address." : archived ? "Archived customer records will appear here." : "Add a customer when the first request is ready to enter."} />
+            ) : (
+              <div className="record-list">
+                {customerRecords.map((customer) => {
+                  return (
+                    <article className="record-card" key={customer.id}>
+                      <div className="record-card-header">
+                        <div>
+                          <h2>{customer.display_name}</h2>
+                          <p>{customer.customer_type.replace("_", " ")}</p>
+                        </div>
+                        <span className="status-pill">{customer.status}</span>
+                      </div>
+                      <dl className="record-details">
+                        <div>
+                          <dt>Phone</dt>
+                          <dd>{customer.phone || "Not set"}</dd>
+                        </div>
+                        <div>
+                          <dt>Email</dt>
+                          <dd>{customer.email || "Not set"}</dd>
+                        </div>
+                      </dl>
+                      {customer.service_locations?.length ? (
+                        <div className="mini-list">
+                          {customer.service_locations.map((location) => (
+                            <p key={location.id}>
+                              <MapPin aria-hidden="true" size={15} />
+                              {location.label ? `${location.label}: ` : ""}
+                              {location.street}, {location.city}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                      {customer.notes?.[0] ? <p className="record-note">{customer.notes[0].body}</p> : null}
+                      <div className="record-actions">
+                        <Link href={`/admin/customers/${customer.id}`}>Open customer file</Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </section>
+        <ListPagination basePath="/admin/customers" count={customers.count} page={page} pageSize={pageSize} params={{ archived: archived ? "1" : undefined, q: params.q }} />
+      </div>
+    </PlatformFrame>
+  );
+}
+
+function positivePage(value?: string) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <section className="empty-state">
+      <h2>{title}</h2>
+      <p>{body}</p>
+    </section>
+  );
+}
+
+function DataWarning({ message }: { message: string }) {
+  return (
+    <section className="data-warning" role="status">
+      <strong>Database notice</strong>
+      <p>{message}</p>
+    </section>
+  );
+}

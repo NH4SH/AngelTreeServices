@@ -1,0 +1,833 @@
+"use server";
+import type { ScheduleCommandArgs } from "@/lib/types/rpc-contracts";
+import { saveLegacyAppointment } from "@/lib/schedule/legacy-appointment";
+
+import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity-log";
+import { createClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { getCurrentUserRolesFromClient, hasAllowedRole, platformRoleGroups } from "@/lib/auth/roles";
+import { getEmployeeEligibilityWarnings } from "@/lib/data/employees";
+import { cancelPendingCommunications, syncAutomatedCommunications } from "@/lib/communications/queue";
+import { safeStaffMessage } from "@/lib/security/errors";
+import { parseScheduleDateTime, toScheduleDateTimeLocal } from "@/lib/schedule/event-form";
+import type {
+  AppointmentStatus,
+  AppointmentType,
+  JobStatus,
+  ScheduleEventStatus,
+  ScheduleEventType,
+} from "@/lib/types/database";
+
+export type AppointmentActionState = {
+  status: "idle" | "success" | "error" | "warning";
+  message: string;
+  eventId?: string;
+  jobId?: string;
+  appointmentId?: string;
+  revision?: number;
+};
+
+const appointmentTypes: AppointmentType[] = ["estimate", "job", "follow_up", "maintenance"];
+const scheduleEventTypes: ScheduleEventType[] = [
+  "estimate",
+  "job",
+  "follow_up",
+  "maintenance",
+  "pto",
+  "unavailable",
+  "internal",
+  "emergency",
+  "other",
+];
+const scheduleStatuses: ScheduleEventStatus[] = [
+  "scheduled",
+  "confirmed",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "no_show",
+];
+
+export async function scheduleLeadEstimate(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before scheduling an estimate." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can schedule website lead estimates." };
+  }
+
+  const leadJobId = getOptionalString(formData, "lead_job_id");
+  const contactName = limited(formData, "contact_name", 180);
+  const organizationName = limited(formData, "organization_name", 180);
+  const phone = limited(formData, "phone", 50);
+  const email = limited(formData, "email", 254).toLowerCase();
+  const street = limited(formData, "street", 240);
+  const city = limited(formData, "city", 120);
+  const state = limited(formData, "state", 2).toUpperCase();
+  const postalCode = limited(formData, "postal_code", 20);
+  const accessNotes = limited(formData, "access_notes", 2000);
+  const serviceNotes = limited(formData, "service_notes", 2000);
+  const serviceType = limited(formData, "service_type", 80);
+  const requestedScope = limited(formData, "requested_scope", 5000);
+  const internalNotes = limited(formData, "internal_notes", 5000);
+  const preferredContactMethod = limited(formData, "preferred_contact_method", 30);
+  const preferredTiming = limited(formData, "preferred_appointment_timing", 180);
+  const eventTitle = limited(formData, "event_title", 140);
+  const calendarNotes = limited(formData, "calendar_notes", 1000);
+  const assignedUserId = getOptionalString(formData, "assigned_user_id");
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+  const startsAt = parseDateTime(formData.get("starts_at"));
+
+  if (!leadJobId || !contactName || (!phone && !email) || !street || !city || state.length !== 2 || !serviceType || !requestedScope || !eventTitle || !startsAt) {
+    return { status: "error", message: "Enter the estimate time and review the required contact, property, and work fields." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: "error", message: "Enter a valid customer email address or leave it blank." };
+  }
+
+  const eligibility = await checkAssignmentEligibility(
+    supabase,
+    user.id,
+    assignedUserId ? [assignedUserId] : [],
+    "estimate",
+    eligibilityOverrideReason,
+  );
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+
+  const { data, error } = await supabase.rpc("schedule_lead_estimate", {
+    p_access_notes: accessNotes || null,
+    p_assigned_user_id: assignedUserId,
+    p_override_reason: eligibilityOverrideReason,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_calendar_notes: calendarNotes || null,
+    p_city: city,
+    p_contact_name: contactName,
+    p_email: email || null,
+    p_ends_at: null,
+    p_event_title: eventTitle,
+    p_internal_notes: internalNotes || null,
+    p_lead_job_id: leadJobId,
+    p_organization_name: organizationName || null,
+    p_phone: phone || null,
+    p_postal_code: postalCode || null,
+    p_preferred_appointment_timing: preferredTiming || null,
+    p_preferred_contact_method: preferredContactMethod || null,
+    p_requested_scope: requestedScope,
+    p_service_notes: serviceNotes || null,
+    p_service_type: serviceType,
+    p_starts_at: startsAt.toISOString(),
+    p_state: state,
+    p_street: street,
+  }).single();
+
+  if (error || !data) {
+    return { status: "error", message: safeStaffMessage(error?.message, "The estimate could not be scheduled. Your entries are still in the form.") };
+  }
+
+  const eventId = String((data as { event_id: string }).event_id);
+  const created = Boolean((data as { event_created: boolean }).event_created);
+
+  await recordActivity(supabase, {
+    actorType: roles.includes("owner") ? "owner" : "admin",
+    actorUserId: user.id,
+    destinationPath: `/admin/schedule?event=${eventId}`,
+    eventType: created ? "lead_estimate_scheduled" : "lead_estimate_schedule_updated",
+    idempotencyKey: created ? `lead-estimate-scheduled:${eventId}` : null,
+    metadata: { schedule_event_id: eventId },
+    summary: created ? "Scheduled an estimate from a website lead." : "Updated the estimate scheduled from a website lead.",
+    subjectId: leadJobId,
+    subjectType: "job",
+  });
+  if (eligibility.warningCount) {
+    await recordActivity(supabase, {
+      actorUserId: user.id,
+      eventType: eligibilityOverrideReason ? "employee_qualification_override" : "employee_qualification_warning",
+      metadata: {
+        assigned_user_ids: assignedUserId ?? "",
+        reason: eligibilityOverrideReason,
+        warning_count: eligibility.warningCount,
+      },
+      subjectId: eventId,
+      subjectType: "schedule_event",
+    });
+  }
+
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(leadJobId);
+  return {
+    eventId,
+    status: "success",
+    message: created ? "Estimate scheduled. Opening the calendar event..." : "Estimate schedule updated. Opening the calendar event...",
+  };
+}
+
+export async function schedulePartyEstimate(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before scheduling an estimate." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.accessApproval)) {
+    return { status: "error", message: "Only owners and admins can schedule estimates from customer records." };
+  }
+
+  const sourceRequestKey = getOptionalString(formData, "source_request_key");
+  const customerId = getOptionalString(formData, "source_customer_id");
+  const organizationId = getOptionalString(formData, "source_organization_id");
+  const contactId = getOptionalString(formData, "source_contact_id");
+  const serviceLocationId = getOptionalString(formData, "service_location_id");
+  const contactName = limited(formData, "contact_name", 180);
+  const phone = limited(formData, "phone", 50);
+  const email = limited(formData, "email", 254).toLowerCase();
+  const street = limited(formData, "street", 240);
+  const city = limited(formData, "city", 120);
+  const state = limited(formData, "state", 2).toUpperCase();
+  const postalCode = limited(formData, "postal_code", 20);
+  const accessNotes = limited(formData, "access_notes", 2000);
+  const serviceNotes = limited(formData, "service_notes", 2000);
+  const serviceType = limited(formData, "service_type", 80);
+  const requestedScope = limited(formData, "requested_scope", 5000);
+  const eventTitle = limited(formData, "event_title", 140);
+  const calendarNotes = limited(formData, "calendar_notes", 1000);
+  const assignedUserId = getOptionalString(formData, "assigned_user_id");
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+  const startsAt = parseDateTime(formData.get("starts_at"));
+
+  if (
+    !sourceRequestKey ||
+    Boolean(customerId) === Boolean(organizationId) ||
+    !serviceLocationId ||
+    !contactName ||
+    (!phone && !email) ||
+    !street ||
+    !city ||
+    state.length !== 2 ||
+    !requestedScope ||
+    !eventTitle ||
+    !startsAt
+  ) {
+    return { status: "error", message: "Enter the estimate time and review the required contact, property, and work fields." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: "error", message: "Enter a valid contact email address or leave it blank." };
+  }
+
+  const eligibility = await checkAssignmentEligibility(
+    supabase,
+    user.id,
+    assignedUserId ? [assignedUserId] : [],
+    "estimate",
+    eligibilityOverrideReason,
+  );
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+
+  const { data, error } = await supabase.rpc("schedule_party_estimate", {
+    p_access_notes: accessNotes || null,
+    p_assigned_user_id: assignedUserId,
+    p_override_reason: eligibilityOverrideReason,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_calendar_notes: calendarNotes || null,
+    p_city: city,
+    p_contact_id: contactId,
+    p_contact_name: contactName,
+    p_customer_id: customerId,
+    p_email: email || null,
+    p_ends_at: null,
+    p_event_title: eventTitle,
+    p_organization_id: organizationId,
+    p_phone: phone || null,
+    p_postal_code: postalCode || null,
+    p_requested_scope: requestedScope,
+    p_service_location_id: serviceLocationId,
+    p_service_notes: serviceNotes || null,
+    p_service_type: serviceType || "other",
+    p_source_request_key: sourceRequestKey,
+    p_starts_at: startsAt.toISOString(),
+    p_state: state,
+    p_street: street,
+  }).single();
+
+  if (error || !data) {
+    return { status: "error", message: safeStaffMessage(error?.message, "The estimate could not be scheduled. Your entries are still in the form.") };
+  }
+
+  const eventId = String((data as { event_id: string }).event_id);
+  const created = Boolean((data as { event_created: boolean }).event_created);
+
+  await recordActivity(supabase, {
+    actorType: roles.includes("owner") ? "owner" : "admin",
+    actorUserId: user.id,
+    destinationPath: `/admin/schedule?event=${eventId}`,
+    eventType: created ? "party_estimate_scheduled" : "party_estimate_schedule_updated",
+    idempotencyKey: `party-estimate:${sourceRequestKey}:${created ? "created" : "updated"}`,
+    metadata: {
+      customer_id: customerId,
+      organization_id: organizationId,
+      service_location_id: serviceLocationId,
+    },
+    subjectId: eventId,
+    subjectType: "schedule_event",
+  });
+  revalidatePath("/admin/schedule");
+  if (customerId) revalidatePath(`/admin/customers/${customerId}`);
+  if (organizationId) revalidatePath(`/admin/organizations/${organizationId}`);
+  return { status: "success", message: created ? "Estimate scheduled." : "Estimate schedule updated.", eventId };
+}
+
+export async function createScheduleCustomerJob(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before creating a scheduled job." };
+  const roles = await getCurrentUserRolesFromClient(supabase, user.id);
+  if (!hasAllowedRole(roles, platformRoleGroups.internalStaff)) {
+    return { status: "error", message: "Only authorized office staff can create scheduled jobs." };
+  }
+
+  let customerId = getOptionalString(formData, "customer_id");
+  let serviceLocationId = getOptionalString(formData, "service_location_id");
+  let createdCustomerId: string | null = null;
+  const newCustomerName = getOptionalString(formData, "new_customer_name");
+
+  if (newCustomerName) {
+    const phone = getOptionalString(formData, "new_customer_phone");
+    const email = getOptionalString(formData, "new_customer_email")?.toLowerCase() ?? null;
+    const street = getOptionalString(formData, "new_customer_street");
+    const city = getOptionalString(formData, "new_customer_city");
+    const state = (getOptionalString(formData, "new_customer_state") ?? "VA").toUpperCase();
+    const postalCode = getOptionalString(formData, "new_customer_postal_code");
+    if ((!phone && !email) || !street || !city || state.length !== 2) {
+      return { status: "error", message: "Enter a phone or email and a complete service address for the new customer." };
+    }
+
+    const duplicateResults = await Promise.all([
+      email ? supabase.from("customers").select("id, display_name").ilike("email", email).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+      phone ? supabase.from("customers").select("id, display_name").eq("phone", phone).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    const duplicate = duplicateResults.find((result) => result.data)?.data as { id: string; display_name: string } | null | undefined;
+    if (duplicate) return { status: "error", message: `${duplicate.display_name} already uses that contact information. Select the existing customer instead.` };
+
+    const { data: customer, error: customerError } = await supabase.from("customers").insert({
+      display_name: newCustomerName,
+      phone,
+      email,
+      billing_address: [street, city, state, postalCode].filter(Boolean).join(", "),
+      customer_type: "residential",
+      status: "active",
+    }).select("id").single();
+    if (customerError || !customer) return { status: "error", message: customerError?.message ?? "Could not create the customer." };
+    createdCustomerId = customer.id;
+    customerId = customer.id;
+
+    const { data: location, error: locationError } = await supabase.from("service_locations").insert({
+      customer_id: customer.id,
+      organization_id: null,
+      label: "Primary service location",
+      street,
+      city,
+      state,
+      postal_code: postalCode,
+    }).select("id").single();
+    if (locationError || !location) {
+      await supabase.from("customers").delete().eq("id", customer.id);
+      return { status: "error", message: locationError?.message ?? "Could not create the service location." };
+    }
+    serviceLocationId = location.id;
+  }
+
+  if (!customerId || !serviceLocationId) return { status: "error", message: "Choose a customer and one of their properties." };
+  const { data: location, error: locationError } = await supabase.from("service_locations").select("id, customer_id, organization_id").eq("id", serviceLocationId).single();
+  if (locationError || !location || location.customer_id !== customerId || location.organization_id) {
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+    return { status: "error", message: "Choose a property belonging to the selected customer." };
+  }
+
+  const requestedScope = getOptionalString(formData, "requested_scope");
+  const serviceType = getOptionalString(formData, "service_type") ?? "other";
+  if (!requestedScope) return { status: "error", message: "Describe the work before continuing to scheduling." };
+  const { data: job, error: jobError } = await supabase.from("jobs").insert({
+    customer_id: customerId,
+    organization_id: null,
+    service_location_id: serviceLocationId,
+    service_type: serviceType,
+    requested_scope: requestedScope,
+    status: "accepted",
+    priority: "normal",
+  }).select("id").single();
+  if (jobError || !job) {
+    if (createdCustomerId) await supabase.from("customers").delete().eq("id", createdCustomerId);
+    return { status: "error", message: jobError?.message ?? "Could not create the work order." };
+  }
+
+  await recordActivity(supabase, { actorUserId: user.id, eventType: "work_order_created_from_schedule", subjectId: job.id, subjectType: "job" });
+  revalidateSchedulePaths(job.id);
+  if (customerId) revalidatePath(`/admin/customers/${customerId}`);
+  return { status: "success", message: "Job created. Loading the scheduler...", jobId: job.id };
+}
+
+export async function createAppointment(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  return saveLegacyAppointmentAction(formData, "create");
+}
+
+export async function updateAppointmentStatus(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  return saveLegacyAppointmentAction(formData, "status");
+}
+
+export async function updateAppointmentStatusFromForm(formData: FormData) {
+  await updateAppointmentStatus({ status: "idle", message: "" }, formData);
+}
+
+export async function updateAppointmentDetails(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  return saveLegacyAppointmentAction(formData, "details");
+}
+
+async function saveLegacyAppointmentAction(formData: FormData, mode: "create" | "details" | "status"): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before changing appointments." };
+  const jobId = String(formData.get("job_id") ?? "");
+  const values: Record<string, string | null> = {};
+  if (mode === "status") {
+    values.status = String(formData.get("next_status") ?? "");
+  } else {
+    const startsAt = parseDateTime(formData.get("starts_at"));
+    const endText = String(formData.get("ends_at") ?? "").trim();
+    const endsAt = parseDateTime(formData.get("ends_at"), true);
+    if (!startsAt || (endText && !endsAt) || (endsAt && endsAt <= startsAt)) {
+      return { status: "error", message: "Choose a valid start and an end after the start time." };
+    }
+    values.starts_at = startsAt.toISOString();
+    values.ends_at = endsAt?.toISOString() ?? null;
+    values.assigned_id = getOptionalString(formData, "assigned_user_id");
+    values.calendar_notes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+    if (mode === "create") values.appointment_type = String(formData.get("appointment_type") ?? "estimate");
+  }
+  const result = await saveLegacyAppointment(supabase, {
+    id: String(formData.get(mode === "create" ? "request_id" : "appointment_id") ?? ""),
+    jobId, mode, revision: mode === "create" ? null : Number(formData.get("expected_revision") ?? 0),
+    values, overrideReason: getOptionalString(formData, "eligibility_override_reason"),
+  });
+  if (!("appointmentId" in result)) return result;
+  revalidateSchedulePaths(jobId);
+  try { await syncScheduleCommunications(); }
+  catch {
+    return { ...result, status: "warning", message: "Appointment saved. Reminder preparation needs review in Communications." };
+  }
+  return result;
+}
+
+export async function createScheduleEvent(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before adding schedule events." };
+  }
+
+  const title = String(formData.get("title") ?? "").trim().slice(0, 140);
+  const eventType = String(formData.get("event_type") ?? "job") as ScheduleEventType;
+  const status = String(formData.get("status") ?? "scheduled") as ScheduleEventStatus;
+  const jobId = getOptionalString(formData, "job_id");
+  const allDay = formData.get("all_day") === "1";
+  const startsAt = parseDateTime(formData.get("starts_at"));
+  const endsAt = parseDateTime(formData.get("ends_at"), true);
+  const normalizedStartsAt = normalizeScheduleStart(startsAt, allDay);
+  const normalizedEndsAt = normalizeScheduleEnd(startsAt, endsAt, allDay);
+  const locationLabel = String(formData.get("location_label") ?? "").trim().slice(0, 240) || null;
+  const description = String(formData.get("description") ?? "").trim().slice(0, 500) || null;
+  const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+  const assignedUserIds = Array.from(
+    new Set(
+      formData
+        .getAll("assigned_user_ids")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  );
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+
+  if (!title || !normalizedStartsAt) {
+    return { status: "error", message: "Title and start time are required." };
+  }
+
+  if (!scheduleEventTypes.includes(eventType)) {
+    return { status: "error", message: "Choose a supported schedule event type." };
+  }
+
+  if (!scheduleStatuses.includes(status)) {
+    return { status: "error", message: "Choose a supported schedule status." };
+  }
+
+  if (normalizedEndsAt && normalizedEndsAt <= normalizedStartsAt) {
+    return { status: "error", message: "End time must be after the start time." };
+  }
+  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserIds, eventType, eligibilityOverrideReason);
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+  const jobContext = jobId ? await getJobScheduleContext(supabase, jobId) : null;
+
+  if (jobId && !jobContext) {
+    return { status: "error", message: "Selected job was not found or is not available." };
+  }
+
+  const resolvedLocationLabel =
+    locationLabel ||
+    formatLocationLabel(
+      jobContext?.service_location?.street,
+      jobContext?.service_location?.city,
+      jobContext?.service_location?.state,
+    );
+
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: null,
+    p_expected_revision: null,
+    p_event: {
+      request_id: getOptionalString(formData, "request_id"),
+      title, description, event_type: eventType, status,
+      job_id: jobContext?.id ?? null,
+      starts_at: normalizedStartsAt.toISOString(), ends_at: normalizedEndsAt?.toISOString() ?? null,
+      all_day: allDay, location_label: resolvedLocationLabel, calendar_notes: calendarNotes,
+    },
+    p_employee_ids: assignedUserIds,
+    p_override_reason: eligibilityOverrideReason,
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  } satisfies ScheduleCommandArgs);
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
+  if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: data.replayed ? "This visit was already saved. Review it on the calendar." : `Schedule event saved.${data.warning_count ? ` Crew review: ${eligibility.message || "A scheduling override was recorded."}` : ""}`, revision: data.edit_revision };
+}
+
+export async function updateScheduleEventStatus(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before updating schedule events." };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const nextStatus = String(formData.get("next_status") ?? "").trim() as ScheduleEventStatus;
+
+  if (!eventId || !scheduleStatuses.includes(nextStatus)) {
+    return { status: "error", message: "Choose a valid schedule status." };
+  }
+
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId, p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: { status: nextStatus }, p_mode: "status",
+    p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  } satisfies ScheduleCommandArgs);
+
+  if (error) {
+    return { status: "error", message: safeStaffMessage(error.message) };
+  }
+
+  if (!data) {
+    return { status: "error", message: "Schedule event not found or no access." };
+  }
+
+  if (["completed", "cancelled", "no_show"].includes(nextStatus)) {
+    await cancelPendingCommunications(supabase, { scheduleEventId: eventId }, `Schedule event marked ${nextStatus.replaceAll("_", " ")}.`);
+  }
+  await syncScheduleCommunications();
+
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: `Event marked ${nextStatus.replace("_", " ")}.`, revision: data.edit_revision };
+}
+
+export async function updateScheduleEventStatusFromForm(formData: FormData) {
+  await updateScheduleEventStatus({ status: "idle", message: "" }, formData);
+}
+
+export async function updateScheduleEventTime(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { status: "error", message: "Supabase is not configured." };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in before rescheduling events." };
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const date = String(formData.get("date") ?? "").trim();
+  const startTime = String(formData.get("start_time") ?? "").trim();
+  const endTime = String(formData.get("end_time") ?? "").trim();
+  const startsAt = parseScheduleDateTime(`${date}T${startTime}`);
+  const endsAt = parseScheduleDateTime(`${date}T${endTime}`);
+
+  if (!eventId || !startsAt || !endsAt) {
+    return { status: "error", message: "Choose a valid date, start time, and end time." };
+  }
+  if (endsAt <= startsAt) return { status: "error", message: "End time must be after the start time." };
+
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId, p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: { starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, p_mode: "time",
+    p_override_reason: getOptionalString(formData, "eligibility_override_reason"),
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  } satisfies ScheduleCommandArgs);
+
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
+  if (!data) return { status: "error", message: "The event is no longer active or cannot be rescheduled here." };
+
+  await recordActivity(supabase, {
+    actorUserId: user.id,
+    eventType: "schedule_event_rescheduled",
+    metadata: { ends_at: endsAt.toISOString(), starts_at: startsAt.toISOString() },
+    subjectId: eventId,
+    subjectType: "schedule_event",
+  });
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: "Date and time updated.", revision: data.edit_revision };
+}
+
+export async function updateScheduleEventDetails(
+  _previousState: AppointmentActionState,
+  formData: FormData,
+): Promise<AppointmentActionState> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return { status: "error", message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Sign in before editing schedule events." };
+  }
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim().slice(0, 140);
+  const eventType = String(formData.get("event_type") ?? "job").trim() as ScheduleEventType;
+  const status = String(formData.get("status") ?? "scheduled").trim() as ScheduleEventStatus;
+  const jobId = getOptionalString(formData, "job_id");
+  const allDay = formData.get("all_day") === "1";
+  const startsAt = parseDateTime(formData.get("starts_at"));
+  const endsAt = parseDateTime(formData.get("ends_at"), true);
+  const normalizedStartsAt = normalizeScheduleStart(startsAt, allDay);
+  const normalizedEndsAt = normalizeScheduleEnd(startsAt, endsAt, allDay);
+  const locationLabel = String(formData.get("location_label") ?? "").trim().slice(0, 240) || null;
+  const description = String(formData.get("description") ?? "").trim().slice(0, 500) || null;
+  const calendarNotes = String(formData.get("calendar_notes") ?? "").trim().slice(0, 1000) || null;
+  const assignedUserIds = Array.from(
+    new Set(
+      formData
+        .getAll("assigned_user_ids")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  );
+  const eligibilityOverrideReason = getOptionalString(formData, "eligibility_override_reason");
+
+  if (!eventId || !title || !normalizedStartsAt) {
+    return { status: "error", message: "Event, title, and start time are required." };
+  }
+
+  if (!scheduleEventTypes.includes(eventType) || !scheduleStatuses.includes(status)) {
+    return { status: "error", message: "Choose a valid event type and status." };
+  }
+
+  if (normalizedEndsAt && normalizedEndsAt <= normalizedStartsAt) {
+    return { status: "error", message: "End time must be after the start time." };
+  }
+  const eligibility = await checkAssignmentEligibility(supabase, user.id, assignedUserIds, eventType, eligibilityOverrideReason);
+  if (eligibility.blocked) return { status: "warning", message: eligibility.message };
+
+  const jobContext = jobId ? await getJobScheduleContext(supabase, jobId) : null;
+
+  if (jobId && !jobContext) {
+    return { status: "error", message: "Selected job was not found or is not available." };
+  }
+
+  const resolvedLocationLabel =
+    locationLabel ||
+    formatLocationLabel(
+      jobContext?.service_location?.street,
+      jobContext?.service_location?.city,
+      jobContext?.service_location?.state,
+    );
+
+  const { data, error } = await supabase.rpc("save_schedule_event", {
+    p_event_id: eventId,
+    p_expected_revision: Number(formData.get("expected_revision")) || null,
+    p_event: {
+      title, description, event_type: eventType, status,
+      job_id: jobContext?.id ?? null,
+      starts_at: normalizedStartsAt.toISOString(), ends_at: normalizedEndsAt?.toISOString() ?? null,
+      all_day: allDay, location_label: resolvedLocationLabel, calendar_notes: calendarNotes,
+    },
+    p_employee_ids: assignedUserIds,
+    p_override_reason: eligibilityOverrideReason,
+    p_allow_conflicts: formData.get("allow_conflicts") === "1",
+  } satisfies ScheduleCommandArgs);
+  if (error) return { status: error.code === "23P01" ? "warning" : "error", message: safeStaffMessage(error.message) };
+  if (!data?.id || !Number.isInteger(data.edit_revision)) return { status: "error", message: "The save could not be confirmed. Refresh the calendar before trying again." };
+  await syncScheduleCommunications();
+  revalidateSchedulePaths(data.job_id ?? undefined);
+  return { status: "success", message: `Schedule event updated.${data.warning_count ? ` Crew review: ${eligibility.message || "A scheduling override was recorded."}` : ""}`, revision: data.edit_revision };
+}
+
+function getOptionalString(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim() || null;
+}
+
+function limited(formData: FormData, key: string, maxLength: number) {
+  return String(formData.get(key) ?? "").trim().slice(0, maxLength);
+}
+
+async function checkAssignmentEligibility(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  actorUserId: string,
+  assignedUserIds: string[],
+  assignmentRole: string,
+  overrideReason: string | null,
+) {
+  const warnings = await getEmployeeEligibilityWarnings(assignedUserIds, { type: "job_assignment_role", value: assignmentRole });
+  if (!warnings.length) return { blocked: false, message: "", warningCount: 0 };
+  const blockingWarnings = warnings.filter((warning) => warning.requiresOverride);
+  const summary = warnings.map((warning) => warning.message).join(" ");
+  if (!blockingWarnings.length) return { blocked: false, message: summary, warningCount: warnings.length };
+  const roles = await getCurrentUserRolesFromClient(supabase, actorUserId);
+  const canOverride = hasAllowedRole(roles, platformRoleGroups.accessApproval);
+  if (!overrideReason || !canOverride) return { blocked: true, message: `${summary} Owner/admin can proceed only after entering an override reason.`, warningCount: warnings.length };
+  return { blocked: false, message: summary, warningCount: warnings.length };
+}
+
+async function syncScheduleCommunications() {
+  const communicationSupabase = getServiceRoleClient();
+  if (communicationSupabase) await syncAutomatedCommunications(communicationSupabase);
+}
+
+function parseDateTime(value: FormDataEntryValue | null, optional = false) {
+  const text = String(value ?? "").trim();
+  if (!text && optional) {
+    return null;
+  }
+
+  return parseScheduleDateTime(text);
+}
+
+function normalizeScheduleStart(date: Date | null, allDay: boolean) {
+  if (!date) {
+    return null;
+  }
+
+  if (!allDay) {
+    return date;
+  }
+
+  return parseScheduleDateTime(`${toScheduleDateTimeLocal(date.toISOString()).slice(0, 10)}T00:00`);
+}
+
+function normalizeScheduleEnd(start: Date | null, end: Date | null, allDay: boolean) {
+  if (!allDay) {
+    return end;
+  }
+
+  if (end) {
+    return parseScheduleDateTime(`${toScheduleDateTimeLocal(end.toISOString()).slice(0, 10)}T23:59`);
+  }
+
+  if (!start) {
+    return null;
+  }
+
+  return parseScheduleDateTime(`${toScheduleDateTimeLocal(start.toISOString()).slice(0, 10)}T23:59`);
+}
+
+async function getJobScheduleContext(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  jobId: string,
+) {
+  const { data } = await supabase
+    .from("jobs")
+    .select("id, status, service_location_id, service_locations(street, city, state)")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (!data) {
+    return null;
+  }
+
+  const serviceLocation = Array.isArray(data.service_locations)
+    ? (data.service_locations[0] ?? null)
+    : (data.service_locations ?? null);
+
+  return {
+    ...data,
+    service_location: serviceLocation,
+  };
+}
+
+function toAppointmentType(eventType: ScheduleEventType): AppointmentType {
+  if (eventType === "estimate" || eventType === "job" || eventType === "follow_up" || eventType === "maintenance") {
+    return eventType;
+  }
+
+  return "other";
+}
+
+function formatLocationLabel(street?: string | null, city?: string | null, state?: string | null) {
+  return [street, city, state].filter(Boolean).join(", ") || null;
+}
+
+function revalidateSchedulePaths(jobId?: string) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin/jobs");
+  if (jobId) {
+    revalidatePath(`/admin/jobs/${jobId}`);
+  }
+}

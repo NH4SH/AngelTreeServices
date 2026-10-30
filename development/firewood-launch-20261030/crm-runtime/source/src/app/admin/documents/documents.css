@@ -1,0 +1,23 @@
+/* Extend the incumbent CRM form and action patterns without changing its theme. */
+.documents-workspace .crm-form .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: var(--control-touch-size);
+}
+.documents-workspace .crm-form input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 1.25rem;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--color-forest);
+}
+.documents-workspace .action-row .secondary-action {
+  min-height: var(--control-touch-size);
+}
+@media (max-width: 720px) {
+  .documents-workspace :is(input:not([type="checkbox"]), select, textarea) {
+    font-size: 1rem;
+  }
+}

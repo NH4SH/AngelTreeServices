@@ -1,0 +1,262 @@
+import { privateFileLinks } from "@/lib/files/private-file-links";
+import "server-only";
+import { employeeClockState, type EmployeeClockState } from "@/lib/employee-presentation";
+import { platformRoleGroups } from "@/lib/auth/roles";
+import { createClient } from "@/lib/supabase/server";
+import { safeStaffMessage } from "@/lib/security/errors";
+import { getBusinessDateKey, shiftBusinessDateKey } from "@/lib/business-time";
+import type {
+  CredentialType,
+  DataResult,
+  EmployeeDetail,
+  EmployeeRecord,
+  EmployeeSelfServiceData,
+  SupervisedTeamData,
+} from "@/lib/types/database";
+
+const detailSelect = `
+  *,
+  profiles:profiles!employee_records_auth_user_id_fkey(id, full_name, email, status),
+  employee_emergency_contacts(*),
+  employee_onboarding_items(*),
+  employee_credentials(*, credential_types(*)),
+  employee_documents(*),
+  employee_requests(*),
+  employee_separation_items(*),
+  training_attendees(*, training_sessions(*)),
+  safety_meeting_attendees(*, safety_meetings(*))
+`;
+
+export type EmployeeListRow = EmployeeRecord & {
+  onboardingProgress: number;
+  credentialState: "current" | "expiring" | "expired" | "pending" | "none";
+  trainingState: "recorded" | "none";
+  roleNames: string[];
+  timeClockState: EmployeeClockState;
+  platformAccessState: "active" | "disabled" | "pending" | "no_account";
+};
+
+export type EmployeeDetailData = {
+  employee: EmployeeDetail;
+  roles: string[];
+  timeClockEnabled: boolean;
+  timeClockState: EmployeeClockState;
+  equipmentAssignments: Record<string, unknown>[];
+  activity: Record<string, unknown>[];
+  privateNotes: string | null;
+};
+
+// UUID filters grow with the full retained directory, including former staff.
+// Bound each caller-scoped lookup, rather than truncating the directory or using
+// a privileged client. Read batches sequentially within each of the three reads.
+async function readEmployeeAccountRows<T>(
+  ids: string[],
+  read: (batch: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+) {
+  const data: T[] = [];
+  let error: { message: string } | null = null;
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const result = await read(ids.slice(offset, offset + 100));
+    data.push(...(result.data ?? []));
+    error ??= result.error;
+  }
+  return { data, error };
+}
+
+export async function getEmployees(): Promise<DataResult<EmployeeListRow[]>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: [], error: "Supabase is not configured." };
+  const { data, error } = await supabase.rpc("get_employee_operational_directory");
+  if (error) return { data: [], error: safeStaffMessage(error.message) };
+  const rows = ((data as { employees?: unknown[] } | null)?.employees ?? []) as (EmployeeRecord & { employee_onboarding_items?: { completion_status: string }[]; employee_credentials?: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]; training_attendees?: { id: string }[] })[];
+  const authIds = [...new Set(rows.map((row) => row.auth_user_id).filter((id): id is string => Boolean(id)))];
+  const [rolesResult, profilesResult, pendingResult, timerResult] = await Promise.all([
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("user_roles").select("user_id, roles(name)").in("user_id", ids)),
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("profiles").select("id, status").in("id", ids)),
+    supabase.from("employee_access_requests").select("id, email, status").eq("status", "pending"),
+    readEmployeeAccountRows(authIds, (ids) => supabase.from("time_clock_permissions").select("user_id, is_enabled").in("user_id", ids)),
+  ]);
+  const rolesByUser = new Map<string, string[]>();
+  for (const row of rolesResult.data ?? []) {
+    const relation = row.roles as { name?: string } | { name?: string }[] | null;
+    const names = (Array.isArray(relation) ? relation : relation ? [relation] : []).map((role) => role.name).filter((name): name is string => Boolean(name));
+    rolesByUser.set(row.user_id, [...(rolesByUser.get(row.user_id) ?? []), ...names]);
+  }
+  const profileStatus = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile.status]));
+  const timerPermissions = new Map((timerResult.data ?? []).map((row) => [row.user_id, row.is_enabled]));
+  const pendingEmails = new Set((pendingResult.data ?? []).map((request) => request.email.toLowerCase()));
+  return {
+    data: rows.map((employee) => {
+      const onboarding = employee.employee_onboarding_items ?? [];
+      const complete = onboarding.filter((item) => item.completion_status !== "incomplete").length;
+      return {
+        ...employee,
+        onboardingProgress: onboarding.length ? Math.round((complete / onboarding.length) * 100) : 0,
+        credentialState: credentialState(employee.employee_credentials ?? []),
+        trainingState: employee.training_attendees?.length ? "recorded" : "none",
+        roleNames: employee.auth_user_id ? rolesByUser.get(employee.auth_user_id) ?? [] : [],
+        timeClockState: employeeClockState({ authId: employee.auth_user_id, active: employee.is_active, archived: Boolean(employee.archived_at), employmentStatus: employee.employment_status,
+          profileStatus: profilesResult.error ? undefined : profileStatus.get(employee.auth_user_id ?? ""),
+          permission: timerResult.error ? undefined : timerPermissions.get(employee.auth_user_id ?? ""),
+          eligibleRole: rolesResult.error || !rolesByUser.has(employee.auth_user_id ?? "") ? undefined : rolesByUser.get(employee.auth_user_id ?? "")!.some((name) => (platformRoleGroups.timeClockEligible as readonly string[]).includes(name)),
+        }),
+        platformAccessState: employee.auth_user_id
+          ? profileStatus.get(employee.auth_user_id) === "active" && employee.is_active && !employee.archived_at && !["inactive", "separated"].includes(employee.employment_status) ? "active" : "disabled"
+          : employee.contact_email && pendingEmails.has(employee.contact_email.toLowerCase()) ? "pending" : "no_account",
+      };
+    }),
+    error: rolesResult.error ? safeStaffMessage(rolesResult.error.message) : profilesResult.error ? safeStaffMessage(profilesResult.error.message) : pendingResult.error ? safeStaffMessage(pendingResult.error.message) : timerResult.error ? safeStaffMessage(timerResult.error.message) : null,
+  };
+}
+
+export async function getEmployeeDetail(employeeId: string, includePrivateNotes = false): Promise<DataResult<EmployeeDetailData | null>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+  const { data, error } = await supabase.from("employee_records").select(detailSelect).eq("id", employeeId).single();
+  if (error || !data) return { data: null, error: error ? safeStaffMessage(error.message, "Employee not found or no access.") : "Employee not found or no access." };
+  const employee = data as EmployeeDetail;
+  const authId = employee.auth_user_id;
+  const [supervisor, roles, timer, equipment, activity, privateRecord] = await Promise.all([
+    employee.supervisor_employee_id
+      ? supabase.from("employee_records").select("id, preferred_name, legal_name").eq("id", employee.supervisor_employee_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    authId ? supabase.from("user_roles").select("roles(name)").eq("user_id", authId) : Promise.resolve({ data: [], error: null }),
+    authId ? supabase.from("time_clock_permissions").select("is_enabled").eq("user_id", authId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    authId ? supabase.from("equipment_assignments").select("*, equipment_assets(id, asset_number, name, category, status)").eq("assigned_user_id", authId).order("starts_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
+    supabase.from("activity_log").select("id, event_type, actor_user_id, actor_label, metadata_json, created_at").eq("subject_type", "employee").eq("subject_id", employeeId).order("created_at", { ascending: false }).limit(50),
+    includePrivateNotes ? supabase.from("employee_private_records").select("private_hr_notes").eq("employee_id", employeeId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ]);
+  employee.supervisor = supervisor.data;
+  const actorIds = [...new Set((activity.data ?? []).map((event) => event.actor_user_id).filter((id): id is string => Boolean(id)))];
+  // Authenticated client keeps the existing profile visibility rules in force.
+  const actors = actorIds.length ? await supabase.from("profiles").select("id, full_name").in("id", actorIds) : { data: [], error: null };
+  const actorNames = new Map((actors.data ?? []).map((profile) => [profile.id, profile.full_name]));
+
+  const documents = employee.employee_documents ?? [];
+  if (documents.length) {
+    const { data: signed } = await privateFileLinks(supabase, "employee_document", documents);
+    const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
+    employee.employee_documents = documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
+  }
+  const roleNames = (roles.data ?? []).flatMap((row) => {
+    const relation = row.roles as { name?: string } | { name?: string }[] | null;
+    return (Array.isArray(relation) ? relation : relation ? [relation] : []).map((role) => role.name).filter((name): name is string => Boolean(name));
+  });
+  return {
+    data: { employee, roles: roleNames, timeClockEnabled: Boolean(timer.data?.is_enabled), timeClockState: employeeClockState({ authId, active: employee.is_active, archived: Boolean(employee.archived_at), employmentStatus: employee.employment_status,
+      profileStatus: employee.profiles?.status, permission: timer.error ? undefined : timer.data?.is_enabled,
+      eligibleRole: roles.error || !roleNames.length ? undefined : roleNames.some((name) => (platformRoleGroups.timeClockEligible as readonly string[]).includes(name)),
+    }), equipmentAssignments: equipment.data ?? [], activity: (activity.data ?? []).map((event) => ({ ...event, actorName: actorNames.get(event.actor_user_id ?? "") ?? null })), privateNotes: privateRecord.data?.private_hr_notes ?? null },
+    error: supervisor.error ? safeStaffMessage(supervisor.error.message) : roles.error ? safeStaffMessage(roles.error.message) : timer.error ? safeStaffMessage(timer.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : activity.error ? safeStaffMessage(activity.error.message) : privateRecord.error ? safeStaffMessage(privateRecord.error.message) : null,
+  };
+}
+
+export async function getEmployeeFormOptions() {
+  const supabase = await createClient();
+  if (!supabase) return { supervisors: [], credentialTypes: [], employees: [], platformAccounts: [], qualificationRequirements: [], error: "Supabase is not configured." };
+  const [employees, credentialTypes, qualificationRequirements, profiles] = await Promise.all([
+    supabase.rpc("get_employee_operational_directory"),
+    supabase.from("credential_types").select("*").eq("is_active", true).order("label"),
+    supabase.from("qualification_requirements").select("id, requirement_scope, scope_value, credential_type_id, warning_only, is_active, notes, credential_types(label)").eq("is_active", true).order("requirement_scope").order("scope_value"),
+    supabase.from("profiles").select("id, full_name, email, status").order("full_name"),
+  ]);
+  const directory = ((employees.data as { employees?: Array<{ id: string; legal_name: string; preferred_name: string | null; crew_name: string | null; is_supervisor: boolean; auth_user_id: string | null }> } | null)?.employees ?? []);
+  const linkedIds = new Set(directory.map((employee) => employee.auth_user_id).filter(Boolean));
+  return { supervisors: directory.filter((employee) => employee.is_supervisor), employees: directory, platformAccounts: (profiles.data ?? []).filter((profile) => !linkedIds.has(profile.id)), credentialTypes: (credentialTypes.data ?? []) as CredentialType[], qualificationRequirements: qualificationRequirements.data ?? [], error: employees.error ? safeStaffMessage(employees.error.message) : credentialTypes.error ? safeStaffMessage(credentialTypes.error.message) : qualificationRequirements.error ? safeStaffMessage(qualificationRequirements.error.message) : profiles.error ? safeStaffMessage(profiles.error.message) : null };
+}
+
+export async function getEmployeeDashboardSummary() {
+  const employees = await getEmployees();
+  const supabase = await createClient();
+  const empty = { onboarding: [], pendingAccess: [], expiring: [], expired: [], missingTraining: [], pendingSafetyAcknowledgments: [], pendingDocuments: [], pendingRequests: [], equipmentDueBack: [], inactiveAccessReview: [] };
+  if (!supabase) return { data: empty, error: "Supabase is not configured." };
+  const now = new Date();
+  const today = getBusinessDateKey(now);
+  const in90Days = shiftBusinessDateKey(today, 90);
+  const [accessRequests, credentials, safetyAcknowledgments, documents, requests, equipment] = await Promise.all([
+    supabase.from("employee_access_requests").select("id, full_name, email, status").eq("status", "pending").order("created_at").limit(20),
+    supabase.from("employee_credentials").select("id, employee_id, expiration_date, status, employee_records(preferred_name, legal_name), credential_types(default_warning_days)").is("archived_at", null).not("expiration_date", "is", null).lte("expiration_date", in90Days).order("expiration_date").limit(30),
+    supabase.from("safety_meeting_attendees").select("id, employee_id, safety_meeting_id, attendance_status, acknowledged_at, employee_records(preferred_name, legal_name), safety_meetings(title, starts_at)").eq("attendance_status", "present").is("acknowledged_at", null).order("created_at").limit(30),
+    supabase.from("employee_documents").select("id, employee_id, title, review_status, employee_records(preferred_name, legal_name)").eq("review_status", "pending").is("archived_at", null).limit(20),
+    supabase.from("employee_requests").select("id, employee_id, title, request_type, employee_records(preferred_name, legal_name)").eq("status", "pending").order("created_at").limit(20),
+    supabase.from("equipment_assignments").select("id, assigned_user_id, ends_at, returned_at, equipment_assets(name, asset_number), profiles:profiles!equipment_assignments_assigned_user_id_fkey(full_name)").is("returned_at", null).not("ends_at", "is", null).lt("ends_at", now.toISOString()).limit(20),
+  ]);
+  const credentialRows = credentials.data ?? [];
+  return { data: {
+    onboarding: employees.data.filter((employee) => employee.employment_status === "onboarding" || employee.onboardingProgress < 100).slice(0, 12),
+    pendingAccess: accessRequests.data ?? [],
+    expiring: credentialRows.filter((credential) => { const relation = credential.credential_types as { default_warning_days?: number } | { default_warning_days?: number }[] | null; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && credential.expiration_date >= today && credential.expiration_date <= shiftBusinessDateKey(today, warningDays); }),
+    expired: credentialRows.filter((credential) => credential.expiration_date && credential.expiration_date < today),
+    missingTraining: employees.data.filter((employee) => employee.is_active && employee.trainingState === "none").slice(0, 20),
+    pendingSafetyAcknowledgments: safetyAcknowledgments.data ?? [],
+    pendingDocuments: documents.data ?? [], pendingRequests: requests.data ?? [], equipmentDueBack: equipment.data ?? [],
+    inactiveAccessReview: employees.data.filter((employee) => !employee.is_active && employee.platformAccessState === "active").slice(0, 20),
+  }, error: employees.error ?? (accessRequests.error ? safeStaffMessage(accessRequests.error.message) : credentials.error ? safeStaffMessage(credentials.error.message) : safetyAcknowledgments.error ? safeStaffMessage(safetyAcknowledgments.error.message) : documents.error ? safeStaffMessage(documents.error.message) : requests.error ? safeStaffMessage(requests.error.message) : equipment.error ? safeStaffMessage(equipment.error.message) : null) };
+}
+
+export async function getMyEmployeeSelfService(): Promise<DataResult<EmployeeSelfServiceData | null>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+  const { data, error } = await supabase.rpc("get_my_employee_self_service");
+  const result = (data as EmployeeSelfServiceData | null) ?? null;
+  if (result?.documents.length) {
+    const { data: signed, error: signedError } = await privateFileLinks(supabase, "employee_document", result.documents);
+    const byPath = new Map((signed ?? []).map((file) => [file.path, file.signedUrl]));
+    result.documents = result.documents.map((document) => ({ ...document, signed_url: byPath.get(document.storage_path) ?? null }));
+    return { data: result, error: error ? safeStaffMessage(error.message) : signedError ? safeStaffMessage(signedError.message) : null };
+  }
+  return { data: result, error: error ? safeStaffMessage(error.message) : null };
+}
+
+export async function getMySupervisedTeam(): Promise<DataResult<SupervisedTeamData | null>> {
+  const supabase = await createClient();
+  if (!supabase) return { data: null, error: "Supabase is not configured." };
+  const { data, error } = await supabase.rpc("get_my_supervised_team");
+  const result = (data as SupervisedTeamData | null) ?? null;
+  if (!result?.is_supervisor || !result.employees.length) return { data: result, error: error ? safeStaffMessage(error.message) : null };
+  const employeeIds = result.employees.map((employee) => employee.id);
+  const documents = await supabase.from("employee_documents").select("id, employee_id, title, storage_path, access_classification").in("employee_id", employeeIds).in("access_classification", ["employee_visible", "supervisor_visible"]).eq("review_status", "approved").is("archived_at", null);
+  const paths = (documents.data ?? []).map((document) => document.storage_path);
+  const signed = paths.length ? await privateFileLinks(supabase, "employee_document", documents.data ?? []) : { data: [], error: null };
+  const signedByPath = new Map((signed.data ?? []).map((file) => [file.path, file.signedUrl]));
+  result.employees = result.employees.map((employee) => ({ ...employee, documents: (documents.data ?? []).filter((document) => document.employee_id === employee.id).map((document) => ({ id: document.id, title: document.title, access_classification: document.access_classification, signed_url: signedByPath.get(document.storage_path) ?? null })) }));
+  return { data: result, error: error ? safeStaffMessage(error.message) : documents.error ? safeStaffMessage(documents.error.message) : signed.error ? safeStaffMessage(signed.error.message) : null };
+}
+
+export async function getEmployeeEligibilityWarnings(userIds: string[], scope: { type: "job_assignment_role" | "equipment_category" | "platform_role"; value: string }) {
+  const supabase = await createClient();
+  if (!supabase || !userIds.length) return [];
+  const { data: directory } = await supabase.rpc("get_employee_operational_directory");
+  const employees = (((directory as { employees?: Array<{ id: string; auth_user_id: string | null; preferred_name: string | null; legal_name: string; employment_status: string; is_active: boolean; employee_credentials?: Array<{ status: string; expiration_date: string | null; credential_type_id: string }> }> } | null)?.employees ?? [])).filter((employee) => userIds.includes(employee.id) || Boolean(employee.auth_user_id && userIds.includes(employee.auth_user_id)));
+  const { data: requirements } = await supabase.from("qualification_requirements").select("credential_type_id, warning_only, credential_types(label)").eq("requirement_scope", scope.type).eq("scope_value", scope.value).eq("is_active", true);
+  const today = getBusinessDateKey(new Date());
+  const foundUserIds = new Set((employees ?? []).flatMap((employee) => [employee.id, employee.auth_user_id].filter(Boolean)));
+  const missingRecords = userIds.filter((userId) => !foundUserIds.has(userId)).map((userId) => ({ userId, message: "This assigned user has no linked employee readiness record. Review the assignment.", requiresOverride: false }));
+  const employeeWarnings = (employees ?? []).flatMap((employee) => {
+    const userId = employee.id;
+    const label = employee.preferred_name || employee.legal_name || "Employee";
+    const warnings: { userId: string; message: string; requiresOverride: boolean }[] = [];
+    if (!employee.is_active || ["inactive", "separated", "leave"].includes(employee.employment_status)) warnings.push({ userId, message: `${label} is ${employee.employment_status} and is not normally scheduling-eligible.`, requiresOverride: true });
+    else if (["applicant", "onboarding"].includes(employee.employment_status)) warnings.push({ userId, message: `${label} is still ${employee.employment_status}. Review supervision and assignment limits.`, requiresOverride: false });
+    for (const requirement of requirements ?? []) {
+      const valid = (employee.employee_credentials ?? []).some((credential) => credential.credential_type_id === requirement.credential_type_id && credential.status === "active" && (!credential.expiration_date || credential.expiration_date >= today));
+      if (!valid) {
+        const relation = requirement.credential_types as { label?: string } | { label?: string }[] | null;
+        const credentialLabel = (Array.isArray(relation) ? relation[0]?.label : relation?.label) || "required qualification";
+        warnings.push({ userId, message: `${label} does not have a current verified ${credentialLabel} for this assignment.`, requiresOverride: !requirement.warning_only });
+      }
+    }
+    return warnings;
+  });
+  return [...missingRecords, ...employeeWarnings];
+}
+
+function credentialState(credentials: { status: string; expiration_date: string | null; archived_at: string | null; credential_types?: { default_warning_days?: number } | { default_warning_days?: number }[] | null }[]): EmployeeListRow["credentialState"] {
+  const active = credentials.filter((credential) => !credential.archived_at);
+  if (!active.length) return "none";
+  if (active.some((credential) => credential.status === "pending_verification")) return "pending";
+  const today = getBusinessDateKey(new Date());
+  if (active.some((credential) => credential.expiration_date && credential.expiration_date < today)) return "expired";
+  if (active.some((credential) => { const relation = credential.credential_types; const warningDays = (Array.isArray(relation) ? relation[0]?.default_warning_days : relation?.default_warning_days) ?? 30; return credential.expiration_date && credential.expiration_date <= shiftBusinessDateKey(today, warningDays); })) return "expiring";
+  return "current";
+}

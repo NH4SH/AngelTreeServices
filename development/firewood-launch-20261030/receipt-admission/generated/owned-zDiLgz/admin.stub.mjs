@@ -1,0 +1,1 @@
+export function getServiceRoleClient(){return globalThis.ATS_RECEIPT_FIXTURE.db;}

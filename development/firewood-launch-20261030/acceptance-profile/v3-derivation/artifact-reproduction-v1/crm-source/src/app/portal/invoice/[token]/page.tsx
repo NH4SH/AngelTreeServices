@@ -1,0 +1,210 @@
+import {getFirewoodCollectorPolicy,getFirewoodOrderReturnUrl,FIREWOOD_HANDOFF_TERMS} from "@/lib/firewood/handoff/collector-policy";
+import { getFirewoodInvoiceDocumentAccounting } from "@/lib/documents/firewood-invoice-accounting-server";
+import { PortalPaymentRefresh } from "@/components/portal-payment-refresh";
+import { CalendarDays, CircleDollarSign, MapPin, ReceiptText, ShieldCheck } from "lucide-react";
+import { InvoiceDocument } from "@/components/documents/invoice-document";
+import { PrintButton } from "@/components/documents/print-button";
+import { InvoicePortalPaymentChooser } from "@/components/invoice-portal-payment-button";
+import { PortalContact } from "@/components/portal-contact";
+import { customerInvoiceState } from "@/lib/portal/customer-states";
+import "../../customer-clarity.css";
+import { PortalViewTracker } from "@/components/portal-view-tracker";
+import { getInvoiceByPortalToken } from "@/lib/data/portal-invoice";
+import { formatBusinessDateTime } from "@/lib/business-time";
+import { getInvoiceDisplayNumber } from "@/lib/invoices/status";
+import { getStripeServerConfig } from "@/lib/stripe/server";
+import { getInvoicePaymentConfiguration } from "@/lib/payments/payment-options";
+import { getSuccessfulPaymentTotal } from "@/lib/payments/reconciliation";
+import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { checkPortalPageRateLimit } from "@/lib/security/portal-rate-limit";
+
+type CustomerInvoicePortalPageProps = {
+  params: Promise<{
+    token: string;
+  }>;
+  searchParams: Promise<{ payment?: string }>;
+};
+
+export default async function CustomerInvoicePortalPage({ params, searchParams }: CustomerInvoicePortalPageProps) {
+  const { token } = await params;
+  const { payment } = await searchParams;
+  const rateLimit = await checkPortalPageRateLimit("invoice", token);
+  if (!rateLimit.available) return <PortalUnavailable message="This secure invoice is temporarily unavailable. Please try again shortly." />;
+  if (!rateLimit.allowed) return <PortalUnavailable message="Please wait a moment before opening this secure invoice again." />;
+  const lookup = await getInvoiceByPortalToken(token);
+
+  if (!lookup.invoice) {
+    return <PortalUnavailable message={lookup.message} />;
+  }
+
+  const invoice = lookup.invoice;
+  const firewoodReturnUrl=getFirewoodOrderReturnUrl(invoice);
+  const scopeSummary = getInvoiceScopeSummary(invoice);
+  // Token lookup above authorizes this invoice; reuse checkout's complete, read-only principal receipt.
+  const paymentClient = getServiceRoleClient();
+  const principal = paymentClient ? await getSuccessfulPaymentTotal(paymentClient, invoice.id) : null;
+  if (!principal || principal.error) return <PortalUnavailable message="The current invoice balance could not be confirmed. Please refresh this secure link or call our office before making a payment." />;
+  const paymentTotalCents = principal.totalCents;
+  const firewoodDocumentAccounting = await getFirewoodInvoiceDocumentAccounting(invoice);
+  const amountDueCents = firewoodDocumentAccounting ? firewoodDocumentAccounting.balanceDueCents ?? invoice.total_cents : Math.max(0, invoice.total_cents - paymentTotalCents);
+  const stripeConfig=getStripeServerConfig();
+  const stripeConfigured = stripeConfig.configured;
+  const firewoodPolicy=paymentClient?await getFirewoodCollectorPolicy(paymentClient,invoice,stripeConfig.configured?stripeConfig.livemode:false):{ok:false as const,message:"Payment status is unavailable. Please contact our office.",status:503,reason:"setup" as const};
+  const paymentConfig = getInvoicePaymentConfiguration();
+  const regularPaymentState = customerInvoiceState({ status: firewoodDocumentAccounting?.kind === "credited" ? "credited" : invoice.status, amountDueCents, payments: invoice.payments ?? [], returnedPayment: payment });
+  const collectorPaymentState=!firewoodPolicy.ok&&firewoodPolicy.reason!=="settled"&&regularPaymentState.kind!=="void"&&regularPaymentState.kind!=="credited"?{kind:"review" as const,label:"Office review",title:"Please contact our office",message:firewoodPolicy.message,canChoose:false,refresh:false}:regularPaymentState;
+  const accountingReview = firewoodDocumentAccounting?.kind === "unconfirmed" || !!firewoodDocumentAccounting && !firewoodDocumentAccounting.canRequestPayment && collectorPaymentState.canChoose;
+  const paymentState = accountingReview ? {kind:"review" as const,label:"Office review",title:"Please contact our office",message:"The current credit and payment balance could not be confirmed for a new payment. Please refresh this secure link or contact our office before paying.",canChoose:false,refresh:false} : collectorPaymentState;
+  const firewoodReview=(firewoodDocumentAccounting !== null || invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS)&&paymentState.kind==="review";
+  const refreshHref = `/portal/invoice/${encodeURIComponent(token)}${paymentState.kind === "confirming" ? "?payment=processing" : ""}#invoice-payment-status`;
+
+
+  return (
+    <main className="customer-portal-page customer-quote-page customer-invoice-page">
+      <PortalViewTracker documentType="invoice" token={token} />
+      <header className="customer-portal-header print-hidden">
+        <div className="customer-portal-brand">
+          <img alt="" aria-hidden="true" src="/angel-tree-services-logo.jpg" />
+          <div>
+            <strong>Angel Tree Services</strong>
+            <small>Fredericksburg, Virginia</small>
+          </div>
+        </div>
+        <p><ShieldCheck aria-hidden="true" size={17} /> Secure invoice</p>
+      </header>
+
+      <section className="customer-portal-hero customer-invoice-hero print-hidden">
+        <div className="customer-portal-intro">
+          <p className="surface-label">
+            <ReceiptText aria-hidden="true" size={18} />
+            Customer invoice
+          </p>
+          <h1>{getInvoiceDisplayNumber(invoice.invoice_number)}</h1>
+          <p>Check your balance and payment status here. The full invoice is below for your records.</p>
+          <nav className="customer-invoice-shortcuts" aria-label="Invoice sections">{paymentState.canChoose ? <a className="customer-invoice-pay-link" href="#invoice-payment">Choose payment method</a> : <a href="#invoice-payment-status">View payment status</a>}<a href="#invoice-details">View full invoice</a></nav>
+          <PrintButton label="Print or save invoice" />
+          {firewoodReturnUrl ? <p><a href={firewoodReturnUrl}>Return to Firewood order</a></p> : null}
+        </div>
+
+        <aside className="customer-portal-summary-card customer-invoice-summary">
+          <div className="customer-quote-summary-total">
+            <span>{firewoodReview ? "Original Firewood order amount" : paymentState.kind === "processing" || paymentState.kind === "confirming" ? "Balance awaiting payment confirmation" : paymentState.kind === "void" ? "Invoice amount — not payable" : "Balance due"}</span>
+            <strong>{formatCurrency(paymentState.kind === "credited" ? 0 : firewoodReview ? invoice.total_cents : amountDueCents)}</strong>
+          </div>
+          <dl className="customer-quote-summary-list">
+            <div>
+              <dt>Status</dt>
+              <dd>{paymentState.label}</dd>
+            </div>
+            <div>
+              <dt>Service location</dt>
+              <dd><MapPin aria-hidden="true" size={16} /> {formatLocation(invoice)}</dd>
+            </div>
+            <div>
+              <dt>Due date</dt>
+              <dd><CalendarDays aria-hidden="true" size={16} /> {formatDate(invoice.due_at)}</dd>
+            </div>
+          </dl>
+          <div id="invoice-payment-status" className={`customer-invoice-current-state ${paymentState.kind}`} role="status"><h2>{paymentState.title}</h2><p>{paymentState.message}</p>{paymentState.kind === "settled" && invoice.paid_at ? <p>Payment recorded {formatDate(invoice.paid_at)}. Thank you.</p> : null}{paymentState.refresh ? invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS ? <PortalPaymentRefresh /> : <a href={refreshHref}>Refresh payment status</a> : null}</div>
+        </aside>
+      </section>
+
+      {scopeSummary ? (
+        <section className="customer-quote-overview customer-invoice-scope-overview print-hidden">
+          <article className="customer-quote-overview-card">
+            <strong>
+              <ReceiptText aria-hidden="true" size={16} />
+              Scope at a glance
+            </strong>
+            <p className="business-document-preformatted">{scopeSummary}</p>
+          </article>
+        </section>
+      ) : null}
+
+      <section className="customer-invoice-payment-panel print-hidden" id="invoice-payment" aria-labelledby="invoice-payment-title">
+        <h2 id="invoice-payment-title">{paymentState.canChoose ? "Choose how to pay" : "Questions about this invoice?"}</h2>
+        {paymentState.canChoose ? <InvoicePortalPaymentChooser
+          amountDueCents={amountDueCents}
+          cardEnabled={paymentConfig.cardEnabled}
+          firewoodHandoff={invoice.document_terms_version===FIREWOOD_HANDOFF_TERMS}
+          invoiceNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
+          mailingAddress={paymentConfig.businessCheckMailingAddress}
+          onlinePaymentEnabled={stripeConfigured}
+          selectedPreference={invoice.payment_preference}
+          stripePublishableKey={paymentConfig.stripePublishableKey}
+          surchargeBps={paymentConfig.surchargeBps}
+          surchargeEnabled={paymentConfig.surchargeEnabled}
+          token={token}
+        /> : null}
+        <PortalContact />
+      </section>
+
+      <section className="customer-invoice-document" id="invoice-details" aria-label="Full invoice and terms">
+        <InvoiceDocument invoice={invoice} firewoodAccounting={firewoodDocumentAccounting} />
+      </section>
+
+      <footer className="customer-portal-footer print-hidden">
+        <strong>Angel Tree Services</strong>
+        <span>{firewoodReturnUrl ? "Return to your Firewood order to review its latest payment and delivery status." : "Keep your secure invoice email to return to this document."}</span>
+      </footer>
+    </main>
+  );
+}
+
+function PortalUnavailable({ message }: { message: string }) {
+  return (
+    <main className="customer-portal-page customer-portal-unavailable">
+      <div className="customer-portal-brand">
+        <img alt="" aria-hidden="true" src="/angel-tree-services-logo.jpg" />
+        <div>
+          <strong>Angel Tree Services</strong>
+          <small>Fredericksburg, Virginia</small>
+        </div>
+      </div>
+      <section>
+        <ShieldCheck aria-hidden="true" size={28} />
+        <h1>Invoice link unavailable</h1>
+        <p>{message}</p>
+        <PortalContact />
+      </section>
+    </main>
+  );
+}
+
+function formatLocation(
+  invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceByPortalToken>>["invoice"]>,
+) {
+  const location = invoice.jobs?.service_locations;
+
+  if (!location) {
+    return "Contact Angel Tree Services";
+  }
+
+  return [location.street, location.city, location.state, location.postal_code].filter(Boolean).join(", ");
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "Contact us for due date";
+  }
+
+  return formatBusinessDateTime(value, { dateStyle: "long" });
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function getInvoiceScopeSummary(
+  invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceByPortalToken>>["invoice"]>,
+) {
+  const lineItemScope = (invoice.invoice_line_items ?? [])
+    .map((item) => [item.name, item.description].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n");
+
+  return lineItemScope || invoice.jobs?.requested_scope?.trim() || null;
+}

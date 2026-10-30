@@ -1,0 +1,23 @@
+// Root-only entry. Mount only in a separate UID0 controller. The Website never
+// receives this module, private SDK, signer key, Docker socket or issuer config.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {sha,parse,fingerprint,validateRegistration,validateBootstrap,sourceBindingFor,validateControl,SCOPE} from '../shared/protocol.mjs';
+import {readRootFile,createActualRootIO} from './io.mjs';
+import {observeRootIssuerSourceClosure} from './issuer-source.mjs';
+import {observePrivateSdkCustody} from './private-sdk.mjs';
+import {collectVerifiedRootObservation,issueFromVerifiedObservation,assertActualRootPreflight,ROOT_SOURCE_SQL} from './issuer-core.mjs';
+const folder='/var/lib/acceptance-controller';
+const clock=()=>({now:Date.now(),uptime:Math.floor(Number(fs.readFileSync('/proc/uptime','utf8').split(' ')[0])*1000)});
+export async function collectAndIssueActualSyntheticLease(){
+ assert.equal(process.platform,'linux');assert.equal(process.getuid?.(),0);const lock=folder+'/issuer.lock';const fd=fs.openSync(lock,'wx',0o600);
+ try{
+  const bootstrap=parse(readRootFile('/acceptance-admission/acceptance-root-bootstrap.json')),registrationBytes=readRootFile('/acceptance-admission/registered-source.json'),configBytes=readRootFile(folder+'/root-controller-config.json');validateBootstrap(bootstrap);assert.equal(bootstrap.scope,SCOPE);assert.equal(observeRootIssuerSourceClosure(),bootstrap.rootIssuerSourceClosureSha256);assert.equal(sha(configBytes),bootstrap.rootControllerConfigSha256);assert.equal(sha(registrationBytes),bootstrap.approvedRegistrationSha256);const registration=validateRegistration(parse(registrationBytes)),config=parse(configBytes);assert.equal(config.approvedRegistrationSha256,bootstrap.approvedRegistrationSha256);const publicKey=readRootFile('/acceptance-admission/synthetic-authority-public.pem',4096);assert.equal(fingerprint(publicKey),registration.authorityPublicKeyFingerprint);
+  const controlBytes=readRootFile('/acceptance-admission/firewood-acceptance.json'),bindingBytes=readRootFile('/acceptance-admission/source-binding.json');assert.equal(sha(controlBytes),bootstrap.acceptanceControlSha256);assert.equal(sha(controlBytes),registration.acceptanceControlSha256);validateControl(parse(controlBytes),registration);assert.equal(sha(bindingBytes),registration.sourceBindingSha256);assert.deepEqual(parse(bindingBytes),sourceBindingFor(registration));assert.equal(sha(readRootFile('/acceptance-admission/website-acceptance-runtime.json')),registration.runtimeDescriptorSha256);
+  const io=createActualRootIO(registration,config);assertActualRootPreflight(registration,await io.readSource(ROOT_SOURCE_SQL),await io.readComponents());const sdk=await observePrivateSdkCustody(registration,config.sdkSource),at=clock();const observed=await collectVerifiedRootObservation({registrationBytes,approvedRegistrationSha256:bootstrap.approvedRegistrationSha256,controlBytes,io,sdkCustody:sdk,now:at.now,uptime:at.uptime});
+  const statePath=folder+'/issuer-sequence.json';const s=fs.lstatSync(statePath);assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.uid===0&&(s.mode&0o777)===0o600&&s.nlink===1);const state=JSON.parse(fs.readFileSync(statePath,'utf8'));assert.equal(state.registrationSha256,bootstrap.approvedRegistrationSha256);assert.ok(Number.isSafeInteger(state.sequence)&&state.sequence>=0);assert.ok(readRootFile('/acceptance-admission/registered-source.json').equals(registrationBytes));assert.ok(readRootFile('/acceptance-admission/firewood-acceptance.json').equals(controlBytes));assert.ok(readRootFile('/acceptance-admission/source-binding.json').equals(bindingBytes));assert.ok(readRootFile(folder+'/root-controller-config.json').equals(configBytes));const privateKey=readRootFile('/run/acceptance-root-secrets/synthetic_authority_ed25519',4096,{privateFile:true});const current=clock();const envelope=issueFromVerifiedObservation(observed,{now:current.now,uptime:current.uptime,sequence:state.sequence+1,enabledModes:config.enabledModes,privateKey,publicKey});
+  // Reserve sequence durably before returning. Publication/native SQL renewal
+  // is Root's separate actual-target operation, never a business-runtime side effect.
+  const next=statePath+'.new';const stateFd=fs.openSync(next,'wx',0o600);try{fs.writeFileSync(stateFd,JSON.stringify({registrationSha256:state.registrationSha256,sequence:state.sequence+1}));fs.fsyncSync(stateFd);}finally{fs.closeSync(stateFd);}fs.renameSync(next,statePath);const directoryFd=fs.openSync(folder,'r');try{fs.fsyncSync(directoryFd);}finally{fs.closeSync(directoryFd);}return envelope;
+ }finally{fs.closeSync(fd);fs.unlinkSync(lock);}
+}

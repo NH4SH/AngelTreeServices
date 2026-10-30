@@ -1,0 +1,166 @@
+import { renderCustomerDocumentAction } from "./customer-document-action.ts";
+import type { CustomerDocumentEmailDraft } from "@/lib/documents/email-drafts";
+
+const companyName = "Angel Tree Services";
+
+export function renderCustomerDocumentEmailHtml(
+  draft: CustomerDocumentEmailDraft,
+  options: { logoUrl?: string | null } = {},
+) {
+  const logo = options.logoUrl
+    ? `<img alt="${companyName}" src="${escapeAttribute(options.logoUrl)}" width="78" style="display:block;width:78px;max-width:78px;height:auto;border:0;" />`
+    : `<div style="font-size:20px;line-height:1.2;font-weight:800;color:#ffffff;">${companyName}</div>`;
+  const action = renderCustomerDocumentAction(draft.portalUrl, draft.ctaLabel);
+  const scope = renderScopePresentation(draft.scopeText);
+  const notes = draft.customerNotes
+    ? `<tr><td style="padding:0 28px 24px;">
+         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f8f5;border:1px solid #d7e3da;border-radius:6px;">
+           <tr><td style="padding:16px 18px;">
+             <p style="margin:0 0 7px;color:#174b32;font-size:13px;line-height:1.3;font-weight:800;text-transform:uppercase;">Important notes</p>
+             <div style="color:#303934;font-size:15px;line-height:1.55;white-space:pre-wrap;">${formatPlainText(draft.customerNotes)}</div>
+           </td></tr>
+         </table>
+       </td></tr>`
+    : "";
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>${escapeHtml(draft.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f2;color:#27312b;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f1f5f2;">
+    <tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#fbfdfb;border:1px solid #d7e3da;border-radius:8px;overflow:hidden;">
+        <tr><td style="padding:14px 28px;background:#174b32;">${logo}</td></tr>
+        <tr><td style="padding:28px 28px 18px;">
+          <p style="margin:0 0 18px;color:#27312b;font-size:17px;line-height:1.55;">${escapeHtml(draft.greeting)}</p>
+          <p style="margin:0;color:#303934;font-size:16px;line-height:1.65;">${formatPlainText(draft.intro)}</p>
+          ${draft.referenceLabel ? `<p style="margin:14px 0 0;color:#174b32;font-size:13px;line-height:1.4;font-weight:800;">${escapeHtml(draft.referenceLabel)}</p>` : ""}
+        </td></tr>
+        <tr><td style="padding:0 28px 24px;">
+          <p style="margin:0 0 10px;color:#174b32;font-size:13px;line-height:1.3;font-weight:800;text-transform:uppercase;">${escapeHtml(draft.scopeHeading)}</p>
+          <div style="border-top:1px solid #d7e3da;border-bottom:1px solid #d7e3da;color:#27312b;font-size:15px;line-height:1.58;">${scope}</div>
+        </td></tr>
+        <tr><td style="padding:0 28px 24px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;border:1px solid #cad8ce;border-radius:6px;">
+            <tr>
+              <td style="padding:15px 16px;border-bottom:1px solid #d7e3da;color:#5c675f;font-size:13px;">${escapeHtml(draft.summaryLabel)}</td>
+              <td align="right" style="padding:15px 16px;border-bottom:1px solid #d7e3da;color:#174b32;font-size:19px;font-weight:800;">${escapeHtml(draft.summaryValue)}</td>
+            </tr>
+            <tr>
+              <td style="padding:13px 16px;color:#5c675f;font-size:13px;">${escapeHtml(draft.timingLabel)}</td>
+              <td align="right" style="padding:13px 16px;color:#27312b;font-size:14px;font-weight:700;">${escapeHtml(draft.timingValue)}</td>
+            </tr>
+          </table>
+        </td></tr>
+        ${notes}
+        <tr><td style="padding:0 28px 28px;">
+          ${action}
+          <p style="margin:0;color:#303934;font-size:15px;line-height:1.65;">${formatPlainText(draft.closing)}</p>
+          <p style="margin:20px 0 0;color:#27312b;font-size:15px;line-height:1.55;">Thank you,<br /><br /><strong>${companyName}</strong></p>
+        </td></tr>
+        <tr><td style="padding:18px 28px;background:#edf4ef;border-top:1px solid #d7e3da;color:#536158;font-size:13px;line-height:1.65;">
+          <a href="tel:+15403888715" style="color:#174b32;text-decoration:none;">(540) 388-8715</a><br />
+          <a href="mailto:info@angeltreeservice.org" style="color:#174b32;text-decoration:none;">info@angeltreeservice.org</a><br />
+          <a href="https://angeltreeservices.org/" style="color:#174b32;text-decoration:none;">angeltreeservices.org</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function renderScopePresentation(value: string) {
+  const blocks = parseScopeBlocks(value);
+  return blocks.map((block, index) => {
+    if (block.kind === "item") {
+      const hasPreviousItem = blocks.slice(0, index).some((candidate) => candidate.kind === "item");
+      return `<p style="margin:0;padding:${hasPreviousItem ? "20px" : "17px"} 0 5px;${hasPreviousItem ? "border-top:1px solid #d7e3da;" : ""}color:#174b32;font-size:16px;line-height:1.35;font-weight:800;">${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "heading") {
+      return `<p style="margin:0;padding:5px 0 3px;color:#667169;font-size:13px;line-height:1.4;font-weight:700;">${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "quantity") {
+      return `<p style="margin:0;padding:8px 0 2px;color:#667169;font-size:13px;line-height:1.45;">Quantity: ${escapeHtml(block.text)}</p>`;
+    }
+    if (block.kind === "price") {
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td style="padding:8px 0 16px;color:#667169;font-size:13px;line-height:1.4;">Price</td><td align="right" style="padding:8px 0 16px;color:#174b32;font-size:18px;line-height:1.2;font-weight:800;">${escapeHtml(block.text)}</td></tr></table>`;
+    }
+    return `<div style="padding:5px 0 8px;color:#303934;font-size:15px;line-height:1.58;white-space:pre-wrap;">${formatPlainText(block.text)}</div>`;
+  }).join("");
+}
+
+function parseScopeBlocks(value: string) {
+  const labels = new Map([
+    ["front of the house", "Front of the house"],
+    ["front of house", "Front of the house"],
+    ["beside right", "Right side of the house"],
+    ["right side", "Right side of the house"],
+    ["right side of the house", "Right side of the house"],
+    ["beside left", "Left side of the house"],
+    ["left side", "Left side of the house"],
+    ["left side of the house", "Left side of the house"],
+    ["back property", "Back of the property"],
+    ["back of the property", "Back of the property"],
+    ["close to the shed", "Near the shed"],
+    ["near the shed", "Near the shed"],
+  ]);
+  const blocks: { kind: "heading" | "item" | "price" | "quantity" | "text"; text: string }[] = [];
+  let textLines: string[] = [];
+  const usesProposalPricing = value.split(/\r?\n/).some((line) => /^Price:\s*\S/i.test(line.trim()));
+  const flushText = () => {
+    const text = textLines.join("\n").trim();
+    if (text) blocks.push({ kind: "text", text });
+    textLines = [];
+  };
+
+  for (const line of value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n")) {
+    const trimmed = line.trim();
+    const item = usesProposalPricing ? trimmed.match(/^\d+\.\s+(.+)$/) : null;
+    const price = usesProposalPricing ? trimmed.match(/^Price:\s*(.+)$/i) : null;
+    const quantity = usesProposalPricing ? trimmed.match(/^Quantity:\s*(.+)$/i) : null;
+    const candidate = trimmed.replaceAll(/[.:]+$/g, "").replaceAll(/\s+/g, " ").toLowerCase();
+    const heading = labels.get(candidate);
+
+    if (item) {
+      flushText();
+      blocks.push({ kind: "item", text: item[1] });
+    } else if (price) {
+      flushText();
+      blocks.push({ kind: "price", text: price[1] });
+    } else if (quantity) {
+      flushText();
+      blocks.push({ kind: "quantity", text: quantity[1] });
+    } else if (heading) {
+      flushText();
+      blocks.push({ kind: "heading", text: heading });
+    } else if (!trimmed) {
+      flushText();
+    } else {
+      textLines.push(line);
+    }
+  }
+  flushText();
+  return blocks;
+}
+
+function formatPlainText(value: string) {
+  return escapeHtml(value).replaceAll("\n", "<br />");
+}
+
+function escapeAttribute(value: string) {
+  return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}

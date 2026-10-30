@@ -77,11 +77,15 @@ def review_by_id(review_id: str) -> dict:
 def testimonial(review_id: str, class_name: str = "ats-testimonial") -> str:
     review = review_by_id(review_id)
     date_label = review.get("reviewDateLabel", str(review["reviewYear"]))
+    reviewer_role = (
+        f"\n          <span>{html_text(review['reviewerRole'])}</span>"
+        if review.get("reviewerRole") else ""
+    )
     return f"""
       <blockquote class="{html_attr(class_name)}">
         <p>“{html_text(review['excerpt'])}”</p>
         <footer>
-          <cite>{html_text(review['reviewerDisplayName'])}</cite>
+          <cite>{html_text(review['reviewerDisplayName'])}</cite>{reviewer_role}
           <span>{html_text(review['platform'])} · {html_text(date_label)}</span>
           <a href="{html_attr(review['publicProfileUrl'])}" target="_blank" rel="noopener noreferrer">View Angel Tree Services on {html_text(review['platform'])}</a>
         </footer>

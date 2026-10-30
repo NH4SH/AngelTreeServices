@@ -1164,11 +1164,14 @@ class Validator:
         commercial = self.page_sources.get("/services/commercial-hoa-tree-care/", "")
         for term in (
             "donnysmooth",
-            "Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.",
+            "Chancellor Green HOA President",
+            "Some trees in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.",
             "Google · 2026",
         ):
             if term not in commercial:
                 self.error(f"/services/commercial-hoa-tree-care/: customer-proof invariant is missing: {term}")
+        if "[trees]" in commercial:
+            self.error("/services/commercial-hoa-tree-care/: obsolete bracketed testimonial text found")
 
         if re.search(r"\b212\s+(?:referral|referrals)\b", combined_public_html, re.IGNORECASE):
             self.error("Public pages must not include the unsupported 212 referrals claim")

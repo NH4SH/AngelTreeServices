@@ -49,7 +49,7 @@ All quotation text below is brief, attributed to the source label displayed publ
 | Reviewer | Attribution | Exact excerpt used |
 | --- | --- | --- |
 | Mark Mayer | Google Review, July 2026 | `I was pleased with the quote... and then thrilled with the fantastic job the crew did in every respect... We will use them again, and have already referred them to others!` |
-| donnysmooth | Google Review, 2026 | `Some [trees] in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.` |
+| donnysmooth | Google Review, 2026 | `Some trees in between houses... required all sorts of ropes, pulleys and bucket trucks to bring down safely while not damaging anyone’s property.` |
 | Kathleen Humphries | Google Review, 2026 | `Saul was extremely knowledgeable... assessed the health of our trees and offered guidance for future work.` |
 | K P | Google Review, updated July 2026 | `2nd 5 star review from me... They literally left no ‘tree/leaf crumbs.’ Would hire again!` |
 | Tim S. | Google Review, 2023; displayed and labeled by Angi | `I’ve had several very large trees taken down which were immediately adjacent to our house, and everything went perfectly.` |
@@ -57,6 +57,8 @@ All quotation text below is brief, attributed to the source label displayed publ
 | Anne L. | Angi, 2023 | `I have used this company twice and was so pleased. They respond promptly and definitely knows the business well.` |
 | Louis F. | Angi, 2020 | `No damage to lots of delicate flowers and shrubs directly under the trees... they left the yard and my driveway cleaner than when they came.` |
 | JOHN P. | Angi, 2019 | `They brought the tree down (piece by piece) without any problems or damage to bushes and shrubs located near it...` |
+
+Owner clarification on October 17, 2026: the reviewer using the Google display name `donnysmooth` is the Chancellor Green HOA President. The owner approved adding that role beneath the unchanged display name on the Commercial/HOA page and removing the editorial brackets around `trees`. All remaining excerpt wording and the Google attribution/link are unchanged. This role attribution does not label the review as an official HOA endorsement or publish a customer list. The older July verification date above still applies to platform ratings/counts; those were not reverified in this copy-only change.
 
 Mark Mayer's July 2026 excerpt is the homepage feature because it covers the quote, crew execution, repeat use, and referral intent. The donnysmooth excerpt appears only on the Commercial/HOA page because it describes complex work between houses. Kathleen Humphries appears on Credentials and Safety because the excerpt specifically describes tree-health assessment and future guidance. K P appears on Recognition as repeat-customer and cleanup proof. Tim S. remains on Recognition, and JOHN P. remains on tree removal because that excerpt explicitly describes removal. Customer wording is not reassigned to services it does not support.
 

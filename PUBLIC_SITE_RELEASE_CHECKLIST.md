@@ -1,5 +1,64 @@
 # Angel Tree Services Public Site Release Checklist
 
+## Option 1 copy and commercial attribution final review — local only
+
+Owner requested final regression/release-readiness review and confirmed the
+Google reviewer donnysmooth is Chancellor Green HOA President. Preserve the
+Google display name, add the role below it, and remove brackets around trees.
+Update the shared review source, renderer, source notes and matching validator.
+Do not add an organization endorsement or Review/AggregateRating schema.
+
+The exact approved option 1 homepage descriptions remain unchanged. Preserve
+photos, buttons, CSS, SEO heads, estimate URLs/context and scripts. Keep analytics
+disabled and CRM code/settings unchanged. No commit, push or deploy authorized.
+No customer data or form submission.
+
+- Fresh134tests pass and15approved pages validate. Only homepage/commercial
+  HTML differ among215builtfiles;213unchanged. The homepage exactly matches the
+  approved option1implementation. Reversing the two commercial body edits
+  reproduces its published hash; all15SEOheads/links/photos/buttons preserved.
+- Fresh local keyboard service destinations and Landscaping estimate prefill
+  pass withblankname/details. Commercial1440/390/320: role wraps readably with
+  nooverflow; originalGoogle displayname/year/link retained, brackets removed.
+  Existing8homepagecaptures remain valid by exact source/buildhash equality.
+- Shared main55d0ba5 includes2newer platform-only commits, no public overlap.
+  Preserve then-current repository work at any separately approved publication.
+- Reuse homepage single41inheritedfindingscan; onecommercialscan6existing
+  sharedstylefindings. No CSS changes or new role/layout issue.
+- Evidence: October16chat work/service-copy-commercial-final-review/ and
+  .impeccable/review/service-copy-commercial-final-review/. Fresh finishreview:
+  ship for local review, no fixes. Documentation complete; all215hashes independently
+  verified. No physicaldevice/spoken-screen-reader/
+  productiondelivery tests. After approved release, run non-submitting smoke.
+
+## Warm homepage service copy — local only
+
+Owner approved option 1 for both homepage service cards. This supersedes the
+previous descriptions, published as64ff25c, only in this local candidate.
+Do not commit, push or deploy this batch. Keep analytics disabled and CRM unchanged.
+
+- Tree Service: Care for the trees you love. Count on our arborist-led team for
+  pruning, tree removal, stump grinding and more.
+- Landscaping: Bring out the beauty in your yard with bush and hedge trimming,
+  tidy garden beds and fresh mulch.
+- Update visible paragraphs and duplicate legacy configuration together. Preserve
+  photos, buttons, existing CSS, SEO heads, estimate URLs/context and all scripts.
+- Local verification complete:134tests pass and15approved pages validate. Only
+  index.html differs among215built files;214unchanged. Reverse the four approved
+  replacements to reproduce the published homepage exactly.
+- Browser1440/1280/760/576/390/320: readable copy, nooverflow/overlap, aligned
+  paired actions. Both Explore keyboard destinations and Landscaping estimate
+  selection pass, with name/details blank. No data entered or form submitted.
+  Existing CSS/button rules unchanged;56pxactions except naturally wrapped72.8px
+  labels at576.
+- One detector:41exact inherited findings, none new. Evidence: October16chat
+  work/service-copy-warm/ and .impeccable/review/service-copy-warm/.
+- Fresh finish review: ship, no material fixes. Ordinary-extension documentation
+  comparison complete; all215artifact hashes independently verified.
+  Physical-device/spoken-screen-reader/production delivery not tested.
+
+Earlier publication approvals below apply to their historical batches only.
+
 ## Homepage service-description publication approved
 
 Owner approved committing, pushing and publishing the reviewed homepage copy and

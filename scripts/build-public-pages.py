@@ -1599,7 +1599,7 @@ def privacy_body() -> str:
           <h2>Who we are</h2>
           <p>Angel Tree Services LLC is a family-operated tree-service and property-care company serving the Fredericksburg region. Questions may be sent to <a href="mailto:info@angeltreeservice.org">info@angeltreeservice.org</a> or discussed at <a href="tel:+15403888715">(540) 388-8715</a>.</p>
           <h2>Scope</h2>
-          <p>This policy covers angeltreeservices.org, admin.angeltreeservices.org, proposal and invoice portal links, payment flows, and the Angel Tree employee iOS app. It covers customer, property, organization-contact, and employee/app-user information used to operate the business.</p>
+          <p>This policy covers angeltreeservices.org, admin.angeltreeservices.org, checkout.angeltreeservices.org, proposal and invoice portal links, payment flows, and the Angel Tree employee iOS app. It covers customer, property, organization-contact, and employee/app-user information used to operate the business.</p>
           <h2>Information customers and contacts provide</h2>
           <p>We may receive names, phone numbers, email addresses, communication preferences, property or service-location addresses, requested services, project descriptions, gate or access instructions, photos, documents, and other details needed to prepare, schedule, perform, document, or follow up on work.</p>
           <p>Estimate requests may also include whether the request is residential or commercial, marketing-consent choices, the page and referring page used to submit the request, campaign parameters present in the URL, and a submission identifier used to prevent accidental duplicates.</p>
@@ -1734,12 +1734,20 @@ def firewood_prices() -> str:
             <div><h3>{html_text(item['label'])}</h3><p>${item['delivered_price']}</p></div>
             <p>With stacking: ${item['delivered_stacked_price']}</p>
           </article>''' for item in FIREWOOD['quantities'])
+    checkout = FIREWOOD['checkout']
+    rows += f'''
+          <article class="ats-firewood-price">
+            <div><h3>Two cords</h3><p>${checkout['two_cords_delivered_price']}</p></div>
+            <p>With stacking: ${checkout['two_cords_stacked_price']}</p>
+            <p>Save 30% compared with four half-cord orders, before stacking.</p>
+          </article>'''
     return f'''
         <aside class="ats-firewood-prices" aria-labelledby="firewood-prices" data-firewood-prices>
           <h2 id="firewood-prices">Delivered prices</h2>
           {rows}
           <p><strong>Optional stacking: +${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}.</strong></p>
-          <div class="ats-actions"><a class="ats-button ats-button--green" href="tel:{PHONE_LINK}">Call about firewood</a><a class="ats-firewood-delivery-link" href="#firewood-delivery">Delivery areas</a></div>
+          <div class="ats-actions"><a class="ats-button ats-button--green" href="{html_attr(checkout['url'])}">Order firewood</a><a class="ats-button ats-button--outline" href="tel:{PHONE_LINK}">Call about firewood</a></div>
+          <p><a class="ats-firewood-delivery-link" href="#firewood-delivery">Delivery areas</a></p>
         </aside>'''
 
 
@@ -1754,7 +1762,7 @@ def firewood_body() -> str:
         ("How long are the logs?", f"Logs are generally about {log_length} inches long. Lengths are approximate. Check the size your fireplace or wood stove takes, and mention any specific size requirement when you call."),
         ("Where do you deliver firewood?", "We deliver throughout Fredericksburg, Spotsylvania, Stafford, Caroline and King George, including communities within those areas. Give us the delivery address when you call so we can arrange the delivery."),
         ("Can you stack my firewood?", f"Yes. Stacking is optional and costs an additional ${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}. {html_text(FIREWOOD['stacking_access'])} Tell us about the route and preferred stacking spot when you order so we can confirm access before delivery."),
-        ("How do I order firewood?", f'Call <a href="tel:{PHONE_LINK}">{PHONE_DISPLAY}</a> with your address, whether you want a full cord or half cord, and whether you want delivery only or delivery with stacking. We’ll confirm availability and the arrangements for your order.'),
+        ("How do I order firewood?", f'<a href="{html_attr(FIREWOOD["checkout"]["url"])}">Order firewood online</a> for personal household use. Choose a half cord, full cord or two cords and optional stacking. You’ll review payment options, any eligible credit-card fee and the final total before paying. You can also call <a href="tel:{PHONE_LINK}">{PHONE_DISPLAY}</a> to order or discuss business purchases. Angel will contact you with a delivery date within a week of your order.'),
     ]
     return f'''
     <section class="ats-content-section" aria-labelledby="firewood-buying-title">
@@ -1774,10 +1782,11 @@ def firewood_body() -> str:
         </div>
         <div class="ats-prose">
           <h2>Plan your delivery.</h2>
-          <p>Call with your delivery address, whether you would like a full cord or half cord, and whether you want stacking. We’ll confirm availability and arrange your order.</p>
+          <p>Order up to two cords online for personal household use, or call to discuss your order. Provide your delivery address and whether you want stacking. Angel will contact you with a delivery date within a week of your order. Call if you need more specific scheduling.</p>
           <p>A full cord is ${FIREWOOD['quantities'][0]['delivered_price']} delivered. A half cord is ${FIREWOOD['quantities'][1]['delivered_price']} delivered. Optional stacking adds ${FIREWOOD['stacking_fee']} {html_text(FIREWOOD['stacking_fee_basis'])}, bringing the totals to ${FIREWOOD['quantities'][0]['delivered_stacked_price']} for a full cord or ${FIREWOOD['quantities'][1]['delivered_stacked_price']} for a half cord with stacking.</p>
           <p>{html_text(FIREWOOD['stacking_access'])} Describe the route and where you would like the wood stacked when you call.</p>
-          <p><a class="ats-button ats-button--green" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a></p>
+          <p>Two cords are ${FIREWOOD['checkout']['two_cords_delivered_price']} delivered or ${FIREWOOD['checkout']['two_cords_stacked_price']} with stacking. The stacking charge applies once per delivery.</p>
+          <div class="ats-actions"><a class="ats-button ats-button--green" href="{html_attr(FIREWOOD['checkout']['url'])}">Order firewood</a><a class="ats-button ats-button--outline" href="tel:{PHONE_LINK}">Call {PHONE_DISPLAY}</a></div>
         </div>
       </div>
     </section>

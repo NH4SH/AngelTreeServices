@@ -532,6 +532,19 @@ img {
   background: var(--ats-green-deep);
 }
 
+.ats-button--outline {
+  border-color: var(--ats-green-aa);
+  background: transparent;
+  color: var(--ats-green-aa);
+}
+
+.ats-button--outline:hover,
+.ats-button--outline:focus-visible {
+  border-color: var(--ats-green-deep);
+  background: var(--ats-green-deep);
+  color: var(--ats-white);
+}
+
 .ats-page-hero__media {
   position: relative;
   aspect-ratio: 1 / 1;

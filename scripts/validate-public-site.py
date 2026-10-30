@@ -1837,8 +1837,8 @@ class Validator:
         source = self.page_sources.get('/firewood/', '')
         data = json.loads((ROOT / 'public-firewood.json').read_text())
         rows = re.findall(r'<article class="ats-firewood-price">.*?</article>', source, re.DOTALL)
-        if len(rows) != 2:
-            self.error('Firewood must show two clearly separated quantity/price rows')
+        if len(rows) != 3:
+            self.error('Firewood must show three clearly separated quantity/price rows')
         for row, item in zip(rows, data['quantities']):
             total = item['delivered_price'] + data['stacking_fee']
             if total != item['delivered_stacked_price']:
@@ -1854,6 +1854,19 @@ class Validator:
             self.error('Firewood must separate optional stacking from the delivered price')
         if [(x['label'], x['delivered_price'], x['delivered_stacked_price']) for x in data['quantities']] != [('Full cord', 450, 600), ('Half cord', 300, 450)]:
             self.error('Firewood prices must match the owner-confirmed delivered and stacked totals')
+        checkout = data.get('checkout', {})
+        checkout_url = 'https://checkout.angeltreeservices.org/firewood/checkout/'
+        if checkout != {'url': checkout_url, 'maximum_cords': 2, 'two_cords_delivered_price': 840, 'two_cords_stacked_price': 990}:
+            self.error('Firewood ordering must use the approved address, quantity limit and two-cord prices')
+        if len(rows) == 3 and any(text not in rows[2] for text in ('Two cords', '$840', 'With stacking: $990', 'Save 30%', 'four half-cord orders, before stacking')):
+            self.error('Two-cord savings must state the correct prices and half-cord comparison before stacking')
+        half_price = next(item['delivered_price'] for item in data['quantities'] if item['label'] == 'Half cord')
+        comparison_price = half_price * 4
+        two_price = checkout.get('two_cords_delivered_price', 0)
+        if (comparison_price - two_price) * 100 != comparison_price * 30 or two_price + data['stacking_fee'] != checkout.get('two_cords_stacked_price'):
+            self.error('Two-cord pricing must give exactly 30% savings before the single stacking charge')
+        if source.count(f'href="{checkout_url}"') != 3 or 'for personal household use' not in source or 'before paying' not in source:
+            self.error('Firewood must link to the permanent checkout and explain household ordering and payment review')
         coverage = re.search(r'<ul class="ats-firewood-areas">(.*?)</ul>', source, re.DOTALL)
         if not coverage or re.findall(r'<li>(.*?)</li>', coverage[1]) != data['delivery_areas']:
             self.error('Firewood delivery must list only its confirmed areas')

@@ -7,6 +7,12 @@
   "delivery_included": true,
   "stacking_fee": 150,
   "stacking_fee_basis": "per delivery",
+  "checkout": {
+    "url": "https://checkout.angeltreeservices.org/firewood/checkout/",
+    "maximum_cords": 2,
+    "two_cords_delivered_price": 840,
+    "two_cords_stacked_price": 990
+  },
   "quantities": [
     {
       "label": "Full cord",

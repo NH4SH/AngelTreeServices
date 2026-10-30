@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "test:firewood:release": "node --test scripts/firewood-checkout/release/test-*.mjs",
     "images:public": "python3 scripts/generate-public-images.py",
     "build:public": "python3 scripts/build-public-site.py",
     "validate:public": "python3 scripts/validate-public-site.py --site-dir dist-public",

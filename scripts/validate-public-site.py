@@ -31,6 +31,7 @@ EXPECTED_PATHS = (
     "/credentials-safety/",
     "/projects/",
     "/projects/hollow-tree-removal/",
+    "/projects/bush-trimming-mulch/",
     "/about/",
     "/recognition/",
     "/privacy/",
@@ -38,6 +39,7 @@ EXPECTED_PATHS = (
 )
 
 EXPECTED_PREFILL = {
+    "/projects/bush-trimming-mulch/": {"service": "Landscaping"},
     "/services/landscaping/": {"service": "Landscaping"},
     "/projects/hollow-tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
     "/services/tree-removal/": {"service": "Tree Care", "estimate_context": "tree-removal"},
@@ -987,6 +989,9 @@ class Validator:
             "How do you protect my property and handle cleanup?",
             "Are you insured, and can I request proof?",
             "Do you offer a veterans discount?",
+            "Do you offer landscaping as well as tree services?",
+            "bush and hedge trimming, weeding, edging and mulch work",
+            'href="/services/landscaping/"',
             'href="/credentials-safety/"',
             'href="/services/tree-removal/"',
             'href="/services/tree-pruning/"',
@@ -998,11 +1003,11 @@ class Validator:
             if term not in faq:
                 self.error(f"/: FAQ invariant is missing: {term}")
 
-        if len(re.findall(r"<details\b", faq, re.IGNORECASE)) != 9:
-            self.error("/: homepage FAQ must contain exactly nine native disclosures")
-        if len(re.findall(r"<summary\b", faq, re.IGNORECASE)) != 9:
+        if len(re.findall(r"<details\b", faq, re.IGNORECASE)) != 10:
+            self.error("/: homepage FAQ must contain exactly ten native disclosures")
+        if len(re.findall(r"<summary\b", faq, re.IGNORECASE)) != 10:
             self.error("/: every homepage FAQ disclosure must have a native summary")
-        if faq.count('name="ats-home-faq"') != 9:
+        if faq.count('name="ats-home-faq"') != 10:
             self.error("/: FAQ disclosures must share the single-open native group name")
         if '"FAQPage"' in homepage or "'FAQPage'" in homepage:
             self.error("/: homepage must not add FAQPage structured data")
@@ -1289,6 +1294,52 @@ class Validator:
         elif any(key in works[0] for key in ("datePublished", "dateCreated", "review", "aggregateRating")):
             self.error(f"{route}: do not invent job dates or customer-review schema")
 
+    def validate_landscaping_case_study(self) -> None:
+        from html import escape
+        project = json.loads((ROOT / "public-landscaping-project.json").read_text(encoding="utf-8"))
+        photography = json.loads((ROOT / "public-site-photography.json").read_text(encoding="utf-8"))
+        route = project["path"]
+        page = self.pages.get(route)
+        if not page:
+            return
+        source = self.page_sources[route]
+        expected_photos = [photography[item["key"]] for item in project["photos"]]
+        photos = [item for item in page.images if item.get("src") in {photo["src"] for photo in expected_photos}]
+        if len(photos) != 2:
+            self.error(f"{route}: expected both approved finished-work photos exactly once")
+        for index, (expected, content) in enumerate(zip(expected_photos, project["photos"])):
+            matches = [item for item in photos if item.get("src") == expected["src"]]
+            if len(matches) != 1:
+                self.error(f"{route}: missing or duplicate approved photo {content['key']}")
+                continue
+            image = matches[0]
+            if image.get("alt") != expected["alt"] or not image.get("width") or not image.get("height"):
+                self.error(f"{route}: photo needs descriptive alt and intrinsic dimensions")
+            if any(f"{variant['src']} {variant['width']}w" not in image.get("srcset", "") for variant in expected["variants"]):
+                self.error(f"{route}: approved responsive photo variants are missing")
+            if escape(content["caption"]) not in source:
+                self.error(f"{route}: approved photo caption is missing")
+            if (index == 0 and image.get("fetchpriority") != "high") or (index == 1 and image.get("loading") != "lazy"):
+                self.error(f"{route}: prioritize the lead photo and lazy-load the later photo")
+        for term in ("existing bushes", "Weeding", "Edging", "Mulch work"):
+            if term not in source:
+                self.error(f"{route}: confirmed work is missing: {term}")
+        for entry in ("/projects/", "/services/landscaping/"):
+            if not any(link.get("href") == route for link in self.pages[entry].links):
+                self.error(f"{entry}: Landscaping case study must be discoverable")
+        for link in page.links:
+            if "ats-estimate-link" in link.get("class", "").split() and link.get("href") != project["estimate_href"]:
+                self.error(f"{route}: estimate action lost its Landscaping category")
+        works = [item for block in page.json_ld for item in json.loads(block).get("@graph", []) if item.get("@type") == "CreativeWork"]
+        if len(works) != 1:
+            self.error(f"{route}: expected one CreativeWork")
+        else:
+            work = works[0]
+            if work.get("image") != [f"{SITE}{photo['src']}" for photo in expected_photos] or work.get("about") != {"@id": f"{SITE}/services/landscaping/#service"}:
+                self.error(f"{route}: project schema must describe its own photos and Landscaping service")
+            if any(key in work for key in ("datePublished", "dateCreated", "review", "aggregateRating", "locationCreated")):
+                self.error(f"{route}: do not invent job dates, location or reviews")
+
     def validate_artifact_contents(self) -> None:
         # Every estimate action on the new service page must keep its category,
         # including shared footer and mobile actions; no new intent is needed.
@@ -1491,6 +1542,9 @@ class Validator:
                 self.error(f"llms.txt is missing required public fact or resource: {term}")
 
         forbidden_terms = (
+            "lawn care",
+            "lawn-care",
+            "lawn and property-care",
             "admin.angeltreeservices.org",
             "netlify.app",
             "supabase",
@@ -1593,6 +1647,7 @@ class Validator:
             self.validate_recognition_layer()
             self.validate_about_page()
             self.validate_project_case_study()
+            self.validate_landscaping_case_study()
             self.validate_artifact_contents()
             self.validate_sitemap_and_robots()
             self.validate_llms_document()

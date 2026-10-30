@@ -15,6 +15,10 @@ SITE = "https://angeltreeservices.org"
 TRUST_DATA = json.loads((ROOT / "public-trust-data.json").read_text(encoding="utf-8"))
 TREE_PROJECT = json.loads((ROOT / "public-tree-removal-project.json").read_text(encoding="utf-8"))
 SITE_PHOTOGRAPHY = json.loads((ROOT / "public-site-photography.json").read_text(encoding="utf-8"))
+SITE_PHOTOGRAPHY.update(json.loads((ROOT / "public-drive-photography.json").read_text(encoding="utf-8")))
+LANDSCAPING_PROJECT = json.loads((ROOT / "public-landscaping-project.json").read_text(encoding="utf-8"))
+LANDSCAPING_PROJECT_PHOTOS = [dict(SITE_PHOTOGRAPHY[photo["key"]], caption=photo["caption"])
+                              for photo in LANDSCAPING_PROJECT["photos"]]
 PHONE_DISPLAY = "(540) 388-8715"
 PHONE_LINK = "+15403888715"
 INSTAGRAM_URL = "https://www.instagram.com/angeltreeservices/"
@@ -241,8 +245,8 @@ def schema_for_page(page: dict) -> dict:
                 "breadcrumb": {"@id": f"{url}#breadcrumb"},
                 "isPartOf": {"@id": f"{SITE}/#website"},
                 **({
-                    "image": [f"{SITE}{photo['src']}" for photo in TREE_PROJECT["photos"]],
-                    "about": {"@id": f"{SITE}/services/tree-removal/#service"},
+                    "image": [f"{SITE}{photo['src']}" for photo in page.get("project_photos", TREE_PROJECT["photos"])],
+                    "about": {"@id": page.get("project_service_id", f"{SITE}/services/tree-removal/#service")},
                     "publisher": {"@id": f"{SITE}/#business"},
                 } if page["type"] == "project" else {}),
                 **({"about": {"@id": f"{SITE}/#business"}} if page.get("about_business") else {}),
@@ -555,10 +559,11 @@ SERVICE_PAGES = [
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Tree Pruning", "/services/tree-pruning/")],
         "estimate_href": "/?service=Tree%20Care&estimate_context=tree-pruning#contact",
         "estimate_label": "Request a pruning estimate",
-        "hero_image": "/assets/VerySquooshedSideGreenwall.jpg",
-        "image_width": 1000,
-        "image_height": 562,
-        "hero_alt": "Trees and greenery on a maintained property",
+        "hero_image": SITE_PHOTOGRAPHY["tree-trimming-climber"]["src"],
+        "image_width": SITE_PHOTOGRAPHY["tree-trimming-climber"]["width"],
+        "image_height": SITE_PHOTOGRAPHY["tree-trimming-climber"]["height"],
+        "hero_alt": SITE_PHOTOGRAPHY["tree-trimming-climber"]["alt"],
+        "hero_landscape": True,
         "fit_heading": "Match the cuts to the goal.",
         "fit_intro": "Good pruning is not simply making a tree smaller. The reason for the work should guide what is removed and what is retained.",
         "situations": [
@@ -598,6 +603,11 @@ SERVICE_PAGES = [
         "breadcrumbs": [("Home", "/"), ("Services", "/services/"), ("Stump Grinding", "/services/stump-grinding/")],
         "estimate_href": "/?service=Tree%20Care&estimate_context=stump-grinding#contact",
         "estimate_label": "Request a stump estimate",
+        "hero_image": SITE_PHOTOGRAPHY["stump-grinding-operator"]["src"],
+        "image_width": SITE_PHOTOGRAPHY["stump-grinding-operator"]["width"],
+        "image_height": SITE_PHOTOGRAPHY["stump-grinding-operator"]["height"],
+        "hero_alt": SITE_PHOTOGRAPHY["stump-grinding-operator"]["alt"],
+        "hero_landscape": True,
         "fit_heading": "Define what you want to do with the space next.",
         "fit_intro": "A stump left after removal and an older existing stump can both be considered, but the practical scope depends on the site and your next use for the area.",
         "situations": [
@@ -714,7 +724,7 @@ def landscaping_body() -> str:
         </div>
         <figure class="ats-case-photo">
           <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], '(max-width: 760px) calc(100vw - 48px), 46vw')} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
-          <figcaption>Existing bushes trimmed, beds weeded and edges defined beside the walkway at this commercial property.</figcaption>
+          <figcaption>Existing bushes trimmed, beds weeded and edges defined beside the walkway at this commercial property. <a href="{html_attr(LANDSCAPING_PROJECT['path'])}">See the bush trimming and mulch project</a>.</figcaption>
         </figure>
       </div>
     </section>
@@ -911,15 +921,49 @@ def tree_project_body() -> str:
     {final_cta('Have a tree you are concerned about?', 'Tell us what you have noticed and where the tree is located. We will follow up about an on-site assessment and estimate.', project['estimate_href'], 'Request a tree-removal estimate')}"""
 
 
+def landscaping_project_body() -> str:
+    photo = LANDSCAPING_PROJECT_PHOTOS[1]
+    return f"""
+    <section class="ats-content-section ats-content-section--white">
+      <div class="ats-section-inner ats-case-study">
+        <div class="ats-prose ats-case-copy">
+          <h2>Care for the planting already in place.</h2>
+          <p>The work focused on the existing bushes and planting beds around the building. Angel Tree Services completed:</p>
+          <ul>
+            <li>Bush trimming along the building and walkway.</li>
+            <li>Weeding in the planting beds.</li>
+            <li>Edging to define the beds.</li>
+            <li>Mulch work around the existing planting.</li>
+          </ul>
+        </div>
+        <figure class="ats-case-photo">
+          <img src="{html_attr(photo['src'])}"{responsive_image_attributes(photo['src'], '(max-width: 760px) calc(100vw - 40px), min(1180px, calc(100vw - 48px))')} width="{photo['width']}" height="{photo['height']}" alt="{html_attr(photo['alt'])}" loading="lazy" decoding="async">
+          <figcaption>{html_text(photo['caption'])}</figcaption>
+        </figure>
+        <div class="ats-prose ats-case-copy ats-case-section">
+          <h2>Planning similar work?</h2>
+          <p>Tell us which bushes or beds need attention and whether you want trimming, weeding, edging, mulch or a combination. Include the property address and any access or timing considerations so we can prepare your estimate.</p>
+          <p><a href="/services/landscaping/">Explore our landscaping services</a> or <a href="/projects/">see more of our work</a>.</p>
+        </div>
+      </div>
+    </section>
+    {final_cta('Bring out the best in your planting beds.', 'Share the areas you want us to care for. We’ll define the work, materials and cleanup in your written estimate.', LANDSCAPING_PROJECT['estimate_href'], 'Request a landscaping estimate')}"""
+
+
 def projects_body() -> str:
+    landscaping_project_link = f'<p><a href="{html_attr(LANDSCAPING_PROJECT["path"])}">View the bush trimming and mulch project</a></p>'
     selections = [
         ("garden-path", "Landscaping", "Garden paths and planting beds", "Bush trimming, tree trimming and mulch around a residential garden and its gravel path."),
         ("flowering-tree", "Tree trimming", "Ornamental trees", "Tree and bush trimming, with mulch around the planting beds at this residential property."),
         ("commercial-overview", "Commercial landscaping", "Bush trimming and bed care", "Existing bushes trimmed, beds weeded and edges defined around this commercial property."),
         ("commercial-detail", "Trimming, weeding and edging", "Hedges and neatly edged beds", "A closer view of the trimmed bushes and weeded, edged beds beside the walkway."),
+        ("tree-trimming-climber", "Tree trimming", "A closer look at tree trimming", "A climber at work during an Angel Tree Services tree-trimming job."),
+        ("stump-grinding-operator", "Stump grinding", "From removal to stump grinding", "Stump grinding following a tree removal, with the cut logs visible behind the machine."),
+        ("tree-job-cleanup", "Cleanup in progress", "The work on the ground", "An Angel Tree Services crew member uses a leaf blower beside the stump grinder during job cleanup."),
+        ("fredericksburg-tower-trimming", "Fredericksburg tree trimming", "Trimming beside the Fredericksburg tower", "Angel Tree Services carried out trimming beside the Fredericksburg tower, shown here at sunset."),
     ]
     cards_html = "".join(
-        f'<article class="ats-project-card ats-project-card--photograph"><img src="{html_attr(photo["src"])}"{responsive_image_attributes(photo["src"], "(max-width: 700px) calc(100vw - 40px), (max-width: 1240px) calc(50vw - 51px), 559px")} width="{photo["width"]}" height="{photo["height"]}" alt="{html_attr(photo["alt"])}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{html_text(kind)}</p><h2>{html_text(title)}</h2><p>{html_text(copy)}</p></div></article>'
+        f'<article class="ats-project-card ats-project-card--photograph"><img src="{html_attr(photo["src"])}"{responsive_image_attributes(photo["src"], "(max-width: 700px) calc(100vw - 40px), (max-width: 1240px) calc(50vw - 51px), 559px")} width="{photo["width"]}" height="{photo["height"]}" alt="{html_attr(photo["alt"])}" loading="lazy" decoding="async"><div class="ats-project-card__body"><p class="ats-project-card__type">{html_text(kind)}</p><h2>{html_text(title)}</h2><p>{html_text(copy)}</p>{landscaping_project_link if key == "commercial-overview" else ""}</div></article>'
         for key, kind, title, copy in selections
         for photo in [SITE_PHOTOGRAPHY[key]]
     )
@@ -1394,6 +1438,29 @@ PAGES = [
         "body": tree_project_body(),
     },
     {
+        "path": LANDSCAPING_PROJECT["path"],
+        "active": "projects",
+        "type": "project",
+        "schema_type": "CreativeWork",
+        "title": "Bush Trimming & Mulch Project | Angel Tree Services",
+        "description": "See bush trimming, weeding, edging and mulch work around an existing commercial landscape in two real Angel Tree Services project photos.",
+        "h1": LANDSCAPING_PROJECT["title"],
+        "lead": LANDSCAPING_PROJECT["intro"],
+        "breadcrumbs": [("Home", "/"), ("Projects", "/projects/"), ("Bush trimming and mulch", LANDSCAPING_PROJECT["path"])],
+        "estimate_href": LANDSCAPING_PROJECT["estimate_href"],
+        "estimate_label": "Request a landscaping estimate",
+        "hero_image": LANDSCAPING_PROJECT_PHOTOS[0]["src"],
+        "image_width": LANDSCAPING_PROJECT_PHOTOS[0]["width"],
+        "image_height": LANDSCAPING_PROJECT_PHOTOS[0]["height"],
+        "hero_alt": LANDSCAPING_PROJECT_PHOTOS[0]["alt"],
+        "hero_caption": LANDSCAPING_PROJECT_PHOTOS[0]["caption"],
+        "hero_landscape": True,
+        "social_image": f"{SITE}{LANDSCAPING_PROJECT_PHOTOS[0]['variants'][-1]['src']}",
+        "project_photos": LANDSCAPING_PROJECT_PHOTOS,
+        "project_service_id": f"{SITE}/services/landscaping/#service",
+        "body": landscaping_project_body(),
+    },
+    {
         "path": "/about/",
         "active": "about",
         "type": "page",
@@ -1491,7 +1558,7 @@ Angel Tree Services serves homeowners as well as businesses, HOAs, property mana
 - [Commercial and HOA tree care]({SITE}/services/commercial-hoa-tree-care/): Tree maintenance and project support for businesses, HOAs, property managers, community associations, institutions, and public-sector clients. Work can be organized around site access, stakeholder approval, written scopes, scheduling, documentation, and phased or recurring property needs.
 - [Landscaping]({SITE}/services/landscaping/): Bush and hedge trimming, weeding, edging, and mulch work for existing gardens and planting beds, with materials and cleanup defined in the written scope.
 
-Additional capabilities include tree preservation, brush removal, lot clearing, mulching, limited landscape work, and limited lawn and property-care services where they fit the company's current scope. Professional equipment includes bucket trucks, mini skid steers, Vermeer chippers, dump trucks, trailers, chainsaws, climbing equipment, and rigging equipment.
+Additional capabilities include tree preservation, brush removal, lot clearing, mulching, and landscaping for existing bushes, hedges and planting beds, including trimming, weeding, edging and mulch work. Professional equipment includes bucket trucks, mini skid steers, Vermeer chippers, dump trucks, trailers, chainsaws, climbing equipment, and rigging equipment.
 
 ## Service Area
 
@@ -1557,6 +1624,7 @@ Angel Tree Services does not position itself as the cheapest provider. It aims t
 - [Commercial and HOA Tree Care]({SITE}/services/commercial-hoa-tree-care/): Managed-property and organizational tree-service information.
 - [Credentials and Safety]({SITE}/credentials-safety/): ISA credentials, insurance context, planning expectations, and safety guidance.
 - [Projects]({SITE}/projects/): Approved examples of real project work.
+- [Bush trimming and mulch]({SITE}{LANDSCAPING_PROJECT["path"]}): Finished commercial bush trimming, weeding, edging and mulch.
 - [About]({SITE}/about/): Company history, family operation, experience, and community involvement.
 - [Recognition]({SITE}/recognition/): Reviews, ratings, finalist recognition, media coverage, professional affiliations, and community connections.
 """

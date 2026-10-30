@@ -1,0 +1,126 @@
+{
+  "tree-trimming-climber": {
+    "alt": "Angel Tree Services climber with ropes and a harness during tree trimming.",
+    "source_filename": "DSC02674.JPG",
+    "source_sha256": "0711a01deb4ade2cafd5b670d53b5f4348c9a3bc9456ebb2213881cfc248da1b",
+    "crop": null,
+    "src": "/assets/versioned/photo-tree-trimming-climber-1280.4faf5242a2.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-tree-trimming-climber-480.2e838cc378.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-tree-trimming-climber-840.3e698f5be6.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-tree-trimming-climber-1280.4faf5242a2.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-tree-trimming-climber-1600.9826b8990a.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "stump-grinding-operator": {
+    "alt": "An Angel Tree Services operator using a yellow stump grinder, with cut logs behind the machine.",
+    "source_filename": "DSC02540.JPG",
+    "source_sha256": "c73c726b4117044a3dd6c55394dd58e818cad69211ff5d0e7d8de1ade9364e3d",
+    "crop": null,
+    "src": "/assets/versioned/photo-stump-grinding-operator-1280.d80b6bce0a.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-stump-grinding-operator-480.986e8a394f.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-stump-grinding-operator-840.aaf3478678.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-stump-grinding-operator-1280.d80b6bce0a.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-stump-grinding-operator-1600.2cfa0ffd6e.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "tree-job-cleanup": {
+    "alt": "Angel Tree Services crew using a leaf blower beside a stump grinder in a wooded yard.",
+    "source_filename": "DSC02650.JPG",
+    "source_sha256": "b90791cf3a7661c352ac7b3a63273a9fa39fee01c629f12a0acc1d30b66a30c9",
+    "crop": null,
+    "src": "/assets/versioned/photo-tree-job-cleanup-1280.9ba9a53166.webp",
+    "width": 1280,
+    "height": 720,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-tree-job-cleanup-480.cf925f85ad.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "src": "/assets/versioned/photo-tree-job-cleanup-840.b5299b3a4c.webp",
+        "width": 840,
+        "height": 473
+      },
+      {
+        "src": "/assets/versioned/photo-tree-job-cleanup-1280.9ba9a53166.webp",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "src": "/assets/versioned/photo-tree-job-cleanup-1600.863251eae5.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ]
+  },
+  "fredericksburg-tower-trimming": {
+    "alt": "The Fredericksburg tower at sunset, with trees and shrubs beside the adjoining building.",
+    "source_filename": "SquooshedTowerSunset.jpg",
+    "source_sha256": "e3787ef2fc91081276bd33a1b71daaf6df517ea2662bcfbcba4873f20061a81c",
+    "crop": null,
+    "src": "/assets/versioned/photo-fredericksburg-tower-trimming-1280.6f85be2cd9.webp",
+    "width": 1280,
+    "height": 731,
+    "variants": [
+      {
+        "src": "/assets/versioned/photo-fredericksburg-tower-trimming-480.4b204e2efe.webp",
+        "width": 480,
+        "height": 274
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-tower-trimming-840.b1768b6d84.webp",
+        "width": 840,
+        "height": 480
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-tower-trimming-1280.6f85be2cd9.webp",
+        "width": 1280,
+        "height": 731
+      },
+      {
+        "src": "/assets/versioned/photo-fredericksburg-tower-trimming-1600.158f2d0238.webp",
+        "width": 1600,
+        "height": 914
+      }
+    ]
+  }
+}

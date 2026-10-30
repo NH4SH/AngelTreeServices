@@ -637,8 +637,9 @@ body.ats-form-submitted .ats-form-success {
 }
 
 #contact .ats-contact-form .description {
-  color: rgba(23, 61, 25, 0.78);
-  font-size: 0.82rem;
+  color: var(--ats-green-deep);
+  opacity: 1;
+  font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
 }

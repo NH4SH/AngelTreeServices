@@ -1,0 +1,16 @@
+{
+  "path": "/projects/bush-trimming-mulch/",
+  "title": "A tidier edge for a commercial property.",
+  "intro": "Bush trimming, weeding, edging and mulch work around a brick commercial building. These two finished-work photos show the existing bushes and planting beds Angel Tree Services cared for.",
+  "estimate_href": "/?service=Landscaping#contact",
+  "photos": [
+    {
+      "key": "commercial-overview",
+      "caption": "Trimmed bushes and mulched planting beds around the corner of the brick building."
+    },
+    {
+      "key": "commercial-detail",
+      "caption": "A closer look at the existing bushes after trimming, with weeded, edged and mulched beds beside the walkway."
+    }
+  ]
+}

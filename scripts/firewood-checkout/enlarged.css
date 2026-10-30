@@ -1,0 +1,2 @@
+/* Local QA fixture: synthetic 200% text sizing, not a production stylesheet. */
+html { font-size: 200%; }

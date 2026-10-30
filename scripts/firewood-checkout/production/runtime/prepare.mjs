@@ -1,0 +1,12 @@
+import {prepare as nativePrepare} from '../../macbook/prepare-native.mjs';
+import {mkdir,cp,readFile,writeFile,readdir} from 'node:fs/promises';
+import {resolve,relative} from 'node:path';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+export async function prepare(target){await nativePrepare(target);target=resolve(target);const dest=resolve(target,'scripts/firewood-checkout/production/runtime');await mkdir(dest,{recursive:true});
+  for(const name of ['policy.mjs','config.mjs','provider.mjs','checkout.mjs','worker.mjs','schema.sql','migrate.mjs','server.mjs','assets.mjs','browser.js','power.mjs','main.mjs','owner.mjs','seal.mjs','mailer.mjs','ops.mjs','incidents.mjs','operations-mail.mjs','watch-routed.mjs','crm-queue.mjs','test-crm-queue.mjs','crm-contract.mjs','test-crm-contract.mjs','crm-adapter.mjs','test-crm-adapter.mjs','test-ops.mjs','test-runtime.mjs','README.md'])await cp(new URL(name,import.meta.url),resolve(dest,name));
+  await cp(new URL('../operations.review.json',import.meta.url),resolve(dest,'../operations.review.json'));
+  const pkg=JSON.parse(await readFile(resolve(target,'package.json'),'utf8'));pkg.name='angel-firewood-candidate-sandbox';pkg.scripts={test:'node --test scripts/firewood-checkout/production/runtime/test-runtime.mjs scripts/firewood-checkout/production/runtime/test-ops.mjs scripts/firewood-checkout/production/runtime/test-crm-queue.mjs scripts/firewood-checkout/production/runtime/test-crm-contract.mjs scripts/firewood-checkout/production/runtime/test-crm-adapter.mjs',web:'node scripts/firewood-checkout/production/runtime/main.mjs web',worker:'node scripts/firewood-checkout/production/runtime/main.mjs worker'};await writeFile(resolve(target,'package.json'),JSON.stringify(pkg,null,2)+'\n');
+  const manifest={};async function walk(folder){for(const i of await readdir(folder,{withFileTypes:true})){if(i.name==='node_modules'||i.name==='source-manifest.json')continue;const p=resolve(folder,i.name);if(i.isDirectory())await walk(p);else manifest[relative(target,p)]=createHash('sha256').update(await readFile(p)).digest('hex');}}
+  await walk(target);await writeFile(resolve(target,'source-manifest.json'),JSON.stringify(manifest,null,2)+'\n');return {files:Object.keys(manifest).length};}
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(await prepare(process.argv[2])));

@@ -1,8 +1,21 @@
+import * as liveFirewoodTerms from '../src/lib/documents/terms/firewood-household-live-2026-10-29-v1.ts';
+import * as handoffFirewoodTerms from '../src/lib/documents/terms/firewood-handoff-test-2026-10-29.ts';
+import { createHash } from 'node:crypto';
+import { ordinaryFirewoodPolicy, ordinaryReceiptAdmission } from './fixtures/ordinary-firewood-boundaries.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),ts=require('typescript');
 export function load(file,deps={}){
+ if (/src\/lib\/documents\/terms\.ts$/.test(file)) deps = { './terms/firewood-household-live-2026-10-29-v1.ts': liveFirewoodTerms, './terms/firewood-handoff-test-2026-10-29.ts': handoffFirewoodTerms, ...deps };
+ // Preserve the explicit ordinary-invoice seams of historical command tests.
+ // Actual live admission/transport behavior is exercised without these stubs in
+ // the portable Firewood runtime suites; marked inputs are rejected by the stub.
+ if (/src\/lib\/(?:stripe\/(?:card-payment|invoice-checkout)|payments\/portal-card-context)\.ts$/.test(file)) {
+  deps = { '@/lib/firewood/handoff/collector-policy': ordinaryFirewoodPolicy, '../firewood/handoff/collector-policy': ordinaryFirewoodPolicy, ...deps };
+ }
+ if (/src\/lib\/email\/(?:delivery|send)\.ts$/.test(file)) deps = { './firewood-receipt-admission': ordinaryReceiptAdmission, ...deps };
+ if (/src\/lib\/stripe\/server\.ts$/.test(file)) deps = { 'node:crypto': { createHash }, ...deps };
  const js=ts.transpileModule(readFileSync(new URL(file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const m={exports:{}};new Function('require','module','exports',js)(name=>{assert.ok(name in deps,`Unexpected import ${name}`);return deps[name];},m,m.exports);return m.exports;
 }

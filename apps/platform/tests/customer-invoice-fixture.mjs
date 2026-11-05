@@ -1,3 +1,7 @@
+import * as liveFirewoodTerms from '../src/lib/documents/terms/firewood-household-live-2026-10-29-v1.ts';
+import * as handoffFirewoodTerms from '../src/lib/documents/terms/firewood-handoff-test-2026-10-29.ts';
+import * as firewoodAccounting from '../src/lib/documents/firewood-invoice-accounting.mjs';
+import { ordinaryFirewoodPolicy } from './fixtures/ordinary-firewood-boundaries.mjs';
 import * as branding from '../src/lib/company-brand.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -7,6 +11,17 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),ts=require('typescript');
 const jsx=require('react/jsx-runtime');
 function load(file,deps={}) {
+ if (/src\/lib\/documents\/terms\.ts$/.test(file)) deps = { './terms/firewood-household-live-2026-10-29-v1.ts': liveFirewoodTerms, './terms/firewood-handoff-test-2026-10-29.ts': handoffFirewoodTerms, ...deps };
+ // The shared customer harness models existing ordinary/legacy documents only.
+ // Live accounting and protected collection have their own actual-source suite.
+ if (/invoice-document\.tsx$/.test(file) || /portal\/invoice\/\[token\]\/page\.tsx$/.test(file)) deps = {
+  '@/lib/documents/firewood-invoice-accounting.mjs': firewoodAccounting,
+  '@/lib/documents/firewood-invoice-accounting-server': { async getFirewoodInvoiceDocumentAccounting(invoice) {
+    assert.equal(firewoodAccounting.isLiveFirewoodInvoice(invoice), false, 'Use the live accounting runtime fixture'); return null;
+  } },
+  '@/lib/firewood/handoff/collector-policy': ordinaryFirewoodPolicy,
+  '@/components/portal-payment-refresh': { PortalPaymentRefresh: () => null }, ...deps,
+ };
  const source=readFileSync(new URL(file,import.meta.url),'utf8');
  const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
  const module={exports:{}};

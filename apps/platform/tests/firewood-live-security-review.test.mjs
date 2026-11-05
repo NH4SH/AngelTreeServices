@@ -1,3 +1,4 @@
+import * as collectorAdmission from '../src/lib/firewood/handoff/collector-admission.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHmac } from 'node:crypto';
@@ -380,7 +381,10 @@ test('database adapters reject invented operations and keep raw provider/custome
 
 test('live invoice markers cannot fall through to the existing unmanaged collector', async () => {
   const current = load('../src/lib/firewood/handoff/collector-policy.ts', { 'server-only': {},
-    './live-collector.mjs': { isLiveFirewoodInvoice } });
+    './live-collector.mjs': { isLiveFirewoodInvoice, liveSurchargeFields },
+    './collector-admission.mjs': collectorAdmission,
+    '../runtime-admission/released-context.mjs': { readReleasedContext: () => null },
+    '@/lib/stripe/server': { getStripeClientKeyFingerprint: () => null } });
   let queried = 0; const db = { rpc() { queried++; throw Error('must remain closed'); } };
   for (const invoice of [{ id: invoiceId, document_terms_version: live.LIVE_TERMS_POLICY.version },
     { id: invoiceId, document_terms_version: 'firewood-household-live-future-version' },

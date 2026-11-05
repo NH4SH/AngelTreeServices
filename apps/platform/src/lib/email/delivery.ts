@@ -1,6 +1,7 @@
 import "server-only";
 import {callDeliveryCommand} from "@/lib/email/delivery-commands";
 import { emailDeliveryContext } from "@/lib/email/delivery-context";
+import { inspectSavedReceiptBeforeClaim } from "./firewood-receipt-admission";
 
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -50,6 +51,8 @@ export async function sendDurableEmail(input:SendEmailInput,options:{db:Supabase
 export async function dispatchSavedEmail(id:string,db:SupabaseClient,transport:(input:SendEmailInput)=>Promise<SendEmailResult>,signal?:AbortSignal,timeoutMs?:number):Promise<SendEmailResult> {
   let claim:DeliveryRecord|null=null;
   try {
+    const receiptAdmission=await inspectSavedReceiptBeforeClaim(db,id);
+    if(!receiptAdmission.ok)return deliveryResult(receiptAdmission.row,{deliveryId:id,message:receiptAdmission.message});
     const claimed=await callDeliveryCommand(db,'claim_outbound_delivery',{p_delivery_id:id});
     if(claimed.error||!uuid(claimed.data?.attempt_id)) {
       const current=await callDeliveryCommand(db,'get_outbound_delivery',{p_delivery_id:id});
@@ -61,7 +64,8 @@ export async function dispatchSavedEmail(id:string,db:SupabaseClient,transport:(
       ||!Array.isArray(claim.payload.cc)||typeof claim.payload.from!=='string'||typeof claim.payload.reply_to!=='string'||typeof claim.payload.subject!=='string'||typeof claim.payload.text!=='string'||typeof claim.context.email_type!=='string')return deliveryResult(null,{outcome:'unknown',deliveryId:id});
     const p=claim.payload,c=claim.context;
     let sent:SendEmailResult;
-    try {sent=await transport({to:p.to[0],cc:p.cc,subject:p.subject,text:p.text,html:p.html,emailType:c.email_type as SendEmailInput['emailType'],
+    if(!await receiptAdmission.beforeTransport(claim))sent=deliveryResult(null,{outcome:'not_attempted',deliveryId:id,message:receiptAdmission.message});
+    else try {sent=await transport({to:p.to[0],cc:p.cc,subject:p.subject,text:p.text,html:p.html,emailType:c.email_type as SendEmailInput['emailType'],
       idempotencyKey:claim.idempotency_key,deliveryId:id, frozenEnvelope:{from:p.from,replyTo:p.reply_to},skipLegacyHistory:true,
       relatedCustomerId:c.customer_id,relatedJobId:c.job_id,relatedQuoteId:c.quote_ids?.[0],relatedInvoiceId:c.invoice_id,relatedChangeOrderId:c.change_order_id,
       relatedOrganizationId:c.organization_id,relatedCommunicationId:c.communication_id,relatedScheduleEventId:c.schedule_event_id,relatedAppointmentId:c.appointment_id,

@@ -6,6 +6,7 @@ import { getServiceRoleClient } from "@/lib/supabase/admin";
 import { withDeadline } from "@/lib/runtime/deadline";
 import { completeDeliveryFollowups } from "@/lib/email/delivery-followups";
 import { sendDurableEmail } from "@/lib/email/delivery";
+import { allowReceiptAtProviderBoundary } from "./firewood-receipt-admission";
 import type { EmailEvent, EmailEventType } from "@/lib/types/database";
 import type { Json } from "@/lib/types/database.generated";
 
@@ -111,6 +112,11 @@ export async function sendEmailTransport(input: SendEmailInput): Promise<SendEma
     const message = "Email sending is not configured. Drafts are still available.";
     const historyRecorded = await logEmailEvent(input, "failed", null, message);
     return { outcome: "not_attempted", ok: false, configured: false, historyRecorded, message, providerMessageId: null, retryable: false };
+  }
+
+  if (!await allowReceiptAtProviderBoundary(input, input.emailType === 'payment_confirmation' || input.deliveryId != null ? getServiceRoleClient() : null)) {
+    return { outcome: 'not_attempted', ok: false, configured: true, historyRecorded: false,
+      providerMessageId: null, retryable: false, message: 'This saved receipt is held for review. No new email was sent.' };
   }
 
   let delivery: { status: number; ok: boolean; payload: Record<string, unknown> };

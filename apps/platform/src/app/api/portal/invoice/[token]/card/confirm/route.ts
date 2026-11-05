@@ -28,6 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (!context.ok) return paymentError(context.message, context.status);
   const portalUrl = new URL(`/portal/invoice/${encodeURIComponent(token)}`, stripeConfig.appBaseUrl).toString();
   const result = await confirmCardReview({
+    firewoodPolicy:context.firewoodPolicy,
     billingEmail: context.billingEmail,
     invoiceId: context.invoice.id,
     invoiceNumber: context.invoice.invoice_number,

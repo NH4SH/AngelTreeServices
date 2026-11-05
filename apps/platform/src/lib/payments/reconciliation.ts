@@ -16,7 +16,7 @@ type InvoiceBalanceReceipt = {
   paid_cents: number;
   status: InvoiceStatus;
 };
-const invoiceStatuses = new Set<string>(["draft", "sent", "partially_paid", "paid", "void", "overdue"]);
+const invoiceStatuses = new Set<string>(["draft", "sent", "partially_paid", "paid", "void", "overdue", "credited"]);
 const unconfirmedBalance = "The invoice balance could not be confirmed. Refresh the invoice and review its payment history before trying again.";
 
 function isInvoiceBalanceReceipt(value: unknown): value is InvoiceBalanceReceipt {

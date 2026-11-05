@@ -1,3 +1,5 @@
+import { isLiveFirewoodInvoice, unconfirmedFirewoodDocument, type FirewoodDocumentAccounting } from "@/lib/documents/firewood-invoice-accounting.mjs";
+import { getFirewoodInvoiceDocumentAccounting } from "@/lib/documents/firewood-invoice-accounting-server";
 import { DocumentMeta, DocumentShell } from "@/components/documents/document-shell";
 import { DocumentTerms } from "@/components/documents/document-terms";
 import { getInvoiceTerms } from "@/lib/documents/terms";
@@ -7,20 +9,24 @@ import { formatBusinessDateTime } from "@/lib/business-time";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import type { InvoiceDetail } from "@/lib/types/database";
 
-export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
+export function InvoiceDocument({ invoice, firewoodAccounting: suppliedFirewoodAccounting }: { invoice: InvoiceDetail; firewoodAccounting?: FirewoodDocumentAccounting | null }) {
+  // Ordinary documents keep their synchronous, read-only projection. Only a live
+  // Firewood document without supplied accounting needs the guarded server read.
+  if (isLiveFirewoodInvoice(invoice) && suppliedFirewoodAccounting === undefined) return <FirewoodInvoiceDocument invoice={invoice} />;
+  const firewoodAccounting = isLiveFirewoodInvoice(invoice) ? suppliedFirewoodAccounting ?? unconfirmedFirewoodDocument() : null;
   const lineItems = [...(invoice.invoice_line_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-  const paidCents = Math.max(0, invoice.total_cents - invoice.balance_due_cents);
+  const paidCents = firewoodAccounting ? firewoodAccounting.paidCents : Math.max(0, invoice.total_cents - invoice.balance_due_cents);
   const contactEmail = getEmailSetupState().replyTo;
-  const firewood = invoice.document_terms_version === FIREWOOD_TERMS_VERSION;
+  const firewood = invoice.document_terms_version === FIREWOOD_TERMS_VERSION || isLiveFirewoodInvoice(invoice);
 
   return (
     <DocumentShell
       brandLogoSrc="/angel-tree-services-logo.jpg"
-      className="quote-proposal-document invoice-customer-document"
+      className={`quote-proposal-document invoice-customer-document${firewoodAccounting ? " invoice-live-accounting" : ""}`}
       documentLabel="Invoice"
       documentNumber={getInvoiceDisplayNumber(invoice.invoice_number)}
       contactEmail={contactEmail}
-      statusLabel={formatInvoiceStatus(invoice.status, "customer")}
+      statusLabel={firewoodAccounting?.statusLabel ?? formatInvoiceStatus(invoice.status, "customer")}
     >
       <DocumentMeta
         items={[
@@ -40,7 +46,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         subtotalCents={invoice.subtotal_cents}
         taxCents={invoice.tax_cents}
         totalCents={invoice.total_cents}
-        balanceDueCents={invoice.balance_due_cents}
+        balanceDueCents={firewoodAccounting ? firewoodAccounting.balanceDueCents : invoice.balance_due_cents}
+        creditCents={firewoodAccounting?.creditCents}
       />
 
       <DocumentTerms
@@ -48,17 +55,37 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
         title={firewood ? "Firewood order terms" : "Terms & Conditions - Invoices"}
         variant="invoice"
       />
+      {firewoodAccounting ? (
+        <section className="business-document-payment-note">
+          <strong>{firewoodAccounting.balanceDueCents === null ? "Current balance not confirmed" : `Balance due: ${formatCurrency(firewoodAccounting.balanceDueCents)}`}</strong>
+          {firewoodAccounting.kind === "credited" ? <>
+            <p>A cancellation credit closed this invoice balance. No further payment is requested. A credit is recorded separately from a payment or refund.</p>
+            {firewoodAccounting.retainedCents ? <p>Payment applied to invoice: {formatCurrency(firewoodAccounting.retainedCents)}. Please contact our office to review this payment. Card fees and refund history are recorded separately.</p> : <p>No payment is currently applied to this invoice. Card fees and payment or refund history are recorded separately.</p>}
+          </> : firewoodAccounting.kind === "unconfirmed" ? (
+            <p>The current credit and payment balance could not be confirmed. Please refresh this secure invoice or contact our office before paying. The original invoice details remain available for your records.</p>
+          ) : firewoodAccounting.canRequestPayment ? (
+            <p>Use your secure payment page to review the current payment options. Please include the invoice number with payment and contact our office with any billing questions.</p>
+          ) : <p>No further payment is requested on this document. Please contact our office with any billing questions. Payment and refund history are retained separately.</p>}
+        </section>
+      ) : (
       <section className="business-document-payment-note">
         <strong>Balance due: {formatCurrency(invoice.balance_due_cents)}</strong>
         <p>Pay securely online by bank account or card. Eligible credit-card payments may include a disclosed card-processing surcharge. Debit cards, checks, and bank payments are not subject to the credit-card surcharge.</p>
         <p>Please include the invoice number with payment and contact our office with any billing questions.</p>
       </section>
+      )}
     </DocumentShell>
   );
 }
 
+async function FirewoodInvoiceDocument({ invoice }: { invoice: InvoiceDetail }) {
+  const accounting = await getFirewoodInvoiceDocumentAccounting(invoice);
+  return <InvoiceDocument invoice={invoice} firewoodAccounting={accounting} />;
+}
+
 function InvoiceLineItems({
   balanceDueCents,
+  creditCents,
   fallbackScope,
   firewood,
   items,
@@ -67,7 +94,8 @@ function InvoiceLineItems({
   taxCents,
   totalCents,
 }: {
-  balanceDueCents: number;
+  balanceDueCents: number | null;
+  creditCents?: number;
   fallbackScope?: string | null;
   firewood: boolean;
   items: NonNullable<InvoiceDetail["invoice_line_items"]>;
@@ -113,8 +141,9 @@ function InvoiceLineItems({
         <div><dt>Subtotal</dt><dd>{formatCurrency(subtotalCents)}</dd></div>
         {taxCents ? <div><dt>Tax / fees</dt><dd>{formatCurrency(taxCents)}</dd></div> : null}
         <div><dt>Total</dt><dd>{formatCurrency(totalCents)}</dd></div>
+        {creditCents ? <div><dt>Cancellation credit</dt><dd>-{formatCurrency(creditCents)}</dd></div> : null}
         {paidCents ? <div><dt>Paid</dt><dd>-{formatCurrency(paidCents)}</dd></div> : null}
-        <div><dt>Balance due</dt><dd>{formatCurrency(balanceDueCents)}</dd></div>
+        <div><dt>Balance due</dt><dd>{balanceDueCents === null ? "Not confirmed" : formatCurrency(balanceDueCents)}</dd></div>
       </dl>
     </section>
   );

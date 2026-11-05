@@ -17,3 +17,5 @@ No credentials, private runtime bindings, customer rows, estimate-photo work or 
 Both Netlify projects watch this repository’s `main`. The admin project is locked; the public website is not. The tracked workflows run regression checks on pull requests/manual dispatch, and the existing health monitor runs on a schedule/manual dispatch. No tracked push-triggered home-Mac deployment workflow was found. This does not establish the cause of any historical outage or rule out provider/external hooks.
 
 Keep `[skip netlify]` on any integration/merge commit until a deliberate deployment is approved. Do not disable useful regression CI. The original development worktrees and frozen release candidate remain untouched.
+
+The separate collector follow-up is documented in `apps/platform/FIREWOOD_COLLECTOR_FORWARD_PORT_REVIEW.md`. It adds narrow active hooks while retaining all original gate/catalog bindings. This provenance overlay and the frozen maintenance image remain unchanged, and no 129-era runtime is activated by that source work.

@@ -39,6 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   const result = await createCardReview({
+    firewoodPolicy: context.firewoodPolicy,
     confirmationTokenId: body.confirmationTokenId,
     customerId: context.invoice.customer_id,
     invoiceId: context.invoice.id,

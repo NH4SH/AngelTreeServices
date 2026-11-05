@@ -21,3 +21,7 @@ The office page uses main’s existing Firewood navigation rather than the older
 4. Produce fresh exact source/image/schema/key/read-only mount/paired recovery evidence and a new explicit release admission for that complete candidate. Keep the frozen 702-file cancellation/notifications candidate unchanged for its independently reviewed maintenance release.
 
 Already-live customer-checkout simplification and exact controller source are preserved under `ops/verified-releases/2026-11-04`. The broad archival branch `1586ba9` remains provenance, not an implementation merge candidate. Existing dirty development files, estimate photos and new paid-to-delivered fulfillment work are outside this consolidation.
+
+## Local collector follow-up
+
+The separate `codex/firewood-collector-forward-port-20261104` branch forward-ports the collector/receipt/payment and customer accounting hooks described above. See `FIREWOOD_COLLECTOR_FORWARD_PORT_REVIEW.md` for scope and tests. This does not enroll or deploy a 129-era target; the target SQL/catalog and protected release evidence remain prerequisites.

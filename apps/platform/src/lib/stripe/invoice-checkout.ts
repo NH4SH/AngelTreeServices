@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import {isLiveCollectorPolicy,revalidateFirewoodCollection,type FirewoodCollectorPolicy} from "@/lib/firewood/handoff/collector-policy";
 import { closeCheckoutReservation, classifyCheckoutForClosure, closableReservationColumns, isClosableReservation, isCheckoutContractingParty, confirmsCheckoutRow, type ClosableReservation } from "@/lib/payments/checkout-closure";
 import { achCheckoutPaymentMethodTypes } from "@/lib/payments/ach-checkout";
 
@@ -19,6 +20,7 @@ type CheckoutReservation = ClosableReservation & {
 };
 
 type CheckoutInput = {
+  firewoodPolicy?: FirewoodCollectorPolicy | null;
   amountCents: number;
   currency?: string;
   customerId: string | null;
@@ -38,6 +40,9 @@ type CheckoutResult =
   | { ok: false; message: string };
 
 export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt = 0): Promise<CheckoutResult> {
+  const firewoodCurrent=()=>revalidateFirewoodCollection({policy:input.firewoodPolicy,db:input.supabase,invoiceId:input.invoiceId,invoiceNumber:input.invoiceNumber,livemode:input.livemode,stripe:input.stripe});
+  const verifyLiveLease=isLiveCollectorPolicy(input.firewoodPolicy)?async()=>{if(!await firewoodCurrent())throw Error("live_collection_admission_changed");}:undefined;
+  if(!await firewoodCurrent())return{ok:false,message:"This Firewood checkout requires office review."};
   if (attempt >= 3) return { ok: false, message: "Payment state is changing. Please wait and try again." };
   const currency = (input.currency ?? "usd").toLowerCase();
   const reservationResult = await reserveCheckout(input.supabase, input.invoiceId, input.customerId, input.organizationId ?? null, input.amountCents, currency).catch(() => {
@@ -59,7 +64,8 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
   if (reservation.invoice_principal_cents !== input.amountCents || reservation.total_charge_cents !== input.amountCents
     || reservation.payment_channel !== "ach" || reservation.currency.toLowerCase() !== currency
     || reservation.customer_id !== input.customerId || reservation.organization_id !== (input.organizationId ?? null)) {
-    const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
+    if(!await firewoodCurrent())return{ok:false,message:"This Firewood checkout requires office review."};
+    const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID(),verifyLease:verifyLiveLease });
     if (!closed.ok) return { ok: false, message: "An earlier payment needs review before another checkout can open." };
     return createOrReuseInvoiceCheckout(input, attempt + 1);
   }
@@ -69,10 +75,12 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
       const remoteSession = await input.stripe.checkout.sessions.retrieve(reservation.stripe_checkout_session_id, { expand: ["payment_intent"] });
       const state = classifyCheckoutForClosure(remoteSession, reservation, input.livemode);
       if (state === "open" && isCheckoutUrl(remoteSession.url)) {
+        if(!await firewoodCurrent())return{ok:false,message:"This Firewood checkout requires office review."};
         return { ok: true, reused: true, url: remoteSession.url };
       }
       if (state !== "expired") return { ok: false, message: "Payment is processing or needs review. Please wait for its status to update." };
-      const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID() });
+      if(!await firewoodCurrent())return{ok:false,message:"This Firewood checkout requires office review."};
+      const closed = await closeCheckoutReservation({ reservation, stripe: input.stripe, supabase: input.supabase, livemode: input.livemode, operation: "checkout_replacement", correlationId: crypto.randomUUID(),verifyLease:verifyLiveLease });
       if (!closed.ok) return { ok: false, message: "Payment status could not be verified. Please try again." };
       return createOrReuseInvoiceCheckout(input, attempt + 1);
     } catch {
@@ -85,8 +93,10 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
     return { ok: false, message: "A new payment checkout could not be prepared. Please try again." };
   }
 
+  let knownCheckoutId:string|null=null,knownIntentId:string|null=null;
   try {
     const metadata = compactMetadata({
+      ...(isLiveCollectorPolicy(input.firewoodPolicy)?{firewood_source_id:input.firewoodPolicy.sourceId,firewood_order_id:input.firewoodPolicy.orderId,receipt_authority:"crm"}:{}),
       checkout_reservation_id: reservation.id,
       customer_id: input.customerId ?? "",
       invoice_id: input.invoiceId,
@@ -95,6 +105,8 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
       payment_channel: "ach",
       service_location_id: input.serviceLocationId ?? "",
     });
+    // Recheck after reservation and immediately before the remote side effect.
+    if(!await firewoodCurrent())return{ok:false,message:"This Firewood checkout requires office review."};
     const session = await input.stripe.checkout.sessions.create(
       {
         cancel_url: `${input.portalUrl}?payment=cancelled`,
@@ -112,15 +124,25 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
         ],
         metadata,
         mode: "payment",
-        payment_method_types: [...achCheckoutPaymentMethodTypes],
+        ...(input.firewoodPolicy ? {
+          allowed_payment_method_types: ["us_bank_account"],
+          // Derive the random-letter suffix from the already random reservation
+          // so a recovered request retains the exact provider parameters.
+          integration_identifier: `${isLiveCollectorPolicy(input.firewoodPolicy)?"ats_firewood_live_v1_ach_":"ats_firewood_v2_ach_"}${reservation.id.replaceAll("-", "").slice(0, 8).split("").map(c => String.fromCharCode(97 + Number.parseInt(c, 16))).join("")}`,
+        } : { payment_method_types: [...achCheckoutPaymentMethodTypes] }),
         payment_intent_data: { metadata },
         success_url: `${input.portalUrl}?payment=processing&session_id={CHECKOUT_SESSION_ID}`,
       },
-      { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}` },
+      { idempotencyKey: `angel-tree-invoice-checkout-${reservation.id}`, ...(input.firewoodPolicy ? { apiVersion: "2026-09-30.endive" as Stripe.LatestApiVersion } : {}),...(isLiveCollectorPolicy(input.firewoodPolicy)?{maxNetworkRetries:0,timeout:8000}:{}) },
     );
 
+    if(isLiveCollectorPolicy(input.firewoodPolicy)){
+      if(typeof session?.id==="string"&&/^cs_[A-Za-z0-9_]+$/.test(session.id))knownCheckoutId=session.id;
+      const intentId=getStripeId(session?.payment_intent??null);if(typeof intentId==="string"&&/^pi_[A-Za-z0-9]+$/.test(intentId))knownIntentId=intentId;
+    }
     if (!matchesCreatedSession(session, reservation, input.livemode)) {
       logAchCheckoutError("checkout_session_binding_unconfirmed");
+      if(isLiveCollectorPolicy(input.firewoodPolicy))throw Error("live_checkout_binding_unconfirmed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
 
@@ -131,6 +153,7 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
         stripe_payment_intent_id: getStripeId(session.payment_intent),
       }).eq("id", reservation.id).eq("invoice_id", input.invoiceId).eq("status", "creating")
         .is("stripe_checkout_session_id", null).is("stripe_payment_intent_id", null).is("submitted_at", null);
+      if(isLiveCollectorPolicy(input.firewoodPolicy))throw Error("live_checkout_url_unconfirmed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
 
@@ -150,14 +173,22 @@ export async function createOrReuseInvoiceCheckout(input: CheckoutInput, attempt
 
     if (!confirmsCheckoutRow(saved, reservation.id)) {
       logAchCheckoutError("checkout_reservation_update_failed");
+      if(isLiveCollectorPolicy(input.firewoodPolicy))throw Error("live_checkout_save_unconfirmed");
       return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
     }
 
     return { ok: true, reused: false, url: session.url };
   } catch {
+    if(isLiveCollectorPolicy(input.firewoodPolicy)&&(knownCheckoutId||knownIntentId)){
+      // Preserve returned references even if a later binding/write check fails.
+      // Retain creating state and the original provider idempotency key.
+      await input.supabase.from("invoice_checkout_sessions").update({...(knownCheckoutId?{stripe_checkout_session_id:knownCheckoutId}:{}),...(knownIntentId?{stripe_payment_intent_id:knownIntentId}:{})})
+        .eq("id",reservation.id).eq("invoice_id",input.invoiceId).eq("status","creating").is("stripe_checkout_session_id",null).is("stripe_payment_intent_id",null).is("submitted_at",null).then(()=>{},()=>{});
+    }
     logAchCheckoutError("checkout_session_creation_failed");
     // Network/provider/local-write uncertainty must retain the creating guard.
     // A retry cannot safely infer that Stripe never created a session.
+    if(isLiveCollectorPolicy(input.firewoodPolicy))return{ok:false,message:"Your payment checkout is not yet verified. Please wait for its saved status before trying again."};
     return { ok: false, message: "A secure payment checkout could not be opened. Please try again." };
   }
 }

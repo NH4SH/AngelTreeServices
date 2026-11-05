@@ -1,7 +1,9 @@
 import { withDeadline } from "../../src/lib/runtime/deadline.ts";
+import { logNodeRuntimeOnce } from "../../src/lib/security/node-runtime.ts";
 import targets from "../../staging/targets.json";
 import { isStagingDeployment, production } from "../../src/lib/security/staging-policy.mjs";
 export async function runScheduledWorker(path: string, secretName: string, label: string) {
+  logNodeRuntimeOnce(label);
   const appEnv = Netlify.env.get("APP_ENV");
   if (isStagingDeployment(targets, { APP_ENV: appEnv, STAGING_MODE: Netlify.env.get("STAGING_MODE") }) ||
     (appEnv && appEnv !== "production") || Netlify.env.get("SITE_ID") !== production.netlifySiteId) {
@@ -14,8 +16,10 @@ export async function runScheduledWorker(path: string, secretName: string, label
     ? Netlify.env.get("COMMUNICATION_WORKER_SECRET") : undefined))?.trim();
   let app: URL;
   try { app = new URL(base ?? ""); } catch { throw Error("The canonical admin URL is required."); }
-  if (app.origin !== production.appOrigin || app.username || app.password || app.pathname !== "/" || app.search || app.hash || !secret || secret.length < 32)
-    throw Error("The canonical admin URL and configured worker credential are required.");
+  if (app.origin !== production.appOrigin || app.username || app.password || app.pathname !== "/" || app.search || app.hash)
+    throw Error("The configured admin URL failed canonical validation.");
+  if (!secret) throw Error("The configured worker credential is missing.");
+  if (secret.length < 32) throw Error("The configured worker credential is shorter than required.");
   if (!/^\/api\/internal\/[a-z0-9/-]+$/.test(path) || !new URL(path, app).pathname.startsWith("/api/internal/")) throw Error("Invalid internal worker route.");
   try {
     await withDeadline(async signal => {

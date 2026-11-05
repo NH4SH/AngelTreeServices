@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';import http from 'node:http';import {isIP} from 'node:net';import {timingSafeEqual} from 'node:crypto';import {Transform} from 'node:stream';
 const hop=new Set(['connection','keep-alive','proxy-authenticate','proxy-authorization','te','trailer','transfer-encoding','upgrade','expect']);
+// Only these existing POST transports carry Firewood's downstream HMAC authentication.
+export const FIREWOOD_POST_PATHS=Object.freeze(['/api/integrations/firewood/live/v1/prepare','/api/integrations/firewood/live/v1/renew','/api/integrations/firewood/live/v1/status','/api/integrations/firewood/live/v2/office/price-request','/api/integrations/firewood/live/v2/office/price-status','/api/integrations/firewood/live/v2/office/order-status']);
+const signedFirewoodPaths=new Set(FIREWOOD_POST_PATHS),signatureHeaders=new Set(['x-ats-key-id','x-ats-timestamp','x-ats-signature']);
 export function createPrimaryGateway({canonicalHost,proxyToken,admission,workerDispatchAllowed=()=>true,appPort=3251,backendHost='api-gw',backendPort=8000}){
  assert.equal(canonicalHost,'admin.angeltreeservices.org');assert.ok(typeof proxyToken==='string'&&/^[a-f0-9]{64}$/.test(proxyToken),'Invalid configured proxy secret');
  const fixed=(res,status)=>{if(res.headersSent)return res.destroy();res.writeHead(status,{'content-type':'text/plain; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff','retry-after':'30'});res.end(status===413?'Request too large.':status===503?'CRM temporarily unavailable. Please try again shortly.':'Request unavailable.');};
@@ -14,9 +17,10 @@ export function createPrimaryGateway({canonicalHost,proxyToken,admission,workerD
   if(pathname==='/api/internal'||pathname.startsWith('/api/internal/')){
     try{assert.equal(workerDispatchAllowed(),true);}catch{return fixed(res,503);}
   }
+  const signedFirewoodPost=req.method==='POST'&&signedFirewoodPaths.has(req.url);
   const extra=new Set((req.headers.connection??'').split(',').map(x=>x.trim().toLowerCase()));
-  const headers=Object.fromEntries(Object.entries(req.headers).filter(([key])=>!hop.has(key)&&!extra.has(key)&&!key.startsWith('x-forwarded-')&&!key.startsWith('x-ats-')&&key!=='forwarded'&&key!=='x-nf-client-connection-ip'));
-  Object.assign(headers,{host:canonicalHost,'x-forwarded-host':canonicalHost,'x-forwarded-proto':'https','x-forwarded-for':client,'x-nf-client-connection-ip':client});
+  const headers=Object.fromEntries(Object.entries(req.headers).filter(([key])=>!hop.has(key)&&!extra.has(key)&&!key.startsWith('x-forwarded-')&&(!key.startsWith('x-ats-')||(signedFirewoodPost&&signatureHeaders.has(key)))&&key!=='forwarded'&&key!=='x-nf-client-connection-ip'));
+  Object.assign(headers,{host:canonicalHost,'x-forwarded-host':canonicalHost,'x-forwarded-proto':signedFirewoodPost?'http':'https','x-forwarded-for':client,'x-nf-client-connection-ip':client});
   const backend=req.url.startsWith('/backend/');
   const upstream=http.request({hostname:backend?backendHost:'127.0.0.1',port:backend?backendPort:appPort,path:backend?req.url.slice('/backend'.length):req.url,method:req.method,headers,timeout:35000},incoming=>{
    const connectionTokens=new Set((incoming.headers.connection??'').split(',').map(x=>x.trim().toLowerCase()));

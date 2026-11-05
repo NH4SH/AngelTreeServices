@@ -1,0 +1,96 @@
+{
+  "purpose": "Exact verified release provenance; not a runnable deployment or an automatic override",
+  "frozenAppSourceFiles": 702,
+  "frozenAppSourceManifestSha256": "f3046ae444884035ef4bad76996ca50ca247617ecf0d52994b444acd07a05ffb",
+  "frozenAppImage": "sha256:b5578671f95de7e1997fc000280cd20ff7c8715562ea7f825460d3ec33f6e16d",
+  "liveControllerSha256": "fa230853b746ba27d408aed59b455dbcbd3ce7e84d68171b2558fb21d98c81c1",
+  "noCredentialsCustomerRowsOrPrivateRuntimeBindings": true,
+  "excludesEstimatePhotosAndFulfillment": true,
+  "files": [
+    {
+      "path": "frozen-app-overlay/apps/platform/src/app/admin/invoices/[invoiceId]/page.tsx",
+      "bytes": 28679,
+      "sha256": "ad7d20d567cda52fc2da67d235450feab0a90963cb54e1adac97306203b8f7e4"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/app/api/admin/notifications/route.ts",
+      "bytes": 4120,
+      "sha256": "640b977b89f7f2270db9f6605bb37b29a58f8a43c5de07e40c7a2168cac664bb"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/components/firewood-office-workspace.tsx",
+      "bytes": 23146,
+      "sha256": "a7f96be6652771db42fc526db7cf2a18943d9ed6d456825bd79f02376e71bbcc"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/components/notification-bell.tsx",
+      "bytes": 12483,
+      "sha256": "a9fe82d271018e7ff67f9d2e6509b4215513e1411dbd0aa6c1bc60f6467e5ed6"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/actions/firewood-office.ts",
+      "bytes": 2206,
+      "sha256": "b0e711a58018dd6012f39a5b0938b7933dc4284339d8aec2e902d79381532ee1"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/actions/workflow.ts",
+      "bytes": 17161,
+      "sha256": "746d680deea011768e82fb3ad8f62db3159d499292ed9276c43c85e4e218e41d"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/firewood/office-command.ts",
+      "bytes": 16425,
+      "sha256": "a3ee01b1a7e08d850fd81d963a4925ec6a6a90bb64e55ce336ce9b02ab108dd0"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/firewood/office-ui-types.ts",
+      "bytes": 3446,
+      "sha256": "b3201d63781b194e7d84675a819e0059ee19b4a161d7aef331eb053509fa5b6b"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/firewood/office-workspace.ts",
+      "bytes": 15570,
+      "sha256": "52714c43debabc27e975265b3fbcec414b3e00a0e7e69a9ec89b8bd49a95b482"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/notifications/inbox-request.ts",
+      "bytes": 3133,
+      "sha256": "601d6367c5e19ee918df22b58146883e7fa04a2a26edf8ad89b58b2b81ab8566"
+    },
+    {
+      "path": "frozen-app-overlay/apps/platform/src/lib/payments/invoice-void.ts",
+      "bytes": 11116,
+      "sha256": "663b3dc5f5b52e21595185e37196fa97c6cdc6d25ccc352f9d1f4ff503448978"
+    },
+    {
+      "path": "customer-checkout-overlay/scripts/firewood-checkout/customer/assets.mjs",
+      "bytes": 6854,
+      "sha256": "4116cb4a8e0aedd379f4c704c65bee82d20d551c9e54b91c8c4a9fea7cb1494c"
+    },
+    {
+      "path": "customer-checkout-overlay/scripts/firewood-checkout/customer/browser.js",
+      "bytes": 19323,
+      "sha256": "0fdf41eae07d466424b2f7376c8f111ff95283cfc0ff227c27f7e7ac9f5b38e8"
+    },
+    {
+      "path": "customer-checkout-overlay/scripts/firewood-checkout/customer/customer.css",
+      "bytes": 2444,
+      "sha256": "5ca1cabbbb0033b1705acaecb89dd004fabb83bedd64f5bb7caca97874844104"
+    },
+    {
+      "path": "availability/primary-controller.production.mjs",
+      "bytes": 18133,
+      "sha256": "fa230853b746ba27d408aed59b455dbcbd3ce7e84d68171b2558fb21d98c81c1"
+    },
+    {
+      "path": "availability/CONTROLLER_PATCH.diff",
+      "bytes": 11519,
+      "sha256": "a279b2b8bed8aa7a21f65ae3932a8b9351b9c9597ce268080b1c851b42043e29"
+    },
+    {
+      "path": "availability/worker-request.published.ts",
+      "bytes": 2538,
+      "sha256": "2579de76f5e591826eb0d8d639a503bc2ac1fdd8a6802dc3e8637da4c6798b0e"
+    }
+  ]
+}

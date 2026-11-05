@@ -7,6 +7,16 @@ import {
 } from "@/lib/notifications/scope";
 
 export async function GET(request: Request) {
+  try {
+    return await getNotifications(request);
+  } catch {
+    return NextResponse.json({ error: "Notifications are temporarily unavailable. Please try again." }, {
+      status: 503, headers: { "Cache-Control": "private, no-store" },
+    });
+  }
+}
+
+async function getNotifications(request: Request) {
   const auth = await requireAdmin();
   if (auth.response) return auth.response;
   const { supabase, user } = auth;

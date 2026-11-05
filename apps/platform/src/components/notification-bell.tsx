@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { formatBusinessDateTime } from "@/lib/business-time";
 import type { AdminNotification } from "@/lib/data/notifications";
 import { persistNotificationRead } from "@/lib/notifications/mark-read";
+import { requestNotificationInbox } from "@/lib/notifications/inbox-request";
 import {
   isSystemHealthNotification,
   type NotificationInboxTab,
@@ -32,10 +33,8 @@ async function fetchNotificationCount() {
   }
 
   if (!pendingNotificationCount) {
-    pendingNotificationCount = fetch("/api/admin/notifications?mode=count", { cache: "no-store" })
-      .then(async (response) => {
-        const payload = await response.json() as NotificationCountPayload;
-        if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+    pendingNotificationCount = requestNotificationInbox("count")
+      .then((payload) => {
         cachedNotificationCount = { expiresAt: Date.now() + notificationCountCacheMs, payload };
         return payload;
       })
@@ -61,10 +60,12 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLElement>(null);
+  const recentRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setPortalHost(document.body);
     void fetchNotifications("count");
+    return () => recentRequest.current?.abort();
   }, []);
 
   const updatePopoverLayout = useCallback(() => {
@@ -107,18 +108,20 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
   }, [open, updatePopoverLayout]);
 
   async function fetchNotifications(mode: "count" | "recent", tab: NotificationInboxTab = activeTab) {
+    let current: AbortController | null = null;
     try {
       if (mode === "count") {
         const payload = await fetchNotificationCount();
         setUnreadCount(payload.unreadCount ?? 0);
         setSystemUnreadCount(payload.systemUnreadCount ?? 0);
-        setError("");
         return;
       }
 
-      const response = await fetch(`/api/admin/notifications?mode=recent&tab=${tab}`, { cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Notifications are unavailable.");
+      recentRequest.current?.abort();
+      current = new AbortController();
+      recentRequest.current = current;
+      const payload = await requestNotificationInbox("recent", tab, { signal: current.signal });
+      if (current.signal.aborted || recentRequest.current !== current) return;
       setUnreadCount(payload.unreadCount ?? 0);
       setSystemUnreadCount(payload.systemUnreadCount ?? 0);
       cachedNotificationCount = {
@@ -131,16 +134,19 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
       setNotifications(payload.notifications ?? []);
       setError("");
     } catch (fetchError) {
+      if (current && (current.signal.aborted || recentRequest.current !== current)) return;
       if (mode === "recent") setError(fetchError instanceof Error ? fetchError.message : "Notifications are unavailable.");
     }
   }
 
   async function toggle() {
     const next = !open;
+    if (!next) recentRequest.current?.abort();
     if (next) updatePopoverLayout();
     setOpen(next);
     if (next) {
       setNotifications(null);
+      setError("");
       await fetchNotifications("recent", activeTab);
     }
   }
@@ -255,7 +261,7 @@ export function NotificationBell({ mobile = false }: { mobile?: boolean }) {
             {error ? (
               <div className="notification-popover-state notification-popover-error" role="alert">
                 <p>{error}</p>
-                <button onClick={() => { setNotifications(null); void fetchNotifications("recent", activeTab); }} type="button">Try again</button>
+                <button onClick={() => { setError(""); setNotifications(null); void fetchNotifications("recent", activeTab); }} type="button">Try again</button>
               </div>
             ) : null}
             {!error && notifications === null ? <p className="notification-popover-state"><LoaderCircle aria-hidden="true" className="spin" size={18} />Loading notifications</p> : null}

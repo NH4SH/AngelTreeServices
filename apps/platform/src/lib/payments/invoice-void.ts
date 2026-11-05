@@ -108,6 +108,23 @@ export async function voidInvoiceSafely(input: Input): Promise<CommandResult> {
   });
 }
 
+// Firewood cancellation keeps the existing review lease alive through its
+// accounting command. Releasing it between checkout review and balance release
+// would invalidate the closure evidence required by the financial guards.
+export async function withClosedInvoiceCheckouts(input: Input, finish: (
+  verifyLease: () => Promise<void>,
+) => Promise<CommandResult>): Promise<CommandResult> {
+  return withInvoiceLease(input, true, async (context, token, budget, verifyLease) => {
+    const closed = await cancelOutstandingInvoiceCheckouts({ invoiceId: input.invoiceId,
+      context, correlationId: input.correlationId, token, budget, verifyLease });
+    if (!closed.ok) return { ok: false, message: closed.code === "checkout_payment_in_progress"
+      ? "A payment has been submitted or recorded. Review its current status before finishing cancellation."
+      : "An earlier payment checkout could not be verified as closed. Refresh the order and review payment status before retrying." };
+    await verifyLease();
+    return finish(verifyLease);
+  });
+}
+
 export async function reviewInvoiceCheckout(input: Input & { reservationId: string; providerReference?: string }): Promise<CommandResult> {
   return withInvoiceLease(input, true, async (context, token, budget, verifyLease) => {
     const found = await budget.run(() => context.supabase.from("invoice_checkout_sessions")

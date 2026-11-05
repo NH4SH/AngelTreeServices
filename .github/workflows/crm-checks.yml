@@ -43,6 +43,8 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - name: Unit and isolated PostgreSQL regression tests
         run: npm run test:unit
+      - name: Firewood fixed-path admission and protected runtime checks
+        run: npm run test:firewood:runtime
       - run: npm run schema:check:offline
       - run: npm run typecheck
       - name: Build without production credentials

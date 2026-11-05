@@ -35,6 +35,7 @@ import { generateInvoiceEmailDraft } from "@/lib/documents/email-drafts";
 import { getEmailSetupState } from "@/lib/email/config";
 import { formatInvoiceStatus, getInvoiceDisplayNumber } from "@/lib/invoices/status";
 import { getStripeServerConfig } from "@/lib/stripe/server";
+import { firewoodInvoiceOrderId } from "@/lib/firewood/office-workspace";
 import { netSuccessfulPaymentPrincipal } from "@/lib/payments/payment-accounting";
 import {
   canRecordManualInvoicePayment,
@@ -80,6 +81,9 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
       ?? detail.data.organizations?.billing_email
       ?? ""
     : "";
+  const websiteFirewood = detail.data?.document_terms_version === "firewood-household-live-2026-10-29-v1";
+  const firewoodOrderId = detail.data ? firewoodInvoiceOrderId(detail.data) : null;
+  const firewoodOfficeHref = firewoodOrderId ? `/admin/firewood/office?office_order=${firewoodOrderId}&office_invoice=${invoiceId}` : "/admin/firewood/office";
   const activePortalUrl = portalTokens.data.find((token) => token.portalUrl)?.portalUrl ?? undefined;
   const successfulPaymentCents = (detail.data?.payments ?? [])
     .filter((payment) => payment.status === "succeeded")
@@ -130,6 +134,7 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                   <a className="primary-action" href="#invoice-payments">Record payment</a>
                 ) : null}
                 {detail.data.status === "paid" ? <Link className="primary-action" href="/admin/follow-ups">Create follow-up</Link> : null}
+                {websiteFirewood && canManageDelivery ? <Link className="primary-action" href={firewoodOfficeHref}>Open Firewood order</Link> : null}
                 <DuplicateRecordButton
                   firewood={detail.data.document_terms_version === FIREWOOD_TERMS_VERSION}
                   action={duplicateInvoice}
@@ -261,7 +266,12 @@ export default async function InvoiceDetailPage({ params, searchParams }: Invoic
                     <ManualInvoiceSentAction invoiceId={detail.data.id} sentAt={detail.data.sent_at} status={detail.data.status} />
                   ) : null}
                   {canManageDelivery ? <>
-                    <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />
+                    {websiteFirewood ? <>
+                      <p className="inline-empty">Cancel the linked Firewood order to close its invoice and retain the payment history.</p>
+                      <Link className="secondary-action" href={`${firewoodOfficeHref}#firewood-cancellation`}>
+                        {["void", "credited"].includes(detail.data.status) ? "Review Firewood cancellation" : "Cancel Firewood order"}
+                      </Link>
+                    </> : <InvoiceStatusActions invoiceId={detail.data.id} status={detail.data.status} />}
                     {checkoutReview.error ? <p className="inline-empty">Payment checkout review is unavailable. Reload or ask an administrator to verify setup.</p>
                       : <InvoiceCheckoutReview invoiceId={detail.data.id} attempts={(checkoutReview.data ?? []) as InvoiceCheckoutReviewRow[]} />}
                   </> : null}

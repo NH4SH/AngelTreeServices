@@ -258,6 +258,11 @@ export async function updateInvoiceStatus(_previousState: WorkflowActionState, f
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoiceId)) {
     return { status: "error", message: "Invoice details are missing. Reload and try again." };
   }
+  const target = await supabase.from("invoices").select("id, document_terms_version").eq("id", invoiceId).maybeSingle();
+  if (target.error || !target.data) return { status: "error", message: "Invoice not found or unavailable to your account." };
+  if (target.data.document_terms_version === "firewood-household-live-2026-10-29-v1") {
+    return { status: "error", message: "Cancel this website order in Firewood office. Its invoice and order must close together, with payment history retained." };
+  }
   const result = await voidInvoiceSafely({ invoiceId, staffSupabase: supabase,
     getPaymentContext: invoicePaymentContext, correlationId: crypto.randomUUID() });
   if (result.ok) refreshInvoice(invoiceId);

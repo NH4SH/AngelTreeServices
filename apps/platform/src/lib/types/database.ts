@@ -66,7 +66,7 @@ export type ScheduleEventType =
   | "emergency"
   | "other";
 export type ScheduleEventStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
-export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "void" | "overdue";
+export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "void" | "overdue" | "credited";
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded" | "cancelled";
 export type JobPhotoType = "before" | "during" | "after" | "customer_upload" | "estimate" | "job" | "issue" | "completion" | "equipment_access";
 export type JobPhotoUploadCategory = "before" | "during" | "after" | "issue" | "completion" | "equipment_access";

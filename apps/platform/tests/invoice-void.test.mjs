@@ -30,6 +30,11 @@ function fixture(options = {}) {
       return { data: null, error: null };
     },
     from(table) {
+      if (table === "invoices") {
+        const q = { select() { return q; }, eq() { return q; }, async maybeSingle() {
+          return { data: options.targetMissing ? null : { id, document_terms_version: options.firewood ? "firewood-household-live-2026-10-29-v1" : null }, error: null };
+        } }; return q;
+      }
       assert.equal(table, "user_roles");
       const q = { select() { return q; }, eq() { return q; }, then(resolve, reject) {
         return Promise.resolve({ data: [{ roles: { name: options.role ?? "owner" } }], error: options.rolesError ?? null }).then(resolve, reject);
@@ -102,6 +107,13 @@ test("invalid invoice/status never reaches financial commands", async () => {
     assert.equal((await f.workflow.updateInvoiceStatus({}, f.form)).status, "error");
     assert.equal(f.events.includes("service-client"), false);
   }
+});
+
+test("website Firewood void directs to order cancellation before leases or provider side effects", async () => {
+  const f = fixture({ firewood: true }), result = await f.workflow.updateInvoiceStatus({}, f.form);
+  assert.equal(result.status, "error"); assert.match(result.message, /Firewood office/);
+  assert.equal(f.calls.includes("begin_invoice_void"), false); assert.equal(f.events.includes("service-client"), false);
+  assert.equal(f.events.includes("stripe-client"), false);
 });
 
 for (const type of ["checkout.session.async_payment_failed", "payment_intent.processing", "payment_intent.payment_failed"]) {

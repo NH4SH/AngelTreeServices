@@ -1,0 +1,44 @@
+{
+  "kind": "exact-read-only-helper-copies-no-authority",
+  "correctedClosureCount": 54,
+  "correctedManifestSha256": "bceb09357e4815948b6e1a8372880fe8ae4b3e078ab365d119467d6b445d0efa",
+  "files": [
+    {
+      "name": "native-wal-checkpoint.mjs",
+      "sha256": "3e2b4886ae05813f8c653fa64fb42f0c36043d319ada7b254233f49052650de9"
+    },
+    {
+      "name": "continuous-policy.mjs",
+      "sha256": "544a59e6ccbc3659de9b6419254367de59eb817f8c1edbe5729c3272ba57b636"
+    },
+    {
+      "name": "backup-source-scope.mjs",
+      "sha256": "661e4421f4086a2f1546beebe2cb48299b63a21cca14f69c6c165aff537bea6d"
+    },
+    {
+      "name": "failover-proof.mjs",
+      "sha256": "9981e9215419a1367c6fd750ed0b9e07b71a243e48008b6372454c73fc6a01ec"
+    },
+    {
+      "name": "cloud-policy.mjs",
+      "sha256": "570c1d14728f2b08baaaab9569e67aa4d261ae7982833cb93b10b58ca4f15c39"
+    },
+    {
+      "name": "wal-archive-policy.mjs",
+      "sha256": "3143ad60c37f78349bb7d62abc2a7f45507acfb2d2ee94720ce4891312a7310c"
+    }
+  ],
+  "semanticsReferences": [
+    {
+      "name": "primary-admission-files.mjs",
+      "sha256": "b1fe592cf7ce04e7805bc512532276258c75fd925b810cd319e1ece75754675b"
+    },
+    {
+      "name": "primary-supervisor.mjs",
+      "sha256": "f46c8b0aed6a6d72b5137efae02271d76a592e5e155d8b352bebfd7f57e00734"
+    }
+  ],
+  "originalsModified": false,
+  "productionInstalled": false,
+  "provenance": "Reviewed recovery helper closure bceb09357e4815948b6e1a8372880fe8ae4b3e078ab365d119467d6b445d0efa; checked before copying. This portable test pins committed copy bytes."
+}

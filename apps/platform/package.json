@@ -29,7 +29,8 @@
     "framework:check": "node scripts/release/verify-framework-security.mjs --installed",
     "prebuild": "node --experimental-strip-types scripts/check-node-runtime.mjs",
     "predev": "node --experimental-strip-types scripts/check-node-runtime.mjs",
-    "prestart": "node --experimental-strip-types scripts/check-node-runtime.mjs"
+    "prestart": "node --experimental-strip-types scripts/check-node-runtime.mjs",
+    "test:firewood:runtime": "node --conditions=react-server --experimental-strip-types --experimental-vm-modules --test scripts/firewood-verification/*.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

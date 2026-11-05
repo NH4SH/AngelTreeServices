@@ -1,0 +1,48 @@
+.firewood-office { margin-top: 28px; border-top: 1px solid var(--color-border); padding-top: 24px; min-width: 0; }
+.firewood-office > header { margin-bottom: 16px; }
+.firewood-office h2 { margin: 0; font-size: 1.3rem; color: var(--color-forest); }
+.firewood-office h3 { margin: 0; font-size: 1.15rem; color: var(--color-forest); }
+.firewood-office h4 { margin: 0 0 10px; font-size: 1rem; color: var(--color-forest); }
+.firewood-office p { max-width: 70ch; margin: 8px 0 0; line-height: 1.5; }
+.firewood-office > header p, .firewood-office small { color: var(--color-muted); }
+.firewood-office :is(a,button,input,select,textarea,summary):focus-visible { outline: 2px solid var(--color-green); outline-offset: 3px; }
+.firewood-office-workspace { display: grid; grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); gap: 28px; align-items: start; }
+.firewood-office-browse, .firewood-office-detail, .firewood-office-list li, .firewood-office-list a > span { min-width: 0; }
+.firewood-office-list { list-style: none; margin: 0; padding: 0; }
+.firewood-office-list li { border-bottom: 1px solid var(--color-border); }
+.firewood-office-list a { display: flex; gap: 12px; justify-content: space-between; padding: 15px 10px; border-radius: 8px; text-decoration: none; color: var(--color-charcoal); }
+.firewood-office-list a:hover, .firewood-office-list a[aria-current="page"] { background: var(--color-surface-green); }
+.firewood-office-list a[aria-current="page"] { outline: 1px solid var(--color-border-strong); }
+.firewood-office-list strong, .firewood-office-list small { display: block; overflow-wrap: anywhere; }
+.firewood-office-list small { margin-top: 4px; line-height: 1.45; }
+.firewood-office-row-amount { flex-shrink: 0; font-variant-numeric: tabular-nums; font-size: .9rem; }
+.firewood-office-paging { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.firewood-office-paging .secondary-action { min-height: 44px; }
+.firewood-office-select { padding-top: 12px; color: var(--color-muted); }
+.firewood-office-record-heading { margin-bottom: 20px; }
+.firewood-office-contact { margin-bottom: 24px; overflow-wrap: anywhere; }
+.firewood-office-address { white-space: pre-wrap; }
+.firewood-office-section { margin-top: 24px; border-top: 1px solid var(--color-border); padding-top: 20px; }
+.firewood-office details > summary { min-height: 44px; padding-block: 11px; cursor: pointer; font-weight: 650; color: var(--color-forest); }
+.firewood-office .firewood-office-form { margin-top: 12px; }
+.firewood-office-form fieldset { display: grid; gap: 14px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.firewood-office-form-legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.firewood-office-form :is(input,select,textarea) { min-width: 0; max-width: 100%; }
+.firewood-office-form .checkbox-field { align-items: flex-start; gap: 10px; line-height: 1.5; font-weight: 500; }
+.firewood-office-form .checkbox-field input { margin-top: 3px; flex: 0 0 18px; }
+.firewood-office-form .secondary-action { width: fit-content; border-color: var(--color-border-strong); background: var(--color-surface); color: var(--color-forest); padding-inline: 14px; }
+.firewood-office-form .secondary-action:hover { background: var(--color-surface-green); }
+.firewood-office-form .form-help { margin: 0; font-size: .85rem; color: var(--color-muted); font-weight: 400; }
+.firewood-office-form .record-form-actions { position: static; bottom: auto; padding: 0; background: transparent; box-shadow: none; }
+.firewood-office-price-total { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding-block: 12px; border-block: 1px solid var(--color-border); font-variant-numeric: tabular-nums; }
+.firewood-office-price-total strong { color: var(--color-forest); font-size: 1.2rem; }
+.firewood-office-money { display: grid; gap: 8px; margin: 14px 0; }
+.firewood-office-money > div { display: flex; justify-content: space-between; gap: 20px; }
+.firewood-office-money dt { color: var(--color-muted); }
+.firewood-office-money dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.firewood-office-warnings { margin: 12px 0; padding-left: 22px; line-height: 1.5; color: var(--color-charcoal); }
+.firewood-office-history { margin: 10px 0 0; padding-left: 22px; }
+.firewood-office-history li { margin-bottom: 12px; }
+.firewood-office-history p { margin: 0; }
+@media (max-width: 800px) { .firewood-office-workspace { grid-template-columns: minmax(0,1fr); gap: 24px; } .firewood-office-detail { border-top: 1px solid var(--color-border); padding-top: 22px; } }
+@media (max-width: 540px) { .firewood-office .form-grid-two { grid-template-columns: minmax(0,1fr); } .firewood-office-list a { flex-wrap: wrap; } .firewood-office .record-form-actions button { width: 100%; } }

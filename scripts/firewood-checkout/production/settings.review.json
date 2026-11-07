@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "preparedOn": "2026-10-27",
+  "purpose": "review-only",
+  "activation": {
+    "ordersEnabled": false,
+    "livePaymentsEnabled": false,
+    "customerEmailEnabled": false,
+    "crmEnabled": false,
+    "dnsChangesApproved": false,
+    "schedulesEnabled": false,
+    "productionReleaseApproved": false
+  },
+  "address": {
+    "origin": "https://checkout.angeltreeservices.org",
+    "checkoutPath": "/firewood/checkout/",
+    "resultPath": "/firewood/checkout/result/",
+    "cancelPath": "/firewood/checkout/?canceled=1",
+    "webhookPath": "/firewood/checkout/webhook",
+    "informationUrl": "https://angeltreeservices.org/firewood/",
+    "robots": "noindex, nofollow",
+    "includeInSitemap": false,
+    "cookieDomain": null,
+    "cookieSecure": true,
+    "cookieHttpOnly": true,
+    "cookieSameSite": "Lax"
+  },
+  "routing": {
+    "strategy": "existing-home-caddy-separate-hostname",
+    "candidateDnsRecord": {
+      "type": "CNAME",
+      "name": "checkout",
+      "target": "scanner.angeltreeservices.org",
+      "ttlSeconds": 300,
+      "applied": false
+    },
+    "nameserverMigration": false,
+    "newHostingSubscription": false,
+    "routerRuleChange": false,
+    "existingScannerHostnames": [
+      "scanner-staging.angeltreeservices.org",
+      "scanner.angeltreeservices.org"
+    ],
+    "currentIngressConfigSha256": "2a67e49f77c998ecb8e926bf0dc9cff2c40789ce39d5a2fa3732cebfcbbb46e0",
+    "candidateTemplate": "maintenance.caddy.review",
+    "templateServesOrders": false,
+    "privateBackend": "review-required",
+    "privateHopRequirements": [
+      "pinned-peer",
+      "verified-tls",
+      "client-certificate-authentication",
+      "no-public-database"
+    ],
+    "certificateIssueAndRenewalVerified": false,
+    "liveScannerRegressionChecksPassed": false
+  },
+  "orders": {
+    "currency": "usd",
+    "options": [
+      {
+        "id": "half",
+        "cords": 0.5,
+        "deliveredCents": 30000,
+        "stackedCents": 45000,
+        "savingPercent": 0,
+        "savingCents": 0
+      },
+      {
+        "id": "full",
+        "cords": 1,
+        "deliveredCents": 45000,
+        "stackedCents": 60000,
+        "savingPercent": 25,
+        "savingCents": 15000
+      },
+      {
+        "id": "two",
+        "cords": 2,
+        "deliveredCents": 84000,
+        "stackedCents": 99000,
+        "savingPercent": 30,
+        "savingCents": 36000
+      }
+    ],
+    "maximumOnlineCords": 2,
+    "deliveryCents": 0,
+    "deliveryEligibilityGate": false,
+    "stackingCents": 15000,
+    "stackingBasis": "once-per-delivery",
+    "stackingAccess": "The stacking location must be accessible by wheelbarrow and within a reasonable distance of the truck.",
+    "coverageInformation": [
+      "Fredericksburg",
+      "Spotsylvania",
+      "Stafford",
+      "Caroline",
+      "King George"
+    ],
+    "deliveryDateNotificationDays": 7,
+    "deliveryCompletionDaysGuaranteed": null,
+    "schedulingTimezone": "America/New_York",
+    "cancellation": {
+      "fullRefundMinimumHoursBeforeDelivery": 48,
+      "lessThan48Hours": "non-refundable",
+      "refundProcessingPromise": null,
+      "cutoffBasisApproved": true,
+      "automaticRefunds": false,
+      "cutoffBasis": "scheduled-delivery-window-start",
+      "confirmedScenarios": [
+        {
+          "case": "before-delivery-is-scheduled",
+          "outcome": "full-refund",
+          "approved": true
+        },
+        {
+          "case": "angel-cancels-or-cannot-fulfill",
+          "outcome": "full-refund",
+          "approved": true
+        },
+        {
+          "case": "customer-declines-angel-reschedule",
+          "outcome": "full-refund",
+          "approved": true
+        }
+      ]
+    },
+    "availability": {
+      "mode": "owner-managed-pause",
+      "initialStatus": "paused",
+      "automaticInventoryClaim": false
+    },
+    "tax": {
+      "ownerReportedTaxFree": true,
+      "productionTreatment": "review-required",
+      "stripeAutomaticTaxEnabled": false,
+      "ownerConfirmedNoTaxForServiceAreas": true,
+      "intendedTaxRateBasisPoints": 0,
+      "zeroTaxLegallyVerified": false
+    },
+    "veterans": {
+      "percent": 5,
+      "residentialOnly": true,
+      "base": "wood-plus-stacking-before-tax-and-other-fees",
+      "combineWithOtherDiscounts": false,
+      "checkbox": false,
+      "automaticDiscount": false,
+      "idUploads": false,
+      "redemptionApproved": true,
+      "redemption": "notify-before-purchase-owner-assisted",
+      "quantityPriceHandling": "owner-quote-before-payment-no-automatic-combination"
+    }
+  },
+  "payments": {
+    "intendedMerchantAccount": "acct_1Tv92EI7tY6VHUvU",
+    "qaAccountNeverUseForLiveOrders": "acct_1UU9U8RAZXGe6tX0",
+    "keyRequirement": "separate-restricted-live-key-not-provided",
+    "hostedCheckout": true,
+    "promotionCodesEnabled": false,
+    "webhookRequired": true,
+    "fulfillmentRequiresVerifiedPaidState": true,
+    "returnPageMayCreateFulfillment": false,
+    "fulfillmentEvents": [
+      "checkout.session.completed",
+      "checkout.session.async_payment_succeeded"
+    ],
+    "proposedLifecycleEvents": [
+      "checkout.session.async_payment_failed",
+      "checkout.session.expired",
+      "charge.refunded",
+      "refund.created",
+      "refund.updated",
+      "refund.failed",
+      "charge.dispute.created",
+      "charge.dispute.updated",
+      "charge.dispute.closed"
+    ],
+    "lifecycleEventContractApproved": false,
+    "liveWebhookConfigured": false
+  },
+  "storage": {
+    "proposedDatabase": "firewood_orders",
+    "proposedClusterPort": 56388,
+    "databaseBind": "127.0.0.1",
+    "separateProductionCluster": true,
+    "reuseQaOrdersOrQueues": false,
+    "created": false,
+    "migrated": false,
+    "privateOwnerAccess": "existing-private-vpn-only",
+    "retentionPolicy": "existing-business-record-policy-implementation-review",
+    "backupAndMonitoringTargetUpdated": false,
+    "restoreVerified": false
+  },
+  "notifications": {
+    "ownerEmail": "info@angeltreeservice.org",
+    "from": "Angel Tree Services Firewood <orders@firewood.angeltreeservice.org>",
+    "replyTo": "info@angeltreeservice.org",
+    "customerReceiptCopies": 1,
+    "ownerOrderCopies": 1,
+    "idempotentDurableOutbox": true,
+    "paidOrderSurvivesEmailFailure": true,
+    "customerSendingApproved": false,
+    "duplicateStripeReceiptPolicy": "review-required",
+    "keepStripeAccountReceiptSettingsUnchanged": true,
+    "proposedReceiptExperience": "one-angel-order-confirmation-existing-stripe-receipts-unchanged"
+  },
+  "crm": {
+    "owner": "CRM chat",
+    "productionEndpoint": null,
+    "productionContract": null,
+    "reuseTestImportEndpoint": false,
+    "desiredResult": "one-paid-invoice-and-one-payment-per-order",
+    "sendInvoiceAgainAutomatically": false
+  },
+  "releaseGates": [
+    {
+      "id": "routing",
+      "status": "pending",
+      "detail": "Approve isolated hostname routing and verify both existing scanner hosts and their access controls."
+    },
+    {
+      "id": "tls-private-hop",
+      "status": "pending",
+      "detail": "Verify public certificate renewal and a peer-pinned authenticated private hop from the guest gateway to the native MacBook runtime."
+    },
+    {
+      "id": "production-runtime",
+      "status": "pending",
+      "detail": "Implement real-customer sessions and production storage boundaries without relaxing existing QA guards."
+    },
+    {
+      "id": "operations",
+      "status": "pending",
+      "detail": "Test owner pause, scheduling, refunds, alerts, production-target backups, restored orders and sustained availability."
+    },
+    {
+      "id": "tax",
+      "status": "pending",
+      "detail": "Owner reconfirmed no tax for all served areas; independently verify the applicable exemption, selling locality/use classification and stacking treatment before activating the intended zero rate."
+    },
+    {
+      "id": "veterans",
+      "status": "implementation-pending",
+      "detail": "Owner confirmed eligibility must be disclosed before purchase; implement an owner-approved quote before payment, without a checkbox or automatic discount combination."
+    },
+    {
+      "id": "communications-policy",
+      "status": "pending",
+      "detail": "Refund outcomes and delivery-window cutoff are owner-confirmed; implement them and test retention, notices and the controlled-to-customer sending transition while preserving account-wide Stripe receipt settings."
+    },
+    {
+      "id": "crm-contract",
+      "status": "pending",
+      "detail": "CRM owner must supply a separately approved production invoice/refund/dispute contract."
+    },
+    {
+      "id": "release",
+      "status": "pending",
+      "detail": "Obtain separate approval for DNS, shared-ingress activation, customer sending, live payments and website publication."
+    }
+  ]
+}

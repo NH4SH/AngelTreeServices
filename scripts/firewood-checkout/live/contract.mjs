@@ -1,0 +1,25 @@
+// Thin aliases over the exact CRM-owned live wire contract. Keep the frozen
+// sandbox/staging protocol separate; neither can parse the other's requests.
+export {
+  FirewoodLiveHandoffError as FirewoodHandoffError,
+  LIVE_HANDOFF_CONTRACT as HANDOFF_CONTRACT,
+  LIVE_HANDOFF_SOURCE as HANDOFF_SOURCE,
+  LIVE_HANDOFF_ENVIRONMENT as HANDOFF_ENVIRONMENT,
+  LIVE_ACCOUNT, LIVE_PORTAL_ORIGIN, LIVE_WEBSITE_ORIGIN,
+  LIVE_PREPARE_PATH as PREPARE_PATH,
+  LIVE_STATUS_PATH as STATUS_PATH,
+  LIVE_RENEW_PATH as RENEW_PATH,
+  LIVE_BINDING_KEYS as BINDING_KEYS,
+  LIVE_CATALOG, LIVE_TERMS_POLICY, LIVE_TERMS_HASH, LIVE_ACCEPTED_TERMS,
+  LIVE_PAYMENT_POLICY as PAYMENT_POLICY,
+  LIVE_PAYMENT_POLICY_HASH,
+  canonicalLiveHandoff as canonicalHandoff,
+  liveHandoffDigest as handoffDigest,
+  parseLivePrepareRequest as parsePrepareRequest,
+  parseLiveStatusRequest as parseStatusRequest,
+  parseLiveRenewRequest as parseRenewRequest,
+  normalizeLiveContact, priceLiveOrder,
+  signLiveHandoff as signHandoff,
+  validateLivePrepareReceipt as validatePrepareReceipt,
+  validateLiveStatusReceipt as validateStatusReceipt,
+} from './live-contract.mjs';

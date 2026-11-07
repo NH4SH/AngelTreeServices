@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "aphoristic-cadence",
+        "value": "*",
+        "files": [
+          "scripts/firewood-checkout/checkout.html"
+        ],
+        "createdAt": "2026-10-25T17:36:12.666Z",
+        "reason": "Agent review: this intentional local test checkout repeats necessary statements that payments, deliveries and notifications are simulated; these are test-state explanations, not marketing aphorisms."
+      }
+    ]
+  }
+}

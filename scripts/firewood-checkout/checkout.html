@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Firewood checkout — local test | Angel Tree Services</title>
+  <link rel="stylesheet" href="/assets/css2.css">
+  <link rel="stylesheet" href="/firewood/checkout/checkout.css">
+  <script src="/firewood/checkout/checkout.js" defer></script>
+</head>
+<body>
+  <header class="checkout-header"><a href="/firewood/">Angel Tree Services</a><a href="/firewood/">Back to firewood</a></header>
+  <div class="test-notice" id="test-notice" role="note"><strong>Test checkout.</strong> Use made-up details only. No real payment or delivery. Test orders are saved privately for testing.</div>
+  <main id="main">
+    <h1>Order your firewood.</h1>
+    <p class="intro">Choose up to two cords, with optional stacking.</p>
+    <p id="loading" role="status">Loading the test checkout…</p>
+    <noscript><p>This test checkout needs JavaScript. The <a href="/firewood/">Firewood page</a> still has the prices and phone ordering information.</p></noscript>
+    <section id="order-view" hidden aria-label="Firewood order">
+      <div class="test-tools"><button type="button" class="text-button" id="example">Use example details</button><span id="processor-note"></span></div>
+      <p id="return-note" class="feedback" hidden></p>
+      <form id="order-form">
+        <div class="order-fields">
+          <fieldset aria-describedby="quantity-savings-note"><legend>Choose your amount</legend>
+            <div class="quantity-options" id="quantity-options"></div>
+            <p class="field-help" id="quantity-savings-note">Savings compared with the same amount at our delivered half-cord rate. Already included in these prices; before optional stacking.</p>
+          </fieldset>
+          <fieldset class="stacking-field"><legend>Would you like stacking?</legend>
+            <label class="stacking-choice"><input type="checkbox" name="stacking" aria-describedby="stacking-help"><span><strong>Add stacking <span id="stacking-price"></span></strong><span class="detail">One charge per delivery.</span></span></label>
+            <p class="field-help" id="stacking-help" hidden></p>
+          </fieldset>
+          <fieldset><legend>Delivery details</legend>
+            <div class="field-grid">
+              <label class="wide"><span id="label-name">Full name</span><input aria-labelledby="label-name" name="name" autocomplete="name" required maxlength="100"></label>
+              <label><span id="label-email">Email</span><input aria-labelledby="label-email" name="email" type="email" autocomplete="email" required maxlength="254"></label>
+              <label><span id="label-phone">Phone</span><input aria-labelledby="label-phone" name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>
+              <label class="wide"><span id="label-address">Street address</span><input aria-labelledby="label-address" name="address" autocomplete="address-line1" required maxlength="150"></label>
+              <label class="wide"><span id="label-address2">Apartment or unit <span class="optional">(optional)</span></span><input aria-labelledby="label-address2" name="address2" autocomplete="address-line2" maxlength="100"></label>
+              <label class="wide"><span id="label-city">City</span><input aria-labelledby="label-city" name="city" autocomplete="address-level2" required maxlength="100"></label>
+              <label><span id="label-state">State</span><input aria-labelledby="label-state" name="state" autocomplete="address-level1" value="VA" required minlength="2" maxlength="2" pattern="[A-Za-z]{2}"></label>
+              <label><span id="label-postal">ZIP code</span><input aria-labelledby="label-postal" name="postal" autocomplete="postal-code" inputmode="numeric" required pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10"></label>
+              <label class="wide"><span id="label-notes">Delivery or stacking instructions <span class="optional">(optional)</span></span><textarea aria-labelledby="label-notes" name="notes" rows="3" maxlength="500" aria-describedby="notes-help"></textarea></label>
+            </div>
+            <p class="field-help" id="notes-help">Tell us where the wood should go and anything useful about access.</p>
+          </fieldset>
+          <section class="order-terms" aria-labelledby="terms-title">
+            <h2 id="terms-title">Delivery and cancellations</h2>
+            <p>We’ll contact you with a delivery date within one week of ordering. <a href="tel:+15403888715">Call for more specific scheduling.</a></p>
+            <p>Cancel at least 48 hours before your scheduled delivery for a full refund. Cancellations with less than 48 hours’ notice are non-refundable.</p>
+          </section>
+        </div>
+        <aside class="order-summary" aria-labelledby="summary-title">
+          <h2 id="summary-title">Your order</h2>
+          <dl><div><dt id="summary-quantity">Full cord</dt><dd id="summary-wood"></dd></div><div><dt>Delivery</dt><dd id="summary-delivery">Included</dd></div><div id="summary-stacking-row" hidden><dt>Stacking</dt><dd id="summary-stacking"></dd></div><div class="total"><dt>Test total</dt><dd><output id="summary-total" aria-live="polite"></output></dd></div></dl>
+          <p class="field-help">Tax treatment is pending confirmation. No tax is calculated in this local test.</p>
+          <p id="form-error" class="error" role="alert" tabindex="-1" hidden></p>
+          <button class="primary" id="continue" type="submit">Continue to test payment</button>
+          <p class="field-help">This is a test, not a reservation or scheduled delivery.</p>
+        </aside>
+      </form>
+    </section>
+    <section id="payment-view" hidden aria-labelledby="payment-title">
+      <h2 id="payment-title">Try the payment step.</h2>
+      <p>This local simulator does not contact a payment provider or ask for card details.</p>
+      <p id="payment-summary" class="payment-total"></p>
+      <p id="payment-message" class="feedback" role="status"></p>
+      <div class="payment-actions"><button class="primary" id="simulate-success">Simulate successful payment</button><button class="secondary" id="simulate-decline">Simulate declined payment</button><button class="text-button" id="cancel-payment">Return to your order</button></div>
+    </section>
+    <section id="result-view" hidden aria-labelledby="result-title">
+      <h2 id="result-title" tabindex="-1">Test payment complete.</h2>
+      <p id="result-summary"></p><p id="order-reference"></p><p id="crm-status" class="field-help" role="status" hidden></p>
+      <p>No money was charged and no delivery was ordered. Your details have been removed from the form and saved in the private test order record.</p>
+      <details class="confirmation-preview"><summary>View test confirmation</summary><p id="confirmation-status" role="status"></p><h3 id="confirmation-subject"></h3><p id="confirmation-text"></p></details>
+      <a class="primary" href="/firewood/checkout/">Start another test order</a>
+    </section>
+  </main>
+  <footer class="checkout-footer">Local firewood checkout preview. <a href="/firewood/">Return to the Firewood page</a></footer>
+</body>
+</html>

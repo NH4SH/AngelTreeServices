@@ -1,9 +1,15 @@
 {
   "scripts": {
+    "review:firewood": "node scripts/firewood-checkout/production/review.mjs --check",
+    "test:firewood:candidate": "node --test scripts/firewood-checkout/production/runtime/test-runtime.mjs scripts/firewood-checkout/production/runtime/test-ops.mjs scripts/firewood-checkout/production/runtime/test-crm-queue.mjs scripts/firewood-checkout/production/runtime/test-crm-contract.mjs scripts/firewood-checkout/production/runtime/test-crm-adapter.mjs",
+    "preview:firewood": "node scripts/firewood-checkout/server.mjs",
+    "test:firewood": "node --test scripts/test-firewood-checkout.mjs scripts/test-firewood-crm.mjs scripts/firewood-checkout/test-hosted.mjs scripts/firewood-checkout/render/test-runtime.mjs scripts/firewood-checkout/macbook/test-native.mjs scripts/firewood-checkout/macbook/ops/test-ops.mjs scripts/firewood-checkout/macbook/public-qa/test-public-qa.mjs",
     "images:public": "python3 scripts/generate-public-images.py",
     "build:public": "python3 scripts/build-public-site.py",
     "validate:public": "python3 scripts/validate-public-site.py --site-dir dist-public",
-    "test:public": "node --test scripts/test-public-interactions.cjs scripts/test-website-analytics.cjs scripts/test-public-consent.cjs scripts/test-analytics-live-qa.cjs scripts/test-estimate-draft.cjs scripts/test-project-gallery.cjs && python3 -m unittest discover -s scripts -p test_public_styles.py && npm run build:public && npm run validate:public"
+    "test:public": "node --test scripts/test-public-interactions.cjs scripts/test-website-analytics.cjs scripts/test-public-consent.cjs scripts/test-analytics-live-qa.cjs scripts/test-estimate-draft.cjs scripts/test-project-gallery.cjs && python3 -m unittest discover -s scripts -p test_public_styles.py && npm run build:public && npm run validate:public",
+    "test:firewood:handoff": "node --test scripts/firewood-checkout/launch/test-handoff.mjs scripts/firewood-checkout/launch/test-staging.mjs",
+    "test:firewood:live-profile": "node --test scripts/firewood-checkout/live/test-live.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

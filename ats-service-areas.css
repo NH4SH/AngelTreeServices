@@ -74,6 +74,7 @@
 .ats-area-group { min-width: 0; }
 .ats-area-group h3 { margin: 0 0 20px; color: var(--ats-green-deep); font-size: 1.25rem; line-height: 1.3; }
 .ats-area-group h3,
+#colonial-beach-tree-service,
 #richmond-coverage-title { scroll-margin-top: 112px; }
 .ats-area-places {
   display: grid;
@@ -118,7 +119,7 @@
     max-height: min(70dvh, calc(100dvh - var(--ats-service-areas-menu-offset, 120px)));
   }
 
-  .ats-service-areas-page :is(.ats-area-group h3, #richmond-coverage-title) {
+  .ats-service-areas-page :is(.ats-area-group h3, #colonial-beach-tree-service, #richmond-coverage-title) {
     scroll-margin-top: var(--ats-service-areas-scroll-offset, var(--ats-service-areas-header-offset, 120px));
   }
 
@@ -128,7 +129,7 @@
       scroll-padding-bottom: calc(max(88px, var(--ats-service-areas-bar-space, 88px)) + env(safe-area-inset-bottom));
     }
 
-    .ats-service-areas-page :is(.ats-area-group h3, #richmond-coverage-title) {
+    .ats-service-areas-page :is(.ats-area-group h3, #colonial-beach-tree-service, #richmond-coverage-title) {
       scroll-margin-top: 0;
     }
   }

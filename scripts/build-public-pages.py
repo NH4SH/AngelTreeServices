@@ -1688,6 +1688,7 @@ def service_areas_body() -> str:
           <h3 id="area-{html_attr(group['id'])}" tabindex="-1">{html_text(group['heading'])}</h3>
           <ul class="ats-area-places" role="list">{"".join('<li>' + html_text(place + (' (tree services only)' if place in group.get('tree_only_places', []) else '')) + '</li>' for place in group['places'])}</ul>
           {('<p>' + html_text(group['note']) + '</p>') if group.get('note') else ''}
+          {('<p><a href="#colonial-beach-tree-service">Planning tree work in Colonial Beach or King George?</a></p>') if group['id'] == 'east' else ''}
         </section>'''
         for group in COVERAGE["groups"]
     )
@@ -1705,6 +1706,21 @@ def service_areas_body() -> str:
           <p>Tree care includes <a href="/services/tree-removal/">tree removal</a>, <a href="/services/tree-pruning/">pruning</a> and <a href="/services/stump-grinding/">stump grinding</a>. See our <a href="/projects/hollow-tree-removal/">William Street tree removal in Fredericksburg</a> for an example of our work.</p>
         </div>
         <div class="ats-area-directory">{groups}</div>
+      </div>
+    </section>
+    <section class="ats-content-section ats-area-richmond" aria-labelledby="colonial-beach-tree-service">
+      <div class="ats-section-inner ats-two-column">
+        <h2 class="ats-section-heading" id="colonial-beach-tree-service" tabindex="-1">Tree service in Colonial Beach and King George.</h2>
+        <div class="ats-prose">
+          <p>Angel Tree Services serves Colonial Beach, King George and Dahlgren from our Fredericksburg-area base. We offer <a href="/services/tree-removal/">tree removal</a>, <a href="/services/tree-pruning/">tree trimming and pruning</a> and <a href="/services/stump-grinding/">stump grinding</a>, as well as landscaping in these communities.</p>
+          <h3>Start with the tree and the property.</h3>
+          <p>Tell us which tree or limbs concern you, what is nearby, and how the crew can reach the work area. During the property visit, we review access and your goals. Your written scope explains the proposed work, wood and brush handling, cleanup, and any stump grinding before you approve it.</p>
+          <h3>Check local requirements before removal.</h3>
+          <p>For property inside the Town of Colonial Beach, its <a href="https://colonialbeachva.gov/166/Planning-and-Community-Development" target="_blank" rel="noopener noreferrer">Community Development and Zoning department</a> publishes a Woodlot Management / Tree Removal permit resource. Confirm the current requirements for your property with the town before work begins. A Colonial Beach mailing address alone does not establish which jurisdiction handles the property.</p>
+          <h3>See how we approach work near a home.</h3>
+          <p>Our <a href="/projects/hollow-tree-removal/">documented hollow-tree removal in Fredericksburg</a> shows an arborist assessment, sectional removal, wood handling and cleanup. This example is from Fredericksburg, not Colonial Beach.</p>
+          <p><a class="ats-estimate-link" href="/?service=Tree%20Care#contact">Request a free tree-service estimate</a> with the property address and a short description. For storm damage or an immediate tree hazard, <a href="tel:{PHONE_LINK}">call {PHONE_DISPLAY}</a> first. Stay clear of downed power lines and contact 911 or your electric utility when appropriate.</p>
+        </div>
       </div>
     </section>
     <section class="ats-content-section ats-area-richmond" aria-labelledby="richmond-coverage-title">
@@ -1816,7 +1832,7 @@ PAGES = [
         "schema_type": "WebPage",
         "coverage_styles": True,
         "title": "Fredericksburg Tree & Landscaping Service Areas | Angel Tree Services",
-        "description": "Tree removal, pruning, stump grinding and landscaping near Fredericksburg, VA. Woodbridge and Richmond-area locations: tree services only.",
+        "description": "Serving Fredericksburg, Stafford, King George and Colonial Beach with tree removal, pruning and stump grinding. Explore all confirmed service areas.",
         "h1": "Service areas around Fredericksburg.",
         "lead": "Find your community and plan the work your property needs. We offer tree care and landscaping across our confirmed service areas, with tree services only in Woodbridge and the Richmond area.",
         "breadcrumbs": [("Home", "/"), ("Service areas", "/service-areas/")],

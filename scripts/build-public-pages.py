@@ -668,6 +668,9 @@ def service_body(data: dict) -> str:
     safety_target = ' id="emergency-safety" tabindex="-1"' if emergency else ''
     scope_target = f' id="{mobile_prefix}-scope" tabindex="-1"' if mobile_prefix else ' id="emergency-scope" tabindex="-1"' if emergency else ''
     access_target = f' id="{mobile_prefix}-access" tabindex="-1"' if mobile_prefix else ''
+    coverage_note = ""
+    if data['path'] in ('/services/tree-removal/', '/services/tree-pruning/', '/services/stump-grinding/'):
+        coverage_note = '\n        <p class="ats-section-intro" data-tree-service-coverage>We serve Fredericksburg and our confirmed service areas, including <a href="/service-areas/#area-stafford">Stafford</a> and <a href="/service-areas/#colonial-beach-tree-service">King George and Colonial Beach</a>. <a href="/service-areas/">Check coverage for your community</a>.</p>'
     related = "".join(f'<li><a href="{href}">{label}</a></li>' for href, label in data["related"])
     service_review = ""
     if data.get("review_id"):
@@ -683,7 +686,7 @@ def service_body(data: dict) -> str:
       <div class="ats-section-inner">
         <p class="ats-eyebrow">A recommendation starts with the property</p>
         <h2 class="ats-section-heading"{safety_target}>{data['fit_heading']}</h2>
-        <p class="ats-section-intro">{data['fit_intro']}</p>
+        <p class="ats-section-intro">{data['fit_intro']}</p>{coverage_note}
         <div class="ats-card-grid">{cards(data['situations'])}</div>
       </div>
     </section>{service_project_example(data)}{project_feature() if data['path'] == '/services/tree-removal/' else ''}

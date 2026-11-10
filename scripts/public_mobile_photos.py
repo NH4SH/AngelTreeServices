@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 TREE_SIZES='(max-width: 384px) calc(78vw - 16px), (max-width: 700px) 284px, (max-width: 760px) calc(100vw - 40px), 42vw'
 
 def optimize_mobile_photos(output: Path) -> None:
- manifest=json.loads((ROOT/'public-mobile-photo-variants.json').read_text())
+ manifest=json.loads((ROOT/'public-mobile-photo-variants.json').read_text(encoding="utf-8"))
  cases={
   'index.html':[
    ('assets/versioned/service-tree-512.705dacd21f.webp','tree',None),
@@ -24,7 +24,7 @@ def optimize_mobile_photos(output: Path) -> None:
   ],
  }
  for page,photos in cases.items():
-  target=output/page;s=target.read_text()
+  target=output/page;s=target.read_text(encoding="utf-8")
   for source,key,new_sizes in photos:
    pattern=r'<img\b(?=[^>]*\bsrc="'+re.escape(source)+r'")[^>]*>'
    matches=list(re.finditer(pattern,s))
@@ -38,4 +38,4 @@ def optimize_mobile_photos(output: Path) -> None:
    # No desktop source change and no new layout box or image load event handler.
    picture='<picture style="display:contents"><source media="(max-width: 800px)" type="image/webp" srcset="'+escape(candidates,quote=True)+'" sizes="'+escape(hint,quote=True)+'">'+image+'</picture>'
    s=s.replace(old,picture,1)
-  target.write_text(s)
+  target.write_text(s, encoding="utf-8", newline="\n")

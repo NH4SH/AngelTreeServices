@@ -2178,12 +2178,12 @@ def build(output_dir: Path) -> None:
     for page in PAGES:
         destination = output_dir / page["path"].strip("/") / "index.html"
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(page_document(page), encoding="utf-8")
+        destination.write_text(page_document(page), encoding="utf-8", newline="\n")
         print(destination.relative_to(output_dir))
 
-    (output_dir / "sitemap.xml").write_text(sitemap_document(), encoding="utf-8")
-    (output_dir / "robots.txt").write_text(robots_document(), encoding="utf-8")
-    (output_dir / "llms.txt").write_text(llms_document(), encoding="utf-8")
+    (output_dir / "sitemap.xml").write_text(sitemap_document(), encoding="utf-8", newline="\n")
+    (output_dir / "robots.txt").write_text(robots_document(), encoding="utf-8", newline="\n")
+    (output_dir / "llms.txt").write_text(llms_document(), encoding="utf-8", newline="\n")
     print("sitemap.xml")
     print("robots.txt")
     print("llms.txt")

@@ -124,6 +124,7 @@ def configure_public_address_autocomplete() -> None:
     script_path.write_text(
         script.replace(GOOGLE_MAPS_API_KEY_PLACEHOLDER, escaped_api_key, 1),
         encoding="utf-8",
+        newline="\n",
     )
 
     if not api_key:
@@ -140,7 +141,7 @@ def configure_public_address_autocomplete() -> None:
             ADDRESS_AUTOCOMPLETE_SCRIPT + "\n" + FORM_ENHANCEMENT_SCRIPT,
             1,
         )
-        homepage_path.write_text(homepage, encoding="utf-8")
+        homepage_path.write_text(homepage, encoding="utf-8", newline="\n")
 
 
 def generate_pages() -> None:
@@ -173,7 +174,7 @@ def apply_emergency_availability_copy() -> None:
                 updated = updated.replace(old_copy, new_copy)
                 replacements_applied += 1
 
-        target.write_text(updated, encoding="utf-8")
+        target.write_text(updated, encoding="utf-8", newline="\n")
 
     if replacements_applied != len(EMERGENCY_AVAILABILITY_REPLACEMENTS):
         raise RuntimeError(
@@ -199,7 +200,7 @@ def apply_public_consent_controls() -> None:
         source = before + marker + footer.replace(privacy_link, privacy_link + " " + trigger) + end + after
         source = source.replace('</head>', '<link rel="stylesheet" href="/ats-consent.css?v=consent3"></head>')
         source = source.replace('</body>', fragment + '</body>')
-        target.write_text(source, encoding="utf-8")
+        target.write_text(source, encoding="utf-8", newline="\n")
 
 
 def build() -> None:

@@ -59,10 +59,10 @@ def cache_page_styles(site: Path, page: Path) -> None:
         cached_url, css = stylesheet_asset(site, url)
         destination = site / cached_url.lstrip("/")
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(css, encoding="utf-8")
+        destination.write_bytes(css.encode("utf-8"))
         replacement = f'<link rel="stylesheet" href="{cached_url}">'
         head = head[:match.start()] + replacement + head[match.end():]
-    page.write_text(head + end + tail, encoding="utf-8")
+    page.write_text(head + end + tail, encoding="utf-8", newline="\n")
 
 
 def cache_public_styles(site: Path) -> None:

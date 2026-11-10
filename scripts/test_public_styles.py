@@ -1,5 +1,12 @@
 """Guard cache reuse, asset invalidation, cascade and progressive rendering."""
 from pathlib import Path
+import ast
+import contextlib
+import importlib.util
+import io
+import json
+import os
+from unittest import mock
 import hashlib
 import re
 import tempfile
@@ -107,6 +114,190 @@ class PublicStylesTest(unittest.TestCase):
     def test_existing_host_policy_caches_content_addressed_assets_immutably(self):
         config = (Path(__file__).resolve().parents[1] / 'netlify.toml').read_text()
         self.assertRegex(config, r'for = "/assets/versioned/\*"\s+\[headers.values\]\s+Cache-Control = "public, max-age=31536000, immutable"')
+
+
+
+class PublicBuildPortabilityTest(unittest.TestCase):
+    """Require the same public UTF-8/LF bytes on Windows and Linux."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.site = Path(self.temp.name)
+        self.addCleanup(self.temp.cleanup)
+        self.source = Path(__file__).resolve().parent
+        self.unicode = 'Owner\u2019s tree \u2014 \u201capproved\u201d'
+
+    def write(self, name, text):
+        target = self.site / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(text.encode('utf-8'))
+        return target
+
+    def assert_utf8_lf(self, path, expected_text=None):
+        raw = path.read_bytes()
+        text = raw.decode('utf-8')
+        self.assertNotIn(b'\r', raw, str(path))
+        self.assertFalse(raw.startswith(b'\xef\xbb\xbf'), str(path))
+        if expected_text is not None:
+            self.assertEqual(raw, expected_text.encode('utf-8'))
+        return text
+
+    def builder(self):
+        spec = importlib.util.spec_from_file_location(
+            '_ats_portability_builder', self.source / 'build-public-site.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.ROOT = self.site
+        module.OUTPUT = self.site
+        return module
+
+    def test_cached_css_hash_matches_written_bytes(self):
+        urls = ['/assets/css2.css', '/site-pages.css',
+                '/ats-service-areas.css', '/ats-consent.css']
+        css = 'a::before { content: "' + self.unicode + '"; }\n'
+        for url in urls:
+            self.write(url.lstrip('/'), css)
+        page = self.write('service-areas/index.html',
+                          '<head>\n' + ''.join(
+                              '<link rel="stylesheet" href="' + url + '">\n'
+                              for url in urls) + '</head><body>' +
+                          self.unicode + '</body>\n')
+        cache_page_styles(self.site, page)
+        for url in urls:
+            href, expected_css = stylesheet_asset(self.site, url)
+            raw = (self.site / href.lstrip('/')).read_bytes()
+            digest = hashlib.sha256(raw).hexdigest()[:10]
+            self.assertTrue(href.endswith('.' + digest + '.css'), href)
+            self.assertEqual(raw, expected_css.encode('utf-8'))
+            self.assertNotIn(b'\r', raw)
+        self.assertIn(self.unicode, self.assert_utf8_lf(page))
+
+    def test_mobile_photo_rewrite_preserves_utf8_and_lf(self):
+        import public_mobile_photos
+        manifest = {
+            key: {'variants': [
+                {'src': '/assets/versioned/' + key + '-320.webp', 'width': 320}
+            ]}
+            for key in ['tree', 'landscaping', 'bucket']
+        }
+        self.write('public-mobile-photo-variants.json',
+                   json.dumps(manifest, ensure_ascii=False) + '\n')
+        sources = {
+            'index.html': [
+                'assets/versioned/service-tree-512.705dacd21f.webp',
+                'assets/versioned/photo-landscaping-service-512.16653c31d4.webp',
+                '/assets/versioned/project-bucket-access-840.aa86f67e80.webp',
+            ],
+            'services/tree-removal/index.html': [
+                '/assets/AngelChainsawSquooshed_008.jpg',
+                '/assets/versioned/project-bucket-access-1280.abe084e062.webp',
+            ],
+        }
+        for name, photos in sources.items():
+            self.write(name, '<p>' + self.unicode + '</p>\n' + ''.join(
+                '<img src="' + photo + '" sizes="50vw">\n'
+                for photo in photos))
+        with mock.patch.object(public_mobile_photos, 'ROOT', self.site):
+            public_mobile_photos.optimize_mobile_photos(self.site)
+        for name, photos in sources.items():
+            text = self.assert_utf8_lf(self.site / name)
+            self.assertIn(self.unicode, text)
+            self.assertEqual(text.count('<picture '), len(photos))
+            for photo in photos:
+                self.assertIn('src="' + photo + '"', text)
+
+    def test_page_generator_writes_utf8_lf_documents(self):
+        tree = ast.parse((self.source / 'build-public-pages.py').read_text(encoding='utf-8'))
+        selected = [node for node in tree.body
+                    if isinstance(node, ast.FunctionDef)
+                    and node.name in {'build', 'llms_document'}]
+        self.assertEqual(len(selected), 2)
+        namespace = {
+            'Path': Path, 'ROOT': self.site / 'source',
+            'SITE': 'https://angeltreeservices.org',
+            'TREE_PROJECT': {'path': '/projects/hollow-tree-removal/'},
+            'LANDSCAPING_PROJECT': {'path': '/projects/bush-trimming-mulch/'},
+            'TRIMMING_PROJECT': {'path': '/projects/holly-tree-trimming/'},
+            'PAGES': [{'path': '/example/'}],
+            'page_document': lambda page: self.unicode + '\n',
+            'sitemap_document': lambda: '<urlset>' + self.unicode + '</urlset>\n',
+            'robots_document': lambda: 'User-agent: *\nDisallow:\n',
+        }
+        exec(compile(ast.Module(body=selected, type_ignores=[]),
+                     'build-public-pages.py', 'exec'), namespace)
+        output = self.site / 'generated'
+        with contextlib.redirect_stdout(io.StringIO()):
+            namespace['build'](output)
+        self.assert_utf8_lf(output / 'example/index.html', self.unicode + '\n')
+        self.assert_utf8_lf(output / 'sitemap.xml', namespace['sitemap_document']())
+        self.assert_utf8_lf(output / 'robots.txt', namespace['robots_document']())
+        self.assert_utf8_lf(output / 'llms.txt', namespace['llms_document']())
+
+    def test_emergency_copy_rewrite_keeps_utf8_lf(self):
+        builder = self.builder()
+        changes = builder.EMERGENCY_AVAILABILITY_REPLACEMENTS
+        emergency = self.write('services/emergency-tree-service/index.html',
+                               self.unicode + '\n' +
+                               '\n'.join(old for old, new in changes[:3]) + '\n')
+        llms = self.write('llms.txt', self.unicode + '\n' + changes[3][0] + '\n')
+        builder.apply_emergency_availability_copy()
+        self.assert_utf8_lf(emergency, self.unicode + '\n' +
+                           '\n'.join(new for old, new in changes[:3]) + '\n')
+        self.assert_utf8_lf(llms, self.unicode + '\n' + changes[3][1] + '\n')
+
+    def test_consent_rewrite_keeps_utf8_lf(self):
+        builder = self.builder()
+        self.write('public-consent.html', '<div id="ats-consent"></div>\n')
+        for name, footer in [
+            ('index.html', '<footer class="sections" id="footer-sections">'),
+            ('services/example/index.html', '<footer class="ats-page-footer">'),
+        ]:
+            self.write(name, '<head></head>\n<body>' + self.unicode + '\n' +
+                       footer + '<a href="/privacy/">Privacy</a></footer></body>\n')
+        builder.apply_public_consent_controls()
+        for name in ['index.html', 'services/example/index.html']:
+            text = self.assert_utf8_lf(self.site / name)
+            self.assertIn(self.unicode, text)
+            self.assertEqual(text.count('id="ats-consent"'), 1)
+            self.assertEqual(text.count('data-ats-privacy '), 1)
+
+    def test_autocomplete_rewrite_keeps_utf8_lf_with_or_without_key(self):
+        builder = self.builder()
+        for key in ['', 'synthetic-public-test-key']:
+            with self.subTest(configured=bool(key)):
+                script = self.write('ats-address-autocomplete.js',
+                                    '// ' + self.unicode + '\nconst key = "' +
+                                    builder.GOOGLE_MAPS_API_KEY_PLACEHOLDER + '";\n')
+                homepage = self.write('index.html', '<head>\n' +
+                                      builder.FORM_ENHANCEMENT_SCRIPT +
+                                      '\n</head><body>' + self.unicode + '</body>\n')
+                with mock.patch.dict(os.environ, {'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY': key}):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        builder.configure_public_address_autocomplete()
+                self.assert_utf8_lf(script, '// ' + self.unicode +
+                                   '\nconst key = "' + key + '";\n')
+                text = self.assert_utf8_lf(homepage)
+                self.assertEqual(builder.ADDRESS_AUTOCOMPLETE_SCRIPT in text, bool(key))
+
+    def test_public_text_io_declares_portable_encoding_and_newlines(self):
+        names = ['public_mobile_photos.py', 'public_styles.py',
+                 'build-public-pages.py', 'build-public-site.py']
+        checked = 0
+        for name in names:
+            tree = ast.parse((self.source / name).read_text(encoding='utf-8'))
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                        and node.func.attr in {'read_text', 'write_text'}):
+                    continue
+                keywords = {item.arg: item.value for item in node.keywords}
+                with self.subTest(source=name, line=node.lineno, operation=node.func.attr):
+                    self.assertIn('encoding', keywords)
+                    self.assertEqual(ast.literal_eval(keywords['encoding']), 'utf-8')
+                    if node.func.attr == 'write_text':
+                        self.assertIn('newline', keywords)
+                        self.assertEqual(ast.literal_eval(keywords['newline']), '\n')
+                checked += 1
+        self.assertGreater(checked, 15)
 
 
 if __name__ == '__main__':

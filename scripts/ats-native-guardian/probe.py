@@ -43,11 +43,13 @@ def main():
     try:
         source.mkdir(mode=0o755);roots.append((source,source.stat().st_dev,source.stat().st_ino))
         here=Path(__file__).resolve().parent
-        for name in ['guardian-custody.mjs','operation-publication.mjs','operation-guardian.mjs','operation-guardian.test.mjs','journal-case.mjs']:
+        for name in ['guardian-custody.mjs','operation-publication.mjs','operation-guardian.mjs','operation-guardian.test.mjs','journal-case.mjs','active-publication.mjs']:
             shutil.copyfile(here/name,source/name);(source/name).chmod(0o444)
         source.chmod(0o555)
         create_scope(root)
         installation={'kind':'ats-original-installation-custody-v1','primaryInstallationId':'a'*32,'bindingSha256':'b'*64,'systemIdentifier':'7000000000000000001','originalHostIdentitySha256':'c'*64,'databaseStorageIdentitySha256':'d'*64}
+        binding={'version':2,'admissionProtocol':'local-primary-operation-v1','namespace':'ats-home-primary-112233445566','generation':20,'primaryInstallationId':installation['primaryInstallationId'],'systemIdentifier':installation['systemIdentifier'],'topology':'e'*32}
+        binding_bytes=(json.dumps(binding)+'\n').encode();installation['bindingSha256']=hashlib.sha256(binding_bytes).hexdigest()
         b=(json.dumps(installation)+'\n').encode();digest=hashlib.sha256(b).hexdigest();write(root/'installation.json',b)
         initial={'kind':'ats-original-installation-journal-v1','primaryInstallationId':installation['primaryInstallationId'],'bindingSha256':installation['bindingSha256'],'operationSequence':0,'nativeWalLsn':'0/100','reservedAtMs':0,'databaseBoot':None,'sourceBoot':None}
         write(root/'journal.json',(json.dumps(initial)+'\n').encode());write(root/'guardian.lock',b'owned\n');write(root/'other.lock',b'owned-other\n')
@@ -79,6 +81,19 @@ def main():
         result['nativeEngineProcess']={'exitCode':p.returncode,'stdoutSha256':hashlib.sha256(p.stdout).hexdigest(),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'stdoutTail':p.stdout[-4096:].decode('utf-8','replace'),'stderrTail':p.stderr[-4096:].decode('utf-8','replace')}
         assert p.returncode==0 and b'# pass 12'in p.stdout and b'# fail 0'in p.stdout
         result['nativeEngineCasesPassed']=12;note('Twelve native engine cases require commit acknowledgement, both source/custody observations, operator holds, exact SQL time and independent publication readback')
+        public=root/'public';public.mkdir(mode=0o755);os.chown(public,1000,1000)
+        write(public/'binding.json',binding_bytes);(public/'binding.json').chmod(0o444)
+        assert call('publisher-positive')['published'];note('Real Linux atomic operation publication under a genuine boot clock, matching installed binding, fsync and independent readback; SQL row is synthetic')
+        for action in ['publisher-reject-sequence','publisher-reject-boot','publisher-reject-expired']:
+            assert call(action)['previousActiveUnchanged'];note(action+' leaves old active bytes unchanged')
+        write(public/'fenced.latch',b'held');call('publisher-reject-open');(public/'fenced.latch').unlink();note('Operator latch prevents opening publisher')
+        write(public/'binding.json',b'{}');(public/'binding.json').chmod(0o444);call('publisher-reject-open');write(public/'binding.json',binding_bytes);(public/'binding.json').chmod(0o444);note('Wrong installed public binding cannot publish')
+        (public/'binding.json').chmod(0o644);call('publisher-reject-open');(public/'binding.json').chmod(0o444);note('Writable installed binding cannot publish')
+        (public/'active.json').rename(public/'saved-active');(public/'active.json').symlink_to(public/'saved-active');call('publisher-reject-write');(public/'active.json').unlink();(public/'saved-active').rename(public/'active.json');note('Symlinked active control is not replaced or followed by publisher')
+        os.link(public/'active.json',public/'extra-active-link');call('publisher-reject-write');(public/'extra-active-link').unlink();note('Hardlinked active control cannot publish')
+        (public/'active.json').chmod(0o644);call('publisher-reject-write');(public/'active.json').chmod(0o444);note('Writable active control cannot publish')
+        orphan=public/('.active-'+secrets.token_hex(16)+'.tmp');write(orphan,b'{partial');assert call('publisher-positive')['published']and not orphan.exists();note('Only bounded private incomplete active temporary files are removed before a new exact publication')
+        result['nativeAtomicPublisherCasesPassed']=11
         result['passed']=True
     except BaseException as e:
         result['passed']=False;result['errorType']=type(e).__name__;result['safeError']=str(e)[:4096]

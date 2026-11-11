@@ -1,0 +1,27 @@
+name: ATS native rootless proc ownership rehearsal
+on:
+  push:
+    branches: [codex/ats-native-rootless-20261111]
+permissions:
+  contents: read
+concurrency:
+  group: ats-native-rootless-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  owned-user-namespace:
+    if: github.repository == 'NH4SH/AngelTreeServices'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Run actual mapped kernel-owner cases
+        run: sudo --preserve-env=GITHUB_ACTIONS,GITHUB_REPOSITORY,GITHUB_REF,GITHUB_SHA /usr/bin/python3 scripts/ats-native-rootless/probe.py
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: ats-native-rootless-proc-owner-proof
+          path: ci-results/rootless-proof.json
+          if-no-files-found: warn
+          retention-days: 7

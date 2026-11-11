@@ -76,6 +76,7 @@ def main():
         call('reserve',expected=75);note('Concurrent contender is rejected by the actual kernel lock before Node starts')
         os.killpg(child.pid,signal.SIGTERM);child.communicate(timeout=3);owned.remove(child)
         p=bounded_owned([node,'--max-old-space-size=128','--test','--test-concurrency=1',str(source/'operation-guardian.test.mjs')],timeout=10)
+        result['nativeEngineProcess']={'exitCode':p.returncode,'stdoutSha256':hashlib.sha256(p.stdout).hexdigest(),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'stdoutTail':p.stdout[-4096:].decode('utf-8','replace'),'stderrTail':p.stderr[-4096:].decode('utf-8','replace')}
         assert p.returncode==0 and b'# pass 12'in p.stdout and b'# fail 0'in p.stdout
         result['nativeEngineCasesPassed']=12;note('Twelve native engine cases require commit acknowledgement, both source/custody observations, operator holds, exact SQL time and independent publication readback')
         result['passed']=True

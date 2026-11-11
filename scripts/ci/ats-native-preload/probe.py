@@ -91,7 +91,14 @@ def main():
         ident=json.loads(sql("SELECT jsonb_build_object('systemIdentifier',(SELECT system_identifier::text FROM pg_control_system()),'versionNum',current_setting('server_version_num'),'listen',current_setting('listen_addresses'),'socket',current_setting('unix_socket_directories'));"));assert ident['versionNum']==config['serverVersionNum']and ident['listen']==''and ident['socket']=='/fixture/socket'
         assert re.fullmatch('[0-9]{16,20}',ident['systemIdentifier']);result['identity']=ident;note('Native PG17.11 initialized empty with private Unix socket and no TCP')
         phase='authenticator-session';hexvalue=preload.encode().hex();sql("CREATE ROLE authenticator LOGIN;BEGIN;SELECT set_config('session_preload_libraries',convert_from(decode('"+hexvalue+"','hex'),'UTF8'),true);ALTER ROLE authenticator SET session_preload_libraries FROM CURRENT;COMMIT;")
-        got=sql("SELECT encode(sha256(convert_to(current_setting('session_preload_libraries'),'UTF8')),'hex');",'authenticator');assert got==config['preloadValueSha256'];note('New authenticator session loads exact public preload bytes')
+        # Reading this superuser-only GUC as authenticator is intentionally
+        # denied. Verify persisted bytes as fixture_admin, keep authenticator
+        # unprivileged, then prove actual module mappings in its new backend.
+        got=sql("SELECT encode(sha256(convert_to(substr(setting,length('session_preload_libraries=')+1),'UTF8')),'hex') FROM pg_db_role_setting s JOIN pg_roles r ON r.oid=s.setrole CROSS JOIN LATERAL unnest(s.setconfig) setting WHERE r.rolname='authenticator' AND s.setdatabase=0 AND setting LIKE 'session_preload_libraries=%';")
+        assert got==config['preloadValueSha256']
+        assert sql("SELECT session_user||':'||current_user;",'authenticator')=='authenticator:authenticator'
+        assert sql("SELECT rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication OR rolbypassrls OR pg_has_role(oid,'pg_read_all_settings','USAGE') FROM pg_roles WHERE rolname='authenticator';")=='f'
+        note('Exact public role default persisted; new authenticator session connects without elevated privileges')
         phase='actual-native-module-mappings';app='ats-preload-'+nonce
         auth=subprocess.Popen(docker+['exec','-i','--env','PGAPPNAME='+app,cid,'psql','-X','-Atq','-h','/fixture/socket','-p','55433','-U','authenticator','-d','postgres','-v','ON_ERROR_STOP=1'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env)
         auth.stdin.write(b'SELECT pg_sleep(10);\n');auth.stdin.close();backend=None

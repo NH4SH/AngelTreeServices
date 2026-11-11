@@ -104,11 +104,37 @@ def main():
         # Event triggers are intentionally deferred; semantic/guard equality is
         # NOT claimed. Record the real owner/ACL result rather than replacing it.
         note('Real source/fixture inventories and guard triplets compared; full fidelity remains unaccepted with deferred events')
+        phase='catalog-record-diagnostics'
+        source_records=json.loads((inputs/'source-records.json').read_text())
+        record_query=(here/'catalog-records.sql').read_text()
+        assert sha(record_query.encode())=='5a200aba151bc286fd70eecae9db6f1cb71f0ec66461db84097e58882a380810'
+        def compare_records(label):
+            actual_records=json.loads(sql("BEGIN READ ONLY;SET LOCAL search_path=pg_catalog;SET LOCAL timezone='UTC';SET LOCAL statement_timeout='5s';SET LOCAL lock_timeout='1s';"+record_query+'\nROLLBACK;',timeout=8))
+            differences={}
+            summary={}
+            for group,wanted in source_records.items():
+                actual=actual_records[group]
+                missing=sorted(set(wanted)-set(actual));unexpected=sorted(set(actual)-set(wanted))
+                changed=sorted(k for k in set(actual)&set(wanted)if wanted[k]!=actual[k])
+                differences[group]={'missing':missing,'unexpected':unexpected,'changed':changed}
+                summary[group]={'missing':len(missing),'unexpected':len(unexpected),'changed':len(changed)}
+            private[label+'RecordDifferences']=differences
+            result[label+'RecordDifferences']=summary
+        compare_records('baseline')
+        phase='eight-source-event-triggers'
+        sql('BEGIN;\n'+(inputs/'events.sql').read_text()+'\nCOMMIT;',timeout=15)
+        assert sql('SELECT count(*)FROM pg_event_trigger;')=='8'
+        assert sql("SELECT count(*)FROM pg_roles WHERE rolcanlogin AND rolname<>'supabase_admin';")=='0'
+        assert sql('SELECT count(*)FROM hosting_guard.state;')=='0'
+        compare_records('withEvents')
+        result['withEventsFidelity']=json.loads(sql("BEGIN READ ONLY;SET LOCAL search_path=pg_catalog;SET LOCAL timezone='UTC';SET LOCAL statement_timeout='5s';SET LOCAL lock_timeout='1s';"+query+'\nROLLBACK;',timeout=8))
+        result['eventDefinitionsInstalledInOwnedFixture']=8
+        note('All eight unchanged source event definitions installed with empty guard state and ordinary logins closed; exact catalog differences retained')
         phase='exact-local-policy-candidate';candidate=(here/'local-primary-candidate.sql').read_bytes();assert sha(candidate)=='58c40f6662966ccf59306a965c411e8de9a3d94276ce246259cce46d22736b67';sql(candidate.decode(),timeout=15)
         fields=json.loads(sql("SELECT jsonb_agg(jsonb_build_object('name',column_name,'type',data_type,'default',column_default)ORDER BY ordinal_position)FROM information_schema.columns WHERE table_schema='hosting_guard'AND table_name='state';"));assert len(fields)==13 and fields[-2]['name']=='availability_policy'and 'backup-fenced-v1'in fields[-2]['default']and fields[-1]['name']=='local_operation_observed_at'and fields[-1]['type']=='timestamp with time zone'
         assert sql('SELECT count(*)FROM hosting_guard.state;')=='0'
         note('Exact candidate applies to real structural baseline with legacy default and no operation state or lease')
-        result.update(passed=True,structuralLoadAccepted=True,candidateMigrationAppliedInFixture=True,eventsStillDeferred=True,ordinaryRolesStillClosed=True)
+        result.update(passed=True,structuralLoadAccepted=True,candidateMigrationAppliedInFixture=True,eventsStillDeferred=False,ordinaryRolesStillClosed=True)
     except BaseException as e:
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded owned fixture failed')
     finally:

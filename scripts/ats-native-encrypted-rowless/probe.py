@@ -66,7 +66,11 @@ def main():
         image=json.loads(d(['image','inspect',IMAGE]).stdout)[0];assert image['Architecture']=='arm64'and image['Os']=='linux'
         who=d(['run','--rm','--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','/bin/sh',IMAGE,'-c','id -u postgres; id -g postgres']).stdout.decode().splitlines();assert len(who)==2 and all(x.isdigit()for x in who);uid,gid=map(int,who);assert min(uid,gid)>0
         cid=d(['create','--label','ats-private-rowless='+nonce,'--name','ats-private-rowless-'+nonce,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(uid)+':'+str(gid),'--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','64',*sdk.docker_args(),'--tmpfs','/fixture:rw,nodev,nosuid,noexec,size=256m,mode=0700,uid='+str(uid)+',gid='+str(gid),'--tmpfs','/tmp:rw,nodev,nosuid,noexec,size=32m,mode=1777','--entrypoint','/bin/sh',IMAGE,'-c','exec sleep 600']).stdout.decode().strip();assert re.fullmatch('[a-f0-9]{64}',cid);d(['start',cid])
-        info=json.loads(d(['inspect',cid]).stdout)[0];hc=info['HostConfig'];assert hc['NetworkMode']=='none'and hc['ReadonlyRootfs']and hc['Memory']==hc['MemorySwap']==536870912 and hc['PidsLimit']==64 and hc['NanoCpus']==1000000000 and hc['CapDrop']==['ALL']and not hc.get('Binds')
+        info=json.loads(d(['inspect',cid]).stdout)[0];hc=info['HostConfig']
+        private['ownedFixtureMounts']=info['Mounts']
+        private['ownedHostConfig']={k:hc.get(k)for k in ['NetworkMode','ReadonlyRootfs','Memory','MemorySwap','PidsLimit','NanoCpus','CapDrop','GroupAdd','Binds','Mounts']}
+        private['nativeSdkPreparation']={'packages':sdk.npm}
+        assert hc['NetworkMode']=='none'and hc['ReadonlyRootfs']and hc['Memory']==hc['MemorySwap']==536870912 and hc['PidsLimit']==64 and hc['NanoCpus']==1000000000 and hc['CapDrop']==['ALL']and not hc.get('Binds')
         sdk.verify_mounts(info)
         note('Fresh owned container, 512MiB/one CPU/pids64, read-only root, tmpfs data and one empty owned Unix-socket directory; no production bind')
         check="import socket,errno;s=socket.socket();s.settimeout(1);assert s.connect_ex(('1.1.1.1',443))==errno.ENETUNREACH;print('denied')"
@@ -173,6 +177,9 @@ ROLLBACK;
         note('Pinned real pg8.23.1 SDK: 27 native source cases plus eight real-connection SQL/transaction cases; synthetic host contexts only; two fixture roles closed and guard state emptied afterward')
         result.update(passed=True,structuralLoadAccepted=True,candidateMigrationAppliedInFixture=True,eventsStillDeferred=False,ordinaryRolesStillClosed=True)
     except BaseException as e:
+        import traceback
+        last=traceback.extract_tb(e.__traceback__)[-1]
+        result['failureLocation']={'file':Path(last.filename).name,'line':last.lineno,'function':last.name}
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded owned fixture failed')
     finally:
         cleanup_deadline=time.monotonic()+35

@@ -18,6 +18,10 @@ def main():
     assert all(not p.exists()and not p.is_symlink()for p in roots)
     created=[];mounted=[];checks=[];result={'kind':'ats-native-local-primary-filesystem-proof-v1','syntheticOnly':True,'fullGuardianAccepted':False,'originalHostCustodyAccepted':False,'restoredCloneAccepted':False,'fullSchemaAccepted':False}
     env={'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','HOME':'/nonexistent','LANG':'C','LC_ALL':'C'}
+    # A UID1000 process must not depend on the runner owner's home-directory
+    # ACL. Copy only these public sources into the owned read-only tmpfs.
+    modules={name:Path(__file__).with_name(name).read_bytes()for name in ['filesystem-check.mjs','release-filesystem.mjs','local-primary-context.mjs']}
+    assert all(len(raw)<=32768 for raw in modules.values())
     case='setup';serial=0
     def run(args):
         nonlocal serial
@@ -27,7 +31,8 @@ def main():
             outcome=None
             try:outcome=json.loads(p.stdout)if len(p.stdout)<=8192 else None
             except ValueError:pass
-            result['failedCommand']={'step':serial,'case':case,'command':Path(args[0]).name,'exitCode':p.returncode,'runtimeOutcome':outcome,'stderrBytes':len(p.stderr),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'errorCodes':sorted(set(re.findall(r'\bE[A-Z_]{3,40}\b',p.stderr.decode('utf-8','replace'))))[:8]}
+            text=p.stderr.decode('utf-8','replace')
+            result['failedCommand']={'step':serial,'case':case,'command':Path(args[0]).name,'exitCode':p.returncode,'runtimeOutcome':outcome,'stderrBytes':len(p.stderr),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'errorCodes':sorted(set(re.findall(r'\b(?:E[A-Z_]{3,40}|MODULE_NOT_FOUND)\b',text)))[:8],'bootstrapCategories':[s for s in ['Cannot find module','permission denied','unrecognized option','operation not permitted','failed to execute']if s.lower()in text.lower()]}
         assert p.returncode==0,'Owned filesystem fixture command failed'
         return p
     def remount(mode):
@@ -42,6 +47,7 @@ def main():
         d={'kind':'ats-firewood-local-primary-release-v2','bindingSha256':digest,'namespace':b['namespace'],'generation':20,'sourceId':b['sourceId'],'sourceScope':b['sourceScope'],'sourceEnvironment':b['environment'],'sourceMigrationCount':102,'admissionProtocol':b['admissionProtocol'],'systemIdentifier':b['systemIdentifier'],'topologyFingerprint':b['topology'],'timeline':1,'primaryInstallationId':b['primaryInstallationId'],'schemaSha256':'d'*64,'releaseComponentDigest':'e'*64,'installationOverlaySha256':b['installationOverlaySha256'],'signingKeyId':'synthetic_key_id','signingKeyFingerprint':'f'*64,'stripeKeyFingerprint':'1'*64,'modes':{'status':True,'office':True},'contract':'synthetic-local-primary-proof'}
         a={'kind':'ats-local-primary-operation-v1','bindingSha256':digest,'namespace':b['namespace'],'generation':20,'operationSequence':1,'sourceBoot':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'databaseBoot':datetime.datetime.fromtimestamp((now-60000)/1000,datetime.timezone.utc).isoformat(),'systemIdentifier':b['systemIdentifier'],'topologyFingerprint':b['topology'],'primaryInstallationId':b['primaryInstallationId'],'observedAtMs':now-100,'observedMonotonicMs':mono-100,'expiresAtMs':now+10000,'expiresAtBootMs':mono+10000}
         values={'/admission/binding.json':raw,'/admission/active.json':json.dumps(a).encode(),'/admission/workers-released.json':json.dumps({'namespace':b['namespace'],'generation':20,'providerReconciliationVerified':True}).encode(),'/release-admission/firewood-release.json':json.dumps(d).encode()}
+        values.update(('/release-admission/'+name,raw)for name,raw in modules.items())
         for name,data in values.items():p=Path(name);p.write_bytes(data);p.chmod(0o444);os.chown(p,0,0)
     def check(name,mutation=None,*,uid=1000,rw=False,valid=False):
         nonlocal case
@@ -49,7 +55,7 @@ def main():
         prepare()
         if mutation:mutation()
         if not rw:remount('ro')
-        p=run(['/usr/bin/setpriv','--reuid='+str(uid),'--regid='+str(uid),'--clear-groups','--inh-caps=-all','--ambient-caps=-all','--bounding-set=-all','--no-new-privs',str(node),'--max-old-space-size=96',str(Path(__file__).with_name('filesystem-check.mjs').resolve()),'valid'if valid else'denied'])
+        p=run(['/usr/bin/setpriv','--reuid='+str(uid),'--regid='+str(uid),'--clear-groups','--inh-caps=-all','--ambient-caps=-all','--bounding-set=-all','--no-new-privs',str(node),'--max-old-space-size=96','/release-admission/filesystem-check.mjs','valid'if valid else'denied'])
         outcome=json.loads(p.stdout);assert outcome['passed']and outcome['actualUid']==uid
         checks.append({'name':name,**outcome})
     try:

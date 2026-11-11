@@ -7,13 +7,14 @@ cannot establish original-host authority or full application acceptance.
 from pathlib import Path,PurePosixPath
 import base64,ctypes,hashlib,json,os,re,resource,secrets,shutil,signal,subprocess,time
 from npm_sdk import install_pg
+from rootless_sdk import RootlessSdkFixture
 
 class NativeSdkFixture:
     def __init__(self,here,inputs,nonce,env,node,source_sid,deadline):
         self.here=here;self.inputs=inputs;self.env=env;self.node=node;self.source_sid=source_sid;self.deadline=deadline
         self.root=Path('/run/ats-native-sdk-owned-'+nonce)
         self.socket=Path('/run/ats-native-sdk-socket-'+nonce)
-        self.identities=[];self.children=[];self.private={}
+        self.identities=[];self.children=[];self.private={};self.rootless=None
     def prepare(self):
         raw=(self.inputs/'website-runtime-sdk-bundle.json').read_bytes();assert len(raw)<1024**2
         bundle=json.loads(raw);assert bundle['kind']=='ats-private-website-runtime-sdk-bundle-v1'
@@ -39,6 +40,12 @@ class NativeSdkFixture:
         self.npm=install_pg(self.root,lock)
         for name in ['guardian-sdk.mjs','guardian-custody.mjs','operation-publication.mjs','operation-guardian.mjs','active-publication.mjs']:
             p=self.root/name;p.write_bytes((self.here/name).read_bytes());p.chmod(0o444);os.chown(p,1000,1000)
+        self.rootless=RootlessSdkFixture(self.here,self.root,self.socket,self.node,
+            self.root.name.removeprefix('ats-native-sdk-owned-'),self.env,self.deadline)
+        self.website_manifest_sha=self.rootless.prepare()
+        # Empty, credential-free fixture socket: permit the mapped runtime UID
+        # to traverse the directory. Production socket permissions are untouched.
+        self.socket.chmod(0o2775)
         assert self.root.stat().st_mode&0o777==0o700
     def docker_args(self):
         return['--group-add','1000','--mount','type=bind,source='+str(self.socket)+',target=/sdk-socket']
@@ -103,7 +110,11 @@ COMMIT;"""
             binding={'version':2,'admissionProtocol':'local-primary-operation-v1',
                      'namespace':'ats-home-primary-'+data['primaryInstallationId'][:12],
                      'generation':int(operation['leaseEpoch']),'primaryInstallationId':data['primaryInstallationId'],
-                     'systemIdentifier':operation['systemIdentifier'],'topology':operation['topologyFingerprint']}
+                     'systemIdentifier':operation['systemIdentifier'],'topology':operation['topologyFingerprint'],
+                     'sourceId':'ats_crm_primary_20261029','sourceScope':'crm-v1','environment':'home-primary-local-v2',
+                     'sourceMigrationCount':102,'timeline':1,'installationOverlaySha256':'e'*64,
+                     'volumeName':'ats_crm_primary_20261029_pg-data-v3',
+                     'sourceDbImage':'sha256:b15d862126dd2dac02da524696ccfde2dcce2ceaee0a58973b2727befe492706'}
             binding_bytes=(json.dumps(binding)+'\n').encode();binding_sha=hashlib.sha256(binding_bytes).hexdigest()
             installation={'kind':'ats-original-installation-custody-v1','primaryInstallationId':data['primaryInstallationId'],
                           'bindingSha256':binding_sha,'systemIdentifier':operation['systemIdentifier'],
@@ -120,14 +131,23 @@ COMMIT;"""
                 with target.open('xb')as f:f.write(body)
                 target.chmod(mode);os.chown(target,1000,1000)
             data.update(guardianRoot=str(guardian),publicRoot=str(public),guardianBindingSha256=binding_sha,
-                        guardianInstallationSha256=hashlib.sha256(installation_bytes).hexdigest())
+                        guardianInstallationSha256=hashlib.sha256(installation_bytes).hexdigest(),
+                        descriptorRoot=str(self.rootless.root/'release-admission'),
+                        websiteSourceManifestSha256=self.website_manifest_sha)
             path.write_text(json.dumps(data))
             p=self._node([str(self.root/'guardian-sdk.mjs'),str(path)],25,lock=guardian/'guardian.lock')
             self.private['guardianSdkProcess']={'exitCode':p.returncode,'stdout':p.stdout.decode('utf8','replace'),'stderr':p.stderr.decode('utf8','replace')}
             assert p.returncode==0,'Actual journal/SQL/publisher SDK integration failed; owner diagnostics retained'
             guardian_proof=json.loads(p.stdout);assert guardian_proof['passed']and guardian_proof['checksPassed']==9
+            ok,rootless_processes=self.rootless.run(public)
+            self.private['rootlessSdkProcesses']=rootless_processes
+            assert ok,'Actual rootless fixed-reader/installed SDK integration failed; owner diagnostics retained'
+            rootless_proofs=[json.loads(x['stdout'])for x in rootless_processes]
+            assert rootless_proofs[0]['poolConstructions']==2 and rootless_proofs[0]['checksPassed']==4
+            assert rootless_proofs[1]['poolConstructions']==0 and rootless_proofs[1]['checksPassed']==2
             return{'passed':True,'sourceUnitCasesPassed':27,'actualSdkCasesPassed':8,'actualGuardianSqlSdkCasesPassed':9,
-                   'guardianSqlSdk':guardian_proof,'pgVersion':'8.23.1','nativePgVersion':'17.11','realConnectionsAndSql':True,
+                   'guardianSqlSdk':guardian_proof,'rootlessFixedReaderSdk':rootless_proofs,
+                   'pgVersion':'8.23.1','nativePgVersion':'17.11','realConnectionsAndSql':True,
                    'hostContextsSynthetic':True,'directOrdinaryRoles':['ats_firewood_request','ats_firewood_worker'],
                    'historicalBackupTimestampUnchanged':True,'originalHostGuardianAccepted':False,
                    'fullApplicationOrWorkerAccepted':False,'packages':self.npm}
@@ -143,7 +163,8 @@ COMMIT;"""
         self.children=[]
     def cleanup(self):
         self.stop_children()
+        rootless_cleanup=self.rootless.cleanup()if self.rootless is not None else{}
         for path,dev,ino in reversed(self.identities):
             s=path.lstat();assert s.st_dev==dev and s.st_ino==ino and not path.is_symlink()
             shutil.rmtree(path);assert not path.exists()
-        return{'ownedSdkProcessesJoined':True,'ownedSdkDirectoriesRemoved':True}
+        return{'ownedSdkProcessesJoined':True,'ownedSdkDirectoriesRemoved':True,**rootless_cleanup}

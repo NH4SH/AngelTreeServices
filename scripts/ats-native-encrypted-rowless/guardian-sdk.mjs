@@ -26,6 +26,28 @@ const sha=b=>createHash('sha256').update(b).digest('hex');
 const bindingBytes=fs.readFileSync(input.publicRoot+'/binding.json');
 const binding=JSON.parse(bindingBytes);
 assert.equal(sha(bindingBytes),input.guardianBindingSha256);
+assert.match(input.descriptorRoot,/^\/run\/ats-sdk-rootless-owned-[a-f0-9]{16}\/release-admission$/u);
+const control={kind:'ats-firewood-local-primary-release-v2',bindingSha256:input.guardianBindingSha256,
+  namespace:binding.namespace,generation:binding.generation,sourceId:binding.sourceId,sourceScope:binding.sourceScope,
+  sourceEnvironment:binding.environment,sourceMigrationCount:binding.sourceMigrationCount,
+  admissionProtocol:binding.admissionProtocol,systemIdentifier:binding.systemIdentifier,topologyFingerprint:binding.topology,
+  timeline:binding.timeline,primaryInstallationId:binding.primaryInstallationId,schemaSha256:input.schemaSha256,
+  releaseComponentDigest:input.releaseSha256,installationOverlaySha256:binding.installationOverlaySha256,
+  signingKeyId:'fixture_master_key',signingKeyFingerprint:'f'.repeat(64),stripeKeyFingerprint:'1'.repeat(64),
+  modes:{status:true,preparation:true,office:true,collection:true,sending:true},...FIXED_RELEASE};
+const controlBytes=Buffer.from(JSON.stringify(control)+'\n');
+function metadata(path,bytes){fs.writeFileSync(path,bytes,{mode:0o444,flag:'wx'});fs.chmodSync(path,0o444);}
+metadata(input.descriptorRoot+'/firewood-release.json',controlBytes);
+metadata(input.publicRoot+'/workers-released.json',JSON.stringify({namespace:binding.namespace,generation:binding.generation,providerReconciliationVerified:true})+'\n');
+const nativeProofSha256=sha(fs.readFileSync(input.descriptorRoot+'/native-proof.mjs'));
+const websiteDescriptor={version:2,bindingPolicy:'local-primary-operation-v1',profile:'production-live',
+  sourceId:FIXED_RELEASE.source,environmentId:FIXED_RELEASE.environment,accountId:FIXED_RELEASE.account,mode:'live',origin:FIXED_RELEASE.websiteOrigin,
+  roles:{web:'ats_firewood_request',worker:'ats_firewood_worker'},
+  binding:{database:'postgres',schema:'app_private',profile:'production-live',systemIdentifier:binding.systemIdentifier,
+    releaseSha256:input.releaseSha256,schemaSha256:input.schemaSha256,liveKeyId:'fixture_master_key',officeKeyId:'fixture_master_key',
+    admissionProtocol:'local-primary-operation-v1',primaryBindingSha256:input.guardianBindingSha256,primaryInstallationId:input.primaryInstallationId},
+  releaseControlSha256:sha(controlBytes),websiteSourceManifestSha256:input.websiteSourceManifestSha256,nativeProofSha256};
+metadata(input.descriptorRoot+'/website-runtime.json',JSON.stringify(websiteDescriptor)+'\n');
 const journal=openGuardianJournal({root:input.guardianRoot,uid:1000,expectedInstallationSha256:input.guardianInstallationSha256});
 const publisher=openActivePublisher({root:input.publicRoot,uid:1000,journal});
 const options={host:input.socketDirectory,port:55433,database:'postgres',max:1,

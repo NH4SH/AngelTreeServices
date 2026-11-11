@@ -1,18 +1,18 @@
 {
   "kind": "ats-private-native-input-pins-v1",
-  "ciphertextSha256": "9b09f772486e35a0bfc538d1d37880c80f3f5c64888f02cfa6a169203f9032c3",
-  "ciphertextBytes": 1458114,
-  "plaintextSha256": "7da8dcddb7653bd5e7ef1584163f6b55a4dc6061805cc58ea128ded93cca9ebb",
+  "ciphertextSha256": "f2aa1fe7aeb1ed3c6cf7d34c82f38e607994a47af209940a8e44598d6f91bf9c",
+  "ciphertextBytes": 1549706,
+  "plaintextSha256": "59d6bec1c9567f965d23124b1b3411304ff17465025e298f8e2968c3e4f54c55",
   "records": [
     {
       "name": "structural.sql",
-      "bytes": 1738082,
-      "sha256": "001ec3703791086a88d26fba0b9343fc3fb5052bc6181f26c250de84e38fc12f"
+      "bytes": 1738228,
+      "sha256": "94b78e3ad4bf40bacd5146ffd975734ccc3424fea5dcacdbb295edac3f18449f"
     },
     {
       "name": "validate-functions.sql",
-      "bytes": 793367,
-      "sha256": "21fe9206c1f79dc07a72000974e11df0e61515deb4e8ac1ece3134fc034a9d4f"
+      "bytes": 793372,
+      "sha256": "8c068d2e4fce8cfa02556b2183edab81f2d5a054392d5c907f78a971f2c43311"
     },
     {
       "name": "catalog.json",
@@ -38,6 +38,16 @@
       "name": "source-records.json",
       "bytes": 1916482,
       "sha256": "c848dfc369e8357cedb4695f40e367482926e9859bec4e47aff265ede72f3d1e"
+    },
+    {
+      "name": "source-differing-records.json",
+      "bytes": 448415,
+      "sha256": "35cbfdda2e2d06ce6a2ee8f7d221242d86b26e618c39a9f2d4975ff818d4160f"
+    },
+    {
+      "name": "restore-properties.sql",
+      "bytes": 66486,
+      "sha256": "c8d3156858080549b5718ca66c0cfa4b750db05260274fa0a64ef85948e8ea99"
     }
   ],
   "businessRowsIncluded": false,

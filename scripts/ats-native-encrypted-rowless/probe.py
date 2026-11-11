@@ -87,12 +87,13 @@ def main():
         private['observedRoleSettings']=observed_settings
         assert observed_settings==settings,'Actual role defaults differ from captured exact bytes or order'
         note('All source role attributes/memberships/exact GUC bytes and database ACL restored; ordinary logins closed')
-        phase='structural-schema-load';sql('BEGIN;\n'+(inputs/'structural.sql').read_text()+'\nCOMMIT;',timeout=45)
+        phase='structural-schema-load';sql('BEGIN;\n'+(inputs/'structural.sql').read_bytes().decode()+'\nCOMMIT;',timeout=45)
         counts=json.loads(sql("SELECT jsonb_build_object('policies',(SELECT count(*)FROM pg_policies),'guardTriggers',(SELECT count(*)FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace n ON n.oid=p.pronamespace WHERE NOT t.tgisinternal AND n.nspname='hosting_guard'),'guardConstraintTriggers',(SELECT count(*)FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace n ON n.oid=p.pronamespace WHERE NOT t.tgisinternal AND n.nspname='hosting_guard'AND t.tgconstraint<>0),'eventTriggers',(SELECT count(*)FROM pg_event_trigger),'guardStateRows',(SELECT count(*)FROM hosting_guard.state),'ordinaryLogins',(SELECT count(*)FROM pg_roles WHERE rolcanlogin AND rolname<>'supabase_admin'));"))
         assert counts=={'policies':381,'guardTriggers':600,'guardConstraintTriggers':200,'eventTriggers':0,'guardStateRows':0,'ordinaryLogins':0};result['baselineCounts']=counts
         exts=json.loads(sql("SELECT jsonb_agg(jsonb_build_object('name',extname,'owner',pg_get_userbyid(extowner),'version',extversion,'schema',extnamespace::regnamespace::text)ORDER BY extname)FROM pg_extension;"));assert exts==manifest['sourceFoundation']['extensions']
         note('Structural native load: 381 policies, 600 guard triggers/200 constraints, exact extension owners/versions; events/state/logins closed')
-        phase='catalog-backed-function-validation';sql((inputs/'validate-functions.sql').read_text(),timeout=35)
+        phase='catalog-backed-function-validation';sql((inputs/'validate-functions.sql').read_bytes().decode(),timeout=35)
+        phase='source-catalog-properties';sql((inputs/'restore-properties.sql').read_bytes().decode(),timeout=20)
         result['nativeFunctionDefinitionsValidated']=361;note('All 361 unchanged functions compile against real catalog with check_function_bodies enabled')
         sql("DO $owned$ DECLARE r record;n bigint;BEGIN FOR r IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN('r','p')AND n.nspname IN('public','app_private','auth','storage','supabase_migrations')LOOP EXECUTE format('SELECT count(*)FROM %I.%I',r.nspname,r.relname)INTO n;IF n<>0 THEN RAISE EXCEPTION 'Unexpected fixture business data';END IF;END LOOP;END $owned$;",timeout=15)
         note('Actual protected and migration tables contain no business or historical rows')
@@ -122,18 +123,47 @@ def main():
             result[label+'RecordDifferences']=summary
         compare_records('baseline')
         phase='eight-source-event-triggers'
-        sql('BEGIN;\n'+(inputs/'events.sql').read_text()+'\nCOMMIT;',timeout=15)
+        sql('BEGIN;\n'+(inputs/'events.sql').read_bytes().decode()+'\nCOMMIT;',timeout=15)
         assert sql('SELECT count(*)FROM pg_event_trigger;')=='8'
         assert sql("SELECT count(*)FROM pg_roles WHERE rolcanlogin AND rolname<>'supabase_admin';")=='0'
         assert sql('SELECT count(*)FROM hosting_guard.state;')=='0'
         compare_records('withEvents')
         result['withEventsFidelity']=json.loads(sql("BEGIN READ ONLY;SET LOCAL search_path=pg_catalog;SET LOCAL timezone='UTC';SET LOCAL statement_timeout='5s';SET LOCAL lock_timeout='1s';"+query+'\nROLLBACK;',timeout=8))
         result['eventDefinitionsInstalledInOwnedFixture']=8
+        # Retain real differing native records privately if any exact source
+        # property still differs. No field is normalized out of the comparison.
+        selected=json.loads((inputs/'source-differing-records.json').read_bytes())
+        hexkeys=json.dumps(list(selected)).encode().hex()
+        detailed_query=record_query.split("\nSELECT jsonb_build_object('ownerAcl'",1)[0]+"\nSELECT jsonb_object_agg(identity,record)FROM semantic_records WHERE identity IN(SELECT jsonb_array_elements_text(convert_from(decode('"+hexkeys+"','hex'),'UTF8')::jsonb));"
+        private['actualSelectedRecords']=json.loads(sql("BEGIN READ ONLY;SET LOCAL search_path=pg_catalog;SET LOCAL timezone='UTC';SET LOCAL statement_timeout='5s';SET LOCAL lock_timeout='1s';"+detailed_query+'ROLLBACK;',timeout=8))
+        exact=result['withEventsRecordDifferences']
+        result['fullSourceCatalogMatches']=all(n==0 for group in exact.values()for n in group.values())
+        assert result['fullSourceCatalogMatches'],'Exact source catalog differences remain; private native fields retained'
         note('All eight unchanged source event definitions installed with empty guard state and ordinary logins closed; exact catalog differences retained')
         phase='exact-local-policy-candidate';candidate=(here/'local-primary-candidate.sql').read_bytes();assert sha(candidate)=='58c40f6662966ccf59306a965c411e8de9a3d94276ce246259cce46d22736b67';sql(candidate.decode(),timeout=15)
         fields=json.loads(sql("SELECT jsonb_agg(jsonb_build_object('name',column_name,'type',data_type,'default',column_default)ORDER BY ordinal_position)FROM information_schema.columns WHERE table_schema='hosting_guard'AND table_name='state';"));assert len(fields)==13 and fields[-2]['name']=='availability_policy'and 'backup-fenced-v1'in fields[-2]['default']and fields[-1]['name']=='local_operation_observed_at'and fields[-1]['type']=='timestamp with time zone'
         assert sql('SELECT count(*)FROM hosting_guard.state;')=='0'
         note('Exact candidate applies to real structural baseline with legacy default and no operation state or lease')
+        phase='native-event-behavior'
+        event_case="""BEGIN;
+INSERT INTO hosting_guard.state(singleton,epoch,holder,database_started_at,issued_at,expires_at,capture_started_at,topology_verified,topology_fingerprint,capture_in_progress,availability_policy,local_operation_observed_at)
+VALUES(true,20,'ats-home-primary',pg_postmaster_start_time(),clock_timestamp(),clock_timestamp()+interval '14 seconds',clock_timestamp()-interval '2 days',true,hosting_guard.catalog_fingerprint(),false,'local-primary-operation-v1',clock_timestamp());
+CREATE TABLE public.ats_owned_event_probe(id integer);
+DO $owned$BEGIN
+IF NOT(SELECT relrowsecurity FROM pg_class WHERE oid='public.ats_owned_event_probe'::regclass)THEN RAISE EXCEPTION 'Public DDL did not enable RLS';END IF;
+IF(SELECT topology_verified FROM hosting_guard.state WHERE singleton)THEN RAISE EXCEPTION 'DDL did not invalidate topology';END IF;
+END$owned$;
+ALTER TABLE public.ats_owned_event_probe ADD COLUMN label text;
+DROP TABLE public.ats_owned_event_probe;
+ROLLBACK;
+"""
+        sql(event_case,timeout=15)
+        assert sql('SELECT count(*)FROM hosting_guard.state;')=='0'
+        note('Actual public CREATE/ALTER/DROP enables RLS and invalidates topology; transaction rollback leaves no state or table')
+        denied=inside(['psql','-X','-Atq','-h','/fixture/socket','-p','55433','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],data=b'BEGIN;GRANT CREATE ON SCHEMA public TO ats_firewood_request;SET SESSION AUTHORIZATION ats_firewood_request;CREATE TABLE public.ats_owned_unauthorized_ddl(id integer);COMMIT;',allow=True)
+        assert denied.returncode==3 and b'42501'in denied.stderr
+        assert sql("SELECT to_regclass('public.ats_owned_unauthorized_ddl')IS NULL;")=='t'
+        note('Actual nonoperator DDL is rejected by the source event guard and leaves no table')
         result.update(passed=True,structuralLoadAccepted=True,candidateMigrationAppliedInFixture=True,eventsStillDeferred=False,ordinaryRolesStillClosed=True)
     except BaseException as e:
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded owned fixture failed')

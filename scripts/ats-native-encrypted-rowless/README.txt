@@ -28,13 +28,16 @@ pg_net and pg_stat_statements are preloaded only in this networkless fixture.
 The fixture bootstrap logical role supabase_admin has the new OID10 in a new
 isolated cluster; it has no production credential. All copied ordinary roles
 stay NOLOGIN. Attributes, exact GUC bytes/order, memberships/grantors, database
-owner/ACL and extension versions/owners are checked. Eight event triggers are
-deferred and hosting_guard.state stays empty. No lease/publication/modes exist.
+owner/ACL and extension versions/owners are checked. All eight source event triggers are installed only after the structural load.
+Their catalog records and relevant CREATE/ALTER/DROP behavior are checked in
+rolled-back fixture transactions. Guard state is empty afterward.
 
 The actual catalog loads 381 policies and 600 guard triggers/200 constraints,
 then validates all361 unchanged function definitions against real tables.
 Source/fixture opaque inventories and ACL digest equality are reported truthfully;
-semantic/guard equality is not claimed while event triggers are deferred.
+Full exact catalog equality is required before candidate migration. Source
+line endings and two dropped-column slots are retained; omitted logical-dump
+ACL/configuration properties are restored through ordinary SQL grants/settings.
 The separately pinned candidate adds the two local-policy columns, with legacy
 default and no row, renewal or write admission. No original-host guardian,
 rootless overflow-owner, native app/worker, paired restore, provider recovery or

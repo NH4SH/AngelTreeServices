@@ -1,0 +1,36 @@
+{
+  "kind": "ats-private-native-input-pins-v1",
+  "ciphertextSha256": "94f32fd8a4a8045e6e9a30103fb29147738a8f574560150de08eb4bcf6061f34",
+  "ciphertextBytes": 928258,
+  "plaintextSha256": "f79fdaf4c732cbe6dac4668add05bcbe4669d3074c3264c1dd13e7c2f93e7a90",
+  "records": [
+    {
+      "name": "structural.sql",
+      "bytes": 1738082,
+      "sha256": "001ec3703791086a88d26fba0b9343fc3fb5052bc6181f26c250de84e38fc12f"
+    },
+    {
+      "name": "validate-functions.sql",
+      "bytes": 793367,
+      "sha256": "21fe9206c1f79dc07a72000974e11df0e61515deb4e8ac1ece3134fc034a9d4f"
+    },
+    {
+      "name": "catalog.json",
+      "bytes": 10741,
+      "sha256": "cdd9c83ce80bd1506bfdb5d7825825830e3785c2a59348c1c8dd5f00bdf53134"
+    },
+    {
+      "name": "role-settings.json",
+      "bytes": 827,
+      "sha256": "549ade941e581251586e714cf3ddfd225d7e5c97ea2cdac0f7bf02c0caf9c32a"
+    },
+    {
+      "name": "manifest.json",
+      "bytes": 8366,
+      "sha256": "6678ce9f460a1a0b8c764432c5eab1d83c308f4f0cfa57080d0390b8d1b7f371"
+    }
+  ],
+  "businessRowsIncluded": false,
+  "productionCredentialsIncluded": false,
+  "productionActivationIncluded": false
+}

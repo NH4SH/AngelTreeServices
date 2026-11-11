@@ -1,0 +1,36 @@
+name: ATS encrypted native rowless rehearsal
+
+on:
+  push:
+    branches: [codex/ats-native-encrypted-rowless-20261111]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ats-native-rowless-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  private-structural-probe:
+    if: github.repository == 'NH4SH/AngelTreeServices'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Run owned networkless structural rehearsal
+        env:
+          ATS_FIXTURE_KEY: ${{ secrets.ATS_CRM_NATIVE_REHEARSAL_ENCRYPTED_KEY_20261111 }}
+        run: sudo --preserve-env=GITHUB_ACTIONS,GITHUB_REPOSITORY,GITHUB_REF,GITHUB_SHA,RUNNER_TEMP,ATS_FIXTURE_KEY /usr/bin/python3 scripts/ats-native-encrypted-rowless/probe.py
+      - name: Preserve sanitized proof and encrypted owner diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ats-encrypted-native-rowless-proof
+          path: |
+            ci-results/rowless-proof.json
+            ci-results/rowless-diagnostics.sealed.json
+          if-no-files-found: warn
+          retention-days: 7

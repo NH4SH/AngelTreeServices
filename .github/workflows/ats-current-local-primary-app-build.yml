@@ -1,0 +1,29 @@
+name: ATS current local-primary CRM build
+on:
+  push:
+    branches: [codex/ats-local-primary-app-build-20261111]
+permissions:
+  contents: read
+concurrency:
+  group: ats-local-primary-app-build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  owned-current-build:
+    if: github.repository == 'NH4SH/AngelTreeServices'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build verified current CRM without private inputs
+        run: sudo --preserve-env=GITHUB_ACTIONS,GITHUB_REPOSITORY,GITHUB_REF,GITHUB_SHA /usr/bin/python3 scripts/ats-current-app-build/probe.py
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: ats-current-local-primary-app-build-proof
+          path: |
+            ci-results/app-build-proof.json
+            ci-results/app-build.log
+          if-no-files-found: warn
+          retention-days: 7

@@ -116,9 +116,16 @@ export function readFixedSnapshot({ platform, uid, pid, wallMs, monotonicMs }, i
   assertLatchAbsent(io);
   const mountinfo = readBoundedFile('/proc/' + pid + '/mountinfo', LIMITS.mountinfo, { io, processId: pid }).toString('utf8');
   const out = { platform, uid, wallMs, monotonicMs, latchAbsent: true };
-  for (const name of ['descriptor', 'binding', 'active', 'authorityPublicKey', 'workersReleased']) {
+  assertReadOnlyMount(mountinfo, FIXED_PATHS.descriptor);
+  out.descriptor = readBoundedFile(FIXED_PATHS.descriptor, LIMITS.descriptor, { control: true, io });
+  // A root-owned local-policy descriptor selects its own exact validator later.
+  // Its proof has no cloud authority key. Legacy descriptors retain the original
+  // PEM/mount checks; neither policy is inferred from an environment variable.
+  const local = JSON.parse(out.descriptor.toString('utf8')).kind === 'ats-firewood-local-primary-release-v2';
+  const controls = ['descriptor', 'binding', 'active', ...(local ? [] : ['authorityPublicKey']), 'workersReleased'];
+  for (const name of controls) {
     assertReadOnlyMount(mountinfo, FIXED_PATHS[name]);
-    out[name] = readBoundedFile(FIXED_PATHS[name], LIMITS[name], { control: true, io });
+    if (name !== 'descriptor') out[name] = readBoundedFile(FIXED_PATHS[name], LIMITS[name], { control: true, io });
   }
   out.bootId = readBoundedFile(FIXED_PATHS.bootId, LIMITS.bootId, { io });
   const uptime = readBoundedFile(FIXED_PATHS.uptime, LIMITS.uptime, { io }).toString('utf8').trim();
@@ -127,10 +134,10 @@ export function readFixedSnapshot({ platform, uid, pid, wallMs, monotonicMs }, i
   assert.ok(Number.isFinite(out.monotonicMs) && out.monotonicMs > 0);
   assertLatchAbsent(io);
   // Verify control snapshots were not replaced while being read. Do not cache valid snapshots.
-  for (const name of ['descriptor', 'binding', 'active', 'authorityPublicKey', 'workersReleased'])
+  for (const name of controls)
     assert.ok(out[name].equals(readBoundedFile(FIXED_PATHS[name], LIMITS[name], { control: true, io })));
   const lastMountinfo = readBoundedFile('/proc/' + pid + '/mountinfo', LIMITS.mountinfo, { io, processId: pid }).toString('utf8');
-  for (const name of ['descriptor', 'binding', 'active', 'authorityPublicKey', 'workersReleased'])
+  for (const name of controls)
     assertReadOnlyMount(lastMountinfo, FIXED_PATHS[name]);
   assertLatchAbsent(io);
   const finalUptime = readBoundedFile(FIXED_PATHS.uptime, LIMITS.uptime, { io }).toString('utf8').trim();

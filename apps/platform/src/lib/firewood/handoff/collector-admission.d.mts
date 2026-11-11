@@ -1,5 +1,6 @@
 export type LiveCollectorPolicy=Readonly<{profile:'firewood-live-v1';mode:'live';sourceId:string;orderId:string;invoiceId:string;accountId:string;receiptAuthority:'crm';surchargeReporting:true}>;
 export function sameCollectorRelease(a:any,b:any):boolean;
+export function continuesCollectorRelease(before:any,after:any):boolean;
 export function isReleasedFirewoodMode(context:any,mode:'collection'|'sending',nowMs:number):boolean;
 export function collectionKeyMatches(context:any,key:unknown):boolean;
 export function exactLiveInvoice(invoice:any):boolean;

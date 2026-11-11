@@ -4,7 +4,7 @@
 import { LIVE_ACCOUNT, LIVE_HANDOFF_CONTRACT, LIVE_HANDOFF_SOURCE, LIVE_HANDOFF_ENVIRONMENT,
  LIVE_TERMS_HASH, LIVE_PAYMENT_POLICY_HASH } from './live-contract.mjs';
 import { isLiveFirewoodInvoice } from './live-collector.mjs';
-import { exactLiveInvoice, isReleasedFirewoodMode, sameCollectorRelease } from './collector-admission.mjs';
+import { exactLiveInvoice, isReleasedFirewoodMode, continuesCollectorRelease } from './collector-admission.mjs';
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u.test(v);
 const denied=code=>Object.freeze({ok:false,managed:true,code});
 export function sourceAllowsLiveReceipt(source,invoice){
@@ -33,7 +33,7 @@ export function createFirewoodReceiptSourceGate({readSendingContext,readPayment,
   const before=readSendingContext('sending');if(!isReleasedFirewoodMode(before,'sending',now()))return denied('receipt_sending_held');
   let source;try{source=await readCollectorContext(invoice.id);}catch{return denied('receipt_source_unconfirmed');}
   if(!sourceAllowsLiveReceipt(source,invoice))return denied('receipt_source_sender_held');
-  const after=readSendingContext('sending');if(!isReleasedFirewoodMode(after,'sending',now())||!sameCollectorRelease(before,after))return denied('receipt_sending_held');
+  const after=readSendingContext('sending');if(!isReleasedFirewoodMode(after,'sending',now())||!continuesCollectorRelease(before,after))return denied('receipt_sending_held');
   return{ok:true,managed:true,invoiceId:invoice.id,paymentId:payment.id,release:after};
  }
  return Object.freeze({
@@ -44,7 +44,7 @@ export function createFirewoodReceiptSourceGate({readSendingContext,readPayment,
    const prior=ticket&&tickets.get(ticket);if(!prior||ticket.deliveryId!==deliveryId||context?.payment_id!==ticket.paymentId
     ||context.invoice_id!=null&&context.invoice_id!==ticket.invoiceId)return denied('receipt_claim_binding_unconfirmed');
    const result=await inspect(deliveryId,context);if(!result.ok||!result.managed||result.invoiceId!==ticket.invoiceId||result.paymentId!==ticket.paymentId
-    ||!sameCollectorRelease(prior.release,result.release))return denied('receipt_sending_held');
+    ||!continuesCollectorRelease(prior.release,result.release))return denied('receipt_sending_held');
    return Object.freeze({ok:true,managed:true});
   },
  });

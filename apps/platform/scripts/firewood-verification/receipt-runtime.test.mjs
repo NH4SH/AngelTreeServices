@@ -112,6 +112,11 @@ function fixture({ ordinary = false, emailType = 'payment_confirmation' } = {}) 
 }
 const dispatch = state => delivery.dispatchSavedEmail(id, state.db, sender.sendEmailTransport);
 const count = (s, command) => s.commands.filter(c => c.name === command).length;
+function localFixture(){const s=fixture(),prior=s.readContext;let sequence=20;s.regressed=false;
+ s.readContext=mode=>{const c=prior(mode);if(!c)return null;delete c.authorityPublicKeyFingerprint;
+  return{...c,namespace:'ats-home-primary-112233445566',generation:20,systemIdentifier:'7000000000000000001',
+   admissionProtocol:'local-primary-operation-v1',primaryInstallationId:'b'.repeat(32),operationSequence:s.regressed?1:sequence++,
+   operationObservedAtMs:c.observedAtMs-500,operationObservedBootMs:99500,operationAgeMs:500,observedMonotonicMs:100000,expiresAtMs:c.observedAtMs+13500};};return s;}
 for (const [name, change] of [
   ['sending mode', s => { s.sending = false; }], ['source sender', s => { s.source.sender_enabled = false; }],
   ['wrong source account', s => { s.source.account_id = 'foreign'; }], ['refunded payment', s => { s.payment.status = 'refunded'; }],
@@ -193,3 +198,15 @@ test('direct raw live receipt without a saved claimed attempt has no transport o
   assert.equal(result.outcome, 'not_attempted'); assert.equal(s.fetches.length, 0); assert.equal(s.history.length, 0);
 });
 await writeFile(join(output, 'HARNESS_SOURCE_PINS.json'), JSON.stringify({ scope: 'actual-candidate-sender-dispatcher-with-explicit-synthetic-context-DB-provider-stubs', sourceRoot, pins, noRealProviders: true, noRealDatabase: true }, null, 2) + '\n');
+test('local-primary receipt keeps one provider identity, accepted history and no resend',async()=>{
+ const s=localFixture();assert.equal((await dispatch(s)).ok,true);assert.equal(s.fetches.length,1);
+ assert.equal(s.row.state,'accepted');assert.equal(s.attempts.length,1);assert.equal(s.history.length,1);
+ assert.equal(s.row.provider_key,'receipt/payment/'+paymentId);await dispatch(s);
+ assert.equal(s.fetches.length,1);assert.equal(s.attempts.length,1);assert.equal(s.history.length,1);
+});
+test('local sequence regression after saved receipt claim records that same attempt without transport',async()=>{
+ const s=localFixture();s.onClaim=()=>{s.regressed=true;};const result=await dispatch(s);
+ assert.equal(result.outcome,'not_attempted');assert.equal(s.fetches.length,0);assert.equal(s.attempts.length,1);
+ assert.equal(s.attempts[0].id,attemptId);assert.equal(s.attempts[0].outcome,'not_attempted');
+ assert.equal(s.row.retry_authorized,false);
+});

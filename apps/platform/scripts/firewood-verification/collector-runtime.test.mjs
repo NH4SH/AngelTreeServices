@@ -49,6 +49,11 @@ function stripeFixture(){const calls={intents:[],sessions:[],cancel:0,expire:0,r
  checkout:{sessions:{create:async(params,options)=>{calls.sessions.push({params,options});return{id:'cs_live_syntheticKnown',mode:'payment',livemode:true,status:'open',payment_status:'unpaid',client_reference_id:invoiceId,metadata:params.metadata,amount_total:60000,currency:'usd',expires_at:Math.floor(Date.now()/1000)+1800,payment_intent:'pi_syntheticBank',url:'https://checkout.stripe.com/synthetic-only'};},retrieve:async()=>{calls.reads++;throw Error('Not configured in this fixture');},expire:async()=>{calls.expire++;throw Error('Unexpected mutation');}}}};
  globalThis.ATS_COLLECTOR_TEST.clientFingerprints.set(stripe,sha(syntheticKey));return stripe;}
 function setup(){process.env.STRIPE_SECRET_KEY=syntheticKey;globalThis.ATS_COLLECTOR_TEST={held:false,clientFingerprints:new WeakMap(),readContext(mode){return this.held?null:released(mode);}};}
+function setupLocal(){setup();let sequence=20;const state=globalThis.ATS_COLLECTOR_TEST;
+ state.regressed=false;state.readContext=function(mode){if(this.held)return null;const c=released(mode);delete c.authorityPublicKeyFingerprint;
+  return{...c,namespace:'ats-home-primary-112233445566',generation:20,systemIdentifier:'7000000000000000001',
+   admissionProtocol:'local-primary-operation-v1',primaryInstallationId:'b'.repeat(32),operationSequence:this.regressed?1:sequence++,
+   operationObservedAtMs:c.observedAtMs-500,operationObservedBootMs:99500,operationAgeMs:500,observedMonotonicMs:100000,expiresAtMs:c.observedAtMs+13500};};}
 async function minted(db){const result=await policy.getFirewoodCollectorPolicy(db,invoice,true);assert.equal(result.ok,true);return result.policy;}
 const input=(db,stripe,fw)=>({supabase:db,stripe,firewoodPolicy:fw,livemode:true,invoiceId,invoiceNumber:invoice.invoice_number,invoicePrincipalCents:60000,amountCents:60000,customerId,organizationId:null,portalUrl:'https://admin.angeltreeservices.org/portal/invoice/synthetic',billingEmail:'synthetic@fixture.invalid',surchargeBps:300,surchargeEnabled:true});
 async function reviewed(db,stripe,fw){const result=await card.createCardReview({...input(db,stripe,fw),confirmationTokenId:'ctoken_synthetic'});assert.equal(result.ok,true);return result.review.reviewId;}
@@ -132,3 +137,18 @@ test('stale card cleanup rechecks native admission after intentread before cance
 });
 
 test('collector stamps explicitly reject issuerkey or installationoverlay drift even with the samebindinghash',()=>{const a=released('collection');assert.equal(admission.isReleasedFirewoodMode(a,'collection',Date.now()),true);for(const key of['authorityPublicKeyFingerprint','installationOverlaySha256']){assert.equal(admission.sameCollectorRelease(a,{...a,[key]:'1'.repeat(64)}),false);assert.equal(admission.isReleasedFirewoodMode({...a,[key]:undefined},'collection',Date.now()),false);}});
+test('local-primary card path preserves amounts, provider options and known intent without a second create',async()=>{
+ setupLocal();const db=dbFixture(),fw=await minted(db),stripe=stripeFixture(),reviewId=await reviewed(db,stripe,fw);
+ assert.equal((await card.confirmCardReview({...input(db,stripe,fw),reviewId})).ok,true);
+ const call=stripe.calls.intents[0];assert.equal(stripe.calls.intents.length,1);assert.equal(call.params.amount,61800);
+ assert.equal(call.params.amount_details.surcharge.amount,1800);assert.equal('receipt_email'in call.params,false);
+ assert.equal(call.options.apiVersion,'2026-03-25.preview');assert.equal(call.options.maxNetworkRetries,0);assert.equal(call.options.timeout,8000);
+ const known=db.rows[0].stripe_payment_intent_id;await card.confirmCardReview({...input(db,stripe,fw),reviewId});
+ assert.equal(stripe.calls.intents.length,1);assert.equal(db.rows[0].stripe_payment_intent_id,known);
+});
+test('regressed local operation after actual card claim prevents provider create and preserves the same creating guard',async()=>{
+ setupLocal();const db=dbFixture(),fw=await minted(db),stripe=stripeFixture(),reviewId=await reviewed(db,stripe,fw);
+ db.onWrite=async(kind,row,data)=>{if(data.status==='creating')globalThis.ATS_COLLECTOR_TEST.regressed=true;};
+ assert.equal((await card.confirmCardReview({...input(db,stripe,fw),reviewId})).ok,false);
+ assert.equal(stripe.calls.intents.length,0);assert.equal(db.rows[0].status,'creating');
+});

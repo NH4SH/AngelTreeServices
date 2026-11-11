@@ -1,3 +1,4 @@
+import { validateLocalReleasedSnapshot, LOCAL_DESCRIPTOR_KIND } from './local-primary-context.mjs';
 // Internal, pure validation. This does not admit a database transaction or load credentials.
 import assert from 'node:assert/strict';
 import { createHash, createPublicKey } from 'node:crypto';
@@ -52,6 +53,7 @@ export function authorityFingerprint(pem) {
 
 // Only the fixed-path reader may supply production snapshots. Exported for isolated unit tests.
 export function validateReleasedSnapshot(snapshot, mode) {
+  if (json(snapshot.descriptor).kind === LOCAL_DESCRIPTOR_KIND) return validateLocalReleasedSnapshot(snapshot, mode, { fixedRelease: FIXED_RELEASE, modes: MODES });
   assert.ok(MODES.includes(mode));
   assert.equal(snapshot.platform, 'linux');
   assert.equal(snapshot.uid, 1000);
@@ -158,7 +160,7 @@ export function privateConfigurationMatches(context, config) {
 }
 
 export function sameRelease(a, b) {
-  return Boolean(a && b && ['mode', 'namespace', 'generation', 'sourceId', 'systemIdentifier', 'sourceBoot',
+  return Boolean(a && b && ['admissionProtocol', 'primaryInstallationId', 'mode', 'namespace', 'generation', 'sourceId', 'systemIdentifier', 'sourceBoot',
     'databaseBoot', 'topologyFingerprint', 'timeline', 'bindingSha256', 'authorityPublicKeyFingerprint',
     'schemaSha256', 'releaseSha256', 'installationOverlaySha256', 'signingKeyId', 'signingKeyFingerprint', 'stripeKeyFingerprint']
     .every(key => a[key] === b[key]) && JSON.stringify(a.modes) === JSON.stringify(b.modes));

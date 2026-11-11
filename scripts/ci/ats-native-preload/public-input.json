@@ -1,0 +1,21 @@
+{
+  "kind": "public-postgres-preload-probe-v1",
+  "image": "public.ecr.aws/supabase/postgres@sha256:b15d862126dd2dac02da524696ccfde2dcce2ceaee0a58973b2727befe492706",
+  "arm64ManifestDigest": "sha256:74996d6d770095c7a95e794a936aeb0726424c6086dd120c5238910b4f0ea88b",
+  "serverVersionNum": "170011",
+  "publicMigrationPath": "/docker-entrypoint-initdb.d/migrations/20260413000000_fix-authenticator-session-preload-libraries.sql",
+  "publicMigrationSha256": "eee2f692ec9b1b9fea425b616761d5f6369b9c70148e58eaa186d3638d6efcbe",
+  "preloadValueSha256": "c010590ae41b57ca804a08839c5da5c2d4308c508296f9ceee3986a3b7da9240",
+  "mappedArtifacts": [
+    {
+      "pathSha256": "d8d29cda85db2b2e12ab7ad39967f7f36c9724c5ecb3675134cf67f76c273cb5",
+      "sha256": "77c73b90a01739bc4c406d6ae972deff4c33faa02a20100e19f882bfc049838d",
+      "bytes": 83416
+    },
+    {
+      "pathSha256": "8435c8bc098ad57939914b2bee8654835f9aa3b5f497fbffc29a22b77144e90e",
+      "sha256": "1366af51ac33d8ef6f9e47a25e01f0e90c062bdb21864f5385bf9ac77b87a2d2",
+      "bytes": 69592
+    }
+  ]
+}

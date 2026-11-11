@@ -42,10 +42,14 @@ class NativeSdkFixture:
         return['--group-add','1000','--mount','type=bind,source='+str(self.socket)+',target=/sdk-socket']
     def verify_mounts(self,info):
         assert info['HostConfig']['GroupAdd']==['1000']
-        mounts=info['Mounts'];assert len(mounts)==3
+        # Docker reports legacy --tmpfs entries in HostConfig.Tmpfs, rather
+        # than the Mounts list containing the typed Unix-socket bind.
+        mounts=info['Mounts'];assert len(mounts)==1
         bound=[m for m in mounts if m['Type']=='bind'];assert len(bound)==1
         assert bound[0]['Source']==str(self.socket)and bound[0]['Destination']=='/sdk-socket'and bound[0]['RW']is True
-        assert all(m['Type']=='tmpfs'and m['Destination']in ['/fixture','/tmp']for m in mounts if m['Type']!='bind')
+        temporary=info['HostConfig']['Tmpfs'];assert set(temporary)=={'/fixture','/tmp'}
+        assert re.fullmatch(r'rw,nodev,nosuid,noexec,size=256m,mode=0700,uid=[0-9]+,gid=[0-9]+',temporary['/fixture'])
+        assert temporary['/tmp']=='rw,nodev,nosuid,noexec,size=32m,mode=1777'
         assert self.socket.resolve()==self.socket and not list(self.socket.iterdir())
     def _drop(self):
         libc=ctypes.CDLL(None,use_errno=True)

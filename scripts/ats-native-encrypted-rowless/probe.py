@@ -68,10 +68,12 @@ def main():
         cid=d(['create','--label','ats-private-rowless='+nonce,'--name','ats-private-rowless-'+nonce,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(uid)+':'+str(gid),'--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','64',*sdk.docker_args(),'--tmpfs','/fixture:rw,nodev,nosuid,noexec,size=256m,mode=0700,uid='+str(uid)+',gid='+str(gid),'--tmpfs','/tmp:rw,nodev,nosuid,noexec,size=32m,mode=1777','--entrypoint','/bin/sh',IMAGE,'-c','exec sleep 600']).stdout.decode().strip();assert re.fullmatch('[a-f0-9]{64}',cid);d(['start',cid])
         info=json.loads(d(['inspect',cid]).stdout)[0];hc=info['HostConfig']
         private['ownedFixtureMounts']=info['Mounts']
-        private['ownedHostConfig']={k:hc.get(k)for k in ['NetworkMode','ReadonlyRootfs','Memory','MemorySwap','PidsLimit','NanoCpus','CapDrop','GroupAdd','Binds','Mounts']}
+        private['ownedHostConfig']={k:hc.get(k)for k in ['NetworkMode','ReadonlyRootfs','Memory','MemorySwap','PidsLimit','NanoCpus','CapDrop','GroupAdd','Binds','Mounts','Tmpfs']}
         private['nativeSdkPreparation']={'packages':sdk.npm}
         assert hc['NetworkMode']=='none'and hc['ReadonlyRootfs']and hc['Memory']==hc['MemorySwap']==536870912 and hc['PidsLimit']==64 and hc['NanoCpus']==1000000000 and hc['CapDrop']==['ALL']and not hc.get('Binds')
         sdk.verify_mounts(info)
+        actual_tmpfs=inside(['stat','-f','-c','%t','/fixture','/tmp']).stdout.decode().splitlines()
+        assert actual_tmpfs==['1021994','1021994'];result['ownedScratchTmpfsVerified']=True
         note('Fresh owned container, 512MiB/one CPU/pids64, read-only root, tmpfs data and one empty owned Unix-socket directory; no production bind')
         check="import socket,errno;s=socket.socket();s.settimeout(1);assert s.connect_ex(('1.1.1.1',443))==errno.ENETUNREACH;print('denied')"
         assert run(['/usr/bin/nsenter','--target',str(info['State']['Pid']),'--net','/usr/bin/python3','-c',check]).stdout.strip()==b'denied'

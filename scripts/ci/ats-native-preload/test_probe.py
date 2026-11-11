@@ -2,6 +2,12 @@ import hashlib,importlib.util,pathlib,unittest
 path=pathlib.Path(__file__).with_name('probe.py');spec=importlib.util.spec_from_file_location('public_probe',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 sha=lambda x:hashlib.sha256(x.encode()).hexdigest()
 class Tests(unittest.TestCase):
+    def test_error_values_and_paths_are_redacted(self):
+        d=m.diagnostic_summary(b'FATAL: could not access file "/private/value.so": No such file or directory\n')
+        self.assertIn('could not access file',d);self.assertNotIn('/private/',d);self.assertNotIn('value.so',d)
+    def test_sql_source_context_is_not_published(self):
+        d=m.diagnostic_summary(b'ERROR: syntax error at "token"\nLINE 1: SELECT secret_value\nCONTEXT: private_statement\n')
+        self.assertNotIn('secret_value',d);self.assertNotIn('private_statement',d);self.assertNotIn('"token"',d)
     def test_sql_input_keeps_docker_stdin_open(self):
         self.assertEqual(m.docker_exec_args('a'*64,['psql'],input_supplied=True),['exec','-i','a'*64,'psql'])
     def test_no_input_does_not_attach_stdin(self):

@@ -13,6 +13,14 @@ def docker_exec_args(cid,args,*,input_supplied=False,extra=()):
     assert re.fullmatch('[a-f0-9]{64}',cid)
     return ['exec',*(['-i']if input_supplied else[]),*extra,cid,*map(str,args)]
 
+def diagnostic_summary(raw):
+    lines=[s for s in raw.decode('utf-8','replace').splitlines()if re.search(r'\b(?:FATAL|ERROR|DETAIL|HINT):',s)][:4]
+    def hide(m):return '[value-sha256:'+sha(m[0].encode())[:16]+']'
+    text='\n'.join(lines)
+    text=re.sub(r'"[^"\n]*"|\x27[^\x27\n]*\x27',hide,text)
+    text=re.sub(r'/(?:[^\s:]+/)*[^\s:]*',hide,text)
+    return text[:2048]
+
 def public_preload(raw,expected,source_sha):
     assert sha(raw)==source_sha,'Pinned public migration changed'
     text=raw.decode('utf-8','strict')
@@ -45,7 +53,9 @@ def main():
         for suffix,raw in [('stdout',p.stdout),('stderr',p.stderr)]:
             assert len(raw)<=4*1024**2
             (root/('step-%03d.%s.private'%(serial,suffix))).write_bytes(raw)
-        if not allow:assert p.returncode==0,'Fixture command failed at recorded step '+str(serial)
+        if not allow and p.returncode:
+            result['failedCommand']={'step':serial,'exitCode':p.returncode,'stdoutBytes':len(p.stdout),'stderrBytes':len(p.stderr),'stderrSha256':sha(p.stderr),'diagnostic':diagnostic_summary(p.stderr)}
+            raise AssertionError('Fixture command failed at recorded step '+str(serial))
         return p
     def d(args,**kw):return run(docker+list(map(str,args)),**kw)
     def inside(args,data=None,timeout=15,allow=False,extra=()):return d(docker_exec_args(cid,args,input_supplied=data is not None,extra=extra),data=data,timeout=timeout,allow=allow)

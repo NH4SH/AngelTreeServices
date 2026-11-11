@@ -81,7 +81,7 @@ def main():
         result['nativeEngineProcess']={'exitCode':p.returncode,'stdoutSha256':hashlib.sha256(p.stdout).hexdigest(),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'stdoutTail':p.stdout[-4096:].decode('utf-8','replace'),'stderrTail':p.stderr[-4096:].decode('utf-8','replace')}
         assert p.returncode==0 and b'# pass 12'in p.stdout and b'# fail 0'in p.stdout
         result['nativeEngineCasesPassed']=12;note('Twelve native engine cases require commit acknowledgement, both source/custody observations, operator holds, exact SQL time and independent publication readback')
-        public=root/'public';public.mkdir(mode=0o755);os.chown(public,1000,1000)
+        public=root/'public';public.mkdir(mode=0o755);public.chmod(0o755);os.chown(public,1000,1000)
         write(public/'binding.json',binding_bytes);(public/'binding.json').chmod(0o444)
         assert call('publisher-positive')['published'];note('Real Linux atomic operation publication under a genuine boot clock, matching installed binding, fsync and independent readback; SQL row is synthetic')
         for action in ['publisher-reject-sequence','publisher-reject-boot','publisher-reject-expired']:

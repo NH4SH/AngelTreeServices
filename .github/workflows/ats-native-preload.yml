@@ -24,7 +24,7 @@ jobs:
         run: python3 scripts/ci/ats-native-preload/test_probe.py
       - name: Test conservative local operation publication
         run: node --test scripts/ci/ats-native-preload/operation-publication.test.mjs
-      - name: Prove the pinned native libraries in isolation
+      - name: Prove native libraries, SQL and file controls in isolation
         run: sudo --preserve-env=GITHUB_ACTIONS,RUNNER_TEMP /usr/bin/python3 scripts/ci/ats-native-preload/probe.py
       - name: Preserve only sanitized proof metadata
         if: always()

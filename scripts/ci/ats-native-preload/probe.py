@@ -43,7 +43,7 @@ def main():
     os.umask(0o077);root=Path(tempfile.mkdtemp(prefix='ats-public-pg17-',dir=base));home=root/'home';home.mkdir(mode=0o700);dc=root/'docker';dc.mkdir(mode=0o700)
     config=json.loads(Path(__file__).with_name('public-input.json').read_bytes());assert config['kind']=='public-postgres-preload-probe-v1'
     image=config['image'];assert re.fullmatch(r'public\.ecr\.aws/supabase/postgres@sha256:[a-f0-9]{64}',image)
-    env={'HOME':str(home),'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','DOCKER_CONFIG':str(dc),'LANG':'C','LC_ALL':'C'}
+    env={'HOME':str(home),'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','DOCKER_CONFIG':str(dc),'LANG':'C','LC_ALL':'C','GITHUB_ACTIONS':'true'}
     docker=['/usr/bin/docker','--host','unix:///var/run/docker.sock'];nonce=secrets.token_hex(8);cid=None;phase='public-image';serial=0;auth=None;started=False
     result={'kind':'ats-public-image-native-preload-proof-v1','startedAtUTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'sourceSha256':sha(Path(__file__).read_bytes()),'publicInputSha256':sha(Path(__file__).with_name('public-input.json').read_bytes()),'tests':[],'productionInputsReceived':False,'productionSqlOrRegistryCalls':0,'productionCredentialsReceived':False,'fullBootstrapAccepted':False,'applicationOrRestoreAccepted':False,'productionReleaseCleared':False}
     deadline=time.monotonic()+420
@@ -160,6 +160,12 @@ def main():
             assert active['expiresAtBootMs']<=before['bootMs']+14000
             result['operationPublication']={'exactCommittedSqlTimestampMatched':True,'conservativeBootDeadline':True,'renewalElapsedMs':after['bootMs']-before['bootMs'],'guardianCustodyAccepted':False}
         result['localSqlNative']=local_sql_checks(execute,restart,publication,note)
+        phase='local-primary-native-filesystem'
+        parent_ns=os.stat('/proc/self/ns/mnt').st_ino
+        fspath=Path(__file__).with_name('filesystem-fixture.py').resolve()
+        result['filesystemControls']=json.loads(run(['/usr/bin/unshare','--mount','--pid','--fork','--mount-proc','--net','--propagation','private','--kill-child=KILL','--','/usr/bin/python3',str(fspath),str(parent_ns),node],timeout=35).stdout)
+        assert result['filesystemControls']['passed']and result['filesystemControls']['ownedMountsRemoved']and result['filesystemControls']['ownedDirectoriesRemoved']
+        note('Actual Linux UID/permission/read-only-mount cases: '+str(result['filesystemControls']['checksPassed']))
         result.update(passed=True,testsPassed=len(result['tests']),rawRoleSettingsPublished=False,rawModuleNamesPublished=False)
     except BaseException as e:
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded command failed')

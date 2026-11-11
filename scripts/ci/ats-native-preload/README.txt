@@ -24,3 +24,15 @@ JavaScript publication bridge. All role names, rows and installation identifiers
 in this synthetic portion are fixture values. It does not prove original-host
 activation custody, filesystem readers, restored-clone safety or full-schema
 event handlers. No synthetic success authorizes production admission.
+
+The file-control phase uses a separate private Linux mount/PID/network namespace
+on this same disposable runner. Two new tmpfs mounts contain synthetic 0444
+root-owned metadata. The actual Node process runs as 1000:1000, without groups
+or capabilities and with no_new_privs. It checks the fixed-path reader and local
+validator with the cloud authority PEM absent, then rejects wrong UID, writable
+files/mounts, runtime-owned files, symlinks, hardlinks, a hold latch and a legacy
+descriptor without its required PEM. Native /proc evidence is read directly.
+No host bind mount or production file is supplied. The owned mounts/directories
+are removed and the namespace process is joined before acceptance. This phase
+does not emulate the production rootless user namespace or prove its overflow
+owner IDs, original-host activation custody, reboot orchestration or clone safety.

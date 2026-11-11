@@ -1,8 +1,8 @@
 {
   "kind": "ats-private-native-input-pins-v1",
-  "ciphertextSha256": "f2aa1fe7aeb1ed3c6cf7d34c82f38e607994a47af209940a8e44598d6f91bf9c",
-  "ciphertextBytes": 1549706,
-  "plaintextSha256": "59d6bec1c9567f965d23124b1b3411304ff17465025e298f8e2968c3e4f54c55",
+  "ciphertextSha256": "c86c2fcc916920cd504acbc4e027f55255f85379f980d384904f3bc62a025354",
+  "ciphertextBytes": 1961186,
+  "plaintextSha256": "27f59db1669c69fc63b0c27d7a014f54219bd12bd71510c92efd75752dab6ac7",
   "records": [
     {
       "name": "structural.sql",
@@ -48,6 +48,11 @@
       "name": "restore-properties.sql",
       "bytes": 66486,
       "sha256": "c8d3156858080549b5718ca66c0cfa4b750db05260274fa0a64ef85948e8ea99"
+    },
+    {
+      "name": "website-runtime-sdk-bundle.json",
+      "bytes": 585187,
+      "sha256": "deac31740f49f7556d7b5253a10df69915b08e0ac2760051eb78106877b8d3ec"
     }
   ],
   "businessRowsIncluded": false,

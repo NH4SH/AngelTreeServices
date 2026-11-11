@@ -19,7 +19,9 @@ Private errors are encrypted for the owner. Uploaded plaintext is bounded
 counts/digests, SQLSTATEs and hashed identifiers. No raw SQL or setting is logged.
 
 The new public digest-pinned ARM64 PG17.11 container has 512MiB/one CPU/pids64,
-read-only root, tmpfs only and no network or host bind. An actual denied outbound
+read-only root, tmpfs data and one newly created owned Unix-socket directory. The socket
+directory contains no incoming host file; no production bind or TCP listener
+is provided. Both server and client have no outbound IP network. An actual denied outbound
 connection precedes extension/schema execution. Fresh initdb uses ICU en-US and
 en_US.UTF-8 to match source database metadata. Its system identifier must differ
 from the source. The Nix postgres wrapper preserves the vendor library paths.
@@ -51,3 +53,13 @@ retained; no automatic in-place retry, promotion, backup deletion or main update
 The private-repository queue admitted no jobs. This independent key/capsule
 uses the already observed native ARM64 public-runner route. All original
 private queued attempts remain recorded separately; never call them passed.
+
+Native SDK extension: only pg8.23.1 and its exact lockfile dependency closure
+are fetched, with SHA512 verification and bounded regular-file extraction. No
+lifecycle script runs. The private runtime source stays in authenticated
+ciphertext. A real UID1000 client with no capabilities/NNP uses its isolated
+Unix socket; source contexts are explicitly synthetic. Two fixture roles open
+only for eight real SQL/SDK cases, then close and guard state is emptied.
+Twenty-seven source tests also run natively. This is not original-Mac authority,
+full application/worker startup, real reboot, backup/restore or release acceptance.
+SDK source directories and all process groups are removed/joined before proof.

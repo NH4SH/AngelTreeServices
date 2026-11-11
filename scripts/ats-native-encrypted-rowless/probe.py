@@ -7,6 +7,7 @@ All ordinary roles remain closed; event triggers and operation state stay empty.
 from pathlib import Path
 import datetime,hashlib,json,os,platform,re,secrets,shutil,subprocess,sys,tempfile,time
 from foundation import foundation_sql
+from runtime_sdk import NativeSdkFixture
 
 IMAGE='public.ecr.aws/supabase/postgres@sha256:b15d862126dd2dac02da524696ccfde2dcce2ceaee0a58973b2727befe492706'
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -24,7 +25,7 @@ def main():
     dc=root/'docker';dc.mkdir(mode=0o700)
     env={'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','DOCKER_CONFIG':str(dc),'LANG':'C','LC_ALL':'C'}
     docker=['/usr/bin/docker','--host','unix:///var/run/docker.sock'];node=shutil.which('node',path=env['PATH']);assert node
-    here=Path(__file__).resolve().parent;nonce=secrets.token_hex(8);cid=None;started=False;serial=0;phase='authenticate-private-input'
+    here=Path(__file__).resolve().parent;nonce=secrets.token_hex(8);cid=None;started=False;serial=0;phase='authenticate-private-input';sdk=None
     work_deadline=time.monotonic()+400;cleanup_deadline=None
     result={'kind':'ats-private-native-rowless-structural-proof-v1','startedAtUTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'commit':commit,'driverSha256':sha(Path(__file__).read_bytes()),'productionSqlCalls':0,'productionBusinessRowsReceived':False,'productionCredentialsReceived':False,'productionActivationReceived':False,'privateRowlessInputReceived':True,'fullSchemaAccepted':False,'fullRuntimeOrGuardianAccepted':False,'restoreAccepted':False,'productionReleaseCleared':False,'tests':[]}
     private={'kind':'ats-owned-private-rowless-diagnostics-v1','commandFailures':[]}
@@ -58,13 +59,16 @@ def main():
         catalog=json.loads((inputs/'catalog.json').read_bytes());settings=json.loads((inputs/'role-settings.json').read_bytes());manifest=json.loads((inputs/'manifest.json').read_bytes())
         assert manifest['businessRowsIncluded']is False and manifest['passwordsIncluded']is False and manifest['providerCredentialsIncluded']is False and manifest['activationFilesIncluded']is False
         note('Authenticated encrypted current rowless input; no rows/passwords/provider keys/activation')
+        phase='authenticated-private-sdk-source'
+        sdk=NativeSdkFixture(here,inputs,nonce,env,node,manifest['sourceSystemIdentifier'],work_deadline)
+        sdk.prepare();result['privateRuntimeSourceReceived']=True
         phase='owned-public-image';d(['pull','--platform','linux/arm64',IMAGE],timeout=240)
         image=json.loads(d(['image','inspect',IMAGE]).stdout)[0];assert image['Architecture']=='arm64'and image['Os']=='linux'
         who=d(['run','--rm','--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--entrypoint','/bin/sh',IMAGE,'-c','id -u postgres; id -g postgres']).stdout.decode().splitlines();assert len(who)==2 and all(x.isdigit()for x in who);uid,gid=map(int,who);assert min(uid,gid)>0
-        cid=d(['create','--label','ats-private-rowless='+nonce,'--name','ats-private-rowless-'+nonce,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(uid)+':'+str(gid),'--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','64','--tmpfs','/fixture:rw,nodev,nosuid,noexec,size=256m,mode=0700,uid='+str(uid)+',gid='+str(gid),'--tmpfs','/tmp:rw,nodev,nosuid,noexec,size=32m,mode=1777','--entrypoint','/bin/sh',IMAGE,'-c','exec sleep 600']).stdout.decode().strip();assert re.fullmatch('[a-f0-9]{64}',cid);d(['start',cid])
+        cid=d(['create','--label','ats-private-rowless='+nonce,'--name','ats-private-rowless-'+nonce,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(uid)+':'+str(gid),'--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','64',*sdk.docker_args(),'--tmpfs','/fixture:rw,nodev,nosuid,noexec,size=256m,mode=0700,uid='+str(uid)+',gid='+str(gid),'--tmpfs','/tmp:rw,nodev,nosuid,noexec,size=32m,mode=1777','--entrypoint','/bin/sh',IMAGE,'-c','exec sleep 600']).stdout.decode().strip();assert re.fullmatch('[a-f0-9]{64}',cid);d(['start',cid])
         info=json.loads(d(['inspect',cid]).stdout)[0];hc=info['HostConfig'];assert hc['NetworkMode']=='none'and hc['ReadonlyRootfs']and hc['Memory']==hc['MemorySwap']==536870912 and hc['PidsLimit']==64 and hc['NanoCpus']==1000000000 and hc['CapDrop']==['ALL']and not hc.get('Binds')
-        assert all(x['Type']=='tmpfs'and x['Destination']in ['/fixture','/tmp']for x in info['Mounts'])
-        note('Fresh owned container, 512MiB/one CPU/pids64, read-only root, tmpfs only, no host bind')
+        sdk.verify_mounts(info)
+        note('Fresh owned container, 512MiB/one CPU/pids64, read-only root, tmpfs data and one empty owned Unix-socket directory; no production bind')
         check="import socket,errno;s=socket.socket();s.settimeout(1);assert s.connect_ex(('1.1.1.1',443))==errno.ENETUNREACH;print('denied')"
         assert run(['/usr/bin/nsenter','--target',str(info['State']['Pid']),'--net','/usr/bin/python3','-c',check]).stdout.strip()==b'denied'
         note('Actual outbound connection denied before extension or schema execution')
@@ -72,7 +76,7 @@ def main():
         inside(['/bin/sh','-c','mkdir /fixture/socket'])
         inside(['initdb','-D','/fixture/data','-U','supabase_admin','-A','trust','-E','UTF8','--locale-provider=icu','--icu-locale=en-US','--lc-collate=en_US.UTF-8','--lc-ctype=en_US.UTF-8'],timeout=30)
         postgres=inside(['/bin/sh','-c','command -v postgres']).stdout.decode().strip();assert postgres.startswith(('/nix/','/usr/'))and not any(x.isspace()for x in postgres)
-        options="-c listen_addresses= -c unix_socket_directories=/fixture/socket -c unix_socket_permissions=0700 -p 55433 -c shared_buffers=16MB -c max_connections=12 -c work_mem=1MB -c maintenance_work_mem=16MB -c max_parallel_workers=0 -c dynamic_shared_memory_type=mmap -c huge_pages=off -c shared_preload_libraries=pg_net,pg_stat_statements -c session_preload_libraries= -c log_statement=none -c log_min_error_statement=panic"
+        options="-c listen_addresses= -c unix_socket_directories=/fixture/socket,/sdk-socket -c unix_socket_group=1000 -c unix_socket_permissions=0770 -p 55433 -c shared_buffers=16MB -c max_connections=12 -c work_mem=1MB -c maintenance_work_mem=16MB -c max_parallel_workers=0 -c dynamic_shared_memory_type=mmap -c huge_pages=off -c shared_preload_libraries=pg_net,pg_stat_statements -c session_preload_libraries= -c log_statement=none -c log_min_error_statement=panic"
         inside(['pg_ctl','-D','/fixture/data','-p',postgres,'-l','/fixture/postgres.private.log','-w','-t','8','-o',options,'start'],timeout=15);started=True
         actual=json.loads(sql("SELECT jsonb_build_object('systemIdentifier',(SELECT system_identifier::text FROM pg_control_system()),'version',current_setting('server_version_num'),'listen',current_setting('listen_addresses'),'collate',datcollate,'ctype',datctype,'localeProvider',datlocprovider,'locale',coalesce(to_jsonb(d)->>'datlocale',to_jsonb(d)->>'daticulocale'),'collationVersion',datcollversion)FROM pg_database d WHERE datname=current_database();"))
         assert actual['systemIdentifier']!=manifest['sourceSystemIdentifier']and actual['version']=='170011'and actual['listen']==''
@@ -164,11 +168,17 @@ ROLLBACK;
         assert denied.returncode==3 and b'42501'in denied.stderr
         assert sql("SELECT to_regclass('public.ats_owned_unauthorized_ddl')IS NULL;")=='t'
         note('Actual nonoperator DDL is rejected by the source event guard and leaves no table')
+        phase='real-pinned-pg-sdk-transactions'
+        result['nativeSdk']=sdk.run_cases(sql,query)
+        note('Pinned real pg8.23.1 SDK: 27 native source cases plus eight real-connection SQL/transaction cases; synthetic host contexts only; two fixture roles closed and guard state emptied afterward')
         result.update(passed=True,structuralLoadAccepted=True,candidateMigrationAppliedInFixture=True,eventsStillDeferred=False,ordinaryRolesStillClosed=True)
     except BaseException as e:
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded owned fixture failed')
     finally:
         cleanup_deadline=time.monotonic()+35
+        if sdk:
+            try:sdk.stop_children()
+            except BaseException:result['sdkProcessCleanupUncertain']=True;result['passed']=False
         if cid:
             try:
                 current=json.loads(d(['inspect',cid],cleanup=True).stdout)[0];assert current['Config']['Labels']['ats-private-rowless']==nonce
@@ -180,6 +190,10 @@ ROLLBACK;
                 assert d(['ps','--all','--no-trunc','--filter','id='+cid,'--format','{{.ID}}'],cleanup=True).stdout.strip()==b''
                 result['ownedContainerRemoved']=True
             except BaseException:result['ownedCleanupUncertain']=True;result['passed']=False
+        if sdk:
+            private['nativeSdkDiagnostics']=sdk.private
+            try:result.update(sdk.cleanup())
+            except BaseException:result['sdkDirectoryCleanupUncertain']=True;result['passed']=False
         try:
             (inputs/'diagnostics.private.json').write_text(json.dumps(private))
             sealed=json.loads(run([node,'--max-old-space-size=128',str(here/'capsule-io.mjs'),'encrypt-diagnostics',str(inputs)],cleanup=True,child_env={**env,'ATS_FIXTURE_KEY':key}).stdout)

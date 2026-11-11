@@ -24,7 +24,7 @@ if (mode === 'decrypt') {
   const plain = gunzipSync(Buffer.concat([decipher.update(Buffer.from(e.ciphertext, 'base64')), decipher.final()]), { maxOutputLength: 8 * 1024 ** 2 });
   assert.equal(sha(plain), pins.plaintextSha256);
   const p = JSON.parse(plain); assert.equal(p.kind, 'ats-rowless-native-test-input-v1');
-  assert.deepEqual(p.records.map(r => r.name).sort(), ['catalog.json', 'events.sql', 'manifest.json', 'restore-properties.sql', 'role-settings.json', 'source-differing-records.json', 'source-records.json', 'structural.sql', 'validate-functions.sql']);
+  assert.deepEqual(p.records.map(r => r.name).sort(), ['catalog.json', 'events.sql', 'manifest.json', 'restore-properties.sql', 'role-settings.json', 'source-differing-records.json', 'source-records.json', 'structural.sql', 'validate-functions.sql', 'website-runtime-sdk-bundle.json']);
   assert.equal(p.records.length, pins.records.length);
   for (const [i, r] of p.records.entries()) {
     assert.deepEqual(({ name: r.name, bytes: r.bytes, sha256: r.sha256 }), pins.records[i]);

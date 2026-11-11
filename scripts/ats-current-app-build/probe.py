@@ -67,7 +67,10 @@ def main():
                 if parent==root:break
                 parent.chmod(0o700);os.chown(parent,1000,1000)
         result['sourceManifestVerified']=True
-        install={**env,'npm_config_userconfig':'/dev/null','npm_config_globalconfig':'/dev/null','npm_config_registry':'https://registry.npmjs.org/','npm_config_cache':str(cache),'npm_config_audit':'false','npm_config_fund':'false'}
+        # npm requires distinct config paths even when both are deliberately empty.
+        for name in ['user.npmrc','global.npmrc']:
+            config=root/name;config.touch(mode=0o600);os.chown(config,1000,1000)
+        install={**env,'npm_config_userconfig':str(root/'user.npmrc'),'npm_config_globalconfig':str(root/'global.npmrc'),'npm_config_registry':'https://registry.npmjs.org/','npm_config_cache':str(cache),'npm_config_audit':'false','npm_config_fund':'false'}
         run('locked-dependencies',[str(npm),'ci','--ignore-scripts','--include=dev','--no-audit','--no-fund'],install,False,240)
         build={**env,'NODE_ENV':'production','NEXT_TELEMETRY_DISABLED':'1','APP_ENV':'production','APP_BASE_URL':public['appOrigin'],'NEXT_PUBLIC_SUPABASE_URL':public['backendUrl'],'NEXT_PUBLIC_SUPABASE_ANON_KEY':public['anonKey'],'SUPABASE_INTERNAL_URL':'http://api-gw:8000','NODE_OPTIONS':'--max-old-space-size=2048 --require='+str(preload),'ATS_NETWORK_ATTEMPTS':str(netlog)}
         for name,args in [('node-runtime',['scripts/check-node-runtime.mjs']),('framework-security',['scripts/release/verify-framework-security.mjs','--installed']),('typegen',['node_modules/next/dist/bin/next','typegen']),('typescript',['node_modules/typescript/bin/tsc','--noEmit','--incremental','false','--pretty','false']),('webpack-build',['node_modules/next/dist/bin/next','build','--webpack'])]:

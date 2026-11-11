@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - name: Run owned networkless structural rehearsal
         env:
-          ATS_FIXTURE_KEY: ${{ secrets.ATS_CRM_NATIVE_REHEARSAL_SDK_V2_KEY_20261111 }}
+          ATS_FIXTURE_KEY: ${{ secrets.ATS_CRM_NATIVE_GUARDIAN_SQL_KEY_20261111 }}
         run: sudo --preserve-env=GITHUB_ACTIONS,GITHUB_REPOSITORY,GITHUB_REF,GITHUB_SHA,RUNNER_TEMP,ATS_FIXTURE_KEY /usr/bin/python3 scripts/ats-native-encrypted-rowless/probe.py
       - name: Preserve sanitized proof and encrypted owner diagnostics
         if: always()

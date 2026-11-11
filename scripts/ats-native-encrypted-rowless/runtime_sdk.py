@@ -37,10 +37,13 @@ class NativeSdkFixture:
             p.chmod(0o444);os.chown(p,1000,1000)
         lock=json.loads((self.root/'current-website-candidate/scripts/firewood-checkout/package-lock.json').read_bytes())
         self.npm=install_pg(self.root,lock)
+        for name in ['guardian-sdk.mjs','guardian-custody.mjs','operation-publication.mjs','operation-guardian.mjs','active-publication.mjs']:
+            p=self.root/name;p.write_bytes((self.here/name).read_bytes());p.chmod(0o444);os.chown(p,1000,1000)
         assert self.root.stat().st_mode&0o777==0o700
     def docker_args(self):
         return['--group-add','1000','--mount','type=bind,source='+str(self.socket)+',target=/sdk-socket']
     def verify_mounts(self,info):
+        self.owned_cid=info['Id'];assert re.fullmatch('[a-f0-9]{64}',self.owned_cid)
         assert info['HostConfig']['GroupAdd']==['1000']
         # Docker reports legacy --tmpfs entries in HostConfig.Tmpfs, rather
         # than the Mounts list containing the typed Unix-socket bind.
@@ -57,9 +60,13 @@ class NativeSdkFixture:
         os.setgroups([]);os.setgid(1000);os.setuid(1000)
         assert libc.prctl(38,1,0,0,0)==0
         resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_FSIZE,(1024**2,1024**2))
-    def _node(self,args,timeout):
+    def _node(self,args,timeout,lock=None):
         remaining=self.deadline-time.monotonic();assert remaining>0
-        p=subprocess.Popen([self.node,'--max-old-space-size=128',*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=self.root,env=self.env,preexec_fn=self._drop,start_new_session=True)
+        cmd=[self.node,'--max-old-space-size=128',*args]
+        if lock is not None:
+            assert lock==self.root/'guardian-custody/guardian.lock'
+            cmd=['/usr/bin/flock','--exclusive','--nonblock','--conflict-exit-code','75','--close',str(lock),*cmd]
+        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=self.root,env=self.env,preexec_fn=self._drop,start_new_session=True)
         self.children.append(p)
         try:out,err=p.communicate(timeout=min(timeout,remaining))
         except subprocess.TimeoutExpired:
@@ -91,7 +98,39 @@ COMMIT;"""
             self.private['realSdkProcess']={'exitCode':p.returncode,'stdout':p.stdout.decode('utf8','replace'),'stderr':p.stderr.decode('utf8','replace')}
             assert p.returncode==0,'Actual SDK cases failed; owner diagnostics retained'
             proof=json.loads(p.stdout);assert proof['passed']and proof['checksPassed']==8
-            return{'passed':True,'sourceUnitCasesPassed':27,'actualSdkCasesPassed':8,'pgVersion':'8.23.1','nativePgVersion':'17.11','realConnectionsAndSql':True,'hostContextsSynthetic':True,'directOrdinaryRoles':['ats_firewood_request','ats_firewood_worker'],'historicalBackupTimestampUnchanged':True,'originalHostGuardianAccepted':False,'fullApplicationOrWorkerAccepted':False,'packages':self.npm}
+            guardian=self.root/'guardian-custody';guardian.mkdir(mode=0o700);os.chown(guardian,1000,1000)
+            public=guardian/'public';public.mkdir(mode=0o755);public.chmod(0o755);os.chown(public,1000,1000)
+            binding={'version':2,'admissionProtocol':'local-primary-operation-v1',
+                     'namespace':'ats-home-primary-'+data['primaryInstallationId'][:12],
+                     'generation':int(operation['leaseEpoch']),'primaryInstallationId':data['primaryInstallationId'],
+                     'systemIdentifier':operation['systemIdentifier'],'topology':operation['topologyFingerprint']}
+            binding_bytes=(json.dumps(binding)+'\n').encode();binding_sha=hashlib.sha256(binding_bytes).hexdigest()
+            installation={'kind':'ats-original-installation-custody-v1','primaryInstallationId':data['primaryInstallationId'],
+                          'bindingSha256':binding_sha,'systemIdentifier':operation['systemIdentifier'],
+                          'originalHostIdentitySha256':'c'*64,
+                          'databaseStorageIdentitySha256':hashlib.sha256(self.owned_cid.encode()).hexdigest()}
+            installation_bytes=(json.dumps(installation)+'\n').encode()
+            initial={'kind':'ats-original-installation-journal-v1','primaryInstallationId':data['primaryInstallationId'],
+                     'bindingSha256':binding_sha,'operationSequence':0,'nativeWalLsn':'0/0','reservedAtMs':0,
+                     'databaseBoot':None,'sourceBoot':None}
+            for target,body,mode in [(public/'binding.json',binding_bytes,0o444),
+                    (guardian/'installation.json',installation_bytes,0o600),
+                    (guardian/'journal.json',(json.dumps(initial)+'\n').encode(),0o600),
+                    (guardian/'guardian.lock',b'owned\n',0o600)]:
+                with target.open('xb')as f:f.write(body)
+                target.chmod(mode);os.chown(target,1000,1000)
+            data.update(guardianRoot=str(guardian),publicRoot=str(public),guardianBindingSha256=binding_sha,
+                        guardianInstallationSha256=hashlib.sha256(installation_bytes).hexdigest())
+            path.write_text(json.dumps(data))
+            p=self._node([str(self.root/'guardian-sdk.mjs'),str(path)],25,lock=guardian/'guardian.lock')
+            self.private['guardianSdkProcess']={'exitCode':p.returncode,'stdout':p.stdout.decode('utf8','replace'),'stderr':p.stderr.decode('utf8','replace')}
+            assert p.returncode==0,'Actual journal/SQL/publisher SDK integration failed; owner diagnostics retained'
+            guardian_proof=json.loads(p.stdout);assert guardian_proof['passed']and guardian_proof['checksPassed']==9
+            return{'passed':True,'sourceUnitCasesPassed':27,'actualSdkCasesPassed':8,'actualGuardianSqlSdkCasesPassed':9,
+                   'guardianSqlSdk':guardian_proof,'pgVersion':'8.23.1','nativePgVersion':'17.11','realConnectionsAndSql':True,
+                   'hostContextsSynthetic':True,'directOrdinaryRoles':['ats_firewood_request','ats_firewood_worker'],
+                   'historicalBackupTimestampUnchanged':True,'originalHostGuardianAccepted':False,
+                   'fullApplicationOrWorkerAccepted':False,'packages':self.npm}
         finally:
             sql('BEGIN;ALTER ROLE ats_firewood_request NOLOGIN;ALTER ROLE ats_firewood_worker NOLOGIN;DELETE FROM hosting_guard.state;COMMIT;',timeout=10)
             assert sql("SELECT count(*)FROM pg_roles WHERE rolcanlogin AND rolname<>'supabase_admin';")=='0'

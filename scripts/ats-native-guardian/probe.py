@@ -28,7 +28,7 @@ def main():
         return(['/usr/bin/flock','--exclusive','--nonblock','--conflict-exit-code','75','--close',str(path/('other.lock'if other else'guardian.lock'))]+cmd)if locked else cmd
     def bounded_owned(cmd,timeout=8):
         assert time.monotonic()<deadline
-        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,preexec_fn=drop,start_new_session=True);owned.append(p)
+        p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,preexec_fn=drop,start_new_session=True,cwd=source);owned.append(p)
         try:stdout,stderr=p.communicate(timeout=min(timeout,deadline-time.monotonic()))
         except subprocess.TimeoutExpired:
             os.killpg(p.pid,signal.SIGKILL);p.communicate(timeout=3);raise

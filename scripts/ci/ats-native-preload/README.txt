@@ -15,3 +15,12 @@ The artifact is sanitized metadata; raw command outputs are not uploaded.
 
 This is not complete schema replay, application/worker runtime acceptance,
 backup/restore acceptance, or permission to activate a production transition.
+
+The expanded fixture also applies the exact candidate local-primary SQL to a
+small synthetic RLS schema. It checks real low-privilege writes, deferred COMMIT
+under a competing maintenance hold, old-backup independence, unchanged legacy
+proofs, restart rejection and exact committed SQL timestamps through the pure
+JavaScript publication bridge. All role names, rows and installation identifiers
+in this synthetic portion are fixture values. It does not prove original-host
+activation custody, filesystem readers, restored-clone safety or full-schema
+event handlers. No synthetic success authorizes production admission.

@@ -5,7 +5,8 @@ accepted. SQL runs in a fresh, networkless, read-only-root container. This is a
 dependency proof, not full-schema, application, restore or release acceptance.
 """
 from pathlib import Path
-import datetime,errno,hashlib,io,json,os,platform,re,secrets,socket,stat,subprocess,sys,tarfile,tempfile,time
+import datetime,errno,hashlib,io,json,os,platform,re,secrets,shutil,socket,stat,subprocess,sys,tarfile,tempfile,time
+from local_sql import local_sql_checks
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
@@ -124,6 +125,41 @@ def main():
             assert matches,'Expected exact module not mapped in owned backend';mapped.append({'pathSha256':wanted['pathSha256'],'sha256':wanted['sha256'],'deviceAndInodeMatched':True,'bytes':wanted['bytes']})
         result['mappedArtifacts']=mapped;note('Both exact ARM64 ELF module hashes/device/inodes mapped in the real owned backend')
         auth.wait(timeout=15);assert auth.returncode==0
+        phase='local-primary-native-sql'
+        def execute(q,role):
+            return inside(['psql','-X','-Atq','-h','/fixture/socket','-p','55433','-U',role,'-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],data=("SET statement_timeout='3s';SET lock_timeout='1s';"+q).encode(),allow=True)
+        def restart():
+            inside(['pg_ctl','-D','/fixture/data','-w','-t','6','-m','fast','stop'],timeout=10)
+            inside(['pg_ctl','-D','/fixture/data','-p',postgres,'-l','/fixture/postgres.private.log','-w','-t','8','-o',options,'start'],timeout=15)
+        node=shutil.which('node',path=env['PATH']);assert node
+        version=run([node,'--version']).stdout.decode().strip();assert re.fullmatch(r'v(?:22|24)\.[0-9]+\.[0-9]+',version)
+        result['nodeVersion']=version
+        def publication(action,query):
+            if action=='concurrent-hold':
+                writer=subprocess.Popen(docker+['exec','-i',cid,'psql','-X','-Atq','-h','/fixture/socket','-p','55433','-U','qa_api','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env)
+                try:
+                    writer.stdin.write(b"SET application_name='ats-owned-commit-race';SET statement_timeout='4s';BEGIN;INSERT INTO public.qa_records VALUES(9,session_user,'race');SELECT pg_sleep(1);COMMIT;\n");writer.stdin.close()
+                    for _ in range(40):
+                        if query("SELECT count(*) FROM pg_stat_activity WHERE application_name='ats-owned-commit-race' AND wait_event='PgSleep';")=='1':break
+                        time.sleep(.025)
+                    else:raise AssertionError('Owned writer did not reach controlled commit wait')
+                    query('UPDATE hosting_guard.state SET capture_in_progress=true;')
+                    writer.wait(timeout=6);assert writer.returncode!=0 and b'PT503'in writer.stderr.read()
+                finally:
+                    if writer.poll()is None:writer.terminate();writer.wait(timeout=3)
+                return
+            assert action=='committed-operation'
+            def clocks():return {'wallMs':time.time_ns()//1000000,'bootMs':time.clock_gettime(time.CLOCK_BOOTTIME)*1000,'bootId':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
+            before=clocks()
+            row=json.loads(query("BEGIN;SELECT hosting_guard.renew_local_primary_operation(20,'ats-home-primary',pg_postmaster_start_time(),hosting_guard.catalog_fingerprint());SELECT jsonb_build_object('admissionProtocol',availability_policy,'systemIdentifier',(SELECT system_identifier::text FROM pg_control_system()),'databaseBoot',database_started_at::text,'leaseEpoch',epoch::text,'nodeIdentity',holder,'topologyFingerprint',topology_fingerprint,'operationObservedAtMs',floor(extract(epoch FROM local_operation_observed_at)*1000)::bigint,'leaseIssuedAtMs',floor(extract(epoch FROM issued_at)*1000)::bigint,'expiresAtMs',floor(extract(epoch FROM expires_at)*1000)::bigint) FROM hosting_guard.state WHERE singleton;COMMIT;"))
+            after=clocks()
+            binding={'version':2,'admissionProtocol':'local-primary-operation-v1','namespace':'ats-home-primary-112233445566','generation':20,'systemIdentifier':row['systemIdentifier'],'topology':row['topologyFingerprint'],'primaryInstallationId':'b'*32}
+            payload={'binding':binding,'primaryInstallationId':binding['primaryInstallationId'],'operationSequence':1,'sql':row,'before':before,'after':after}
+            active=json.loads(run([node,str(Path(__file__).with_name('publication-check.mjs').resolve())],data=json.dumps(payload).encode()).stdout)
+            assert active['observedAtMs']==row['operationObservedAtMs']and active['observedMonotonicMs']==before['bootMs']
+            assert active['expiresAtBootMs']<=before['bootMs']+14000
+            result['operationPublication']={'exactCommittedSqlTimestampMatched':True,'conservativeBootDeadline':True,'renewalElapsedMs':after['bootMs']-before['bootMs'],'guardianCustodyAccepted':False}
+        result['localSqlNative']=local_sql_checks(execute,restart,publication,note)
         result.update(passed=True,testsPassed=len(result['tests']),rawRoleSettingsPublished=False,rawModuleNamesPublished=False)
     except BaseException as e:
         result.update(passed=False,failedPhase=phase,errorType=type(e).__name__,safeError=str(e)if isinstance(e,AssertionError)else'Bounded command failed')

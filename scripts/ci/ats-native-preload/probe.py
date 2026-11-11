@@ -163,7 +163,7 @@ def main():
         phase='local-primary-native-filesystem'
         parent_ns=os.stat('/proc/self/ns/mnt').st_ino
         fspath=Path(__file__).with_name('filesystem-fixture.py').resolve()
-        result['filesystemControls']=json.loads(run(['/usr/bin/unshare','--mount','--pid','--fork','--mount-proc','--net','--propagation','private','--kill-child=KILL','--','/usr/bin/python3',str(fspath),str(parent_ns),node],timeout=35).stdout)
+        result['filesystemControls']=json.loads(run(['/usr/bin/unshare','--mount','--pid','--fork','--mount-proc','--net','--propagation','private','--kill-child=KILL','--','/usr/bin/python3',str(fspath),str(parent_ns),node],timeout=35,allow=True).stdout)
         assert result['filesystemControls']['passed']and result['filesystemControls']['ownedMountsRemoved']and result['filesystemControls']['ownedDirectoriesRemoved']
         note('Actual Linux UID/permission/read-only-mount cases: '+str(result['filesystemControls']['checksPassed']))
         result.update(passed=True,testsPassed=len(result['tests']),rawRoleSettingsPublished=False,rawModuleNamesPublished=False)

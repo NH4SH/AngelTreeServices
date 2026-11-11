@@ -5,7 +5,7 @@ identity, key, SQL, endpoint or copied data is accepted. This tests actual UID,
 kernel ownership and read-only mounts, not original-installation custody.
 """
 from pathlib import Path
-import datetime,errno,hashlib,json,os,platform,socket,stat,subprocess,sys,time
+import datetime,errno,hashlib,json,os,platform,re,socket,stat,subprocess,sys,time
 
 def main():
     assert sys.platform=='linux'and platform.machine()in ['aarch64','arm64']and os.getuid()==0
@@ -18,8 +18,16 @@ def main():
     assert all(not p.exists()and not p.is_symlink()for p in roots)
     created=[];mounted=[];checks=[];result={'kind':'ats-native-local-primary-filesystem-proof-v1','syntheticOnly':True,'fullGuardianAccepted':False,'originalHostCustodyAccepted':False,'restoredCloneAccepted':False,'fullSchemaAccepted':False}
     env={'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin','HOME':'/nonexistent','LANG':'C','LC_ALL':'C'}
+    case='setup';serial=0
     def run(args):
+        nonlocal serial
+        serial+=1
         p=subprocess.run(args,capture_output=True,timeout=5,env=env)
+        if p.returncode:
+            outcome=None
+            try:outcome=json.loads(p.stdout)if len(p.stdout)<=8192 else None
+            except ValueError:pass
+            result['failedCommand']={'step':serial,'case':case,'command':Path(args[0]).name,'exitCode':p.returncode,'runtimeOutcome':outcome,'stderrBytes':len(p.stderr),'stderrSha256':hashlib.sha256(p.stderr).hexdigest(),'errorCodes':sorted(set(re.findall(r'\bE[A-Z_]{3,40}\b',p.stderr.decode('utf-8','replace'))))[:8]}
         assert p.returncode==0,'Owned filesystem fixture command failed'
         return p
     def remount(mode):
@@ -36,6 +44,8 @@ def main():
         values={'/admission/binding.json':raw,'/admission/active.json':json.dumps(a).encode(),'/admission/workers-released.json':json.dumps({'namespace':b['namespace'],'generation':20,'providerReconciliationVerified':True}).encode(),'/release-admission/firewood-release.json':json.dumps(d).encode()}
         for name,data in values.items():p=Path(name);p.write_bytes(data);p.chmod(0o444);os.chown(p,0,0)
     def check(name,mutation=None,*,uid=1000,rw=False,valid=False):
+        nonlocal case
+        case=name
         prepare()
         if mutation:mutation()
         if not rw:remount('ro')
@@ -61,12 +71,15 @@ def main():
             p=Path('/release-admission/firewood-release.json');p.chmod(0o600);d=json.loads(p.read_bytes());d['kind']='ats-firewood-release-control-v1';p.write_text(json.dumps(d));p.chmod(0o444)
         check('Legacy descriptor still requires its absent authority PEM',legacy)
         result.update(passed=True,checksPassed=len(checks),checks=checks,privateMountNamespace=True,privatePidNamespace=True,actualOutboundDenied=True)
+    except BaseException as e:
+        result.update(passed=False,checksPassed=len(checks),checks=checks,errorType=type(e).__name__)
     finally:
         for p in reversed(mounted):run(['/usr/bin/umount',str(p)])
         for p,dev,ino in reversed(created):
             st=p.lstat();assert(st.st_dev,st.st_ino)==(dev,ino)and st.st_uid==0;p.rmdir()
         result['ownedMountsRemoved']=True;result['ownedDirectoriesRemoved']=True
     print(json.dumps(result),flush=True)
+    if not result['passed']:raise SystemExit(1)
 
 if __name__=='__main__':
     try:main()

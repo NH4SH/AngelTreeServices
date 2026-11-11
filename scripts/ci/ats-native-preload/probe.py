@@ -9,6 +9,10 @@ import datetime,errno,hashlib,io,json,os,platform,re,secrets,socket,stat,subproc
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
+def docker_exec_args(cid,args,*,input_supplied=False,extra=()):
+    assert re.fullmatch('[a-f0-9]{64}',cid)
+    return ['exec',*(['-i']if input_supplied else[]),*extra,cid,*map(str,args)]
+
 def public_preload(raw,expected,source_sha):
     assert sha(raw)==source_sha,'Pinned public migration changed'
     text=raw.decode('utf-8','strict')
@@ -44,7 +48,7 @@ def main():
         if not allow:assert p.returncode==0,'Fixture command failed at recorded step '+str(serial)
         return p
     def d(args,**kw):return run(docker+list(map(str,args)),**kw)
-    def inside(args,data=None,timeout=15,allow=False,extra=()):return d(['exec',*extra,cid,*map(str,args)],data=data,timeout=timeout,allow=allow)
+    def inside(args,data=None,timeout=15,allow=False,extra=()):return d(docker_exec_args(cid,args,input_supplied=data is not None,extra=extra),data=data,timeout=timeout,allow=allow)
     def shell(code):return inside(['/bin/sh','-c',code]).stdout.decode().strip()
     def sql(q,role='fixture_admin'):
         p=inside(['psql','-X','-Atq','-h','/fixture/socket','-p','55433','-U',role,'-d','postgres','-v','ON_ERROR_STOP=1'],data=("SET statement_timeout='3s';SET lock_timeout='1s';"+q).encode())

@@ -3,7 +3,7 @@ import type { QuoteLeadPrefill } from "@/lib/quotes/lead-prefill";
 
 export const quoteLookupNames = ["contracting_party", "service_location_id", "job_id", "recipient_contact_id", "approval_contact_id", "onsite_contact_id", "billing_contact_id", "estimate_schedule_event_id"] as const;
 export type QuoteLookupName = typeof quoteLookupNames[number];
-export type QuoteLookupKind = "party" | "location" | "job" | "contact" | "estimate";
+export type QuoteLookupKind = "party" | "location" | "job" | "contact" | "estimate" | "material" | "equipment";
 export type QuoteLookupOption = { value: string; label: string };
 export type QuoteLookupValues = Record<QuoteLookupName, string>;
 export type QuoteLookupSeeds = Partial<Record<QuoteLookupName, QuoteLookupOption>>;

@@ -76,7 +76,7 @@ export function QuoteLookupField({ userId, kind, name, label, placeholder, value
     </div>
     {open ? <div className="quote-lookup-search" id={searchId}>
       {kind === "party" && !customerOnly && !organizationOnly ? <div aria-label="Search contracting party type" className="quote-lookup-types">{(["customer", "organization"] as const).map(type => <button aria-pressed={partyType === type} className="secondary-action" key={type} type="button" onClick={() => { setPartyType(type); setQuery(""); setPage(1); }}>{type === "customer" ? "Customers" : "Organizations"}</button>)}</div> : null}
-      <label htmlFor={`${id}-query`}>Search {kind === "party" ? partyType === "customer" ? "customers" : "organizations" : kind === "location" ? "locations" : kind === "job" ? "work descriptions" : kind === "contact" ? "contacts" : "estimate events"}</label>
+      <label htmlFor={`${id}-query`}>Search {kind === "party" ? partyType === "customer" ? "customers" : "organizations" : kind === "location" ? "locations" : kind === "job" ? "work descriptions" : kind === "contact" ? "contacts" : kind === "material" ? "materials" : kind === "equipment" ? "equipment" : "estimate events"}</label>
       <input autoComplete="off" id={`${id}-query`} maxLength={120} type="search" value={query} onChange={event => { event.stopPropagation(); setQuery(event.target.value); setPage(1); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); event.stopPropagation(); } }} />
     </div> : null}
     <select aria-describedby={statusId} disabled={disabled} id={id} name={name} required={required} value={value} onChange={event => {

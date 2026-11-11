@@ -2,8 +2,8 @@
 
 Verified October 26, 2026. The preceding materials workspace batch is pushed
 normally to main as `7220f3bfe4a5587c4efc3afa835271ae7972d65e`, with CI/Netlify skip
-markers. This follow-up is uncommitted on `codex/materials-vendor-contact-lookups`,
-based on that exact main commit. Production, published staging, the scanner and
+markers. This vendor/contact batch was subsequently pushed normally to main as
+`36d90bb`, with CI/Netlify skip markers. Production, published staging, the scanner and
 the home Mac are unchanged.
 
 ## Result
@@ -123,7 +123,8 @@ editor filter type. Regression/native/browser tests accompany them.
 
 Private evidence and screenshots are outside Git at
 `/Users/noelsierra/Documents/Codex/2026-10-26/materials-party-lookups/`.
-The new lookup batch remains uncommitted and unpushed.
+The verified vendor/contact batch is now pushed as `36d90bb`. Its operational
+lookup follow-up is documented in `MATERIALS_OPERATIONAL_LOOKUPS.md`.
 
 ## Next focused priority and limits
 

@@ -44,6 +44,7 @@ export type StockBalanceRecord = {
 
 export type MaterialWorkspaceData = {
   materials: MaterialRecord[];
+  materialLabels: Pick<MaterialRecord, "id" | "name" | "default_unit">[];
   locations: InventoryLocationRecord[];
   balances: StockBalanceRecord[];
   transactions: any[];
@@ -68,7 +69,7 @@ export type MaterialWorkspaceData = {
 
 export async function getMaterialsWorkspace(roles: PlatformRoleName[], requestedView: MaterialsView = "overview", filters: MaterialCatalogFilters = {}): Promise<MaterialWorkspaceData> {
   const empty: MaterialWorkspaceData = {
-    materials: [], locations: [], balances: [], transactions: [], reservations: [], purchases: [],
+    materials: [], materialLabels: [], locations: [], balances: [], transactions: [], reservations: [], purchases: [],
     disposalRecords: [], loads: [], deliveries: [], productionBatches: [], stockpileMeasurements: [],
     jobs: [], customers: [], organizations: [], equipment: [], costs: [], transactionCosts: [],
     canViewCosts: false, error: null,
@@ -84,7 +85,7 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[], requested
     const reads: Partial<Record<Dataset, PromiseLike<Reply>>> = {};
     // Every view uses material labels or choices. Read all unarchived choices in
     // stable pages; only the catalog's current page reaches its edit/list surface.
-    reads.materials = (async () => {
+    if (needs("overview", "catalog")) reads.materials = (async () => {
       const rows: MaterialRecord[] = [], ids = new Set<string>();
       for (let from = 0; ; from += 1000) {
         const result = await supabase.from("material_catalog").select("*").is("archived_at", null).order("name").order("id").range(from, from + 999);
@@ -102,8 +103,6 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[], requested
     if (needs("overview", "deliveries")) reads.deliveries = supabase.from("customer_deliveries").select("id, material_id, customer_id, organization_id, quantity, unit, status, delivery_window_start").order("delivery_window_start", { ascending: false, nullsFirst: false }).limit(100);
     if (view === "production") reads.productionBatches = supabase.from("production_batches").select("id, batch_number, product_material_id, status, color, estimated_output_quantity, output_unit").order("created_at", { ascending: false }).limit(60);
     if (needs("overview", "production")) reads.stockpileMeasurements = supabase.from("stockpile_measurements").select("id, material_id, location_id, measured_at, quantity, unit, measurement_method, is_estimated").order("measured_at", { ascending: false }).limit(100);
-    if (needs("overview", "movements", "reservations", "disposal", "deliveries")) reads.jobs = supabase.from("jobs").select("id, service_type, status, customers:customers!jobs_customer_id_fkey(display_name)").is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).limit(200);
-    if (needs("catalog", "movements", "disposal", "production", "deliveries")) reads.equipment = supabase.from("equipment_assets").select("id, asset_number, name").eq("is_active", true).order("name");
     if (canViewCosts && needs("overview", "movements")) reads.transactionCosts = supabase.from("inventory_transaction_costs").select("transaction_id, direct_cost_cents, costing_status").order("created_at", { ascending: false }).limit(500);
     const entries = Object.entries(reads) as [Dataset, PromiseLike<Reply>][];
     const results = await Promise.all(entries.map(async ([name, request]) => {
@@ -138,6 +137,19 @@ export async function getMaterialsWorkspace(roles: PlatformRoleName[], requested
       const result = await supabase.from("customers").select("id, display_name").in("id", customerIds).is("archived_at", null).eq("status", "active").order("display_name").order("id");
       if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
       data.customers = result.data;
+    })());
+    const materialIds = [...new Set((view === "movements" ? data.transactions : view === "reservations" ? data.reservations.filter(row => row.status === "active") : view === "deliveries" ? data.deliveries : []).map(row => row.material_id).filter(Boolean))];
+    if (view === "production") for (const id of [...data.productionBatches.map(row => row.product_material_id), ...data.stockpileMeasurements.slice(0, 12).map(row => row.material_id)]) if (id && !materialIds.includes(id)) materialIds.push(id);
+    if (materialIds.length) extra.push((async () => {
+      const result = await supabase.from("material_catalog").select("id, name, default_unit").in("id", materialIds).is("archived_at", null).order("name").order("id");
+      if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
+      data.materialLabels = result.data;
+    })());
+    const jobIds = [...new Set((needs("overview", "movements") ? data.transactions : view === "reservations" ? data.reservations.filter(row => row.status === "active") : view === "disposal" ? data.disposalRecords : []).map(row => row.job_id).filter(Boolean))];
+    if (jobIds.length) extra.push((async () => {
+      const result = await supabase.from("jobs").select("id, service_type, status, customers:customers!jobs_customer_id_fkey(display_name)").in("id", jobIds).is("archived_at", null).not("status", "in", "(paid,lost,cancelled)").order("updated_at", { ascending: false }).order("id");
+      if (result.error || !Array.isArray(result.data)) throw Error(unavailable);
+      data.jobs = result.data;
     })());
     await Promise.all(extra);
     return data;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { getServiceRoleClient } from "@/lib/supabase/admin";
+import { contactPreferenceError } from "./lead-follow-up-policy.mjs";
 
 const serviceTypeMap = {
   "Tree Care": "other",
@@ -139,8 +140,9 @@ export async function parsePublicLeadSubmission(request: Request): Promise<LeadV
     return { data: null, error: "Please tell us a little about the project.", spam: false };
   }
 
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { data: null, error: "Please enter a valid email address or leave it blank.", spam: false };
+  const contactError = contactPreferenceError(preferredContactMethod, email);
+  if (contactError) {
+    return { data: null, error: contactError, spam: false };
   }
 
   if (!serviceLabel) {

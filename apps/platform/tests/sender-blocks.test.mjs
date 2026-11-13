@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as crypto from 'node:crypto';
 import {load} from './pr10-test-helpers.mjs';
+import {contactPreferenceError} from '../src/lib/leads/lead-follow-up-policy.mjs';
 
 const submission={submissionId:'local-blocked-request'};
-const intake=data=>load('../src/lib/leads/intake.ts',{'server-only':{},'node:crypto':crypto,'@/lib/supabase/admin':{getServiceRoleClient:()=>({rpc:async()=>({data,error:null})})}});
+const intake=data=>load('../src/lib/leads/intake.ts',{'server-only':{},'node:crypto':crypto,'./lead-follow-up-policy.mjs':{contactPreferenceError},'@/lib/supabase/admin':{getServiceRoleClient:()=>({rpc:async()=>({data,error:null})})}});
 test('only a full blocked acknowledgement can suppress work without authorizing a notice',async()=>{
  const ack={blocked:true,created:false,job_id:null,duplicate_mode:null,submission_id:submission.submissionId};
  const r=await intake(ack).createWebsiteLead(submission);assert.equal(r.blocked,true);assert.equal(r.error,null);assert.equal(r.jobId,null);assert.equal(r.created,false);

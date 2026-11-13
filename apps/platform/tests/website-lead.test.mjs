@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as crypto from 'node:crypto';
 import {load} from './pr10-test-helpers.mjs';
+import {contactPreferenceError} from '../src/lib/leads/lead-follow-up-policy.mjs';
 
 const jobId=crypto.randomUUID(),attemptId=crypto.randomUUID();
 const body=(extra={})=>new URLSearchParams({name:'Local Request',phone:'5405550123',email:'test@example.invalid',address:'123 Local Street, Fredericksburg, VA 22401',message:'Please review this tree',service:'Tree Care',submission_id:'local-1',...extra});
-function intake(client){return load('../src/lib/leads/intake.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'node:crypto':crypto,'@/lib/supabase/admin':{getServiceRoleClient:()=>client}});}
+function intake(client){return load('../src/lib/leads/intake.ts',{'server-only':{},'@/lib/email/delivery-commands':{callDeliveryCommand},'node:crypto':crypto,'./lead-follow-up-policy.mjs':{contactPreferenceError},'@/lib/supabase/admin':{getServiceRoleClient:()=>client}});}
 const request=extra=>new Request('http://localhost/api/leads',{method:'POST',body:body(extra)});
 function notice({configured=true,source={attempt_id:attemptId},claim=attemptId,batch=[jobId,attemptId],failBatch=false}={}) {
  const calls=[];const db={rpc:async(name,args)=>{calls.push({name,args});if(name==='get_website_notice_repair')return{data:source,error:null};if(name==='claim_website_lead_notification')return{data:claim,error:null};if(name==='prepare_website_notice_batch')return{data:batch,error:failBatch?{message:'private'}:null};assert.fail(name);}};
@@ -50,4 +51,19 @@ test('failed saves and uncertain notifications cannot leak provider or database 
 });
 test('notice labels distinguish provider acceptance, uncertain delivery and legacy records',()=>{
  const {websiteLeadNoticeLabel:label}=load('../src/lib/leads/notice-status.ts');assert.equal(label('accepted','sent'),'Accepted by email provider');assert.match(label('unknown','failed'),/review before retry/);assert.match(label('sending','pending'),/review before retry/);assert.equal(label(null,'sent'),'Sent');assert.match(label('not_attempted','skipped'),/check email setup/);
+});
+
+test('email-preferred route requests without email stop before persistence or office notice',async()=>{
+ for(const email of ['', '   ']){
+  const r=route();const response=await r.POST(req({preferred_contact_method:'email',email}));
+  assert.equal(response.status,400);assert.equal(r.calls.parsed,1);assert.equal(r.calls.saved,0);assert.equal(r.calls.notices,0);
+  const payload=await response.json();assert.equal(payload.ok,false);assert.match(payload.message,/email address/);
+ }
+});
+test('non-email route preferences preserve optional email',async()=>{
+ for(const preferred_contact_method of ['phone','text','']){
+  const r=route();const response=await r.POST(req({preferred_contact_method,email:''}));
+  assert.equal(response.status,201);assert.equal(r.calls.saved,1);assert.equal(r.calls.notices,1);
+  assert.deepEqual(await response.json(),{ok:true,message:'Request received.'});
+ }
 });
